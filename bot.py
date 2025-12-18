@@ -7629,6 +7629,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             oi_trigger      = (cfg.get("trade_oi", 0) and oi_prev is not None and oi_now is not None)
             
             # Log strategy triggers for debugging
+            if is_bitk:
+                logger.info(f"[{uid}] Scryptomera signal detected: trade_scryptomera={cfg.get('trade_scryptomera', 0)}, bitk_trigger={bitk_trigger}, symbol={symbol}")
             if is_scalper:
                 logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}")
             if is_wyckoff:
@@ -7663,10 +7665,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 scrypto_settings = db.get_strategy_settings(uid, "scryptomera")
                 scrypto_direction = scrypto_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
+                logger.info(f"[{uid}] Scryptomera direction check: signal={signal_direction}, allowed={scrypto_direction}")
                 
                 if scrypto_direction != "all" and scrypto_direction != signal_direction:
-                    logger.debug(f"[{uid}] {symbol}: Scryptomera direction filter - signal={signal_direction}, allowed={scrypto_direction} → skip")
+                    logger.info(f"[{uid}] {symbol}: Scryptomera direction filter - signal={signal_direction}, allowed={scrypto_direction} → skip")
                     bitk_trigger = False
+                else:
+                    logger.info(f"[{uid}] Scryptomera direction OK, proceeding with {symbol}")
 
             # Check Scalper direction filter
             if scalper_trigger:
@@ -7678,7 +7683,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     logger.debug(f"[{uid}] {symbol}: Scalper direction filter - signal={signal_direction}, allowed={scalper_direction} → skip")
                     scalper_trigger = False
 
-            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or oi_trigger):
+            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or wyckoff_trigger or oi_trigger):
                 continue
 
             # =====================================================
@@ -7819,11 +7824,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if bitk_trigger:
+                logger.info(f"[{uid}] 🔮 Processing Scryptomera trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "scryptomera")
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side)
                 user_sl_pct = params["sl_pct"]
                 risk_pct = params["percent"]
+                logger.info(f"[{uid}] Scryptomera params: sl_pct={user_sl_pct}, risk_pct={risk_pct}, order_type={'limit' if use_limit else 'market'}")
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
