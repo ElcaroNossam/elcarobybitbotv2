@@ -340,50 +340,54 @@ TEXTS = {
         '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Входы/ошибки
-    'oi_limit_entry':              '🟡 OI лимит-вход {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ Ошибка лимит-входа: {msg}',
-    'oi_market_entry':             '🚀 OI маркет {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ Ошибка маркет-входа: {msg}',
+    # Входы/ошибки - унифицированный формат с полной информацией
+    'oi_limit_entry':              '📉 *OI Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ OI Limit ошибка: {msg}',
+    'oi_market_entry':             '📉 *OI Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI Market ошибка: {msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 RSI+BB лимит-вход {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ RSI+BB маркет {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ Ошибка маркет-входа (RSI+BB): {msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *RSI+BB Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ RSI+BB Market ошибка: {msg}',
 
     'oi_analysis':                 '📊 *Аналитика OI {symbol}* {side}',
 
-    # Scryptomera (опционально отдельные строки)
-    'bitk_limit_entry':            '🔮 Scryptomera: лимит-вход {symbol} @ {price:.6f}',
-    'bitk_limit_error':            '❌ Scryptomera: ошибка лимит-входа: {msg}',
-    'bitk_market_entry':           '🚀 Scryptomera: маркет {symbol} @ {price:.6f}',
-    'bitk_market_error':           '❌ Scryptomera: ошибка маркета: {msg}',
+    # Scryptomera
+    'bitk_limit_entry':            '🔮 *Scryptomera Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_limit_error':            '❌ Scryptomera Limit ошибка: {msg}',
+    'bitk_market_entry':           '🔮 *Scryptomera Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_error':           '❌ Scryptomera Market ошибка: {msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
-    # Scalper (DropsBot)
-    'scalper_limit_entry':         '🎯 Scalper: лимит-вход {symbol} @ {price:.6f}',
-    'scalper_limit_error':         '❌ Scalper: ошибка лимит-входа: {msg}',
-    'scalper_market_entry':        '🚀 Scalper: маркет {symbol} @ {price:.6f}',
-    'scalper_market_error':        '❌ Scalper: ошибка: {msg}',
-    'scalper_market_ok':           '🎯 Scalper: МАРКЕТ {symbol} qty={q} (SL={sl_risk}%)',
-    'scalper_analysis':            'Scalper: {side} @ {price}',
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ Scalper Limit ошибка: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ Scalper Market ошибка: {msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
     # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 Elcaro: лимит-вход {symbol} @ {price:.6f}',
-    'elcaro_limit_error':          '❌ Elcaro: ошибка лимит-входа: {msg}',
-    'elcaro_market_entry':         '🚀 Elcaro: маркет {symbol} @ {price:.6f}',
-    'elcaro_market_error':         '❌ Elcaro: ошибка: {msg}',
-    'elcaro_market_ok':            '🔥 Elcaro: МАРКЕТ {symbol} qty={q} (SL={sl_risk}%)',
-    'elcaro_analysis':             'Elcaro Heatmap: {side} @ {price}',
+    'elcaro_limit_entry':          '🔥 *Elcaro Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Elcaro Limit ошибка: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Elcaro Market ошибка: {msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
     # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 Wyckoff лимитный вход {symbol} @ {price:.6f}',
-    'wyckoff_limit_error':         '❌ Wyckoff ошибка лимитного входа: {msg}',
-    'wyckoff_market_entry':        '🚀 Wyckoff рыночный {symbol} @ {price:.6f}',
-    'wyckoff_market_error':        '❌ Wyckoff ошибка рыночного входа: {msg}',
-    'wyckoff_market_ok':           '📐 Wyckoff: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'wyckoff_analysis':            'Wyckoff: {side} @ {price}',
+    'wyckoff_limit_entry':         '📐 *Wyckoff Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ Wyckoff Limit ошибка: {msg}',
+    'wyckoff_market_entry':        '📐 *Wyckoff Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ Wyckoff Market ошибка: {msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
     'feature_wyckoff':             'Wyckoff',
 
     # Админ-панель

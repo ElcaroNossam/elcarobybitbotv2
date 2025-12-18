@@ -7772,11 +7772,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         inc_pyramid(uid, symbol, side)
                         await ctx.bot.send_message(
                             uid,
-                            t.get('rsi_bb_limit_entry', "RSI+BB: limit {symbol} @ {price}")
-                             .format(symbol=symbol, price=liq)
+                            t.get('rsi_bb_limit_entry', "📊 RSI+BB Limit: {symbol} {side} @ {price:.6f} qty={qty}")
+                             .format(symbol=symbol, side=side, price=liq, qty=qty, sl_pct=sl_pct),
+                            parse_mode="Markdown"
                         )
                     except Exception as e:
-                        await ctx.bot.send_message(uid, t.get('oi_limit_error', "Limit error: {msg}").format(msg=str(e)))
+                        await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "RSI+BB error: {msg}").format(msg=str(e)))
                 else:
                     try:
                         rv = float(rsi_val)
@@ -7787,17 +7788,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             t.get('rsi_zone_overbought', 'overbought') if rv > 77 else
                             t.get('rsi_zone_neutral', 'neutral')
                         )
-                        try:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('rsi_bb_analysis', 'RSI+BB: {side} @ {price} | RSI {rsi} ({zone}) | BB [{bb_lo} .. {bb_hi}]')
-                                 .format(price=spot_price, rsi=rv, zone=rsi_zone,
-                                         bb_hi=hi, bb_lo=lo, side=('LONG' if side=='Buy' else 'SHORT')),
-                                parse_mode="Markdown"
-                            )
-                        except Exception:
-                            pass
-
+                        
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="rsi_bb", leverage=user_leverage)
                         inc_pyramid(uid, symbol, side)
                         
@@ -7806,6 +7797,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             user_id=uid, signal_id=signal_id, symbol=symbol,
                             side=side, size=qty, entry_price=spot_price,
                             timeframe=timeframe, strategy="rsi_bb"
+                        )
+                        
+                        # Send unified entry message
+                        side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('rsi_bb_market_ok', '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%')
+                             .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, 
+                                     rsi=rv, zone=rsi_zone, sl_pct=sl_pct),
+                            parse_mode="Markdown"
                         )
                         
                         # Place ladder limit orders if enabled
@@ -7845,27 +7846,19 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 signal_id=(signal_id or 0), strategy="scryptomera"
                             )
                             inc_pyramid(uid, symbol, side)
+                            side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('bitk_limit_entry', "Scryptomera: limit {symbol} @ {price}")
-                                .format(symbol=symbol, price=liq)
+                                t.get('bitk_limit_entry', "🔮 Scryptomera Limit: {symbol} {side} @ {price:.6f}")
+                                .format(symbol=symbol, side=side_display, price=liq, qty=qty, sl_pct=user_sl_pct),
+                                parse_mode="Markdown"
                             )
                         except Exception as e:
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('bitk_limit_error', "Bitk limit error: {msg}").format(msg=str(e))
+                                t.get('bitk_limit_error', "Scryptomera limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        try:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('bitk_analysis', 'Bitk: {side} @ {price}')
-                                .format(price=spot_price, side=('LONG' if side=='Buy' else 'SHORT')),
-                                parse_mode="Markdown"
-                            )
-                        except Exception:
-                            pass
-
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scryptomera", leverage=user_leverage)
                         inc_pyramid(uid, symbol, side)
                         
@@ -7876,10 +7869,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             timeframe=timeframe, strategy="scryptomera"
                         )
                         
+                        side_display = 'LONG' if side == 'Buy' else 'SHORT'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('bitk_market_ok', "Bitk: MARKET {symbol} qty={q} (user SL={sl_risk}%)")
-                            .format(symbol=symbol, q=qty, sl_risk=user_sl_pct)
+                            t.get('bitk_market_ok', "🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                            .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, sl_pct=user_sl_pct),
+                            parse_mode="Markdown"
                         )
                         
                         # Place ladder limit orders if enabled
@@ -7923,10 +7918,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 signal_id=(signal_id or 0), strategy="scalper"
                             )
                             inc_pyramid(uid, symbol, side)
+                            side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('scalper_limit_entry', "Scalper: limit {symbol} @ {price}")
-                                .format(symbol=symbol, price=liq)
+                                t.get('scalper_limit_entry', "⚡ Scalper Limit: {symbol} {side} @ {price:.6f}")
+                                .format(symbol=symbol, side=side_display, price=liq, qty=qty, sl_pct=user_sl_pct),
+                                parse_mode="Markdown"
                             )
                         except Exception as e:
                             await ctx.bot.send_message(
@@ -7934,16 +7931,6 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 t.get('scalper_limit_error', "Scalper limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        try:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('scalper_analysis', 'Scalper: {side} @ {price}')
-                                .format(price=spot_price, side=('LONG' if side=='Buy' else 'SHORT')),
-                                parse_mode="Markdown"
-                            )
-                        except Exception:
-                            pass
-
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scalper", leverage=user_leverage)
                         inc_pyramid(uid, symbol, side)
                         
@@ -7954,10 +7941,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             timeframe=timeframe, strategy="scalper"
                         )
                         
+                        side_display = 'LONG' if side == 'Buy' else 'SHORT'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('scalper_market_ok', "Scalper: MARKET {symbol} qty={q} (user SL={sl_risk}%)")
-                            .format(symbol=symbol, q=qty, sl_risk=user_sl_pct)
+                            t.get('scalper_market_ok', "⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                            .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, sl_pct=user_sl_pct),
+                            parse_mode="Markdown"
                         )
                         
                         # Place ladder limit orders if enabled
@@ -8051,10 +8040,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 signal_id=(signal_id or 0), strategy="elcaro"
                             )
                             inc_pyramid(uid, symbol, side)
+                            side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('elcaro_limit_entry', "🔥 Elcaro limit {symbol} @ {price:.6f}")
-                                .format(symbol=symbol, price=elcaro_entry)
+                                t.get('elcaro_limit_entry', "🔥 *Elcaro Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                                .format(symbol=symbol, side=side_display, price=elcaro_entry, qty=qty, sl_pct=sl_pct),
+                                parse_mode="Markdown"
                             )
                         except Exception as e:
                             await ctx.bot.send_message(
@@ -8175,10 +8166,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 signal_id=(signal_id or 0), strategy="wyckoff"
                             )
                             inc_pyramid(uid, symbol, side)
+                            side_display = 'LONG' if side == 'Buy' else 'SHORT'
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('wyckoff_limit_entry', "📊 Wyckoff limit {symbol} @ {price:.6f}")
-                                .format(symbol=symbol, price=wyckoff_entry)
+                                t.get('wyckoff_limit_entry', "📐 *Wyckoff Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                                .format(symbol=symbol, side=side_display, price=wyckoff_entry, qty=qty, sl_pct=wyckoff_sl_pct),
+                                parse_mode="Markdown"
                             )
                         except Exception as e:
                             await ctx.bot.send_message(
@@ -8271,8 +8264,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         )
                         await ctx.bot.send_message(
                             uid,
-                            t.get('oi_limit_entry', "OI: LIMIT {symbol} @ {p} qty={q}")
-                             .format(symbol=symbol, p=round(lim_price,6), q=qty_lim)
+                            t.get('oi_limit_entry', "📉 OI Limit: {symbol} {side} @ {price:.6f} qty={qty}")
+                             .format(symbol=symbol, side=side, price=lim_price, qty=qty_lim, sl_pct=user_sl_pct),
+                            parse_mode="Markdown"
                         )
                         inc_pyramid(uid, symbol, side)
                     else:
@@ -8289,8 +8283,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         await ctx.bot.send_message(
                             uid,
-                            t.get('oi_market_entry', "OI: MARKET {symbol} qty={q}, (SL={sl_risk}%)")
-                             .format(symbol=symbol, q=qty_mkt, sl_risk=user_sl_pct)
+                            t.get('oi_market_ok', "📉 OI Market: {symbol} {side} qty={qty} (SL={sl_pct}%)")
+                             .format(symbol=symbol, side=side, price=spot_price, qty=qty_mkt, sl_pct=user_sl_pct),
+                            parse_mode="Markdown"
                         )
                         inc_pyramid(uid, symbol, side)
                         
