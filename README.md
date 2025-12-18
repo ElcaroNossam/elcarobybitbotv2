@@ -1,120 +1,73 @@
-# Bybit Demo Trading Bot 🤖📈
+# Elcaro Bybit Trading Bot v2
 
-Асинхронный Telegram-бот для автоматической торговли криптовалютными фьючерсами на бирже Bybit.
+Async Telegram trading bot for Bybit cryptocurrency futures.
 
-## 📋 Возможности
+## Server Setup
 
-- **Автоматическая торговля** по сигналам из Telegram-каналов
-- **DCA (Dollar Cost Averaging)** — усреднение позиций при движении против
-- **Pyramid trading** — пирамидинг при движении в профит
-- **ATR-based TP/SL** — динамические стоп-лосс и тейк-профит на основе волатильности
-- **Мультиязычность** — поддержка 15 языков (RU, EN, DE, FR, ES, IT, PL, UK, CS, LT, SQ, AR, HE, JA, ZH)
-- **Фильтрация монет** — по группам (ALL, TOP100, VOLATILE)
-- **Индикаторы** — RSI, Bollinger Bands, Open Interest
-- **Мониторинг рынка** — BTC доминация, новости CoinDesk
+**Path:** `/home/ubuntu/project/elcarobybitbotv2`
 
-## 🛠 Требования
+### Quick Start
+
+```bash
+# 1. Go to project folder
+cd /home/ubuntu/project/elcarobybitbotv2
+
+# 2. Create .env file
+cp .env.example .env
+nano .env  # Fill in TELEGRAM_TOKEN and SIGNAL_CHANNEL_IDS
+
+# 3. Install and run
+./start.sh --install -b
+```
+
+### Commands
+
+```bash
+./start.sh                # Run in foreground
+./start.sh -b             # Run in background
+./start.sh --install -b   # Install deps + run
+./start.sh --status       # Check status
+./start.sh --stop         # Stop bot
+./start.sh --restart      # Restart bot
+```
+
+### Systemd (Autostart)
+
+```bash
+# Install service
+sudo cp bybit-bot.service /etc/systemd/system/elcaro-bot.service
+sudo systemctl daemon-reload
+sudo systemctl enable elcaro-bot
+sudo systemctl start elcaro-bot
+
+# Commands
+sudo systemctl status elcaro-bot
+sudo systemctl stop elcaro-bot
+sudo systemctl restart elcaro-bot
+journalctl -u elcaro-bot -f  # View logs
+```
+
+### Logs
+
+```bash
+tail -f bot.log           # View logs
+tail -100 bot.log         # Last 100 lines
+```
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `bot.py` | Main bot logic |
+| `db.py` | SQLite database |
+| `coin_params.py` | Trading parameters |
+| `translations/` | Multi-language support |
+| `.env` | Configuration (secrets) |
+| `start.sh` | Startup script |
+| `bot.log` | Log file |
+| `bot.db` | Database |
+
+## Requirements
 
 - Python 3.10+
-- Telegram Bot Token
-- Bybit API ключи (Demo или Production)
-
-## 📦 Установка
-
-```bash
-# Клонирование репозитория
-git clone https://github.com/ElcaroNossam/bybitv1.git
-cd bybitv1/bybit_demo
-
-# Создание виртуального окружения
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или venv\Scripts\activate  # Windows
-
-# Установка зависимостей
-pip install -r requirements.txt
-```
-
-## ⚙️ Конфигурация
-
-Создайте файл `.env` в корне проекта:
-
-```env
-# Telegram Bot Token (обязательно)
-TELEGRAM_TOKEN=your_bot_token_here
-
-# ID каналов для сигналов (через запятую)
-SIGNAL_CHANNEL_IDS=123456789,-987654321
-
-# Опционально: DCA настройки
-DCA_LEG_TIMEOUT_SEC=72000
-DCA_POLL_SEC=1.0
-DCA_LAST_LEG_EXTRA_PCT=0.8
-```
-
-## 🚀 Запуск
-
-```bash
-python bot.py
-```
-
-Бот запустится в режиме polling и будет слушать команды и сигналы.
-
-## 📱 Команды бота
-
-| Команда | Описание |
-|---------|----------|
-| `/start` | Начало работы, главное меню |
-| `/account` | Баланс и PnL |
-| `/positions` | Открытые позиции |
-| `/openorders` | Активные ордера |
-| `/market` | Обзор рынка + новости |
-| `/lang` | Выбор языка |
-| `/terms` | Пользовательское соглашение |
-
-## 📁 Структура проекта
-
-```
-bybit_demo/
-├── bot.py              # Главный файл (обработчики, Bybit API, логика)
-├── db.py               # SQLite база данных
-├── coin_params.py      # Торговые параметры, константы
-├── requirements.txt    # Зависимости Python
-├── privacy.txt         # Текст пользовательского соглашения
-├── translations/       # Локализации
-│   ├── en.py
-│   ├── ru.py
-│   └── ... (13 других языков)
-└── .env               # Переменные окружения (не в git!)
-```
-
-## 🔐 Безопасность
-
-- API ключи пользователей хранятся в SQLite БД (`bot.db`)
-- Используется HMAC подпись для Bybit API
-- Доступ к боту по приглашению (whitelist)
-- Администратор модерирует новых пользователей
-
-## 🗄 База данных
-
-SQLite с WAL режимом для производительности:
-
-- `users` — пользователи и их настройки
-- `active_positions` — открытые позиции
-- `trade_logs` — история сделок
-- `signals` — полученные сигналы
-- `pending_limit_orders` — лимитные ордера
-
-## ⚠️ Важно
-
-- По умолчанию бот использует **Demo API** (`api-demo.bybit.com`)
-- Для реальной торговли измените `BYBIT_BASE` в `bot.py`
-- Настройте `ADMIN_ID` в `coin_params.py` на свой Telegram ID
-
-## 📄 Лицензия
-
-© 2025 Illia Teslenko. Все права защищены. Проприетарная лицензия.
-
----
-
-**Внимание:** Торговля криптовалютами сопряжена с высоким риском. Используйте бота на свой страх и риск.
+- Ubuntu 22.04+ (server)
