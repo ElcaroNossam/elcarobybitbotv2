@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *BASIC PLÁN*',
     'basic_desc': '''✅ Plný přístup k demo účtu
-✅ Skutečný účet: všechny strategie
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ Skutečný účet: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — pouze Premium
 ✅ Standardní podpora
 ✅ Dynamický SL/TP založený na ATR''',
     'basic_1m': '🥈 1 měsíc — {price}⭐',

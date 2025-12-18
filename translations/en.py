@@ -735,8 +735,8 @@ TEXTS = {
     # Basic plan
     'basic_title': '🥈 *BASIC PLAN*',
     'basic_desc': '''✅ Full demo account access
-✅ Real account: all strategies
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ Real account: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — Premium only
 ✅ Standard support
 ✅ ATR-based dynamic SL/TP''',
     'basic_1m': '🥈 1 Month — {price}⭐',

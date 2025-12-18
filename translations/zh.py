@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *基础计划*',
     'basic_desc': '''✅ 完全访问模拟账户
-✅ 实盘账户: 所有策略
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ 实盘账户: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — 仅限Premium
 ✅ 标准支持
 ✅ 基于ATR的动态SL/TP''',
     'basic_1m': '🥈 1个月 — {price}⭐',

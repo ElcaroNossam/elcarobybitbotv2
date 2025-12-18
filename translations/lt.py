@@ -735,8 +735,8 @@ TEXTS = {
     
     'basic_title': '🥈 *BASIC PLANAS*',
     'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
-✅ Reali sąskaita: visos strategijos
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ Reali sąskaita: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — tik Premium
 ✅ Standartinė pagalba
 ✅ Dinaminis SL/TP pagal ATR''',
     'basic_1m': '🥈 1 mėnuo — {price}⭐',

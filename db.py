@@ -1909,21 +1909,21 @@ LICENSE_TYPES = {
         "demo_access": True,
         "real_access": True,
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"],
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "spot"],
     },
     "basic": {
         "name": "Basic", 
         "demo_access": True,
         "real_access": True,
-        "all_strategies": True,  # All strategies available
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"],
+        "all_strategies": False,
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper"],  # No elcaro, wyckoff, spot
     },
     "trial": {
         "name": "Trial",
         "demo_access": True,
         "real_access": False,  # Demo only
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"],
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "spot"],
     },
     "none": {
         "name": "No License",

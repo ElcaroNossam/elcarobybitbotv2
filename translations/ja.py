@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *ベーシックプラン*',
     'basic_desc': '''✅ デモ口座へのフルアクセス
-✅ 実口座: すべての戦略
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ 実口座: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — Premiumのみ
 ✅ 標準サポート
 ✅ ATRベースの動的SL/TP''',
     'basic_1m': '🥈 1ヶ月 — {price}⭐',

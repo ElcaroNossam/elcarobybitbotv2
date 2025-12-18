@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *PLAN BASIC*',
     'basic_desc': '''✅ Pełny dostęp do konta demo
-✅ Prawdziwe konto: wszystkie strategie
-✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
+✅ Prawdziwe konto: OI, RSI+BB, Scryptomera, Scalper
+❌ Elcaro, Wyckoff, Spot — tylko Premium
 ✅ Standardowe wsparcie
 ✅ Dynamiczny SL/TP oparty na ATR''',
     'basic_1m': '🥈 1 Miesiąc — {price}⭐',
