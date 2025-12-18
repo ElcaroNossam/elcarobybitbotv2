@@ -7632,7 +7632,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if is_bitk:
                 logger.info(f"[{uid}] Scryptomera signal detected: trade_scryptomera={cfg.get('trade_scryptomera', 0)}, bitk_trigger={bitk_trigger}, symbol={symbol}")
             if is_scalper:
-                logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}")
+                logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}, symbol={symbol}")
             if is_wyckoff:
                 logger.info(f"[{uid}] Wyckoff signal detected: trade_wyckoff={cfg.get('trade_wyckoff', 0)}, wyckoff_trigger={wyckoff_trigger}")
 
@@ -7678,10 +7678,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 scalper_settings = db.get_strategy_settings(uid, "scalper")
                 scalper_direction = scalper_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
+                logger.info(f"[{uid}] Scalper direction check: signal={signal_direction}, allowed={scalper_direction}")
                 
                 if scalper_direction != "all" and scalper_direction != signal_direction:
-                    logger.debug(f"[{uid}] {symbol}: Scalper direction filter - signal={signal_direction}, allowed={scalper_direction} → skip")
+                    logger.info(f"[{uid}] {symbol}: Scalper direction filter - signal={signal_direction}, allowed={scalper_direction} → skip")
                     scalper_trigger = False
+                else:
+                    logger.info(f"[{uid}] Scalper direction OK, proceeding with {symbol}")
 
             if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or wyckoff_trigger or oi_trigger):
                 continue
@@ -8559,8 +8562,10 @@ async def monitor_positions_loop(app: Application):
                             continue
 
                         if sym not in open_syms:
+                            logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
                             try:
                                 rec = await fetch_last_closed_pnl(uid, sym)
+                                logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
                             except Exception as e:
                                 logger.warning(f"No closed-pnl for {uid}:{sym}: {e}")
                                 try:
@@ -8574,6 +8579,7 @@ async def monitor_positions_loop(app: Application):
                             exit_price  = float(rec["avgExitPrice"])
 
                             exit_reason, exit_order_type = await detect_exit_reason(uid, sym)
+                            logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type})")
                             reason_text = exit_reason  
 
                             try:
@@ -8630,6 +8636,7 @@ async def monitor_positions_loop(app: Application):
                                     "manual": "Manual",
                                 }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
                                 
+                                logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
                                 await bot.send_message(
                                     uid,
                                     t['position_closed'].format(
