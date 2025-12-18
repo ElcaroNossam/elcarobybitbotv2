@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *תוכנית BASIC*',
     'basic_desc': '''✅ גישה מלאה לחשבון דמו
-✅ חשבון אמיתי: אסטרטגיות OI, RSI+BB, Elcaro בלבד
-❌ Scryptomera, Scalper — דמו בלבד
+✅ חשבון אמיתי: כל האסטרטגיות
+✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
 ✅ תמיכה רגילה
 ✅ SL/TP דינמי מבוסס ATR''',
     'basic_1m': '🥈 חודש 1 — {price}⭐',

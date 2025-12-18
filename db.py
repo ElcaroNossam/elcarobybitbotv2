@@ -1914,9 +1914,9 @@ LICENSE_TYPES = {
     "basic": {
         "name": "Basic", 
         "demo_access": True,
-        "real_access": True,  # Limited strategies on real
-        "all_strategies": False,
-        "strategies": ["oi", "rsi_bb", "elcaro"],  # Only these on real
+        "real_access": True,
+        "all_strategies": True,  # All strategies available
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"],
     },
     "trial": {
         "name": "Trial",

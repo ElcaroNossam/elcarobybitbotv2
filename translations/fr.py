@@ -738,8 +738,8 @@ TEXTS = {
     # Basic plan
     'basic_title': '🥈 *PLAN BASIC*',
     'basic_desc': '''✅ Accès complet au compte démo
-✅ Compte réel: stratégies OI, RSI+BB, Elcaro uniquement
-❌ Scryptomera, Scalper — démo uniquement
+✅ Compte réel: toutes les stratégies
+✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
 ✅ Support standard
 ✅ SL/TP dynamique basé sur ATR''',
     'basic_1m': '🥈 1 Mois — {price}⭐',

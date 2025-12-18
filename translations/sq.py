@@ -734,8 +734,8 @@ TEXTS = {
     
     'basic_title': '🥈 *PLANI BASIC*',
     'basic_desc': '''✅ Akses i plotë në llogarinë demo
-✅ Llogari reale: vetëm strategjitë OI, RSI+BB, Elcaro
-❌ Scryptomera, Scalper — vetëm demo
+✅ Llogari reale: të gjitha strategjitë
+✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
 ✅ Mbështetje standarde
 ✅ SL/TP dinamik bazuar në ATR''',
     'basic_1m': '🥈 1 Muaj — {price}⭐',

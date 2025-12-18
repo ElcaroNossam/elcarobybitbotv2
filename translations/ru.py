@@ -634,6 +634,7 @@ TEXTS = {
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
     'stats_elcaro':                  '🔥 Elcaro',
+    'stats_wyckoff':                 '📐 Wyckoff',
     'stats_spot':                    '💹 Спот',
     'stats_spot_title':              'Статистика Спот DCA',
     'stats_spot_config':             'Конфигурация',
@@ -733,8 +734,8 @@ TEXTS = {
     # Basic план
     'basic_title': '🥈 *BASIC ПЛАН*',
     'basic_desc': '''✅ Полный доступ к демо аккаунту
-✅ Реальный аккаунт: только OI, RSI+BB, Elcaro
-❌ Scryptomera, Scalper — только демо
+✅ Реальный аккаунт: все стратегии
+✅ OI, RSI+BB, Elcaro, Scryptomera, Scalper, Wyckoff
 ✅ Стандартная поддержка
 ✅ ATR динамический SL/TP''',
     'basic_1m': '🥈 1 Месяц — {price}⭐',

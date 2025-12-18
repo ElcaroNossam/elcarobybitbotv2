@@ -6355,6 +6355,7 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         ("scryptomera", t.get('stats_scryptomera', '🐱 Scryptomera')),
         ("scalper", t.get('stats_scalper', '⚡ Scalper')),
         ("elcaro", t.get('stats_elcaro', '🔥 Elcaro')),
+        ("wyckoff", t.get('stats_wyckoff', '📐 Wyckoff')),
         ("spot", t.get('stats_spot', '💹 Spot')),
     ]
     
@@ -8622,6 +8623,8 @@ async def monitor_positions_loop(app: Application):
                                     "rsi_bb": "RSI+BB",
                                     "oi": "OI",
                                     "elcaro": "Elcaro",
+                                    "wyckoff": "Wyckoff",
+                                    "fibonacci": "Fibonacci",
                                     "manual": "Manual",
                                 }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
                                 
