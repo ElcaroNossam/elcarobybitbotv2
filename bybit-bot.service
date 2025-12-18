@@ -1,0 +1,40 @@
+# Bybit Demo Trading Bot - Systemd Service
+# 
+# Installation:
+#   1. Copy this file: sudo cp bybit-bot.service /etc/systemd/system/
+#   2. Edit paths in the file to match your installation
+#   3. Reload systemd: sudo systemctl daemon-reload
+#   4. Enable autostart: sudo systemctl enable bybit-bot
+#   5. Start service: sudo systemctl start bybit-bot
+#
+# Commands:
+#   sudo systemctl status bybit-bot    # Check status
+#   sudo systemctl start bybit-bot     # Start bot
+#   sudo systemctl stop bybit-bot      # Stop bot
+#   sudo systemctl restart bybit-bot   # Restart bot
+#   journalctl -u bybit-bot -f         # View logs
+
+[Unit]
+Description=Bybit Demo Trading Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=YOUR_USERNAME
+WorkingDirectory=/path/to/bybit_demo
+Environment=PATH=/path/to/bybit_demo/venv/bin:/usr/bin:/bin
+ExecStart=/path/to/bybit_demo/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/path/to/bybit_demo/bot.log
+StandardError=append:/path/to/bybit_demo/bot.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

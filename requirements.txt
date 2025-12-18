@@ -1,0 +1,43 @@
+# Bybit Demo Trading Bot - Dependencies
+# Python 3.10+ required
+# Generated: 2025-12-18
+
+# =====================================================
+# CORE DEPENDENCIES
+# =====================================================
+
+# Telegram Bot Framework (v22.x)
+python-telegram-bot[httpx]>=22.0
+
+# Async HTTP client
+aiohttp>=3.13.0
+
+# Environment variables management
+python-dotenv>=1.2.0
+
+# =====================================================
+# FEATURE DEPENDENCIES
+# =====================================================
+
+# RSS feed parsing (for news integration)
+feedparser>=6.0.10
+
+# PDF generation (for user guide)
+reportlab>=4.4.0
+
+# Image processing (for charts/screenshots)
+pillow>=12.0.0
+
+# =====================================================
+# OPTIONAL (already included as sub-dependencies)
+# =====================================================
+# httpx - HTTP client (included with python-telegram-bot[httpx])
+# anyio - async utilities (included with httpx)
+# certifi - SSL certificates
+
+# =====================================================
+# STDLIB MODULES (no install needed)
+# =====================================================
+# sqlite3, asyncio, json, hmac, hashlib, re, logging
+# time, datetime, math, functools, contextlib, importlib
+# pathlib, zoneinfo, html, urllib, io, os, sys

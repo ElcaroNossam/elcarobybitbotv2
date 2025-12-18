@@ -1,0 +1,874 @@
+# -*- coding: utf-8 -*-
+TEXTS = {
+    # Main menu
+    'welcome':                     '👋 Ahoj! Vyber akci:',
+    'guide_caption':               '📚 Uživatelská příručka Trading Bota\n\nPřečtěte si tuto příručku, abyste se naučili konfigurovat strategie a efektivně používat bota.',
+    'privacy_caption':             '📜 Zásady ochrany osobních údajů a podmínky použití\n\nPečlivě si přečtěte tento dokument.',
+    'button_api':                  '🔑 API',
+    'button_secret':               '🔒 Secret',
+    'button_api_settings':         '🔑 API',
+    'button_balance':              '💰 Zůstatek USDT',
+    'button_orders':               '📜 Moje objednávky',
+    'button_positions':            '📊 Pozice',
+    'button_percent':              '🎚 % na obchod',
+    'button_coins':                '💠 Skupina mincí',
+    'button_market':               '📈 Trh',
+    'button_manual_order':         '✋ Ruční příkaz',
+    'button_update_tpsl':          '🆕 TP/SL',
+    'button_cancel_order':         '❌ Zrušit příkaz',
+    'button_limit_only':           '🎯 Pouze Limit',
+    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_rsi_bb':        '📊 RSI+BB',
+    'button_scryptomera':          '🔮 Scryptomera',
+    'button_settings':             '⚙️ Nastavení',
+    'button_indicators':           '💡 Indikátory',
+    'button_support':              '🆘 Podpora',
+    'toggle_oi_status':            '🔀 {feature}: {status}',
+    'toggle_rsi_bb_status':        '📊 {feature}: {status}',
+    'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
+
+    # Inline buttons for manual order
+    'button_order_limit':          'Limit',
+    'button_order_market':         'Market',
+
+    # ATR / Stop mode
+    'atr_mode_changed':            '🔄 Režim TP/SL je nyní: *{mode_text}*',
+    'atr_mode_wilder':             'Wilder-ATR',
+    'atr_mode_fixed':              'Pevné %',
+
+    # Limits
+    'limit_positions_exceeded':    '🚫 Překročen limit otevřených pozic ({max})',
+    'limit_limit_orders_exceeded': '🚫 Překročen limit limitních příkazů ({max})',
+
+    # Languages
+    'select_language':             'Vyber jazyk:',
+    'language_set':                'Jazyk nastaven na:',
+    'lang_en':                     'English',
+    'lang_cs':                     'Čeština',
+
+    # Manual order
+    'order_type_prompt':           'Vyber typ příkazu:',
+    'limit_order_format': (
+        "Zadej parametry limitního příkazu:\n"
+        "`SYMBOL SIDE PRICE QTY`\n"
+        "kde SIDE = LONG nebo SHORT\n"
+        "Příklad: `BTCUSDT LONG 20000 0.1`\n\n"
+        "Pro zrušení pošli ❌ Zrušit příkaz"
+    ),
+    'market_order_format': (
+        "Zadej parametry market příkazu:\n"
+        "`SYMBOL SIDE QTY`\n"
+        "kde SIDE = LONG nebo SHORT\n"
+        "Příklad: `BTCUSDT SHORT 0.1`\n\n"
+        "Pro zrušení pošli ❌ Zrušit příkaz"
+    ),
+    'order_success':               '✅ Příkaz vytvořen úspěšně!',
+    'order_create_error':          '❌ Nepodařilo se vytvořit příkaz: {msg}',
+    'order_fail_leverage':         (
+        "❌ Příkaz nebyl vytvořen: na tvém Bybit účtu je pro tuto velikost příliš vysoká páka.\n"
+        "Sniž páku v nastavení Bybit."
+    ),
+    'order_parse_error':           '❌ Chyba parsování: {error}',
+    'price_error_min':             '❌ Chyba ceny: musí být ≥{min}',
+    'price_error_step':            '❌ Chyba ceny: musí být násobkem {step}',
+    'qty_error_min':               '❌ Chyba množství: musí být ≥{min}',
+    'qty_error_step':              '❌ Chyba množství: musí být násobkem {step}',
+
+    # Loading…
+    'loader':                      '⏳ Načítám data…',
+
+    # Market command
+    'market_status_heading':       '*Stav trhu:*',
+    'market_dominance_header':    'Top Mince dle Dominance',
+    'market_total_header':        'Celková Tržní Kapitalizace',
+    'market_indices_header':      'Tržní Indexy',
+    'usdt_dominance':              'Dominance USDT',
+    'btc_dominance':               'Dominance BTC',
+    'dominance_rising':            '↑ roste',
+    'dominance_falling':           '↓ klesá',
+    'dominance_stable':            '↔️ stabilní',
+    'dominance_unknown':           '❔ bez dat',
+    'btc_price':                   'Cena BTC',
+    'last_24h':                    'za posledních 24 h',
+    'alt_signal_label':            'Signál altů',
+    'alt_signal_long':             'LONG',
+    'alt_signal_short':            'SHORT',
+    'alt_signal_neutral':          'NEUTRAL',
+    'latest_news_coindesk':        '*Nejnovější zprávy (CoinDesk):*',
+
+    # Execution price error
+    'exec_price_not_found':        'Nepodařilo se najít cenu provedení pro uzavření',
+
+    # /account
+    'account_balance':             '💰 Zůstatek USDT: `{balance:.2f}`',
+    'account_realized_header':     '📈 *Realizované PnL:*',
+    'account_realized_day':        '  • Dnes : `{pnl:+.2f}` USDT',
+    'account_realized_week':       '  • 7 dní: `{pnl:+.2f}` USDT',
+    'account_unreal_header':       '📊 *Nerealizované PnL:*',
+    'account_unreal_total':        '  • Celkem: `{unreal:+.2f}` USDT',
+    'account_unreal_pct':          '  • % z IM: `{pct:+.2f}%`',
+    'account_error':               '❌ {error}',
+
+    # /show_config
+    'config_header':               '🛠 *Tvé nastavení:*',
+    'config_percent':              '• 🎚 % na obchod     : `{percent}%`',
+    'config_coins':                '• 💠 Mince           : `{coins}`',
+    'config_limit_only':           '• 🎯 Limitní příkazy : {state}',
+    'config_atr_mode':             '• 🏧 ATR trailing SL : {atr}',
+    'config_trade_oi':             '• 📊 Obchodovat OI   : {oi}',
+    'config_trade_rsi_bb':         '• 📈 Obchodovat RSI+BB: {rsi_bb}',
+    'config_tp_pct':               '• 🎯 TP%             : `{tp}%`',
+    'config_sl_pct':               '• 🛑 SL%             : `{sl}%`',
+
+    # Open orders
+    'no_open_orders':              '🚫 Žádné otevřené příkazy',
+    'open_orders_header':          '*📒 Otevřené příkazy:*',
+    'open_orders_item':            (
+        "{idx}️⃣ *{symbol}*\n"
+        "   • Směr: `{side}`\n"
+        "   • Množ.: `{qty}`\n"
+        "   • Cena : `{price}`\n"
+        "   • ID   : `{id}`"
+    ),
+    'open_orders_error':           '❌ Chyba při načítání příkazů: {error}',
+
+    # Manual coin selection
+    'enter_coins':                 "Zadej symboly oddělené čárkou, např.:\n`BTCUSDT,ETHUSDT`",
+    'coins_set_success':           '✅ Vybrané mince: {coins}',
+
+    # Positions
+    'no_positions':                '🚫 Žádné otevřené pozice',
+    'positions_header':            '📊 Tvé otevřené pozice:',
+    'position_item':               (
+        "— Pozice #{idx}: {symbol} | {side} (x{leverage})\n"
+        "  • Velikost        : {size}\n"
+        "  • Vstupní cena    : {avg:.8f}\n"
+        "  • Mark cena       : {mark:.8f}\n"
+        "  • Likvidace       : {liq}\n"
+        "  • Poč. margin     : {im:.2f}\n"
+        "  • Udrž. margin    : {mm:.2f}\n"
+        "  • Zůstatek pozice : {pm:.2f}\n"
+        "  • TP              : {tp}\n"
+        "  • SL              : {sl}\n"
+        "  • Nereal. PnL     : {pnl:+.2f} ({pct:+.2f}%)"
+    ),
+    'positions_overall':           'Celkové nerealizované PnL: {pnl:+.2f} ({pct:+.2f}%)',
+
+    # Position management (inline)
+    'open_positions_header':       '📊 *Open positions*',
+    'positions_count':             'positions',
+    'positions_count_total':       'Total positions',
+    'total_unrealized_pnl':        'Total unrealized P/L',
+    'total_pnl':                   'Total P/L',
+    'btn_close_short':             'Close',
+    'btn_close_all':               'Close all positions',
+    'btn_close_position':          'Close position',
+    'btn_confirm_close':           'Confirm close',
+    'btn_confirm_close_all':       'Yes, close all',
+    'btn_cancel':                  '❌ Cancel',
+    'btn_back':                    '🔙 Back',
+    'confirm_close_position':      'Close position',
+    'confirm_close_all':           'Close ALL positions',
+    'position_not_found':          'Position not found or already closed',
+    'position_already_closed':     'Position already closed',
+    'position_closed_success':     'Position closed',
+    'position_close_error':        'Error closing position',
+    'positions_closed':            'Positions closed',
+    'errors':                      'Errors',
+
+    # % per trade
+    'set_percent_prompt':          'Zadej procento zůstatku na obchod (např. 2.5):',
+    'percent_set_success':         '✅ % na obchod nastaveno: {pct}%',
+
+    # Limit-Only toggle
+    'limit_only_toggled':          '🔄 Pouze limitní příkazy: {state}',
+    'feature_limit_only':          'Pouze Limit',
+    'feature_oi':                  'OI',
+    'feature_rsi_bb':              'RSI+BB',
+    'status_enabled':              '✅',
+    'status_disabled':             '❌',
+
+    # Indicators
+    'indicators_header':           '📈 *Indikátory Elcaro*',
+    'indicator_1':                 '1. RSI + BB',
+    'indicator_2':                 '2. Trading Chaos',
+    'indicator_3':                 '3. Adaptivní trend',
+    'indicator_4':                 '4. Dynamická regrese',
+
+    # Support
+    'support_prompt':              '✉️ Potřebuješ pomoc? Klikni dole:',
+    'support_button':              'Kontaktovat podporu',
+
+    # Update TP/SL
+    'update_tpsl_no_positions':    '🚫 Žádné otevřené pozice',
+    'update_tpsl_prompt':          'Zadej SYMBOL TP SL, např.:\n`BTCUSDT 21000 19500`',
+    'invalid_tpsl_format':         '❌ Neplatný formát. Použij: SYMBOL TP SL\nNapř.: BTCUSDT 21000 19500',
+
+    # API / Secret
+    'enter_api':                   'Zadej svůj Bybit API Key:',
+    'api_saved':                   '✅ API klíč uložen',
+    'enter_secret':                'Zadej svůj Bybit API Secret:',
+    'secret_saved':                '✅ API secret uložen',
+
+    # Manual TP/SL (%)
+    'enter_tp':                    '❌ Zadej hodnotu TP%',
+    'tp_set_success':              '✅ TP% nastaveno: {pct}%',
+    'enter_sl':                    '❌ Zadej hodnotu SL%',
+    'sl_set_success':              '✅ SL% nastaveno: {pct}%',
+
+    # Parsing errors
+    'parse_limit_error':           'Limit: vyžaduje 4 argumenty (SYMBOL SIDE PRICE QTY)',
+    'parse_market_error':          'Market: vyžaduje 3 argumenty (SYMBOL SIDE QTY)',
+    'parse_side_error':            'SIDE musí být LONG nebo SHORT',
+
+    # Bybit HTTP helper
+    'api_missing_credentials':     '❌ API klíč/secret nenastaven',
+    'bybit_invalid_response':      '❌ Neplatná odpověď od Bybit',
+    'bybit_error':                 '❌ Chyba Bybit {path}: {data}',
+
+    # Auto notifications
+    'new_position':                '🚀 Nová pozice {symbol} @ {entry:.6f}, velikost={size}',
+    'sl_auto_set':                 '🛑 SL nastaven automaticky: {price:.6f}',
+    'auto_close_position':         '⏱ Pozice {symbol} (TF={tf}) otevřená > {tf} a ve ztrátě, uzavřena automaticky.',
+    'position_closed': (
+        '🔔 Pozice {symbol} uzavřena z důvodu *{reason}*:\n'
+        '• Strategy: `{strategy}`\n'
+        '• Vstup: `{entry:.8f}`\n'
+        '• Výstup: `{exit:.8f}`\n'
+        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+    ),
+
+    # Entries & errors
+    'oi_limit_entry':              '🟡 OI limit vstup {symbol} @ {price:.6f}',
+    'oi_limit_error':              '❌ Chyba u limit vstupu: {msg}',
+    'oi_market_entry':             '🚀 OI market vstup {symbol} @ {price:.6f}',
+    'oi_market_error':             '❌ Chyba u market vstupu: {msg}',
+
+    'rsi_bb_limit_entry':          '🟡 RSI+BB limit vstup {symbol} @ {price:.6f}',
+    'rsi_bb_market_entry':         '✅ RSI+BB market {symbol} @ {price:.6f}',
+    'rsi_bb_market_error':         '❌ Chyba u market vstupu: {msg}',
+
+    'oi_analysis':                 '📊 *OI analýza {symbol}* {side}',
+
+    # Scryptomera
+    'bitk_limit_entry':            '🔮 Scryptomera limit vstup {symbol} @ {price:.6f}',
+    'bitk_limit_error':            '❌ Scryptomera limit chyba: {msg}',
+    'bitk_market_entry':           '🔮 Scryptomera market {symbol} @ {price:.6f}',
+    'bitk_market_error':           '❌ Scryptomera market chyba: {msg}',
+
+    # Admin panel
+    'admin_panel':                 '👑 Admin panel:',
+    'admin_pause':                 '⏸️ Obchodování a notifikace pozastaveny pro všechny.',
+    'admin_resume':                '▶️ Obchodování a notifikace obnoveny pro všechny.',
+    'admin_closed':                '✅ Uzavřeno celkem {count} {type}.',
+    'admin_canceled_limits':       '✅ Zrušeno {count} limitních příkazů.',
+
+    # Coin groups
+    'select_coin_group':           'Vyber skupinu mincí:',
+    'group_all':                   'ALL',
+    'group_top100':                'TOP100',
+    'group_volatile':              'VOLATILE',
+    'group_set':                   '✅ Skupina mincí nastavena: {group}',
+
+    # RSI+BB analysis & helpers
+    'rsi_bb_analysis':     (
+        '📈 *Analýza RSI+BB*\n'
+        '• Cena: `{price:.6f}`\n'
+        '• RSI: `{rsi:.1f}` ({zone})\n'
+        '• BB horní: `{bb_hi:.4f}`\n'
+        '• BB dolní: `{bb_lo:.4f}`\n\n'
+        '*Vstup MARKET {side} dle RSI+BB*'
+    ),
+    'sl_set':                      '🛑 SL={price:.6f}',
+
+    'rsi_zone_oversold':           'Přeprodané (<30)',
+    'rsi_zone_overbought':         'Překoupené (>70)',
+    'rsi_zone_neutral':            'Neutrální (30–70)',
+
+    # TP/SL validation
+    'invalid_tpsl_long': (
+        '❌ Neplatné TP/SL pro LONG.\n'
+        'Aktuální cena: {current:.2f}\n'
+        'Očekáváno: SL < {current:.2f} < TP'
+    ),
+    'invalid_tpsl_short': (
+        '❌ Neplatné TP/SL pro SHORT.\n'
+        'Aktuální cena: {current:.2f}\n'
+        'Očekáváno: TP < {current:.2f} < SL'
+    ),
+    'no_position_symbol':          '🚫 Nemáš otevřenou pozici na {symbol}',
+    'tpsl_set_success':            '✅ TP={tp:.2f} a SL={sl:.2f} nastaveno pro {symbol}',
+
+    # Buttons & stop mode line items
+    'button_toggle_atr':           '🏧 ATR',
+    'button_lang':                 '🌐 Jazyk',
+    'button_set_tp':               '🆙 TP %',
+    'button_set_sl':               '⬇️ SL %',
+    'config_stop_mode':            'Režim stopu: *{mode}*',
+
+    # Order life-cycle & updates
+    'limit_order_filled':          '✅ Limit příkaz pro {symbol} vyplněn @ {price}',
+    'limit_order_cancelled':       '⚠️ Limit příkaz pro {symbol} (ID: {order_id}) zrušen.',
+    'fixed_sl_tp':                 '✅ {symbol}: SL na {sl}, TP na {tp}',
+    'tp_part':                     ', TP nastaven na {tp_price}',
+    'sl_tp_set':                   '✅ {symbol}: SL na {sl_price}{tp_part}',
+    'sl_set_only':                 '✅ {symbol}: SL na {sl_price}',
+    'sl_tp_initialized':           '✅ {symbol}: SL/TP inicializován na {sl}/{tp}',
+    'sl_breakeven':                '🔄 {symbol}: SL posunut na BE při {entry}',
+    'sl_tp_updated':               '✏️ {symbol}: SL/TP aktualizován na {sl}/{tp}',
+
+    'position_closed_error': (
+        '⚠️ Pozice {symbol} uzavřena, ale zápis selhal: {error}\n'
+        'Kontaktuj podporu.'
+    ),
+
+    # possible values
+    'mode_atr':                    'Wilder-ATR',
+    'mode_fixed':                  'Pevné %',
+
+    # System notices
+    'db_quarantine_notice':        '⚠️ Logy jsou dočasně pozastaveny. Tichý režim na 1 hodinu.',
+
+    # Fallback
+    'fallback':                    '❓ Použij prosím tlačítka menu.',
+    'dash': '—',
+    'mark_yes': '✅',
+    'mark_no': '—',
+    'mark_ban': '⛔️',
+
+    'banned': '🚫 Máte blokovaný přístup.',
+    'invite_only': '🔒 Přístup jen na pozvání. Počkejte na schválení adminem.',
+    'need_terms': '⚠️ Nejprve prosím přijměte podmínky: /terms',
+    'please_confirm': 'Potvrďte prosím:',
+    'terms_ok': '✅ Díky! Podmínky byly přijaty.',
+    'terms_declined': '❌ Podmínky jste odmítli. Přístup uzavřen. Můžete se vrátit přes /terms.',
+    'usage_approve': 'Použití: /approve <user_id>',
+    'usage_ban': 'Použití: /ban <user_id>',
+    'not_allowed': 'Nepovoleno',
+    'bad_payload': 'Neplatná data',
+    'unknown_action': 'Neznámá akce',
+
+    'title': 'Nový uživatel',
+    'wave': '👋',
+    'admin_new_user_html': (
+        '<b>{wave} {title}</b>\n'
+        '• ID: <code>{uid}</code>\n'
+        '• Jméno: {name}\n'
+        '• Uživatelské jméno: {uname}\n'
+        '• Jazyk: {lang}\n'
+        '• Povolen: {allowed}  Ban: {banned}\n'
+    ),
+    'btn_approve': '✅ Schválit',
+    'btn_ban': '⛔️ Zabanovat',
+    'admin_notify_fail': 'Nepodařilo se upozornit admina: {e}',
+    'moderation_approved': '✅ Schváleno: {target}',
+    'moderation_banned': '⛔️ Zabanován: {target}',
+    'approved_user_dm': '✅ Přístup schválen. Stiskněte /start.',
+    'banned_user_dm': '🚫 Máte blokovaný přístup.',
+
+    'users_not_found': '😕 Nebyli nalezeni žádní uživatelé.',
+    'users_page_info': '📄 Strana {page}/{pages} — celkem: {total}',
+    'user_card_html': (
+        '<b>👤 Uživatel</b>\n'
+        '• ID: <code>{uid}</code>\n'
+        '• Jméno: {full_name}\n'
+        '• Uživatelské jméno: {uname}\n'
+        '• Jazyk: <code>{lang}</code>\n'
+        '• Povolen: {allowed}\n'
+        '• Zabanován: {banned}\n'
+        '• Podmínky: {terms}\n'
+        '• % na obchod: <code>{percent}</code>'
+    ),
+    'btn_blacklist': '🚫 Blacklist',
+    'btn_delete_user': '🗑 Smazat z DB',
+    'btn_prev': '⬅️ Zpět',
+    'btn_next': '➡️ Další',
+    'nav_caption': '🧭 Navigace:',
+    'bad_page': 'Neplatná stránka.',
+    'admin_user_delete_fail': '❌ Nepodařilo se smazat {target}: {error}',
+    'admin_user_deleted': '🗑 Uživatel {target} smazán z DB.',
+    'user_access_approved': '✅ Přístup schválen. Stiskněte /start.',
+
+    'admin_pause_all': '⏸️ Pauza pro všechny',
+    'admin_resume_all': '▶️ Pokračovat',
+    'admin_close_longs': '🔒 Zavřít všechny LONGy',
+    'admin_close_shorts': '🔓 Zavřít všechny SHORTy',
+    'admin_cancel_limits': '❌ Smazat limitní příkazy',
+    'admin_users': '👥 Uživatelé',
+    'admin_pause_notice': '⏸️ Obchodování a oznámení pozastaveno pro všechny.',
+    'admin_resume_notice': '▶️ Obchodování a oznámení obnoveno pro všechny.',
+    'type_longs': 'longs',
+    'type_shorts': 'shorts',
+    'admin_closed_total': '✅ Uzavřeno celkem {count} {type}.',
+    'admin_canceled_limits_total': '✅ Zrušeno {count} limitních příkazů.',
+
+    'terms_btn_accept': '✅ Přijmout',
+    'terms_btn_decline': '❌ Odmítnout',
+
+    'emoji_long': '🟢',
+    'emoji_short': '🔴',
+    'emoji_neutral': '⚪️',
+
+    # Scalper Strategy
+    'button_scalper':                '🎯 Scalper',
+    'button_elcaro':                 '🔥 Elcaro',
+    'button_wyckoff':                '📐 Wyckoff',
+    'config_trade_scalper':          '🎯 Scalper: {state}',
+    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_wyckoff':          '📐 Wyckoff: {state}',
+
+    # API Settings
+    'api_settings_title':          '🔑 <b>API Settings</b>',
+    'api_demo_title':              '🧪 Demo Account',
+    'api_real_title':              '💼 Real Account',
+    'api_key_set':                 '✅ Set',
+    'api_key_not_set':             '❌ Not set',
+    'api_trading_mode':            '📍 <b>Trading Mode:</b>',
+    'api_mode_demo':               '🧪 Demo',
+    'api_mode_real':               '💼 Real',
+    'api_mode_both':               '🔄 Both',
+    'api_btn_demo_key':            '🧪 Demo API Key',
+    'api_btn_demo_secret':         '🧪 Demo Secret',
+    'api_btn_real_key':            '💼 Real API Key',
+    'api_btn_real_secret':         '💼 Real Secret',
+    'api_btn_delete_demo':         '🗑 Delete Demo',
+    'api_btn_delete_real':         '🗑 Delete Real',
+    'api_btn_mode_demo':           '🧪 Trade Demo',
+    'api_btn_mode_real':           '💼 Trade Real',
+    'api_btn_mode_both':           '🔄 Trade Both',
+    'api_btn_back':                '⬅️ Back',
+    'api_enter_demo_key':          '🧪 Enter your <b>Demo API Key</b>:',
+    'api_enter_demo_secret':       '🧪 Enter your <b>Demo API Secret</b>:',
+    'api_enter_real_key':          '💼 Enter your <b>Real API Key</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
+    'api_enter_real_secret':       '💼 Enter your <b>Real API Secret</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
+    'api_key_saved':               '✅ API Key saved successfully!',
+    'api_secret_saved':            '✅ API Secret saved successfully!',
+    'api_deleted':                 '🗑 API credentials deleted for {account}',
+    'api_mode_changed':            '✅ Trading mode changed to: <b>{mode}</b>',
+    'api_mode_both_warning':       '⚠️ <b>Both mode:</b> Signals will be executed on BOTH Demo and Real accounts!',
+    'api_key_hidden':              '••••••••{suffix}',
+    'api_test_connection':         '🔄 Test Connection',
+    'api_connection_ok':           '✅ Connection OK! Balance: {balance} USDT',
+    'api_connection_fail':         '❌ Connection failed: {error}',
+    'api_test_success':            'Připojení úspěšné!',
+    'api_test_no_keys':            'API klíče nenastaveny',
+    'api_test_set_keys':           'Nejprve nastavte API Key a Secret.',
+    'api_test_failed':             'Chyba připojení',
+    'api_test_error':              'Chyba',
+    'api_test_check_keys':         'Zkontrolujte své API údaje.',
+    'api_test_status':             'Stav',
+    'api_test_connected':          'Připojeno',
+    'balance_wallet':              'Zůstatek peněženky',
+    'balance_equity':              'Kapitál',
+    'balance_available':           'Dostupné',
+    'api_missing_notice':          '⚠️ Nemáte nakonfigurováné API klíče burzy. Přidejte prosím svůj API klíč a tajný klíč v nastavení (tlačítka 🔑 API a 🔒 Secret), jinak bot nemůže za vás obchodovat.',
+    'elcaro_ai_info':              '🤖 *Obchodování poháněné AI*',
+
+    # Spot Trading
+    'api_spot_trading':            '💹 Spot Trading',
+    'api_spot_enabled':            '💹 <b>Spot Trading:</b> ✅ ON',
+    'api_spot_disabled':           '💹 <b>Spot Trading:</b> ❌ OFF',
+    'api_spot_toggled':            'Spot Trading: {status}',
+    'spot_settings_title':         '💹 <b>Spot DCA Settings</b>',
+    'spot_coins':                  '🪙 Coins: {coins}',
+    'spot_dca_amount':             '💵 DCA Amount: {amount} USDT',
+    'spot_dca_frequency':          '⏰ Frequency: {freq}',
+    'spot_freq_daily':             'Daily',
+    'spot_freq_weekly':            'Weekly',
+    'spot_freq_monthly':           'Monthly',
+    'spot_buy_now':                '💰 Buy Now',
+    'spot_auto_dca':               '🔄 Auto DCA: {status}',
+    'spot_next_buy':               '⏳ Next Buy: {time}',
+    'spot_total_invested':         '📊 Total Invested: {amount} USDT',
+    'spot_holdings':               '💎 Holdings: {holdings}',
+    'spot_buy_success':            '✅ Bought {qty} {coin} for {amount} USDT',
+    'spot_buy_failed':             '❌ Spot buy failed: {error}',
+    'spot_balance':                '💰 Spot Balance: {balance}',
+    'spot_no_balance':             '❌ No spot balance found',
+    'spot_order_placed':           '✅ Spot order placed: {side} {qty} {coin}',
+    'button_spot_settings':        '💹 Spot Settings',
+    'spot_btn_coins':              '🪙 Coins',
+    'spot_btn_amount':             '💵 Amount',
+    'spot_btn_frequency':          '⏰ Frequency',
+    'spot_btn_auto_toggle':        '🔄 Auto DCA',
+    'spot_btn_buy_now':            '💰 Buy Now',
+    'spot_btn_back':               '⬅️ Back',
+    'spot_enter_amount':           'Enter DCA amount in USDT:',
+    'spot_amount_saved':           '✅ DCA amount set to {amount} USDT',
+    'spot_select_coins':           'Select coins for Spot DCA:',
+    'spot_coins_saved':            '✅ Spot coins set: {coins}',
+    'spot_select_frequency':       'Select DCA frequency:',
+    'spot_frequency_saved':        '✅ Frequency set to {freq}',
+    'spot_auto_enabled':           '✅ Auto DCA enabled',
+    'spot_auto_disabled':          '❌ Auto DCA disabled',
+    'spot_not_enabled':            '❌ Spot trading is not enabled. Enable it in API Settings first.',
+
+    # Strategy trading mode
+    'strat_mode_global':           '🌐 Globální',
+    'strat_mode_demo':             '🧪 Demo',
+    'strat_mode_real':             '💰 Reálný',
+    'strat_mode_both':             '🔄 Oba',
+    'strat_mode_changed':          '✅ Režim obchodování {strategy}: {mode}',
+
+    'feature_scalper':               'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':            '🔥 Elcaro limit-entry {symbol} @ {price:.6f}',
+    'elcaro_limit_error':            '❌ Elcaro limit-entry error: {msg}',
+    'elcaro_market_entry':           '🚀 Elcaro market {symbol} @ {price:.6f}',
+    'elcaro_market_error':           '❌ Elcaro market error: {msg}',
+    'elcaro_market_ok':              '🔥 Elcaro: MARKET {symbol} qty={q} (SL={sl_risk}%)',
+    'elcaro_analysis':               'Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':                'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':           '📐 Wyckoff limit-entry {symbol} @ {price:.6f}',
+    'wyckoff_limit_error':           '❌ Wyckoff limit-entry error: {msg}',
+    'wyckoff_market_entry':          '🚀 Wyckoff market {symbol} @ {price:.6f}',
+    'wyckoff_market_error':          '❌ Wyckoff market error: {msg}',
+    'wyckoff_market_ok':             '📐 Wyckoff: MARKET {symbol} qty={q} (SL={sl_risk}%)',
+    'wyckoff_analysis':              'Wyckoff: {side} @ {price}',
+    'feature_wyckoff':               'Wyckoff',
+
+    'scalper_limit_entry':           'Scalper: limitní příkaz {symbol} @ {price}',
+    'scalper_limit_error':           'Scalper limit chyba: {msg}',
+    'scalper_market_ok':             'Scalper: MARKET {symbol} qty={q} (SL={sl_risk}%)',
+    'scalper_market_error':          'Scalper chyba: {msg}',
+
+    # Strategy Settings
+    'button_strategy_settings':      '⚙️ Nastavení strategií',
+    'strategy_settings_header':      '⚙️ *Nastavení strategií*',
+    'strategy_param_header':         '⚙️ *Nastavení {name}*',
+    'using_global':                  'Globální nastavení',
+    'global_default':                'Globální',
+    'strat_oi':                      '🔀 OI',
+    'strat_rsi_bb':                  '📊 RSI+BB',
+    'strat_scryptomera':             '🔮 Scryptomera',
+    'strat_scalper':                 '🎯 Scalper',
+    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_wyckoff':                 '📐 Wyckoff',
+    'dca_settings':                  '⚙️ Nastavení DCA',
+    'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
+    'dca_toggle':                    'DCA Enabled',
+    'dca_status':                    'Status',
+    'dca_description':               '_DCA will add to position when price moves against you._',
+    'dca_leg1':                      '📉 DCA Krok 1 %',
+    'dca_leg2':                      '📉 DCA Krok 2 %',
+    'param_percent':                 '📊 Vstup %',
+    'param_sl':                      '🔻 Stop-Loss %',
+    'param_tp':                      '🔺 Take-Profit %',
+    'param_reset':                   '🔄 Obnovit na globální',
+    'btn_close':                     '❌ Zavřít',
+    'prompt_entry_pct':              'Zadejte % vstupu (riziko na obchod):',
+    'prompt_sl_pct':                 'Zadejte % Stop-Loss:',
+    'prompt_tp_pct':                 'Zadejte % Take-Profit:',
+    'prompt_atr_periods':            'Zadejte periody ATR (např. 7):',
+    'prompt_atr_mult':               'Zadejte násobitel ATR pro trailing SL (např. 1.0):',
+    'prompt_atr_trigger':            'Zadejte % aktivace ATR (např. 2.0):',
+    'prompt_dca_leg1':               'Zadejte % DCA Krok 1 (např. 10):',
+    'prompt_dca_leg2':               'Zadejte % DCA Krok 2 (např. 25):',
+    'settings_reset':                'Nastavení obnoveno na globální',
+    'strat_setting_saved':           '✅ {name} {param} nastaveno na {value}',
+    'dca_setting_saved':             '✅ DCA {leg} nastaveno na {value}%',
+    'invalid_number':                '❌ Neplatné číslo. Zadejte hodnotu mezi 0 a 100.',
+    'dca_10pct':                     'DCA −{pct}%: dokup {symbol} qty={qty} @ {price}',
+    'dca_25pct':                     'DCA −{pct}%: dokup {symbol} qty={qty} @ {price}',
+    'config_dca':                    'DCA: Krok1=-{dca1}%, Krok2=-{dca2}%',
+
+    # ATR settings UI
+    'param_atr_periods':             '📈 Periody ATR',
+    'param_atr_mult':                '📉 Násobitel ATR (krok SL)',
+    'param_atr_trigger':             '🎯 Aktivace ATR %',
+
+    # Hardcoded strings fix
+    'terms_unavailable':             'Podmínky služby nejsou dostupné. Kontaktujte administrátora.',
+    'terms_confirm_prompt':          'Potvrďte prosím:',
+    'your_id':                       'Vaše ID: {uid}',
+    'error_validation':              '❌ {msg}',
+    'error_generic':                 'Chyba: {msg}',
+
+    # Trading Statistics
+    'button_stats':                  '📊 Statistics',
+    'stats_title':                   'Trading Statistics',
+    'stats_strategy':                'Strategy',
+    'stats_period':                  'Period',
+    'stats_overview':                'Overview',
+    'stats_total_trades':            'Total trades',
+    'stats_closed':                  'Closed',
+    'stats_open':                    'Open',
+    'stats_results':                 'Results',
+    'stats_winrate':                 'Winrate',
+    'stats_total_r':                 'Total R',
+    'stats_avg_r':                   'Avg R',
+    'stats_by_direction':            'By Direction',
+    'stats_long':                    'Long',
+    'stats_short':                   'Short',
+    'stats_pnl':                     'Profit/Loss',
+    'stats_gross_profit':            'Profit',
+    'stats_gross_loss':              'Loss',
+    'stats_total_pnl':               'Total P/L',
+    'stats_profit_factor':           'PF',
+    'stats_strategy_settings':       'Nastavení strategie',
+    'settings_entry_pct':            'Vstup',
+    'settings_leverage':             'Páka',
+    'settings_trading_mode':         'Režim',
+    'settings_direction':            'Směr',
+    'stats_all':                     '📈 All',
+    'stats_oi':                      '📉 OI',
+    'stats_rsi_bb':                  '📊 RSI+BB',
+    'stats_scryptomera':             '🐱 Scryptomera',
+    'stats_scalper':                 '⚡ Scalper',
+    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_period_all':              'All time',
+    'stats_period_today':            'Today',
+    'stats_period_week':             'Week',
+    'stats_period_month':            'Month',
+    'stats_demo':                    '🔵 Demo',
+    'stats_real':                    '�� Real',
+
+    # Scryptomera direction settings
+    'param_direction': '🎯 Direction',
+    'param_long_settings': '📈 LONG Settings',
+    'param_short_settings': '📉 SHORT Settings',
+    'dir_all': '🔄 ALL (LONG + SHORT)',
+    'dir_long_only': '📈 LONG only',
+    'dir_short_only': '📉 SHORT only',
+    'scrypto_side_header': '{emoji} *Scryptomera {side} Settings*',
+    'scalper_side_header': '{emoji} *Scalper {side} Settings*',
+    'global_settings': '🌐 Global Settings',
+    'global_settings_header': '🌐 *Global Trading Settings*',
+    'global_settings_info': 'These settings are used as defaults when strategy-specific settings are not configured.',
+    'prompt_long_entry_pct': '📈 LONG Entry % (risk per trade):',
+    'prompt_long_sl_pct': '📈 LONG Stop-Loss %:',
+    'prompt_long_tp_pct': '📈 LONG Take-Profit %:',
+    'prompt_short_entry_pct': '📉 SHORT Entry % (risk per trade):',
+    'prompt_short_sl_pct': '📉 SHORT Stop-Loss %:',
+    'prompt_short_tp_pct': '📉 SHORT Take-Profit %:',
+
+    # Order type settings
+    'param_order_type': '📤 Order Type',
+    'order_type_market': '⚡ Market orders',
+    'order_type_limit': '🎯 Limit orders',
+
+    # Coins group per strategy
+    'param_coins_group': '🪙 Coins',
+    'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
+    'group_global': '📊 Global (use common setting)',
+
+    # Elcaro AI settings
+    'elcaro_ai_note': '🤖 *AI dělá práci za vás!*',
+    'elcaro_ai_params_header': 'Následující je analyzováno z každého signálu:',
+    'elcaro_ai_params_list': '• SL% • TP% • ATR • Páka • Časový rámec',
+
+    # Leverage settings
+    'param_leverage': '⚡ Páka',
+    'prompt_leverage': 'Zadejte páku (1-100):',
+    'auto_default': 'Auto',
+
+    # Elcaro AI
+    'elcaro_ai_desc': '_Všechny parametry jsou automaticky parsovány z AI signálů:_',
+
+    # Scalper entries
+    'scalper_market_entry': '🚀 Scalper market {symbol} @ {price:.6f}',
+    'scalper_analysis': 'Scalper: {side} @ {price}',
+
+    # Scryptomera feature
+    'feature_scryptomera': 'Scryptomera',
+
+    # Limit Ladder
+    'limit_ladder': '📉 Limitní žebřík',
+    'limit_ladder_header': '📉 *Nastavení limitního žebříku*',
+    'limit_ladder_settings': '⚙️ Nastavení žebříku',
+    'ladder_count': 'Počet příkazů',
+    'ladder_info': 'Limitní příkazy pod vstupem pro DCA. Každý příkaz má % vzdálenosti od vstupu a % depozytu.',
+    'prompt_ladder_pct_entry': '📉 Zadejte % pod vstupní cenou pro příkaz {idx}:',
+    'prompt_ladder_pct_deposit': '💰 Zadejte % depozytu pro příkaz {idx}:',
+    'ladder_order_saved': '✅ Příkaz {idx} uložen: -{pct_entry}% @ {pct_deposit}% depozytu',
+    'ladder_orders_placed': '📉 Umístěno {count} limitních příkazů pro {symbol}',
+    
+    # Spot Trading Mode
+    'spot_trading_mode': 'Obchodní režim',
+    'spot_btn_mode': 'Režim',
+    
+    # Stats PnL
+    'stats_realized_pnl': 'Realizovaný',
+    'stats_unrealized_pnl': 'Nerealizovaný',
+    'stats_combined_pnl': 'Kombinovaný',
+    'stats_spot': '💹 Spot',
+    'stats_spot_title': 'Statistiky Spot DCA',
+    'stats_spot_config': 'Konfigurace',
+    'stats_spot_holdings': 'Držby',
+    'stats_spot_summary': 'Souhrn',
+    'stats_spot_current_value': 'Aktuální hodnota',
+
+    # =====================================================
+    # LICENSING SYSTEM
+    # =====================================================
+    
+    'no_license': '⚠️ Potřebujete aktivní předplatné pro použití této funkce.\n\nPoužijte /subscribe k nákupu licence.',
+    'no_license_trading': '⚠️ Potřebujete aktivní předplatné pro obchodování.\n\nPoužijte /subscribe k nákupu licence.',
+    'license_required': '⚠️ Tato funkce vyžaduje předplatné {required}.\n\nPoužijte /subscribe pro upgrade.',
+    'trial_demo_only': '⚠️ Zkušební licence umožňuje pouze demo obchodování.\n\nUpgradujte na Premium nebo Basic pro skutečné obchodování: /subscribe',
+    'basic_strategy_limit': '⚠️ Basic licence na skutečném účtu umožňuje pouze: {strategies}\n\nUpgradujte na Premium pro všechny strategie: /subscribe',
+    
+    'subscribe_menu_header': '💎 *Plány předplatného*',
+    'subscribe_menu_info': 'Vyberte si plán pro odemčení obchodních funkcí:',
+    'btn_premium': '💎 Premium',
+    'btn_basic': '🥈 Basic', 
+    'btn_trial': '🎁 Zkušební (Zdarma)',
+    'btn_enter_promo': '🎟 Promo kód',
+    'btn_my_subscription': '📋 Moje předplatné',
+    
+    'premium_title': '💎 *PREMIUM PLÁN*',
+    'premium_desc': '''✅ Plný přístup ke všem funkcím
+✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ Skutečné + Demo obchodování
+✅ Prioritní podpora
+✅ Dynamický SL/TP založený na ATR
+✅ Limitní žebřík DCA
+✅ Všechny budoucí aktualizace''',
+    'premium_1m': '💎 1 měsíc — {price}⭐',
+    'premium_3m': '💎 3 měsíce — {price}⭐ (-15%)',
+    'premium_6m': '💎 6 měsíců — {price}⭐ (-25%)',
+    'premium_12m': '💎 12 měsíců — {price}⭐ (-35%)',
+    
+    'basic_title': '🥈 *BASIC PLÁN*',
+    'basic_desc': '''✅ Plný přístup k demo účtu
+✅ Skutečný účet: pouze strategie OI, RSI+BB, Elcaro
+❌ Scryptomera, Scalper — pouze demo
+✅ Standardní podpora
+✅ Dynamický SL/TP založený na ATR''',
+    'basic_1m': '🥈 1 měsíc — {price}⭐',
+    
+    'trial_title': '🎁 *ZKUŠEBNÍ PLÁN (ZDARMA)*',
+    'trial_desc': '''✅ Plný přístup k demo účtu
+✅ Všech 5 strategií na demo
+❌ Skutečné obchodování není k dispozici
+⏰ Trvání: 7 dní
+🎁 Pouze jednou''',
+    'trial_activate': '🎁 Aktivovat zkušební verzi zdarma',
+    'trial_already_used': '⚠️ Již jste využili zkušební verzi zdarma.',
+    'trial_activated': '🎉 Zkušební verze aktivována! Máte 7 dní plného demo přístupu.',
+    
+    'payment_select_method': '💳 *Vyberte způsob platby*',
+    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_ton': '💎 TON',
+    'payment_stars_title': '⭐ Platba přes Telegram Stars',
+    'payment_stars_desc': 'Bude vám účtováno {amount}⭐ za {plan} ({period}).',
+    'payment_ton_title': '💎 Platba přes TON',
+    'payment_ton_desc': '''Pošlete přesně *{amount} TON* na:
+
+`{wallet}`
+
+Po platbě klikněte na tlačítko níže pro ověření.''',
+    'btn_verify_ton': '✅ Zaplatil jsem — Ověřit',
+    'payment_processing': '⏳ Zpracování platby...',
+    'payment_success': '🎉 Platba úspěšná!\n\n{plan} aktivován do {expires}.',
+    'payment_failed': '❌ Platba selhala: {error}',
+    
+    'my_subscription_header': '📋 *Moje předplatné*',
+    'my_subscription_active': '''📋 *Aktuální plán:* {plan}
+⏰ *Vyprší:* {expires}
+📅 *Zbývající dny:* {days}''',
+    'my_subscription_none': '❌ Žádné aktivní předplatné.\n\nPoužijte /subscribe k nákupu plánu.',
+    'my_subscription_history': '📜 *Historie plateb:*',
+    'subscription_expiring_soon': '⚠️ Vaše předplatné {plan} vyprší za {days} dní!\n\nObnovte nyní: /subscribe',
+    
+    'promo_enter': '🎟 Zadejte promo kód:',
+    'promo_success': '🎉 Promo kód aplikován!\n\n{plan} aktivován na {days} dní.',
+    'promo_invalid': '❌ Neplatný promo kód.',
+    'promo_expired': '❌ Tento promo kód vypršel.',
+    'promo_used': '❌ Tento promo kód byl již použit.',
+    'promo_already_used': '❌ Tento promo kód jste již použili.',
+    
+    'admin_license_menu': '🔑 *Správa licencí*',
+    'admin_btn_grant_license': '🎁 Udělit licenci',
+    'admin_btn_view_licenses': '📋 Zobrazit licence',
+    'admin_btn_create_promo': '🎟 Vytvořit promo',
+    'admin_btn_view_promos': '📋 Zobrazit promo',
+    'admin_btn_expiring_soon': '⚠️ Brzy vyprší',
+    'admin_grant_select_type': 'Vyberte typ licence:',
+    'admin_grant_select_period': 'Vyberte období:',
+    'admin_grant_enter_user': 'Zadejte ID uživatele:',
+    'admin_license_granted': '✅ {plan} uděleno uživateli {uid} na {days} dní.',
+    'admin_license_extended': '✅ Licence prodloužena o {days} dní pro uživatele {uid}.',
+    'admin_license_revoked': '✅ Licence odvolána pro uživatele {uid}.',
+    'admin_promo_created': '✅ Promo kód vytvořen: {code}\nTyp: {type}\nDny: {days}\nMax. použití: {max}',
+
+    'admin_users_management': '👥 Uživatelé',
+    'admin_licenses': '🔑 Licence',
+    'admin_search_user': '🔍 Najít uživatele',
+    'admin_users_menu': '👥 *Správa uživatelů*\n\nVyberte filtr nebo hledejte:',
+    'admin_all_users': '👥 Všichni uživatelé',
+    'admin_active_users': '✅ Aktivní',
+    'admin_banned_users': '🚫 Zabanovaní',
+    'admin_no_license': '❌ Bez licence',
+    'admin_no_users_found': 'Uživatelé nenalezeni.',
+    'admin_enter_user_id': '🔍 Zadejte ID uživatele pro hledání:',
+    'admin_user_found': '✅ Uživatel {uid} nalezen!',
+    'admin_user_not_found': '❌ Uživatel {uid} nenalezen.',
+    'admin_invalid_user_id': '❌ Neplatné ID uživatele. Zadejte číslo.',
+    'admin_view_card': '👤 Zobrazit kartu',
+    
+    'admin_user_card': '''👤 *Karta uživatele*
+
+📋 *ID:* `{uid}`
+{status_emoji} *Stav:* {status}
+📝 *Podmínky:* {terms}
+
+{license_emoji} *Licence:* {license_type}
+📅 *Vyprší:* {license_expires}
+⏳ *Zbývající dny:* {days_left}
+
+🌐 *Jazyk:* {lang}
+📊 *Obchodní režim:* {trading_mode}
+💰 *% na obchod:* {percent}%
+🪙 *Mince:* {coins}
+
+🔌 *API klíče:*
+  Demo: {demo_api}
+  Skutečný: {real_api}
+
+📈 *Strategie:* {strategies}
+
+📊 *Statistiky:*
+  Pozice: {positions}
+  Obchody: {trades}
+  PnL: {pnl}
+  Úspěšnost: {winrate}%
+
+💳 *Platby:*
+  Celkem: {payments_count}
+  Stars: {total_stars}⭐
+
+📅 *První návštěva:* {first_seen}
+🕐 *Poslední návštěva:* {last_seen}
+''',
+    
+    'admin_btn_grant_lic': '🎁 Udělit',
+    'admin_btn_extend': '⏳ Prodloužit',
+    'admin_btn_revoke': '🚫 Odvolat',
+    'admin_btn_ban': '🚫 Zabanovat',
+    'admin_btn_unban': '✅ Odbanovat',
+    'admin_btn_approve': '✅ Schválit',
+    'admin_btn_message': '✉️ Zpráva',
+    'admin_btn_delete': '🗑 Smazat',
+    
+    'admin_user_banned': 'Uživatel zabanován!',
+    'admin_user_unbanned': 'Uživatel odbanován!',
+    'admin_user_approved': 'Uživatel schválen!',
+    'admin_confirm_delete': '⚠️ *Potvrdit smazání*\n\nUživatel {uid} bude trvale smazán!',
+    'admin_confirm_yes': '✅ Ano, smazat',
+    'admin_confirm_no': '❌ Zrušit',
+    
+    'admin_select_license_type': 'Vyberte typ licence pro uživatele {uid}:',
+    'admin_select_period': 'Vyberte období:',
+    'admin_select_extend_days': 'Vyberte dny k prodloužení pro uživatele {uid}:',
+    'admin_license_granted_short': 'Licence udělena!',
+    'admin_license_extended_short': 'Prodlouženo o {days} dní!',
+    'admin_license_revoked_short': 'Licence odvolána!',
+    
+    'admin_enter_message': '✉️ Zadejte zprávu k odeslání uživateli {uid}:',
+    'admin_message_sent': '✅ Zpráva odeslána uživateli {uid}!',
+    'admin_message_failed': '❌ Odeslání zprávy selhalo: {error}',
+}

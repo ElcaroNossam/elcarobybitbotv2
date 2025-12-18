@@ -1,0 +1,80 @@
+# =====================================================
+# Bybit Demo Trading Bot - .gitignore
+# =====================================================
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Environment and secrets (NEVER COMMIT!)
+.env
+.env.*
+*.env
+secrets.json
+credentials.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+bot.db
+
+# Log files
+*.log
+logs/
+bot.log
+bot_debug.log
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# PID files (for daemon mode)
+*.pid
+bot.pid
+
+# Nohup output
+nohup.out
