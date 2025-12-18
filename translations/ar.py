@@ -238,23 +238,55 @@ TEXTS = {
         '• الربح/الخسارة: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Entries & errors
-    'oi_limit_entry':              '🟡 دخول Limit عبر OI لـ {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ خطأ في دخول الـ Limit: {msg}',
-    'oi_market_entry':             '🚀 دخول Market عبر OI لـ {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ خطأ في دخول الـ Market: {msg}',
+    # Entries & errors - تنسيق موحد مع معلومات كاملة
+    'oi_limit_entry':              '📉 *دخول OI Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ خطأ OI Limit: {msg}',
+    'oi_market_entry':             '📉 *دخول OI Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ خطأ OI Market: {msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 دخول Limit عبر RSI+BB لـ {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ دخول Market عبر RSI+BB لـ {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ خطأ في دخول الـ Market: {msg}',
+    'rsi_bb_limit_entry':          '📊 *دخول RSI+BB Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *دخول RSI+BB Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ خطأ RSI+BB Market: {msg}',
 
     'oi_analysis':                 '📊 *تحليل OI لـ {symbol}* {side}',
 
     # Scryptomera
-    'bitk_limit_entry':            '🔮 دخول Limit (Scryptomera) {symbol} @ {price:.6f}',
-    'bitk_limit_error':            '❌ خطأ دخول Limit (Scryptomera): {msg}',
-    'bitk_market_entry':           '🔮 دخول Market (Scryptomera) {symbol} @ {price:.6f}',
-    'bitk_market_error':           '❌ خطأ دخول Market (Scryptomera): {msg}',
+    'bitk_limit_entry':            '🔮 *دخول Scryptomera Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'bitk_limit_error':            '❌ خطأ Scryptomera Limit: {msg}',
+    'bitk_market_entry':           '🔮 *دخول Scryptomera Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_error':           '❌ خطأ Scryptomera Market: {msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera':         'Scryptomera',
+
+    # Scalper
+    'scalper_limit_entry':         '⚡ *دخول Scalper Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ خطأ Scalper Limit: {msg}',
+    'scalper_market_entry':        '⚡ *دخول Scalper Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ خطأ Scalper Market: {msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    'feature_scalper':             'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *دخول Elcaro Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ خطأ Elcaro Limit: {msg}',
+    'elcaro_market_entry':         '🔥 *دخول Elcaro Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ خطأ Elcaro Market: {msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':         '📐 *دخول Wyckoff Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ خطأ Wyckoff Limit: {msg}',
+    'wyckoff_market_entry':        '📐 *دخول Wyckoff Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ خطأ Wyckoff Market: {msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
+    'feature_wyckoff':             'Wyckoff',
 
     # Admin panel
     'admin_panel':                 '👑 لوحة الإدارة:',

@@ -238,23 +238,55 @@ TEXTS = {
         '• PnL  : `{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Entries & errors
-    'oi_limit_entry':              '🟡 כניסת Limit לפי OI {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ שגיאה בכניסת Limit: {msg}',
-    'oi_market_entry':             '🚀 כניסת Market לפי OI {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ שגיאה בכניסת Market: {msg}',
+    # Entries & errors - פורמט אחיד עם מידע מלא
+    'oi_limit_entry':              '📉 *OI כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ שגיאת OI Limit: {msg}',
+    'oi_market_entry':             '📉 *OI כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ שגיאת OI Market: {msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 כניסת Limit לפי RSI+BB {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ Market לפי RSI+BB {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ שגיאה ב-Market: {msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *RSI+BB כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ שגיאת RSI+BB Market: {msg}',
 
     'oi_analysis':                 '📊 *ניתוח OI עבור {symbol}* {side}',
 
     # Scryptomera
-    'bitk_limit_entry':            '🔮 Scryptomera Limit {symbol} @ {price:.6f}',
-    'bitk_limit_error':            '❌ Scryptomera Limit שגיאה: {msg}',
-    'bitk_market_entry':           '🔮 Scryptomera Market {symbol} @ {price:.6f}',
-    'bitk_market_error':           '❌ Scryptomera Market שגיאה: {msg}',
+    'bitk_limit_entry':            '🔮 *Scryptomera כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'bitk_limit_error':            '❌ שגיאת Scryptomera Limit: {msg}',
+    'bitk_market_entry':           '🔮 *Scryptomera כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_error':           '❌ שגיאת Scryptomera Market: {msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera':         'Scryptomera',
+
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ שגיאת Scalper Limit: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ שגיאת Scalper Market: {msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    'feature_scalper':             'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Elcaro כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ שגיאת Elcaro Limit: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ שגיאת Elcaro Market: {msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':         '📐 *Wyckoff כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ שגיאת Wyckoff Limit: {msg}',
+    'wyckoff_market_entry':        '📐 *Wyckoff כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ שגיאת Wyckoff Market: {msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
+    'feature_wyckoff':             'Wyckoff',
 
     # Admin panel
     'admin_panel':                 '👑 פאנל מנהל:',

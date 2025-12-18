@@ -239,23 +239,55 @@ TEXTS = {
         '• PnL    : `{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Entries & errors
-    'oi_limit_entry':              '🟡 OI Limit įėjimas {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ Limit įėjimo klaida: {msg}',
-    'oi_market_entry':             '🚀 OI Market įėjimas {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ Market įėjimo klaida: {msg}',
+    # Entries & errors - vieningas formatas su pilna informacija
+    'oi_limit_entry':              '📉 *OI Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ OI Limit klaida: {msg}',
+    'oi_market_entry':             '📉 *OI Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI Market klaida: {msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 RSI+BB Limit įėjimas {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ RSI+BB Market {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ Market klaida: {msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *RSI+BB Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ RSI+BB Market klaida: {msg}',
 
     'oi_analysis':                 '📊 *OI {symbol} analizė* {side}',
 
-    # Scryptomera (optional dedicated strings)
-    'bitk_limit_entry':            '🔮 Scryptomera Limit {symbol} @ {price:.6f}',
+    # Scryptomera
+    'bitk_limit_entry':            '🔮 *Scryptomera Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
     'bitk_limit_error':            '❌ Scryptomera Limit klaida: {msg}',
-    'bitk_market_entry':           '🔮 Scryptomera Market {symbol} @ {price:.6f}',
+    'bitk_market_entry':           '🔮 *Scryptomera Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
     'bitk_market_error':           '❌ Scryptomera Market klaida: {msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera':         'Scryptomera',
+
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ Scalper Limit klaida: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ Scalper Market klaida: {msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    'feature_scalper':             'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Elcaro Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Elcaro Limit klaida: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Elcaro Market klaida: {msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':         '📐 *Wyckoff Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ Wyckoff Limit klaida: {msg}',
+    'wyckoff_market_entry':        '📐 *Wyckoff Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ Wyckoff Market klaida: {msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
+    'feature_wyckoff':             'Wyckoff',
 
     # Admin panel
     'admin_panel':                 '👑 Administratoriaus skydelis:',

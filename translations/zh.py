@@ -238,23 +238,55 @@ TEXTS = {
         '• PnL  ：`{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Entries & errors
-    'oi_limit_entry':              '🟡 OI 限价入场 {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ 限价入场出错：{msg}',
-    'oi_market_entry':             '🚀 OI 市价入场 {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ 市价入场出错：{msg}',
+    # Entries & errors - 统一格式（完整信息）
+    'oi_limit_entry':              '📉 *OI 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ OI 限价错误：{msg}',
+    'oi_market_entry':             '📉 *OI 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI 市价错误：{msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 RSI+BB 限价入场 {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ RSI+BB 市价入场 {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ 市价错误：{msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *RSI+BB 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ RSI+BB 市价错误：{msg}',
 
     'oi_analysis':                 '📊 *OI {symbol} 分析* {side}',
 
     # Scryptomera
-    'bitk_limit_entry':            '🔮 Scryptomera 限价 {symbol} @ {price:.6f}',
+    'bitk_limit_entry':            '🔮 *Scryptomera 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
     'bitk_limit_error':            '❌ Scryptomera 限价错误：{msg}',
-    'bitk_market_entry':           '🔮 Scryptomera 市价 {symbol} @ {price:.6f}',
+    'bitk_market_entry':           '🔮 *Scryptomera 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
     'bitk_market_error':           '❌ Scryptomera 市价错误：{msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera':         'Scryptomera',
+
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ Scalper 限价错误：{msg}',
+    'scalper_market_entry':        '⚡ *Scalper 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ Scalper 市价错误：{msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    'feature_scalper':             'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Elcaro 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Elcaro 限价错误：{msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Elcaro 市价错误：{msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':         '📐 *Wyckoff 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ Wyckoff 限价错误：{msg}',
+    'wyckoff_market_entry':        '📐 *Wyckoff 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ Wyckoff 市价错误：{msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
+    'feature_wyckoff':             'Wyckoff',
 
     # Admin panel
     'admin_panel':                 '👑 管理面板：',

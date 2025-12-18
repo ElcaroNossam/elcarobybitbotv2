@@ -238,23 +238,55 @@ TEXTS = {
         '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
     ),
 
-    # Entries & errors
-    'oi_limit_entry':              '🟡 OI limit vstup {symbol} @ {price:.6f}',
-    'oi_limit_error':              '❌ Chyba u limit vstupu: {msg}',
-    'oi_market_entry':             '🚀 OI market vstup {symbol} @ {price:.6f}',
-    'oi_market_error':             '❌ Chyba u market vstupu: {msg}',
+    # Entries & errors - jednotný formát s kompletními informacemi
+    'oi_limit_entry':              '📉 *OI Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_error':              '❌ OI Limit chyba: {msg}',
+    'oi_market_entry':             '📉 *OI Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI Market chyba: {msg}',
+    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '🟡 RSI+BB limit vstup {symbol} @ {price:.6f}',
-    'rsi_bb_market_entry':         '✅ RSI+BB market {symbol} @ {price:.6f}',
-    'rsi_bb_market_error':         '❌ Chyba u market vstupu: {msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_entry':         '📊 *RSI+BB Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_error':         '❌ RSI+BB Market chyba: {msg}',
 
     'oi_analysis':                 '📊 *OI analýza {symbol}* {side}',
 
     # Scryptomera
-    'bitk_limit_entry':            '🔮 Scryptomera limit vstup {symbol} @ {price:.6f}',
-    'bitk_limit_error':            '❌ Scryptomera limit chyba: {msg}',
-    'bitk_market_entry':           '🔮 Scryptomera market {symbol} @ {price:.6f}',
-    'bitk_market_error':           '❌ Scryptomera market chyba: {msg}',
+    'bitk_limit_entry':            '🔮 *Scryptomera Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'bitk_limit_error':            '❌ Scryptomera Limit chyba: {msg}',
+    'bitk_market_entry':           '🔮 *Scryptomera Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_error':           '❌ Scryptomera Market chyba: {msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera':         'Scryptomera',
+
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error':         '❌ Scalper Limit chyba: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error':        '❌ Scalper Market chyba: {msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    'feature_scalper':             'Scalper',
+
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Elcaro Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Elcaro Limit chyba: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Elcaro Market chyba: {msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Elcaro',
+
+    # Wyckoff (Fibonacci Extension)
+    'wyckoff_limit_entry':         '📐 *Wyckoff Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_limit_error':         '❌ Wyckoff Limit chyba: {msg}',
+    'wyckoff_market_entry':        '📐 *Wyckoff Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'wyckoff_market_error':        '❌ Wyckoff Market chyba: {msg}',
+    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
+    'feature_wyckoff':             'Wyckoff',
 
     # Admin panel
     'admin_panel':                 '👑 Admin panel:',
