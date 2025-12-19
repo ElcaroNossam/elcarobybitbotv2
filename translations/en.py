@@ -276,7 +276,14 @@ TEXTS = {
     'position_closed_success':     'Position closed',
     'position_close_error':        'Error closing position',
     'positions_closed':            'Positions closed',
+    'all_positions_closed':        'All positions closed',
     'errors':                      'Errors',
+
+    # Position view
+    'position':                    'Position',
+    'entry':                       'Entry',
+    'current':                     'Current',
+    'size':                        'Size',
 
     # % per trade
     'set_percent_prompt':          'Enter percentage of balance per trade (e.g. 2.5):',

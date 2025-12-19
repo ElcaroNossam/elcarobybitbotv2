@@ -5856,8 +5856,123 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ------------------------------------------------------------------------------------
-# Open Positions Management (detailed view with close buttons)
+# Open Positions Management (detailed view with pagination and close buttons)
 # ------------------------------------------------------------------------------------
+
+def get_positions_paginated_keyboard(positions: list, current_idx: int, t: dict) -> InlineKeyboardMarkup:
+    """Build inline keyboard for single position view with pagination."""
+    buttons = []
+    total = len(positions)
+    
+    if total == 0:
+        return InlineKeyboardMarkup([[
+            InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+        ]])
+    
+    pos = positions[current_idx]
+    sym = pos.get("symbol", "-")
+    
+    # Navigation row (if more than 1 position)
+    if total > 1:
+        nav_row = []
+        # Previous button
+        if current_idx > 0:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"pos:page:{current_idx - 1}"))
+        else:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"pos:page:{total - 1}"))  # Wrap to end
+        
+        # Position counter
+        nav_row.append(InlineKeyboardButton(f"{current_idx + 1}/{total}", callback_data="pos:noop"))
+        
+        # Next button
+        if current_idx < total - 1:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"pos:page:{current_idx + 1}"))
+        else:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"pos:page:0"))  # Wrap to start
+        
+        buttons.append(nav_row)
+    
+    # Close this position button
+    buttons.append([
+        InlineKeyboardButton(f"❌ {t.get('btn_close_position', 'Close position')}", callback_data=f"pos:close:{sym}")
+    ])
+    
+    # Close all positions button (if more than 1)
+    if total > 1:
+        buttons.append([
+            InlineKeyboardButton(
+                f"⚠️ {t.get('btn_close_all', 'Close all')} ({total})",
+                callback_data="pos:close_all"
+            )
+        ])
+    
+    # Refresh and Back
+    buttons.append([
+        InlineKeyboardButton("🔄", callback_data="pos:refresh"),
+        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+    ])
+    
+    return InlineKeyboardMarkup(buttons)
+
+
+def format_single_position(pos: dict, idx: int, total: int, t: dict) -> str:
+    """Format detailed view of a single position for paginated display."""
+    sym = pos.get("symbol", "-")
+    side = pos.get("side", "-")
+    lev = pos.get("leverage", "-")
+    size = float(pos.get("size") or 0)
+    entry = float(pos.get("avgPrice") or 0)
+    mark = float(pos.get("markPrice") or 0)
+    pnl = float(pos.get("unrealisedPnl") or 0)
+    im = float(pos.get("positionIM") or 0)
+    
+    def to_float(key):
+        raw = pos.get(key)
+        return float(raw) if raw not in (None, "", "0") else None
+    
+    tp = to_float("takeProfit")
+    sl = to_float("stopLoss")
+    liq = to_float("liqPrice")
+    
+    # Calculate PnL percentage
+    pnl_pct = (pnl / im * 100) if im else 0.0
+    
+    emoji = "🟢" if side == "Buy" else "🔴"
+    side_text = "LONG" if side == "Buy" else "SHORT"
+    pnl_emoji = "📈" if pnl >= 0 else "📉"
+    
+    lines = [
+        f"{emoji} *{sym}* {side_text} {lev}x",
+        "",
+        f"📊 Size: `{size}`",
+        f"💰 Entry: `{entry:.6g}`",
+        f"📍 Mark: `{mark:.6g}`",
+    ]
+    
+    # TP info
+    if tp:
+        tp_pct = abs((tp - entry) / entry * 100) if entry else 0
+        tp_sign = "+" if (side == "Buy" and tp > entry) or (side == "Sell" and tp < entry) else "-"
+        lines.append(f"🎯 TP: `{tp:.6g}` ({tp_sign}{tp_pct:.2f}%)")
+    else:
+        lines.append(f"🎯 TP: –")
+    
+    # SL info
+    if sl:
+        sl_pct = abs((sl - entry) / entry * 100) if entry else 0
+        lines.append(f"🛑 SL: `{sl:.6g}` (-{sl_pct:.2f}%)")
+    else:
+        lines.append(f"🛑 SL: –")
+    
+    # Liquidation
+    if liq:
+        lines.append(f"💀 Liq: `{liq:.6g}`")
+    
+    lines.append("")
+    lines.append(f"{pnl_emoji} *P/L:* `{pnl:+.4f}` USDT ({pnl_pct:+.2f}%)")
+    
+    return "\n".join(lines)
+
 
 def get_positions_keyboard(positions: list, t: dict) -> InlineKeyboardMarkup:
     """Build inline keyboard for positions management."""
@@ -5999,8 +6114,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await query.message.delete()
         return
     
-    if data == "pos:refresh":
-        # Refresh positions list
+    if data == "pos:noop":
+        # Do nothing - just for counter button
+        return
+    
+    if data == "pos:refresh" or data == "pos:page:0":
+        # Refresh positions list - show first position with pagination
         positions = await fetch_open_positions(uid)
         if not positions:
             await query.edit_message_text(
@@ -6011,8 +6130,29 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        text = format_position_summary(positions, t)
-        keyboard = get_positions_keyboard(positions, t)
+        text = format_single_position(positions[0], 0, len(positions), t)
+        keyboard = get_positions_paginated_keyboard(positions, 0, t)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        return
+    
+    if data.startswith("pos:page:"):
+        # Navigate to specific position page
+        page_idx = int(data.split(":")[2])
+        positions = await fetch_open_positions(uid)
+        if not positions:
+            await query.edit_message_text(
+                t.get('no_positions', 'No open positions'),
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+                ]])
+            )
+            return
+        
+        # Ensure valid index
+        page_idx = max(0, min(page_idx, len(positions) - 1))
+        
+        text = format_single_position(positions[page_idx], page_idx, len(positions), t)
+        keyboard = get_positions_paginated_keyboard(positions, page_idx, t)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
@@ -6092,6 +6232,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             close_side = "Sell" if pos["side"] == "Buy" else "Buy"
             size = float(pos["size"])
+            entry_price = float(pos.get("avgPrice") or 0)
+            mark_price = float(pos.get("markPrice") or 0)
+            unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
+            im = float(pos.get("positionIM") or 0)
+            pnl_pct = (unrealized_pnl / im * 100) if im else 0.0
+            side_text = "LONG" if pos["side"] == "Buy" else "SHORT"
             
             await place_order(
                 user_id=uid,
@@ -6101,12 +6247,57 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 qty=size
             )
             
-            # Clean up internal tracking
+            # Get active position info for strategy
+            active_pos = get_active_positions(uid)
+            ap = next((a for a in active_pos if a["symbol"] == symbol), None)
+            strategy = ap.get("strategy") if ap else None
+            strategy_display = {
+                "scryptomera": "Scryptomera",
+                "scalper": "Scalper", 
+                "rsi_bb": "RSI+BB",
+                "oi": "OI",
+                "elcaro": "Elcaro",
+                "wyckoff": "Wyckoff",
+                "manual": "Manual",
+            }.get(strategy, "Manual" if not strategy else strategy.title())
+            
+            # Log the trade
+            try:
+                log_exit_and_remove_position(
+                    user_id=uid,
+                    signal_id=ap.get("signal_id") if ap else None,
+                    symbol=symbol,
+                    side=pos["side"],
+                    entry_price=entry_price,
+                    exit_price=mark_price,
+                    exit_reason="MANUAL",
+                    size=size,
+                    strategy=strategy,
+                    account_type=get_trading_mode(uid) or "demo",
+                )
+            except Exception as log_err:
+                logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
+            
+            # Clean up internal tracking  
             remove_active_position(uid, symbol)
             reset_pyramid(uid, symbol)
             
+            # Format beautiful close message
+            pnl_emoji = "📈" if unrealized_pnl >= 0 else "📉"
+            emoji = "🟢" if pos["side"] == "Buy" else "🔴"
+            
+            close_msg = (
+                f"✅ *{t.get('position_closed_success', 'Position closed')}*\n\n"
+                f"{emoji} *{symbol}* {side_text}\n"
+                f"• Strategy: `{strategy_display}`\n"
+                f"• Entry: `{entry_price:.6g}`\n"
+                f"• Exit: `{mark_price:.6g}`\n"
+                f"{pnl_emoji} P/L: `{unrealized_pnl:+.4f}` USDT ({pnl_pct:+.2f}%)"
+            )
+            
             await query.edit_message_text(
-                f"✅ {t.get('position_closed_success', 'Position closed')}: {symbol}",
+                close_msg,
+                parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
                 ]])
@@ -6164,12 +6355,18 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         closed = 0
         errors = 0
+        total_pnl = 0.0
+        closed_positions = []
+        active_list = get_active_positions(uid)
         
         for pos in positions:
             try:
                 close_side = "Sell" if pos["side"] == "Buy" else "Buy"
                 size = float(pos["size"])
                 symbol = pos["symbol"]
+                entry_price = float(pos.get("avgPrice") or 0)
+                mark_price = float(pos.get("markPrice") or 0)
+                unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
                 
                 await place_order(
                     user_id=uid,
@@ -6179,19 +6376,55 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     qty=size
                 )
                 
+                # Log the trade
+                ap = next((a for a in active_list if a["symbol"] == symbol), None)
+                strategy = ap.get("strategy") if ap else None
+                try:
+                    log_exit_and_remove_position(
+                        user_id=uid,
+                        signal_id=ap.get("signal_id") if ap else None,
+                        symbol=symbol,
+                        side=pos["side"],
+                        entry_price=entry_price,
+                        exit_price=mark_price,
+                        exit_reason="MANUAL",
+                        size=size,
+                        strategy=strategy,
+                        account_type=get_trading_mode(uid) or "demo",
+                    )
+                except Exception as log_err:
+                    logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
+                
                 remove_active_position(uid, symbol)
                 reset_pyramid(uid, symbol)
                 closed += 1
+                total_pnl += unrealized_pnl
+                closed_positions.append({
+                    "symbol": symbol,
+                    "side": pos["side"],
+                    "pnl": unrealized_pnl
+                })
             except Exception as e:
                 logger.error(f"Close position {pos['symbol']} failed: {e}")
                 errors += 1
         
-        result_text = f"✅ {t.get('positions_closed', 'Closed')}: {closed}"
+        # Format result message
+        pnl_emoji = "📈" if total_pnl >= 0 else "📉"
+        result_lines = [f"✅ *{t.get('all_positions_closed', 'All positions closed')}*\n"]
+        
+        for cp in closed_positions:
+            cp_emoji = "🟢" if cp["side"] == "Buy" else "🔴"
+            cp_pnl_emoji = "+" if cp["pnl"] >= 0 else ""
+            result_lines.append(f"{cp_emoji} {cp['symbol']}: `{cp_pnl_emoji}{cp['pnl']:.4f}` USDT")
+        
+        result_lines.append(f"\n{pnl_emoji} *{t.get('total_pnl', 'Total P/L')}:* `{total_pnl:+.4f}` USDT")
+        
         if errors:
-            result_text += f"\n❌ {t.get('errors', 'Errors')}: {errors}"
+            result_lines.append(f"\n❌ {t.get('errors', 'Errors')}: {errors}")
         
         await query.edit_message_text(
-            result_text,
+            "\n".join(result_lines),
+            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
             ]])
@@ -6203,15 +6436,16 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_open_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show open positions with inline management buttons."""
+    """Show open positions with inline management buttons and pagination."""
     uid = update.effective_user.id
     positions = await fetch_open_positions(uid)
     
     if not positions:
         return await update.message.reply_text(ctx.t.get('no_positions', 'No open positions'))
     
-    text = format_position_summary(positions, ctx.t)
-    keyboard = get_positions_keyboard(positions, ctx.t)
+    # Show first position with pagination
+    text = format_single_position(positions[0], 0, len(positions), ctx.t)
+    keyboard = get_positions_paginated_keyboard(positions, 0, ctx.t)
     
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
