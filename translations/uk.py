@@ -929,4 +929,33 @@ TEXTS = {
     'admin_generating_report': '📊 Генерую звіт для користувача {uid}...',
     'admin_view_report': '📊 Переглянути звіт',
     'admin_view_user': '👤 Картка користувача',
+
+    # Missing keys
+    'all_positions_closed': 'Всі позиції закриті',
+    'btn_check_again': '🔄 Перевірити знову',
+    'button_admin': '👑 Адмін',
+    'button_licenses': '🔑 Ліцензії',
+    'button_subscribe': '💎 Підписка',
+    'current': 'Поточний',
+    'entry': 'Вхід',
+    'max_positions_reached': '⚠️ Досягнуто максимум позицій.',
+    'payment_session_expired': '❌ Сесія оплати закінчилася.',
+    'payment_ton_not_configured': '❌ TON платежі не налаштовані.',
+    'payment_ton_not_found': '❌ Платіж не знайдено.',
+    'payment_verifying': '⏳ Перевіряємо платіж...',
+    'position': 'Позиція',
+    'size': 'Розмір',
+    'stats_wyckoff': '📐 Wyckoff',
+
+    "button_hyperliquid": "🔷 HyperLiquid",
+    "button_webapp": "🌐 WebApp",
+    "button_switch_exchange": "🔄 Switch Exchange",
+    "button_api_bybit": "🟠 Bybit API",
+    "button_api_hl": "🔷 HL API",
+
+    # HyperLiquid Strategy Settings
+    "hl_settings": "HyperLiquid",
+    "hl_trading_enabled": "Торгівля на HyperLiquid",
+    "hl_reset_settings": "🔄 Скинути на налаштування Bybit",
+
 }

@@ -1,86 +1,108 @@
-# Bybit Demo Trading Bot - AI Coding Guidelines
+# Bybit + HyperLiquid Trading Bot - AI Coding Guidelines
+
+> **CRITICAL:** Do NOT run `git push` - all changes are local only!
 
 ## Architecture Overview
 
-This is an **async Telegram trading bot** for Bybit cryptocurrency futures trading. Built with `python-telegram-bot` (v20+) and `aiohttp` for API calls.
+Async Telegram trading bot supporting dual-exchange futures trading:
+- **Bybit** (CEX) - primary exchange
+- **HyperLiquid** (DEX) - Premium users only
 
-**Core Components:**
-- `bot.py` - Main bot logic (~3800 lines): command handlers, Bybit API wrapper, signal processing, DCA/pyramid logic
-- `db.py` - SQLite database layer with WAL mode, user config, positions, trade logs
-- `coin_params.py` - Trading configuration: TP/SL defaults, ATR params, keyword sentiment lists, symbol filters
-- `translations/` - Multi-language support (15 languages), each file exports `TEXTS` dict
+**Stack:** `python-telegram-bot` v20+, `aiohttp`, `FastAPI`, `SQLite WAL`
 
-**Data Flow:**
-```
-Telegram Channel Signal → on_channel_post() → parse signal → 
-→ filter by user config (coins, OI, RSI/BB) → create order via _bybit_request() →
-→ store in active_positions → monitor for TP/SL/exit → log to trade_logs
-```
+### Core Files
+| File | Purpose |
+|------|---------|
+| `bot.py` | Main bot (~14K lines) - all handlers, Bybit API, signal processing |
+| `db.py` | SQLite layer with connection pooling, user config caching |
+| `coin_params.py` | Trading config: `ADMIN_ID`, `DEFAULT_TP_PCT/SL_PCT`, `BLACKLIST` |
+| `exchange_router.py` | Routes orders to Bybit or HyperLiquid based on user settings |
+| `hl_adapter.py` | HyperLiquid adapter wrapping the custom SDK |
+| `hyperliquid/client.py` | Custom async HyperLiquid SDK with EIP-712 signing |
+| `translations/*.py` | 15 languages - all must stay in sync |
 
-## Key Patterns
+### Key Patterns
 
-### Bybit API Calls
-All Bybit requests go through `_bybit_request()` which handles:
-- HMAC signing with user credentials from DB
-- Retry logic with exponential backoff
-- Demo vs production endpoint (`BYBIT_BASE`)
-
+**Handler Decorators (order matters!):**
 ```python
-# Pattern for API calls
-await _bybit_request(user_id, "POST", "/v5/order/create", body={...})
-await _bybit_request(user_id, "GET", "/v5/position/list", params={...})
+@with_texts      # Injects ctx.t dict with translations
+@log_calls       # Exception logging (no entry/exit spam)
+@require_access  # Checks ban, approval, terms acceptance
+async def cmd_something(update, ctx):
+    text = ctx.t['some_key']  # Use translation
 ```
 
-### Handler Decorators
-- `@require_access` - Checks user approval, ban status, terms acceptance
-- `@with_texts` - Injects `ctx.t` dict with localized strings
-- `@log_calls` - Debug logging for function entry/exit
-
-Always stack decorators in this order:
+**Exchange Mode System:**
 ```python
-@with_texts
-@log_calls
-async def cmd_something(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+db.get_exchange_type(uid)       # 'bybit' or 'hyperliquid' - active exchange
+db.set_exchange_mode(uid, mode) # 'bybit', 'hyperliquid', 'both' - allowed modes
+db.get_hl_credentials(uid)      # Returns dict with hl_private_key, hl_wallet_address, etc.
 ```
 
-### Database Operations
-- Use `get_user_config(uid)` for reading user settings (returns normalized dict)
-- Use `set_user_field(uid, field, value)` for updates (field must be in `USER_FIELDS_WHITELIST`)
-- Use `ensure_user(uid)` before any UPDATE if user might not exist
+**HyperLiquid Client:**
+```python
+from hyperliquid import HyperLiquidClient
+# Full access (trading)
+client = HyperLiquidClient(private_key="0x...", testnet=True)
+# Read-only (balance/positions only)
+client = HyperLiquidClient(wallet_address="0x...", testnet=True)
+```
 
-### Localization
-Access translations via `ctx.t[key]` after using `@with_texts`. Add new keys to ALL files in `translations/`.
+## Developer Workflows
 
-## Environment & Configuration
-
-**Required `.env` variables:**
-- `TELEGRAM_TOKEN` - Bot token
-- `SIGNAL_CHANNEL_IDS` - Comma-separated Telegram channel IDs for signals
-- Bybit credentials stored per-user in SQLite, not env
-
-**Key constants in `coin_params.py`:**
-- `ADMIN_ID` - Telegram user ID with admin privileges
-- `MAX_OPEN_POSITIONS`, `MAX_LIMIT_ORDERS` - Trading limits
-- `BLACKLIST` - Symbols to never trade
-- `TIMEFRAME_PARAMS` - ATR/TP/SL settings per timeframe
-
-## Running the Bot
-
+### Running Services
 ```bash
-# Ensure .env exists with TELEGRAM_TOKEN
-python bot.py
+./start.sh              # All services foreground
+./start.sh --daemon     # All services background
+./start.sh --status     # Check what's running
+./start.sh --stop       # Stop everything
+./start.sh --bot        # Bot only
+./start.sh --webapp     # WebApp only (port 8765)
 ```
 
-The bot uses `run_polling()` and initializes the aiohttp session + SQLite on startup via `init_session()` and `db.init_db()`.
+### Database: `bot.db` (not `bybit_users.db`!)
+SQLite with WAL mode. User config uses in-memory cache (30s TTL).
+```python
+# Add new column:
+conn = sqlite3.connect("bot.db")
+conn.execute("ALTER TABLE users ADD COLUMN new_col TEXT")
+conn.commit()
+```
 
-## Common Tasks
+### Adding Bot Commands
+1. Write handler in `bot.py` with `@with_texts`, `@require_access` decorators
+2. Register: `app.add_handler(CommandHandler("cmd", handler))`
+3. Add translation keys to ALL 15 files in `translations/*.py`
+```python
+# Check missing translations:
+from translations import en, ru
+missing = set(en.TEXTS.keys()) - set(ru.TEXTS.keys())
+```
 
-**Adding a new command:**
-1. Create handler function with `@require_access`, `@with_texts` decorators
-2. Register in `main()` with `app.add_handler(CommandHandler("name", handler))`
-3. Add button text to all translation files if needed
+### After Code Changes
+```bash
+rm -rf __pycache__ */__pycache__  # Clear Python cache
+./start.sh --restart               # Restart services
+```
 
-**Adding a user config field:**
-1. Add to `USER_FIELDS_WHITELIST` in `db.py`
-2. Add column migration in `init_db()` with `_col_exists()` check
-3. Add to `get_user_config()` return dict
+## Project-Specific Notes
+
+- **Port 8000** is reserved (system process) - use **8765** for webapp
+- **ngrok API** runs on port 4040 for tunnel URLs
+- Database columns for HyperLiquid: `hl_wallet_address`, `hl_private_key`, `hl_vault_address`, `hl_testnet`, `exchange_mode`, `exchange_type`
+- User whitelist field: `USER_FIELDS_WHITELIST` in `db.py` controls allowed config updates
+- Trading parameters in `coin_params.py`: `COIN_PARAMS`, `TIMEFRAME_PARAMS`, `THRESHOLD_MAP`
+
+## WebApp (FastAPI)
+
+Located in `webapp/` with Jinja2 templates. API routes:
+- `/api/auth` - Authentication
+- `/api/trading` - Order placement
+- `/api/admin` - Admin functions
+- `/ws` - WebSocket for live trades
+
+## Current HyperLiquid Commands
+`/hl`, `/hl_balance`, `/hl_positions`, `/hl_switch`, `/hl_clear`
+
+---
+*Updated: December 2025*

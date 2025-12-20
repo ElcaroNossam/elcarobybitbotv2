@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ElCaro Trading</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card:hover { transform: translateY(-2px); transition: all 0.3s; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-900/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+                    🔧 Admin Panel
+                </h1>
+                <span class="text-xs text-gray-500">ElCaro Trading v2.0</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                <a href="/marketplace" class="text-gray-400 hover:text-white transition">Marketplace</a>
+                <button onclick="logout()" class="px-4 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Tabs -->
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex gap-2 border-b border-gray-800 pb-4">
+            <button onclick="showTab('overview')" id="tab-overview" class="px-4 py-2 rounded-lg tab-active text-white">
+                📊 Overview
+            </button>
+            <button onclick="showTab('users')" id="tab-users" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition">
+                👥 Users
+            </button>
+            <button onclick="showTab('strategies')" id="tab-strategies" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition">
+                🎯 Strategies
+            </button>
+            <button onclick="showTab('marketplace')" id="tab-marketplace" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition">
+                🛒 Marketplace
+            </button>
+            <button onclick="showTab('payouts')" id="tab-payouts" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition">
+                💰 Payouts
+            </button>
+            <button onclick="showTab('licenses')" id="tab-licenses" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition">
+                🔑 Licenses
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-4">
+        <!-- Overview Tab -->
+        <div id="content-overview" class="tab-content">
+            <div class="grid md:grid-cols-4 gap-6 mb-8">
+                <div class="glass rounded-xl p-6 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-gray-400 text-sm">Total Users</h3>
+                            <p class="text-3xl font-bold mt-2" id="totalUsers">0</p>
+                        </div>
+                        <span class="text-3xl">👥</span>
+                    </div>
+                    <p class="text-green-400 text-sm mt-2"><span id="newUsersToday">0</span> new today</p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-gray-400 text-sm">Premium Users</h3>
+                            <p class="text-3xl font-bold mt-2 text-purple-400" id="premiumUsers">0</p>
+                        </div>
+                        <span class="text-3xl">⭐</span>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-2"><span id="premiumPercent">0</span>% of total</p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-gray-400 text-sm">HyperLiquid Users</h3>
+                            <p class="text-3xl font-bold mt-2 text-cyan-400" id="hlUsers">0</p>
+                        </div>
+                        <span class="text-3xl">🌊</span>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-2">DEX enabled</p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-gray-400 text-sm">Active Strategies</h3>
+                            <p class="text-3xl font-bold mt-2 text-pink-400" id="activeStrategies">0</p>
+                        </div>
+                        <span class="text-3xl">🎯</span>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-2"><span id="publicStrategies">0</span> public</p>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="glass rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">System Status</h3>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="bg-gray-800/50 rounded-lg p-4 flex items-center gap-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full pulse"></div>
+                        <div>
+                            <p class="font-medium">Bot Service</p>
+                            <p class="text-sm text-gray-400">Running</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-4 flex items-center gap-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full pulse"></div>
+                        <div>
+                            <p class="font-medium">WebApp</p>
+                            <p class="text-sm text-gray-400">Running on port 8765</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-4 flex items-center gap-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full pulse"></div>
+                        <div>
+                            <p class="font-medium">Database</p>
+                            <p class="text-sm text-gray-400">SQLite WAL mode</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="content-users" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">User Management</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="userSearch" placeholder="Search users..." 
+                               class="px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-purple-500 outline-none">
+                        <button onclick="searchUsers()" class="px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700">Search</button>
+                    </div>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-800">
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Username</th>
+                            <th class="p-3">License</th>
+                            <th class="p-3">Exchange</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+                <div id="usersPagination" class="flex justify-center gap-2 mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Strategies Tab -->
+        <div id="content-strategies" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Custom Strategies</h2>
+                    <button onclick="refreshRankings()" class="px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700">
+                        🔄 Refresh Rankings
+                    </button>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-800">
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Creator</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Performance</th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="strategiesTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Marketplace Tab -->
+        <div id="content-marketplace" class="tab-content hidden">
+            <div class="grid md:grid-cols-4 gap-6 mb-8">
+                <div class="glass rounded-xl p-6 stat-card">
+                    <h3 class="text-gray-400 text-sm">Active Listings</h3>
+                    <p class="text-3xl font-bold mt-2" id="activeListings">0</p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <h3 class="text-gray-400 text-sm">Total Sales</h3>
+                    <p class="text-3xl font-bold mt-2 text-green-400" id="totalSales">0</p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <h3 class="text-gray-400 text-sm">Total Revenue</h3>
+                    <p class="text-3xl font-bold mt-2 text-purple-400">$<span id="totalRevenue">0</span></p>
+                </div>
+                <div class="glass rounded-xl p-6 stat-card">
+                    <h3 class="text-gray-400 text-sm">Platform Share (50%)</h3>
+                    <p class="text-3xl font-bold mt-2 text-pink-400">$<span id="platformRevenue">0</span></p>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Top Sellers</h3>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-800">
+                            <th class="p-3">Seller ID</th>
+                            <th class="p-3">Sales</th>
+                            <th class="p-3">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topSellersTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payouts Tab -->
+        <div id="content-payouts" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Payout Requests</h2>
+                    <select id="payoutFilter" onchange="loadPayouts()" class="px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-800">
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Seller</th>
+                            <th class="p-3">Amount</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Requested</th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payoutsTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Licenses Tab -->
+        <div id="content-licenses" class="tab-content hidden">
+            <div class="glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">License Keys</h2>
+                    <button onclick="showCreateLicense()" class="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">
+                        + Create License
+                    </button>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-800">
+                            <th class="p-3">Key</th>
+                            <th class="p-3">Type</th>
+                            <th class="p-3">User</th>
+                            <th class="p-3">Expires</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="licensesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create License Modal -->
+    <div id="licenseModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div class="glass rounded-xl p-8 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-6">Create License</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">License Type</label>
+                    <select id="licenseType" class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                        <option value="premium">Premium</option>
+                        <option value="pro">Pro</option>
+                        <option value="enterprise">Enterprise</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Duration (days)</label>
+                    <input type="number" id="licenseDays" value="30" 
+                           class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">User ID (optional)</label>
+                    <input type="number" id="licenseUserId" placeholder="Leave empty for unassigned"
+                           class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button onclick="hideLicenseModal()" class="px-4 py-2 bg-gray-700 rounded-lg">Cancel</button>
+                <button onclick="createLicense()" class="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login';
+
+        let currentUsersPage = 1;
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('tab-active', 'text-white');
+                el.classList.add('bg-gray-800', 'text-gray-400');
+            });
+            
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            const tabBtn = document.getElementById('tab-' + tab);
+            tabBtn.classList.add('tab-active', 'text-white');
+            tabBtn.classList.remove('bg-gray-800', 'text-gray-400');
+
+            if (tab === 'users') loadUsers();
+            if (tab === 'strategies') loadStrategies();
+            if (tab === 'marketplace') loadMarketplace();
+            if (tab === 'payouts') loadPayouts();
+            if (tab === 'licenses') loadLicenses();
+        }
+
+        async function api(endpoint, options = {}) {
+            const res = await fetch(`/api/admin${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            if (res.status === 403) {
+                alert('Admin access required');
+                window.location.href = '/dashboard';
+                return null;
+            }
+            return res.json();
+        }
+
+        async function loadOverview() {
+            const stats = await api('/stats');
+            if (!stats) return;
+
+            document.getElementById('totalUsers').textContent = stats.users?.total || 0;
+            document.getElementById('premiumUsers').textContent = stats.users?.premium || 0;
+            document.getElementById('hlUsers').textContent = stats.users?.hyperliquid || 0;
+            document.getElementById('newUsersToday').textContent = stats.users?.new_today || 0;
+            
+            const total = stats.users?.total || 1;
+            const premium = stats.users?.premium || 0;
+            document.getElementById('premiumPercent').textContent = ((premium / total) * 100).toFixed(1);
+
+            const strategies = await api('/strategies');
+            if (strategies) {
+                document.getElementById('activeStrategies').textContent = strategies.total || 0;
+                document.getElementById('publicStrategies').textContent = strategies.public || 0;
+            }
+        }
+
+        async function loadUsers(page = 1) {
+            currentUsersPage = page;
+            const search = document.getElementById('userSearch')?.value || '';
+            const data = await api(`/users?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+            if (!data) return;
+
+            const tbody = document.getElementById('usersTable');
+            tbody.innerHTML = data.list.map(u => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                    <td class="p-3">${u.user_id}</td>
+                    <td class="p-3">@${u.username || 'N/A'}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded-full text-xs ${
+                            u.license_type === 'premium' || u.license_type === 'lifetime' 
+                            ? 'bg-purple-600/30 text-purple-400' 
+                            : 'bg-gray-600/30 text-gray-400'
+                        }">${u.license_type || 'free'}</span>
+                    </td>
+                    <td class="p-3">${u.exchange_type}</td>
+                    <td class="p-3">
+                        ${u.is_banned 
+                            ? '<span class="text-red-400">Banned</span>'
+                            : u.is_allowed 
+                                ? '<span class="text-green-400">Active</span>'
+                                : '<span class="text-yellow-400">Pending</span>'
+                        }
+                    </td>
+                    <td class="p-3">
+                        ${u.is_banned
+                            ? `<button onclick="unbanUser(${u.user_id})" class="text-green-400 hover:text-green-300">Unban</button>`
+                            : `<button onclick="banUser(${u.user_id})" class="text-red-400 hover:text-red-300">Ban</button>`
+                        }
+                        ${!u.is_allowed && !u.is_banned
+                            ? `<button onclick="approveUser(${u.user_id})" class="ml-2 text-green-400 hover:text-green-300">Approve</button>`
+                            : ''
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function searchUsers() { loadUsers(1); }
+        async function banUser(id) { if (confirm('Ban this user?')) { await api(`/users/${id}/ban`, { method: 'POST' }); loadUsers(currentUsersPage); } }
+        async function unbanUser(id) { await api(`/users/${id}/unban`, { method: 'POST' }); loadUsers(currentUsersPage); }
+        async function approveUser(id) { await api(`/users/${id}/approve`, { method: 'POST' }); loadUsers(currentUsersPage); }
+
+        async function loadStrategies() {
+            const data = await api('/strategies');
+            if (!data) return;
+
+            const tbody = document.getElementById('strategiesTable');
+            tbody.innerHTML = data.list.map(s => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                    <td class="p-3">${s.id}</td>
+                    <td class="p-3">${s.name}</td>
+                    <td class="p-3">@${s.username || s.user_id}</td>
+                    <td class="p-3">
+                        ${s.is_public ? '<span class="text-green-400">Public</span>' : '<span class="text-gray-400">Private</span>'}
+                        ${s.is_active ? '' : '<span class="text-red-400 ml-2">Inactive</span>'}
+                    </td>
+                    <td class="p-3">${s.performance_stats || 'N/A'}</td>
+                    <td class="p-3 space-x-2">
+                        ${!s.is_public 
+                            ? `<button onclick="approveStrategy(${s.id})" class="text-green-400">Approve</button>`
+                            : `<button onclick="rejectStrategy(${s.id})" class="text-yellow-400">Unpublish</button>`
+                        }
+                        <button onclick="deleteStrategy(${s.id})" class="text-red-400">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function approveStrategy(id) { await api(`/strategies/${id}/approve`, { method: 'POST' }); loadStrategies(); }
+        async function rejectStrategy(id) { await api(`/strategies/${id}/reject`, { method: 'POST' }); loadStrategies(); }
+        async function deleteStrategy(id) { if (confirm('Delete strategy?')) { await api(`/strategies/${id}`, { method: 'DELETE' }); loadStrategies(); } }
+        async function refreshRankings() { await api('/rankings/refresh', { method: 'POST' }); alert('Rankings refreshed!'); }
+
+        async function loadMarketplace() {
+            const data = await api('/strategies/marketplace');
+            if (!data) return;
+            document.getElementById('activeListings').textContent = data.active_listings || 0;
+            document.getElementById('totalSales').textContent = data.total_sales || 0;
+            document.getElementById('totalRevenue').textContent = (data.total_revenue || 0).toFixed(2);
+            document.getElementById('platformRevenue').textContent = (data.platform_revenue || 0).toFixed(2);
+
+            const tbody = document.getElementById('topSellersTable');
+            tbody.innerHTML = (data.top_sellers || []).map(s => `
+                <tr class="border-b border-gray-800">
+                    <td class="p-3">${s.seller_id}</td>
+                    <td class="p-3">${s.sales}</td>
+                    <td class="p-3 text-green-400">$${s.revenue?.toFixed(2) || 0}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadPayouts() {
+            const filter = document.getElementById('payoutFilter').value;
+            const data = await api(`/payouts${filter ? '?status=' + filter : ''}`);
+            if (!data) return;
+
+            const tbody = document.getElementById('payoutsTable');
+            tbody.innerHTML = (data.list || []).map(p => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                    <td class="p-3">${p.id}</td>
+                    <td class="p-3">@${p.username || p.seller_id}</td>
+                    <td class="p-3">$${p.amount?.toFixed(2)} ${p.currency}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded-full text-xs ${
+                            p.status === 'completed' ? 'bg-green-600/30 text-green-400' :
+                            p.status === 'pending' ? 'bg-yellow-600/30 text-yellow-400' :
+                            'bg-red-600/30 text-red-400'
+                        }">${p.status}</span>
+                    </td>
+                    <td class="p-3 text-gray-400 text-sm">${new Date(p.requested_at * 1000).toLocaleDateString()}</td>
+                    <td class="p-3">
+                        ${p.status === 'pending' ? `
+                            <button onclick="processPayout(${p.id})" class="text-green-400">Process</button>
+                            <button onclick="rejectPayout(${p.id})" class="ml-2 text-red-400">Reject</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function processPayout(id) { const tx = prompt('Transaction hash:'); await api(`/payouts/${id}/process?tx_hash=${tx||''}`, { method: 'POST' }); loadPayouts(); }
+        async function rejectPayout(id) { if (confirm('Reject?')) { await api(`/payouts/${id}/reject`, { method: 'POST' }); loadPayouts(); } }
+
+        async function loadLicenses() {
+            const data = await api('/licenses');
+            if (!data) return;
+
+            const tbody = document.getElementById('licensesTable');
+            tbody.innerHTML = (data.list || []).map(l => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                    <td class="p-3 font-mono text-sm">${l.key}</td>
+                    <td class="p-3">${l.type}</td>
+                    <td class="p-3">${l.user_id || 'Unassigned'}</td>
+                    <td class="p-3 text-gray-400 text-sm">${l.expires_at || 'N/A'}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded-full text-xs ${l.is_active ? 'bg-green-600/30 text-green-400' : 'bg-red-600/30 text-red-400'}">${l.is_active ? 'Active' : 'Revoked'}</span>
+                    </td>
+                    <td class="p-3"><button onclick="revokeLicense('${l.key}')" class="text-red-400">Revoke</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function showCreateLicense() { document.getElementById('licenseModal').classList.remove('hidden'); }
+        function hideLicenseModal() { document.getElementById('licenseModal').classList.add('hidden'); }
+        
+        async function createLicense() {
+            const type = document.getElementById('licenseType').value;
+            const days = parseInt(document.getElementById('licenseDays').value) || 30;
+            const userId = document.getElementById('licenseUserId').value || null;
+            const result = await api('/licenses', {
+                method: 'POST',
+                body: JSON.stringify({ license_type: type, days, user_id: userId ? parseInt(userId) : null })
+            });
+            if (result?.license_key) { alert('Created: ' + result.license_key); hideLicenseModal(); loadLicenses(); }
+        }
+
+        async function revokeLicense(key) { if (confirm('Revoke?')) { await api(`/licenses/${encodeURIComponent(key)}`, { method: 'DELETE' }); loadLicenses(); } }
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login'; }
+
+        loadOverview();
+    </script>
+</body>
+</html>

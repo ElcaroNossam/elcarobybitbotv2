@@ -10,6 +10,7 @@ import logging
 import db  
 import math
 import feedparser
+from pathlib import Path
 from urllib.parse import quote
 import aiohttp
 import html
@@ -27,11 +28,21 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo
 from user_guide import get_user_guide_pdf
+from hl_adapter import HLAdapter
 from db import (
     get_subscribed_users,
     get_user_config,
+    # HyperLiquid functions
+    get_hl_credentials,
+    set_hl_credentials,
+    clear_hl_credentials,
+    get_exchange_mode,
+    set_exchange_mode,
+    get_exchange_type,
+    set_exchange_type,
+    get_exchange_status,
     set_user_field,
     reset_pyramid,
     get_all_pyramided_symbols,
@@ -707,6 +718,72 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(ctx.t["terms_declined"])
     else:
         await q.answer(ctx.t.get("unknown_action", "Unknown action"), show_alert=True)
+
+
+# ============================================================================
+# 2FA Login Confirmation Handler
+# ============================================================================
+@log_calls
+async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle 2FA approval/denial from bot buttons."""
+    q = update.callback_query
+    await q.answer()
+    uid = update.effective_user.id
+    data = q.data or ""
+    
+    # Parse: twofa_approve:xxx or twofa_deny:xxx
+    parts = data.split(":")
+    if len(parts) != 2:
+        return
+    
+    action = parts[0].replace("twofa_", "")  # approve or deny
+    confirmation_id = parts[1]
+    
+    try:
+        from webapp.services import telegram_auth
+        
+        # Get user language for messages
+        cfg = get_user_config(uid) or {}
+        lang = cfg.get("lang", "en")
+        
+        translations = {
+            "uk": {
+                "approved": "✅ Вхід підтверджено!\n\nТепер ви можете продовжити у браузері.",
+                "denied": "❌ Вхід відхилено.\n\nЯкщо це була не ваша спроба, рекомендуємо змінити налаштування безпеки.",
+                "expired": "⏰ Час підтвердження минув. Спробуйте ще раз.",
+                "error": "⚠️ Помилка обробки. Спробуйте пізніше."
+            },
+            "ru": {
+                "approved": "✅ Вход подтверждён!\n\nТеперь вы можете продолжить в браузере.",
+                "denied": "❌ Вход отклонён.\n\nЕсли это была не ваша попытка, рекомендуем изменить настройки безопасности.",
+                "expired": "⏰ Время подтверждения истекло. Попробуйте ещё раз.",
+                "error": "⚠️ Ошибка обработки. Попробуйте позже."
+            },
+            "en": {
+                "approved": "✅ Login approved!\n\nYou can now continue in your browser.",
+                "denied": "❌ Login denied.\n\nIf this wasn't you, we recommend reviewing your security settings.",
+                "expired": "⏰ Confirmation expired. Please try again.",
+                "error": "⚠️ Processing error. Please try again later."
+            }
+        }
+        t = translations.get(lang, translations["en"])
+        
+        if action == "approve":
+            success = telegram_auth.confirm_2fa(confirmation_id, approved=True)
+            if success:
+                await q.edit_message_text(t["approved"])
+            else:
+                await q.edit_message_text(t["expired"])
+        else:  # deny
+            success = telegram_auth.confirm_2fa(confirmation_id, approved=False)
+            if success:
+                await q.edit_message_text(t["denied"])
+            else:
+                await q.edit_message_text(t["expired"])
+                
+    except Exception as e:
+        logger.error(f"2FA callback error: {e}")
+        await q.edit_message_text("⚠️ Error processing request")
 
 # ------------------------------------------------------------------------------------
 # API Settings Menu
@@ -2019,7 +2096,7 @@ def _parse_sqlite_ts_to_utc(s: str) -> float:
     return dt.timestamp()
 
 def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, update: Update = None):
-    """Generate main menu keyboard. Shows admin buttons for ADMIN_ID."""
+    """Generate main menu keyboard. COMPLETELY different for each exchange."""
     t = ctx.t
     
     # Try to get user_id from update if not provided
@@ -2029,15 +2106,43 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         except:
             pass
     
-    keyboard = [
-        # ─── Информация ───
-        [ t['button_balance'],   t['button_orders'],   t['button_positions'] ],
-        [ t.get('button_stats', '📊 Statistics'),  t['button_market'],  t['button_lang'] ],
-        # ─── Настройки ───
-        [ t.get('button_strategy_settings', '⚙️ Strategies'),  t['button_settings'],  t['button_coins'] ],
-        # ─── API и подписка ───
-        [ t.get('button_api_settings', '🔑 API'), t.get('button_subscribe', '💎 Subscribe') ],
-    ]
+    # Get active exchange
+    active_exchange = get_exchange_type(user_id) if user_id else "bybit"
+    
+    if active_exchange == "hyperliquid":
+        # ═══════════════════════════════════════════════════════════════
+        # ██  HYPERLIQUID KEYBOARD  ██
+        # ═══════════════════════════════════════════════════════════════
+        keyboard = [
+            # ─── Активная биржа + переключение ───
+            [ "🔷 HyperLiquid", "🔄 Switch to Bybit" ],
+            # ─── HL Торговля ───
+            [ "💰 HL Balance", "📊 HL Positions", "📈 HL Orders" ],
+            # ─── HL Команды ───
+            [ "🎯 HL Trade", "❌ HL Close All", "📋 HL History" ],
+            # ─── Настройки ───
+            [ "⚙️ HL Settings", t['button_lang'], "🔑 HL API" ],
+            # ─── Общие ───
+            [ t.get('button_subscribe', '💎 Subscribe'), t.get('button_webapp', '🌐 WebApp') ],
+        ]
+    else:
+        # ═══════════════════════════════════════════════════════════════
+        # ██  BYBIT KEYBOARD  ██
+        # ═══════════════════════════════════════════════════════════════
+        keyboard = [
+            # ─── Активная биржа + переключение ───
+            [ "🟠 Bybit", "🔄 Switch to HL" ],
+            # ─── Bybit Информация ───
+            [ t['button_balance'],   t['button_orders'],   t['button_positions'] ],
+            [ t.get('button_stats', '📊 Statistics'),  t['button_market'],  t['button_lang'] ],
+            # ─── Bybit Настройки ───
+            [ t.get('button_strategy_settings', '⚙️ Strategies'),  t['button_settings'],  t['button_coins'] ],
+            # ─── Bybit API ───
+            [ "🟠 Bybit API", "🔷 HL API" ],
+            # ─── Подписка ───
+            [ t.get('button_subscribe', '💎 Subscribe'), t.get('button_webapp', '🌐 WebApp') ],
+        ]
+    
     # Add admin row if user is admin
     if user_id == ADMIN_ID:
         keyboard.append([ t.get('button_licenses', '🔑 Licenses'), t.get('button_admin', '👑 Admin') ])
@@ -3521,6 +3626,151 @@ async def place_order_all_accounts(
     return results
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# ██  HYPERLIQUID ORDER EXECUTION  ██
+# ═══════════════════════════════════════════════════════════════════════
+
+# Cache for HyperLiquid available coins
+_hl_coins_cache = {"coins": set(), "timestamp": 0, "ttl": 300}  # 5 min cache
+
+async def get_hl_available_coins() -> set:
+    """Get set of available coin symbols on HyperLiquid."""
+    import time
+    now = time.time()
+    
+    if _hl_coins_cache["coins"] and (now - _hl_coins_cache["timestamp"]) < _hl_coins_cache["ttl"]:
+        return _hl_coins_cache["coins"]
+    
+    try:
+        from hyperliquid import HyperLiquidClient
+        # Use read-only client just to get coin list
+        client = HyperLiquidClient(testnet=False)
+        await client.initialize()
+        mids = await client.get_all_mids()
+        await client.close()
+        
+        # Convert to USDT format for comparison (HL uses BTC, we compare BTCUSDT)
+        coins = {f"{coin}USDT" for coin in mids.keys()}
+        _hl_coins_cache["coins"] = coins
+        _hl_coins_cache["timestamp"] = now
+        return coins
+    except Exception as e:
+        logger.warning(f"Failed to get HL coins: {e}")
+        return set()
+
+
+def hl_symbol_to_coin(symbol: str) -> str:
+    """Convert BTCUSDT to BTC for HyperLiquid."""
+    if symbol.endswith("USDT"):
+        return symbol[:-4]
+    if symbol.endswith("USDC"):
+        return symbol[:-4]
+    return symbol
+
+
+async def place_order_hyperliquid(
+    user_id: int,
+    symbol: str,
+    side: str,
+    qty: float,
+    strategy: str,
+    leverage: int = None,
+    sl_percent: float = None,
+    tp_percent: float = None,
+) -> dict | None:
+    """
+    Place order on HyperLiquid if:
+    1. User has HL credentials configured
+    2. HL is enabled for this strategy
+    3. The coin is available on HL
+    
+    Returns result dict or None if not executed.
+    """
+    try:
+        # Check if HL is enabled for this strategy
+        hl_settings = db.get_hl_effective_settings(user_id, strategy)
+        if not hl_settings.get("enabled"):
+            return None
+        
+        # Check if user has HL credentials
+        hl_creds = get_hl_credentials(user_id)
+        if not hl_creds.get("hl_private_key"):
+            logger.debug(f"[{user_id}] No HL private key configured")
+            return None
+        
+        # Check if coin is available on HL
+        available_coins = await get_hl_available_coins()
+        if symbol not in available_coins:
+            logger.debug(f"[{user_id}] {symbol} not available on HyperLiquid")
+            return None
+        
+        # Get HL-specific settings
+        hl_percent = hl_settings.get("percent", 1.0)
+        hl_sl = hl_settings.get("sl_percent", sl_percent or 2.0)
+        hl_tp = hl_settings.get("tp_percent", tp_percent or 3.0)
+        hl_leverage = hl_settings.get("leverage", leverage or 10)
+        
+        # Create adapter
+        testnet = hl_creds.get("hl_testnet", False)
+        adapter = HLAdapter(
+            private_key=hl_creds["hl_private_key"],
+            testnet=testnet,
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        async with adapter:
+            # Get current price
+            coin = hl_symbol_to_coin(symbol)
+            price = await adapter._client.get_mid_price(coin)
+            if not price:
+                logger.warning(f"[{user_id}] Could not get price for {coin} on HL")
+                return None
+            
+            # Calculate qty based on HL percent
+            user_state = await adapter._client.user_state()
+            margin_summary = user_state.get("marginSummary", {})
+            account_value = float(margin_summary.get("accountValue", 0))
+            
+            if account_value <= 0:
+                logger.warning(f"[{user_id}] HL account value is 0")
+                return None
+            
+            # Calculate position size
+            position_value = account_value * (hl_percent / 100)
+            hl_qty = position_value / price
+            
+            # Round qty to appropriate decimals
+            hl_qty = round(hl_qty, 4)
+            if hl_qty <= 0:
+                return None
+            
+            # Place market order
+            is_buy = side.lower() in ("buy", "long")
+            result = await adapter._client.market_open(
+                coin=coin,
+                is_buy=is_buy,
+                sz=hl_qty,
+                leverage=hl_leverage,
+                slippage=0.01  # 1% slippage
+            )
+            
+            logger.info(f"✅ [{user_id}] HL order placed: {symbol} {side} qty={hl_qty} lev={hl_leverage}x")
+            return {
+                "success": True,
+                "exchange": "hyperliquid",
+                "testnet": testnet,
+                "symbol": symbol,
+                "side": side,
+                "qty": hl_qty,
+                "leverage": hl_leverage,
+                "result": result
+            }
+            
+    except Exception as e:
+        logger.error(f"[{user_id}] HL order failed for {symbol}: {e}")
+        return {"success": False, "error": str(e), "exchange": "hyperliquid"}
+
+
 @require_access
 @with_texts
 @log_calls
@@ -3735,6 +3985,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             )],
             [InlineKeyboardButton(t.get('param_long_settings', '📈 LONG Settings'), callback_data="scrypto_side:long")],
             [InlineKeyboardButton(t.get('param_short_settings', '📉 SHORT Settings'), callback_data="scrypto_side:short")],
+            [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
         ]
@@ -3777,6 +4028,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             )],
             [InlineKeyboardButton(t.get('param_long_settings', '📈 LONG Settings'), callback_data="scalper_side:long")],
             [InlineKeyboardButton(t.get('param_short_settings', '📉 SHORT Settings'), callback_data="scalper_side:short")],
+            [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
         ]
@@ -3791,6 +4043,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
                 callback_data=f"strat_coins:{strategy}"
             )],
             [InlineKeyboardButton(t.get('param_percent', '📊 Position Size %'), callback_data=f"strat_param:{strategy}:percent")],
+            [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid Settings'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
         ]
@@ -3825,6 +4078,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
                 t.get('param_direction', '🎯 Direction') + f": {dir_emoji} {dir_label}",
                 callback_data=f"wyckoff_dir:{current_dir}"
             )],
+            [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid Settings'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
         ]
@@ -3895,6 +4149,7 @@ def get_scalper_side_keyboard(side: str, t: dict) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", callback_data=f"strat_param:scalper:{side}_atr_periods")],
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", callback_data=f"strat_param:scalper:{side}_atr_multiplier_sl")],
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", callback_data=f"strat_param:scalper:{side}_atr_trigger_pct")],
+        [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data=f"strat_hl:{strategy}")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:scalper")],
     ]
     return InlineKeyboardMarkup(buttons)
@@ -3914,6 +4169,55 @@ def get_dca_settings_keyboard(t: dict, cfg: dict = None) -> InlineKeyboardMarkup
         [InlineKeyboardButton(t.get('dca_leg1', '📉 DCA Leg 1 %'), callback_data="dca_param:dca_pct_1")],
         [InlineKeyboardButton(t.get('dca_leg2', '📉 DCA Leg 2 %'), callback_data="dca_param:dca_pct_2")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
+    ]
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_hl_strategy_keyboard(strategy: str, t: dict, uid: int = None) -> InlineKeyboardMarkup:
+    """Build inline keyboard for HyperLiquid strategy settings."""
+    hl_settings = db.get_hl_strategy_settings(uid, strategy) if uid else {}
+    
+    hl_enabled = hl_settings.get("hl_enabled", False)
+    status_emoji = "✅" if hl_enabled else "❌"
+    
+    hl_percent = hl_settings.get("hl_percent")
+    hl_sl = hl_settings.get("hl_sl_percent")
+    hl_tp = hl_settings.get("hl_tp_percent")
+    hl_lev = hl_settings.get("hl_leverage")
+    
+    percent_label = f"{hl_percent}%" if hl_percent else t.get('global_default', 'Global')
+    sl_label = f"{hl_sl}%" if hl_sl else t.get('global_default', 'Global')
+    tp_label = f"{hl_tp}%" if hl_tp else t.get('global_default', 'Global')
+    lev_label = f"{hl_lev}x" if hl_lev else t.get('global_default', 'Global')
+    
+    display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+    
+    buttons = [
+        [InlineKeyboardButton(
+            f"{status_emoji} " + t.get('hl_trading_enabled', 'HyperLiquid Trading'),
+            callback_data=f"hl_strat:toggle:{strategy}"
+        )],
+        [InlineKeyboardButton(
+            t.get('param_percent', '📊 Entry %') + f": {percent_label}",
+            callback_data=f"hl_strat:param:{strategy}:hl_percent"
+        )],
+        [InlineKeyboardButton(
+            t.get('param_sl', '🔻 Stop-Loss %') + f": {sl_label}",
+            callback_data=f"hl_strat:param:{strategy}:hl_sl_percent"
+        )],
+        [InlineKeyboardButton(
+            t.get('param_tp', '🔺 Take-Profit %') + f": {tp_label}",
+            callback_data=f"hl_strat:param:{strategy}:hl_tp_percent"
+        )],
+        [InlineKeyboardButton(
+            t.get('param_leverage', '⚡ Leverage') + f": {lev_label}",
+            callback_data=f"hl_strat:param:{strategy}:hl_leverage"
+        )],
+        [InlineKeyboardButton(
+            t.get('hl_reset_settings', '🔄 Reset to Bybit Settings'),
+            callback_data=f"hl_strat:reset:{strategy}"
+        )],
+        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"strat_set:{strategy}")],
     ]
     return InlineKeyboardMarkup(buttons)
 
@@ -4225,6 +4529,134 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_ladder:settings")]
             ])
+        )
+        return
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # ██  HYPERLIQUID STRATEGY SETTINGS HANDLERS  ██
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    # Handle opening HL settings for a strategy
+    if data.startswith("strat_hl:"):
+        strategy = data.split(":")[1]
+        if strategy not in STRATEGY_NAMES_MAP:
+            await query.answer("❌ Invalid strategy")
+            return
+        
+        hl_settings = db.get_hl_strategy_settings(uid, strategy)
+        bybit_settings = db.get_effective_settings(uid, strategy)
+        
+        hl_enabled = hl_settings.get("hl_enabled", False)
+        hl_percent = hl_settings.get("hl_percent")
+        hl_sl = hl_settings.get("hl_sl_percent")
+        hl_tp = hl_settings.get("hl_tp_percent")
+        hl_lev = hl_settings.get("hl_leverage")
+        
+        strat_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        text = f"🔷 <b>HyperLiquid Settings: {strat_name}</b>\n\n"
+        text += f"<b>Status:</b> {'✅ Enabled' if hl_enabled else '❌ Disabled'}\n\n"
+        
+        text += "<b>Current Settings:</b>\n"
+        text += f"📊 Entry %: {hl_percent if hl_percent else 'Use Bybit (' + str(bybit_settings.get('percent', 1.0)) + '%)'}\n"
+        text += f"🔻 Stop-Loss %: {hl_sl if hl_sl else 'Use Bybit (' + str(bybit_settings.get('sl_percent', 2.0)) + '%)'}\n"
+        text += f"🔺 Take-Profit %: {hl_tp if hl_tp else 'Use Bybit (' + str(bybit_settings.get('tp_percent', 3.0)) + '%)'}\n"
+        text += f"⚡ Leverage: {str(hl_lev) + 'x' if hl_lev else 'Use Bybit (' + str(bybit_settings.get('leverage', 10)) + 'x)'}\n\n"
+        
+        text += "<i>When enabled, signals will also open trades on HyperLiquid if the coin is available there.</i>"
+        
+        await query.message.edit_text(
+            text,
+            parse_mode="HTML",
+            reply_markup=get_hl_strategy_keyboard(strategy, t, uid=uid)
+        )
+        return
+    
+    # Handle HL strategy toggle
+    if data.startswith("hl_strat:toggle:"):
+        strategy = data.split(":")[2]
+        hl_settings = db.get_hl_strategy_settings(uid, strategy)
+        current = hl_settings.get("hl_enabled", False)
+        new_val = not current
+        
+        db.set_hl_strategy_setting(uid, strategy, "hl_enabled", new_val)
+        
+        status = "✅ Enabled" if new_val else "❌ Disabled"
+        await query.answer(f"🔷 HyperLiquid {STRATEGY_NAMES_MAP.get(strategy, strategy)}: {status}")
+        
+        # Refresh the HL settings menu
+        hl_settings = db.get_hl_strategy_settings(uid, strategy)
+        bybit_settings = db.get_effective_settings(uid, strategy)
+        
+        strat_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        text = f"🔷 <b>HyperLiquid Settings: {strat_name}</b>\n\n"
+        text += f"<b>Status:</b> {'✅ Enabled' if new_val else '❌ Disabled'}\n\n"
+        
+        hl_percent = hl_settings.get("hl_percent")
+        hl_sl = hl_settings.get("hl_sl_percent")
+        hl_tp = hl_settings.get("hl_tp_percent")
+        hl_lev = hl_settings.get("hl_leverage")
+        
+        text += "<b>Current Settings:</b>\n"
+        text += f"📊 Entry %: {hl_percent if hl_percent else 'Use Bybit (' + str(bybit_settings.get('percent', 1.0)) + '%)'}\n"
+        text += f"🔻 Stop-Loss %: {hl_sl if hl_sl else 'Use Bybit (' + str(bybit_settings.get('sl_percent', 2.0)) + '%)'}\n"
+        text += f"🔺 Take-Profit %: {hl_tp if hl_tp else 'Use Bybit (' + str(bybit_settings.get('tp_percent', 3.0)) + '%)'}\n"
+        text += f"⚡ Leverage: {str(hl_lev) + 'x' if hl_lev else 'Use Bybit (' + str(bybit_settings.get('leverage', 10)) + 'x)'}\n"
+        
+        await query.message.edit_text(
+            text,
+            parse_mode="HTML",
+            reply_markup=get_hl_strategy_keyboard(strategy, t, uid=uid)
+        )
+        return
+    
+    # Handle HL strategy parameter input
+    if data.startswith("hl_strat:param:"):
+        parts = data.split(":")
+        strategy = parts[2]
+        param = parts[3]
+        
+        _awaiting_hl_param[uid] = {"strategy": strategy, "param": param}
+        
+        param_labels = {
+            "hl_percent": "Entry %",
+            "hl_sl_percent": "Stop-Loss %",
+            "hl_tp_percent": "Take-Profit %",
+            "hl_leverage": "Leverage"
+        }
+        
+        strat_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        param_label = param_labels.get(param, param)
+        
+        await query.message.edit_text(
+            f"🔷 <b>{strat_name} - {param_label}</b>\n\n"
+            f"Enter new value for {param_label}:\n\n"
+            f"Send a number or /cancel to abort.",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Handle HL strategy reset
+    if data.startswith("hl_strat:reset:"):
+        strategy = data.split(":")[2]
+        
+        # Clear all HL settings for this strategy
+        for field in ["hl_enabled", "hl_percent", "hl_sl_percent", "hl_tp_percent", "hl_leverage"]:
+            db.set_hl_strategy_setting(uid, strategy, field, None)
+        
+        await query.answer(f"🔄 HyperLiquid settings reset for {STRATEGY_NAMES_MAP.get(strategy, strategy)}")
+        
+        # Refresh the strategy menu
+        strat_settings = db.get_strategy_settings(uid, strategy)
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"⚙️ <b>{display_name} Strategy Settings</b>\n\n"
+            f"Configure {display_name} signal parameters.\n"
+            f"Use buttons below to adjust settings.",
+            parse_mode="HTML",
+            reply_markup=get_strategy_param_keyboard(strategy, t, strat_settings)
         )
         return
     
@@ -8032,6 +8464,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         )
                         
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="rsi_bb", leverage=user_leverage)
+                        
+                        # Also place on HyperLiquid if enabled
+                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
+                        if hl_result and hl_result.get("success"):
+                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
                         inc_pyramid(uid, symbol, side)
                         
                         # Store position with strategy
@@ -8104,6 +8542,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             )
                     else:
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scryptomera", leverage=user_leverage)
+                        
+                        # Also place on HyperLiquid if enabled
+                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
+                        if hl_result and hl_result.get("success"):
+                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
                         inc_pyramid(uid, symbol, side)
                         
                         # Store position with strategy
@@ -8176,6 +8620,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             )
                     else:
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scalper", leverage=user_leverage)
+                        
+                        # Also place on HyperLiquid if enabled
+                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
+                        if hl_result and hl_result.get("success"):
+                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
                         inc_pyramid(uid, symbol, side)
                         
                         # Store position with strategy
@@ -8300,6 +8750,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Market order - price is close to Entry
                         try:
                             await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="elcaro", leverage=order_leverage)
+                            
+                            # Also place on HyperLiquid if enabled
+                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
+                            if hl_result and hl_result.get("success"):
+                                await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
                             
                             # Calculate exact SL/TP prices
                             if elcaro_mode and elcaro_sl and elcaro_tp:
@@ -8427,6 +8882,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         try:
                             await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="wyckoff", leverage=user_leverage)
                             
+                            # Also place on HyperLiquid if enabled
+                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="wyckoff", leverage=user_leverage, sl_percent=wyckoff_sl_pct, tp_percent=wyckoff_tp_pct)
+                            if hl_result and hl_result.get("success"):
+                                await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                            
                             # Use exact SL/TP from signal
                             actual_sl = wyckoff_sl if wyckoff_sl else (spot_price * (1 - wyckoff_sl_pct / 100) if side == "Buy" else spot_price * (1 + wyckoff_sl_pct / 100))
                             actual_tp = wyckoff_tp if wyckoff_tp else (spot_price * (1 + wyckoff_tp_pct / 100) if side == "Buy" else spot_price * (1 - wyckoff_tp_pct / 100))
@@ -8517,6 +8977,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Full market order
                         qty_mkt = q_qty(qty_total)
                         await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty_mkt, strategy="oi", leverage=user_leverage)
+                        
+                        # Also place on HyperLiquid if enabled
+                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
+                        if hl_result and hl_result.get("success"):
+                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
                         
                         # Store position with strategy
                         add_active_position(
@@ -10485,6 +10950,14 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text  = (update.message.text or "").strip()
     mode  = ctx.user_data.get("mode") if ctx.user_data else None
 
+    # Handle HyperLiquid private key input FIRST
+    if await handle_hl_private_key(update, ctx):
+        return
+    
+    # Handle HyperLiquid strategy parameter input
+    if await handle_hl_strategy_param(update, ctx):
+        return
+
     # Handle promo code entry
     if mode == "enter_promo":
         ctx.user_data.pop("mode", None)
@@ -10754,6 +11227,87 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Subscribe button
     if text == ctx.t.get("button_subscribe", "💎 Subscribe"):
         return await cmd_subscribe(update, ctx)
+    
+    # Exchange indicator button (shows current exchange info)
+    if text in ["🔷 HyperLiquid", "🟠 Bybit"]:
+        return await cmd_exchange_status(update, ctx)
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ██  SWITCH EXCHANGE BUTTONS  ██
+    # ═══════════════════════════════════════════════════════════════
+    if text == "🔄 Switch to Bybit":
+        set_exchange_type(uid, "bybit")
+        await update.message.reply_text(
+            "🟠 *Switched to Bybit!*\n\nNow all commands work with Bybit.",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, uid)
+        )
+        return
+    
+    if text == "🔄 Switch to HL":
+        # Check if HL is configured
+        hl_creds = get_hl_credentials(uid)
+        if not hl_creds.get("hl_private_key"):
+            await update.message.reply_text(
+                "❌ *HyperLiquid not configured!*\n\n"
+                "Please set up HyperLiquid first:\n"
+                "Press 🔷 HL API button to configure.",
+                parse_mode="Markdown"
+            )
+            return
+        set_exchange_type(uid, "hyperliquid")
+        await update.message.reply_text(
+            "🔷 *Switched to HyperLiquid!*\n\nNow all commands work with HyperLiquid.",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, uid)
+        )
+        return
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ██  HYPERLIQUID BUTTONS  ██
+    # ═══════════════════════════════════════════════════════════════
+    if text == "💰 HL Balance":
+        return await cmd_hl_balance(update, ctx)
+    
+    if text == "📊 HL Positions":
+        return await cmd_hl_positions(update, ctx)
+    
+    if text == "📈 HL Orders":
+        return await cmd_hl_orders(update, ctx)
+    
+    if text == "🎯 HL Trade":
+        return await cmd_hl_trade(update, ctx)
+    
+    if text == "❌ HL Close All":
+        return await cmd_hl_close_all(update, ctx)
+    
+    if text == "📋 HL History":
+        return await cmd_hl_history(update, ctx)
+    
+    if text == "⚙️ HL Settings":
+        return await cmd_hl_settings(update, ctx)
+    
+    if text == "🔑 HL API":
+        return await cmd_hl_settings(update, ctx)
+    
+    # ═══════════════════════════════════════════════════════════════
+    # ██  BYBIT BUTTONS  ██
+    # ═══════════════════════════════════════════════════════════════
+    # Bybit API button
+    if text in ["🟠 Bybit API", ctx.t.get("button_api_bybit", "🟠 Bybit API")]:
+        return await cmd_api_settings(update, ctx)
+    
+    # HyperLiquid API button (from Bybit keyboard)
+    if text in ["🔷 HL API", ctx.t.get("button_api_hl", "🔷 HL API")]:
+        return await cmd_hl_settings(update, ctx)
+    
+    # Switch exchange button (legacy)
+    if text == ctx.t.get("button_switch_exchange", "🔄 Switch Exchange"):
+        return await cmd_switch_exchange(update, ctx)
+    
+    # WebApp button
+    if text == ctx.t.get("button_webapp", "🌐 WebApp"):
+        return await cmd_webapp(update, ctx)
     
     # Spot Settings button
     if text == ctx.t.get("button_spot_settings", "💹 Spot Settings"):
@@ -12037,6 +12591,1251 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
 
 
+# ========================
+# HyperLiquid DEX Commands
+# ========================
+
+# Global dict to track users waiting for private key input
+_hl_awaiting_key = {}
+_awaiting_hl_param = {}  # {uid: {strategy, param}}
+
+# HyperLiquid requires premium license
+HYPERLIQUID_LICENSE_TYPES = ["premium", "vip", "enterprise"]
+
+
+def require_premium_for_hl(func):
+    """Decorator that requires premium license for HyperLiquid features"""
+    @wraps(func)
+    @with_texts
+    async def _wrap(update, ctx, *args, **kw):
+        uid = getattr(getattr(update, "effective_user", None), "id", None)
+        if uid is None:
+            return await func(update, ctx, *args, **kw)
+
+        t = ctx.t
+
+        # Admin always has access
+        if uid == ADMIN_ID:
+            return await func(update, ctx, *args, **kw)
+
+        license_info = get_user_license(uid)
+        
+        if not license_info["is_active"] or license_info["license_type"] not in HYPERLIQUID_LICENSE_TYPES:
+            msg = t.get(
+                "hl_premium_required", 
+                "🔐 <b>Premium Required</b>\n\n"
+                "HyperLiquid DEX trading is available only for Premium users.\n\n"
+                "✨ <b>Benefits of Premium:</b>\n"
+                "• Trade on HyperLiquid DEX\n"
+                "• Trade on both exchanges simultaneously\n"
+                "• Advanced DCA & Pyramid strategies\n"
+                "• Priority support\n\n"
+                "Use /subscribe to upgrade your account."
+            )
+            try:
+                if update.callback_query:
+                    await update.callback_query.answer("🔐 Premium required for HyperLiquid", show_alert=True)
+                    await update.callback_query.edit_message_text(msg, parse_mode="HTML")
+                else:
+                    await ctx.bot.send_message(uid, msg, parse_mode="HTML")
+            except:
+                pass
+            return
+        
+        return await func(update, ctx, *args, **kw)
+    return _wrap
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hyperliquid(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Main HyperLiquid menu"""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    hl_creds = get_hl_credentials(uid)
+    is_configured = bool(hl_creds.get("hl_private_key"))
+    is_enabled = hl_creds.get("hl_enabled", False)
+    exchange = get_exchange_type(uid)
+    network = "Testnet" if hl_creds.get("hl_testnet") else "Mainnet"
+    
+    if is_configured:
+        addr = hl_creds.get("hl_address", "")[:10] + "..." if hl_creds.get("hl_address") else "N/A"
+        status_text = f"""
+🔗 *HyperLiquid DEX*
+
+📊 *Status:* {'✅ Connected' if is_enabled else '⚠️ Disabled'}
+🌐 *Network:* {network}
+👛 *Wallet:* `{addr}`
+🔄 *Active Exchange:* {exchange.upper()}
+
+Select an action:
+"""
+        buttons = [
+            [InlineKeyboardButton("💰 Balance", callback_data="hl:balance"),
+             InlineKeyboardButton("📈 Positions", callback_data="hl:positions")],
+            [InlineKeyboardButton("🔄 Switch to HL" if exchange == "bybit" else "🔄 Switch to Bybit", 
+                                callback_data="hl:switch")],
+            [InlineKeyboardButton("🌐 Testnet" if not hl_creds.get("hl_testnet") else "🌐 Mainnet",
+                                callback_data="hl:network")],
+            [InlineKeyboardButton("🔑 Update Key", callback_data="hl:setkey"),
+             InlineKeyboardButton("❌ Disconnect", callback_data="hl:disconnect")],
+        ]
+    else:
+        status_text = """
+🔗 *HyperLiquid DEX*
+
+Connect your HyperLiquid account to trade on DEX!
+
+⚡ *Benefits:*
+• True decentralized trading
+• No KYC required
+• Lower fees
+• Self-custody
+
+To connect, you need your ETH private key.
+⚠️ *IMPORTANT:* Use a dedicated trading wallet, NOT your main wallet!
+
+Select network to start:
+"""
+        buttons = [
+            [InlineKeyboardButton("🌐 Mainnet", callback_data="hl:mainnet"),
+             InlineKeyboardButton("🧪 Testnet", callback_data="hl:testnet")],
+        ]
+    
+    await update.message.reply_text(
+        status_text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_setkey(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Command to set HyperLiquid private key"""
+    uid = update.effective_user.id
+    _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+    
+    await update.message.reply_text(
+        "🔑 *Set HyperLiquid Private Key*\n\n"
+        "Please send your ETH private key (with or without 0x prefix).\n\n"
+        "⚠️ *Security Tips:*\n"
+        "• Use a dedicated trading wallet\n"
+        "• Never share your key with anyone\n"
+        "• The key will be stored encrypted\n\n"
+        "Send /cancel to abort.",
+        parse_mode="Markdown"
+    )
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid balance"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use /hl to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=hl_creds["hl_private_key"],
+            testnet=hl_creds.get("hl_testnet", False),
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.get_balance()
+        
+        if result.get("success"):
+            data = result.get("data", {})
+            equity = float(data.get("equity", 0))
+            available = float(data.get("available", 0))
+            margin_used = float(data.get("margin_used", 0))
+            unrealized_pnl = float(data.get("unrealized_pnl", 0))
+            
+            pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+            
+            text = f"""
+💰 *HyperLiquid Balance* {network}
+
+💎 *Equity:* ${equity:,.2f}
+💵 *Available:* ${available:,.2f}
+📊 *Margin Used:* ${margin_used:,.2f}
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f}
+"""
+            await update.message.reply_text(text, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"❌ Failed to fetch balance: {result.get('error', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL balance error: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid positions"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use /hl to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=hl_creds["hl_private_key"],
+            testnet=hl_creds.get("hl_testnet", False),
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.fetch_positions()
+        
+        if result.get("success"):
+            positions = result.get("data", [])
+            if not positions:
+                await update.message.reply_text("📭 No open positions on HyperLiquid.")
+                return
+            
+            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+            lines = [f"📈 *HyperLiquid Positions* {network}\n"]
+            
+            for pos in positions[:10]:
+                symbol = pos.get("symbol", "?")
+                side = pos.get("side", "?")
+                size = float(pos.get("size", 0))
+                entry = float(pos.get("entry_price", 0))
+                pnl = float(pos.get("unrealized_pnl", 0))
+                leverage = pos.get("leverage", "?")
+                
+                side_emoji = "�� LONG" if side == "Buy" else "🔴 SHORT"
+                pnl_emoji = "+" if pnl >= 0 else ""
+                
+                lines.append(
+                    f"{side_emoji} *{symbol}* {leverage}x\n"
+                    f"   Size: {size} | Entry: ${entry:,.4f}\n"
+                    f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
+                )
+            
+            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"❌ Failed to fetch positions: {result.get('error', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL positions error: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@require_premium_for_hl
+@with_texts  
+@log_calls
+async def cmd_hl_switch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Switch active exchange"""
+    uid = update.effective_user.id
+    
+    current = get_exchange_type(uid)
+    new_exchange = "hyperliquid" if current == "bybit" else "bybit"
+    
+    # Check if HL is configured before switching to it
+    if new_exchange == "hyperliquid":
+        hl_creds = get_hl_credentials(uid)
+        if not hl_creds.get("hl_private_key"):
+            await update.message.reply_text(
+                "❌ Cannot switch to HyperLiquid - not configured.\n"
+                "Use /hl to set up first.",
+                parse_mode="Markdown"
+            )
+            return
+    
+    set_exchange_type(uid, new_exchange)
+    
+    await update.message.reply_text(
+        f"✅ Switched to *{new_exchange.upper()}*\n\n"
+        f"All new trades will execute on {new_exchange.upper()}.",
+        parse_mode="Markdown"
+    )
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid open orders"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=hl_creds["hl_private_key"],
+            testnet=hl_creds.get("hl_testnet", False),
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.fetch_open_orders()
+        
+        if result.get("success"):
+            orders = result.get("data", [])
+            if not orders:
+                await update.message.reply_text("📭 No open orders on HyperLiquid.")
+                return
+            
+            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+            lines = [f"📈 *HyperLiquid Open Orders* {network}\n"]
+            
+            for order in orders[:10]:
+                symbol = order.get("symbol", "?")
+                side = order.get("side", "?")
+                size = float(order.get("size", 0))
+                price = float(order.get("price", 0))
+                order_type = order.get("order_type", "?")
+                
+                side_emoji = "🟢 BUY" if side == "Buy" else "🔴 SELL"
+                
+                lines.append(
+                    f"{side_emoji} *{symbol}*\n"
+                    f"   {order_type} | Size: {size} @ ${price:,.4f}\n"
+                )
+            
+            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"❌ Failed to fetch orders: {result.get('error', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL orders error: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_trade(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid trade menu"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🟢 Buy BTC", callback_data="hl_trade:buy_BTC"),
+         InlineKeyboardButton("🔴 Sell BTC", callback_data="hl_trade:sell_BTC")],
+        [InlineKeyboardButton("🟢 Buy ETH", callback_data="hl_trade:buy_ETH"),
+         InlineKeyboardButton("🔴 Sell ETH", callback_data="hl_trade:sell_ETH")],
+        [InlineKeyboardButton("📝 Custom Trade", callback_data="hl_trade:custom")],
+        [InlineKeyboardButton("❌ Close", callback_data="hl_trade:close")],
+    ])
+    
+    await update.message.reply_text(
+        f"🎯 *HyperLiquid Trade* {network}\n\n"
+        "Select a quick trade or custom trade:",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_close_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Close all HyperLiquid positions"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Yes, Close All", callback_data="hl_close:confirm")],
+        [InlineKeyboardButton("❌ Cancel", callback_data="hl_close:cancel")],
+    ])
+    
+    await update.message.reply_text(
+        "⚠️ *Close All Positions?*\n\n"
+        "This will market close ALL your open positions on HyperLiquid.\n\n"
+        "Are you sure?",
+        parse_mode="Markdown",
+        reply_markup=keyboard
+    )
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls
+async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid trade history"""
+    uid = update.effective_user.id
+    
+    hl_creds = get_hl_credentials(uid)
+    if not hl_creds.get("hl_private_key"):
+        await update.message.reply_text(
+            "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=hl_creds["hl_private_key"],
+            testnet=hl_creds.get("hl_testnet", False),
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.fetch_trade_history(limit=10)
+        
+        if result.get("success"):
+            trades = result.get("data", [])
+            if not trades:
+                await update.message.reply_text("📭 No trade history on HyperLiquid.")
+                return
+            
+            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+            lines = [f"📋 *HyperLiquid Trade History* {network}\n"]
+            
+            for trade in trades[:10]:
+                symbol = trade.get("symbol", "?")
+                side = trade.get("side", "?")
+                size = float(trade.get("size", 0))
+                price = float(trade.get("price", 0))
+                pnl = float(trade.get("pnl", 0))
+                
+                side_emoji = "🟢" if side == "Buy" else "🔴"
+                pnl_emoji = "+" if pnl >= 0 else ""
+                
+                lines.append(
+                    f"{side_emoji} *{symbol}* | {size} @ ${price:,.4f}\n"
+                    f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
+                )
+            
+            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"❌ Failed to fetch history: {result.get('error', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL history error: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@require_premium_for_hl
+@with_texts
+@log_calls  
+async def cmd_hl_clear(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Clear HyperLiquid credentials"""
+    uid = update.effective_user.id
+    
+    clear_hl_credentials(uid)
+    set_exchange_type(uid, "bybit")
+    
+    await update.message.reply_text(
+        "✅ HyperLiquid credentials cleared.\n"
+        "Switched back to Bybit.",
+        parse_mode="Markdown"
+    )
+
+
+@with_texts
+@log_calls
+async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show HyperLiquid API settings menu."""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    hl_creds = get_hl_credentials(uid)
+    has_key = bool(hl_creds.get("hl_private_key"))
+    has_wallet = bool(hl_creds.get("hl_wallet_address"))
+    is_testnet = hl_creds.get("hl_testnet", False)
+    
+    # Build status message
+    msg = "🔷 <b>HyperLiquid API Settings</b>\n\n"
+    
+    if has_key or has_wallet:
+        network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+        msg += f"<b>Network:</b> {network}\n"
+        
+        if has_wallet:
+            wallet = hl_creds.get("hl_wallet_address", "")
+            msg += f"<b>Wallet:</b> <code>{wallet[:10]}...{wallet[-6:]}</code>\n"
+        
+        if has_key:
+            msg += "<b>Private Key:</b> ✅ Set\n"
+        else:
+            msg += "<b>Private Key:</b> ❌ Not set (read-only mode)\n"
+        
+        msg += "\n✅ <b>Status:</b> Configured"
+    else:
+        msg += "❌ <b>Status:</b> Not configured\n\n"
+        msg += "Setup HyperLiquid to trade on DEX."
+    
+    # Build keyboard
+    keyboard = []
+    
+    if has_key or has_wallet:
+        keyboard.append([
+            InlineKeyboardButton("🧪 Test Connection", callback_data="hl_api:test")
+        ])
+        keyboard.append([
+            InlineKeyboardButton("🗑 Clear Credentials", callback_data="hl_api:clear")
+        ])
+    else:
+        keyboard.append([
+            InlineKeyboardButton("🌐 Setup Mainnet", callback_data="hl_api:setup_mainnet"),
+            InlineKeyboardButton("🧪 Setup Testnet", callback_data="hl_api:setup_testnet")
+        ])
+    
+    keyboard.append([
+        InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="hl_api:back")
+    ])
+    
+    await update.message.reply_text(
+        msg,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@with_texts
+@log_calls
+async def cmd_exchange_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show current exchange status"""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    status = get_exchange_status(uid)
+    active = status.get("active_exchange", "bybit")
+    mode = status.get("exchange_mode", "bybit")
+    
+    bybit_info = status.get("bybit", {})
+    hl_info = status.get("hyperliquid", {})
+    
+    text = f"📊 *Exchange Status*\n\n"
+    
+    # Active exchange
+    if active == "hyperliquid":
+        text += "🔷 *Active:* HyperLiquid\n"
+    else:
+        text += "🟠 *Active:* Bybit\n"
+    
+    text += f"⚙️ *Mode:* {mode}\n\n"
+    
+    # Bybit status
+    text += "*Bybit:*\n"
+    if bybit_info.get("configured"):
+        text += f"  ✅ Configured (Demo: {'✓' if bybit_info.get('demo') else '✗'}, Real: {'✓' if bybit_info.get('real') else '✗'})\n"
+    else:
+        text += "  ❌ Not configured\n"
+    
+    # HyperLiquid status
+    text += "\n*HyperLiquid:*\n"
+    if hl_info.get("configured"):
+        net = "Testnet" if hl_info.get("testnet") else "Mainnet"
+        wallet = hl_info.get("wallet", "")[:15] + "..." if hl_info.get("wallet") else "N/A"
+        text += f"  ✅ Configured ({net})\n"
+        text += f"  📍 Wallet: {wallet}\n"
+    else:
+        text += "  ❌ Not configured\n"
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔄 Switch Exchange", callback_data="exchange:switch")],
+        [InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")],
+        [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+    ])
+    
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+@with_texts
+@log_calls
+async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Switch between Bybit and HyperLiquid"""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    status = get_exchange_status(uid)
+    current = status.get("active_exchange", "bybit")
+    hl_configured = status.get("hyperliquid", {}).get("configured", False)
+    bybit_configured = status.get("bybit", {}).get("configured", False)
+    
+    keyboard = []
+    
+    # Bybit option
+    if current == "bybit":
+        keyboard.append([InlineKeyboardButton("🟠 Bybit ✓ (current)", callback_data="exchange:noop")])
+    else:
+        keyboard.append([InlineKeyboardButton("🟠 Switch to Bybit", callback_data="exchange:set_bybit")])
+    
+    # HyperLiquid option
+    if hl_configured:
+        if current == "hyperliquid":
+            keyboard.append([InlineKeyboardButton("🔷 HyperLiquid ✓ (current)", callback_data="exchange:noop")])
+        else:
+            keyboard.append([InlineKeyboardButton("🔷 Switch to HyperLiquid", callback_data="exchange:set_hl")])
+    else:
+        keyboard.append([InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")])
+    
+    keyboard.append([InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")])
+    
+    text = (
+        "🔄 *Switch Exchange*\n\n"
+        f"Current: {'🔷 HyperLiquid' if current == 'hyperliquid' else '🟠 Bybit'}\n\n"
+        "Select the exchange you want to trade on:"
+    )
+    
+    await update.message.reply_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@with_texts
+@log_calls
+async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Open WebApp in browser with auto-login"""
+    t = ctx.t
+    uid = update.effective_user.id
+    
+    # Get ngrok URL from file or use localhost
+    webapp_url = "http://localhost:8765"
+    try:
+        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+        if ngrok_file.exists():
+            webapp_url = ngrok_file.read_text().strip()
+    except:
+        pass
+    
+    # Generate auto-login token
+    try:
+        from webapp.services import telegram_auth
+        token, login_url = telegram_auth.generate_login_token(uid)
+        # Update login_url with current webapp URL (in case ngrok changed)
+        login_url = f"{webapp_url}/api/auth/token-login?token={token}"
+    except Exception as e:
+        logging.warning(f"Failed to generate login token: {e}")
+        login_url = webapp_url
+    
+    # Check if ngrok (free tier has warning page that breaks WebApp)
+    is_ngrok = "ngrok" in webapp_url
+    
+    if is_ngrok:
+        # For ngrok, use regular URL buttons (WebAppInfo shows blank due to ngrok warning)
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Open WebApp", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
+    else:
+        # For production HTTPS, use WebAppInfo for native experience
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
+    
+    text = (
+        "🌐 *Trading WebApp*\n\n"
+        "Access your trading dashboard:\n\n"
+        "• 📊 View positions and orders\n"
+        "• 💰 Check balances\n"
+        "• ⚙️ Manage settings\n"
+        "• 📈 Trading statistics\n\n"
+        "_Tap the button below to open_"
+    )
+    
+    await update.message.reply_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=keyboard,
+        disable_web_page_preview=True
+    )
+
+
+@log_calls
+async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle HyperLiquid API settings callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    
+    if data == "hl_api:setup_mainnet":
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        await q.edit_message_text(
+            "🌐 <b>HyperLiquid Mainnet Setup</b>\n\n"
+            "Send your ETH private key (with or without 0x prefix).\n\n"
+            "⚠️ <b>Security Tips:</b>\n"
+            "• Use a dedicated trading wallet\n"
+            "• Never share your key with anyone\n\n"
+            "Send /cancel to abort.",
+            parse_mode="HTML"
+        )
+    
+    elif data == "hl_api:setup_testnet":
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": True}
+        await q.edit_message_text(
+            "🧪 <b>HyperLiquid Testnet Setup</b>\n\n"
+            "Send your ETH private key (with or without 0x prefix).\n\n"
+            "⚠️ <b>Security Tips:</b>\n"
+            "• Use a dedicated trading wallet\n"
+            "• Never share your key with anyone\n\n"
+            "Send /cancel to abort.",
+            parse_mode="HTML"
+        )
+    
+    elif data == "hl_api:test":
+        # Test HyperLiquid connection
+        hl_creds = get_hl_credentials(uid)
+        wallet = hl_creds.get("hl_wallet_address")
+        testnet = hl_creds.get("hl_testnet", False)
+        
+        if not wallet:
+            await q.edit_message_text("❌ No wallet configured.")
+            return
+        
+        try:
+            from hyperliquid import HyperLiquidClient
+            client = HyperLiquidClient(
+                wallet_address=wallet,
+                private_key=hl_creds.get("hl_private_key"),
+                testnet=testnet
+            )
+            state = await client.user_state(wallet)
+            balance = float(state.get("marginSummary", {}).get("accountValue", 0))
+            
+            network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+            await q.edit_message_text(
+                f"✅ <b>Connection Successful!</b>\n\n"
+                f"<b>Network:</b> {network}\n"
+                f"<b>Wallet:</b> <code>{wallet[:10]}...{wallet[-6:]}</code>\n"
+                f"<b>Balance:</b> ${balance:.2f}\n\n"
+                f"🟢 HyperLiquid is ready!",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+                ])
+            )
+        except Exception as e:
+            await q.edit_message_text(
+                f"❌ <b>Connection Failed</b>\n\n"
+                f"Error: {str(e)[:100]}",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+                ])
+            )
+    
+    elif data == "hl_api:clear":
+        clear_hl_credentials(uid)
+        await q.edit_message_text(
+            "✅ HyperLiquid credentials cleared.\n\n"
+            "Use 🔷 HL API to setup again.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+            ])
+        )
+    
+    elif data == "hl_api:back":
+        await q.edit_message_text("Use /start to return to main menu.")
+
+
+@log_calls
+async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle exchange switching callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    
+    if data == "exchange:set_bybit":
+        set_exchange_type(uid, "bybit")
+        await q.edit_message_text(
+            "✅ *Switched to Bybit*\n\n"
+            "All trading operations will now use Bybit.",
+            parse_mode="Markdown"
+        )
+        # Send new keyboard to update ReplyKeyboard
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 *Bybit mode activated*",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "exchange:set_hl":
+        # Check if HL is configured
+        hl_creds = get_hl_credentials(uid)
+        if not hl_creds.get("hl_wallet_address") and not hl_creds.get("hl_private_key"):
+            await q.edit_message_text(
+                "❌ *HyperLiquid not configured*\n\n"
+                "Please setup HyperLiquid first.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")]
+                ])
+            )
+            return
+        
+        set_exchange_type(uid, "hyperliquid")
+        await q.edit_message_text(
+            "✅ *Switched to HyperLiquid*\n\n"
+            "All trading operations will now use HyperLiquid DEX.",
+            parse_mode="Markdown"
+        )
+        # Send new keyboard to update ReplyKeyboard
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🔷 *HyperLiquid mode activated*",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "exchange:setup_hl":
+        # Redirect to HyperLiquid setup
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Mainnet", callback_data="hl:mainnet"),
+             InlineKeyboardButton("🧪 Testnet", callback_data="hl:testnet")],
+        ])
+        await q.edit_message_text(
+            "🔷 *HyperLiquid Setup*\n\n"
+            "Select network:\n\n"
+            "• *Mainnet* - Real trading with real funds\n"
+            "• *Testnet* - Practice with test funds\n\n"
+            "After selecting, send your private key.",
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+    
+    elif data == "exchange:switch":
+        # Quick switch between configured exchanges
+        current = get_exchange_type(uid)
+        if current == "bybit":
+            hl_creds = get_hl_credentials(uid)
+            if hl_creds.get("hl_wallet_address") or hl_creds.get("hl_private_key"):
+                set_exchange_type(uid, "hyperliquid")
+                await q.edit_message_text(
+                    "✅ *Switched to HyperLiquid*\n\n"
+                    "All trading operations will now use HyperLiquid DEX.",
+                    parse_mode="Markdown"
+                )
+                await ctx.bot.send_message(
+                    chat_id=uid,
+                    text="🔷 *HyperLiquid mode activated*",
+                    parse_mode="Markdown",
+                    reply_markup=main_menu_keyboard(ctx, user_id=uid)
+                )
+            else:
+                await q.edit_message_text(
+                    "❌ HyperLiquid not configured. Setup first.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")]
+                    ])
+                )
+        else:
+            set_exchange_type(uid, "bybit")
+            await q.edit_message_text(
+                "✅ *Switched to Bybit*\n\n"
+                "All trading operations will now use Bybit.",
+                parse_mode="Markdown"
+            )
+            await ctx.bot.send_message(
+                chat_id=uid,
+                text="🟠 *Bybit mode activated*",
+                parse_mode="Markdown",
+                reply_markup=main_menu_keyboard(ctx, user_id=uid)
+            )
+    
+    elif data == "exchange:noop":
+        pass  # Do nothing, already on this exchange
+    
+    elif data == "main_menu":
+        await q.edit_message_text("Use /start to return to main menu.")
+
+
+@log_calls
+async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle HyperLiquid callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    
+    if data == "hl:mainnet":
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        await q.edit_message_text(
+            "🔑 *Connect to HyperLiquid Mainnet*\n\n"
+            "Please send your ETH private key (with or without 0x prefix).\n\n"
+            "⚠️ *Security Tips:*\n"
+            "• Use a dedicated trading wallet\n"
+            "• Never share your key with anyone\n\n"
+            "Send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+    
+    elif data == "hl:testnet":
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": True}
+        await q.edit_message_text(
+            "🔑 *Connect to HyperLiquid Testnet*\n\n"
+            "Please send your ETH private key (with or without 0x prefix).\n\n"
+            "⚠️ *Security Tips:*\n"
+            "• Use a dedicated trading wallet\n"
+            "• Never share your key with anyone\n\n"
+            "Send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+    
+    elif data == "hl:balance":
+        hl_creds = get_hl_credentials(uid)
+        try:
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=hl_creds.get("hl_testnet", False),
+                vault_address=hl_creds.get("hl_vault_address")
+            )
+            result = await adapter.get_balance()
+            
+            if result.get("success"):
+                data_balance = result.get("data", {})
+                equity = float(data_balance.get("equity", 0))
+                available = float(data_balance.get("available", 0))
+                unrealized_pnl = float(data_balance.get("unrealized_pnl", 0))
+                
+                pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
+                
+                await q.edit_message_text(
+                    f"💰 *HyperLiquid Balance* {network}\n\n"
+                    f"💎 *Equity:* ${equity:,.2f}\n"
+                    f"💵 *Available:* ${available:,.2f}\n"
+                    f"{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f}",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Back", callback_data="hl:menu")]
+                    ])
+                )
+            else:
+                await q.edit_message_text(f"❌ Error: {result.get('error')}")
+        except Exception as e:
+            await q.edit_message_text(f"❌ Error: {str(e)}")
+    
+    elif data == "hl:positions":
+        hl_creds = get_hl_credentials(uid)
+        try:
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=hl_creds.get("hl_testnet", False),
+                vault_address=hl_creds.get("hl_vault_address")
+            )
+            result = await adapter.fetch_positions()
+            
+            if result.get("success"):
+                positions = result.get("data", [])
+                if not positions:
+                    text = "📭 No open positions."
+                else:
+                    lines = ["📈 *Positions*\n"]
+                    for pos in positions[:5]:
+                        symbol = pos.get("symbol", "?")
+                        side = "🟢" if pos.get("side") == "Buy" else "🔴"
+                        pnl = float(pos.get("unrealized_pnl", 0))
+                        lines.append(f"{side} {symbol}: ${pnl:+,.2f}")
+                    text = "\n".join(lines)
+                
+                await q.edit_message_text(
+                    text,
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Back", callback_data="hl:menu")]
+                    ])
+                )
+            else:
+                await q.edit_message_text(f"❌ Error: {result.get('error')}")
+        except Exception as e:
+            await q.edit_message_text(f"❌ Error: {str(e)}")
+    
+    elif data == "hl:switch":
+        current = get_exchange_type(uid)
+        new_exchange = "hyperliquid" if current == "bybit" else "bybit"
+        set_exchange_type(uid, new_exchange)
+        
+        await q.edit_message_text(
+            f"✅ Switched to *{new_exchange.upper()}*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="hl:menu")]
+            ])
+        )
+    
+    elif data == "hl:network":
+        hl_creds = get_hl_credentials(uid)
+        current_testnet = hl_creds.get("hl_testnet", False)
+        new_testnet = not current_testnet
+        
+        set_hl_credentials(
+            uid,
+            hl_creds["hl_private_key"],
+            hl_creds.get("hl_vault_address"),
+            new_testnet
+        )
+        
+        network = "Testnet" if new_testnet else "Mainnet"
+        await q.edit_message_text(
+            f"✅ Switched to *{network}*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="hl:menu")]
+            ])
+        )
+    
+    elif data == "hl:disconnect":
+        await q.edit_message_text(
+            "⚠️ *Disconnect HyperLiquid?*\n\n"
+            "This will remove your private key and switch back to Bybit.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Yes, Disconnect", callback_data="hl:confirm_disconnect")],
+                [InlineKeyboardButton("❌ Cancel", callback_data="hl:menu")]
+            ])
+        )
+    
+    elif data == "hl:confirm_disconnect":
+        clear_hl_credentials(uid)
+        set_exchange_type(uid, "bybit")
+        await q.edit_message_text(
+            "✅ HyperLiquid disconnected.\nSwitched to Bybit.",
+            parse_mode="Markdown"
+        )
+    
+    elif data == "hl:menu":
+        # Re-show main menu
+        hl_creds = get_hl_credentials(uid)
+        is_configured = bool(hl_creds.get("hl_private_key"))
+        exchange = get_exchange_type(uid)
+        network = "Testnet" if hl_creds.get("hl_testnet") else "Mainnet"
+        
+        if is_configured:
+            addr = hl_creds.get("hl_address", "")[:10] + "..." if hl_creds.get("hl_address") else "N/A"
+            buttons = [
+                [InlineKeyboardButton("💰 Balance", callback_data="hl:balance"),
+                 InlineKeyboardButton("📈 Positions", callback_data="hl:positions")],
+                [InlineKeyboardButton("🔄 Switch to HL" if exchange == "bybit" else "🔄 Switch to Bybit", 
+                                    callback_data="hl:switch")],
+                [InlineKeyboardButton("🌐 Testnet" if not hl_creds.get("hl_testnet") else "🌐 Mainnet",
+                                    callback_data="hl:network")],
+                [InlineKeyboardButton("❌ Disconnect", callback_data="hl:disconnect")],
+            ]
+            await q.edit_message_text(
+                f"🔗 *HyperLiquid DEX*\n\n"
+                f"📊 *Status:* ✅ Connected\n"
+                f"🌐 *Network:* {network}\n"
+                f"👛 *Wallet:* `{addr}`\n"
+                f"🔄 *Active:* {exchange.upper()}",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+        else:
+            await q.edit_message_text(
+                "🔗 *HyperLiquid DEX*\n\nNot connected.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🌐 Mainnet", callback_data="hl:mainnet"),
+                     InlineKeyboardButton("🧪 Testnet", callback_data="hl:testnet")],
+                ])
+            )
+    
+    elif data == "hl:setkey":
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        await q.edit_message_text(
+            "🔑 *Update Private Key*\n\n"
+            "Send your new ETH private key.\n"
+            "Send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+
+
+async def handle_hl_strategy_param(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Handle HL strategy parameter input. Returns True if handled."""
+    uid = update.effective_user.id
+    
+    if uid not in _awaiting_hl_param:
+        return False
+    
+    text = update.message.text.strip()
+    
+    # Cancel
+    if text.lower() == "/cancel":
+        del _awaiting_hl_param[uid]
+        await update.message.reply_text("❌ Cancelled.")
+        return True
+    
+    try:
+        value = float(text)
+    except ValueError:
+        await update.message.reply_text("❌ Please enter a valid number.")
+        return True
+    
+    info = _awaiting_hl_param[uid]
+    strategy = info["strategy"]
+    param = info["param"]
+    
+    # Validate ranges
+    if param == "hl_percent" and (value <= 0 or value > 100):
+        await update.message.reply_text("❌ Entry % must be between 0.1 and 100.")
+        return True
+    if param in ["hl_sl_percent", "hl_tp_percent"] and (value <= 0 or value > 500):
+        await update.message.reply_text("❌ SL/TP % must be between 0.1 and 500.")
+        return True
+    if param == "hl_leverage" and (value < 1 or value > 100):
+        await update.message.reply_text("❌ Leverage must be between 1 and 100.")
+        return True
+    
+    # Save the value
+    if param == "hl_leverage":
+        value = int(value)
+    db.set_hl_strategy_setting(uid, strategy, param, value)
+    
+    del _awaiting_hl_param[uid]
+    
+    strat_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+    param_labels = {
+        "hl_percent": "Entry %",
+        "hl_sl_percent": "Stop-Loss %", 
+        "hl_tp_percent": "Take-Profit %",
+        "hl_leverage": "Leverage"
+    }
+    param_label = param_labels.get(param, param)
+    
+    cfg = get_user_config(uid)
+    lang = cfg.get("lang", DEFAULT_LANG)
+    t = LANGS.get(lang, LANGS[DEFAULT_LANG])
+    
+    await update.message.reply_text(
+        f"✅ {strat_name} HyperLiquid {param_label} set to {value}",
+        reply_markup=get_hl_strategy_keyboard(strategy, t, uid=uid)
+    )
+    return True
+
+
+async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Handle private key input for HyperLiquid setup. Returns True if handled."""
+    uid = update.effective_user.id
+    
+    if uid not in _hl_awaiting_key or not _hl_awaiting_key[uid].get("waiting"):
+        return False
+    
+    text = update.message.text.strip()
+    
+    # Cancel
+    if text.lower() == "/cancel":
+        del _hl_awaiting_key[uid]
+        await update.message.reply_text("❌ HyperLiquid setup cancelled.")
+        return True
+    
+    # Validate private key format
+    key = text.replace("0x", "").strip()
+    
+    # Check if user sent wallet address instead of private key
+    if len(key) == 40:
+        await update.message.reply_text(
+            "❌ *This looks like a wallet address, not a private key!*\n\n"
+            "• Wallet address: 40 characters (what you sent)\n"
+            "• Private key: 64 characters (what we need)\n\n"
+            "Your private key is in your wallet app under 'Export Private Key'.\n\n"
+            "Try again or send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+        return True
+    
+    if len(key) != 64 or not all(c in "0123456789abcdefABCDEF" for c in key):
+        await update.message.reply_text(
+            f"❌ *Invalid private key format*\n\n"
+            f"You sent: {len(key)} characters\n"
+            f"Expected: 64 hex characters\n\n"
+            "Private key should look like:\n"
+            "`47b6e4448f97b26f...40e5981a`\n\n"
+            "Try again or send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+        return True
+    
+    testnet = _hl_awaiting_key[uid].get("testnet", False)
+    del _hl_awaiting_key[uid]
+    
+    # Try to derive address and validate
+    try:
+        from eth_account import Account
+        account = Account.from_key("0x" + key)
+        address = account.address
+        
+        # Save credentials with dict format
+        set_hl_credentials(uid, creds={
+            "hl_private_key": "0x" + key,
+            "hl_wallet_address": address,
+            "hl_testnet": testnet
+        })
+        
+        # Delete the message containing the private key for security
+        try:
+            await update.message.delete()
+        except:
+            pass
+        
+        network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+        await update.message.reply_text(
+            f"✅ *HyperLiquid Connected!*\n\n"
+            f"*Network:* {network}\n"
+            f"*Wallet:* `{address[:10]}...{address[-6:]}`\n\n"
+            f"Now you can switch to HyperLiquid using 🔄 Switch button.",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"HL key setup error: {e}")
+        await update.message.reply_text(
+            f"❌ Error setting up HyperLiquid: {str(e)}\n\n"
+            "Make sure you have eth-account installed: pip install eth-account"
+        )
+    
+    return True
+
 async def _shutdown(app: Application):
     task = app.bot_data.get("monitor_task")
     if isinstance(task, asyncio.Task) and not task.done():
@@ -12107,11 +13906,23 @@ def main():
     app.add_handler(CommandHandler("ban",                cmd_ban))
     app.add_handler(CommandHandler("whoami",             whoami))
 
+    # HyperLiquid DEX commands
+    app.add_handler(CommandHandler("hl",                 cmd_hyperliquid))
+    app.add_handler(CommandHandler("hyperliquid",        cmd_hyperliquid))
+    app.add_handler(CommandHandler("hl_balance",         cmd_hl_balance))
+    app.add_handler(CommandHandler("hl_positions",       cmd_hl_positions))
+    app.add_handler(CommandHandler("hl_switch",          cmd_hl_switch))
+    app.add_handler(CommandHandler("hl_clear",           cmd_hl_clear))
+    app.add_handler(CallbackQueryHandler(on_hl_callback, pattern=r"^hl:"))
+    app.add_handler(CallbackQueryHandler(on_exchange_callback, pattern=r"^exchange:"))
+    app.add_handler(CallbackQueryHandler(on_hl_api_callback, pattern=r"^hl_api:"))
+
     app.add_handler(CommandHandler("terms",              cmd_terms))
     app.add_handler(CommandHandler("strategy_settings",  cmd_strategy_settings))
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
+    app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

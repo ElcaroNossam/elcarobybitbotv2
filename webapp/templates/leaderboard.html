@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Leaderboard - ElCaro Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-green: #00ff88;
+            --accent-blue: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b5c;
+            --accent-gold: #ffd700;
+            --accent-silver: #c0c0c0;
+            --accent-bronze: #cd7f32;
+            --text-primary: #ffffff;
+            --text-secondary: #8a8a9a;
+            --border-color: rgba(255,255,255,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 20%, rgba(255,215,0,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(0,255,136,0.03) 0%, transparent 50%);
+            z-index: 0;
+        }
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: rgba(10,10,15,0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 1000;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent-green); }
+        /* Main */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            padding: 100px 40px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* Hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+        /* Period Tabs */
+        .period-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .period-tab {
+            padding: 12px 30px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .period-tab:hover, .period-tab.active {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+        /* Top 3 Podium */
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        .podium-item {
+            text-align: center;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+        .podium-item:nth-child(1) { animation-delay: 0.2s; }
+        .podium-item:nth-child(2) { animation-delay: 0s; }
+        .podium-item:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .podium-rank {
+            width: 180px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px 20px 0 0;
+            padding: 30px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .podium-item:nth-child(2) .podium-rank {
+            height: 280px;
+            background: linear-gradient(180deg, rgba(255,215,0,0.1) 0%, var(--bg-secondary) 100%);
+            border-color: rgba(255,215,0,0.3);
+        }
+        .podium-item:nth-child(1) .podium-rank {
+            height: 230px;
+            background: linear-gradient(180deg, rgba(192,192,192,0.1) 0%, var(--bg-secondary) 100%);
+            border-color: rgba(192,192,192,0.3);
+        }
+        .podium-item:nth-child(3) .podium-rank {
+            height: 200px;
+            background: linear-gradient(180deg, rgba(205,127,50,0.1) 0%, var(--bg-secondary) 100%);
+            border-color: rgba(205,127,50,0.3);
+        }
+        .podium-medal {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 15px;
+        }
+        .medal-gold {
+            background: linear-gradient(135deg, var(--accent-gold), #ffaa00);
+            box-shadow: 0 0 30px rgba(255,215,0,0.4);
+        }
+        .medal-silver {
+            background: linear-gradient(135deg, var(--accent-silver), #a0a0a0);
+            box-shadow: 0 0 20px rgba(192,192,192,0.3);
+        }
+        .medal-bronze {
+            background: linear-gradient(135deg, var(--accent-bronze), #8b5a2b);
+            box-shadow: 0 0 20px rgba(205,127,50,0.3);
+        }
+        .podium-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin: 0 auto 10px;
+        }
+        .podium-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .podium-strategy {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+        .podium-profit {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        .podium-stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        /* Leaderboard Table */
+        .leaderboard-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .leaderboard-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 150px 120px 120px 100px;
+            padding: 20px 30px;
+            background: var(--bg-tertiary);
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+        .leaderboard-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 150px 120px 120px 100px;
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .leaderboard-row:hover {
+            background: rgba(0,255,136,0.03);
+        }
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+        .rank {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .rank.top-3 { color: var(--accent-gold); }
+        .rank-badge {
+            display: inline-flex;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .trader-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .trader-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .trader-details h4 {
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        .trader-details p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .profit {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .profit.positive { color: var(--accent-green); }
+        .profit.negative { color: var(--accent-red); }
+        .win-rate {
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+        .trades-count {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .rating i { color: var(--accent-gold); font-size: 14px; }
+        .rating span { font-size: 15px; }
+        /* Your Position */
+        .your-position {
+            background: rgba(0,255,136,0.05);
+            border: 1px solid rgba(0,255,136,0.2);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .your-position-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .your-rank {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        .your-details h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .your-details p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .your-stats {
+            display: flex;
+            gap: 40px;
+        }
+        .your-stat {
+            text-align: center;
+        }
+        .your-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        .your-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .page-btn:hover, .page-btn.active {
+            background: var(--accent-green);
+            color: #000;
+            border-color: var(--accent-green);
+        }
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .podium { flex-direction: column; align-items: center; }
+            .podium-item:nth-child(2) { order: -1; }
+            .leaderboard-header, .leaderboard-row {
+                grid-template-columns: 60px 1fr 100px 100px;
+            }
+            .leaderboard-header > *:nth-child(5),
+            .leaderboard-header > *:nth-child(6),
+            .leaderboard-row > *:nth-child(5),
+            .leaderboard-row > *:nth-child(6) {
+                display: none;
+            }
+        }
+        @media (max-width: 768px) {
+            .header { padding: 0 20px; }
+            .nav-links { display: none; }
+            .main-content { padding: 90px 20px 20px; }
+            .hero h1 { font-size: 32px; }
+            .period-tabs { flex-wrap: wrap; }
+            .your-position { flex-direction: column; gap: 20px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+            <span class="logo-text">ElCaro</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/terminal">Terminal</a>
+            <a href="/strategies">My Strategies</a>
+            <a href="/marketplace">Marketplace</a>
+            <a href="/leaderboard" class="active">Leaderboard</a>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <!-- Hero -->
+        <section class="hero">
+            <h1>🏆 Strategy Leaderboard</h1>
+            <p>Top performing custom strategies ranked by profit percentage</p>
+        </section>
+
+        <!-- Period Tabs -->
+        <div class="period-tabs">
+            <button class="period-tab" data-period="7d">7 Days</button>
+            <button class="period-tab active" data-period="30d">30 Days</button>
+            <button class="period-tab" data-period="90d">90 Days</button>
+            <button class="period-tab" data-period="all">All Time</button>
+        </div>
+
+        <!-- Top 3 Podium -->
+        <div class="podium" id="podium">
+            <!-- 2nd Place -->
+            <div class="podium-item">
+                <div class="podium-rank">
+                    <div class="podium-medal medal-silver">🥈</div>
+                    <div class="podium-avatar">C</div>
+                    <div class="podium-name">CryptoWizard</div>
+                    <div class="podium-strategy">Wyckoff Master</div>
+                    <div class="podium-profit">+89.2%</div>
+                    <div class="podium-stats">
+                        <span>72.1% WR</span>
+                        <span>156 trades</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 1st Place -->
+            <div class="podium-item">
+                <div class="podium-rank">
+                    <div class="podium-medal medal-gold">🥇</div>
+                    <div class="podium-avatar">E</div>
+                    <div class="podium-name">ElCaro Team</div>
+                    <div class="podium-strategy">ElCaro Pro Scalper</div>
+                    <div class="podium-profit">+127.5%</div>
+                    <div class="podium-stats">
+                        <span>68.4% WR</span>
+                        <span>342 trades</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 3rd Place -->
+            <div class="podium-item">
+                <div class="podium-rank">
+                    <div class="podium-medal medal-bronze">🥉</div>
+                    <div class="podium-avatar">A</div>
+                    <div class="podium-name">AlgoMaster</div>
+                    <div class="podium-strategy">AI Trend Follower</div>
+                    <div class="podium-profit">+76.8%</div>
+                    <div class="podium-stats">
+                        <span>65.2% WR</span>
+                        <span>89 trades</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="leaderboard-section">
+            <div class="leaderboard-header">
+                <div>Rank</div>
+                <div>Trader / Strategy</div>
+                <div>Profit</div>
+                <div>Win Rate</div>
+                <div>Trades</div>
+                <div>Rating</div>
+            </div>
+            <div id="leaderboardBody">
+                <!-- Dynamic rows -->
+            </div>
+        </div>
+
+        <!-- Your Position -->
+        <div class="your-position">
+            <div class="your-position-info">
+                <div class="your-rank" id="yourRank">#-</div>
+                <div class="your-details">
+                    <h3>Your Best Strategy</h3>
+                    <p id="yourStrategy">Create a strategy to join the leaderboard</p>
+                </div>
+            </div>
+            <div class="your-stats">
+                <div class="your-stat">
+                    <div class="your-stat-value" id="yourProfit">-</div>
+                    <div class="your-stat-label">Profit</div>
+                </div>
+                <div class="your-stat">
+                    <div class="your-stat-value" id="yourWinRate">-</div>
+                    <div class="your-stat-label">Win Rate</div>
+                </div>
+                <div class="your-stat">
+                    <div class="your-stat-value" id="yourTrades">-</div>
+                    <div class="your-stat-label">Trades</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </main>
+
+    <script>
+        let USER_ID = null;
+        let currentPeriod = '30d';
+        let currentPage = 1;
+        let leaderboardData = [];
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('elcaro_token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+
+        async function initAuth() {
+            const token = localStorage.getItem('elcaro_token');
+            if (token) {
+                try {
+                    const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+                    if (res.ok) {
+                        const data = await res.json();
+                        USER_ID = data.user_id;
+                    }
+                } catch (e) { console.error('Auth check failed:', e); }
+            }
+        }
+
+        // Demo data
+        function getDemoLeaderboard() {
+            return [
+                { rank: 1, name: 'ElCaro Team', avatar: 'E', strategy: 'ElCaro Pro Scalper', profit: 127.5, win_rate: 68.4, trades: 342, rating: 4.9, sharpe: 2.1 },
+                { rank: 2, name: 'CryptoWizard', avatar: 'C', strategy: 'Wyckoff Master', profit: 89.2, win_rate: 72.1, trades: 156, rating: 4.7, sharpe: 1.8 },
+                { rank: 3, name: 'AlgoMaster', avatar: 'A', strategy: 'AI Trend Follower', profit: 76.8, win_rate: 65.2, trades: 89, rating: 4.5, sharpe: 1.6 },
+                { rank: 4, name: 'ScalperKing', avatar: 'S', strategy: 'Momentum Scalper', profit: 65.4, win_rate: 71.8, trades: 512, rating: 4.6, sharpe: 1.4 },
+                { rank: 5, name: 'TrendHunter', avatar: 'T', strategy: 'Super Trend Pro', profit: 58.9, win_rate: 63.5, trades: 178, rating: 4.4, sharpe: 1.3 },
+                { rank: 6, name: 'VolumeTrader', avatar: 'V', strategy: 'Volume Profile Master', profit: 52.3, win_rate: 69.2, trades: 245, rating: 4.3, sharpe: 1.2 },
+                { rank: 7, name: 'RSIGuru', avatar: 'R', strategy: 'RSI Reversal System', profit: 48.7, win_rate: 67.8, trades: 189, rating: 4.2, sharpe: 1.1 },
+                { rank: 8, name: 'BBTrader', avatar: 'B', strategy: 'Bollinger Breakout', profit: 45.2, win_rate: 64.1, trades: 267, rating: 4.1, sharpe: 1.0 },
+                { rank: 9, name: 'MACDMaster', avatar: 'M', strategy: 'MACD Divergence', profit: 42.8, win_rate: 62.9, trades: 134, rating: 4.0, sharpe: 0.9 },
+                { rank: 10, name: 'GridBot', avatar: 'G', strategy: 'Smart Grid DCA', profit: 38.5, win_rate: 78.4, trades: 423, rating: 4.4, sharpe: 0.8 },
+            ];
+        }
+
+        async function loadLeaderboard() {
+            showLoading(true);
+            try {
+                // Try API first
+                const res = await fetch(`/api/marketplace/rankings/custom?page=${currentPage}&limit=50`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                
+                if (data.success && data.rankings && data.rankings.length > 0) {
+                    leaderboardData = data.rankings.map((r, i) => ({
+                        rank: r.rank || i + 1,
+                        name: r.name || 'Strategy #' + r.id,
+                        avatar: (r.name || 'S')[0],
+                        strategy: r.base_strategy || 'Custom',
+                        profit: r.total_pnl || 0,
+                        win_rate: r.win_rate || 0,
+                        trades: r.total_trades || 0,
+                        rating: r.rating || 4.0,
+                        sharpe: r.sharpe_ratio || 0
+                    }));
+                } else {
+                    leaderboardData = getDemoLeaderboard();
+                }
+            } catch (e) {
+                console.error('Failed to load leaderboard:', e);
+                leaderboardData = getDemoLeaderboard();
+            }
+            showLoading(false);
+            renderLeaderboard();
+        }
+        
+        function showLoading(show) {
+            const body = document.getElementById('leaderboardBody');
+            if (show) {
+                body.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 15px;">Loading rankings...</p></div>';
+            }
+        }
+
+        function renderLeaderboard() {
+            // Update podium
+            if (leaderboardData.length >= 3) {
+                updatePodium(leaderboardData.slice(0, 3));
+            }
+
+            // Render table (skip top 3)
+            const body = document.getElementById('leaderboardBody');
+            if (leaderboardData.length <= 3) {
+                body.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">More strategies coming soon...</div>';
+                return;
+            }
+            
+            const rows = leaderboardData.slice(3).map(item => `
+                <div class="leaderboard-row" onclick="viewStrategy(${item.id || 0})">
+                    <div class="rank">#${item.rank}</div>
+                    <div class="trader-info">
+                        <div class="trader-avatar" style="background: ${getAvatarGradient(item.rank)}">${item.avatar || item.name[0]}</div>
+                        <div class="trader-details">
+                            <h4>${item.name}</h4>
+                            <p>${item.strategy} • Sharpe: ${(item.sharpe || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <div class="profit ${item.profit >= 0 ? 'positive' : 'negative'}">
+                        ${item.profit >= 0 ? '+' : ''}${item.profit.toFixed(1)}%
+                    </div>
+                    <div class="win-rate">${item.win_rate.toFixed(1)}%</div>
+                    <div class="trades-count">${item.trades}</div>
+                    <div class="rating">
+                        <i class="fas fa-star"></i>
+                        <span>${(item.rating || 0).toFixed(1)}</span>
+                    </div>
+                </div>
+            `).join('');
+            body.innerHTML = rows;
+        }
+        
+        function getAvatarGradient(rank) {
+            const colors = [
+                'linear-gradient(135deg, #ffd700, #ffaa00)', // Gold
+                'linear-gradient(135deg, #c0c0c0, #a0a0a0)', // Silver
+                'linear-gradient(135deg, #cd7f32, #8b5a2b)', // Bronze
+                'linear-gradient(135deg, #a855f7, #6366f1)', // Purple
+                'linear-gradient(135deg, #00ff88, #00d4ff)', // Green-Blue
+            ];
+            return colors[Math.min(rank - 1, 4)] || colors[3];
+        }
+
+        function updatePodium(top3) {
+            const [first, second, third] = top3;
+            const podiumItems = document.querySelectorAll('.podium-item');
+            
+            // 2nd place (left)
+            if (second) {
+                podiumItems[0].querySelector('.podium-avatar').textContent = second.avatar || second.name[0];
+                podiumItems[0].querySelector('.podium-name').textContent = second.name;
+                podiumItems[0].querySelector('.podium-strategy').textContent = second.strategy;
+                podiumItems[0].querySelector('.podium-profit').textContent = `+${second.profit.toFixed(1)}%`;
+                podiumItems[0].querySelector('.podium-stats').innerHTML = 
+                    `<span>${second.win_rate.toFixed(1)}% WR</span><span>${second.trades} trades</span>`;
+            }
+            
+            // 1st place (center)
+            if (first) {
+                podiumItems[1].querySelector('.podium-avatar').textContent = first.avatar || first.name[0];
+                podiumItems[1].querySelector('.podium-name').textContent = first.name;
+                podiumItems[1].querySelector('.podium-strategy').textContent = first.strategy;
+                podiumItems[1].querySelector('.podium-profit').textContent = `+${first.profit.toFixed(1)}%`;
+                podiumItems[1].querySelector('.podium-stats').innerHTML = 
+                    `<span>${first.win_rate.toFixed(1)}% WR</span><span>${first.trades} trades</span>`;
+            }
+            
+            // 3rd place (right)
+            if (third) {
+                podiumItems[2].querySelector('.podium-avatar').textContent = third.avatar || third.name[0];
+                podiumItems[2].querySelector('.podium-name').textContent = third.name;
+                podiumItems[2].querySelector('.podium-strategy').textContent = third.strategy;
+                podiumItems[2].querySelector('.podium-profit').textContent = `+${third.profit.toFixed(1)}%`;
+                podiumItems[2].querySelector('.podium-stats').innerHTML = 
+                    `<span>${third.win_rate.toFixed(1)}% WR</span><span>${third.trades} trades</span>`;
+            }
+        }
+        
+        function viewStrategy(strategyId) {
+            if (strategyId) {
+                window.location.href = `/marketplace?strategy=${strategyId}`;
+            }
+        }
+
+        // Period tabs
+        document.querySelectorAll('.period-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentPeriod = tab.dataset.period;
+                loadLeaderboard();
+            });
+        });
+
+        // Load user position
+        async function loadUserPosition() {
+            if (!USER_ID) return;
+            
+            try {
+                const res = await fetch(`/api/marketplace/strategies/my?user_id=${USER_ID}`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                
+                if (data.strategies && data.strategies.length > 0) {
+                    // Find best performing strategy
+                    const best = data.strategies.reduce((a, b) => 
+                        (a.total_pnl || 0) > (b.total_pnl || 0) ? a : b
+                    );
+                    
+                    // Find rank in leaderboard
+                    const rank = leaderboardData.findIndex(l => l.name === best.name) + 1;
+                    
+                    document.getElementById('yourRank').textContent = rank > 0 ? `#${rank}` : '#-';
+                    document.getElementById('yourStrategy').textContent = best.name || 'Your Strategy';
+                    document.getElementById('yourProfit').textContent = `${(best.total_pnl || 0) >= 0 ? '+' : ''}${(best.total_pnl || 0).toFixed(1)}%`;
+                    document.getElementById('yourWinRate').textContent = `${(best.win_rate || 0).toFixed(1)}%`;
+                    document.getElementById('yourTrades').textContent = best.total_trades || 0;
+                }
+            } catch (e) {
+                console.log('User not in leaderboard yet');
+            }
+        }
+        
+        // Pagination
+        function renderPagination(totalPages) {
+            const container = document.getElementById('pagination');
+            let html = '';
+            
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (totalPages > 5) {
+                html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function goToPage(page) {
+            currentPage = page;
+            loadLeaderboard();
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initAuth();
+            await loadLeaderboard();
+            await loadUserPosition();
+        });
+    </script>
+</body>
+</html>

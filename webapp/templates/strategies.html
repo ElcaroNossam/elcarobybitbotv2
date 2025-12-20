@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Builder - ElCaro Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-green: #00ff88;
+            --accent-blue: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b5c;
+            --text-primary: #ffffff;
+            --text-secondary: #8a8a9a;
+            --border-color: rgba(255,255,255,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: rgba(10,10,15,0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 1000;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent-green); }
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            padding-top: 70px;
+            min-height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 30px 20px;
+            overflow-y: auto;
+            height: calc(100vh - 70px);
+        }
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        /* Strategy List */
+        .strategy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .strategy-item {
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .strategy-item:hover, .strategy-item.active {
+            border-color: var(--accent-green);
+            background: rgba(0,255,136,0.05);
+        }
+        .strategy-item h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .strategy-item p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .strategy-item .strategy-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .strategy-item .stat { color: var(--accent-green); }
+        /* Create button */
+        .btn-create {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        .btn-create:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,255,136,0.3);
+        }
+        /* Main Content */
+        .content {
+            flex: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+        }
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .content-header h1 {
+            font-size: 28px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            color: #000;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(0,255,136,0.3);
+        }
+        .btn-purple {
+            background: linear-gradient(135deg, var(--accent-purple), #9333ea);
+            color: #fff;
+        }
+        /* Builder Sections */
+        .builder-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .builder-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .section-header h3 {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-header h3 i {
+            color: var(--accent-blue);
+        }
+        /* Indicator Cards */
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .indicator-card {
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .indicator-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+        .indicator-card.active {
+            border-color: var(--accent-green);
+            background: rgba(0,255,136,0.1);
+        }
+        .indicator-card i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .indicator-card.active i { color: var(--accent-green); }
+        .indicator-card h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .indicator-card p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        /* Settings Form */
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .form-group input, .form-group select {
+            padding: 12px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        /* Slider */
+        .slider-group {
+            margin-top: 10px;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .slider-value {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        /* Condition Builder */
+        .conditions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .condition-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+        .condition-row select, .condition-row input {
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        .condition-row select { flex: 1; }
+        .condition-row input { width: 80px; }
+        .btn-remove {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,59,92,0.15);
+            border: none;
+            border-radius: 8px;
+            color: var(--accent-red);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-remove:hover { background: rgba(255,59,92,0.3); }
+        .btn-add {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-add:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        /* Preview Panel */
+        .preview-section {
+            grid-column: 1 / -1;
+        }
+        .preview-chart {
+            height: 300px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .preview-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .preview-stat {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .preview-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .preview-stat-value.positive { color: var(--accent-green); }
+        .preview-stat-value.negative { color: var(--accent-red); }
+        .preview-stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        /* Publish Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+        }
+        .modal h2 { margin-bottom: 10px; }
+        .modal-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        .modal .settings-form { margin-bottom: 30px; }
+        .price-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .price-input input {
+            flex: 1;
+            padding: 12px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .price-input span {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .revenue-info {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .revenue-info h4 {
+            margin-bottom: 10px;
+            color: var(--accent-green);
+        }
+        .revenue-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .modal-actions .btn { flex: 1; }
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .builder-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .content { padding: 20px; }
+            .indicators-grid { grid-template-columns: 1fr; }
+            .preview-stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+            <span class="logo-text">ElCaro</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/terminal">Terminal</a>
+            <a href="/strategies" class="active">My Strategies</a>
+            <a href="/marketplace">Marketplace</a>
+            <a href="/leaderboard">Leaderboard</a>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <button class="btn-create" onclick="createNewStrategy()">
+                    <i class="fas fa-plus"></i> New Strategy
+                </button>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">My Strategies</h3>
+                <div class="strategy-list" id="strategyList">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Purchased</h3>
+                <div class="strategy-list" id="purchasedList">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-header">
+                <h1 id="strategyTitle">Create New Strategy</h1>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="runBacktest()">
+                        <i class="fas fa-play"></i> Backtest
+                    </button>
+                    <button class="btn btn-outline" onclick="saveStrategy()">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-purple" onclick="openPublishModal()">
+                        <i class="fas fa-store"></i> Publish to Market
+                    </button>
+                </div>
+            </div>
+
+            <div class="builder-grid">
+                <!-- Indicators Section -->
+                <div class="builder-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-chart-line"></i> Indicators</h3>
+                    </div>
+                    <div class="indicators-grid">
+                        <div class="indicator-card" data-indicator="rsi" onclick="toggleIndicator(this)">
+                            <i class="fas fa-wave-square"></i>
+                            <h4>RSI</h4>
+                            <p>Relative Strength Index</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="bb" onclick="toggleIndicator(this)">
+                            <i class="fas fa-arrows-alt-v"></i>
+                            <h4>Bollinger Bands</h4>
+                            <p>Volatility bands</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="macd" onclick="toggleIndicator(this)">
+                            <i class="fas fa-chart-area"></i>
+                            <h4>MACD</h4>
+                            <p>Moving Average Convergence</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="ema" onclick="toggleIndicator(this)">
+                            <i class="fas fa-bezier-curve"></i>
+                            <h4>EMA</h4>
+                            <p>Exponential Moving Avg</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="atr" onclick="toggleIndicator(this)">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                            <h4>ATR</h4>
+                            <p>Average True Range</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="oi" onclick="toggleIndicator(this)">
+                            <i class="fas fa-balance-scale"></i>
+                            <h4>Open Interest</h4>
+                            <p>Market positioning</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="wyckoff" onclick="toggleIndicator(this)">
+                            <i class="fas fa-layer-group"></i>
+                            <h4>Wyckoff</h4>
+                            <p>Accumulation/Distribution</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="vwap" onclick="toggleIndicator(this)">
+                            <i class="fas fa-ruler-combined"></i>
+                            <h4>VWAP</h4>
+                            <p>Volume Weighted Avg Price</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="supertrend" onclick="toggleIndicator(this)">
+                            <i class="fas fa-arrow-trend-up"></i>
+                            <h4>SuperTrend</h4>
+                            <p>Trend following</p>
+                        </div>
+                        <div class="indicator-card" data-indicator="stoch" onclick="toggleIndicator(this)">
+                            <i class="fas fa-percent"></i>
+                            <h4>Stochastic</h4>
+                            <p>Overbought/Oversold</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="builder-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-sliders-h"></i> Strategy Settings</h3>
+                    </div>
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label>Strategy Name</label>
+                            <input type="text" id="strategyName" placeholder="My Awesome Strategy">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="strategyDescription" placeholder="Describe your strategy...">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Take Profit %</label>
+                                <input type="number" id="takeProfit" value="2.5" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Stop Loss %</label>
+                                <input type="number" id="stopLoss" value="1.5" step="0.1">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Position Size %</label>
+                                <input type="number" id="positionSize" value="5" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Positions</label>
+                                <input type="number" id="maxPositions" value="3" step="1">
+                            </div>
+                        </div>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label>Risk Level</label>
+                                <span class="slider-value" id="riskValue">Medium</span>
+                            </div>
+                            <input type="range" id="riskLevel" min="1" max="5" value="3" oninput="updateRiskLevel()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indicator Settings (Dynamic) -->
+                <div class="builder-section" id="indicatorSettings" style="display: none;">
+                    <div class="section-header">
+                        <h3><i class="fas fa-cog"></i> Indicator Parameters</h3>
+                    </div>
+                    <div id="indicatorParams">
+                        <!-- Dynamic indicator settings -->
+                    </div>
+                </div>
+
+                <!-- Entry Conditions -->
+                <div class="builder-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-sign-in-alt"></i> Entry Conditions</h3>
+                    </div>
+                    <div class="conditions-list" id="entryConditions">
+                        <div class="condition-row">
+                            <select>
+                                <option>RSI</option>
+                                <option>BB Upper</option>
+                                <option>BB Lower</option>
+                                <option>MACD Signal</option>
+                                <option>Price</option>
+                            </select>
+                            <select>
+                                <option>&lt;</option>
+                                <option>&gt;</option>
+                                <option>=</option>
+                                <option>crosses above</option>
+                                <option>crosses below</option>
+                            </select>
+                            <input type="number" value="30">
+                            <button class="btn-remove" onclick="removeCondition(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn-add" onclick="addEntryCondition()">
+                        <i class="fas fa-plus"></i> Add Condition
+                    </button>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="builder-section preview-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-chart-bar"></i> Backtest Preview</h3>
+                    </div>
+                    <div class="preview-chart" id="previewChart">
+                        <span>Run backtest to see results</span>
+                    </div>
+                    <div class="preview-stats">
+                        <div class="preview-stat">
+                            <div class="preview-stat-value positive" id="previewProfit">--</div>
+                            <div class="preview-stat-label">Total Profit</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div class="preview-stat-value" id="previewWinRate">--</div>
+                            <div class="preview-stat-label">Win Rate</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div class="preview-stat-value" id="previewTrades">--</div>
+                            <div class="preview-stat-label">Total Trades</div>
+                        </div>
+                        <div class="preview-stat">
+                            <div class="preview-stat-value negative" id="previewDrawdown">--</div>
+                            <div class="preview-stat-label">Max Drawdown</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Publish Modal -->
+    <div class="modal-overlay" id="publishModal">
+        <div class="modal">
+            <h2>Publish to Marketplace</h2>
+            <p class="modal-subtitle">Set your pricing and earn 50% of every sale!</p>
+            
+            <div class="settings-form">
+                <div class="form-group">
+                    <label>Strategy Title (Public)</label>
+                    <input type="text" id="publishTitle" placeholder="Professional Scalping Strategy">
+                </div>
+                <div class="form-group">
+                    <label>Marketing Description</label>
+                    <input type="text" id="publishDescription" placeholder="Describe what makes your strategy special...">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price in TON</label>
+                        <div class="price-input">
+                            <input type="number" id="priceTon" value="25" step="1">
+                            <span>TON</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Price in Stars</label>
+                        <div class="price-input">
+                            <input type="number" id="priceStars" value="1250" step="50">
+                            <span>⭐</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="revenue-info">
+                <h4><i class="fas fa-coins"></i> Revenue Split: 50/50</h4>
+                <p>You earn <strong>50%</strong> of every sale. For a 25 TON strategy, you'll receive 12.5 TON per purchase!</p>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closePublishModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="publishStrategy()">
+                    <i class="fas fa-rocket"></i> Publish Strategy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get user from JWT token stored in localStorage
+        let USER_ID = null;
+        let currentStrategy = null;
+        let activeIndicators = new Set();
+        let myStrategies = [];
+        let purchasedStrategies = [];
+        
+        // Auth helper
+        function getAuthHeaders() {
+            const token = localStorage.getItem('elcaro_token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+        
+        async function initAuth() {
+            const token = localStorage.getItem('elcaro_token');
+            if (!token) {
+                // Redirect to login or use demo mode
+                console.log('No auth token, using demo mode');
+                USER_ID = 'demo';
+                return;
+            }
+            try {
+                const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    USER_ID = data.user_id;
+                } else {
+                    localStorage.removeItem('elcaro_token');
+                    USER_ID = 'demo';
+                }
+            } catch (e) {
+                console.error('Auth check failed:', e);
+                USER_ID = 'demo';
+            }
+        }
+
+        // Indicator parameter definitions
+        const INDICATOR_PARAMS = {
+            rsi: [
+                { name: 'period', label: 'Period', type: 'number', default: 14, min: 2, max: 50 },
+                { name: 'overbought', label: 'Overbought', type: 'number', default: 70, min: 50, max: 100 },
+                { name: 'oversold', label: 'Oversold', type: 'number', default: 30, min: 0, max: 50 }
+            ],
+            bb: [
+                { name: 'period', label: 'Period', type: 'number', default: 20, min: 5, max: 50 },
+                { name: 'std_dev', label: 'Std Deviation', type: 'number', default: 2, min: 1, max: 4 }
+            ],
+            macd: [
+                { name: 'fast', label: 'Fast Period', type: 'number', default: 12, min: 5, max: 20 },
+                { name: 'slow', label: 'Slow Period', type: 'number', default: 26, min: 15, max: 50 },
+                { name: 'signal', label: 'Signal Period', type: 'number', default: 9, min: 5, max: 20 }
+            ],
+            ema: [
+                { name: 'fast', label: 'Fast EMA', type: 'number', default: 9, min: 3, max: 50 },
+                { name: 'slow', label: 'Slow EMA', type: 'number', default: 21, min: 10, max: 100 }
+            ],
+            atr: [
+                { name: 'period', label: 'Period', type: 'number', default: 14, min: 5, max: 50 },
+                { name: 'multiplier', label: 'Multiplier', type: 'number', default: 1.5, min: 0.5, max: 5 }
+            ],
+            oi: [
+                { name: 'threshold', label: 'Change Threshold %', type: 'number', default: 5, min: 1, max: 20 }
+            ],
+            wyckoff: [
+                { name: 'volume_period', label: 'Volume Period', type: 'number', default: 20, min: 10, max: 50 }
+            ],
+            vwap: [
+                { name: 'deviation', label: 'Deviation Bands', type: 'number', default: 2, min: 1, max: 5 }
+            ],
+            supertrend: [
+                { name: 'period', label: 'Period', type: 'number', default: 10, min: 5, max: 30 },
+                { name: 'multiplier', label: 'Multiplier', type: 'number', default: 3, min: 1, max: 6 }
+            ],
+            stoch: [
+                { name: 'k_period', label: '%K Period', type: 'number', default: 14, min: 5, max: 30 },
+                { name: 'd_period', label: '%D Period', type: 'number', default: 3, min: 1, max: 10 },
+                { name: 'overbought', label: 'Overbought', type: 'number', default: 80, min: 60, max: 100 },
+                { name: 'oversold', label: 'Oversold', type: 'number', default: 20, min: 0, max: 40 }
+            ]
+        };
+
+        // Load user strategies
+        async function loadStrategies() {
+            if (!USER_ID || USER_ID === 'demo') {
+                myStrategies = [];
+                purchasedStrategies = [];
+                renderStrategyList();
+                renderPurchasedList();
+                return;
+            }
+            
+            try {
+                const [myRes, purchasedRes] = await Promise.all([
+                    fetch(`/api/marketplace/strategies/my?user_id=${USER_ID}`, { headers: getAuthHeaders() }),
+                    fetch(`/api/marketplace/purchases?user_id=${USER_ID}`, { headers: getAuthHeaders() })
+                ]);
+                
+                if (myRes.ok) {
+                    const data = await myRes.json();
+                    myStrategies = data.strategies || [];
+                }
+                if (purchasedRes.ok) {
+                    const data = await purchasedRes.json();
+                    purchasedStrategies = data.strategies || [];
+                }
+                
+                renderStrategyList();
+                renderPurchasedList();
+            } catch (e) {
+                console.error('Failed to load strategies:', e);
+                myStrategies = [];
+                purchasedStrategies = [];
+                renderStrategyList();
+                renderPurchasedList();
+            }
+        }
+        
+        function renderPurchasedList() {
+            const list = document.getElementById('purchasedList');
+            if (purchasedStrategies.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">No purchased strategies</p>';
+                return;
+            }
+            list.innerHTML = purchasedStrategies.map(s => `
+                <div class="strategy-item" onclick="loadPurchasedStrategy(${s.strategy_id})">
+                    <h4>${s.name}</h4>
+                    <p>${s.description || 'Purchased strategy'}</p>
+                    <div class="strategy-stats">
+                        <span class="stat"><i class="fas fa-shopping-cart"></i></span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderStrategyList() {
+            const list = document.getElementById('strategyList');
+            if (myStrategies.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">No strategies yet</p>';
+                return;
+            }
+            list.innerHTML = myStrategies.map(s => `
+                <div class="strategy-item ${currentStrategy?.id === s.id ? 'active' : ''}" 
+                     onclick="loadStrategy(${s.id})">
+                    <h4>${s.name}</h4>
+                    <p>${s.description || 'No description'}</p>
+                    <div class="strategy-stats">
+                        <span class="stat">+${s.profit_percent || 0}%</span>
+                        <span>${s.total_trades || 0} trades</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleIndicator(card) {
+            const indicator = card.dataset.indicator;
+            if (activeIndicators.has(indicator)) {
+                activeIndicators.delete(indicator);
+                card.classList.remove('active');
+            } else {
+                activeIndicators.add(indicator);
+                card.classList.add('active');
+            }
+            updateIndicatorSettings();
+        }
+
+        function updateIndicatorSettings() {
+            const section = document.getElementById('indicatorSettings');
+            const container = document.getElementById('indicatorParams');
+            
+            if (activeIndicators.size === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            let html = '';
+            
+            activeIndicators.forEach(ind => {
+                const params = INDICATOR_PARAMS[ind];
+                if (!params) return;
+                
+                html += `<div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; color: var(--accent-blue);">${ind.toUpperCase()}</label>
+                    <div class="form-row" style="margin-top: 10px;">`;
+                
+                params.forEach(p => {
+                    html += `<div class="form-group">
+                        <label>${p.label}</label>
+                        <input type="${p.type}" id="${ind}_${p.name}" 
+                               value="${p.default}" min="${p.min}" max="${p.max}" step="${p.type === 'number' ? 0.1 : 1}">
+                    </div>`;
+                });
+                
+                html += '</div></div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function updateRiskLevel() {
+            const value = document.getElementById('riskLevel').value;
+            const labels = ['Very Low', 'Low', 'Medium', 'High', 'Aggressive'];
+            document.getElementById('riskValue').textContent = labels[value - 1];
+        }
+
+        function addEntryCondition() {
+            const container = document.getElementById('entryConditions');
+            const div = document.createElement('div');
+            div.className = 'condition-row';
+            div.innerHTML = `
+                <select>
+                    <option>RSI</option>
+                    <option>BB Upper</option>
+                    <option>BB Lower</option>
+                    <option>MACD Signal</option>
+                    <option>Price</option>
+                    <option>EMA Fast</option>
+                    <option>EMA Slow</option>
+                    <option>ATR</option>
+                </select>
+                <select>
+                    <option>&lt;</option>
+                    <option>&gt;</option>
+                    <option>=</option>
+                    <option>crosses above</option>
+                    <option>crosses below</option>
+                </select>
+                <input type="number" value="50">
+                <button class="btn-remove" onclick="removeCondition(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeCondition(btn) {
+            btn.parentElement.remove();
+        }
+
+        function createNewStrategy() {
+            currentStrategy = null;
+            activeIndicators.clear();
+            document.querySelectorAll('.indicator-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('strategyTitle').textContent = 'Create New Strategy';
+            document.getElementById('strategyName').value = '';
+            document.getElementById('strategyDescription').value = '';
+            document.getElementById('takeProfit').value = '2.5';
+            document.getElementById('stopLoss').value = '1.5';
+            document.getElementById('positionSize').value = '5';
+            document.getElementById('maxPositions').value = '3';
+            document.getElementById('riskLevel').value = '3';
+            updateRiskLevel();
+            updateIndicatorSettings();
+            renderStrategyList();
+        }
+
+        async function loadStrategy(id) {
+            const strategy = myStrategies.find(s => s.id === id);
+            if (!strategy) return;
+            
+            currentStrategy = strategy;
+            document.getElementById('strategyTitle').textContent = strategy.name;
+            document.getElementById('strategyName').value = strategy.name;
+            document.getElementById('strategyDescription').value = strategy.description || '';
+            
+            // Load indicator config
+            const config = strategy.config || {};
+            activeIndicators.clear();
+            document.querySelectorAll('.indicator-card').forEach(c => c.classList.remove('active'));
+            
+            (config.indicators || []).forEach(ind => {
+                activeIndicators.add(ind);
+                document.querySelector(`[data-indicator="${ind}"]`)?.classList.add('active');
+            });
+            
+            document.getElementById('takeProfit').value = config.take_profit || 2.5;
+            document.getElementById('stopLoss').value = config.stop_loss || 1.5;
+            document.getElementById('positionSize').value = config.position_size || 5;
+            document.getElementById('maxPositions').value = config.max_positions || 3;
+            
+            updateIndicatorSettings();
+            renderStrategyList();
+        }
+
+        function getStrategyConfig() {
+            const indicators = Array.from(activeIndicators);
+            const indicatorParams = {};
+            
+            indicators.forEach(ind => {
+                const params = INDICATOR_PARAMS[ind] || [];
+                indicatorParams[ind] = {};
+                params.forEach(p => {
+                    const el = document.getElementById(`${ind}_${p.name}`);
+                    indicatorParams[ind][p.name] = el ? parseFloat(el.value) : p.default;
+                });
+            });
+
+            const conditions = [];
+            document.querySelectorAll('#entryConditions .condition-row').forEach(row => {
+                const selects = row.querySelectorAll('select');
+                const input = row.querySelector('input');
+                conditions.push({
+                    indicator: selects[0].value,
+                    operator: selects[1].value,
+                    value: parseFloat(input.value)
+                });
+            });
+
+            return {
+                name: document.getElementById('strategyName').value,
+                description: document.getElementById('strategyDescription').value,
+                indicators: indicators,
+                indicator_params: indicatorParams,
+                take_profit: parseFloat(document.getElementById('takeProfit').value),
+                stop_loss: parseFloat(document.getElementById('stopLoss').value),
+                position_size: parseFloat(document.getElementById('positionSize').value),
+                max_positions: parseInt(document.getElementById('maxPositions').value),
+                risk_level: parseInt(document.getElementById('riskLevel').value),
+                entry_conditions: conditions
+            };
+        }
+
+        async function saveStrategy() {
+            const config = getStrategyConfig();
+            if (!config.name) {
+                showNotification('Please enter a strategy name', 'error');
+                return;
+            }
+            
+            if (!USER_ID || USER_ID === 'demo') {
+                showNotification('Please login to save strategies', 'error');
+                return;
+            }
+
+            try {
+                const endpoint = currentStrategy 
+                    ? `/api/marketplace/strategies/${currentStrategy.id}?user_id=${USER_ID}`
+                    : `/api/marketplace/strategies/create?user_id=${USER_ID}`;
+                    
+                const res = await fetch(endpoint, {
+                    method: currentStrategy ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({
+                        config: {
+                            name: config.name,
+                            description: config.description,
+                            base_strategy: 'custom',
+                            indicators: config.indicators.map(i => ({name: i, enabled: true, params: config.indicator_params[i] || {}})),
+                            entry_conditions: { rules: config.entry_conditions },
+                            exit_conditions: {},
+                            risk_management: {
+                                sl_percent: config.stop_loss,
+                                tp_percent: config.take_profit,
+                                risk_per_trade: config.position_size
+                            },
+                            timeframe: '1h',
+                            symbols: ['BTCUSDT'],
+                            max_positions: config.max_positions,
+                            risk_level: config.risk_level
+                        }
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('Strategy saved successfully!', 'success');
+                    loadStrategies();
+                } else {
+                    showNotification('Error: ' + data.message, 'error');
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                showNotification('Failed to save strategy', 'error');
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            notification.style.cssText = `
+                position: fixed; top: 90px; right: 20px; padding: 15px 25px;
+                background: ${type === 'success' ? 'rgba(0,255,136,0.15)' : type === 'error' ? 'rgba(255,59,92,0.15)' : 'rgba(0,212,255,0.15)'};
+                border: 1px solid ${type === 'success' ? 'var(--accent-green)' : type === 'error' ? 'var(--accent-red)' : 'var(--accent-blue)'};
+                border-radius: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;
+                animation: slideIn 0.3s ease; z-index: 3000;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        async function runBacktest() {
+            const config = getStrategyConfig();
+            
+            document.getElementById('previewChart').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running backtest...';
+            
+            try {
+                const res = await fetch('/api/backtest/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({
+                        symbol: 'BTCUSDT',
+                        period: '30d',
+                        strategy: 'custom',
+                        custom_config: config
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || 'Backtest failed');
+                }
+                
+                document.getElementById('previewProfit').textContent = 
+                    (data.total_pnl >= 0 ? '+' : '') + data.total_pnl.toFixed(2) + '%';
+                document.getElementById('previewProfit').className = 
+                    'preview-stat-value ' + (data.total_pnl >= 0 ? 'positive' : 'negative');
+                    
+                document.getElementById('previewWinRate').textContent = data.win_rate.toFixed(1) + '%';
+                document.getElementById('previewTrades').textContent = data.total_trades;
+                document.getElementById('previewDrawdown').textContent = '-' + (data.max_drawdown || 0).toFixed(1) + '%';
+                
+                // Enhanced chart preview
+                document.getElementById('previewChart').innerHTML = `
+                    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="font-size: 48px; font-weight: 700; color: ${data.total_pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                            ${(data.total_pnl >= 0 ? '+' : '')}${data.total_pnl.toFixed(2)}%
+                        </div>
+                        <div style="color: var(--text-secondary); margin-top: 10px;">
+                            ${data.total_trades} trades | ${data.winning_trades} wins | ${data.losing_trades} losses
+                        </div>
+                        <div style="color: var(--accent-blue); margin-top: 10px; font-size: 14px;">
+                            Sharpe: ${(data.sharpe_ratio || 0).toFixed(2)} | Sortino: ${(data.sortino_ratio || 0).toFixed(2)}
+                        </div>
+                    </div>
+                `;
+                
+                showNotification(`Backtest complete: ${data.total_trades} trades, ${data.win_rate.toFixed(1)}% WR`, 'success');
+            } catch (e) {
+                console.error('Backtest error:', e);
+                document.getElementById('previewChart').innerHTML = `<span style="color: var(--accent-red);"><i class="fas fa-exclamation-triangle"></i> ${e.message || 'Backtest failed'}</span>`;
+                showNotification('Backtest failed: ' + e.message, 'error');
+            }
+        }
+
+        function openPublishModal() {
+            const config = getStrategyConfig();
+            if (!config.name) {
+                alert('Please save your strategy first');
+                return;
+            }
+            document.getElementById('publishTitle').value = config.name;
+            document.getElementById('publishDescription').value = config.description;
+            document.getElementById('publishModal').classList.add('active');
+        }
+
+        function closePublishModal() {
+            document.getElementById('publishModal').classList.remove('active');
+        }
+
+        async function publishStrategy() {
+            if (!currentStrategy) {
+                showNotification('Please save your strategy first', 'error');
+                return;
+            }
+            
+            if (!USER_ID || USER_ID === 'demo') {
+                showNotification('Please login to publish strategies', 'error');
+                return;
+            }
+            
+            const data = {
+                strategy_id: currentStrategy.id,
+                price_ton: parseFloat(document.getElementById('priceTon').value),
+                price_stars: parseInt(document.getElementById('priceStars').value)
+            };
+            
+            try {
+                const res = await fetch(`/api/marketplace/marketplace/list?user_id=${USER_ID}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('Strategy published to marketplace! Revenue split: 50/50', 'success');
+                    closePublishModal();
+                    loadStrategies();
+                } else {
+                    showNotification('Error: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('Publish error:', e);
+                showNotification('Failed to publish strategy', 'error');
+            }
+        }
+        
+        async function loadPurchasedStrategy(strategyId) {
+            try {
+                const res = await fetch(`/api/marketplace/strategies/${strategyId}?user_id=${USER_ID}`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                
+                if (data.success && data.strategy) {
+                    const strategy = data.strategy;
+                    const config = strategy.config || {};
+                    
+                    currentStrategy = { id: strategy.id, isPurchased: true };
+                    document.getElementById('strategyTitle').textContent = strategy.name + ' (Purchased)';
+                    document.getElementById('strategyName').value = strategy.name;
+                    document.getElementById('strategyDescription').value = strategy.description || '';
+                    
+                    // Disable editing for purchased
+                    document.querySelectorAll('.settings-form input').forEach(i => i.disabled = true);
+                    showNotification('Loaded purchased strategy (read-only)', 'info');
+                }
+            } catch (e) {
+                console.error('Failed to load purchased strategy:', e);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initAuth();
+            loadStrategies();
+        });
+    </script>
+</body>
+</html>

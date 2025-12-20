@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ElCaro Trading</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0c;
+            --bg-secondary: #111114;
+            --bg-tertiary: #1a1a1f;
+            --bg-card: rgba(255, 255, 255, 0.02);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #6366f1;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .login-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gradient-primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+        }
+        
+        .logo-text {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.6;
+            font-size: 0.9375rem;
+        }
+        
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .auth-tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .auth-tab.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        
+        .auth-tab i {
+            margin-right: 6px;
+        }
+        
+        /* Form */
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .form-hint {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-telegram {
+            background: #0088cc;
+            color: white;
+        }
+        
+        .btn-telegram:hover {
+            background: #0077b5;
+            transform: translateY(-2px);
+        }
+        
+        /* 2FA Waiting */
+        .twofa-waiting {
+            display: none;
+            text-align: center;
+            padding: 24px 0;
+        }
+        
+        .twofa-waiting.active {
+            display: block;
+        }
+        
+        .twofa-spinner {
+            width: 64px;
+            height: 64px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+        
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        
+        .twofa-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .twofa-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        
+        .twofa-timer {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 16px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .twofa-cancel {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.875rem;
+            text-decoration: underline;
+        }
+        
+        /* Messages */
+        .message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .message.show {
+            display: block;
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+        
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+        }
+        
+        .message.info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--accent-primary);
+        }
+        
+        /* Features */
+        .features {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        .feature {
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .feature-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .terms {
+            margin-top: 24px;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+        
+        .terms a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        
+        /* Spinner in button */
+        .btn-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        
+        .btn.loading .btn-spinner {
+            display: block;
+        }
+        
+        .btn.loading .btn-text {
+            display: none;
+        }
+        
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 24px;
+            }
+            .auth-tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="login-card">
+        <div class="logo">
+            <div class="logo-icon">🚀</div>
+            <span class="logo-text">ElCaro</span>
+        </div>
+        
+        <h1>Welcome to ElCaro Trading</h1>
+        <p class="subtitle">
+            AI-powered trading with automated strategies and multi-exchange support
+        </p>
+        
+        <div id="message" class="message"></div>
+        
+        <!-- Auth Tabs -->
+        <div class="auth-tabs" id="authTabs">
+            <div class="auth-tab active" data-tab="telegram">
+                <i class="fab fa-telegram"></i>
+                Telegram
+            </div>
+            <div class="auth-tab" data-tab="id">
+                <i class="fas fa-user"></i>
+                ID / Username
+            </div>
+        </div>
+        
+        <!-- Telegram Auto Login -->
+        <div id="form-telegram" class="auth-form active">
+            <button id="loginTelegramBtn" class="btn btn-telegram" onclick="loginWithTelegram()">
+                <span class="btn-spinner"></span>
+                <span class="btn-text">
+                    <i class="fab fa-telegram"></i>
+                    Login with Telegram
+                </span>
+            </button>
+            <p class="form-hint" style="text-align: center; margin-top: 16px;">
+                Open this page from Telegram WebApp for automatic login
+            </p>
+        </div>
+        
+        <!-- Login by ID/Username -->
+        <div id="form-id" class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Telegram ID or @username</label>
+                <input type="text" id="identifier" class="form-input" placeholder="511692487 or @username">
+                <p class="form-hint">Enter your Telegram ID or username to receive 2FA confirmation</p>
+            </div>
+            <button id="loginIdBtn" class="btn btn-primary" onclick="loginById()">
+                <span class="btn-spinner"></span>
+                <span class="btn-text">
+                    <i class="fas fa-paper-plane"></i>
+                    Send 2FA Code
+                </span>
+            </button>
+        </div>
+        
+        <!-- 2FA Waiting -->
+        <div id="twofaWaiting" class="twofa-waiting">
+            <div class="twofa-spinner"></div>
+            <h3 class="twofa-title">Check your Telegram</h3>
+            <p class="twofa-subtitle">We sent a confirmation request to your Telegram bot</p>
+            <div class="twofa-timer" id="twofaTimer">3:00</div>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">Waiting for approval...</p>
+            <button class="twofa-cancel" onclick="cancel2FA()">Cancel</button>
+        </div>
+        
+        <div class="features" id="features">
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <div class="feature-text">AI Signals</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-text">Backtesting</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💰</div>
+                <div class="feature-text">Marketplace</div>
+            </div>
+        </div>
+        
+        <p class="terms">
+            By logging in you agree to our 
+            <a href="/privacy">Terms of Service</a>
+        </p>
+    </div>
+    
+    <script>
+        const tg = window.Telegram?.WebApp;
+        let confirmationId = null;
+        let pollInterval = null;
+        let countdownInterval = null;
+        
+        // Check if already logged in
+        if (localStorage.getItem('elcaro_token')) {
+            window.location.href = '/dashboard';
+        }
+        
+        // Auto-login if opened from Telegram
+        if (tg?.initData) {
+            showMessage('Logging in via Telegram...', 'info');
+            loginWithTelegram();
+        }
+        
+        // Tab switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('form-' + tab.dataset.tab).classList.add('active');
+                hideMessage();
+            });
+        });
+        
+        function showMessage(text, type = 'error') {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type} show`;
+        }
+        
+        function hideMessage() {
+            document.getElementById('message').classList.remove('show');
+        }
+        
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+        
+        async function loginWithTelegram() {
+            const btn = document.getElementById('loginTelegramBtn');
+            setLoading(btn, true);
+            hideMessage();
+            
+            try {
+                let initData = tg?.initData;
+                
+                if (!initData) {
+                    showMessage('Please open this page from Telegram bot (@elcaro_bybit_bot)', 'info');
+                    setLoading(btn, false);
+                    return;
+                }
+                
+                const res = await fetch('/api/auth/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ init_data: initData })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.token) {
+                    localStorage.setItem('elcaro_token', data.token);
+                    localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 500);
+                } else {
+                    showMessage(data.detail || 'Authentication failed', 'error');
+                }
+            } catch (e) {
+                showMessage('Connection error. Please try again.', 'error');
+            }
+            
+            setLoading(btn, false);
+        }
+        
+        async function loginById() {
+            const btn = document.getElementById('loginIdBtn');
+            const identifier = document.getElementById('identifier').value.trim();
+            
+            if (!identifier) {
+                showMessage('Please enter your Telegram ID or username', 'error');
+                return;
+            }
+            
+            setLoading(btn, true);
+            hideMessage();
+            
+            try {
+                const res = await fetch('/api/auth/login-by-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    confirmationId = data.confirmation_id;
+                    show2FAWaiting(data.expires_in || 180);
+                } else {
+                    showMessage(data.detail || 'User not found. Please /start the bot first.', 'error');
+                }
+            } catch (e) {
+                showMessage('Connection error. Please try again.', 'error');
+            }
+            
+            setLoading(btn, false);
+        }
+        
+        function show2FAWaiting(expiresIn) {
+            document.getElementById('authTabs').style.display = 'none';
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            document.getElementById('features').style.display = 'none';
+            document.getElementById('twofaWaiting').classList.add('active');
+            
+            let secondsLeft = expiresIn;
+            updateTimer(secondsLeft);
+            
+            countdownInterval = setInterval(() => {
+                secondsLeft--;
+                updateTimer(secondsLeft);
+                if (secondsLeft <= 0) {
+                    cancel2FA();
+                    showMessage('Confirmation expired. Please try again.', 'error');
+                }
+            }, 1000);
+            
+            // Poll for confirmation status
+            pollInterval = setInterval(check2FAStatus, 2000);
+        }
+        
+        function updateTimer(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            document.getElementById('twofaTimer').textContent = 
+                `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        async function check2FAStatus() {
+            if (!confirmationId) return;
+            
+            try {
+                const res = await fetch('/api/auth/check-2fa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmation_id: confirmationId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === 'approved' && data.token) {
+                    clearIntervals();
+                    localStorage.setItem('elcaro_token', data.token);
+                    localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                    showMessage('Login approved! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 500);
+                } else if (data.status === 'denied') {
+                    cancel2FA();
+                    showMessage('Login denied. Please try again.', 'error');
+                } else if (data.status === 'expired') {
+                    cancel2FA();
+                    showMessage('Confirmation expired. Please try again.', 'error');
+                }
+            } catch (e) {
+                console.error('2FA check error:', e);
+            }
+        }
+        
+        function cancel2FA() {
+            clearIntervals();
+            confirmationId = null;
+            
+            document.getElementById('twofaWaiting').classList.remove('active');
+            document.getElementById('authTabs').style.display = 'flex';
+            document.getElementById('features').style.display = 'grid';
+            document.querySelector('.auth-tab[data-tab="id"]').click();
+        }
+        
+        function clearIntervals() {
+            if (pollInterval) clearInterval(pollInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            pollInterval = null;
+            countdownInterval = null;
+        }
+        
+        // Enter key on input
+        document.getElementById('identifier').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginById();
+        });
+    </script>
+</body>
+</html>

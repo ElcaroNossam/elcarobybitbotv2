@@ -275,7 +275,14 @@ TEXTS = {
     'position_closed_success':     'Позиция закрыта',
     'position_close_error':        'Ошибка закрытия позиции',
     'positions_closed':            'Позиций закрыто',
+    'all_positions_closed':        'Все позиции закрыты',
     'errors':                      'Ошибок',
+
+    # Просмотр позиции
+    'position':                    'Позиция',
+    'entry':                       'Вход',
+    'current':                     'Текущая',
+    'size':                        'Размер',
 
     # % на сделку
     'set_percent_prompt':          'Введи процент баланса на сделку (например, 2.5):',
@@ -906,4 +913,25 @@ TEXTS = {
     'admin_generating_report': '📊 Генерирую отчёт для пользователя {uid}...',
     'admin_view_report': '📊 Смотреть отчёт',
     'admin_view_user': '👤 Карточка пользователя',
+
+    # Payment keys
+    'btn_check_again': '🔄 Проверить снова',
+    'button_admin': '👑 Админ',
+    'button_licenses': '🔑 Лицензии',
+    'payment_session_expired': '❌ Сессия оплаты истекла. Начните заново.',
+    'payment_ton_not_configured': '❌ TON платежи не настроены.',
+    'payment_ton_not_found': '❌ Платёж не найден.',
+    'payment_verifying': '⏳ Проверяем платёж...',
+
+    "button_hyperliquid": "🔷 HyperLiquid",
+    "button_webapp": "🌐 WebApp",
+    "button_switch_exchange": "🔄 Switch Exchange",
+    "button_api_bybit": "🟠 Bybit API",
+    "button_api_hl": "🔷 HL API",
+
+    # HyperLiquid Strategy Settings
+    "hl_settings": "HyperLiquid",
+    "hl_trading_enabled": "Торговля на HyperLiquid",
+    "hl_reset_settings": "🔄 Сбросить на настройки Bybit",
+
 }

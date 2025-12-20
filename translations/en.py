@@ -926,4 +926,16 @@ Try again after payment is confirmed on blockchain.''',
     'admin_generating_report': '📊 Generating report for user {uid}...',
     'admin_view_report': '📊 View Report',
     'admin_view_user': '👤 User Card',
+
+    "button_hyperliquid": "🔷 HyperLiquid",
+    "button_webapp": "🌐 WebApp",
+    "button_switch_exchange": "🔄 Switch Exchange",
+    "button_api_bybit": "🟠 Bybit API",
+    "button_api_hl": "🔷 HL API",
+
+    # HyperLiquid Strategy Settings
+    "hl_settings": "HyperLiquid",
+    "hl_trading_enabled": "HyperLiquid Trading",
+    "hl_reset_settings": "🔄 Reset to Bybit Settings",
+
 }

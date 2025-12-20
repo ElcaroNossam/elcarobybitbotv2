@@ -1,0 +1,26 @@
+[Unit]
+Description=Noet-Dat Binance WebSocket Workers
+After=network.target redis-server.service postgresql.service
+Requires=redis-server.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/project/noetdat
+Environment="PATH=/home/ubuntu/project/noetdat/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/home/ubuntu/project/noetdat/venv/bin/python -u /home/ubuntu/project/noetdat/run_websocket_workers.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/project/noetdat/logs/ws_workers.log
+StandardError=append:/home/ubuntu/project/noetdat/logs/ws_workers_err.log
+SyslogIdentifier=noetdat-workers
+
+# Ресурсы
+MemoryMax=4G
+CPUQuota=400%
+
+[Install]
+WantedBy=multi-user.target

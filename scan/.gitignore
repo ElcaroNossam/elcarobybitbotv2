@@ -1,0 +1,37 @@
+# virtualenv
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local env
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# GitHub
+.github/
+
+# Logs
+logs/
+*.log
+
+# Collected static files
+staticfiles/
+
+# Database
+*.db
+*.sqlite3
+
+# Test reports
+VDELTA_TEST_REPORT.md
+
+# Tests
+tests/
+test_*.py

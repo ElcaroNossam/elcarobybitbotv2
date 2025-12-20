@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+{% load formatting %}
+{% load i18n %}
+
+{% block title %}{% endblock %}
+
+{% block content %}
+<!-- Заставка при загрузке -->
+<div id="splash-screen" class="splash-screen">
+    <div class="splash-content">
+        <!-- Девушка с рынками -->
+        <div class="splash-girl-container">
+            <div class="splash-girl">
+                <svg class="girl-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Голова -->
+                    <circle cx="100" cy="80" r="35" fill="rgba(255, 192, 203, 0.9)" class="girl-head"/>
+                    <!-- Тело -->
+                    <ellipse cx="100" cy="180" rx="40" ry="80" fill="rgba(255, 182, 193, 0.9)" class="girl-body"/>
+                    <!-- Руки (манипулируют рынками) -->
+                    <path d="M 60 150 Q 40 120 30 100 Q 20 80 25 70" stroke="rgba(255, 192, 203, 0.9)" stroke-width="8" fill="none" class="girl-arm girl-arm-left"/>
+                    <path d="M 140 150 Q 160 120 170 100 Q 180 80 175 70" stroke="rgba(255, 192, 203, 0.9)" stroke-width="8" fill="none" class="girl-arm girl-arm-right"/>
+                    <!-- Волосы -->
+                    <path d="M 65 60 Q 50 30 60 20 Q 70 10 85 15 Q 100 20 115 15 Q 130 10 140 20 Q 150 30 135 60" fill="rgba(255, 64, 179, 0.6)" class="girl-hair"/>
+                </svg>
+            </div>
+            
+            <!-- Торговые рынки (графики) вокруг девушки -->
+            <div class="market-charts">
+                <div class="market-chart chart-1">
+                    <svg viewBox="0 0 100 50" class="chart-svg">
+                        <polyline points="0,40 20,35 40,30 60,25 80,20 100,15" 
+                                  fill="none" 
+                                  stroke="rgba(255, 0, 128, 0.6)" 
+                                  stroke-width="2" 
+                                  class="chart-line"/>
+                    </svg>
+                </div>
+                <div class="market-chart chart-2">
+                    <svg viewBox="0 0 100 50" class="chart-svg">
+                        <polyline points="0,30 20,25 40,20 60,25 80,30 100,35" 
+                                  fill="none" 
+                                  stroke="rgba(255, 64, 179, 0.6)" 
+                                  stroke-width="2" 
+                                  class="chart-line"/>
+                    </svg>
+                </div>
+                <div class="market-chart chart-3">
+                    <svg viewBox="0 0 100 50" class="chart-svg">
+                        <polyline points="0,25 20,20 40,15 60,20 80,25 100,30" 
+                                  fill="none" 
+                                  stroke="rgba(255, 102, 204, 0.6)" 
+                                  stroke-width="2" 
+                                  class="chart-line"/>
+                    </svg>
+                </div>
+                <div class="market-chart chart-4">
+                    <svg viewBox="0 0 100 50" class="chart-svg">
+                        <polyline points="0,35 20,30 40,25 60,30 80,35 100,40" 
+                                  fill="none" 
+                                  stroke="rgba(255, 128, 204, 0.6)" 
+                                  stroke-width="2" 
+                                  class="chart-line"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Финальная надпись -->
+        <div class="splash-logo">
+            <h1 class="logo-text">Malkata Crypto</h1>
+            <div class="logo-subtitle">Trading Intelligence</div>
+        </div>
+    </div>
+</div>
+
+<!-- Мигающие надписи на фоне -->
+<div class="background-text-overlay">
+    <span class="bg-text bg-text-1">₿</span>
+    <span class="bg-text bg-text-2">BTC</span>
+    <span class="bg-text bg-text-3">CRYPTO</span>
+    <span class="bg-text bg-text-4">TRADE</span>
+    <span class="bg-text bg-text-5">₿</span>
+    <span class="bg-text bg-text-6">MARKET</span>
+    <span class="bg-text bg-text-7">DATA</span>
+    <span class="bg-text bg-text-8">₿</span>
+</div>
+<div class="screener-container">
+    <!-- Компактный верхний блок с заголовком, переключателем, кнопками и графиком -->
+    <div class="screener-header-row">
+        <h1>{% trans "Crypto Screener" %}</h1>
+        <div class="screener-header-controls">
+            <div class="market-type-toggle">
+                <button type="button" class="market-type-btn {% if market_type == 'futures' %}active{% endif %}" data-market-type="futures" id="btn-futures" onclick="var url = window.location.href.split('?')[0]; var params = new URLSearchParams(window.location.search); params.delete('market_type'); params.set('market_type', 'futures'); window.location.href = url + '?' + params.toString(); return false;">{% trans "Futures" %}</button>
+                <button type="button" class="market-type-btn {% if market_type == 'spot' %}active{% endif %}" data-market-type="spot" id="btn-spot" onclick="var url = window.location.href.split('?')[0]; var params = new URLSearchParams(window.location.search); params.delete('market_type'); params.set('market_type', 'spot'); window.location.href = url + '?' + params.toString(); return false;">{% trans "Spot" %}</button>
+            </div>
+            <!-- Контейнер для кнопок Filters и Settings в ряд с одинаковой шириной -->
+            <div class="screener-controls-row">
+                <div class="filters-dropdown-container">
+                    <button type="button" id="toggle-filters" class="btn-secondary btn-control btn-filter-toggle" aria-expanded="false" aria-controls="screener-filters-form">
+                        {% trans "Filters" %} <span class="filters-toggle-icon">▼</span>
+                    </button>
+                </div>
+                <div class="screener-settings-container">
+                    <button type="button" id="toggle-settings" class="btn-secondary btn-control">
+                        {% trans "Screener Settings" %}
+                    </button>
+                </div>
+                <!-- Динамичный график цены биткоина (справа от настроек) -->
+                <div id="bitcoin-price-chart" class="bitcoin-chart-container">
+                    <canvas id="bitcoin-chart-canvas"></canvas>
+                    <div class="bitcoin-chart-info">
+                        <span class="bitcoin-symbol">₿</span>
+                        <span class="bitcoin-price" id="bitcoin-price-value">--</span>
+                        <span class="bitcoin-change" id="bitcoin-change-value">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Форма фильтров (скрыта по умолчанию) -->
+    <form method="get" class="screener-filters" id="screener-filters-form" style="display: none;">
+        <input type="hidden" id="market_type_hidden" name="market_type" value="{{ market_type }}" autocomplete="off">
+        <input type="text" id="search" name="search" placeholder="{% trans 'Search by symbol' %}" value="{{ search }}" autocomplete="off">
+        <input type="number" id="min_volume_15m" name="min_volume_15m" step="0.0001" placeholder="{% trans 'Min volume 15m' %}"
+               value="{{ min_volume_15m }}" autocomplete="off">
+        <input type="number" id="max_volume_15m" name="max_volume_15m" step="0.0001" placeholder="{% trans 'Max volume 15m' %}"
+               value="{{ max_volume_15m }}" autocomplete="off">
+        <input type="number" id="min_change_15m" name="min_change_15m" step="0.01" placeholder="{% trans 'Min change 15m %' %}"
+               value="{{ min_change_15m }}" autocomplete="off">
+        <input type="number" id="max_change_15m" name="max_change_15m" step="0.01" placeholder="{% trans 'Max change 15m %' %}"
+               value="{{ max_change_15m }}" autocomplete="off">
+        <input type="number" id="min_oi_change_15m" name="min_oi_change_15m" step="0.01" placeholder="{% trans 'Min OI Δ 15m %' %}"
+               value="{{ min_oi_change_15m }}" autocomplete="off">
+        <input type="number" id="min_open_interest" name="min_open_interest" step="1" placeholder="{% trans 'Min OI' %}"
+               value="{{ min_open_interest }}" autocomplete="off">
+        <input type="number" id="max_open_interest" name="max_open_interest" step="1" placeholder="{% trans 'Max OI' %}"
+               value="{{ max_open_interest }}" autocomplete="off">
+        <input type="number" id="min_funding_rate" name="min_funding_rate" step="0.0001" placeholder="{% trans 'Min funding' %}"
+               value="{{ min_funding_rate }}" autocomplete="off">
+        <input type="number" id="max_funding_rate" name="max_funding_rate" step="0.0001" placeholder="{% trans 'Max funding' %}"
+               value="{{ max_funding_rate }}" autocomplete="off">
+        <button type="submit" id="filter-submit-btn" name="filter" class="btn-secondary btn-filter">{% trans "Filter" %}</button>
+    </form>
+    <!-- Панель настроек (скрыта по умолчанию) -->
+    <div class="screener-settings" id="screener-settings-panel" style="display: none;">
+        <!-- Настройки будут добавлены через JavaScript -->
+    </div>
+
+    <div class="screener-table-container">
+        <!-- WebSocket Status Indicator (Draggable) -->
+        <div id="ws-status-indicator" class="ws-status-indicator draggable" style="position: fixed; top: 80px; right: 20px; z-index: 10000;">
+            <div class="ws-status-header" style="cursor: grab; display: flex; align-items: center; gap: 8px;">
+                <span class="drag-handle" style="color: #666; font-size: 10px; margin-right: 4px;">⋮⋮</span>
+                <span id="ws-status-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #666; animation: pulse 2s infinite;"></span>
+                <span id="ws-status-text">Connecting...</span>
+            </div>
+            <div id="ws-stats" style="margin-top: 5px; font-size: 10px; color: #aaa; display: none;">
+                <div>Messages: <span id="ws-message-count">0</span></div>
+                <div>Last update: <span id="ws-last-update">Never</span></div>
+            </div>
+        </div>
+        <!-- Верхний скроллбар для горизонтальной прокрутки (только на десктопах) -->
+        <div class="screener-table-scrollbar-top" id="scrollbar-top">
+            <div id="scrollbar-spacer-top" style="height: 1px;"></div>
+        </div>
+        <div class="screener-table-wrapper" id="table-wrapper">
+            <table class="screener-table" id="screener-main-table">
+            <thead id="screener-table-head">
+            <tr>
+                <th data-column="symbol" class="sortable">{% trans "Symbol" %}</th>
+                <th data-column="price" class="sortable">{% trans "Price" %}</th>
+                <th data-column="change_1m" class="sortable">{% trans "Change 1m" %}</th>
+                <th data-column="change_3m" class="sortable">{% trans "Change 3m" %}</th>
+                <th data-column="change_5m" class="sortable">{% trans "Change 5m" %}</th>
+                <th data-column="change_15m" class="sortable">{% trans "Change 15m" %}</th>
+                <th data-column="change_30m" class="sortable">{% trans "Change 30m" %}</th>
+                <th data-column="change_1h" class="sortable">{% trans "Change 1h" %}</th>
+                <th data-column="change_4h" class="sortable">{% trans "Change 4h" %}</th>
+                <th data-column="change_8h" class="sortable">{% trans "Change 8h" %}</th>
+                <th data-column="change_1d" class="sortable">{% trans "Change 1d" %}</th>
+                <th data-column="oi_change_1m" class="sortable">{% trans "OI Δ 1m" %}</th>
+                <th data-column="oi_change_3m" class="sortable">{% trans "OI Δ 3m" %}</th>
+                <th data-column="oi_change_5m" class="sortable">{% trans "OI Δ 5m" %}</th>
+                <th data-column="oi_change_15m" class="sortable">{% trans "OI Δ 15m" %}</th>
+                <th data-column="oi_change_30m" class="sortable">{% trans "OI Δ 30m" %}</th>
+                <th data-column="oi_change_1h" class="sortable">{% trans "OI Δ 1h" %}</th>
+                <th data-column="oi_change_4h" class="sortable">{% trans "OI Δ 4h" %}</th>
+                <th data-column="oi_change_8h" class="sortable">{% trans "OI Δ 8h" %}</th>
+                <th data-column="oi_change_1d" class="sortable">{% trans "OI Δ 1d" %}</th>
+                <th data-column="volatility_1m" class="sortable">{% trans "Vol 1m" %}</th>
+                <th data-column="volatility_3m" class="sortable">{% trans "Vol 3m" %}</th>
+                <th data-column="volatility_5m" class="sortable">{% trans "Vol 5m" %}</th>
+                <th data-column="volatility_15m" class="sortable">{% trans "Vol 15m" %}</th>
+                <th data-column="volatility_30m" class="sortable">{% trans "Vol 30m" %}</th>
+                <th data-column="volatility_1h" class="sortable">{% trans "Vol 1h" %}</th>
+                <th data-column="volatility_4h" class="sortable">{% trans "Vol 4h" %}</th>
+                <th data-column="volatility_8h" class="sortable">{% trans "Vol 8h" %}</th>
+                <th data-column="volatility_1d" class="sortable">{% trans "Vol 1d" %}</th>
+                <th data-column="ticks_1m" class="sortable">{% trans "Ticks 1m" %}</th>
+                <th data-column="ticks_3m" class="sortable">{% trans "Ticks 3m" %}</th>
+                <th data-column="ticks_5m" class="sortable">{% trans "Ticks 5m" %}</th>
+                <th data-column="ticks_15m" class="sortable">{% trans "Ticks 15m" %}</th>
+                <th data-column="ticks_30m" class="sortable">{% trans "Ticks 30m" %}</th>
+                <th data-column="ticks_1h" class="sortable">{% trans "Ticks 1h" %}</th>
+                <th data-column="ticks_4h" class="sortable">{% trans "Ticks 4h" %}</th>
+                <th data-column="ticks_8h" class="sortable">{% trans "Ticks 8h" %}</th>
+                <th data-column="ticks_1d" class="sortable">{% trans "Ticks 1d" %}</th>
+                <th data-column="vdelta_1m" class="sortable">{% trans "Vdelta 1m" %}</th>
+                <th data-column="vdelta_3m" class="sortable">{% trans "Vdelta 3m" %}</th>
+                <th data-column="vdelta_5m" class="sortable">{% trans "Vdelta 5m" %}</th>
+                <th data-column="vdelta_15m" class="sortable">{% trans "Vdelta 15m" %}</th>
+                <th data-column="vdelta_30m" class="sortable">{% trans "Vdelta 30m" %}</th>
+                <th data-column="vdelta_1h" class="sortable">{% trans "Vdelta 1h" %}</th>
+                <th data-column="vdelta_4h" class="sortable">{% trans "Vdelta 4h" %}</th>
+                <th data-column="vdelta_8h" class="sortable">{% trans "Vdelta 8h" %}</th>
+                <th data-column="vdelta_1d" class="sortable">{% trans "Vdelta 1d" %}</th>
+                <th data-column="volume_1m" class="sortable">{% trans "Volume 1m" %}</th>
+                <th data-column="volume_3m" class="sortable">{% trans "Volume 3m" %}</th>
+                <th data-column="volume_5m" class="sortable">{% trans "Volume 5m" %}</th>
+                <th data-column="volume_15m" class="sortable">{% trans "Volume 15m" %}</th>
+                <th data-column="volume_30m" class="sortable">{% trans "Volume 30m" %}</th>
+                <th data-column="volume_1h" class="sortable">{% trans "Volume 1h" %}</th>
+                <th data-column="volume_4h" class="sortable">{% trans "Volume 4h" %}</th>
+                <th data-column="volume_8h" class="sortable">{% trans "Volume 8h" %}</th>
+                <th data-column="volume_1d" class="sortable">{% trans "Volume 1d" %}</th>
+                <th data-column="funding_rate" class="sortable">{% trans "Funding" %}</th>
+                <th data-column="open_interest" class="sortable">{% trans "OI" %}</th>
+                <th data-column="ts" class="sortable">{% trans "Updated" %}</th>
+            </tr>
+            </thead>
+            <tbody id="screener-table-body">
+            {% for snapshot in page_obj %}
+                <tr>
+                    <td data-column="symbol" class="symbol-cell">
+                        <a href="{% url 'screener:trading_terminal' snapshot.symbol.symbol %}?market_type={{ market_type }}">
+                            {{ snapshot.symbol.symbol }}
+                        </a>
+                        <span class="favorite-star" data-symbol="{{ snapshot.symbol.symbol }}" title="{% trans 'Add to favorites' %}">☆</span>
+                    </td>
+                    <td data-column="price" class="price-cell">{{ snapshot.price|format_price }}</td>
+                    <td data-column="change_1m" class="change-cell {% if snapshot.change_1m > 0 %}value-up{% elif snapshot.change_1m < 0 %}value-down{% endif %}">{{ snapshot.change_1m|format_percentage:2 }}%</td>
+                    <td data-column="change_3m" class="change-cell {% if snapshot.change_3m > 0 %}value-up{% elif snapshot.change_3m < 0 %}value-down{% endif %}">{{ snapshot.change_3m|format_percentage:2 }}%</td>
+                    <td data-column="change_5m" class="change-cell {% if snapshot.change_5m > 0 %}value-up{% elif snapshot.change_5m < 0 %}value-down{% endif %}">{{ snapshot.change_5m|format_percentage:2 }}%</td>
+                    <td data-column="change_15m" class="change-cell {% if snapshot.change_15m > 0 %}value-up{% elif snapshot.change_15m < 0 %}value-down{% endif %}">{{ snapshot.change_15m|format_percentage:2 }}%</td>
+                    <td data-column="change_30m" class="change-cell {% if snapshot.change_30m > 0 %}value-up{% elif snapshot.change_30m < 0 %}value-down{% endif %}">{{ snapshot.change_30m|format_percentage:2 }}%</td>
+                    <td data-column="change_1h" class="change-cell {% if snapshot.change_1h > 0 %}value-up{% elif snapshot.change_1h < 0 %}value-down{% endif %}">{{ snapshot.change_1h|format_percentage:2 }}%</td>
+                    <td data-column="change_4h" class="change-cell {% if snapshot.change_4h > 0 %}value-up{% elif snapshot.change_4h < 0 %}value-down{% endif %}">{{ snapshot.change_4h|format_percentage:2 }}%</td>
+                    <td data-column="change_8h" class="change-cell {% if snapshot.change_8h > 0 %}value-up{% elif snapshot.change_8h < 0 %}value-down{% endif %}">{{ snapshot.change_8h|format_percentage:2 }}%</td>
+                    <td data-column="change_1d" class="change-cell {% if snapshot.change_1d > 0 %}value-up{% elif snapshot.change_1d < 0 %}value-down{% endif %}">{{ snapshot.change_1d|format_percentage:2 }}%</td>
+                    <td data-column="oi_change_1m" class="oi-change-cell {% if snapshot.oi_change_1m > 0 %}value-up{% elif snapshot.oi_change_1m < 0 %}value-down{% endif %}">{{ snapshot.oi_change_1m|format_oi_change }}%</td>
+                    <td data-column="oi_change_3m" class="oi-change-cell {% if snapshot.oi_change_3m > 0 %}value-up{% elif snapshot.oi_change_3m < 0 %}value-down{% endif %}">{{ snapshot.oi_change_3m|format_oi_change }}%</td>
+                    <td data-column="oi_change_5m" class="oi-change-cell {% if snapshot.oi_change_5m > 0 %}value-up{% elif snapshot.oi_change_5m < 0 %}value-down{% endif %}">{{ snapshot.oi_change_5m|format_oi_change }}%</td>
+                    <td data-column="oi_change_15m" class="oi-change-cell {% if snapshot.oi_change_15m > 0 %}value-up{% elif snapshot.oi_change_15m < 0 %}value-down{% endif %}">{{ snapshot.oi_change_15m|format_oi_change }}%</td>
+                    <td data-column="oi_change_30m" class="oi-change-cell {% if snapshot.oi_change_30m > 0 %}value-up{% elif snapshot.oi_change_30m < 0 %}value-down{% endif %}">{{ snapshot.oi_change_30m|format_oi_change }}%</td>
+                    <td data-column="oi_change_1h" class="oi-change-cell {% if snapshot.oi_change_1h > 0 %}value-up{% elif snapshot.oi_change_1h < 0 %}value-down{% endif %}">{{ snapshot.oi_change_1h|format_oi_change }}%</td>
+                    <td data-column="oi_change_4h" class="oi-change-cell {% if snapshot.oi_change_4h > 0 %}value-up{% elif snapshot.oi_change_4h < 0 %}value-down{% endif %}">{{ snapshot.oi_change_4h|format_oi_change }}%</td>
+                    <td data-column="oi_change_8h" class="oi-change-cell {% if snapshot.oi_change_8h > 0 %}value-up{% elif snapshot.oi_change_8h < 0 %}value-down{% endif %}">{{ snapshot.oi_change_8h|format_oi_change }}%</td>
+                    <td data-column="oi_change_1d" class="oi-change-cell {% if snapshot.oi_change_1d > 0 %}value-up{% elif snapshot.oi_change_1d < 0 %}value-down{% endif %}">{{ snapshot.oi_change_1d|format_oi_change }}%</td>
+                    <td data-column="volatility_1m" class="volatility-cell">{{ snapshot.volatility_1m|format_volatility }}</td>
+                    <td data-column="volatility_3m" class="volatility-cell">{{ snapshot.volatility_3m|format_volatility }}</td>
+                    <td data-column="volatility_5m" class="volatility-cell">{{ snapshot.volatility_5m|format_volatility }}</td>
+                    <td data-column="volatility_15m" class="volatility-cell">{{ snapshot.volatility_15m|format_volatility }}</td>
+                    <td data-column="volatility_30m" class="volatility-cell">{{ snapshot.volatility_30m|format_volatility }}</td>
+                    <td data-column="volatility_1h" class="volatility-cell">{{ snapshot.volatility_1h|format_volatility }}</td>
+                    <td data-column="volatility_4h" class="volatility-cell">{{ snapshot.volatility_4h|format_volatility }}</td>
+                    <td data-column="volatility_8h" class="volatility-cell">{{ snapshot.volatility_8h|format_volatility }}</td>
+                    <td data-column="volatility_1d" class="volatility-cell">{{ snapshot.volatility_1d|format_volatility }}</td>
+                    <td data-column="ticks_1m" class="ticks-cell">{{ snapshot.ticks_1m }}</td>
+                    <td data-column="ticks_3m" class="ticks-cell">{{ snapshot.ticks_3m }}</td>
+                    <td data-column="ticks_5m" class="ticks-cell">{{ snapshot.ticks_5m }}</td>
+                    <td data-column="ticks_15m" class="ticks-cell">{{ snapshot.ticks_15m }}</td>
+                    <td data-column="ticks_30m" class="ticks-cell">{{ snapshot.ticks_30m }}</td>
+                    <td data-column="ticks_1h" class="ticks-cell">{{ snapshot.ticks_1h }}</td>
+                    <td data-column="ticks_4h" class="ticks-cell">{{ snapshot.ticks_4h }}</td>
+                    <td data-column="ticks_8h" class="ticks-cell">{{ snapshot.ticks_8h }}</td>
+                    <td data-column="ticks_1d" class="ticks-cell">{{ snapshot.ticks_1d }}</td>
+                    <td data-column="vdelta_1m" class="vdelta-cell {% if snapshot.vdelta_1m > 0 %}value-up{% elif snapshot.vdelta_1m < 0 %}value-down{% endif %}">{{ snapshot.vdelta_1m|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_3m" class="vdelta-cell {% if snapshot.vdelta_3m > 0 %}value-up{% elif snapshot.vdelta_3m < 0 %}value-down{% endif %}">{{ snapshot.vdelta_3m|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_5m" class="vdelta-cell {% if snapshot.vdelta_5m > 0 %}value-up{% elif snapshot.vdelta_5m < 0 %}value-down{% endif %}">{{ snapshot.vdelta_5m|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_15m" class="vdelta-cell {% if snapshot.vdelta_15m > 0 %}value-up{% elif snapshot.vdelta_15m < 0 %}value-down{% endif %}">{{ snapshot.vdelta_15m|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_30m" class="vdelta-cell {% if snapshot.vdelta_30m > 0 %}value-up{% elif snapshot.vdelta_30m < 0 %}value-down{% endif %}">{{ snapshot.vdelta_30m|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_1h" class="vdelta-cell {% if snapshot.vdelta_1h > 0 %}value-up{% elif snapshot.vdelta_1h < 0 %}value-down{% endif %}">{{ snapshot.vdelta_1h|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_4h" class="vdelta-cell {% if snapshot.vdelta_4h > 0 %}value-up{% elif snapshot.vdelta_4h < 0 %}value-down{% endif %}">{{ snapshot.vdelta_4h|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_8h" class="vdelta-cell {% if snapshot.vdelta_8h > 0 %}value-up{% elif snapshot.vdelta_8h < 0 %}value-down{% endif %}">{{ snapshot.vdelta_8h|format_vdelta:market_type }}</td>
+                    <td data-column="vdelta_1d" class="vdelta-cell {% if snapshot.vdelta_1d > 0 %}value-up{% elif snapshot.vdelta_1d < 0 %}value-down{% endif %}">{{ snapshot.vdelta_1d|format_vdelta:market_type }}</td>
+                    <td data-column="volume_1m" class="volume-cell">{{ snapshot.volume_1m|format_volume:market_type }}</td>
+                    <td data-column="volume_3m" class="volume-cell">{{ snapshot.volume_3m|format_volume:market_type }}</td>
+                    <td data-column="volume_5m" class="volume-cell">{{ snapshot.volume_5m|format_volume:market_type }}</td>
+                    <td data-column="volume_15m" class="volume-cell">{{ snapshot.volume_15m|format_volume:market_type }}</td>
+                    <td data-column="volume_30m" class="volume-cell">{{ snapshot.volume_30m|format_volume:market_type }}</td>
+                    <td data-column="volume_1h" class="volume-cell">{{ snapshot.volume_1h|format_volume:market_type }}</td>
+                    <td data-column="volume_4h" class="volume-cell">{{ snapshot.volume_4h|format_volume:market_type }}</td>
+                    <td data-column="volume_8h" class="volume-cell">{{ snapshot.volume_8h|format_volume:market_type }}</td>
+                    <td data-column="volume_1d" class="volume-cell">{{ snapshot.volume_1d|format_volume:market_type }}</td>
+                    <td data-column="funding_rate" class="funding-cell {% if snapshot.funding_rate > 0 %}value-up{% elif snapshot.funding_rate < 0 %}value-down{% endif %}">{{ snapshot.funding_rate|format_percentage:4 }}</td>
+                    <td data-column="open_interest" class="oi-cell">{{ snapshot.open_interest|format_volume:market_type }}</td>
+                    <td data-column="ts" class="ts-cell">{{ snapshot.ts }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="63" class="empty-row">{% trans "No data to display." %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&market_type={{ market_type }}&search={{ search }}&min_volume_15m={{ min_volume_15m }}&max_volume_15m={{ max_volume_15m }}&min_change_15m={{ min_change_15m }}&max_change_15m={{ max_change_15m }}&min_oi_change_15m={{ min_oi_change_15m }}&min_open_interest={{ min_open_interest }}&max_open_interest={{ max_open_interest }}&min_funding_rate={{ min_funding_rate }}&max_funding_rate={{ max_funding_rate }}&sort={{ sort }}&order={{ order }}">&laquo; {% trans "Previous" %}</a>
+        {% endif %}
+        <span>{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&market_type={{ market_type }}&search={{ search }}&min_volume_15m={{ min_volume_15m }}&max_volume_15m={{ max_volume_15m }}&min_change_15m={{ min_change_15m }}&max_change_15m={{ max_change_15m }}&min_oi_change_15m={{ min_oi_change_15m }}&min_open_interest={{ min_open_interest }}&max_open_interest={{ max_open_interest }}&min_funding_rate={{ min_funding_rate }}&max_funding_rate={{ max_funding_rate }}&sort={{ sort }}&order={{ order }}">{% trans "Next" %} &raquo;</a>
+        {% endif %}
+    </div>
+
+    <!-- Таблица ликвидаций -->
+    <div class="liquidation-container" id="liquidation-container">
+        <div class="liquidation-header">
+            <h2>🔥 {% trans "Large Liquidations" %} (>$100k)</h2>
+            <button type="button" class="btn-toggle-liquidation" id="toggle-liquidation-btn" title="{% trans 'Collapse/Expand' %}">
+                <span class="toggle-icon">▼</span>
+            </button>
+        </div>
+        <div class="liquidation-table-wrapper" id="liquidation-table-wrapper">
+            <table class="liquidation-table" id="liquidation-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Time" %}</th>
+                        <th>{% trans "Symbol" %}</th>
+                        <th>{% trans "Side" %}</th>
+                        <th>{% trans "Price" %}</th>
+                        <th>{% trans "Quantity" %}</th>
+                        <th>{% trans "Notional" %}</th>
+                    </tr>
+                </thead>
+                <tbody id="liquidation-table-body">
+                    <!-- Ликвидации будут добавлены через JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.SCREENER_AVAILABLE_COLUMNS = [
+        "symbol",
+        "price",
+        "change_1m",
+        "change_5m",
+        "change_15m",
+        "change_30m",
+        "change_1h",
+        "change_4h",
+        "change_1d",
+        "oi_change_1m",
+        "oi_change_5m",
+        "oi_change_15m",
+        "oi_change_30m",
+        "oi_change_1h",
+        "oi_change_4h",
+        "oi_change_1d",
+        "volatility_1m",
+        "volatility_5m",
+        "volatility_15m",
+        "volatility_30m",
+        "volatility_1h",
+        "ticks_1m",
+        "ticks_5m",
+        "ticks_15m",
+        "ticks_30m",
+        "ticks_1h",
+        "vdelta_1m",
+        "vdelta_5m",
+        "vdelta_15m",
+        "vdelta_30m",
+        "vdelta_1h",
+        "vdelta_4h",
+        "vdelta_1d",
+        "volume_1m",
+        "volume_5m",
+        "volume_15m",
+        "volume_30m",
+        "volume_1h",
+        "volume_4h",
+        "volume_1d",
+        "funding_rate",
+        "open_interest",
+        "ts"
+    ];
+        "ticks_30m",
+        "ticks_1h",
+        "vdelta_1m",
+        "vdelta_2m",
+        "vdelta_3m",
+        "vdelta_5m",
+        "vdelta_15m",
+        "vdelta_30m",
+        "vdelta_1h",
+        "vdelta_8h",
+        "vdelta_1d",
+        "volume_1m",
+        "volume_2m",
+        "volume_3m",
+        "volume_5m",
+        "volume_15m",
+        "volume_30m",
+        "volume_1h",
+        "volume_8h",
+        "volume_1d",
+        "funding_rate",
+        "open_interest",
+        "ts",
+    ];
+    
+    // Market type toggle handler - simple and direct
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnFutures = document.getElementById('btn-futures');
+        const btnSpot = document.getElementById('btn-spot');
+        
+        console.log('Market type buttons initialization:', { btnFutures: !!btnFutures, btnSpot: !!btnSpot });
+        
+        if (btnFutures) {
+            btnFutures.addEventListener('click', function(e) {
+                console.log('Futures button clicked (addEventListener)', e);
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                var url = window.location.href.split('?')[0];
+                var params = new URLSearchParams(window.location.search);
+                params.delete('market_type');
+                params.set('market_type', 'futures');
+                var newUrl = url + '?' + params.toString();
+                console.log('Navigating to:', newUrl);
+                window.location.href = newUrl;
+            }, true);
+        } else {
+            console.warn('btn-futures not found!');
+        }
+        
+        if (btnSpot) {
+            btnSpot.addEventListener('click', function(e) {
+                console.log('Spot button clicked (addEventListener)', e);
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                var url = window.location.href.split('?')[0];
+                var params = new URLSearchParams(window.location.search);
+                params.delete('market_type');
+                params.set('market_type', 'spot');
+                var newUrl = url + '?' + params.toString();
+                console.log('Navigating to:', newUrl);
+                window.location.href = newUrl;
+            }, true);
+        } else {
+            console.warn('btn-spot not found!');
+        }
+    });
+</script>
+{% endblock %}

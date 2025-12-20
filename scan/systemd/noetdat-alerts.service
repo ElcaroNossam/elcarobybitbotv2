@@ -1,0 +1,19 @@
+[Unit]
+Description=Noet-Dat Alerts Checker
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/project/noetdat
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+Environment="TELEGRAM_BOT_TOKEN=7819187002:AAGJiLorPBxHvGzDmBPGxBIYbHWpYCv5m4k"
+ExecStart=/home/ubuntu/project/noetdat/venv/bin/python scripts/check_alerts.py
+
+# Logging
+StandardOutput=append:/home/ubuntu/project/noetdat/logs/alerts.log
+StandardError=append:/home/ubuntu/project/noetdat/logs/alerts_err.log
+
+[Install]
+WantedBy=multi-user.target

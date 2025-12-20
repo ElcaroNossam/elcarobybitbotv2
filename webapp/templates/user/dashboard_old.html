@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Trading Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#F7A600',
+                        dark: { 900: '#0f0f0f', 800: '#1a1a1a', 700: '#252525', 600: '#333333' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-900 text-white min-h-screen" x-data="dashboard()" x-init="init()">
+    <!-- Top Navigation -->
+    <nav class="bg-dark-800 border-b border-dark-600">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <span class="text-xl font-bold text-primary">🤖 Trading Bot</span>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-400" x-text="user.username || 'User'"></span>
+                    <button @click="logout()" class="text-red-400 hover:text-red-300">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Balance Cards -->
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-dark-800 rounded-xl p-6 border border-dark-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Bybit Balance</p>
+                        <p class="text-2xl font-bold text-primary" x-text="formatMoney(balances.bybit)">$0.00</p>
+                    </div>
+                    <div class="text-3xl">🟡</div>
+                </div>
+            </div>
+            <div class="bg-dark-800 rounded-xl p-6 border border-dark-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">HyperLiquid Balance</p>
+                        <p class="text-2xl font-bold text-blue-400" x-text="formatMoney(balances.hyperliquid)">$0.00</p>
+                    </div>
+                    <div class="text-3xl">🔷</div>
+                </div>
+            </div>
+            <div class="bg-dark-800 rounded-xl p-6 border border-dark-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total PnL</p>
+                        <p class="text-2xl font-bold" :class="stats.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'"
+                           x-text="formatPnl(stats.total_pnl)">$0.00</p>
+                    </div>
+                    <div class="text-3xl">📊</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Positions -->
+            <div class="lg:col-span-2 bg-dark-800 rounded-xl border border-dark-600">
+                <div class="p-4 border-b border-dark-600 flex justify-between items-center">
+                    <h2 class="text-lg font-bold">Open Positions</h2>
+                    <button @click="refreshPositions()" class="text-primary hover:text-yellow-400">↻ Refresh</button>
+                </div>
+                <div class="p-4">
+                    <template x-if="positions.length === 0">
+                        <p class="text-gray-500 text-center py-8">No open positions</p>
+                    </template>
+                    <template x-for="pos in positions" :key="pos.symbol + pos.exchange">
+                        <div class="bg-dark-700 rounded-lg p-4 mb-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="font-bold" x-text="pos.symbol"></span>
+                                    <span class="ml-2 px-2 py-1 rounded text-xs"
+                                          :class="pos.side === 'long' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'"
+                                          x-text="pos.side.toUpperCase()"></span>
+                                    <span class="ml-2 text-xs text-gray-500" x-text="pos.leverage + 'x'"></span>
+                                </div>
+                                <span :class="pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'"
+                                      x-text="formatPnl(pos.unrealized_pnl)"></span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 mt-3 text-sm text-gray-400">
+                                <div>Entry: <span class="text-white" x-text="pos.entry_price"></span></div>
+                                <div>Current: <span class="text-white" x-text="pos.current_price"></span></div>
+                                <div>Size: <span class="text-white" x-text="pos.size"></span></div>
+                            </div>
+                            <div class="mt-3 flex space-x-2">
+                                <button @click="closePosition(pos)" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="bg-dark-800 rounded-xl border border-dark-600">
+                <div class="p-4 border-b border-dark-600">
+                    <h2 class="text-lg font-bold">Quick Settings</h2>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="text-gray-400 text-sm">Trade % per Signal</label>
+                        <input type="number" x-model="config.trade_percent" @change="saveConfig()"
+                               class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 mt-1">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">Leverage</label>
+                        <input type="number" x-model="config.leverage" @change="saveConfig()"
+                               class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 mt-1">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">Exchange Mode</label>
+                        <select x-model="config.exchange_mode" @change="saveConfig()"
+                                class="w-full bg-dark-700 border border-dark-600 rounded-lg px-4 py-2 mt-1">
+                            <option value="bybit">Bybit Only</option>
+                            <option value="hyperliquid">HyperLiquid Only</option>
+                            <option value="both">Both Exchanges</option>
+                        </select>
+                    </div>
+                    <div class="pt-4 border-t border-dark-600 space-y-2">
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" x-model="config.trade_scryptomera" @change="saveConfig()" class="form-checkbox">
+                            <span>🔮 Scryptomera</span>
+                        </label>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" x-model="config.trade_scalper" @change="saveConfig()" class="form-checkbox">
+                            <span>🎯 Scalper</span>
+                        </label>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" x-model="config.trade_elcaro" @change="saveConfig()" class="form-checkbox">
+                            <span>🔥 Elcaro</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function dashboard() {
+            return {
+                user: {},
+                balances: { bybit: 0, hyperliquid: 0 },
+                stats: { total_pnl: 0, total_trades: 0, win_rate: 0 },
+                positions: [],
+                config: {
+                    trade_percent: 5,
+                    leverage: 10,
+                    exchange_mode: 'bybit',
+                    trade_scryptomera: true,
+                    trade_scalper: true,
+                    trade_elcaro: true
+                },
+                token: localStorage.getItem('token'),
+
+                async init() {
+                    if (!this.token) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    await this.loadUser();
+                    await this.loadConfig();
+                    await this.refreshPositions();
+                },
+
+                async api(url, options = {}) {
+                    const res = await fetch(url, {
+                        ...options,
+                        headers: {
+                            'Authorization': 'Bearer ' + this.token,
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        }
+                    });
+                    if (res.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = '/login';
+                    }
+                    return res.json();
+                },
+
+                async loadUser() {
+                    this.user = await this.api('/api/auth/me');
+                },
+
+                async loadConfig() {
+                    this.config = await this.api('/api/users/config');
+                },
+
+                async saveConfig() {
+                    await this.api('/api/users/config', {
+                        method: 'PATCH',
+                        body: JSON.stringify(this.config)
+                    });
+                },
+
+                async refreshPositions() {
+                    this.positions = await this.api('/api/trading/positions');
+                },
+
+                async closePosition(pos) {
+                    if (confirm('Close position ' + pos.symbol + '?')) {
+                        await this.api('/api/trading/close', {
+                            method: 'POST',
+                            body: JSON.stringify({ symbol: pos.symbol, exchange: pos.exchange })
+                        });
+                        await this.refreshPositions();
+                    }
+                },
+
+                logout() {
+                    localStorage.removeItem('token');
+                    window.location.href = '/';
+                },
+
+                formatMoney(val) {
+                    return '$' + (val || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                },
+
+                formatPnl(val) {
+                    const sign = val >= 0 ? '+' : '';
+                    return sign + '$' + (val || 0).toFixed(2);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

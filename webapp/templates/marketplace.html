@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Marketplace - ElCaro Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-green: #00ff88;
+            --accent-blue: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b5c;
+            --text-primary: #ffffff;
+            --text-secondary: #8a8a9a;
+            --border-color: rgba(255,255,255,0.08);
+            --glow-green: 0 0 30px rgba(0,255,136,0.3);
+            --glow-blue: 0 0 30px rgba(0,212,255,0.3);
+            --glow-purple: 0 0 30px rgba(168,85,247,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Animated background */
+        .bg-pattern {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0,255,136,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(168,85,247,0.03) 0%, transparent 70%);
+            animation: bgFloat 20s ease-in-out infinite;
+            z-index: 0;
+        }
+        @keyframes bgFloat {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: rgba(10,10,15,0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 1000;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--accent-green);
+        }
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 14px;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            color: #000;
+        }
+        .btn-primary:hover {
+            box-shadow: var(--glow-green);
+            transform: translateY(-2px);
+        }
+        /* Main Content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            padding: 100px 40px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 12px 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 50px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-green);
+        }
+        .search-box i {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        /* Strategy Grid */
+        .strategies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 25px;
+        }
+        .strategy-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.4s;
+            animation: fadeInUp 0.6s ease-out backwards;
+            position: relative;
+            overflow: hidden;
+        }
+        .strategy-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-blue), var(--accent-purple));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .strategy-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,255,136,0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .strategy-card:hover::before {
+            opacity: 1;
+        }
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .strategy-info h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .strategy-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .author-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .strategy-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-verified {
+            background: rgba(0,255,136,0.15);
+            color: var(--accent-green);
+        }
+        .badge-popular {
+            background: rgba(255,149,0,0.15);
+            color: var(--accent-orange);
+        }
+        .badge-new {
+            background: rgba(168,85,247,0.15);
+            color: var(--accent-purple);
+        }
+        .strategy-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            min-height: 66px;
+        }
+        .strategy-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 15px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .strategy-stat {
+            text-align: center;
+        }
+        .strategy-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .strategy-stat-value.positive { color: var(--accent-green); }
+        .strategy-stat-value.negative { color: var(--accent-red); }
+        .strategy-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .strategy-indicators {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .indicator-tag {
+            padding: 5px 12px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 15px;
+            font-size: 12px;
+            color: var(--accent-blue);
+        }
+        .strategy-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .strategy-price {
+            display: flex;
+            flex-direction: column;
+        }
+        .price-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        .price-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .btn-buy {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-buy:hover {
+            box-shadow: var(--glow-green);
+            transform: scale(1.05);
+        }
+        /* Rating */
+        .strategy-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .star { color: #ffc107; }
+        .star.empty { color: var(--text-secondary); }
+        .rating-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 5px;
+        }
+        /* Top Strategies Section */
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .section-title i {
+            color: var(--accent-orange);
+        }
+        /* Payment Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            animation: modalIn 0.3s ease-out;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal h2 {
+            margin-bottom: 10px;
+        }
+        .modal-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .payment-option:hover, .payment-option.selected {
+            border-color: var(--accent-green);
+            background: rgba(0,255,136,0.05);
+        }
+        .payment-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .payment-icon.ton {
+            background: linear-gradient(135deg, #0088cc, #00aaff);
+        }
+        .payment-icon.stars {
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+        }
+        .payment-details h4 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .payment-details p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .modal-actions .btn {
+            flex: 1;
+        }
+        .btn-cancel {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { padding: 0 20px; }
+            .nav-links { display: none; }
+            .main-content { padding: 90px 20px 20px; }
+            .hero h1 { font-size: 32px; }
+            .stats-bar { gap: 30px; }
+            .strategies-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <span class="logo-text">ElCaro</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/terminal">Terminal</a>
+            <a href="/strategies">My Strategies</a>
+            <a href="/marketplace" class="active">Marketplace</a>
+            <a href="/leaderboard">Leaderboard</a>
+        </nav>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="location.href='/strategies'">
+                <i class="fas fa-plus"></i> Create Strategy
+            </button>
+            <button class="btn btn-primary" onclick="location.href='/terminal'">
+                Open Terminal
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Strategy Marketplace</h1>
+            <p>Discover and buy proven trading strategies from top traders. All strategies are backtested and verified.</p>
+        </section>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalStrategies">0</div>
+                <div class="stat-label">Strategies Available</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalTraders">0</div>
+                <div class="stat-label">Strategy Creators</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="avgProfit">0%</div>
+                <div class="stat-label">Avg Monthly Profit</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalSales">0</div>
+                <div class="stat-label">Strategies Sold</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="trending">🔥 Trending</button>
+            <button class="filter-btn" data-filter="verified">✓ Verified</button>
+            <button class="filter-btn" data-filter="new">🆕 New</button>
+            <button class="filter-btn" data-filter="free">Free</button>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search strategies...">
+            </div>
+        </div>
+
+        <!-- Top Strategies -->
+        <h2 class="section-title">
+            <i class="fas fa-fire"></i> Top Performing Strategies
+        </h2>
+
+        <!-- Strategies Grid -->
+        <div class="strategies-grid" id="strategiesGrid">
+            <!-- Cards will be loaded dynamically -->
+        </div>
+    </main>
+
+    <!-- Payment Modal -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal">
+            <h2>Purchase Strategy</h2>
+            <p class="modal-subtitle">Select payment method for <strong id="modalStrategyName"></strong></p>
+            
+            <div class="payment-options">
+                <div class="payment-option" data-method="ton">
+                    <div class="payment-icon ton">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <div class="payment-details">
+                        <h4>TON Wallet</h4>
+                        <p>Pay with TON cryptocurrency</p>
+                    </div>
+                    <div class="payment-price" id="tonPrice"></div>
+                </div>
+                <div class="payment-option" data-method="stars">
+                    <div class="payment-icon stars">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="payment-details">
+                        <h4>Telegram Stars</h4>
+                        <p>Pay with Telegram Stars</p>
+                    </div>
+                    <div class="payment-price" id="starsPrice"></div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="processPurchase()">
+                    <i class="fas fa-lock"></i> Pay Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let USER_ID = null;
+        let strategies = [];
+        let selectedStrategy = null;
+        let selectedPaymentMethod = 'ton';
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('elcaro_token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+        
+        async function initAuth() {
+            const token = localStorage.getItem('elcaro_token');
+            if (token) {
+                try {
+                    const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
+                    if (res.ok) {
+                        const data = await res.json();
+                        USER_ID = data.user_id;
+                    }
+                } catch (e) { console.error('Auth check failed:', e); }
+            }
+        }
+
+        // Load strategies from API
+        async function loadStrategies() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/marketplace/marketplace', { headers: getAuthHeaders() });
+                const data = await response.json();
+                
+                if (data.success && data.listings && data.listings.length > 0) {
+                    strategies = data.listings.map(l => ({
+                        id: l.strategy_id || l.id,
+                        name: l.name || 'Strategy',
+                        author: l.seller_name || 'Trader',
+                        author_id: l.seller_user_id,
+                        description: l.description || 'Trading strategy',
+                        profit_percent: l.total_pnl || 0,
+                        win_rate: l.win_rate || 0,
+                        max_drawdown: l.max_drawdown || 0,
+                        indicators: parseIndicators(l.config),
+                        price_ton: l.price_ton || 0,
+                        price_stars: l.price_stars || 0,
+                        is_verified: l.rating >= 4.5,
+                        is_popular: l.total_sales > 10,
+                        is_new: (Date.now()/1000 - (l.created_at || 0)) < 604800,
+                        rating: l.rating || 0,
+                        ratings_count: l.rating_count || 0,
+                        purchases: l.total_sales || 0
+                    }));
+                } else {
+                    strategies = getDemoStrategies();
+                }
+                
+                renderStrategies(strategies);
+                updateStats(data.stats);
+            } catch (error) {
+                console.error('Failed to load strategies:', error);
+                strategies = getDemoStrategies();
+                renderStrategies(strategies);
+            }
+            showLoading(false);
+        }
+        
+        function parseIndicators(config) {
+            if (!config) return ['RSI', 'BB'];
+            try {
+                const c = typeof config === 'string' ? JSON.parse(config) : config;
+                const indicators = c.indicators || [];
+                return indicators.map(i => (typeof i === 'string' ? i : i.name || i.id || 'Custom').toUpperCase()).slice(0, 4);
+            } catch { return ['RSI', 'BB']; }
+        }
+        
+        function showLoading(show) {
+            const grid = document.getElementById('strategiesGrid');
+            if (show) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px;"><i class="fas fa-spinner fa-spin fa-3x" style="color: var(--accent-green);"></i><p style="margin-top: 20px; color: var(--text-secondary);">Loading strategies...</p></div>';
+            }
+        }
+
+        function getDemoStrategies() {
+            return [
+                {
+                    id: 1,
+                    name: "ElCaro Pro Scalper",
+                    author: "ElCaro Team",
+                    author_id: "511692487",
+                    description: "Professional scalping strategy using RSI, Bollinger Bands, and Open Interest analysis. Optimized for high-frequency trading on volatile pairs.",
+                    profit_percent: 127.5,
+                    win_rate: 68.4,
+                    max_drawdown: 12.3,
+                    indicators: ["RSI", "Bollinger Bands", "OI", "ATR"],
+                    price_ton: 50,
+                    price_stars: 2500,
+                    is_verified: true,
+                    is_popular: true,
+                    rating: 4.8,
+                    ratings_count: 156,
+                    purchases: 89
+                },
+                {
+                    id: 2,
+                    name: "Wyckoff Master",
+                    author: "CryptoWizard",
+                    author_id: "123456789",
+                    description: "Advanced Wyckoff accumulation/distribution detection with volume profile analysis. Perfect for swing trading.",
+                    profit_percent: 89.2,
+                    win_rate: 72.1,
+                    max_drawdown: 8.5,
+                    indicators: ["Wyckoff", "Volume Profile", "VWAP"],
+                    price_ton: 35,
+                    price_stars: 1750,
+                    is_verified: true,
+                    is_popular: false,
+                    rating: 4.6,
+                    ratings_count: 78,
+                    purchases: 45
+                },
+                {
+                    id: 3,
+                    name: "AI Trend Follower",
+                    author: "AlgoMaster",
+                    author_id: "987654321",
+                    description: "Machine learning based trend detection with adaptive take profit and stop loss levels. Learns from market patterns.",
+                    profit_percent: 156.8,
+                    win_rate: 65.2,
+                    max_drawdown: 18.7,
+                    indicators: ["ML Model", "EMA", "MACD", "ATR"],
+                    price_ton: 75,
+                    price_stars: 3750,
+                    is_verified: false,
+                    is_popular: true,
+                    is_new: true,
+                    rating: 4.4,
+                    ratings_count: 34,
+                    purchases: 23
+                },
+                {
+                    id: 4,
+                    name: "Grid DCA Bot",
+                    author: "SafeTrader",
+                    author_id: "456789123",
+                    description: "Dollar cost averaging with smart grid levels. Low risk strategy for long-term accumulation during bear markets.",
+                    profit_percent: 34.5,
+                    win_rate: 82.3,
+                    max_drawdown: 5.2,
+                    indicators: ["Grid", "DCA", "Support/Resistance"],
+                    price_ton: 0,
+                    price_stars: 0,
+                    is_verified: true,
+                    is_popular: false,
+                    rating: 4.2,
+                    ratings_count: 201,
+                    purchases: 312
+                }
+            ];
+        }
+
+        function renderStrategies(list) {
+            const grid = document.getElementById('strategiesGrid');
+            grid.innerHTML = list.map((s, i) => `
+                <div class="strategy-card" style="animation-delay: ${i * 0.1}s">
+                    <div class="strategy-header">
+                        <div class="strategy-info">
+                            <h3>${s.name}</h3>
+                            <div class="strategy-author">
+                                <div class="author-avatar">${s.author[0]}</div>
+                                ${s.author}
+                            </div>
+                            <div class="strategy-rating">
+                                ${renderStars(s.rating)}
+                                <span class="rating-count">(${s.ratings_count || 0})</span>
+                            </div>
+                        </div>
+                        <div>
+                            ${s.is_verified ? '<span class="strategy-badge badge-verified">✓ Verified</span>' : ''}
+                            ${s.is_popular ? '<span class="strategy-badge badge-popular">�� Hot</span>' : ''}
+                            ${s.is_new ? '<span class="strategy-badge badge-new">New</span>' : ''}
+                        </div>
+                    </div>
+                    <p class="strategy-description">${s.description}</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value ${s.profit_percent >= 0 ? 'positive' : 'negative'}">
+                                ${s.profit_percent >= 0 ? '+' : ''}${s.profit_percent}%
+                            </div>
+                            <div class="strategy-stat-label">Total Profit</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">${s.win_rate}%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value negative">-${s.max_drawdown}%</div>
+                            <div class="strategy-stat-label">Max Drawdown</div>
+                        </div>
+                    </div>
+                    <div class="strategy-indicators">
+                        ${(s.indicators || []).map(ind => `<span class="indicator-tag">${ind}</span>`).join('')}
+                    </div>
+                    <div class="strategy-footer">
+                        <div class="strategy-price">
+                            ${s.price_ton > 0 ? `
+                                <span class="price-value">${s.price_ton} TON</span>
+                                <span class="price-label">or ${s.price_stars} ⭐</span>
+                            ` : `
+                                <span class="price-value" style="color: var(--accent-blue)">FREE</span>
+                                <span class="price-label">${s.purchases || 0} downloads</span>
+                            `}
+                        </div>
+                        <button class="btn-buy" onclick="buyStrategy(${s.id})">
+                            ${s.price_ton > 0 ? '<i class="fas fa-cart-plus"></i> Buy Now' : '<i class="fas fa-download"></i> Get Free'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= Math.floor(rating)) {
+                    stars += '<i class="fas fa-star star"></i>';
+                } else if (i - 0.5 <= rating) {
+                    stars += '<i class="fas fa-star-half-alt star"></i>';
+                } else {
+                    stars += '<i class="far fa-star star empty"></i>';
+                }
+            }
+            return stars;
+        }
+
+        function updateStats(stats) {
+            if (stats) {
+                document.getElementById('totalStrategies').textContent = stats.total_strategies || strategies.length;
+                document.getElementById('totalTraders').textContent = stats.total_traders || 0;
+                document.getElementById('avgProfit').textContent = (stats.avg_profit || 0).toFixed(1) + '%';
+                document.getElementById('totalSales').textContent = stats.total_sales || 0;
+            } else {
+                document.getElementById('totalStrategies').textContent = strategies.length;
+                document.getElementById('totalTraders').textContent = new Set(strategies.map(s => s.author_id)).size;
+                const avgProfit = strategies.reduce((sum, s) => sum + s.profit_percent, 0) / strategies.length;
+                document.getElementById('avgProfit').textContent = avgProfit.toFixed(1) + '%';
+                document.getElementById('totalSales').textContent = strategies.reduce((sum, s) => sum + (s.purchases || 0), 0);
+            }
+        }
+
+        // Filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filter = btn.dataset.filter;
+                let filtered = strategies;
+                if (filter === 'trending') filtered = strategies.filter(s => s.is_popular);
+                else if (filter === 'verified') filtered = strategies.filter(s => s.is_verified);
+                else if (filter === 'new') filtered = strategies.filter(s => s.is_new);
+                else if (filter === 'free') filtered = strategies.filter(s => s.price_ton === 0);
+                renderStrategies(filtered);
+            });
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = strategies.filter(s => 
+                s.name.toLowerCase().includes(query) ||
+                s.author.toLowerCase().includes(query) ||
+                s.description.toLowerCase().includes(query)
+            );
+            renderStrategies(filtered);
+        });
+
+        // Buy strategy
+        function buyStrategy(id) {
+            selectedStrategy = strategies.find(s => s.id === id);
+            if (!selectedStrategy) return;
+            
+            if (selectedStrategy.price_ton === 0) {
+                // Free strategy - instant download
+                alert('Strategy added to your collection!');
+                return;
+            }
+            
+            document.getElementById('modalStrategyName').textContent = selectedStrategy.name;
+            document.getElementById('tonPrice').textContent = selectedStrategy.price_ton + ' TON';
+            document.getElementById('starsPrice').textContent = selectedStrategy.price_stars + ' ⭐';
+            document.getElementById('paymentModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+            selectedStrategy = null;
+        }
+
+        // Payment selection
+        document.querySelectorAll('.payment-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedPaymentMethod = opt.dataset.method;
+            });
+        });
+
+        async function processPurchase() {
+            if (!selectedStrategy) return;
+            
+            if (!USER_ID) {
+                showNotification('Please login to purchase strategies', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/marketplace/marketplace/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({
+                        marketplace_id: selectedStrategy.id,
+                        currency: selectedPaymentMethod
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showNotification('Strategy purchased successfully! Check your strategies page.', 'success');
+                    closeModal();
+                    // Redirect to strategies page
+                    setTimeout(() => window.location.href = '/strategies', 1500);
+                } else {
+                    showNotification('Purchase failed: ' + (result.message || result.detail), 'error');
+                }
+            } catch (error) {
+                console.error('Purchase error:', error);
+                showNotification('Purchase failed. Please try again.', 'error');
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; top: 90px; right: 20px; padding: 15px 25px;
+                background: ${type === 'success' ? 'rgba(0,255,136,0.15)' : type === 'error' ? 'rgba(255,59,92,0.15)' : 'rgba(0,212,255,0.15)'};
+                border: 1px solid ${type === 'success' ? 'var(--accent-green)' : type === 'error' ? 'var(--accent-red)' : 'var(--accent-blue)'};
+                border-radius: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;
+                animation: slideIn 0.3s ease; z-index: 3000;
+            `;
+            notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i><span>${message}</span>`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 4000);
+        }
+
+        // Close modal on overlay click
+        document.getElementById('paymentModal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
+
+        // Animate stats on scroll
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            const range = end - start;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const value = Math.floor(start + range * progress);
+                obj.textContent = id === 'avgProfit' ? value + '%' : value;
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initAuth();
+            await loadStrategies();
+        });
+    </script>
+</body>
+</html>

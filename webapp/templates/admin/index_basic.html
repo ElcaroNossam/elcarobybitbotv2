@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Trading Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">🔧 Admin Panel</h1>
+            <div class="space-x-4">
+                <a href="/dashboard" class="text-gray-400 hover:text-white">Dashboard</a>
+                <button onclick="logout()" class="px-4 py-2 bg-red-600 rounded">Logout</button>
+            </div>
+        </div>
+    </nav>
+    <main class="container mx-auto py-8">
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-gray-400 text-sm">Total Users</h3>
+                <p class="text-2xl font-bold" id="totalUsers">0</p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-gray-400 text-sm">Active 24h</h3>
+                <p class="text-2xl font-bold" id="activeUsers">0</p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-gray-400 text-sm">Premium Users</h3>
+                <p class="text-2xl font-bold" id="premiumUsers">0</p>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-gray-400 text-sm">Trades Today</h3>
+                <p class="text-2xl font-bold" id="tradesToday">0</p>
+            </div>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-bold mb-4">Users</h2>
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left text-gray-400">
+                        <th class="p-2">ID</th>
+                        <th class="p-2">Username</th>
+                        <th class="p-2">License</th>
+                        <th class="p-2">Exchange</th>
+                        <th class="p-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
+    </main>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login';
+        
+        async function fetchStats() {
+            const res = await fetch('/api/admin/stats', {
+                headers: {'Authorization': 'Bearer ' + token}
+            });
+            if (res.status === 403) {
+                alert('Admin access required');
+                window.location.href = '/dashboard';
+            }
+            return res.json();
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        
+        fetchStats().then(data => {
+            document.getElementById('totalUsers').textContent = data.total_users || 0;
+            document.getElementById('activeUsers').textContent = data.active_users_24h || 0;
+            document.getElementById('premiumUsers').textContent = data.premium_users || 0;
+            document.getElementById('tradesToday').textContent = data.total_trades_today || 0;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+[Unit]
+Description=Noet-Dat Database Cleanup Timer
+Requires=noetdat-cleanup.service
+
+[Timer]
+# Запуск каждый час в :05 минут
+OnCalendar=*:05
+# Запуск при загрузке системы (с задержкой 10 минут)
+OnBootSec=10min
+# Если пропущен запуск, выполнить сразу при следующей возможности
+Persistent=true
+# Точность таймера (1 минута)
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
+

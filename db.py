@@ -248,6 +248,14 @@ def init_db():
             ("limit_ladder_settings", "ALTER TABLE users ADD COLUMN limit_ladder_settings TEXT"),
             # Global order type (market/limit) 
             ("global_order_type",  "ALTER TABLE users ADD COLUMN global_order_type  TEXT NOT NULL DEFAULT 'market'"),
+            # HyperLiquid DEX columns
+            ("hl_private_key",     "ALTER TABLE users ADD COLUMN hl_private_key     TEXT"),
+            ("hl_wallet_address",  "ALTER TABLE users ADD COLUMN hl_wallet_address  TEXT"),
+            ("hl_vault_address",   "ALTER TABLE users ADD COLUMN hl_vault_address   TEXT"),
+            ("hl_testnet",         "ALTER TABLE users ADD COLUMN hl_testnet         INTEGER NOT NULL DEFAULT 0"),
+            ("hl_enabled",         "ALTER TABLE users ADD COLUMN hl_enabled         INTEGER NOT NULL DEFAULT 0"),
+            ("exchange_mode",      "ALTER TABLE users ADD COLUMN exchange_mode      TEXT NOT NULL DEFAULT 'bybit'"),
+            ("exchange_type",      "ALTER TABLE users ADD COLUMN exchange_type      TEXT NOT NULL DEFAULT 'bybit'"),
         ]:
             if not _col_exists(conn, "users", col):
                 cur.execute(ddl)
@@ -592,6 +600,134 @@ def init_db():
             cur.execute("ALTER TABLE users ADD COLUMN current_license TEXT DEFAULT 'none'")
         if not _col_exists(conn, "users", "license_expires"):
             cur.execute("ALTER TABLE users ADD COLUMN license_expires INTEGER")
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # MARKETPLACE & CUSTOM STRATEGIES TABLES
+        # ═══════════════════════════════════════════════════════════════════════════════
+        
+        # Custom strategies created by users
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS custom_strategies (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id         INTEGER NOT NULL,
+                name            TEXT NOT NULL,
+                description     TEXT,
+                base_strategy   TEXT DEFAULT 'custom',   -- 'elcaro', 'rsibboi', 'wyckoff', etc.
+                config_json     TEXT NOT NULL,           -- Full strategy config as JSON
+                is_public       INTEGER DEFAULT 0,       -- Listed on marketplace
+                is_active       INTEGER DEFAULT 1,
+                win_rate        REAL DEFAULT 0,          -- Backtest win rate %
+                total_pnl       REAL DEFAULT 0,          -- Backtest total PnL %
+                total_trades    INTEGER DEFAULT 0,       -- Backtest trade count
+                backtest_score  REAL DEFAULT 0,          -- Composite score for ranking
+                created_at      INTEGER NOT NULL,
+                updated_at      INTEGER,
+                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_user ON custom_strategies(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_public ON custom_strategies(is_public, is_active)")
+        
+        # Marketplace listings (strategies for sale)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS strategy_marketplace (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                strategy_id     INTEGER NOT NULL UNIQUE,
+                seller_id       INTEGER NOT NULL,
+                price_ton       REAL DEFAULT 0,          -- Price in TON
+                price_stars     INTEGER DEFAULT 0,       -- Price in Telegram Stars
+                revenue_share   REAL DEFAULT 0.5,        -- Creator's share (0.5 = 50%)
+                rating          REAL DEFAULT 0,          -- Average rating 1-5
+                rating_count    INTEGER DEFAULT 0,
+                total_sales     INTEGER DEFAULT 0,
+                total_revenue   REAL DEFAULT 0,
+                is_active       INTEGER DEFAULT 1,
+                featured        INTEGER DEFAULT 0,       -- Featured on homepage
+                created_at      INTEGER NOT NULL,
+                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON strategy_marketplace(seller_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_rating ON strategy_marketplace(rating DESC)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_active ON strategy_marketplace(is_active)")
+        
+        # Strategy purchases
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS strategy_purchases (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                buyer_id        INTEGER NOT NULL,
+                marketplace_id  INTEGER NOT NULL,
+                strategy_id     INTEGER NOT NULL,
+                seller_id       INTEGER NOT NULL,
+                amount_paid     REAL NOT NULL,
+                currency        TEXT NOT NULL,           -- 'ton' or 'stars'
+                seller_share    REAL NOT NULL,
+                platform_share  REAL NOT NULL,
+                is_active       INTEGER DEFAULT 1,       -- Access still valid
+                purchased_at    INTEGER NOT NULL,
+                FOREIGN KEY(buyer_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
+                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_purchases_buyer ON strategy_purchases(buyer_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_purchases_seller ON strategy_purchases(seller_id)")
+        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_unique ON strategy_purchases(buyer_id, marketplace_id)")
+        
+        # Strategy ratings
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS strategy_ratings (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                marketplace_id  INTEGER NOT NULL,
+                user_id         INTEGER NOT NULL,
+                rating          INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+                review          TEXT,
+                created_at      INTEGER NOT NULL,
+                FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
+                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE(marketplace_id, user_id)         -- One rating per user per strategy
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ratings_marketplace ON strategy_ratings(marketplace_id)")
+        
+        # Seller payouts tracking
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS seller_payouts (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_id       INTEGER NOT NULL,
+                amount          REAL NOT NULL,
+                currency        TEXT NOT NULL,
+                status          TEXT DEFAULT 'pending',  -- 'pending', 'processing', 'completed', 'failed'
+                tx_hash         TEXT,                    -- Blockchain transaction hash
+                requested_at    INTEGER NOT NULL,
+                processed_at    INTEGER,
+                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_payouts_seller ON seller_payouts(seller_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_payouts_status ON seller_payouts(status)")
+        
+        # Top strategies view/table for rankings
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS top_strategies (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                strategy_type   TEXT NOT NULL,           -- 'system' or 'custom'
+                strategy_id     INTEGER,                 -- NULL for system strategies
+                strategy_name   TEXT NOT NULL,
+                win_rate        REAL DEFAULT 0,
+                total_pnl       REAL DEFAULT 0,
+                total_trades    INTEGER DEFAULT 0,
+                sharpe_ratio    REAL DEFAULT 0,
+                max_drawdown    REAL DEFAULT 0,
+                rank            INTEGER,
+                config_json     TEXT,
+                updated_at      INTEGER NOT NULL
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_top_rank ON top_strategies(rank)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_top_type ON top_strategies(strategy_type)")
 
         conn.commit()
 
@@ -1104,7 +1240,21 @@ STRATEGY_SETTING_FIELDS = [
     "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
     "short_percent", "short_sl_percent", "short_tp_percent",
     "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct",
+    # HyperLiquid-specific fields  
+    "hl_enabled",  # 0 or 1 - enable trading on HyperLiquid for this strategy
+    "hl_percent", "hl_sl_percent", "hl_tp_percent",
+    "hl_leverage",  # 1-100 or None (use strategy default)
 ]
+
+# Default HL strategy settings (same structure as Bybit but for HL)
+DEFAULT_HL_STRATEGY_SETTINGS = {
+    "oi": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "rsi_bb": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "scryptomera": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "scalper": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "elcaro": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "wyckoff": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+}
 
 
 def get_strategy_settings(user_id: int, strategy: str) -> dict:
@@ -1173,6 +1323,71 @@ def get_effective_settings(user_id: int, strategy: str, global_cfg: dict | None 
         "atr_periods": strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg.get("atr_periods", 7),
         "atr_multiplier_sl": strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg.get("atr_multiplier_sl", 1.0),
         "atr_trigger_pct": strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg.get("atr_trigger_pct", 2.0),
+    }
+
+
+def get_hl_strategy_settings(user_id: int, strategy: str) -> dict:
+    """
+    Get HyperLiquid-specific settings for a strategy.
+    Returns dict with hl_enabled, hl_percent, hl_sl_percent, hl_tp_percent, hl_leverage
+    """
+    if strategy not in STRATEGY_NAMES:
+        return DEFAULT_HL_STRATEGY_SETTINGS.get("oi", {}).copy()
+    
+    cfg = get_user_config(user_id)
+    hl_settings = cfg.get("hl_strategy_settings", {})
+    strat_settings = hl_settings.get(strategy, {})
+    
+    # Merge with defaults
+    result = DEFAULT_HL_STRATEGY_SETTINGS.get(strategy, {}).copy()
+    result.update(strat_settings)
+    return result
+
+
+def set_hl_strategy_setting(user_id: int, strategy: str, field: str, value) -> bool:
+    """
+    Set a specific HL field for a strategy.
+    field must be one of: hl_enabled, hl_percent, hl_sl_percent, hl_tp_percent, hl_leverage
+    """
+    if strategy not in STRATEGY_NAMES:
+        return False
+    valid_fields = ["hl_enabled", "hl_percent", "hl_sl_percent", "hl_tp_percent", "hl_leverage"]
+    if field not in valid_fields:
+        return False
+    
+    cfg = get_user_config(user_id)
+    hl_settings = cfg.get("hl_strategy_settings", {})
+    
+    if strategy not in hl_settings:
+        hl_settings[strategy] = {}
+    
+    if value is None:
+        hl_settings[strategy].pop(field, None)
+    else:
+        hl_settings[strategy][field] = value
+    
+    # Clean up empty strategy dicts
+    if not hl_settings[strategy]:
+        del hl_settings[strategy]
+    
+    set_user_field(user_id, "hl_strategy_settings", json.dumps(hl_settings))
+    return True
+
+
+def get_hl_effective_settings(user_id: int, strategy: str) -> dict:
+    """
+    Get effective HL settings for a strategy.
+    Falls back to Bybit strategy settings if HL-specific not set.
+    """
+    hl_settings = get_hl_strategy_settings(user_id, strategy)
+    bybit_settings = get_effective_settings(user_id, strategy)
+    
+    return {
+        "enabled": hl_settings.get("hl_enabled", False),
+        "percent": hl_settings.get("hl_percent") if hl_settings.get("hl_percent") is not None else bybit_settings.get("percent", 1.0),
+        "sl_percent": hl_settings.get("hl_sl_percent") if hl_settings.get("hl_sl_percent") is not None else bybit_settings.get("sl_percent", 2.0),
+        "tp_percent": hl_settings.get("hl_tp_percent") if hl_settings.get("hl_tp_percent") is not None else bybit_settings.get("tp_percent", 3.0),
+        "leverage": hl_settings.get("hl_leverage") if hl_settings.get("hl_leverage") is not None else bybit_settings.get("leverage", 10),
     }
 
 
@@ -2942,3 +3157,610 @@ def get_user_usage_report(user_id: int) -> dict:
         }
 
 
+
+
+# =====================================
+# HyperLiquid DEX Functions
+# =====================================
+
+def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None, vault_address: str = None, testnet: bool = False):
+    """Save HyperLiquid credentials for user."""
+    ensure_user(user_id)
+    
+    # Support dict or individual params
+    if creds:
+        private_key = creds.get("hl_private_key", private_key)
+        vault_address = creds.get("hl_vault_address", vault_address)
+        testnet = creds.get("hl_testnet", testnet)
+        wallet_address = creds.get("hl_wallet_address")
+    else:
+        wallet_address = None
+    
+    # Derive address from private key if not provided
+    if private_key and not wallet_address:
+        try:
+            from eth_account import Account
+            account = Account.from_key(private_key)
+            wallet_address = account.address
+        except Exception:
+            pass
+    
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE users SET
+                hl_private_key = ?,
+                hl_wallet_address = ?,
+                hl_vault_address = ?,
+                hl_testnet = ?
+            WHERE user_id = ?
+        """, (private_key, wallet_address, vault_address, 1 if testnet else 0, user_id))
+        conn.commit()
+
+
+def get_hl_credentials(user_id: int) -> dict:
+    """Get HyperLiquid credentials for user."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT hl_private_key, hl_wallet_address, hl_vault_address, hl_testnet, hl_enabled
+            FROM users WHERE user_id = ?
+        """, (user_id,)).fetchone()
+        
+        if row:
+            return {
+                "hl_private_key": row[0],
+                "hl_wallet_address": row[1],
+                "hl_vault_address": row[2],
+                "hl_testnet": bool(row[3]),
+                "hl_enabled": bool(row[4]) if row[4] is not None else False,
+            }
+        return {
+            "hl_private_key": None,
+            "hl_wallet_address": None,
+            "hl_vault_address": None,
+            "hl_testnet": False,
+            "hl_enabled": False,
+        }
+
+
+def get_exchange_type(user_id: int) -> str:
+    """Get active exchange type for user. Returns 'bybit' or 'hyperliquid'."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT exchange_type FROM users WHERE user_id = ?", 
+            (user_id,)
+        ).fetchone()
+        return row[0] if row and row[0] else "bybit"
+
+
+def set_exchange_type(user_id: int, exchange_type: str):
+    """Set active exchange type for user."""
+    ensure_user(user_id)
+    if exchange_type not in ("bybit", "hyperliquid"):
+        raise ValueError(f"Invalid exchange type: {exchange_type}")
+    
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET exchange_type = ? WHERE user_id = ?",
+            (exchange_type, user_id)
+        )
+        conn.commit()
+
+
+def is_hl_enabled(user_id: int) -> bool:
+    """Check if HyperLiquid is enabled and configured for user."""
+    creds = get_hl_credentials(user_id)
+    # HL is enabled if user has private key AND hl_enabled flag is set
+    return bool(creds.get("hl_enabled") and creds.get("hl_private_key"))
+
+
+def set_hl_enabled(user_id: int, enabled: bool):
+    """Enable or disable HyperLiquid for user."""
+    ensure_user(user_id)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET hl_enabled = ? WHERE user_id = ?",
+            (1 if enabled else 0, user_id)
+        )
+        conn.commit()
+
+
+def clear_hl_credentials(user_id: int):
+    """Clear HyperLiquid credentials for user."""
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE users SET
+                hl_private_key = NULL,
+                hl_wallet_address = NULL,
+                hl_vault_address = NULL,
+                hl_testnet = 0,
+                exchange_type = 'bybit'
+            WHERE user_id = ?
+        """, (user_id,))
+        conn.commit()
+
+
+# =====================================
+# Exchange Mode Functions (both exchanges support)
+# =====================================
+
+EXCHANGE_MODES = ("bybit", "hyperliquid", "both")
+
+def get_exchange_mode(user_id: int) -> str:
+    """Get trading mode: 'bybit', 'hyperliquid', or 'both'."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT exchange_mode FROM users WHERE user_id = ?", 
+            (user_id,)
+        ).fetchone()
+        return row[0] if row and row[0] else "bybit"
+
+
+def set_exchange_mode(user_id: int, mode: str):
+    """Set trading mode: 'bybit', 'hyperliquid', or 'both'."""
+    ensure_user(user_id)
+    if mode not in EXCHANGE_MODES:
+        raise ValueError(f"Invalid exchange mode: {mode}. Must be one of {EXCHANGE_MODES}")
+    
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET exchange_mode = ? WHERE user_id = ?",
+            (mode, user_id)
+        )
+        conn.commit()
+
+
+def get_exchange_status(user_id: int) -> dict:
+    """Get comprehensive exchange status for user."""
+    mode = get_exchange_mode(user_id)
+    active_type = get_exchange_type(user_id)
+    hl_creds = get_hl_credentials(user_id)
+    bb_creds = get_all_user_credentials(user_id)
+    
+    return {
+        "exchange_mode": mode,
+        "active_exchange": active_type,
+        "bybit": {
+            "active": active_type == "bybit" or mode == "both",
+            "demo": bool(bb_creds.get("demo_api_key")),
+            "real": bool(bb_creds.get("real_api_key")),
+            "configured": bool(bb_creds.get("demo_api_key") or bb_creds.get("real_api_key")),
+        },
+        "hyperliquid": {
+            "active": active_type == "hyperliquid" or mode == "both",
+            "configured": bool(hl_creds.get("hl_private_key") or hl_creds.get("hl_wallet_address")),
+            "testnet": hl_creds.get("hl_testnet", False),
+            "wallet": hl_creds.get("hl_wallet_address"),
+        }
+    }
+
+
+def get_hl_trading_mode(user_id: int) -> str:
+    """Get HyperLiquid trading mode: 'mainnet' or 'testnet'."""
+    creds = get_hl_credentials(user_id)
+    return "testnet" if creds.get("hl_testnet") else "mainnet"
+
+
+def set_hl_trading_mode(user_id: int, mode: str):
+    """Set HyperLiquid trading mode: 'mainnet' or 'testnet'."""
+    if mode not in ("mainnet", "testnet"):
+        raise ValueError(f"Invalid HL trading mode: {mode}")
+    
+    creds = get_hl_credentials(user_id)
+    if creds.get("hl_private_key"):
+        set_hl_credentials(
+            user_id,
+            creds["hl_private_key"],
+            creds.get("hl_vault_address"),
+            mode == "testnet"
+        )
+
+
+def get_user_exchanges_status(user_id: int) -> dict:
+    """Get full status of both exchanges for user."""
+    from db import get_user_credentials, get_trading_mode
+    
+    # Bybit status
+    bybit_creds = get_user_credentials(user_id)
+    bybit_demo = bool(bybit_creds.get("demo_api_key"))
+    bybit_real = bool(bybit_creds.get("real_api_key"))
+    bybit_mode = get_trading_mode(user_id) or "demo"
+    
+    # HyperLiquid status
+    hl_creds = get_hl_credentials(user_id)
+    hl_configured = bool(hl_creds.get("hl_private_key"))
+    hl_testnet = hl_creds.get("hl_testnet", False)
+    hl_enabled = hl_creds.get("hl_enabled", False)
+    
+    # Exchange mode
+    exchange_mode = get_exchange_mode(user_id)
+    
+    return {
+        "exchange_mode": exchange_mode,
+        "bybit": {
+            "demo_configured": bybit_demo,
+            "real_configured": bybit_real,
+            "trading_mode": bybit_mode,
+            "active": exchange_mode in ("bybit", "both"),
+        },
+        "hyperliquid": {
+            "configured": hl_configured,
+            "address": hl_creds.get("hl_address"),
+            "testnet": hl_testnet,
+            "enabled": hl_enabled,
+            "active": exchange_mode in ("hyperliquid", "both") and hl_configured,
+        },
+    }
+
+
+# ============ CUSTOM STRATEGIES FUNCTIONS ============
+
+def get_user_strategies(user_id: int) -> list:
+    """Get all custom strategies for a user."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, name, description, config, is_active, is_public, 
+                      performance_stats, created_at, updated_at
+               FROM custom_strategies WHERE user_id = ?
+               ORDER BY created_at DESC""",
+            (user_id,)
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def get_active_trading_strategies(user_id: int) -> list:
+    """
+    Get all active strategies for live trading.
+    Includes: system strategies (elcaro, wyckoff, etc.) and custom/purchased strategies.
+    Used by bot to determine which strategies to process signals for.
+    """
+    import json
+    
+    active_strategies = []
+    cfg = get_user_config(user_id)
+    
+    # System strategies
+    system_strats = [
+        ("elcaro", "trade_elcaro"),
+        ("wyckoff", "trade_wyckoff"),
+        ("scryptomera", "trade_scryptomera"),
+        ("scalper", "trade_scalper"),
+        ("oi", "trade_oi"),
+        ("rsi_bb", "trade_rsi_bb"),
+    ]
+    
+    for strat_name, field in system_strats:
+        if cfg.get(field):
+            strat_settings = get_strategy_settings(user_id, strat_name)
+            active_strategies.append({
+                "type": "system",
+                "id": strat_name,
+                "name": strat_name.replace("_", " ").title(),
+                "settings": strat_settings
+            })
+    
+    # Custom strategies
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, name, config, base_strategy 
+               FROM custom_strategies 
+               WHERE user_id = ? AND is_active = 1""",
+            (user_id,)
+        )
+        for row in cur.fetchall():
+            config = json.loads(row["config"]) if row["config"] else {}
+            active_strategies.append({
+                "type": "custom",
+                "id": row["id"],
+                "name": row["name"],
+                "base_strategy": row["base_strategy"],
+                "config": config
+            })
+        
+        # Purchased strategies
+        cur = conn.execute(
+            """SELECT s.id, s.name, s.config, s.base_strategy
+               FROM strategy_purchases p
+               JOIN custom_strategies s ON p.strategy_id = s.id
+               WHERE p.buyer_id = ? AND p.is_active = 1""",
+            (user_id,)
+        )
+        for row in cur.fetchall():
+            config = json.loads(row["config"]) if row["config"] else {}
+            active_strategies.append({
+                "type": "purchased",
+                "id": row["id"],
+                "name": row["name"],
+                "base_strategy": row["base_strategy"],
+                "config": config
+            })
+    
+    return active_strategies
+
+
+def get_strategy_by_id(strategy_id: int) -> dict | None:
+    """Get a custom strategy by ID."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, user_id, name, description, config, is_active, 
+                      is_public, performance_stats, created_at, updated_at
+               FROM custom_strategies WHERE id = ?""",
+            (strategy_id,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def create_custom_strategy(user_id: int, name: str, description: str, config: dict) -> int:
+    """Create a new custom strategy and return its ID."""
+    import json
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO custom_strategies 
+               (user_id, name, description, config, is_active, is_public, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 0, 0, ?, ?)""",
+            (user_id, name, description, json.dumps(config), now, now)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def update_custom_strategy(strategy_id: int, user_id: int, **updates) -> bool:
+    """Update a custom strategy. Returns True if updated."""
+    import json
+    import time
+    
+    allowed_fields = {'name', 'description', 'config', 'is_active', 'is_public', 'performance_stats'}
+    filtered = {k: v for k, v in updates.items() if k in allowed_fields}
+    
+    if not filtered:
+        return False
+    
+    # JSON encode dict fields
+    for k in ['config', 'performance_stats']:
+        if k in filtered and isinstance(filtered[k], dict):
+            filtered[k] = json.dumps(filtered[k])
+    
+    filtered['updated_at'] = int(time.time())
+    
+    set_clause = ', '.join(f"{k} = ?" for k in filtered.keys())
+    values = list(filtered.values()) + [strategy_id, user_id]
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"UPDATE custom_strategies SET {set_clause} WHERE id = ? AND user_id = ?",
+            values
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def delete_custom_strategy(strategy_id: int, user_id: int) -> bool:
+    """Delete a custom strategy. Returns True if deleted."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM custom_strategies WHERE id = ? AND user_id = ?",
+            (strategy_id, user_id)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def get_public_strategies(limit: int = 50, offset: int = 0) -> list:
+    """Get public strategies for marketplace."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT s.id, s.user_id, s.name, s.description, s.config, 
+                      s.performance_stats, s.created_at,
+                      m.price, m.sales_count, m.average_rating
+               FROM custom_strategies s
+               LEFT JOIN strategy_marketplace m ON s.id = m.strategy_id
+               WHERE s.is_public = 1 AND s.is_active = 1
+               ORDER BY m.average_rating DESC, m.sales_count DESC
+               LIMIT ? OFFSET ?""",
+            (limit, offset)
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def get_user_purchases(user_id: int) -> list:
+    """Get all strategies purchased by user."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT p.id, p.marketplace_id, p.strategy_id, p.price_paid, 
+                      p.purchased_at, s.name, s.description, s.config
+               FROM strategy_purchases p
+               JOIN custom_strategies s ON p.strategy_id = s.id
+               WHERE p.buyer_id = ?
+               ORDER BY p.purchased_at DESC""",
+            (user_id,)
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def execute_query(query: str, params: tuple = ()) -> int:
+    """Execute a query and return rowcount."""
+    with get_conn() as conn:
+        cur = conn.execute(query, params)
+        conn.commit()
+        return cur.rowcount
+
+
+def get_top_strategies(limit: int = 20, strategy_type: str = None) -> list:
+    """Get top performing strategies from rankings."""
+    with get_conn() as conn:
+        if strategy_type:
+            cur = conn.execute(
+                """SELECT * FROM top_strategies 
+                   WHERE strategy_type = ?
+                   ORDER BY rank ASC LIMIT ?""",
+                (strategy_type, limit)
+            )
+        else:
+            cur = conn.execute(
+                "SELECT * FROM top_strategies ORDER BY rank ASC LIMIT ?",
+                (limit,)
+            )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def update_strategy_ranking(
+    strategy_type: str,
+    strategy_id: int | None,
+    strategy_name: str,
+    win_rate: float,
+    total_pnl: float,
+    total_trades: int,
+    sharpe_ratio: float,
+    max_drawdown: float,
+    rank: int,
+    config_json: str = None
+) -> int:
+    """Update or insert strategy ranking."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        # Try to update existing
+        if strategy_id:
+            cur = conn.execute(
+                """UPDATE top_strategies SET
+                   win_rate = ?, total_pnl = ?, total_trades = ?,
+                   sharpe_ratio = ?, max_drawdown = ?, rank = ?,
+                   config_json = ?, updated_at = ?
+                   WHERE strategy_type = ? AND strategy_id = ?""",
+                (win_rate, total_pnl, total_trades, sharpe_ratio, 
+                 max_drawdown, rank, config_json, now, strategy_type, strategy_id)
+            )
+            if cur.rowcount > 0:
+                conn.commit()
+                return cur.lastrowid
+        
+        # Insert new
+        cur = conn.execute(
+            """INSERT INTO top_strategies
+               (strategy_type, strategy_id, strategy_name, win_rate, total_pnl,
+                total_trades, sharpe_ratio, max_drawdown, rank, config_json, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (strategy_type, strategy_id, strategy_name, win_rate, total_pnl,
+             total_trades, sharpe_ratio, max_drawdown, rank, config_json, now)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+# ------------------------------------------------------------------------------------
+# Trade History
+# ------------------------------------------------------------------------------------
+def get_trade_history(user_id: int, limit: int = 100, exchange: str = None) -> list:
+    """
+    Get trade history for a user from the trades table.
+    Returns list of dicts with trade data.
+    """
+    with get_conn() as conn:
+        # Check if trades table exists
+        cur = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
+        )
+        if not cur.fetchone():
+            return []
+        
+        if exchange:
+            cur = conn.execute(
+                """SELECT id, symbol, side, entry_price, exit_price, size, 
+                          pnl, pnl_percent, exchange, strategy, created_at, closed_at
+                   FROM trades 
+                   WHERE user_id = ? AND exchange = ?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (user_id, exchange, limit)
+            )
+        else:
+            cur = conn.execute(
+                """SELECT id, symbol, side, entry_price, exit_price, size, 
+                          pnl, pnl_percent, exchange, strategy, created_at, closed_at
+                   FROM trades 
+                   WHERE user_id = ?
+                   ORDER BY created_at DESC LIMIT ?""",
+                (user_id, limit)
+            )
+        
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            result.append({
+                "id": row[0],
+                "symbol": row[1],
+                "side": row[2],
+                "entry_price": row[3],
+                "exit_price": row[4],
+                "size": row[5],
+                "pnl": row[6],
+                "pnl_percent": row[7],
+                "exchange": row[8],
+                "strategy": row[9],
+                "time": row[10],  # created_at as "time" for compatibility
+                "created_at": row[10],
+                "closed_at": row[11]
+            })
+        return result
+
+
+def save_trade(user_id: int, symbol: str, side: str, entry_price: float,
+               exit_price: float = None, size: float = 0, pnl: float = 0,
+               pnl_percent: float = 0, exchange: str = "bybit", 
+               strategy: str = None) -> int:
+    """Save a trade to history."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        # Ensure table exists
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                symbol TEXT,
+                side TEXT,
+                entry_price REAL,
+                exit_price REAL,
+                size REAL,
+                pnl REAL,
+                pnl_percent REAL,
+                exchange TEXT DEFAULT 'bybit',
+                strategy TEXT,
+                created_at INTEGER,
+                closed_at INTEGER
+            )
+        """)
+        
+        cur = conn.execute(
+            """INSERT INTO trades 
+               (user_id, symbol, side, entry_price, exit_price, size, 
+                pnl, pnl_percent, exchange, strategy, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, symbol, side, entry_price, exit_price, size,
+             pnl, pnl_percent, exchange, strategy, now)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def close_trade(trade_id: int, exit_price: float, pnl: float, pnl_percent: float) -> bool:
+    """Close an existing trade with exit price and PnL."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE trades SET exit_price = ?, pnl = ?, pnl_percent = ?, closed_at = ?
+               WHERE id = ?""",
+            (exit_price, pnl, pnl_percent, now, trade_id)
+        )
+        conn.commit()
+        return cur.rowcount > 0

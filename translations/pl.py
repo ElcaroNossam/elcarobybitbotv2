@@ -903,4 +903,58 @@ Po płatności kliknij przycisk poniżej, aby zweryfikować.''',
     'admin_enter_message': '✉️ Wprowadź wiadomość do wysłania użytkownikowi {uid}:',
     'admin_message_sent': '✅ Wiadomość wysłana do użytkownika {uid}!',
     'admin_message_failed': '❌ Nie udało się wysłać wiadomości: {error}',
+
+    # Auto-synced missing keys
+    'admin_all_payments': '📜 All Payments',
+    'admin_demo_stats': '🎮 Demo Stats',
+    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
+    'admin_generating_report': '📊 Generating report for user {uid}...',
+    'admin_global_stats': '📊 Global Stats',
+    'admin_no_payments_found': 'No payments found.',
+    'admin_payments': '💳 Payments',
+    'admin_payments_menu': '💳 *Payments Management*',
+    'admin_real_stats': '💰 Real Stats',
+    'admin_reports': '📊 Reports',
+    'admin_reports_menu': '''📊 *Reports & Analytics*
+
+Select report type:''',
+    'admin_strategy_breakdown': '🎯 By Strategy',
+    'admin_top_traders': '🏆 Top Traders',
+    'admin_user_report': '👤 User Report',
+    'admin_view_report': '📊 View Report',
+    'admin_view_user': '👤 User Card',
+    'all_positions_closed': 'All positions closed',
+    'btn_check_again': '🔄 Check Again',
+    'button_admin': '👑 Admin',
+    'button_licenses': '🔑 Licenses',
+    'button_subscribe': '💎 Subscribe',
+    'current': 'Current',
+    'entry': 'Entry',
+    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
+    'payment_session_expired': '❌ Payment session expired. Please start again.',
+    'payment_ton_not_configured': '❌ TON payments are not configured.',
+    'payment_ton_not_found': '''❌ Payment not found or amount incorrect.
+
+Please make sure you:
+• Sent the exact amount
+• Included the correct comment
+• Wait a few minutes for confirmation
+
+Try again after payment is confirmed on blockchain.''',
+    'payment_verifying': '⏳ Verifying payment...',
+    'position': 'Position',
+    'size': 'Size',
+    'stats_wyckoff': '📐 Wyckoff',
+
+    "button_hyperliquid": "🔷 HyperLiquid",
+    "button_webapp": "🌐 WebApp",
+    "button_switch_exchange": "🔄 Switch Exchange",
+    "button_api_bybit": "🟠 Bybit API",
+    "button_api_hl": "🔷 HL API",
+
+    # HyperLiquid Strategy Settings
+    "hl_settings": "HyperLiquid",
+    "hl_trading_enabled": "Handel HyperLiquid",
+    "hl_reset_settings": "🔄 Przywróć ustawienia Bybit",
+
 }

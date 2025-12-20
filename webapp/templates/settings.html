@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | ElCaro Trading</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0a0c;
+            --bg-secondary: #111114;
+            --bg-tertiary: #1a1a1f;
+            --bg-card: rgba(255, 255, 255, 0.02);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #6366f1;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .nav-links a {
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        /* Main Content */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+        
+        /* Settings Sections */
+        .settings-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+        
+        .section-icon.blue { background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); }
+        .section-icon.green { background: rgba(34, 197, 94, 0.1); color: var(--accent-green); }
+        .section-icon.yellow { background: rgba(234, 179, 8, 0.1); color: var(--accent-yellow); }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .section-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        /* Form Elements */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group.full {
+            grid-column: span 2;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            cursor: pointer;
+        }
+        
+        /* Toggle Switch */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .toggle-group:last-child {
+            border-bottom: none;
+        }
+        
+        .toggle-label {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toggle-label span {
+            font-weight: 500;
+        }
+        
+        .toggle-label small {
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+        }
+        
+        .toggle {
+            width: 48px;
+            height: 26px;
+            background: var(--bg-tertiary);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle.active {
+            background: var(--accent-primary);
+        }
+        
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .toggle.active::after {
+            left: 25px;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        /* Exchange Tabs */
+        .exchange-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .exchange-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .exchange-tab.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .notification.success {
+            border-color: var(--accent-green);
+        }
+        
+        .notification.error {
+            border-color: var(--accent-red);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main { padding: 16px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full { grid-column: span 1; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="/" class="logo">
+                <div class="logo-icon">🚀</div>
+                <span class="logo-text">ElCaro</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/terminal">Terminal</a>
+                <a href="/strategies">Strategies</a>
+                <a href="/marketplace">Marketplace</a>
+                <a href="/settings" class="active">Settings</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Manage your trading preferences, API connections, and notifications</p>
+        
+        <!-- Exchange Selection -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon blue">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Active Exchange</h3>
+                    <p class="section-desc">Select which exchange to use for trading</p>
+                </div>
+            </div>
+            
+            <div class="exchange-tabs">
+                <div class="exchange-tab" data-exchange="bybit" onclick="selectExchange('bybit')">
+                    <i class="fas fa-chart-bar"></i> Bybit
+                </div>
+                <div class="exchange-tab" data-exchange="hyperliquid" onclick="selectExchange('hyperliquid')">
+                    <i class="fas fa-cube"></i> HyperLiquid
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trading Settings -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon green">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Trading Parameters</h3>
+                    <p class="section-desc">Configure position sizing and risk management</p>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Position Size (%)</label>
+                    <input type="number" id="percent" class="form-input" value="5" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Leverage</label>
+                    <input type="number" id="leverage" class="form-input" value="10" min="1" max="125">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Take Profit (%)</label>
+                    <input type="number" id="tp_percent" class="form-input" value="2" min="0.1" max="100" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stop Loss (%)</label>
+                    <input type="number" id="sl_percent" class="form-input" value="1" min="0.1" max="50" step="0.1">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Strategy Toggles -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon yellow">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Active Strategies</h3>
+                    <p class="section-desc">Enable or disable automated trading strategies</p>
+                </div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-label">
+                    <span>ElCaro AI</span>
+                    <small>AI-powered market analysis with GPT-4</small>
+                </div>
+                <div class="toggle" id="toggle_elcaro" onclick="toggleStrategy('enable_elcaro')"></div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-label">
+                    <span>Wyckoff Analysis</span>
+                    <small>Classic Wyckoff accumulation/distribution patterns</small>
+                </div>
+                <div class="toggle" id="toggle_wyckoff" onclick="toggleStrategy('enable_wyckoff')"></div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-label">
+                    <span>Scryptomera</span>
+                    <small>Volume delta and order flow analysis</small>
+                </div>
+                <div class="toggle" id="toggle_scryptomera" onclick="toggleStrategy('enable_scryptomera')"></div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-label">
+                    <span>Scalper Mode</span>
+                    <small>Quick entries on momentum breakouts</small>
+                </div>
+                <div class="toggle" id="toggle_scalper" onclick="toggleStrategy('enable_scalper')"></div>
+            </div>
+        </div>
+        
+        <!-- Language -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon blue">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Language</h3>
+                    <p class="section-desc">Select your preferred language</p>
+                </div>
+            </div>
+            
+            <select id="language" class="form-select" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+                <option value="uk">Українська</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="it">Italiano</option>
+                <option value="pl">Polski</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+                <option value="ar">العربية</option>
+                <option value="he">עברית</option>
+            </select>
+        </div>
+        
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="loadSettings()">
+                <i class="fas fa-undo"></i>
+                Reset
+            </button>
+            <button class="btn btn-primary" onclick="saveSettings()">
+                <i class="fas fa-save"></i>
+                Save Changes
+            </button>
+        </div>
+    </main>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notification-text">Settings saved</span>
+    </div>
+    
+    <script>
+        let currentUser = null;
+        let currentExchange = 'bybit';
+        let settings = {};
+        
+        async function initAuth() {
+            const token = localStorage.getItem('elcaro_token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) {
+                    localStorage.removeItem('elcaro_token');
+                    window.location.href = '/login';
+                    return false;
+                }
+                
+                currentUser = await res.json();
+                return true;
+            } catch (e) {
+                console.error('Auth error:', e);
+                return false;
+            }
+        }
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('elcaro_token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        async function loadSettings() {
+            try {
+                const res = await fetch(`/api/users/settings?exchange=${currentExchange}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    settings = await res.json();
+                    updateUI();
+                }
+            } catch (e) {
+                console.error('Failed to load settings:', e);
+            }
+        }
+        
+        function updateUI() {
+            // Update form values
+            document.getElementById('percent').value = settings.percent || 5;
+            document.getElementById('leverage').value = settings.leverage || 10;
+            document.getElementById('tp_percent').value = settings.tp_percent || 2;
+            document.getElementById('sl_percent').value = settings.sl_percent || 1;
+            
+            // Update toggles
+            updateToggle('toggle_elcaro', settings.enable_elcaro);
+            updateToggle('toggle_wyckoff', settings.enable_wyckoff);
+            updateToggle('toggle_scryptomera', settings.enable_scryptomera);
+            updateToggle('toggle_scalper', settings.enable_scalper);
+            
+            // Update exchange tabs
+            document.querySelectorAll('.exchange-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.exchange === currentExchange);
+            });
+            
+            // Update language if user data available
+            if (currentUser?.lang) {
+                document.getElementById('language').value = currentUser.lang;
+            }
+        }
+        
+        function updateToggle(id, value) {
+            const toggle = document.getElementById(id);
+            if (toggle) {
+                toggle.classList.toggle('active', !!value);
+            }
+        }
+        
+        function selectExchange(exchange) {
+            currentExchange = exchange;
+            loadSettings();
+        }
+        
+        function toggleStrategy(key) {
+            settings[key] = !settings[key];
+            const toggleId = 'toggle_' + key.replace('enable_', '');
+            updateToggle(toggleId, settings[key]);
+        }
+        
+        async function saveSettings() {
+            try {
+                const payload = {
+                    exchange: currentExchange,
+                    settings: {
+                        percent: parseFloat(document.getElementById('percent').value),
+                        leverage: parseInt(document.getElementById('leverage').value),
+                        tp_percent: parseFloat(document.getElementById('tp_percent').value),
+                        sl_percent: parseFloat(document.getElementById('sl_percent').value),
+                        enable_elcaro: settings.enable_elcaro || false,
+                        enable_wyckoff: settings.enable_wyckoff || false,
+                        enable_scryptomera: settings.enable_scryptomera || false,
+                        enable_scalper: settings.enable_scalper || false
+                    }
+                };
+                
+                const res = await fetch('/api/users/settings', {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    showNotification('Settings saved successfully', 'success');
+                } else {
+                    showNotification('Failed to save settings', 'error');
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                showNotification('Error saving settings', 'error');
+            }
+        }
+        
+        async function changeLanguage() {
+            const lang = document.getElementById('language').value;
+            
+            try {
+                const res = await fetch('/api/users/language', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ language: lang })
+                });
+                
+                if (res.ok) {
+                    showNotification('Language changed', 'success');
+                }
+            } catch (e) {
+                console.error('Language change error:', e);
+            }
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notification-text');
+            
+            notification.className = `notification ${type} show`;
+            text.textContent = message;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        function logout() {
+            localStorage.removeItem('elcaro_token');
+            window.location.href = '/login';
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initAuth();
+            await loadSettings();
+        });
+    </script>
+</body>
+</html>

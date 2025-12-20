@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElCaro Screener - Live Crypto Market</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #00d4aa;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --border: #2a2a3a;
+            --green: #00c853;
+            --red: #ff4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .header { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+        .logo i { margin-right: 0.5rem; }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+        .connection-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+        .status-dot.connected { background: var(--green); }
+        .container { max-width: 1800px; margin: 0 auto; padding: 1.5rem; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; }
+        .btc-panel { background: linear-gradient(135deg, var(--bg-card), #1f1f2a); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .btc-main { display: flex; align-items: center; gap: 1rem; }
+        .btc-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #f7931a, #ffb347); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .btc-price { font-size: 1.8rem; font-weight: 700; }
+        .btc-change { font-size: 0.9rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
+        .btc-change.positive { background: rgba(0, 200, 83, 0.2); color: var(--green); }
+        .btc-change.negative { background: rgba(255, 68, 68, 0.2); color: var(--red); }
+        .btc-stat { text-align: center; }
+        .btc-stat-label { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.25rem; }
+        .btc-stat-value { font-size: 1.1rem; font-weight: 600; }
+        .filters { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        .filter-group { display: flex; gap: 0.5rem; }
+        .filter-btn { padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s; font-size: 0.85rem; }
+        .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .search-box { flex: 1; max-width: 300px; position: relative; }
+        .search-box input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; }
+        .search-box i { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--bg-secondary); padding: 1rem; text-align: left; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); cursor: pointer; }
+        th:hover { color: var(--accent); }
+        td { padding: 0.8rem 1rem; border-top: 1px solid var(--border); font-size: 0.9rem; }
+        tr:hover { background: rgba(0, 212, 170, 0.05); }
+        .positive { color: var(--green); }
+        .negative { color: var(--red); }
+        .volume-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 0.25rem; }
+        .volume-bar-fill { height: 100%; background: var(--accent); }
+        .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+        .sidebar-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .sidebar-header { background: var(--bg-secondary); padding: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .sidebar-header i { color: var(--accent); }
+        .mover-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); }
+        .mover-item:last-child { border-bottom: none; }
+        .mover-symbol { font-weight: 600; }
+        .mover-price { font-size: 0.85rem; color: var(--text-secondary); }
+        .mover-change { font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+        .mover-change.positive { background: rgba(0, 200, 83, 0.15); }
+        .mover-change.negative { background: rgba(255, 68, 68, 0.15); }
+        .liq-item { display: flex; align-items: center; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); gap: 0.8rem; }
+        .liq-side { width: 50px; text-align: center; padding: 0.2rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .liq-side.long { background: rgba(255, 68, 68, 0.2); color: var(--red); }
+        .liq-side.short { background: rgba(0, 200, 83, 0.2); color: var(--green); }
+        .liq-details { flex: 1; }
+        .liq-symbol { font-weight: 600; font-size: 0.85rem; }
+        .liq-time { font-size: 0.75rem; color: var(--text-secondary); }
+        .loading { text-align: center; padding: 3rem; color: var(--text-secondary); }
+        .loading i { font-size: 2rem; color: var(--accent); animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @media (max-width: 1200px) { .grid-layout { grid-template-columns: 1fr; } .sidebar { display: grid; grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .header { flex-direction: column; gap: 1rem; } .sidebar { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><i class="fas fa-bolt"></i> ElCaro Screener</div>
+        <nav class="nav-links">
+            <a href="/" data-i18n="nav_home">Home</a>
+            <a href="/terminal" data-i18n="nav_terminal">Terminal</a>
+            <a href="/marketplace" data-i18n="nav_marketplace">Marketplace</a>
+            <a href="/screener" class="active" data-i18n="nav_screener">Screener</a>
+        </nav>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div id="lang-switcher"></div>
+            <div class="connection-status">
+                <span class="status-dot" id="wsStatus"></span>
+                <span id="wsStatusText" data-i18n="connecting">Connecting...</span>
+            </div>
+        </div>
+    </header>
+    <script src="/static/i18n/translations.js"></script>
+    <script src="/static/i18n/lang-switcher.js"></script>
+    <div class="container">
+        <div class="btc-panel">
+            <div class="btc-main">
+                <div class="btc-icon"><i class="fab fa-bitcoin"></i></div>
+                <div>
+                    <div class="btc-price" id="btcPrice">$--,---</div>
+                    <span class="btc-change" id="btcChange">--%</span>
+                </div>
+            </div>
+            <div class="btc-stat"><div class="btc-stat-label">24h High</div><div class="btc-stat-value" id="btcHigh">$--,---</div></div>
+            <div class="btc-stat"><div class="btc-stat-label">24h Low</div><div class="btc-stat-value" id="btcLow">$--,---</div></div>
+            <div class="btc-stat"><div class="btc-stat-label">24h Volume</div><div class="btc-stat-value" id="btcVolume">$--B</div></div>
+            <div class="btc-stat"><div class="btc-stat-label">Open Interest</div><div class="btc-stat-value" id="btcOI">$--B</div></div>
+            <div class="btc-stat"><div class="btc-stat-label">Funding Rate</div><div class="btc-stat-value" id="btcFunding">--%</div></div>
+        </div>
+        <div class="grid-layout">
+            <div class="main-content">
+                <div class="filters">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all" data-i18n="all">All</button>
+                        <button class="filter-btn" data-filter="gainers" data-i18n="gainers">Gainers</button>
+                        <button class="filter-btn" data-filter="losers" data-i18n="losers">Losers</button>
+                        <button class="filter-btn" data-filter="volume" data-i18n="high_volume">High Volume</button>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search symbol...">
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr>
+                            <th data-sort="symbol"># Symbol</th>
+                            <th data-sort="price">Price</th>
+                            <th data-sort="change">24h %</th>
+                            <th data-sort="volume">Volume</th>
+                            <th data-sort="oi">Open Interest</th>
+                            <th data-sort="funding">Funding</th>
+                            <th>Action</th>
+                        </tr></thead>
+                        <tbody id="marketTable">
+                            <tr><td colspan="7" class="loading"><i class="fas fa-spinner"></i><p>Loading...</p></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <div class="sidebar-header"><i class="fas fa-rocket"></i> <span data-i18n="top_gainers">Top Gainers</span></div>
+                    <div id="topGainers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                </div>
+                <div class="sidebar-card">
+                    <div class="sidebar-header"><i class="fas fa-arrow-down"></i> <span data-i18n="top_losers">Top Losers</span></div>
+                    <div id="topLosers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                </div>
+                <div class="sidebar-card">
+                    <div class="sidebar-header"><i class="fas fa-fire"></i> <span data-i18n="recent_liquidations">Recent Liquidations</span></div>
+                    <div id="liquidations"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let marketData = [], sortColumn = 'volume', sortDirection = 'desc', activeFilter = 'all', ws = null;
+        const formatPrice = (p) => p >= 1 ? '$' + p.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '$' + p.toFixed(6);
+        const formatVolume = (v) => v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + v.toLocaleString();
+        const formatPercent = (p) => (p >= 0 ? '+' : '') + p.toFixed(2) + '%';
+        function connectWS() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(protocol + '//' + window.location.host + '/ws/screener');
+            ws.onopen = () => { document.getElementById('wsStatus').classList.add('connected'); document.getElementById('wsStatusText').textContent = 'Live'; };
+            ws.onmessage = (e) => handleData(JSON.parse(e.data));
+            ws.onclose = () => { document.getElementById('wsStatus').classList.remove('connected'); document.getElementById('wsStatusText').textContent = 'Disconnected'; setTimeout(connectWS, 3000); };
+            ws.onerror = () => ws.close();
+        }
+        function handleData(data) {
+            if (data.type === 'market_data') { marketData = data.data || []; renderTable(); renderTopMovers(); updateBTC(); }
+            else if (data.type === 'liquidation') addLiquidation(data.data);
+        }
+        function updateBTC() { const btc = marketData.find(d => d.symbol === 'BTCUSDT'); if (btc) updateBTCPanel(btc); }
+        function updateBTCPanel(btc) {
+            if (!btc) return;
+            document.getElementById('btcPrice').textContent = formatPrice(btc.price || 0);
+            const changeEl = document.getElementById('btcChange'), change = btc.change24h || 0;
+            changeEl.textContent = formatPercent(change); changeEl.className = 'btc-change ' + (change >= 0 ? 'positive' : 'negative');
+            document.getElementById('btcHigh').textContent = formatPrice(btc.high24h || 0);
+            document.getElementById('btcLow').textContent = formatPrice(btc.low24h || 0);
+            document.getElementById('btcVolume').textContent = formatVolume(btc.volume24h || 0);
+            document.getElementById('btcOI').textContent = formatVolume(btc.openInterest || 0);
+            const funding = btc.fundingRate || 0, fundingEl = document.getElementById('btcFunding');
+            fundingEl.textContent = (funding * 100).toFixed(4) + '%'; fundingEl.className = 'btc-stat-value ' + (funding >= 0 ? 'positive' : 'negative');
+        }
+        function renderTable() {
+            let data = [...marketData];
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            if (search) data = data.filter(d => d.symbol.toLowerCase().includes(search));
+            if (activeFilter === 'gainers') data = data.filter(d => d.change24h > 0);
+            else if (activeFilter === 'losers') data = data.filter(d => d.change24h < 0);
+            else if (activeFilter === 'volume') data = data.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0)).slice(0, 50);
+            data.sort((a, b) => {
+                let aVal, bVal;
+                switch(sortColumn) {
+                    case 'symbol': aVal = a.symbol; bVal = b.symbol; break;
+                    case 'price': aVal = a.price || 0; bVal = b.price || 0; break;
+                    case 'change': aVal = a.change24h || 0; bVal = b.change24h || 0; break;
+                    case 'volume': aVal = a.volume24h || 0; bVal = b.volume24h || 0; break;
+                    case 'oi': aVal = a.openInterest || 0; bVal = b.openInterest || 0; break;
+                    case 'funding': aVal = a.fundingRate || 0; bVal = b.fundingRate || 0; break;
+                    default: aVal = 0; bVal = 0;
+                }
+                if (typeof aVal === 'string') return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+            const maxVol = Math.max(...data.map(d => d.volume24h || 0));
+            document.getElementById('marketTable').innerHTML = data.slice(0, 100).map((d, i) => '<tr><td>' + (i + 1) + ' ' + d.symbol.replace('USDT', '') + '</td><td>' + formatPrice(d.price || 0) + '</td><td class="' + ((d.change24h || 0) >= 0 ? 'positive' : 'negative') + '">' + formatPercent(d.change24h || 0) + '</td><td>' + formatVolume(d.volume24h || 0) + '<div class="volume-bar"><div class="volume-bar-fill" style="width:' + ((d.volume24h || 0) / maxVol * 100) + '%"></div></div></td><td>' + formatVolume(d.openInterest || 0) + '</td><td class="' + ((d.fundingRate || 0) >= 0 ? 'positive' : 'negative') + '">' + ((d.fundingRate || 0) * 100).toFixed(4) + '%</td><td><button class="filter-btn" onclick="trade(\'' + d.symbol + '\')">Trade</button></td></tr>').join('');
+        }
+        function renderTopMovers() {
+            const gainers = [...marketData].filter(d => d.change24h > 0).sort((a, b) => b.change24h - a.change24h).slice(0, 5);
+            const losers = [...marketData].filter(d => d.change24h < 0).sort((a, b) => a.change24h - b.change24h).slice(0, 5);
+            document.getElementById('topGainers').innerHTML = gainers.map(d => '<div class="mover-item"><div><div class="mover-symbol">' + d.symbol.replace('USDT', '') + '</div><div class="mover-price">' + formatPrice(d.price || 0) + '</div></div><div class="mover-change positive">' + formatPercent(d.change24h || 0) + '</div></div>').join('');
+            document.getElementById('topLosers').innerHTML = losers.map(d => '<div class="mover-item"><div><div class="mover-symbol">' + d.symbol.replace('USDT', '') + '</div><div class="mover-price">' + formatPrice(d.price || 0) + '</div></div><div class="mover-change negative">' + formatPercent(d.change24h || 0) + '</div></div>').join('');
+        }
+        function addLiquidation(liq) {
+            const container = document.getElementById('liquidations');
+            const item = document.createElement('div'); item.className = 'liq-item';
+            item.innerHTML = '<div class="liq-side ' + liq.side + '">' + liq.side.toUpperCase() + '</div><div class="liq-details"><div class="liq-symbol">' + liq.symbol + '</div><div class="liq-time">' + new Date().toLocaleTimeString() + '</div></div><div class="liq-amount ' + (liq.side === 'long' ? 'negative' : 'positive') + '">' + formatVolume(liq.amount || 0) + '</div>';
+            container.insertBefore(item, container.firstChild);
+            while (container.children.length > 10) container.removeChild(container.lastChild);
+        }
+        function trade(symbol) { window.location.href = '/terminal?symbol=' + symbol; }
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+            btn.addEventListener('click', () => { document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active')); btn.classList.add('active'); activeFilter = btn.dataset.filter; renderTable(); });
+        });
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => { const col = th.dataset.sort; if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'; else { sortColumn = col; sortDirection = 'desc'; } renderTable(); });
+        });
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+        connectWS();
+        async function fetchData() { try { const res = await fetch('/api/screener/data'); if (res.ok) { const data = await res.json(); handleData({ type: 'market_data', data: data.data || [] }); } } catch (e) {} }
+        fetchData(); setInterval(fetchData, 3000);
+    </script>
+</body>
+</html>

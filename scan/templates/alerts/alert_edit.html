@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Edit Alert" %} — {{ alert.symbol.symbol }}{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="alert-form-container">
+        <h1>{% trans "Edit alert for" %} {{ alert.symbol.symbol }}</h1>
+        <form method="post" class="auth-form alert-form">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <div class="form-field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="field-help">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div class="alert-info-box">
+                <p class="chart-note">
+                    <strong>{% trans "Telegram chat id" %}</strong> {% trans "can be obtained by writing to the bot and checking the id in the response or through third-party bots like @userinfobot." %}
+                </p>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">{% trans "Save changes" %}</button>
+                <a href="{% url 'alerts:list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

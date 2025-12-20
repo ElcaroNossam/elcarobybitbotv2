@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if is_global %}{% trans "Create Global Alert" %}{% else %}{% trans "Create Alert" %} — {{ symbol.symbol }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="alert-form-container">
+        <h1>{% if is_global %}{% trans "Create Global Alert" %}{% else %}{% trans "Create alert for" %} {{ symbol.symbol }}{% endif %}</h1>
+        <form method="post" class="auth-form alert-form">
+            {% csrf_token %}
+            {% if market_type %}
+                <input type="hidden" id="alert-form-market-type" name="market_type" value="{{ market_type }}">
+            {% endif %}
+            {{ form.non_field_errors }}
+            
+            {% if is_global %}
+            <div class="form-field">
+                <label for="id_is_global_alert">
+                    <input type="checkbox" id="id_is_global_alert" name="is_global_alert" value="1" checked autocomplete="off">
+                    {% trans "Global alert (applies to all symbols)" %}
+                </label>
+                <div class="field-help">{% trans "This alert will check all symbols matching the conditions" %}</div>
+            </div>
+            {% endif %}
+            
+            <div class="form-field">
+                <label for="{{ form.metric.id_for_label }}">{{ form.metric.label }}</label>
+                {{ form.metric }}
+                {% if form.metric.help_text %}
+                    <div class="field-help">{{ form.metric.help_text }}</div>
+                {% endif %}
+                {% if form.metric.errors %}
+                    <div class="field-errors">{{ form.metric.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-field">
+                <label for="{{ form.operator.id_for_label }}">{{ form.operator.label }}</label>
+                {{ form.operator }}
+                {% if form.operator.errors %}
+                    <div class="field-errors">{{ form.operator.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-field">
+                <label for="{{ form.threshold.id_for_label }}">{{ form.threshold.label }}</label>
+                {{ form.threshold }}
+                {% if form.threshold.errors %}
+                    <div class="field-errors">{{ form.threshold.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-field">
+                <label for="{{ form.additional_filters_json.id_for_label }}">{{ form.additional_filters_json.label }}</label>
+                {{ form.additional_filters_json }}
+                {% if form.additional_filters_json.help_text %}
+                    <div class="field-help">{{ form.additional_filters_json.help_text }}</div>
+                {% endif %}
+                {% if form.additional_filters_json.errors %}
+                    <div class="field-errors">{{ form.additional_filters_json.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-field">
+                <label for="{{ form.telegram_chat_id.id_for_label }}">{{ form.telegram_chat_id.label }}</label>
+                {{ form.telegram_chat_id }}
+                {% if form.telegram_chat_id.errors %}
+                    <div class="field-errors">{{ form.telegram_chat_id.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-field">
+                <label for="{{ form.telegram_bot_token.id_for_label }}">{{ form.telegram_bot_token.label }}</label>
+                {{ form.telegram_bot_token }}
+                {% if form.telegram_bot_token.help_text %}
+                    <div class="field-help">{{ form.telegram_bot_token.help_text }}</div>
+                {% endif %}
+                {% if form.telegram_bot_token.errors %}
+                    <div class="field-errors">{{ form.telegram_bot_token.errors }}</div>
+                {% endif %}
+            </div>
+            
+            {{ form.additional_filters }}
+            
+            <div class="alert-info-box">
+                <p class="chart-note">
+                    <strong>{% trans "Telegram chat id" %}</strong> {% trans "can be obtained by writing to the bot and checking the id in the response or through third-party bots like @userinfobot." %}
+                </p>
+                <p class="chart-note">
+                    <strong>{% trans "Telegram bot token" %}</strong> {% trans "Optional. If provided, uses your bot for sending alerts. Otherwise uses default bot." %}
+                </p>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">{% trans "Save alert" %}</button>
+                {% if is_global %}
+                    <a href="{% url 'alerts:list' %}" class="btn-secondary">{% trans "Cancel" %}</a>
+                {% else %}
+                    <a href="{% url 'screener:symbol_detail' symbol.symbol %}?market_type={{ market_type|default:'spot' }}" class="btn-secondary">{% trans "Cancel" %}</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Liquidations WebSocket</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #0f0;
+            padding: 20px;
+        }
+        #log {
+            white-space: pre-wrap;
+            border: 1px solid #0f0;
+            padding: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0a0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Liquidations WebSocket Test</h1>
+    <div>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="sendTestMessage()">Send Test Message</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    <h2>Connection Log:</h2>
+    <div id="log"></div>
+
+    <script>
+        let ws = null;
+        const log = document.getElementById('log');
+        
+        function addLog(msg, color = '#0f0') {
+            const time = new Date().toISOString();
+            const line = document.createElement('div');
+            line.style.color = color;
+            line.textContent = `[${time}] ${msg}`;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function connect() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                addLog('Already connected or connecting', '#ff0');
+                return;
+            }
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws/liquidations/`;
+            
+            addLog(`Connecting to: ${wsUrl}`, '#fff');
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    addLog('✅ WebSocket OPEN', '#0f0');
+                    addLog(`ReadyState: ${ws.readyState}`, '#0f0');
+                };
+                
+                ws.onmessage = (event) => {
+                    addLog('📨 Message received:', '#0ff');
+                    addLog(`Raw: ${event.data}`, '#0ff');
+                    try {
+                        const data = JSON.parse(event.data);
+                        addLog(`Parsed: ${JSON.stringify(data, null, 2)}`, '#0ff');
+                    } catch (e) {
+                        addLog(`Parse error: ${e}`, '#f00');
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    addLog(`❌ WebSocket ERROR: ${error}`, '#f00');
+                    addLog(`ReadyState: ${ws ? ws.readyState : 'null'}`, '#f00');
+                };
+                
+                ws.onclose = (event) => {
+                    addLog(`🔌 WebSocket CLOSED`, '#f00');
+                    addLog(`Code: ${event.code}`, '#f00');
+                    addLog(`Reason: ${event.reason}`, '#f00');
+                    addLog(`Clean: ${event.wasClean}`, '#f00');
+                    ws = null;
+                };
+            } catch (e) {
+                addLog(`Exception: ${e}`, '#f00');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                addLog('Closing connection...', '#ff0');
+                ws.close();
+            } else {
+                addLog('Not connected', '#ff0');
+            }
+        }
+        
+        function sendTestMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addLog('Not connected!', '#f00');
+                return;
+            }
+            
+            const testMsg = {
+                type: 'ping'
+            };
+            
+            addLog(`Sending: ${JSON.stringify(testMsg)}`, '#fff');
+            ws.send(JSON.stringify(testMsg));
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+        
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            addLog('Page loaded. Click Connect to start.', '#fff');
+        });
+    </script>
+</body>
+</html>

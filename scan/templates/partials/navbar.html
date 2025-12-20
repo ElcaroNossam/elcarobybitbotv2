@@ -1,0 +1,34 @@
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+{% get_language_info_list for LANGUAGES as languages %}
+<header class="navbar">
+    <div class="navbar-left">
+        <a href="{% url 'screener:list' %}" class="navbar-logo">Malkata Crypto</a>
+    </div>
+    <nav class="navbar-right">
+        <div class="language-selector">
+            <form action="{% url 'set_language' %}" method="post" class="language-form">
+                {% csrf_token %}
+                <input type="hidden" id="language-next" name="next" value="{{ request.get_full_path }}">
+                <select id="language-select" name="language" onchange="this.form.submit()" class="language-select">
+                    {% for language in languages %}
+                        <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                            {% if language.code == 'ru' %}🇷🇺{% elif language.code == 'en' %}🇬🇧{% elif language.code == 'es' %}🇪🇸{% elif language.code == 'he' %}🇮🇱{% endif %} {{ language.code|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <a href="{% url 'screener:list' %}">{% trans "Screener" %}</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'alerts:list' %}">{% trans "Alerts" %}</a>
+            <a href="{% url 'accounts:profile' %}">{% trans "Profile" %}</a>
+            <a href="{% url 'accounts:logout' %}">{% trans "Logout" %}</a>
+        {% else %}
+            <a href="{% url 'accounts:login' %}">{% trans "Login" %}</a>
+            <a href="{% url 'accounts:register' %}">{% trans "Register" %}</a>
+        {% endif %}
+    </nav>
+</header>
+
+

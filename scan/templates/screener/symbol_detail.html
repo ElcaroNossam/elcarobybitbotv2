@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+{% load static %}
+{% load formatting %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+
+{% block title %}{{ symbol.symbol }} — {% trans "Symbol Details" %}{% endblock %}
+
+{% block content %}
+<div class="symbol-detail-container">
+    <!-- Header with symbol info and trading terminal button -->
+    <div class="symbol-detail-header">
+        <div class="symbol-info-main">
+            <a href="{% url 'screener:list' %}?market_type={{ market_type }}" class="back-link">
+                ← {% trans "Back to Screener" %}
+            </a>
+            <h1 class="symbol-title">
+                {{ symbol.symbol }}
+                <span class="market-type-badge {% if market_type == 'futures' %}futures{% else %}spot{% endif %}">
+                    {{ market_type|upper }}
+                </span>
+            </h1>
+        </div>
+        <div class="symbol-header-actions">
+            <a href="{% url 'alerts:create' symbol.symbol %}?market_type={{ market_type }}" class="btn-secondary">
+                🔔 {% trans "Create Alert" %}
+            </a>
+            <a href="{% url 'screener:trading_terminal' symbol.symbol %}?market_type={{ market_type }}" class="btn-primary">
+                📊 {% trans "Trading Terminal" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Price and basic metrics -->
+    <div class="symbol-price-section">
+        {% if latest_data %}
+        <div class="price-main">
+            <span class="current-price-big">{{ latest_data.price|format_price }}</span>
+            <span class="price-change-badge {% if latest_data.change_15m > 0 %}positive{% elif latest_data.change_15m < 0 %}negative{% endif %}">
+                {% if latest_data.change_15m > 0 %}+{% endif %}{{ latest_data.change_15m|floatformat:2 }}%
+            </span>
+        </div>
+        <div class="price-timestamp">
+            {% trans "Last updated" %}: {{ latest_data.timestamp|date:"d.m.Y H:i:s" }}
+        </div>
+        {% else %}
+        <div class="price-main">
+            <span class="no-data">{% trans "No data available" %}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="symbol-metrics-grid">
+        {% if latest_data %}
+        <!-- Volume Section -->
+        <div class="metrics-card">
+            <h3 class="metrics-card-title">📊 {% trans "Volume" %}</h3>
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "15 min" %}</span>
+                    <span class="metric-value">{{ latest_data.volume_15m|format_volume }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "1 hour" %}</span>
+                    <span class="metric-value">{{ latest_data.volume_1h|format_volume }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "8 hours" %}</span>
+                    <span class="metric-value">{{ latest_data.volume_8h|format_volume }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "24 hours" %}</span>
+                    <span class="metric-value">{{ latest_data.volume_1d|format_volume }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VDelta Section -->
+        <div class="metrics-card">
+            <h3 class="metrics-card-title">📈 {% trans "VDelta" %}</h3>
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "15 min" %}</span>
+                    <span class="metric-value {% if latest_data.vdelta_15m > 0 %}positive{% elif latest_data.vdelta_15m < 0 %}negative{% endif %}">
+                        {{ latest_data.vdelta_15m|format_vdelta }}
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "1 hour" %}</span>
+                    <span class="metric-value {% if latest_data.vdelta_1h > 0 %}positive{% elif latest_data.vdelta_1h < 0 %}negative{% endif %}">
+                        {{ latest_data.vdelta_1h|format_vdelta }}
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "8 hours" %}</span>
+                    <span class="metric-value {% if latest_data.vdelta_8h > 0 %}positive{% elif latest_data.vdelta_8h < 0 %}negative{% endif %}">
+                        {{ latest_data.vdelta_8h|format_vdelta }}
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "24 hours" %}</span>
+                    <span class="metric-value {% if latest_data.vdelta_1d > 0 %}positive{% elif latest_data.vdelta_1d < 0 %}negative{% endif %}">
+                        {{ latest_data.vdelta_1d|format_vdelta }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Price Change Section -->
+        <div class="metrics-card">
+            <h3 class="metrics-card-title">💹 {% trans "Price Change" %}</h3>
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "15 min" %}</span>
+                    <span class="metric-value {% if latest_data.change_15m > 0 %}positive{% elif latest_data.change_15m < 0 %}negative{% endif %}">
+                        {% if latest_data.change_15m > 0 %}+{% endif %}{{ latest_data.change_15m|floatformat:2 }}%
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "1 hour" %}</span>
+                    <span class="metric-value {% if latest_data.change_1h > 0 %}positive{% elif latest_data.change_1h < 0 %}negative{% endif %}">
+                        {% if latest_data.change_1h > 0 %}+{% endif %}{{ latest_data.change_1h|floatformat:2 }}%
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "8 hours" %}</span>
+                    <span class="metric-value {% if latest_data.change_8h > 0 %}positive{% elif latest_data.change_8h < 0 %}negative{% endif %}">
+                        {% if latest_data.change_8h > 0 %}+{% endif %}{{ latest_data.change_8h|floatformat:2 }}%
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "24 hours" %}</span>
+                    <span class="metric-value {% if latest_data.change_1d > 0 %}positive{% elif latest_data.change_1d < 0 %}negative{% endif %}">
+                        {% if latest_data.change_1d > 0 %}+{% endif %}{{ latest_data.change_1d|floatformat:2 }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% if market_type == 'futures' %}
+        <!-- Futures specific metrics -->
+        <div class="metrics-card">
+            <h3 class="metrics-card-title">📉 {% trans "Open Interest" %}</h3>
+            <div class="metrics-list">
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "Current OI" %}</span>
+                    <span class="metric-value">{{ latest_data.open_interest|format_volume }}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "OI Change 15m" %}</span>
+                    <span class="metric-value {% if latest_data.oi_change_15m > 0 %}positive{% elif latest_data.oi_change_15m < 0 %}negative{% endif %}">
+                        {% if latest_data.oi_change_15m > 0 %}+{% endif %}{{ latest_data.oi_change_15m|floatformat:2 }}%
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "OI Change 1h" %}</span>
+                    <span class="metric-value {% if latest_data.oi_change_1h > 0 %}positive{% elif latest_data.oi_change_1h < 0 %}negative{% endif %}">
+                        {% if latest_data.oi_change_1h > 0 %}+{% endif %}{{ latest_data.oi_change_1h|floatformat:2 }}%
+                    </span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">{% trans "Funding Rate" %}</span>
+                    <span class="metric-value {% if latest_data.funding_rate > 0 %}positive{% elif latest_data.funding_rate < 0 %}negative{% endif %}">
+                        {{ latest_data.funding_rate|floatformat:4 }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="symbol-alerts-section">
+        <div class="alerts-header">
+            <h2>🔔 {% trans "Your Alerts for" %} {{ symbol.symbol }}</h2>
+            <a href="{% url 'alerts:create' symbol.symbol %}?market_type={{ market_type }}" class="btn-primary btn-small">
+                + {% trans "New Alert" %}
+            </a>
+        </div>
+        
+        {% if symbol_alerts %}
+        <div class="alerts-list">
+            {% for alert in symbol_alerts %}
+            <div class="alert-item {% if alert.last_triggered_at %}triggered{% endif %}">
+                <div class="alert-info">
+                    <span class="alert-indicator">{{ alert.get_metric_display }}</span>
+                    <span class="alert-condition">{{ alert.operator }}</span>
+                    <span class="alert-value">{{ alert.threshold }}</span>
+                </div>
+                <div class="alert-actions">
+                    {% if alert.last_triggered_at %}
+                    <span class="alert-status triggered">{% trans "Triggered" %}</span>
+                    {% elif alert.active %}
+                    <span class="alert-status active">{% trans "Active" %}</span>
+                    {% else %}
+                    <span class="alert-status inactive">{% trans "Inactive" %}</span>
+                    {% endif %}
+                    <a href="{% url 'alerts:delete' alert.id %}" class="btn-danger btn-small" title="{% trans 'Delete' %}">
+                        🗑️
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-alerts">
+            <p>{% trans "No alerts set for this symbol." %}</p>
+            <a href="{% url 'alerts:create' symbol.symbol %}?market_type={{ market_type }}" class="btn-secondary">
+                {% trans "Create your first alert" %}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.symbol-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.symbol-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.back-link {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+.back-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.symbol-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin: 10px 0 0 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.market-type-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.market-type-badge.futures {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.market-type-badge.spot {
+    background: rgba(0, 200, 83, 0.2);
+    color: #00c853;
+}
+
+.symbol-header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.symbol-price-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.price-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.current-price-big {
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.price-change-badge {
+    font-size: 20px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.price-change-badge.positive {
+    background: rgba(0, 200, 83, 0.2);
+    color: #00c853;
+}
+
+.price-change-badge.negative {
+    background: rgba(255, 82, 82, 0.2);
+    color: #ff5252;
+}
+
+.price-timestamp {
+    margin-top: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+}
+
+.no-data {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 24px;
+}
+
+.symbol-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metrics-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.metrics-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metrics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+.metric-value {
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+}
+
+.metric-value.positive {
+    color: #00c853;
+}
+
+.metric-value.negative {
+    color: #ff5252;
+}
+
+.symbol-alerts-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.alerts-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.alert-item.triggered {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: rgba(255, 152, 0, 0.3);
+}
+
+.alert-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-condition {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.alert-value {
+    font-weight: 600;
+    color: #fff;
+}
+
+.alert-indicator {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+}
+
+.alert-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.alert-status.active {
+    background: rgba(0, 200, 83, 0.2);
+    color: #00c853;
+}
+
+.alert-status.triggered {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.alert-status.inactive {
+    background: rgba(128, 128, 128, 0.2);
+    color: #888;
+}
+
+.no-alerts {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.no-alerts p {
+    margin-bottom: 20px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ff0080, #ff4d94);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger {
+    background: rgba(255, 82, 82, 0.2);
+    color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 82, 82, 0.3);
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .symbol-detail-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .symbol-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .symbol-title {
+        font-size: 24px;
+    }
+    
+    .current-price-big {
+        font-size: 32px;
+    }
+    
+    .price-main {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .symbol-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

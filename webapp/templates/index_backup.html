@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ElCaro Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
+    <title>ElCaro Trading Terminal | AI-Powered Crypto Trading</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Landing CSS -->
+    <link rel="stylesheet" href="/static/css/landing.css">
+    
+    <!-- Telegram WebApp Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="grid-overlay"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <div class="logo-icon">🚀</div>
+                <span class="logo-text">ElCaro</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#ai-signals">AI Signals</a></li>
+                <li><a href="#strategies">Strategies</a></li>
+                <li><a href="#copy-trading">Copy Trading</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+            </ul>
+            
+            <div class="nav-cta">
+                <a href="https://t.me/elcaro_bybit_bot" class="btn btn-ghost" target="_blank">
+                    <i class="fab fa-telegram"></i>
+                </a>
+                <a href="/terminal" class="btn btn-primary">
+                    Launch App
+                </a>
+            </div>
+            
+            <button class="mobile-toggle" id="mobile-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <i class="fas fa-sparkles"></i>
+                        <span>Powered by AI & ChatGPT-4</span>
+                    </div>
+                    
+                    <h1 class="hero-title">
+                        Trade Smarter with <span class="gradient">AI-Powered</span> Crypto Signals
+                    </h1>
+                    
+                    <p class="hero-subtitle">
+                        Professional multi-exchange trading platform with automated strategies, 
+                        real-time analysis, and copy trading. Connect to Bybit & HyperLiquid 
+                        and start trading like a pro.
+                    </p>
+                    
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <div class="hero-stat-value" data-counter="15847">$15.8M+</div>
+                            <div class="hero-stat-label">Trading Volume</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-value">12,500+</div>
+                            <div class="hero-stat-label">Active Traders</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-value">78.5%</div>
+                            <div class="hero-stat-label">Win Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-buttons">
+                        <a href="/terminal" class="btn btn-primary btn-lg btn-glow">
+                            <i class="fas fa-rocket"></i>
+                            Start Trading Now
+                        </a>
+                        <a href="https://t.me/elcaro_bybit_bot" class="btn btn-secondary btn-lg" target="_blank">
+                            <i class="fab fa-telegram"></i>
+                            Open in Telegram
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="hero-visual">
+                    <!-- Floating AI Signal -->
+                    <div class="floating-element ai-signal">
+                        <div class="ai-signal-header">
+                            <span class="ai-dot"></span>
+                            <span class="ai-signal-text">AI Signal</span>
+                        </div>
+                        <div class="ai-signal-pair">BTCUSDT</div>
+                        <span class="ai-signal-direction long">LONG +4.2%</span>
+                    </div>
+                    
+                    <!-- Phone Mockup -->
+                    <div class="hero-phone">
+                        <div class="phone-screen">
+                            <div class="phone-notch"></div>
+                            <div class="phone-content">
+                                <div class="mini-chart">
+                                    <div class="chart-line"></div>
+                                </div>
+                                <div class="mini-trade-list">
+                                    <div class="mini-trade">
+                                        <div class="mini-trade-coin">
+                                            <div class="coin-icon btc">₿</div>
+                                            <span>BTC/USDT</span>
+                                        </div>
+                                        <span class="mini-trade-pnl positive">+$1,247</span>
+                                    </div>
+                                    <div class="mini-trade">
+                                        <div class="mini-trade-coin">
+                                            <div class="coin-icon eth">Ξ</div>
+                                            <span>ETH/USDT</span>
+                                        </div>
+                                        <span class="mini-trade-pnl positive">+$892</span>
+                                    </div>
+                                    <div class="mini-trade">
+                                        <div class="mini-trade-coin">
+                                            <div class="coin-icon sol">◎</div>
+                                            <span>SOL/USDT</span>
+                                        </div>
+                                        <span class="mini-trade-pnl negative">-$145</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Floating Profit Card -->
+                    <div class="floating-element profit-card">
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Today's Profit</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">+$2,847.50</div>
+                        <div style="font-size: 0.75rem; color: var(--accent-green);">↑ 12.4%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Ticker -->
+    <div class="live-ticker">
+        <div class="ticker-track" id="ticker-track">
+            <!-- Will be populated by JS -->
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-bolt"></i>
+                    Features
+                </span>
+                <h2 class="section-title">Everything You Need to Trade Like a Pro</h2>
+                <p class="section-subtitle">
+                    Advanced tools and AI-powered features designed to maximize your trading potential
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="feature-title">AI Trading Signals</h3>
+                    <p class="feature-description">
+                        Real-time AI-generated signals based on technical analysis, market sentiment, 
+                        and on-chain data. Never miss a profitable opportunity.
+                    </p>
+                    <a href="#ai-signals" class="feature-link">
+                        Learn more <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="feature-title">Advanced Terminal</h3>
+                    <p class="feature-description">
+                        Professional trading interface with real-time charts, orderbook, 
+                        position management, and one-click trading capabilities.
+                    </p>
+                    <a href="/terminal" class="feature-link">
+                        Open Terminal <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <h3 class="feature-title">Strategy Backtesting</h3>
+                    <p class="feature-description">
+                        Test your strategies on historical data before risking real capital. 
+                        Analyze win rates, drawdowns, and optimize parameters.
+                    </p>
+                    <a href="/strategies" class="feature-link">
+                        View Strategies <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="feature-title">Copy Trading</h3>
+                    <p class="feature-description">
+                        Follow top traders and automatically copy their positions. 
+                        Choose from verified traders with proven track records.
+                    </p>
+                    <a href="#copy-trading" class="feature-link">
+                        Explore Traders <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 class="feature-title">Strategy Marketplace</h3>
+                    <p class="feature-description">
+                        Buy, sell, or share custom trading strategies. Create your own 
+                        and earn passive income from every sale.
+                    </p>
+                    <a href="/marketplace" class="feature-link">
+                        Browse Market <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <h3 class="feature-title">Risk Management</h3>
+                    <p class="feature-description">
+                        Advanced risk controls with automatic stop-loss, take-profit, 
+                        position sizing, and portfolio protection features.
+                    </p>
+                    <a href="#" class="feature-link">
+                        Learn more <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Signals Section -->
+    <section id="ai-signals" class="ai-section">
+        <div class="container">
+            <div class="ai-content">
+                <div class="ai-text">
+                    <span class="section-badge">
+                        <i class="fas fa-brain"></i>
+                        AI Copilot
+                    </span>
+                    <h2 class="section-title">Your Personal AI Trading Assistant</h2>
+                    <p class="section-subtitle" style="text-align: left; margin-bottom: 32px;">
+                        Powered by ChatGPT-4, our AI analyzes markets 24/7 and provides 
+                        actionable trading signals with entry points, targets, and risk levels.
+                    </p>
+                    
+                    <div class="ai-features">
+                        <div class="ai-feature">
+                            <div class="ai-feature-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="ai-feature-content">
+                                <h4>Real-Time Analysis</h4>
+                                <p>Continuous market monitoring with instant signal generation</p>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-feature">
+                            <div class="ai-feature-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="ai-feature-content">
+                                <h4>Multi-Indicator Fusion</h4>
+                                <p>RSI, MACD, Bollinger Bands, Volume, OI combined intelligently</p>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-feature">
+                            <div class="ai-feature-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div class="ai-feature-content">
+                                <h4>Natural Language Insights</h4>
+                                <p>Get explanations in plain language, ask questions about trades</p>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-feature">
+                            <div class="ai-feature-icon">
+                                <i class="fas fa-sliders"></i>
+                            </div>
+                            <div class="ai-feature-content">
+                                <h4>Adaptive Strategies</h4>
+                                <p>AI adjusts to market conditions and your trading style</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ai-visual">
+                    <div class="ai-terminal">
+                        <div class="ai-terminal-header">
+                            <span class="terminal-dot red"></span>
+                            <span class="terminal-dot yellow"></span>
+                            <span class="terminal-dot green"></span>
+                        </div>
+                        <div class="ai-terminal-content">
+                            <div class="ai-message">
+                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-bubble">
+                                    <p><strong>BTCUSDT Analysis:</strong></p>
+                                    <p>Strong bullish momentum detected. RSI showing oversold bounce at 32, 
+                                    MACD bullish crossover confirmed. Recommended: 
+                                    <span class="highlight">LONG at $98,450</span></p>
+                                    <p style="margin-top: 8px;">
+                                        TP1: $100,200 (+1.8%)<br>
+                                        TP2: $102,500 (+4.1%)<br>
+                                        SL: $97,100 (-1.4%)
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="ai-message">
+                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-bubble">
+                                    <p><strong>Risk Assessment:</strong> Medium</p>
+                                    <p>Confidence: <span class="highlight">87%</span></p>
+                                    <p>Expected R:R: 2.9:1</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Strategies Section -->
+    <section id="strategies">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-chess"></i>
+                    Strategies
+                </span>
+                <h2 class="section-title">Proven Trading Strategies</h2>
+                <p class="section-subtitle">
+                    Choose from 5 professional strategies or create your own custom strategy
+                </p>
+            </div>
+            
+            <div class="strategies-grid">
+                <div class="strategy-card" style="--accent: #6366f1;">
+                    <div class="strategy-icon" style="background: rgba(99, 102, 241, 0.1);">🎯</div>
+                    <h3 class="strategy-name">ElCaro</h3>
+                    <p class="strategy-desc">Channel breakout with momentum</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">47.2%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">+18.4%</div>
+                            <div class="strategy-stat-label">Monthly</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="strategy-card" style="--accent: #22c55e;">
+                    <div class="strategy-icon" style="background: rgba(34, 197, 94, 0.1);">📊</div>
+                    <h3 class="strategy-name">RSI+BB+OI</h3>
+                    <p class="strategy-desc">Multi-indicator confluence</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">52.8%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">+22.1%</div>
+                            <div class="strategy-stat-label">Monthly</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="strategy-card" style="--accent: #a855f7;">
+                    <div class="strategy-icon" style="background: rgba(168, 85, 247, 0.1);">🔮</div>
+                    <h3 class="strategy-name">Wyckoff/SMC</h3>
+                    <p class="strategy-desc">Smart Money Concepts</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">58.3%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">+31.7%</div>
+                            <div class="strategy-stat-label">Monthly</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="strategy-card" style="--accent: #eab308;">
+                    <div class="strategy-icon" style="background: rgba(234, 179, 8, 0.1);">💎</div>
+                    <h3 class="strategy-name">Scryptomera</h3>
+                    <p class="strategy-desc">Volume profile analysis</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">44.6%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">+15.2%</div>
+                            <div class="strategy-stat-label">Monthly</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="strategy-card" style="--accent: #ef4444;">
+                    <div class="strategy-icon" style="background: rgba(239, 68, 68, 0.1);">⚡</div>
+                    <h3 class="strategy-name">Scalper</h3>
+                    <p class="strategy-desc">High-frequency trading</p>
+                    <div class="strategy-stats">
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">41.2%</div>
+                            <div class="strategy-stat-label">Win Rate</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="strategy-stat-value positive">+12.8%</div>
+                            <div class="strategy-stat-label">Monthly</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 48px;">
+                <a href="/strategies" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus"></i>
+                    Create Custom Strategy
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Copy Trading Section -->
+    <section id="copy-trading" class="copy-trading-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-copy"></i>
+                    Copy Trading
+                </span>
+                <h2 class="section-title">Follow Top Traders</h2>
+                <p class="section-subtitle">
+                    Copy trades from verified professional traders with proven track records
+                </p>
+            </div>
+            
+            <div class="traders-grid">
+                <div class="trader-card featured">
+                    <div class="trader-header">
+                        <div class="trader-avatar">🏆</div>
+                        <div class="trader-info">
+                            <h4>CryptoMaster</h4>
+                            <span class="trader-badge pro">PRO</span>
+                        </div>
+                    </div>
+                    <div class="trader-stats-grid">
+                        <div class="trader-stat-item">
+                            <div class="value positive">+247.5%</div>
+                            <div class="label">ROI (90d)</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">72.4%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">1,847</div>
+                            <div class="label">Copiers</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">4.8★</div>
+                            <div class="label">Rating</div>
+                        </div>
+                    </div>
+                    <div class="trader-chart">
+                        <div class="trader-chart-line"></div>
+                    </div>
+                    <button class="btn-copy">
+                        <i class="fas fa-copy"></i> Copy Trader
+                    </button>
+                </div>
+                
+                <div class="trader-card">
+                    <div class="trader-header">
+                        <div class="trader-avatar">🎯</div>
+                        <div class="trader-info">
+                            <h4>SwingKing</h4>
+                            <span class="trader-badge top">TOP 10</span>
+                        </div>
+                    </div>
+                    <div class="trader-stats-grid">
+                        <div class="trader-stat-item">
+                            <div class="value positive">+186.2%</div>
+                            <div class="label">ROI (90d)</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">68.9%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">982</div>
+                            <div class="label">Copiers</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">4.6★</div>
+                            <div class="label">Rating</div>
+                        </div>
+                    </div>
+                    <div class="trader-chart">
+                        <div class="trader-chart-line"></div>
+                    </div>
+                    <button class="btn-copy">
+                        <i class="fas fa-copy"></i> Copy Trader
+                    </button>
+                </div>
+                
+                <div class="trader-card">
+                    <div class="trader-header">
+                        <div class="trader-avatar">⚡</div>
+                        <div class="trader-info">
+                            <h4>ScalpPro</h4>
+                            <span class="trader-badge top">TOP 20</span>
+                        </div>
+                    </div>
+                    <div class="trader-stats-grid">
+                        <div class="trader-stat-item">
+                            <div class="value positive">+154.8%</div>
+                            <div class="label">ROI (90d)</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">61.2%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">743</div>
+                            <div class="label">Copiers</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">4.5★</div>
+                            <div class="label">Rating</div>
+                        </div>
+                    </div>
+                    <div class="trader-chart">
+                        <div class="trader-chart-line"></div>
+                    </div>
+                    <button class="btn-copy">
+                        <i class="fas fa-copy"></i> Copy Trader
+                    </button>
+                </div>
+                
+                <div class="trader-card">
+                    <div class="trader-header">
+                        <div class="trader-avatar">🔮</div>
+                        <div class="trader-info">
+                            <h4>WyckoffPro</h4>
+                            <span class="trader-badge top">TOP 50</span>
+                        </div>
+                    </div>
+                    <div class="trader-stats-grid">
+                        <div class="trader-stat-item">
+                            <div class="value positive">+128.4%</div>
+                            <div class="label">ROI (90d)</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">58.7%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">521</div>
+                            <div class="label">Copiers</div>
+                        </div>
+                        <div class="trader-stat-item">
+                            <div class="value">4.4★</div>
+                            <div class="label">Rating</div>
+                        </div>
+                    </div>
+                    <div class="trader-chart">
+                        <div class="trader-chart-line"></div>
+                    </div>
+                    <button class="btn-copy">
+                        <i class="fas fa-copy"></i> Copy Trader
+                    </button>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 48px;">
+                <a href="/leaderboard" class="btn btn-secondary btn-lg">
+                    View All Traders
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section id="stats" class="stats-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-chart-pie"></i>
+                    Statistics
+                </span>
+                <h2 class="section-title">Platform Performance</h2>
+                <p class="section-subtitle">
+                    Real-time statistics from our growing community of traders
+                </p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon volume">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="stat-value">$<span class="counter" data-target="15847293">0</span></div>
+                    <div class="stat-label">Total Trading Volume</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon traders">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-value"><span class="counter" data-target="12547">0</span>+</div>
+                    <div class="stat-label">Active Traders</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon signals">
+                        <i class="fas fa-signal"></i>
+                    </div>
+                    <div class="stat-value"><span class="counter" data-target="48752">0</span></div>
+                    <div class="stat-label">Signals Generated</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon winrate">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-value"><span class="counter" data-target="78">0</span>%</div>
+                    <div class="stat-label">Average Win Rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-tag"></i>
+                    Pricing
+                </span>
+                <h2 class="section-title">Choose Your Plan</h2>
+                <p class="section-subtitle">
+                    Start free or unlock premium features for maximum profit potential
+                </p>
+            </div>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3 class="pricing-name">Free</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">$0</span>
+                        <span class="pricing-period">forever</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Basic trading terminal</li>
+                        <li><i class="fas fa-check"></i> 3 AI signals per day</li>
+                        <li><i class="fas fa-check"></i> 1 strategy backtest/day</li>
+                        <li><i class="fas fa-check"></i> Community support</li>
+                        <li class="disabled"><i class="fas fa-times"></i> Copy trading</li>
+                        <li class="disabled"><i class="fas fa-times"></i> Custom strategies</li>
+                    </ul>
+                    <a href="/terminal" class="btn btn-secondary pricing-cta">Get Started</a>
+                </div>
+                
+                <div class="pricing-card featured">
+                    <span class="pricing-badge">Most Popular</span>
+                    <h3 class="pricing-name">Premium</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">$29</span>
+                        <span class="pricing-period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Advanced trading terminal</li>
+                        <li><i class="fas fa-check"></i> Unlimited AI signals</li>
+                        <li><i class="fas fa-check"></i> Unlimited backtesting</li>
+                        <li><i class="fas fa-check"></i> Copy up to 5 traders</li>
+                        <li><i class="fas fa-check"></i> Custom strategies</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                    </ul>
+                    <a href="/terminal" class="btn btn-primary pricing-cta btn-glow">Upgrade Now</a>
+                </div>
+                
+                <div class="pricing-card">
+                    <h3 class="pricing-name">Pro</h3>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">$99</span>
+                        <span class="pricing-period">/month</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Everything in Premium</li>
+                        <li><i class="fas fa-check"></i> HyperLiquid integration</li>
+                        <li><i class="fas fa-check"></i> API access</li>
+                        <li><i class="fas fa-check"></i> Unlimited copy trading</li>
+                        <li><i class="fas fa-check"></i> Marketplace seller access</li>
+                        <li><i class="fas fa-check"></i> 1-on-1 onboarding</li>
+                    </ul>
+                    <a href="/terminal" class="btn btn-secondary pricing-cta">Go Pro</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-star"></i>
+                    Testimonials
+                </span>
+                <h2 class="section-title">What Traders Say</h2>
+            </div>
+        </div>
+        <div class="testimonials-slider">
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">👨‍💻</div>
+                    <div class="testimonial-info">
+                        <h4>Alex M.</h4>
+                        <span>Pro Trader • 3 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "The AI signals are incredibly accurate. I've increased my win rate from 45% to 72% 
+                    since using ElCaro. The backtesting feature helped me optimize my strategy perfectly."
+                </p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">👩‍💼</div>
+                    <div class="testimonial-info">
+                        <h4>Sarah K.</h4>
+                        <span>Copy Trader • 6 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "As a beginner, copy trading was a game changer. I'm following CryptoMaster and 
+                    making consistent profits without having to analyze charts myself."
+                </p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">🧑‍🔬</div>
+                    <div class="testimonial-info">
+                        <h4>Mike R.</h4>
+                        <span>Strategy Developer • 8 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "The custom strategy builder is powerful. I created a unique strategy and now 
+                    sell it on the marketplace, earning passive income while I sleep."
+                </p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">👨‍🎓</div>
+                    <div class="testimonial-info">
+                        <h4>David L.</h4>
+                        <span>Premium User • 4 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "Best trading terminal I've used. The Telegram integration means I never miss 
+                    a signal, and the risk management tools have saved me from big losses."
+                </p>
+            </div>
+            
+            <!-- Duplicate for infinite scroll -->
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">👨‍💻</div>
+                    <div class="testimonial-info">
+                        <h4>Alex M.</h4>
+                        <span>Pro Trader • 3 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "The AI signals are incredibly accurate. I've increased my win rate from 45% to 72% 
+                    since using ElCaro. The backtesting feature helped me optimize my strategy perfectly."
+                </p>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-header">
+                    <div class="testimonial-avatar">👩‍💼</div>
+                    <div class="testimonial-info">
+                        <h4>Sarah K.</h4>
+                        <span>Copy Trader • 6 months</span>
+                    </div>
+                    <div class="testimonial-rating">★★★★★</div>
+                </div>
+                <p class="testimonial-text">
+                    "As a beginner, copy trading was a game changer. I'm following CryptoMaster and 
+                    making consistent profits without having to analyze charts myself."
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Start Trading Smarter?</h2>
+                <p class="cta-subtitle">
+                    Join 12,500+ traders already using ElCaro to maximize their profits
+                </p>
+                <div class="cta-buttons">
+                    <a href="/terminal" class="btn btn-white btn-lg">
+                        <i class="fas fa-rocket"></i>
+                        Launch Terminal
+                    </a>
+                    <a href="https://t.me/elcaro_bybit_bot" class="btn btn-outline-white btn-lg" target="_blank">
+                        <i class="fab fa-telegram"></i>
+                        Telegram Bot
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">🚀</div>
+                        <span class="logo-text">ElCaro</span>
+                    </a>
+                    <p>
+                        AI-powered crypto trading platform for Bybit and HyperLiquid. 
+                        Trade smarter with automated strategies and real-time signals.
+                    </p>
+                    <div class="footer-social">
+                        <a href="https://t.me/elcaro_bybit_bot" target="_blank"><i class="fab fa-telegram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-discord"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="/terminal">Trading Terminal</a></li>
+                        <li><a href="/strategies">Strategies</a></li>
+                        <li><a href="/marketplace">Marketplace</a></li>
+                        <li><a href="/leaderboard">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Academy</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Partners</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Terms of Use</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Risk Disclosure</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2025 ElCaro Trading. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Status</a>
+                    <a href="#">Security</a>
+                    <a href="mailto:support@elcaro.io">support@elcaro.io</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Counter animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('.counter');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+                
+                const updateCounter = () => {
+                    current += step;
+                    if (current < target) {
+                        counter.textContent = Math.floor(current).toLocaleString();
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.textContent = target.toLocaleString();
+                    }
+                };
+                
+                updateCounter();
+            });
+        }
+
+        // Intersection Observer for counters
+        const statsSection = document.getElementById('stats');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+        
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+
+        // Live ticker data
+        const tickerData = [
+            { symbol: 'BTC', name: 'Bitcoin', price: 98456.78, change: 2.45, color: '#f7931a' },
+            { symbol: 'ETH', name: 'Ethereum', price: 3412.56, change: 1.82, color: '#627eea' },
+            { symbol: 'SOL', name: 'Solana', price: 189.34, change: -0.95, color: '#9945ff' },
+            { symbol: 'XRP', name: 'Ripple', price: 2.34, change: 5.67, color: '#23292f' },
+            { symbol: 'BNB', name: 'BNB', price: 687.23, change: 0.78, color: '#f3ba2f' },
+            { symbol: 'ADA', name: 'Cardano', price: 0.89, change: -1.23, color: '#0033ad' },
+            { symbol: 'AVAX', name: 'Avalanche', price: 42.56, change: 3.45, color: '#e84142' },
+            { symbol: 'DOGE', name: 'Dogecoin', price: 0.34, change: 8.92, color: '#c3a634' }
+        ];
+
+        function populateTicker() {
+            const track = document.getElementById('ticker-track');
+            if (!track) return;
+            
+            // Duplicate for infinite scroll
+            const items = [...tickerData, ...tickerData];
+            
+            track.innerHTML = items.map(item => `
+                <div class="ticker-item">
+                    <div class="ticker-icon" style="background: ${item.color}; color: white;">
+                        ${item.symbol.charAt(0)}
+                    </div>
+                    <div class="ticker-info">
+                        <span class="ticker-symbol">${item.symbol}/USDT</span>
+                        <span class="ticker-price">$${item.price.toLocaleString()}</span>
+                    </div>
+                    <span class="ticker-change ${item.change >= 0 ? 'positive' : 'negative'}">
+                        ${item.change >= 0 ? '+' : ''}${item.change}%
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        populateTicker();
+
+        // Telegram WebApp redirect
+        if (window.Telegram?.WebApp?.initData) {
+            // Optionally redirect to terminal for Telegram users
+            // window.location.href = '/terminal';
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

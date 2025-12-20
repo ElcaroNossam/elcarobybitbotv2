@@ -1,0 +1,205 @@
+{% load static %}
+{% load i18n %}
+{% get_current_language as CURRENT_LANGUAGE %}
+<!DOCTYPE html>
+<html lang="{{ CURRENT_LANGUAGE }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com https://*.binance.com; style-src 'self' 'unsafe-inline' https://*.tradingview.com; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https://*.tradingview.com https://*.binance.com wss://*.binance.com; frame-src 'self' https://*.tradingview.com; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self' blob:;">
+    <title>Malkata Crypto</title>
+    <!-- Critical CSS for instant splash screen -->
+    <style>
+        body { margin: 0; background: #0a0a0a; }
+        #splash-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 50%, #0a0a0a 100%); z-index: 99999; display: flex; align-items: center; justify-content: center; }
+        #splash-screen.hidden { display: none !important; }
+        .splash-content { text-align: center; }
+        .logo-text { font-size: 2.5rem; color: #ff0080; margin: 0; font-weight: 700; }
+        .logo-subtitle { color: rgba(255,255,255,0.6); font-size: 1rem; }
+    </style>
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="apple-touch-icon" href="{% static 'favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20251211-modal-fix">
+    {% block extra_css %}{% endblock %}
+    <script>
+        // Global language management - must be available before other scripts
+        (function() {
+            const languageStorageKey = "preferred_language";
+            
+            // Get language from HTML lang attribute (set by Django)
+            function getLanguageFromHTML() {
+                const htmlLang = document.documentElement.getAttribute('lang');
+                if (htmlLang && ['ru', 'en', 'es', 'he'].includes(htmlLang)) {
+                    return htmlLang;
+                }
+                return null;
+            }
+            
+            // Helper function to get cookie value
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
+            }
+            
+            window.getCurrentLanguage = function() {
+                // Priority 1: Get from HTML lang attribute (most reliable, set by Django)
+                // This is set by Django template and reflects the actual current language
+                const htmlLang = getLanguageFromHTML();
+                if (htmlLang) {
+                    try {
+                        localStorage.setItem(languageStorageKey, htmlLang);
+                    } catch (e) {
+                        // ignore
+                    }
+                    return htmlLang;
+                }
+                
+                // Priority 2: Check Django language cookie (set by set_language view)
+                try {
+                    const cookieLang = getCookie('django_language');
+                    if (cookieLang && ['ru', 'en', 'es', 'he'].includes(cookieLang)) {
+                        try {
+                            localStorage.setItem(languageStorageKey, cookieLang);
+                        } catch (e) {
+                            // ignore
+                        }
+                        return cookieLang;
+                    }
+                } catch (e) {
+                    // ignore
+                }
+                
+                // Priority 3: Try to get from URL path
+                const currentPath = window.location.pathname;
+                const langMatch = currentPath.match(/^\/(ru|en|es|he)\//);
+                if (langMatch && langMatch[1]) {
+                    const lang = langMatch[1];
+                    try {
+                        localStorage.setItem(languageStorageKey, lang);
+                    } catch (e) {
+                        // ignore
+                    }
+                    return lang;
+                }
+                
+                // Priority 3: If no prefix in URL, check if it's root path (default = ru)
+                // With prefix_default_language=False, root path means Russian
+                if (currentPath === '/' || currentPath.match(/^\/[^\/]+$/)) {
+                    // Check if there's a saved language preference
+                    try {
+                        const savedLang = localStorage.getItem(languageStorageKey);
+                        if (savedLang && ['ru', 'en', 'es', 'he'].includes(savedLang)) {
+                            // If saved language is not ru, we should use it
+                            return savedLang;
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                    // Default to Russian for root path
+                    return 'ru';
+                }
+                
+                // Priority 4: Try localStorage
+                try {
+                    const savedLang = localStorage.getItem(languageStorageKey);
+                    if (savedLang && ['ru', 'en', 'es', 'he'].includes(savedLang)) {
+                        return savedLang;
+                    }
+                } catch (e) {
+                    // ignore
+                }
+                
+                // Default to Russian (matches LANGUAGE_CODE in settings)
+                return 'ru';
+            };
+            
+            window.getLanguagePrefix = function() {
+                const lang = window.getCurrentLanguage();
+                // Always return language code for API requests
+                // Even for default language (ru), we need prefix for API
+                return lang;
+            };
+            
+            // Initialize language on page load and save to localStorage
+            window.getCurrentLanguage();
+            
+            // Also save language when it changes via form
+            document.addEventListener('DOMContentLoaded', function() {
+                // Monitor language selector changes
+                const langForm = document.querySelector('.language-form');
+                if (langForm) {
+                    langForm.addEventListener('submit', function(e) {
+                        const select = this.querySelector('select[name="language"]');
+                        if (select && select.value) {
+                            const selectedLang = select.value;
+                            try {
+                                // Save immediately before form submits
+                                localStorage.setItem(languageStorageKey, selectedLang);
+                                // Also set cookie immediately (will be overwritten by Django, but helps)
+                                document.cookie = `django_language=${selectedLang}; path=/; max-age=${365 * 24 * 60 * 60}`;
+                            } catch (e) {
+                                // ignore
+                            }
+                            // The form will submit and Django will handle the redirect
+                            // After redirect, the new language will be in URL and HTML lang attribute
+                        }
+                    });
+                }
+                
+                // Also monitor for language changes after page load (e.g., after redirect)
+                const observer = new MutationObserver(function(mutations) {
+                    const htmlLang = getLanguageFromHTML();
+                    if (htmlLang) {
+                        try {
+                            localStorage.setItem(languageStorageKey, htmlLang);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                });
+                
+                observer.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['lang']
+                });
+            });
+        })();
+    </script>
+    <script>
+        // Pass translations to JavaScript
+        window.TRANSLATIONS = {
+            'Screener Settings': '{% trans "Screener Settings" %}',
+            'Customize the table display by selecting the columns you want to see.': '{% trans "Customize the table display by selecting the columns you want to see." %}',
+            'Restore Default Column Order': '{% trans "Restore Default Column Order" %}',
+            'Reset': '{% trans "Reset" %}',
+            'No data to display.': '{% trans "No data to display." %}',
+            'No data.': '{% trans "No data." %}',
+        };
+        
+        // Simple translation function for JS
+        window.__ = function(key) {
+            return window.TRANSLATIONS[key] || key;
+        };
+    </script>
+        <script src="{% static 'js/screener.js' %}?v=20251211-modal-fix" defer></script>
+</head>
+<body>
+<div class="app-wrapper">
+    {% include "partials/navbar.html" %}
+    <main class="content">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+</body>
+</html>
+
+

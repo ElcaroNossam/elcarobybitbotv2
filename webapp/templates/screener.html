@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElCaro Screener - Professional Crypto Market Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-card: #16161f;
+            --bg-hover: #1e1e28;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.15);
+            --red: #ef4444;
+            --red-dim: rgba(239, 68, 68, 0.15);
+            --yellow: #eab308;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.06);
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: var(--font-sans); 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            min-height: 100vh;
+        }
+        
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(17, 17, 24, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            font-size: 1.25rem; 
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        .logo-icon { 
+            width: 40px; 
+            height: 40px; 
+            background: linear-gradient(135deg, var(--accent), #8b5cf6); 
+            border-radius: 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-link { 
+            padding: 8px 16px; 
+            color: var(--text-secondary); 
+            text-decoration: none; 
+            font-weight: 500; 
+            font-size: 0.875rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .nav-link.active { color: var(--accent); background: rgba(99, 102, 241, 0.1); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .connection-badge { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .status-dot { 
+            width: 8px; 
+            height: 8px; 
+            border-radius: 50%; 
+            background: var(--red);
+            transition: background 0.3s;
+        }
+        .status-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        
+        /* Main Container */
+        .container { 
+            position: relative;
+            z-index: 1;
+            max-width: 1920px; 
+            margin: 0 auto; 
+            padding: 24px;
+        }
+        
+        /* Market Overview Bar */
+        .overview-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .overview-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            transition: all 0.2s;
+        }
+        .overview-card:hover { border-color: var(--accent); }
+        .overview-card.btc {
+            background: linear-gradient(135deg, rgba(247, 147, 26, 0.1), transparent);
+            border-color: rgba(247, 147, 26, 0.3);
+        }
+        .overview-label { 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .overview-value { 
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            font-family: var(--font-mono);
+        }
+        .overview-value.positive { color: var(--green); }
+        .overview-value.negative { color: var(--red); }
+        .overview-change {
+            font-size: 0.85rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        .overview-change.positive { background: var(--green-dim); color: var(--green); }
+        .overview-change.negative { background: var(--red-dim); color: var(--red); }
+        
+        /* Filters Bar */
+        .filters-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group { display: flex; gap: 6px; }
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+        .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .search-box {
+            flex: 1;
+            max-width: 320px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 42px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .search-box input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .view-toggle {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+        .view-btn {
+            padding: 8px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .view-btn.active { background: var(--accent); color: white; }
+        
+        /* Grid Layout */
+        .content-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+        @media (max-width: 1200px) { .content-grid { grid-template-columns: 1fr; } }
+        
+        /* Table */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .table-scroll { overflow-x: auto; max-height: calc(100vh - 340px); overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        thead { position: sticky; top: 0; z-index: 10; }
+        th {
+            background: var(--bg-secondary);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+        th:hover { color: var(--accent); }
+        th.sorted { color: var(--accent); }
+        th .sort-icon { margin-left: 6px; font-size: 0.7rem; }
+        td {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+        tr { transition: background 0.15s; cursor: pointer; }
+        tr:hover { background: var(--bg-hover); }
+        .symbol-cell { display: flex; align-items: center; gap: 12px; }
+        .symbol-rank { width: 24px; font-size: 0.75rem; color: var(--text-muted); }
+        .symbol-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+        .symbol-name { font-weight: 600; }
+        .symbol-base { color: var(--text-muted); font-size: 0.75rem; }
+        .price-cell { font-family: var(--font-mono); font-weight: 500; }
+        .change-cell { font-family: var(--font-mono); font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .change-cell.positive { background: var(--green-dim); color: var(--green); }
+        .change-cell.negative { background: var(--red-dim); color: var(--red); }
+        .volume-cell { font-family: var(--font-mono); }
+        .volume-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+        .volume-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #8b5cf6); border-radius: 2px; transition: width 0.3s; }
+        .funding-cell { font-family: var(--font-mono); font-size: 0.8rem; }
+        .funding-cell.positive { color: var(--green); }
+        .funding-cell.negative { color: var(--red); }
+        .action-btn {
+            padding: 6px 14px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 6px;
+            color: var(--accent);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { background: var(--accent); color: white; transform: translateY(-1px); }
+        
+        /* Sidebar */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .sidebar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar-title { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+        .sidebar-title i { color: var(--accent); }
+        .sidebar-body { max-height: 300px; overflow-y: auto; }
+        .mover-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .mover-item:last-child { border-bottom: none; }
+        .mover-item:hover { background: var(--bg-hover); }
+        .mover-info { display: flex; align-items: center; gap: 12px; }
+        .mover-rank { 
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .mover-rank.gainer { background: var(--green-dim); color: var(--green); }
+        .mover-rank.loser { background: var(--red-dim); color: var(--red); }
+        .mover-symbol { font-weight: 600; font-size: 0.9rem; }
+        .mover-price { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
+        .mover-change { font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem; }
+        
+        /* Liquidation Feed */
+        .liq-item { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+        .liq-side { padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .liq-side.long { background: var(--red-dim); color: var(--red); }
+        .liq-side.short { background: var(--green-dim); color: var(--green); }
+        .liq-info { flex: 1; }
+        .liq-symbol { font-weight: 600; font-size: 0.85rem; }
+        .liq-time { font-size: 0.7rem; color: var(--text-muted); }
+        .liq-amount { font-family: var(--font-mono); font-weight: 600; }
+        
+        /* Heatmap */
+        .heatmap-container { display: none; }
+        .heatmap-container.active { display: block; }
+        .heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; padding: 20px; }
+        .heatmap-cell {
+            aspect-ratio: 1.5;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .heatmap-cell:hover { transform: scale(1.05); z-index: 10; }
+        .heatmap-symbol { font-weight: 700; font-size: 0.9rem; }
+        .heatmap-change { font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem; }
+        
+        /* Empty/Loading */
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+        .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--text-muted); }
+        .loading i { font-size: 2rem; color: var(--accent); margin-bottom: 12px; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) {
+            .header { padding: 0 16px; }
+            .nav-links { display: none; }
+            .container { padding: 16px; }
+            .overview-bar { grid-template-columns: repeat(2, 1fr); }
+            .filters-bar { flex-direction: column; }
+            .search-box { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <header class="header">
+        <a href="/dashboard" class="logo">
+            <div class="logo-icon"><i class="fas fa-rocket"></i></div>
+            <span>ElCaro</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/terminal" class="nav-link">Terminal</a>
+            <a href="/strategies" class="nav-link">Strategies</a>
+            <a href="/screener" class="nav-link active">Screener</a>
+            <a href="/marketplace" class="nav-link">Marketplace</a>
+        </nav>
+        <div class="header-right">
+            <div class="connection-badge">
+                <span class="status-dot" id="wsStatus"></span>
+                <span id="wsStatusText">Connecting...</span>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="overview-bar">
+            <div class="overview-card btc">
+                <div class="overview-label"><i class="fab fa-bitcoin" style="color: #f7931a;"></i> Bitcoin</div>
+                <div style="display: flex; align-items: baseline;">
+                    <span class="overview-value" id="btcPrice">$--,---</span>
+                    <span class="overview-change" id="btcChange">--%</span>
+                </div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">24h Volume</div>
+                <div class="overview-value" id="totalVolume">$--B</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Gainers / Losers</div>
+                <div style="display: flex; gap: 12px;">
+                    <span class="overview-value positive" id="gainersCount">--</span>
+                    <span style="color: var(--text-muted)">/</span>
+                    <span class="overview-value negative" id="losersCount">--</span>
+                </div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Total Symbols</div>
+                <div class="overview-value" id="totalSymbols">--</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-label">Avg Funding</div>
+                <div class="overview-value" id="avgFunding">--%</div>
+            </div>
+        </div>
+        
+        <div class="filters-bar">
+            <div class="filter-group" id="marketFilter">
+                <button class="filter-btn active" data-market="futures">Futures</button>
+                <button class="filter-btn" data-market="spot">Spot</button>
+            </div>
+            <div class="filter-group" id="typeFilter">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="gainers"><i class="fas fa-arrow-up"></i> Gainers</button>
+                <button class="filter-btn" data-filter="losers"><i class="fas fa-arrow-down"></i> Losers</button>
+                <button class="filter-btn" data-filter="volume"><i class="fas fa-chart-bar"></i> Volume</button>
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search symbol...">
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="table"><i class="fas fa-list"></i></button>
+                <button class="view-btn" data-view="heatmap"><i class="fas fa-th"></i></button>
+            </div>
+        </div>
+        
+        <div class="content-grid">
+            <div>
+                <div class="table-container" id="tableView">
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th data-sort="symbol"># Symbol</th>
+                                    <th data-sort="price">Price</th>
+                                    <th data-sort="change1h">1h %</th>
+                                    <th data-sort="change24h">24h %</th>
+                                    <th data-sort="volume">Volume</th>
+                                    <th data-sort="oi">Open Interest</th>
+                                    <th data-sort="funding">Funding</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="marketTable">
+                                <tr><td colspan="8" class="loading"><i class="fas fa-spinner"></i><p>Loading...</p></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-container heatmap-container" id="heatmapView">
+                    <div class="heatmap-grid" id="heatmapGrid"></div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title"><i class="fas fa-rocket"></i> Top Gainers</div>
+                    </div>
+                    <div class="sidebar-body" id="topGainers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                </div>
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title"><i class="fas fa-arrow-trend-down"></i> Top Losers</div>
+                    </div>
+                    <div class="sidebar-body" id="topLosers"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+                </div>
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <div class="sidebar-title"><i class="fas fa-fire"></i> Liquidations</div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Live</span>
+                    </div>
+                    <div class="sidebar-body" id="liquidations">
+                        <div class="empty-state" style="padding: 30px;"><i class="fas fa-stream"></i><p>Waiting...</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let marketData = [], sortColumn = 'volume', sortDirection = 'desc', activeFilter = 'all', activeMarket = 'futures', ws = null;
+        
+        const formatPrice = p => !p ? '$0' : p >= 1000 ? '$' + p.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : p >= 1 ? '$' + p.toFixed(4) : '$' + p.toFixed(6);
+        const formatVolume = v => !v ? '$0' : v >= 1e9 ? '$' + (v/1e9).toFixed(2) + 'B' : v >= 1e6 ? '$' + (v/1e6).toFixed(2) + 'M' : '$' + v.toFixed(0);
+        const formatPercent = p => p == null ? '--' : (p >= 0 ? '+' : '') + p.toFixed(2) + '%';
+        const formatFunding = f => f == null ? '--' : (f >= 0 ? '+' : '') + (f * 100).toFixed(4) + '%';
+        
+        function connectWS() {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${location.host}/ws/screener`);
+            ws.onopen = () => { 
+                document.getElementById('wsStatus').classList.add('connected');
+                document.getElementById('wsStatusText').textContent = 'Live';
+                ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket }));
+            };
+            ws.onmessage = e => handleData(JSON.parse(e.data));
+            ws.onclose = () => {
+                document.getElementById('wsStatus').classList.remove('connected');
+                document.getElementById('wsStatusText').textContent = 'Reconnecting...';
+                setTimeout(connectWS, 3000);
+            };
+            ws.onerror = () => ws.close();
+        }
+        
+        function handleData(data) {
+            if (data.type === 'snapshot' || data.type === 'update') {
+                marketData = data.data || [];
+                updateOverview();
+                renderTable();
+                renderTopMovers();
+                renderHeatmap();
+            } else if (data.type === 'liquidation') {
+                addLiquidation(data.data);
+            }
+        }
+        
+        function updateOverview() {
+            const btc = marketData.find(d => d.symbol === 'BTCUSDT');
+            if (btc) {
+                document.getElementById('btcPrice').textContent = formatPrice(btc.price);
+                const c = btc.change_24h || btc.change24h || 0;
+                const el = document.getElementById('btcChange');
+                el.textContent = formatPercent(c);
+                el.className = 'overview-change ' + (c >= 0 ? 'positive' : 'negative');
+            }
+            const vol = marketData.reduce((s, d) => s + (d.volume || d.volume24h || 0), 0);
+            document.getElementById('totalVolume').textContent = formatVolume(vol);
+            document.getElementById('gainersCount').textContent = marketData.filter(d => (d.change_24h || d.change24h || 0) > 0).length;
+            document.getElementById('losersCount').textContent = marketData.filter(d => (d.change_24h || d.change24h || 0) < 0).length;
+            document.getElementById('totalSymbols').textContent = marketData.length;
+            const rates = marketData.filter(d => d.funding_rate != null).map(d => d.funding_rate);
+            const avg = rates.length ? rates.reduce((a,b) => a+b, 0) / rates.length : 0;
+            const avgEl = document.getElementById('avgFunding');
+            avgEl.textContent = formatFunding(avg);
+            avgEl.style.color = avg >= 0 ? 'var(--green)' : 'var(--red)';
+        }
+        
+        function renderTable() {
+            let data = [...marketData];
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            if (search) data = data.filter(d => d.symbol.toLowerCase().includes(search));
+            if (activeFilter === 'gainers') data = data.filter(d => (d.change_24h || d.change24h || 0) > 0);
+            else if (activeFilter === 'losers') data = data.filter(d => (d.change_24h || d.change24h || 0) < 0);
+            else if (activeFilter === 'volume') data = data.sort((a,b) => (b.volume||b.volume24h||0) - (a.volume||a.volume24h||0)).slice(0, 30);
+            
+            data.sort((a,b) => {
+                let av, bv;
+                switch(sortColumn) {
+                    case 'symbol': av = a.symbol; bv = b.symbol; break;
+                    case 'price': av = a.price||0; bv = b.price||0; break;
+                    case 'change1h': av = a.change_1h||0; bv = b.change_1h||0; break;
+                    case 'change24h': av = a.change_24h||a.change24h||0; bv = b.change_24h||b.change24h||0; break;
+                    case 'volume': av = a.volume||a.volume24h||0; bv = b.volume||b.volume24h||0; break;
+                    case 'oi': av = a.open_interest||0; bv = b.open_interest||0; break;
+                    case 'funding': av = a.funding_rate||0; bv = b.funding_rate||0; break;
+                    default: av = 0; bv = 0;
+                }
+                if (typeof av === 'string') return sortDirection === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+                return sortDirection === 'asc' ? av - bv : bv - av;
+            });
+            
+            const maxVol = Math.max(...data.map(d => d.volume || d.volume24h || 0));
+            const tbody = document.getElementById('marketTable');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><i class="fas fa-search"></i><p>No results</p></td></tr>'; return; }
+            
+            tbody.innerHTML = data.slice(0, 100).map((d, i) => {
+                const sym = d.symbol.replace('USDT', '');
+                const c1h = d.change_1h || 0;
+                const c24h = d.change_24h || d.change24h || 0;
+                const vol = d.volume || d.volume24h || 0;
+                const oi = d.open_interest || 0;
+                const fund = d.funding_rate;
+                return `<tr onclick="location.href='/terminal?symbol=${d.symbol}'">
+                    <td><div class="symbol-cell"><span class="symbol-rank">${i+1}</span><div class="symbol-icon">${sym.slice(0,2)}</div><div><div class="symbol-name">${sym}</div><div class="symbol-base">USDT Perp</div></div></div></td>
+                    <td class="price-cell">${formatPrice(d.price)}</td>
+                    <td><span class="change-cell ${c1h >= 0 ? 'positive' : 'negative'}">${formatPercent(c1h)}</span></td>
+                    <td><span class="change-cell ${c24h >= 0 ? 'positive' : 'negative'}">${formatPercent(c24h)}</span></td>
+                    <td class="volume-cell">${formatVolume(vol)}<div class="volume-bar"><div class="volume-bar-fill" style="width:${(vol/maxVol*100).toFixed(1)}%"></div></div></td>
+                    <td class="volume-cell">${formatVolume(oi)}</td>
+                    <td class="funding-cell ${(fund||0) >= 0 ? 'positive' : 'negative'}">${formatFunding(fund)}</td>
+                    <td><button class="action-btn" onclick="event.stopPropagation();location.href='/terminal?symbol=${d.symbol}'"><i class="fas fa-chart-line"></i> Trade</button></td>
+                </tr>`;
+            }).join('');
+        }
+        
+        function renderTopMovers() {
+            const chg = d => d.change_24h || d.change24h || 0;
+            const gainers = [...marketData].filter(d => chg(d) > 0).sort((a,b) => chg(b) - chg(a)).slice(0, 5);
+            const losers = [...marketData].filter(d => chg(d) < 0).sort((a,b) => chg(a) - chg(b)).slice(0, 5);
+            
+            document.getElementById('topGainers').innerHTML = gainers.map((d,i) => `
+                <div class="mover-item" onclick="location.href='/terminal?symbol=${d.symbol}'">
+                    <div class="mover-info"><span class="mover-rank gainer">${i+1}</span><div><div class="mover-symbol">${d.symbol.replace('USDT','')}</div><div class="mover-price">${formatPrice(d.price)}</div></div></div>
+                    <span class="mover-change positive">${formatPercent(chg(d))}</span>
+                </div>`).join('') || '<div class="empty-state" style="padding:20px"><p>No data</p></div>';
+            
+            document.getElementById('topLosers').innerHTML = losers.map((d,i) => `
+                <div class="mover-item" onclick="location.href='/terminal?symbol=${d.symbol}'">
+                    <div class="mover-info"><span class="mover-rank loser">${i+1}</span><div><div class="mover-symbol">${d.symbol.replace('USDT','')}</div><div class="mover-price">${formatPrice(d.price)}</div></div></div>
+                    <span class="mover-change negative">${formatPercent(chg(d))}</span>
+                </div>`).join('') || '<div class="empty-state" style="padding:20px"><p>No data</p></div>';
+        }
+        
+        function renderHeatmap() {
+            const chg = d => d.change_24h || d.change24h || 0;
+            const sorted = [...marketData].sort((a,b) => (b.volume||b.volume24h||0) - (a.volume||a.volume24h||0)).slice(0, 50);
+            document.getElementById('heatmapGrid').innerHTML = sorted.map(d => {
+                const c = chg(d);
+                const int = Math.min(Math.abs(c) / 10, 1);
+                const bg = c >= 0 ? `rgba(34,197,94,${0.1+int*0.4})` : `rgba(239,68,68,${0.1+int*0.4})`;
+                return `<div class="heatmap-cell" style="background:${bg};border:1px solid ${c >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}" onclick="location.href='/terminal?symbol=${d.symbol}'">
+                    <div class="heatmap-symbol">${d.symbol.replace('USDT','')}</div>
+                    <div class="heatmap-change" style="color:${c >= 0 ? 'var(--green)' : 'var(--red)'}">${formatPercent(c)}</div>
+                </div>`;
+            }).join('');
+        }
+        
+        function addLiquidation(liq) {
+            const cont = document.getElementById('liquidations');
+            if (cont.querySelector('.empty-state')) cont.innerHTML = '';
+            const item = document.createElement('div');
+            item.className = 'liq-item';
+            item.innerHTML = `<div class="liq-side ${liq.side}">${liq.side.toUpperCase()}</div><div class="liq-info"><div class="liq-symbol">${liq.symbol}</div><div class="liq-time">${new Date().toLocaleTimeString()}</div></div><div class="liq-amount ${liq.side === 'long' ? 'negative' : 'positive'}">${formatVolume(liq.amount)}</div>`;
+            cont.insertBefore(item, cont.firstChild);
+            while (cont.children.length > 10) cont.removeChild(cont.lastChild);
+        }
+        
+        // Events
+        document.querySelectorAll('#marketFilter .filter-btn').forEach(btn => btn.addEventListener('click', () => {
+            document.querySelectorAll('#marketFilter .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeMarket = btn.dataset.market;
+            if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket }));
+        }));
+        
+        document.querySelectorAll('#typeFilter .filter-btn').forEach(btn => btn.addEventListener('click', () => {
+            document.querySelectorAll('#typeFilter .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = btn.dataset.filter;
+            renderTable();
+        }));
+        
+        document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tableView').style.display = btn.dataset.view === 'table' ? 'block' : 'none';
+            document.getElementById('heatmapView').style.display = btn.dataset.view === 'heatmap' ? 'block' : 'none';
+            document.getElementById('heatmapView').classList.toggle('active', btn.dataset.view === 'heatmap');
+        }));
+        
+        document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            document.querySelectorAll('th').forEach(t => t.classList.remove('sorted'));
+            th.classList.add('sorted');
+            if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            else { sortColumn = col; sortDirection = 'desc'; }
+            renderTable();
+        }));
+        
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+        
+        // Start
+        connectWS();
+        
+        // Fallback REST
+        async function fetchRest() {
+            if (ws?.readyState === 1) return;
+            try {
+                const res = await fetch('/api/screener/overview');
+                if (res.ok) { const d = await res.json(); /* minimal */ }
+            } catch(e) {}
+        }
+        setInterval(fetchRest, 5000);
+    </script>
+</body>
+</html>

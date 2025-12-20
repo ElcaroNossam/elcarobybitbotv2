@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Trading Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#F7A600',
+                        dark: { 900: '#0f0f0f', 800: '#1a1a1a', 700: '#252525', 600: '#333333' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-900 text-white min-h-screen flex items-center justify-center">
+    <div class="bg-dark-800 rounded-2xl p-8 w-full max-w-md border border-dark-600">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-primary mb-2">🤖 Trading Bot</h1>
+            <p class="text-gray-400">Login to access your dashboard</p>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Telegram Login Widget placeholder -->
+            <div id="telegram-login" class="flex justify-center">
+                <script async src="https://telegram.org/js/telegram-widget.js?22"
+                        data-telegram-login="YourBotName"
+                        data-size="large"
+                        data-radius="10"
+                        data-onauth="onTelegramAuth(user)"
+                        data-request-access="write"></script>
+            </div>
+
+            <div class="text-center text-gray-500 text-sm mt-4">
+                <p>By logging in, you agree to our Terms of Service and Privacy Policy.</p>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="/" class="text-gray-400 hover:text-white">← Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        function onTelegramAuth(user) {
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    telegram_id: user.id,
+                    auth_hash: user.hash
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.access_token) {
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = '/dashboard';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

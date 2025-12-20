@@ -1,0 +1,38 @@
+# Trimmed requirements tailored for this project (Noet-Dat)
+# Keep versions broad but compatible; update as needed for your environment.
+
+# Web framework
+Django>=5.0,<6.0
+
+# Database
+psycopg2-binary>=2.9,<3.0
+
+# Channels / ASGI
+channels>=4.0,<5.0
+channels-redis>=4.2,<5.0
+daphne>=4.0,<5.0
+
+# Networking / HTTP clients
+websockets>=12.0,<13.0
+aiohttp>=3.9,<4.0
+requests>=2.31,<3.0
+
+# Caching
+django-redis>=5.4,<6.0
+aiohttp>=3.8.0
+redis>=5.0,<6.0
+
+# Utilities
+python-dotenv>=1.0,<2.0
+nest-asyncio>=1.5,<2.0
+
+# Optional production WSGI (kept minimal; this app uses Daphne/ASGI by default)
+gunicorn>=21.0,<22.0
+
+# Telegram bot used by scripts
+python-telegram-bot>=21.0,<23.0
+
+# Notes:
+# - If you prefer to run with uvicorn in development, install `uvicorn[standard]` separately.
+# - Avoid installing system-wide; create a venv and install these into it (see install.sh).
+# ========== Утилиты ==========

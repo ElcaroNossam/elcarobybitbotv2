@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#F7A600',
+                        dark: {
+                            900: '#0f0f0f',
+                            800: '#1a1a1a',
+                            700: '#252525',
+                            600: '#333333'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-900 text-white min-h-screen">
+    <div x-data="app()" x-init="init()">
+        <!-- Navigation -->
+        <nav class="bg-dark-800 border-b border-dark-600 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-primary">🤖 Trading Bot</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <template x-if="isLoggedIn">
+                            <div class="flex items-center space-x-4">
+                                <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2">Dashboard</a>
+                                <template x-if="isAdmin">
+                                    <a href="/admin" class="text-primary hover:text-yellow-400 px-3 py-2">Admin</a>
+                                </template>
+                                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg">
+                                    Logout
+                                </button>
+                            </div>
+                        </template>
+                        <template x-if="!isLoggedIn">
+                            <a href="/login" class="bg-primary hover:bg-yellow-500 text-dark-900 font-bold px-4 py-2 rounded-lg">
+                                Login with Telegram
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <main class="max-w-7xl mx-auto px-4 py-12">
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-bold mb-4">
+                    Automated <span class="text-primary">Crypto Trading</span>
+                </h1>
+                <p class="text-gray-400 text-xl max-w-2xl mx-auto">
+                    Trade on Bybit and HyperLiquid with automated signals, smart DCA, and advanced risk management.
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid md:grid-cols-3 gap-8 mt-12">
+                <div class="bg-dark-800 rounded-xl p-6 border border-dark-600 hover:border-primary transition-colors">
+                    <div class="text-4xl mb-4">🔷</div>
+                    <h3 class="text-xl font-bold mb-2">Multi-Exchange</h3>
+                    <p class="text-gray-400">Trade on Bybit and HyperLiquid from a single interface.</p>
+                </div>
+                <div class="bg-dark-800 rounded-xl p-6 border border-dark-600 hover:border-primary transition-colors">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold mb-2">Smart Signals</h3>
+                    <p class="text-gray-400">Receive and execute signals from multiple trading strategies.</p>
+                </div>
+                <div class="bg-dark-800 rounded-xl p-6 border border-dark-600 hover:border-primary transition-colors">
+                    <div class="text-4xl mb-4">🛡️</div>
+                    <h3 class="text-xl font-bold mb-2">Risk Management</h3>
+                    <p class="text-gray-400">Automatic TP/SL, position sizing, and DCA support.</p>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            <div class="text-center mt-16">
+                <a href="/login" class="inline-block bg-primary hover:bg-yellow-500 text-dark-900 font-bold text-lg px-8 py-4 rounded-xl transition-colors">
+                    Start Trading Now →
+                </a>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-dark-800 border-t border-dark-600 mt-20 py-8">
+            <div class="max-w-7xl mx-auto px-4 text-center text-gray-500">
+                <p>© 2024 Trading Bot. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

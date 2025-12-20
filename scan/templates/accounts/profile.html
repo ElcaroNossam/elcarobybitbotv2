@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <h1>{% trans "Profile" %}</h1>
+    <div class="profile-card">
+        <p><strong>{% trans "Username:" %}</strong> {{ request.user.username }}</p>
+        <p><strong>{% trans "Email:" %}</strong> {{ request.user.email|default:"—" }}</p>
+        {% if request.user.profile %}
+            <div class="profile-status">
+                <p><strong>{% trans "Email verified:" %}</strong> 
+                    {% if request.user.profile.email_verified %}
+                        <span class="status-badge status-success">✓ {% trans "Yes" %}</span>
+                    {% else %}
+                        <span class="status-badge status-warning">✗ {% trans "No" %}</span>
+                        <form method="post" action="{% url 'accounts:resend_verification' %}" style="display: inline;" id="resend-verification-form" name="resend_verification_form">
+                            {% csrf_token %}
+                            <button type="submit" id="resend-verification-btn" name="resend_verification" class="btn-small btn-secondary">{% trans "Resend" %}</button>
+                        </form>
+                    {% endif %}
+                </p>
+                <p><strong>{% trans "Admin approved:" %}</strong> 
+                    {% if request.user.profile.admin_approved %}
+                        <span class="status-badge status-success">✓ {% trans "Yes" %}</span>
+                    {% else %}
+                        <span class="status-badge status-pending">⏳ {% trans "Pending" %}</span>
+                    {% endif %}
+                </p>
+                <p><strong>{% trans "Account status:" %}</strong> {{ request.user.profile.is_pro|yesno:"Pro,Basic" }}</p>
+            </div>
+            
+            {% if not request.user.profile.email_verified %}
+                <div class="profile-alert alert-warning">
+                    <p>⚠️ {% trans "Please verify your email address to access the screener." %}</p>
+                </div>
+            {% elif not request.user.profile.admin_approved %}
+                <div class="profile-alert alert-info">
+                    <p>ℹ️ {% trans "Your account is awaiting administrator approval. You will be notified once approved." %}</p>
+                </div>
+            {% else %}
+                <div class="profile-alert alert-success">
+                    <p>✓ {% trans "Your account is active. You can use all screener features." %}</p>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
