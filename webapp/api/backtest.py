@@ -1,20 +1,26 @@
 """
 Backtest API - Connected to Real Strategy Analyzers
+Enhanced with Live Mode and Strategy Deployment
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
 import os
 import sqlite3
 import json
+import asyncio
 from pathlib import Path
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 router = APIRouter()
 DB_FILE = Path(__file__).parent.parent.parent / "bot.db"
+
+# WebSocket connections for live mode
+live_connections: Dict[str, WebSocket] = {}
 
 
 class BacktestRequest(BaseModel):
@@ -205,6 +211,90 @@ async def run_multi_symbol_backtest(request: MultiSymbolBacktestRequest):
         }
 
 
+class MonteCarloRequest(BaseModel):
+    strategy: str
+    symbol: str = "BTCUSDT"
+    timeframe: str = "1h"
+    days: int = 30
+    initial_balance: float = 10000
+    risk_per_trade: float = 1.0
+    stop_loss_percent: float = 2.0
+    take_profit_percent: float = 4.0
+    n_simulations: int = 1000
+    confidence_level: float = 0.95
+
+
+class OptimizationRequest(BaseModel):
+    strategy: str
+    symbol: str = "BTCUSDT"
+    timeframe: str = "1h"
+    days: int = 30
+    initial_balance: float = 10000
+    param_grid: Optional[Dict[str, List[float]]] = None
+
+
+@router.post("/monte-carlo")
+async def run_monte_carlo(request: MonteCarloRequest):
+    """
+    Run Monte Carlo simulation to estimate strategy risk.
+    Shuffles trade order to see distribution of possible outcomes.
+    """
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        
+        engine = RealBacktestEngine()
+        
+        result = await engine.run_monte_carlo_simulation(
+            strategy=request.strategy,
+            symbol=request.symbol,
+            timeframe=request.timeframe,
+            days=request.days,
+            initial_balance=request.initial_balance,
+            risk_per_trade=request.risk_per_trade,
+            stop_loss_percent=request.stop_loss_percent,
+            take_profit_percent=request.take_profit_percent,
+            n_simulations=request.n_simulations,
+            confidence_level=request.confidence_level
+        )
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/optimize")
+async def run_optimization(request: OptimizationRequest):
+    """
+    Grid search optimization for strategy parameters.
+    Tests all combinations and finds optimal settings.
+    """
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        
+        engine = RealBacktestEngine()
+        
+        result = await engine.run_optimization(
+            strategy=request.strategy,
+            symbol=request.symbol,
+            timeframe=request.timeframe,
+            days=request.days,
+            initial_balance=request.initial_balance,
+            param_grid=request.param_grid
+        )
+        
+        return result
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 @router.post("/walk-forward")
 async def run_walk_forward_optimization(request: WalkForwardRequest):
     """
@@ -342,7 +432,10 @@ async def run_simple_backtest(request: BacktestRequest):
 @router.post("/quick")
 async def quick_backtest(symbol: str = "BTCUSDT", timeframe: str = "1h", days: int = 7):
     """Quick backtest for all strategies - uses real analyzers"""
-    strategies = ["elcaro", "rsibboi", "wyckoff", "scryptomera", "scalper"]
+    strategies = [
+        "elcaro", "rsibboi", "wyckoff", "scryptomera", "scalper",
+        "mean_reversion", "trend_following", "breakout", "dca", "grid", "momentum", "volatility_breakout"
+    ]
     
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
@@ -388,40 +481,103 @@ async def list_strategies():
     """List available strategies with descriptions"""
     return {
         "strategies": [
+            # Core Strategies
             {
                 "id": "elcaro",
                 "name": "ElCaro",
                 "description": "Main channel breakout strategy with momentum confirmation",
                 "icon": "🎯",
-                "color": "#6366f1"
+                "color": "#6366f1",
+                "category": "core"
             },
             {
                 "id": "rsibboi",
                 "name": "RSI+BB+OI",
                 "description": "RSI divergence with Bollinger Bands and Open Interest analysis",
                 "icon": "📊",
-                "color": "#22c55e"
+                "color": "#22c55e",
+                "category": "core"
             },
             {
                 "id": "wyckoff",
                 "name": "Wyckoff/SMC",
                 "description": "Smart Money Concepts with Fibonacci retracement zones and order blocks",
                 "icon": "🔮",
-                "color": "#a855f7"
+                "color": "#a855f7",
+                "category": "core"
             },
             {
                 "id": "scryptomera",
                 "name": "Scryptomera",
                 "description": "Volume profile and delta analysis strategy",
                 "icon": "💎",
-                "color": "#eab308"
+                "color": "#eab308",
+                "category": "core"
             },
             {
                 "id": "scalper",
                 "name": "Scalper",
                 "description": "High-frequency scalping with tight stops",
                 "icon": "⚡",
-                "color": "#ef4444"
+                "color": "#ef4444",
+                "category": "core"
+            },
+            # Advanced Strategies
+            {
+                "id": "mean_reversion",
+                "name": "Mean Reversion",
+                "description": "Buy oversold, sell overbought using Z-score analysis",
+                "icon": "↔️",
+                "color": "#06b6d4",
+                "category": "advanced"
+            },
+            {
+                "id": "trend_following",
+                "name": "Trend Following",
+                "description": "Multiple EMA crossovers with ADX trend strength filter",
+                "icon": "📈",
+                "color": "#10b981",
+                "category": "advanced"
+            },
+            {
+                "id": "breakout",
+                "name": "Breakout",
+                "description": "Trade breakouts from consolidation ranges with volume confirmation",
+                "icon": "💥",
+                "color": "#f97316",
+                "category": "advanced"
+            },
+            {
+                "id": "dca",
+                "name": "DCA",
+                "description": "Dollar Cost Averaging with RSI filter for optimal entries",
+                "icon": "💰",
+                "color": "#84cc16",
+                "category": "advanced"
+            },
+            {
+                "id": "grid",
+                "name": "Grid Trading",
+                "description": "Grid-based strategy - buy at lower grids, sell at upper grids",
+                "icon": "🔲",
+                "color": "#8b5cf6",
+                "category": "advanced"
+            },
+            {
+                "id": "momentum",
+                "name": "Momentum",
+                "description": "Trade strong momentum with ROC and volume confirmation",
+                "icon": "🚀",
+                "color": "#ec4899",
+                "category": "advanced"
+            },
+            {
+                "id": "volatility_breakout",
+                "name": "Volatility Breakout",
+                "description": "Trade breakouts using ATR and Keltner Channels",
+                "icon": "🌊",
+                "color": "#14b8a6",
+                "category": "advanced"
             }
         ]
     }
@@ -504,3 +660,581 @@ async def list_indicators():
             }
         ]
     }
+
+
+# ============== LIVE MODE ENDPOINTS ==============
+
+class LiveSessionRequest(BaseModel):
+    strategy: str
+    symbol: str = "BTCUSDT"
+    timeframe: str = "1h"
+    params: Dict[str, Any] = {}
+
+
+class DeployStrategyRequest(BaseModel):
+    strategy: str
+    params: Dict[str, Any]
+    backtest_results: Optional[Dict[str, Any]] = None
+
+
+class ReplayDataRequest(BaseModel):
+    strategy: str
+    symbol: str = "BTCUSDT"
+    timeframe: str = "1h"
+    days: int = 30
+
+
+@router.post("/replay-data")
+async def get_replay_data(request: ReplayDataRequest):
+    """Get historical data with pre-calculated signals for replay mode"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        
+        engine = RealBacktestEngine()
+        
+        # Fetch candles
+        candles = await engine.fetch_historical_data(
+            request.symbol, request.timeframe, request.days
+        )
+        
+        if not candles or len(candles) < 50:
+            return {"success": False, "error": "Insufficient data"}
+        
+        # Get analyzer
+        analyzer = engine.analyzers.get(request.strategy)
+        if not analyzer:
+            return {"success": False, "error": f"Unknown strategy: {request.strategy}"}
+        
+        # Generate signals
+        signals = analyzer.analyze(candles)
+        
+        # Convert signals to list format with candle index
+        signals_list = []
+        for idx, signal in signals.items():
+            if signal.get("direction"):
+                signals_list.append({
+                    "candle_index": idx,
+                    "time": candles[idx]["time"],
+                    "timestamp": candles[idx].get("timestamp", 0),
+                    "direction": signal["direction"],
+                    "reason": signal.get("reason", "Signal"),
+                    "confidence": signal.get("confidence", 0.7),
+                    "price": candles[idx]["close"]
+                })
+        
+        # Simulate trades
+        trades = []
+        position = None
+        sl_pct = 2.0
+        tp_pct = 4.0
+        
+        for i, candle in enumerate(candles):
+            if i < 20:
+                continue
+                
+            signal = signals.get(i, {})
+            
+            if position:
+                # Check exit
+                if position["direction"] == "LONG":
+                    if candle["low"] <= position["stop_loss"]:
+                        trades.append({
+                            "entry_candle_index": position["entry_index"],
+                            "exit_candle_index": i,
+                            "entry_time": position["entry_time"],
+                            "exit_time": candle["time"],
+                            "direction": "LONG",
+                            "entry_price": position["entry_price"],
+                            "exit_price": position["stop_loss"],
+                            "pnl": -sl_pct,
+                            "reason": "SL"
+                        })
+                        position = None
+                    elif candle["high"] >= position["take_profit"]:
+                        trades.append({
+                            "entry_candle_index": position["entry_index"],
+                            "exit_candle_index": i,
+                            "entry_time": position["entry_time"],
+                            "exit_time": candle["time"],
+                            "direction": "LONG",
+                            "entry_price": position["entry_price"],
+                            "exit_price": position["take_profit"],
+                            "pnl": tp_pct,
+                            "reason": "TP"
+                        })
+                        position = None
+                else:  # SHORT
+                    if candle["high"] >= position["stop_loss"]:
+                        trades.append({
+                            "entry_candle_index": position["entry_index"],
+                            "exit_candle_index": i,
+                            "entry_time": position["entry_time"],
+                            "exit_time": candle["time"],
+                            "direction": "SHORT",
+                            "entry_price": position["entry_price"],
+                            "exit_price": position["stop_loss"],
+                            "pnl": -sl_pct,
+                            "reason": "SL"
+                        })
+                        position = None
+                    elif candle["low"] <= position["take_profit"]:
+                        trades.append({
+                            "entry_candle_index": position["entry_index"],
+                            "exit_candle_index": i,
+                            "entry_time": position["entry_time"],
+                            "exit_time": candle["time"],
+                            "direction": "SHORT",
+                            "entry_price": position["entry_price"],
+                            "exit_price": position["take_profit"],
+                            "pnl": tp_pct,
+                            "reason": "TP"
+                        })
+                        position = None
+            
+            # Check entry
+            if not position and signal.get("direction"):
+                entry_price = candle["close"]
+                if signal["direction"] == "LONG":
+                    position = {
+                        "entry_index": i,
+                        "entry_time": candle["time"],
+                        "entry_price": entry_price,
+                        "direction": "LONG",
+                        "stop_loss": entry_price * (1 - sl_pct / 100),
+                        "take_profit": entry_price * (1 + tp_pct / 100)
+                    }
+                else:
+                    position = {
+                        "entry_index": i,
+                        "entry_time": candle["time"],
+                        "entry_price": entry_price,
+                        "direction": "SHORT",
+                        "stop_loss": entry_price * (1 + sl_pct / 100),
+                        "take_profit": entry_price * (1 - tp_pct / 100)
+                    }
+        
+        return {
+            "success": True,
+            "candles": candles,
+            "signals": signals_list,
+            "trades": trades,
+            "total_candles": len(candles),
+            "total_signals": len(signals_list),
+            "total_trades": len(trades)
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/deploy")
+async def deploy_strategy(request: DeployStrategyRequest):
+    """Deploy tested strategy to bot with optimized parameters"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
+        
+        # Save deployment record
+        cur.execute("""
+            INSERT INTO strategy_deployments (
+                strategy_name, params_json, backtest_results_json, 
+                deployed_at, is_active
+            ) VALUES (?, ?, ?, ?, 1)
+        """, (
+            request.strategy,
+            json.dumps(request.params),
+            json.dumps(request.backtest_results) if request.backtest_results else "{}",
+            datetime.now().isoformat()
+        ))
+        
+        deployment_id = cur.lastrowid
+        
+        # Deactivate previous deployments for same strategy
+        cur.execute("""
+            UPDATE strategy_deployments 
+            SET is_active = 0 
+            WHERE strategy_name = ? AND id != ?
+        """, (request.strategy, deployment_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True,
+            "deployment_id": deployment_id,
+            "message": f"Strategy '{request.strategy}' deployed successfully"
+        }
+        
+    except sqlite3.OperationalError as e:
+        # Table might not exist - create it
+        if "no such table" in str(e):
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS strategy_deployments (
+                    id INTEGER PRIMARY KEY,
+                    strategy_name TEXT NOT NULL,
+                    params_json TEXT,
+                    backtest_results_json TEXT,
+                    deployed_at TEXT,
+                    is_active INTEGER DEFAULT 1
+                )
+            """)
+            conn.commit()
+            conn.close()
+            
+            # Retry
+            return await deploy_strategy(request)
+        
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/deployments")
+async def list_deployments():
+    """List all strategy deployments"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT * FROM strategy_deployments 
+            ORDER BY deployed_at DESC 
+            LIMIT 50
+        """)
+        
+        rows = cur.fetchall()
+        conn.close()
+        
+        deployments = []
+        for row in rows:
+            deployments.append({
+                "id": row["id"],
+                "strategy": row["strategy_name"],
+                "params": json.loads(row["params_json"]) if row["params_json"] else {},
+                "backtest_results": json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {},
+                "deployed_at": row["deployed_at"],
+                "is_active": bool(row["is_active"])
+            })
+        
+        return {"success": True, "deployments": deployments}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e), "deployments": []}
+
+
+@router.get("/active-deployment/{strategy}")
+async def get_active_deployment(strategy: str):
+    """Get currently active deployment for a strategy"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT * FROM strategy_deployments 
+            WHERE strategy_name = ? AND is_active = 1
+            ORDER BY deployed_at DESC 
+            LIMIT 1
+        """, (strategy,))
+        
+        row = cur.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                "success": True,
+                "deployment": {
+                    "id": row["id"],
+                    "strategy": row["strategy_name"],
+                    "params": json.loads(row["params_json"]) if row["params_json"] else {},
+                    "backtest_results": json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {},
+                    "deployed_at": row["deployed_at"]
+                }
+            }
+        
+        return {"success": True, "deployment": None}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# WebSocket for live backtesting
+class LiveBacktestManager:
+    """Manages live backtest sessions with real-time streaming"""
+    
+    def __init__(self):
+        self.active_sessions: Dict[str, dict] = {}
+    
+    async def start_session(self, ws: WebSocket, config: dict):
+        """Start a live backtest session"""
+        session_id = str(id(ws))
+        
+        self.active_sessions[session_id] = {
+            "ws": ws,
+            "config": config,
+            "running": True,
+            "candle_index": 0
+        }
+        
+        # Start streaming
+        await self.stream_live_data(session_id)
+    
+    async def stop_session(self, ws: WebSocket):
+        """Stop a live backtest session"""
+        session_id = str(id(ws))
+        if session_id in self.active_sessions:
+            self.active_sessions[session_id]["running"] = False
+            del self.active_sessions[session_id]
+    
+    async def stream_live_data(self, session_id: str):
+        """Stream candles and analysis in real-time"""
+        session = self.active_sessions.get(session_id)
+        if not session:
+            return
+        
+        from webapp.services.backtest_engine import RealBacktestEngine
+        engine = RealBacktestEngine()
+        
+        config = session["config"]
+        ws = session["ws"]
+        
+        try:
+            # Fetch historical data
+            candles = await engine.fetch_historical_data(
+                config.get("symbol", "BTCUSDT"),
+                config.get("timeframe", "1h"),
+                config.get("days", 30)
+            )
+            
+            if not candles:
+                await ws.send_json({"type": "error", "message": "No data available"})
+                return
+            
+            # Get analyzer
+            strategy = config.get("strategy", "elcaro")
+            analyzer = engine.analyzers.get(strategy)
+            if not analyzer:
+                await ws.send_json({"type": "error", "message": f"Unknown strategy: {strategy}"})
+                return
+            
+            # Pre-calculate all signals
+            all_signals = analyzer.analyze(candles)
+            
+            # Prepare parameters
+            params = config.get("params", {})
+            sl_pct = params.get("stop_loss_percent", 2.0)
+            tp_pct = params.get("take_profit_percent", 4.0)
+            initial_balance = config.get("initial_balance", 10000)
+            
+            equity = initial_balance
+            position = None
+            
+            # Stream candles one by one
+            for i, candle in enumerate(candles):
+                if not session.get("running", False):
+                    break
+                
+                # Send candle
+                await ws.send_json({
+                    "type": "candle",
+                    "data": candle
+                })
+                
+                if i >= 20:
+                    signal = all_signals.get(i, {})
+                    
+                    # Calculate indicators for this candle
+                    analysis = self._calculate_analysis(candles[:i+1])
+                    await ws.send_json({
+                        "type": "analysis",
+                        "data": analysis
+                    })
+                    
+                    # Check for exit
+                    if position:
+                        exit_info = self._check_exit(position, candle, sl_pct, tp_pct)
+                        if exit_info:
+                            pnl = self._calc_pnl(position, exit_info["price"], sl_pct, tp_pct)
+                            equity += pnl
+                            
+                            trade = {
+                                "entry_time": position["entry_time"],
+                                "exit_time": candle["time"],
+                                "direction": position["direction"],
+                                "entry_price": position["entry_price"],
+                                "exit_price": exit_info["price"],
+                                "pnl": pnl,
+                                "reason": exit_info["reason"]
+                            }
+                            
+                            await ws.send_json({
+                                "type": "trade",
+                                "data": trade
+                            })
+                            
+                            position = None
+                    
+                    # Check for entry signal
+                    if not position and signal.get("direction"):
+                        await ws.send_json({
+                            "type": "signal",
+                            "data": {
+                                "time": candle["time"],
+                                "timestamp": candle.get("timestamp", 0),
+                                "direction": signal["direction"],
+                                "reason": signal.get("reason", "Strategy signal"),
+                                "confidence": signal.get("confidence", 0.7)
+                            }
+                        })
+                        
+                        position = {
+                            "entry_time": candle["time"],
+                            "entry_price": candle["close"],
+                            "direction": signal["direction"],
+                            "stop_loss": candle["close"] * (1 - sl_pct / 100) if signal["direction"] == "LONG" else candle["close"] * (1 + sl_pct / 100),
+                            "take_profit": candle["close"] * (1 + tp_pct / 100) if signal["direction"] == "LONG" else candle["close"] * (1 - tp_pct / 100)
+                        }
+                
+                # Send progress update
+                progress = (i + 1) / len(candles) * 100
+                await ws.send_json({
+                    "type": "session_update",
+                    "data": {"progress": progress, "equity": equity}
+                })
+                
+                # Small delay for visualization
+                await asyncio.sleep(0.05)
+            
+        except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            try:
+                await ws.send_json({"type": "error", "message": str(e)})
+            except:
+                pass
+        finally:
+            if session_id in self.active_sessions:
+                del self.active_sessions[session_id]
+    
+    def _calculate_analysis(self, candles: List[Dict]) -> Dict:
+        """Calculate technical indicators for current candle"""
+        if len(candles) < 20:
+            return {}
+        
+        closes = [c["close"] for c in candles]
+        highs = [c["high"] for c in candles]
+        lows = [c["low"] for c in candles]
+        volumes = [c["volume"] for c in candles]
+        
+        # RSI
+        rsi = self._calc_rsi(closes, 14)
+        
+        # Simple EMA
+        ema20 = self._calc_ema(closes, 20)
+        ema50 = self._calc_ema(closes, 50) if len(closes) >= 50 else None
+        
+        # Bollinger Bands
+        bb = self._calc_bb(closes, 20, 2)
+        
+        # Volume delta (simple approximation)
+        vol_delta = volumes[-1] - sum(volumes[-20:]) / 20 if len(volumes) >= 20 else 0
+        
+        # Sentiment score (-100 to +100)
+        sentiment = 0
+        if rsi:
+            if rsi > 70:
+                sentiment -= 30
+            elif rsi < 30:
+                sentiment += 30
+        
+        if ema20 and ema50:
+            if ema20 > ema50:
+                sentiment += 20
+            else:
+                sentiment -= 20
+        
+        if closes[-1] > sum(closes[-20:]) / 20:
+            sentiment += 20
+        else:
+            sentiment -= 20
+        
+        return {
+            "time": candles[-1].get("timestamp", 0),
+            "price": closes[-1],
+            "rsi": rsi,
+            "ema20": ema20,
+            "ema50": ema50,
+            "bb": bb,
+            "volume_delta": vol_delta,
+            "sentiment": max(-100, min(100, sentiment))
+        }
+    
+    def _calc_rsi(self, closes: List[float], period: int = 14) -> Optional[float]:
+        if len(closes) < period + 1:
+            return None
+        
+        deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
+        gains = [d if d > 0 else 0 for d in deltas[-period:]]
+        losses = [-d if d < 0 else 0 for d in deltas[-period:]]
+        
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
+        
+        if avg_loss == 0:
+            return 100
+        
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
+    
+    def _calc_ema(self, data: List[float], period: int) -> Optional[float]:
+        if len(data) < period:
+            return None
+        
+        multiplier = 2 / (period + 1)
+        ema = sum(data[:period]) / period
+        
+        for price in data[period:]:
+            ema = (price - ema) * multiplier + ema
+        
+        return ema
+    
+    def _calc_bb(self, closes: List[float], period: int = 20, std_mult: float = 2) -> Optional[Dict]:
+        if len(closes) < period:
+            return None
+        
+        recent = closes[-period:]
+        sma = sum(recent) / period
+        variance = sum((x - sma) ** 2 for x in recent) / period
+        std = variance ** 0.5
+        
+        return {
+            "middle": sma,
+            "upper": sma + std * std_mult,
+            "lower": sma - std * std_mult
+        }
+    
+    def _check_exit(self, position: Dict, candle: Dict, sl_pct: float, tp_pct: float) -> Optional[Dict]:
+        if position["direction"] == "LONG":
+            if candle["low"] <= position["stop_loss"]:
+                return {"price": position["stop_loss"], "reason": "SL"}
+            if candle["high"] >= position["take_profit"]:
+                return {"price": position["take_profit"], "reason": "TP"}
+        else:
+            if candle["high"] >= position["stop_loss"]:
+                return {"price": position["stop_loss"], "reason": "SL"}
+            if candle["low"] <= position["take_profit"]:
+                return {"price": position["take_profit"], "reason": "TP"}
+        return None
+    
+    def _calc_pnl(self, position: Dict, exit_price: float, sl_pct: float, tp_pct: float) -> float:
+        if position["direction"] == "LONG":
+            return (exit_price - position["entry_price"]) / position["entry_price"] * 1000
+        else:
+            return (position["entry_price"] - exit_price) / position["entry_price"] * 1000
+
+
+# Global instance
+live_manager = LiveBacktestManager()

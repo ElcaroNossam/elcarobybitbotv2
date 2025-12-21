@@ -95,6 +95,7 @@
             font-weight: 700;
             background: var(--gradient-primary);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
@@ -350,6 +351,174 @@
             color: var(--accent-primary);
         }
         
+        /* API Account Tabs */
+        .api-account-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: var(--bg-tertiary);
+            padding: 4px;
+            border-radius: 10px;
+        }
+        
+        .api-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .api-tab.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .api-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+        
+        .api-form {
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .api-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+        
+        .connection-status.connected {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--accent-green);
+        }
+        
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+        }
+        
+        /* Strategy Tabs */
+        .strategy-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        
+        .strategy-tab {
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+        
+        .strategy-tab:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+        
+        .strategy-tab.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        
+        .strategy-panel {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .strategy-panel.active {
+            display: block;
+        }
+        
+        .strategy-enable {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .strategy-params {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Strategy Exchange Selector */
+        .strategy-exchange-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+        
+        .strategy-exchange-selector .selector-group {
+            flex: 1;
+        }
+        
+        .strategy-exchange-selector .form-label {
+            margin-bottom: 6px;
+            font-size: 0.8125rem;
+        }
+        
+        .strategy-exchange-selector .form-select {
+            padding: 10px 14px;
+            font-size: 0.875rem;
+        }
+        
+        .strategy-sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+        
+        .strategy-sync-indicator.synced {
+            color: var(--accent-green);
+        }
+        
+        .strategy-sync-indicator i {
+            font-size: 0.75rem;
+        }
+        
         /* Notification */
         .notification {
             position: fixed;
@@ -442,6 +611,112 @@
             </div>
         </div>
         
+        <!-- Bybit API Keys -->
+        <div class="settings-section" id="bybit-api-section">
+            <div class="section-header">
+                <div class="section-icon blue">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">Bybit API Keys</h3>
+                    <p class="section-desc">Configure API keys for Bybit exchange</p>
+                </div>
+            </div>
+            
+            <!-- Account Type Tabs -->
+            <div class="api-account-tabs">
+                <div class="api-tab active" data-type="demo" onclick="switchApiTab('demo')">Demo Account</div>
+                <div class="api-tab" data-type="real" onclick="switchApiTab('real')">Real Account</div>
+            </div>
+            
+            <div id="api-demo-form" class="api-form">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label class="form-label">Demo API Key</label>
+                        <input type="password" id="demo_api_key" class="form-input" placeholder="Enter your Demo API Key">
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">Demo API Secret</label>
+                        <input type="password" id="demo_api_secret" class="form-input" placeholder="Enter your Demo API Secret">
+                    </div>
+                </div>
+                <div class="api-actions">
+                    <button class="btn btn-secondary" onclick="testBybitApi('demo')">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button class="btn btn-primary" onclick="saveBybitApi('demo')">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+            </div>
+            
+            <div id="api-real-form" class="api-form" style="display: none;">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label class="form-label">Real API Key</label>
+                        <input type="password" id="real_api_key" class="form-input" placeholder="Enter your Real API Key">
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">Real API Secret</label>
+                        <input type="password" id="real_api_secret" class="form-input" placeholder="Enter your Real API Secret">
+                    </div>
+                </div>
+                <div class="api-actions">
+                    <button class="btn btn-secondary" onclick="testBybitApi('real')">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button class="btn btn-primary" onclick="saveBybitApi('real')">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HyperLiquid API Keys -->
+        <div class="settings-section" id="hl-api-section">
+            <div class="section-header">
+                <div class="section-icon green">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div>
+                    <h3 class="section-title">HyperLiquid Connection</h3>
+                    <p class="section-desc">Connect your wallet for HyperLiquid trading</p>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label class="form-label">Wallet Address</label>
+                    <input type="text" id="hl_wallet_address" class="form-input" placeholder="0x...">
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">Private Key</label>
+                    <input type="password" id="hl_private_key" class="form-input" placeholder="Enter private key (stored encrypted)">
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">Vault Address (optional)</label>
+                    <input type="text" id="hl_vault_address" class="form-input" placeholder="0x... (for vault trading)">
+                </div>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="toggle-label">
+                    <span>Testnet Mode</span>
+                    <small>Use HyperLiquid testnet instead of mainnet</small>
+                </div>
+                <div class="toggle" id="toggle_hl_testnet" onclick="toggleHLTestnet()"></div>
+            </div>
+            
+            <div class="api-actions">
+                <button class="btn btn-secondary" onclick="testHLConnection()">
+                    <i class="fas fa-plug"></i> Test Connection
+                </button>
+                <button class="btn btn-primary" onclick="saveHLApi()">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+        
         <!-- Trading Settings -->
         <div class="settings-section">
             <div class="section-header">
@@ -474,48 +749,232 @@
             </div>
         </div>
         
-        <!-- Strategy Toggles -->
+        <!-- Strategy Settings -->
         <div class="settings-section">
             <div class="section-header">
                 <div class="section-icon yellow">
                     <i class="fas fa-robot"></i>
                 </div>
                 <div>
-                    <h3 class="section-title">Active Strategies</h3>
-                    <p class="section-desc">Enable or disable automated trading strategies</p>
+                    <h3 class="section-title">Strategy Configuration</h3>
+                    <p class="section-desc">Configure and fine-tune your trading strategies per exchange and account</p>
                 </div>
             </div>
             
-            <div class="toggle-group">
-                <div class="toggle-label">
-                    <span>ElCaro AI</span>
-                    <small>AI-powered market analysis with GPT-4</small>
+            <!-- Exchange/Account Selector for Strategies -->
+            <div class="strategy-exchange-selector">
+                <div class="selector-group">
+                    <label class="form-label">Exchange</label>
+                    <select id="strategy_exchange" class="form-select" onchange="onStrategyExchangeChange()">
+                        <option value="bybit">Bybit</option>
+                        <option value="hyperliquid">HyperLiquid</option>
+                    </select>
                 </div>
-                <div class="toggle" id="toggle_elcaro" onclick="toggleStrategy('enable_elcaro')"></div>
+                <div class="selector-group">
+                    <label class="form-label">Account</label>
+                    <select id="strategy_account_type" class="form-select" onchange="onStrategyAccountChange()">
+                        <option value="demo">Demo</option>
+                        <option value="real">Real</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="toggle-group">
-                <div class="toggle-label">
-                    <span>Wyckoff Analysis</span>
-                    <small>Classic Wyckoff accumulation/distribution patterns</small>
-                </div>
-                <div class="toggle" id="toggle_wyckoff" onclick="toggleStrategy('enable_wyckoff')"></div>
+            <!-- Strategy Tabs -->
+            <div class="strategy-tabs">
+                <div class="strategy-tab active" data-strategy="elcaro" onclick="selectStrategyTab('elcaro')">ElCaro AI</div>
+                <div class="strategy-tab" data-strategy="wyckoff" onclick="selectStrategyTab('wyckoff')">Wyckoff</div>
+                <div class="strategy-tab" data-strategy="scryptomera" onclick="selectStrategyTab('scryptomera')">Scryptomera</div>
+                <div class="strategy-tab" data-strategy="scalper" onclick="selectStrategyTab('scalper')">Scalper</div>
+                <div class="strategy-tab" data-strategy="rsi_bb" onclick="selectStrategyTab('rsi_bb')">RSI+BB</div>
+                <div class="strategy-tab" data-strategy="oi" onclick="selectStrategyTab('oi')">OI</div>
             </div>
             
-            <div class="toggle-group">
-                <div class="toggle-label">
-                    <span>Scryptomera</span>
-                    <small>Volume delta and order flow analysis</small>
+            <!-- ElCaro AI Settings -->
+            <div id="strategy-elcaro" class="strategy-panel active">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable ElCaro AI</span>
+                        <small>AI-powered market analysis with GPT-4</small>
+                    </div>
+                    <div class="toggle" id="toggle_elcaro" onclick="toggleStrategyEnabled('elcaro')"></div>
                 </div>
-                <div class="toggle" id="toggle_scryptomera" onclick="toggleStrategy('enable_scryptomera')"></div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="elcaro_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="elcaro_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Confidence</label>
+                        <input type="number" id="elcaro_min_confidence" class="form-input" value="0.7" min="0.5" max="1" step="0.05">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timeframes</label>
+                        <select id="elcaro_timeframes" class="form-select" multiple>
+                            <option value="5m">5m</option>
+                            <option value="15m" selected>15m</option>
+                            <option value="1h" selected>1h</option>
+                            <option value="4h">4h</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
-            <div class="toggle-group">
-                <div class="toggle-label">
-                    <span>Scalper Mode</span>
-                    <small>Quick entries on momentum breakouts</small>
+            <!-- Wyckoff Settings -->
+            <div id="strategy-wyckoff" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable Wyckoff</span>
+                        <small>Classic Wyckoff accumulation/distribution patterns</small>
+                    </div>
+                    <div class="toggle" id="toggle_wyckoff" onclick="toggleStrategyEnabled('wyckoff')"></div>
                 </div>
-                <div class="toggle" id="toggle_scalper" onclick="toggleStrategy('enable_scalper')"></div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="wyckoff_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="wyckoff_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scryptomera Settings -->
+            <div id="strategy-scryptomera" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable Scryptomera</span>
+                        <small>Volume delta and order flow analysis</small>
+                    </div>
+                    <div class="toggle" id="toggle_scryptomera" onclick="toggleStrategyEnabled('scryptomera')"></div>
+                </div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="scryptomera_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="scryptomera_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Volume Delta</label>
+                        <input type="number" id="scryptomera_min_vdelta" class="form-input" value="100" min="10" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timeframe</label>
+                        <select id="scryptomera_timeframe" class="form-select">
+                            <option value="5m">5m</option>
+                            <option value="15m" selected>15m</option>
+                            <option value="1h">1h</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scalper Settings -->
+            <div id="strategy-scalper" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable Scalper</span>
+                        <small>Quick entries on momentum breakouts</small>
+                    </div>
+                    <div class="toggle" id="toggle_scalper" onclick="toggleStrategyEnabled('scalper')"></div>
+                </div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="scalper_tp_percent" class="form-input" value="0.5" min="0.1" max="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="scalper_sl_percent" class="form-input" value="0.3" min="0.1" max="5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Momentum Threshold</label>
+                        <input type="number" id="scalper_momentum_threshold" class="form-input" value="1.5" min="0.5" max="5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Trades/Hour</label>
+                        <input type="number" id="scalper_max_trades_per_hour" class="form-input" value="10" min="1" max="50">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RSI+BB Settings -->
+            <div id="strategy-rsi_bb" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable RSI + Bollinger Bands</span>
+                        <small>RSI oversold/overbought with BB touch</small>
+                    </div>
+                    <div class="toggle" id="toggle_rsi_bb" onclick="toggleStrategyEnabled('rsi_bb')"></div>
+                </div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="rsi_bb_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="rsi_bb_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">RSI Oversold</label>
+                        <input type="number" id="rsi_bb_rsi_oversold" class="form-input" value="30" min="10" max="40">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">RSI Overbought</label>
+                        <input type="number" id="rsi_bb_rsi_overbought" class="form-input" value="70" min="60" max="90">
+                    </div>
+                    <div class="form-group full">
+                        <label class="form-label">BB Touch K</label>
+                        <input type="number" id="rsi_bb_bb_touch_k" class="form-input" value="2.0" min="1" max="3" step="0.1">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- OI Settings -->
+            <div id="strategy-oi" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable Open Interest</span>
+                        <small>Trade based on OI and price divergence</small>
+                    </div>
+                    <div class="toggle" id="toggle_oi" onclick="toggleStrategyEnabled('oi')"></div>
+                </div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="oi_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="oi_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min OI Change %</label>
+                        <input type="number" id="oi_min_oi_change" class="form-input" value="5" min="1" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Price Change %</label>
+                        <input type="number" id="oi_min_price_change" class="form-input" value="1" min="0.1" max="10" step="0.1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="api-actions" style="margin-top: 16px;">
+                <button class="btn btn-secondary" onclick="copyStrategyToAll()" title="Copy current strategy settings to all exchanges and accounts">
+                    <i class="fas fa-copy"></i> Copy to All
+                </button>
+                <button class="btn btn-primary" onclick="saveCurrentStrategy()">
+                    <i class="fas fa-save"></i> Save
+                </button>
             </div>
         </div>
         
@@ -734,7 +1193,368 @@
         document.addEventListener('DOMContentLoaded', async () => {
             await initAuth();
             await loadSettings();
+            await loadApiKeys();
+            await loadStrategySettings();
         });
+        
+        // API Keys Functions
+        function switchApiTab(type) {
+            document.querySelectorAll('.api-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.api-tab[data-type="${type}"]`).classList.add('active');
+            
+            document.getElementById('api-demo-form').style.display = type === 'demo' ? 'block' : 'none';
+            document.getElementById('api-real-form').style.display = type === 'real' ? 'block' : 'none';
+        }
+        
+        async function loadApiKeys() {
+            try {
+                const res = await fetch('/api/users/api-keys', {
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Show masked keys if they exist
+                    if (data.demo_api_key) {
+                        document.getElementById('demo_api_key').placeholder = '••••••' + data.demo_api_key.slice(-4);
+                    }
+                    if (data.real_api_key) {
+                        document.getElementById('real_api_key').placeholder = '••••••' + data.real_api_key.slice(-4);
+                    }
+                    if (data.hl_wallet_address) {
+                        document.getElementById('hl_wallet_address').value = data.hl_wallet_address;
+                    }
+                    if (data.hl_vault_address) {
+                        document.getElementById('hl_vault_address').value = data.hl_vault_address;
+                    }
+                    updateToggle('toggle_hl_testnet', data.hl_testnet);
+                }
+            } catch (e) {
+                console.error('Failed to load API keys:', e);
+            }
+        }
+        
+        async function saveBybitApi(accountType) {
+            const keyInput = document.getElementById(`${accountType}_api_key`);
+            const secretInput = document.getElementById(`${accountType}_api_secret`);
+            
+            const key = keyInput.value.trim();
+            const secret = secretInput.value.trim();
+            
+            if (!key || !secret) {
+                showNotification('Please enter both API key and secret', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/users/api-keys/bybit', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        account_type: accountType,
+                        api_key: key,
+                        api_secret: secret
+                    })
+                });
+                
+                if (res.ok) {
+                    keyInput.value = '';
+                    secretInput.value = '';
+                    keyInput.placeholder = '••••••' + key.slice(-4);
+                    showNotification(`${accountType.charAt(0).toUpperCase() + accountType.slice(1)} API keys saved`, 'success');
+                } else {
+                    const error = await res.json();
+                    showNotification(error.detail || 'Failed to save API keys', 'error');
+                }
+            } catch (e) {
+                console.error('Save API error:', e);
+                showNotification('Error saving API keys', 'error');
+            }
+        }
+        
+        async function testBybitApi(accountType) {
+            try {
+                showNotification('Testing connection...', 'success');
+                
+                const res = await fetch(`/api/users/api-keys/bybit/test?account_type=${accountType}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    showNotification(`Connected! Balance: ${data.balance || 'OK'}`, 'success');
+                } else {
+                    showNotification(data.error || 'Connection failed', 'error');
+                }
+            } catch (e) {
+                console.error('Test API error:', e);
+                showNotification('Connection test failed', 'error');
+            }
+        }
+        
+        async function saveHLApi() {
+            const wallet = document.getElementById('hl_wallet_address').value.trim();
+            const privateKey = document.getElementById('hl_private_key').value.trim();
+            const vault = document.getElementById('hl_vault_address').value.trim();
+            const testnet = document.getElementById('toggle_hl_testnet').classList.contains('active');
+            
+            if (!wallet) {
+                showNotification('Please enter wallet address', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/users/api-keys/hyperliquid', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        wallet_address: wallet,
+                        private_key: privateKey || null,
+                        vault_address: vault || null,
+                        testnet: testnet
+                    })
+                });
+                
+                if (res.ok) {
+                    document.getElementById('hl_private_key').value = '';
+                    showNotification('HyperLiquid settings saved', 'success');
+                } else {
+                    const error = await res.json();
+                    showNotification(error.detail || 'Failed to save settings', 'error');
+                }
+            } catch (e) {
+                console.error('Save HL error:', e);
+                showNotification('Error saving settings', 'error');
+            }
+        }
+        
+        async function testHLConnection() {
+            try {
+                showNotification('Testing connection...', 'success');
+                
+                const res = await fetch('/api/users/api-keys/hyperliquid/test', {
+                    headers: getAuthHeaders()
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    showNotification(`Connected! Balance: ${data.balance || 'OK'}`, 'success');
+                } else {
+                    showNotification(data.error || 'Connection failed', 'error');
+                }
+            } catch (e) {
+                console.error('Test HL error:', e);
+                showNotification('Connection test failed', 'error');
+            }
+        }
+        
+        function toggleHLTestnet() {
+            const toggle = document.getElementById('toggle_hl_testnet');
+            toggle.classList.toggle('active');
+        }
+        
+        // Strategy Settings Functions
+        let strategySettings = {};
+        let currentStrategy = 'elcaro';
+        let strategyExchange = 'bybit';
+        let strategyAccountType = 'demo';
+        
+        function selectStrategyTab(strategy) {
+            currentStrategy = strategy;
+            
+            // Update tabs
+            document.querySelectorAll('.strategy-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.strategy === strategy);
+            });
+            
+            // Update panels
+            document.querySelectorAll('.strategy-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.id === `strategy-${strategy}`);
+            });
+        }
+        
+        function onStrategyExchangeChange() {
+            strategyExchange = document.getElementById('strategy_exchange').value;
+            
+            // Update account type options based on exchange
+            const accountSelect = document.getElementById('strategy_account_type');
+            if (strategyExchange === 'bybit') {
+                accountSelect.innerHTML = `
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                `;
+                strategyAccountType = 'demo';
+            } else {
+                accountSelect.innerHTML = `
+                    <option value="testnet">Testnet</option>
+                    <option value="mainnet">Mainnet</option>
+                `;
+                strategyAccountType = 'testnet';
+            }
+            
+            loadStrategySettings();
+        }
+        
+        function onStrategyAccountChange() {
+            strategyAccountType = document.getElementById('strategy_account_type').value;
+            loadStrategySettings();
+        }
+        
+        async function loadStrategySettings() {
+            try {
+                const res = await fetch(`/api/users/strategy-settings?exchange=${strategyExchange}&account_type=${strategyAccountType}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    strategySettings = data.strategies || {};
+                    updateStrategyUI();
+                }
+            } catch (e) {
+                console.error('Failed to load strategy settings:', e);
+            }
+        }
+        
+        function updateStrategyUI() {
+            for (const [strategy, data] of Object.entries(strategySettings)) {
+                // Update enabled toggle
+                updateToggle(`toggle_${strategy}`, data.enabled);
+                
+                // Update params
+                for (const [key, value] of Object.entries(data.params || {})) {
+                    const input = document.getElementById(`${strategy}_${key}`);
+                    if (input) {
+                        if (input.tagName === 'SELECT' && input.multiple) {
+                            // Handle multi-select
+                            Array.from(input.options).forEach(opt => {
+                                opt.selected = Array.isArray(value) && value.includes(opt.value);
+                            });
+                        } else {
+                            input.value = value;
+                        }
+                    }
+                }
+            }
+        }
+        
+        function toggleStrategyEnabled(strategy) {
+            const toggle = document.getElementById(`toggle_${strategy}`);
+            toggle.classList.toggle('active');
+            
+            if (strategySettings[strategy]) {
+                strategySettings[strategy].enabled = toggle.classList.contains('active');
+            }
+        }
+        
+        async function saveCurrentStrategy() {
+            const strategy = currentStrategy;
+            const enabled = document.getElementById(`toggle_${strategy}`).classList.contains('active');
+            
+            // Collect params based on strategy
+            const params = {};
+            const prefix = `${strategy}_`;
+            
+            document.querySelectorAll(`#strategy-${strategy} .form-input, #strategy-${strategy} .form-select`).forEach(input => {
+                if (input.id.startsWith(prefix)) {
+                    const key = input.id.replace(prefix, '');
+                    if (input.tagName === 'SELECT' && input.multiple) {
+                        params[key] = Array.from(input.selectedOptions).map(o => o.value);
+                    } else if (input.type === 'number') {
+                        params[key] = parseFloat(input.value);
+                    } else {
+                        params[key] = input.value;
+                    }
+                }
+            });
+            
+            try {
+                const res = await fetch(`/api/users/strategy-settings/${strategy}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        strategy_name: strategy,
+                        enabled: enabled,
+                        settings: params,
+                        exchange: strategyExchange,
+                        account_type: strategyAccountType
+                    })
+                });
+                
+                if (res.ok) {
+                    const exchLabel = strategyExchange === 'bybit' ? 'Bybit' : 'HyperLiquid';
+                    const accLabel = strategyAccountType.charAt(0).toUpperCase() + strategyAccountType.slice(1);
+                    showNotification(`${strategy.charAt(0).toUpperCase() + strategy.slice(1)} saved for ${exchLabel} ${accLabel}`, 'success');
+                    
+                    // Update local state
+                    if (strategySettings[strategy]) {
+                        strategySettings[strategy].enabled = enabled;
+                        strategySettings[strategy].params = params;
+                    }
+                } else {
+                    const error = await res.json();
+                    showNotification(error.detail || 'Failed to save settings', 'error');
+                }
+            } catch (e) {
+                console.error('Save strategy error:', e);
+                showNotification('Error saving strategy settings', 'error');
+            }
+        }
+        
+        // Copy settings to other exchange/accounts
+        async function copyStrategyToAll() {
+            const strategy = currentStrategy;
+            const enabled = document.getElementById(`toggle_${strategy}`).classList.contains('active');
+            
+            // Collect params
+            const params = {};
+            const prefix = `${strategy}_`;
+            
+            document.querySelectorAll(`#strategy-${strategy} .form-input, #strategy-${strategy} .form-select`).forEach(input => {
+                if (input.id.startsWith(prefix)) {
+                    const key = input.id.replace(prefix, '');
+                    if (input.tagName === 'SELECT' && input.multiple) {
+                        params[key] = Array.from(input.selectedOptions).map(o => o.value);
+                    } else if (input.type === 'number') {
+                        params[key] = parseFloat(input.value);
+                    } else {
+                        params[key] = input.value;
+                    }
+                }
+            });
+            
+            const targets = [
+                { exchange: 'bybit', account_type: 'demo' },
+                { exchange: 'bybit', account_type: 'real' },
+                { exchange: 'hyperliquid', account_type: 'testnet' },
+                { exchange: 'hyperliquid', account_type: 'mainnet' }
+            ];
+            
+            let successCount = 0;
+            for (const target of targets) {
+                try {
+                    const res = await fetch(`/api/users/strategy-settings/${strategy}`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({
+                            strategy_name: strategy,
+                            enabled: enabled,
+                            settings: params,
+                            exchange: target.exchange,
+                            account_type: target.account_type
+                        })
+                    });
+                    if (res.ok) successCount++;
+                } catch (e) {
+                    console.error(`Failed to copy to ${target.exchange}/${target.account_type}:`, e);
+                }
+            }
+            
+            showNotification(`Settings copied to ${successCount}/4 accounts`, successCount === 4 ? 'success' : 'error');
+        }
     </script>
 </body>
 </html>

@@ -1257,6 +1257,68 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 }
 
 
+def get_strategy_settings_v2(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
+    """
+    Get settings for a specific strategy, exchange, and account type.
+    New unified format: { "bybit": { "demo": {...}, "real": {...} }, "hyperliquid": { "testnet": {...}, "mainnet": {...} } }
+    Returns dict with keys: enabled, percent, sl_percent, tp_percent, leverage, etc.
+    """
+    cfg = get_user_config(user_id)
+    all_settings = cfg.get("strategy_settings", {})
+    
+    # Check if using new format (has exchange keys) or legacy format
+    if exchange in all_settings and isinstance(all_settings.get(exchange), dict):
+        # New format
+        exchange_settings = all_settings.get(exchange, {})
+        account_settings = exchange_settings.get(account_type, {})
+        strat_settings = account_settings.get(strategy, {})
+    else:
+        # Legacy format - strategy directly under settings
+        strat_settings = all_settings.get(strategy, {})
+    
+    # Merge with defaults
+    result = DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
+    result.update(strat_settings)
+    
+    # Add enabled flag from legacy fields if not in settings
+    if "enabled" not in result:
+        trade_field = f"trade_{strategy}" if strategy in ["scryptomera", "scalper", "elcaro", "wyckoff"] else f"trade_{strategy}"
+        result["enabled"] = bool(cfg.get(trade_field, 0))
+    
+    return result
+
+
+def set_strategy_settings_v2(user_id: int, strategy: str, settings: dict, exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """
+    Set settings for a specific strategy, exchange, and account type.
+    """
+    if strategy not in STRATEGY_NAMES:
+        return False
+    
+    cfg = get_user_config(user_id)
+    all_settings = cfg.get("strategy_settings", {})
+    
+    # Ensure structure exists
+    if exchange not in all_settings:
+        all_settings[exchange] = {}
+    if account_type not in all_settings[exchange]:
+        all_settings[exchange][account_type] = {}
+    
+    # Update settings
+    all_settings[exchange][account_type][strategy] = settings
+    
+    set_user_field(user_id, "strategy_settings", json.dumps(all_settings))
+    return True
+
+
+def is_strategy_enabled_v2(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """
+    Check if a strategy is enabled for specific exchange and account type.
+    """
+    settings = get_strategy_settings_v2(user_id, strategy, exchange, account_type)
+    return bool(settings.get("enabled", False))
+
+
 def get_strategy_settings(user_id: int, strategy: str) -> dict:
     """
     Get settings for a specific strategy.
@@ -1323,6 +1385,58 @@ def get_effective_settings(user_id: int, strategy: str, global_cfg: dict | None 
         "atr_periods": strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg.get("atr_periods", 7),
         "atr_multiplier_sl": strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg.get("atr_multiplier_sl", 1.0),
         "atr_trigger_pct": strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg.get("atr_trigger_pct", 2.0),
+    }
+
+
+def get_effective_settings_v2(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo", timeframe: str = "24h") -> dict:
+    """
+    Get effective settings for a strategy, exchange, and account type.
+    Falls back to global config and timeframe defaults.
+    Returns dict with enabled, percent, sl_percent, tp_percent, leverage, atr_periods, atr_multiplier_sl, atr_trigger_pct
+    """
+    from coin_params import TIMEFRAME_PARAMS
+    
+    global_cfg = get_user_config(user_id)
+    strat_settings = get_strategy_settings_v2(user_id, strategy, exchange, account_type)
+    tf_cfg = TIMEFRAME_PARAMS.get(timeframe, TIMEFRAME_PARAMS.get("24h", {}))
+    
+    def _get(key, default):
+        """Get value from strategy settings, fallback to global, then default"""
+        val = strat_settings.get(key)
+        if val is not None:
+            return val
+        global_val = global_cfg.get(key)
+        if global_val is not None:
+            return global_val
+        return default
+    
+    def _get_tf(key, default):
+        """Get value from strategy settings, fallback to timeframe config, then default"""
+        val = strat_settings.get(key)
+        if val is not None:
+            return val
+        tf_val = tf_cfg.get(key)
+        if tf_val is not None:
+            return tf_val
+        return default
+    
+    return {
+        "enabled": bool(strat_settings.get("enabled", False)),
+        "percent": _get("percent", 5.0),
+        "sl_percent": _get("sl_percent", DEFAULT_SL_PCT),
+        "tp_percent": _get("tp_percent", DEFAULT_TP_PCT),
+        "leverage": _get("leverage", 10),
+        "atr_periods": _get_tf("atr_periods", 7),
+        "atr_multiplier_sl": _get_tf("atr_multiplier_sl", 1.0),
+        "atr_trigger_pct": _get_tf("atr_trigger_pct", 2.0),
+        # Strategy-specific fields
+        "direction": strat_settings.get("direction", "all"),
+        "order_type": strat_settings.get("order_type", "market"),
+        # Pass through any extra fields
+        **{k: v for k, v in strat_settings.items() if k not in [
+            "enabled", "percent", "sl_percent", "tp_percent", "leverage",
+            "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "direction", "order_type"
+        ]}
     }
 
 

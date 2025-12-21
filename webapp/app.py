@@ -135,6 +135,10 @@ def create_app() -> FastAPI:
     async def screener_page(request: Request):
         return templates.TemplateResponse("screener.html", {"request": request})
     
+    @app.get("/backtest", response_class=HTMLResponse)
+    async def backtest_page(request: Request):
+        return templates.TemplateResponse("backtest.html", {"request": request})
+    
     @app.get("/settings", response_class=HTMLResponse)
     async def settings_page(request: Request):
         return templates.TemplateResponse("settings.html", {"request": request})
@@ -145,7 +149,33 @@ def create_app() -> FastAPI:
     
     @app.get("/health")
     async def health():
+        """Basic health check"""
         return {"status": "healthy", "version": "2.0.0", "features": ["trading_terminal", "ai_agent", "backtesting", "statistics", "websocket", "multi_exchange", "marketplace", "screener"]}
+    
+    @app.get("/health/detailed")
+    async def health_detailed():
+        """Detailed health check with metrics"""
+        try:
+            from core.metrics import get_health_status
+            return await get_health_status()
+        except Exception as e:
+            return {"status": "degraded", "error": str(e)}
+    
+    @app.get("/metrics")
+    async def get_metrics():
+        """Prometheus-style metrics endpoint"""
+        try:
+            from core.metrics import metrics
+            from core.cache import get_all_cache_stats
+            from core.connection_pool import connection_pool
+            
+            return {
+                "metrics": metrics.get_all_metrics(),
+                "cache": get_all_cache_stats(),
+                "connection_pool": connection_pool.stats
+            }
+        except Exception as e:
+            return {"error": str(e)}
     
     return app
 

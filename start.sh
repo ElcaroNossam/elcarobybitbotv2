@@ -34,10 +34,12 @@ SCREENER_NAME="elcaro_screener"
 BOT_PID_FILE="run/bot.pid"
 WEBAPP_PID_FILE="run/webapp.pid"
 NGROK_PID_FILE="run/ngrok.pid"
+CF_TUNNEL_PID_FILE="run/cloudflared.pid"
 
 BOT_LOG="logs/bot.log"
 WEBAPP_LOG="logs/webapp.log"
 NGROK_LOG="logs/ngrok.log"
+CF_TUNNEL_LOG="logs/cloudflared.log"
 
 WEBAPP_PORT=8765
 NGROK_PORT=4040
@@ -157,6 +159,7 @@ stop_ngrok() {
 stop_all() {
     echo ""
     log "Stopping all services..."
+    stop_cloudflare
     stop_ngrok
     stop_webapp
     stop_bot
@@ -205,11 +208,79 @@ start_webapp() {
     fi
 }
 
+# Cloudflare Tunnel Configuration
+CF_TUNNEL_PID_FILE="run/cloudflare.pid"
+CF_TUNNEL_LOG="logs/cloudflare.log"
+
+stop_cloudflare() {
+    log "Stopping Cloudflare tunnel..."
+    local pid=$(get_pid "$CF_TUNNEL_PID_FILE")
+    if [ -n "$pid" ]; then
+        kill -9 "$pid" 2>/dev/null || true
+    fi
+    pkill -9 -f "cloudflared" 2>/dev/null || true
+    rm -f "$CF_TUNNEL_PID_FILE"
+    success "Cloudflare tunnel stopped"
+}
+
+start_cloudflare() {
+    log "Starting Cloudflare tunnel..."
+    
+    if ! command -v cloudflared &>/dev/null; then
+        warn "cloudflared not installed, trying ngrok..."
+        start_ngrok
+        return $?
+    fi
+    
+    # Start cloudflared quick tunnel
+    nohup cloudflared tunnel --url http://localhost:$WEBAPP_PORT > "$CF_TUNNEL_LOG" 2>&1 &
+    echo $! > "$CF_TUNNEL_PID_FILE"
+    sleep 5
+    
+    # Get tunnel URL from log
+    local cf_url=""
+    for i in {1..10}; do
+        cf_url=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$CF_TUNNEL_LOG" 2>/dev/null | head -1 || echo "")
+        if [ -n "$cf_url" ]; then
+            break
+        fi
+        sleep 1
+    done
+    
+    if [ -n "$cf_url" ]; then
+        success "Cloudflare tunnel → $cf_url"
+        echo "$cf_url" > run/ngrok_url.txt
+        
+        # Update .env with new URL
+        update_env_webapp_url "$cf_url"
+        return 0
+    else
+        warn "Cloudflare failed, trying ngrok..."
+        stop_cloudflare
+        start_ngrok
+        return $?
+    fi
+}
+
+update_env_webapp_url() {
+    local url=$1
+    
+    # Update or add WEBAPP_URL in .env
+    if grep -q "^WEBAPP_URL=" .env 2>/dev/null; then
+        sed -i "s|^WEBAPP_URL=.*|WEBAPP_URL=$url|" .env
+    else
+        echo "WEBAPP_URL=$url" >> .env
+    fi
+    
+    log "Updated .env with WEBAPP_URL=$url"
+}
+
 start_ngrok() {
     log "Starting ngrok tunnel..."
     
     if ! command -v ngrok &>/dev/null; then
-        warn "ngrok not installed, skipping..."
+        warn "ngrok not installed, skipping tunnel..."
+        echo "http://localhost:$WEBAPP_PORT" > run/ngrok_url.txt
         return 0
     fi
     
@@ -223,8 +294,12 @@ start_ngrok() {
     if [ -n "$ngrok_url" ]; then
         success "ngrok tunnel → $ngrok_url"
         echo "$ngrok_url" > run/ngrok_url.txt
+        
+        # Update .env with new URL
+        update_env_webapp_url "$ngrok_url"
     else
         warn "ngrok started but could not get URL"
+        echo "http://localhost:$WEBAPP_PORT" > run/ngrok_url.txt
     fi
 }
 
@@ -251,11 +326,18 @@ show_status() {
         echo -e "${RED}○ WebApp${NC}     Stopped"
     fi
     
-    # ngrok
-    if [ -f "run/ngrok_url.txt" ] && get_pid "$NGROK_PID_FILE" >/dev/null; then
-        echo -e "${GREEN}● ngrok${NC}      $(cat run/ngrok_url.txt)"
+    # Tunnel (Cloudflare or ngrok)
+    if [ -f "run/ngrok_url.txt" ]; then
+        local tunnel_url=$(cat run/ngrok_url.txt)
+        if get_pid "$CF_TUNNEL_PID_FILE" >/dev/null; then
+            echo -e "${GREEN}● Cloudflare${NC} $tunnel_url"
+        elif get_pid "$NGROK_PID_FILE" >/dev/null; then
+            echo -e "${GREEN}● ngrok${NC}      $tunnel_url"
+        else
+            echo -e "${YELLOW}○ Tunnel${NC}     Not running"
+        fi
     else
-        echo -e "${YELLOW}○ ngrok${NC}      Not running"
+        echo -e "${YELLOW}○ Tunnel${NC}     Not running"
     fi
     
     echo -e "─────────────────────────────────────────"
@@ -467,7 +549,9 @@ else
     if [ "$DAEMON" = true ]; then
         start_bot "true"
         start_webapp "true"
-        start_ngrok
+        
+        # Start tunnel (tries Cloudflare first, falls back to ngrok)
+        start_cloudflare
         
         echo ""
         echo -e "─────────────────────────────────────────"

@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Backtester - ElCaro Trading</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --bg-card: rgba(20, 20, 30, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-cyan: #06b6d4;
+            --border-color: rgba(255,255,255,0.08);
+            --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 1000;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-purple);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--accent-purple);
+        }
+        
+        /* Main Container */
+        .main-container {
+            display: flex;
+            padding-top: 70px;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            height: calc(100vh - 70px);
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+        
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        
+        /* Strategy Cards */
+        .strategy-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .strategy-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .strategy-card:hover {
+            border-color: var(--accent-purple);
+            transform: translateX(5px);
+        }
+        
+        .strategy-card.selected {
+            border-color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.1);
+        }
+        
+        .strategy-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .strategy-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .strategy-info p {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        .strategy-checkbox {
+            margin-left: auto;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-purple);
+        }
+        
+        .strategy-card.selected .strategy-checkbox {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            color: white;
+        }
+        
+        /* Content Area */
+        .content {
+            flex: 1;
+            margin-left: 320px;
+            padding: 30px;
+        }
+        
+        /* Config Panel */
+        .config-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .config-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input, .form-group select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-purple);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent-purple);
+        }
+        
+        .btn-success {
+            background: var(--gradient-green);
+            color: white;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        /* Results Panel */
+        .results-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .value.positive { color: var(--accent-green); }
+        .stat-card .value.negative { color: var(--accent-red); }
+        .stat-card .value.neutral { color: var(--accent-blue); }
+        
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
+            margin-bottom: 25px;
+        }
+        
+        /* Trades Table */
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .trades-table th, .trades-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .trades-table th {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .trades-table td {
+            font-size: 13px;
+        }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .badge-long {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+        
+        .badge-short {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+        
+        /* Monte Carlo Panel */
+        .monte-carlo-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .mc-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .mc-stat {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 15px;
+        }
+        
+        .mc-stat h4 {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        
+        .mc-stat .main-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .mc-stat .sub-value {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: var(--bg-tertiary);
+            padding: 5px;
+            border-radius: 12px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            background: var(--accent-purple);
+            color: white;
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Comparison Grid */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .comparison-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .comparison-card h4 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .comparison-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .comparison-stat {
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .comparison-stat .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .comparison-stat .label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { width: 280px; }
+            .content { margin-left: 280px; }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .content { margin-left: 0; }
+            .nav-links { display: none; }
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/backtest-advanced.css">
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <!-- Signal Notifications Container -->
+    <div id="signalNotifications"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+            <span class="logo-text">ElCaro</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/terminal">Terminal</a>
+            <a href="/strategies">Strategies</a>
+            <a href="/backtest" class="active">Backtester</a>
+            <a href="/marketplace">Marketplace</a>
+        </nav>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="connection-badge" style="padding: 6px 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <span class="status-dot" id="wsLiveStatus" style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
+                <span id="wsLiveStatusText">Offline</span>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Running backtest...</p>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- Sidebar - Strategy Selection -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Core Strategies</h3>
+                <div class="strategy-grid" id="coreStrategies"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Advanced Strategies</h3>
+                <div class="strategy-grid" id="advancedStrategies"></div>
+            </div>
+            
+            <div class="sidebar-section">
+                <button class="btn btn-secondary" style="width: 100%;" onclick="selectAllStrategies()">
+                    <i class="fas fa-check-double"></i> Select All
+                </button>
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Mode Toggle -->
+            <div class="mode-toggle">
+                <button class="mode-btn active" onclick="setMode('backtest')" id="backtestModeBtn">
+                    <i class="fas fa-history"></i> Backtest
+                </button>
+                <button class="mode-btn" onclick="setMode('replay')" id="replayModeBtn">
+                    <i class="fas fa-play-circle"></i> Replay
+                </button>
+                <button class="mode-btn" onclick="setMode('live')" id="liveModeBtn">
+                    <span class="live-dot" style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                    Live Mode
+                </button>
+            </div>
+
+            <!-- Configuration Panel -->
+            <div class="config-panel">
+                <div class="config-header">
+                    <h2><i class="fas fa-cog"></i> Backtest Configuration</h2>
+                </div>
+                <div class="config-grid">
+                    <div class="form-group">
+                        <label>Strategy (for Live/Replay)</label>
+                        <select id="liveStrategy">
+                            <option value="elcaro">ElCaro</option>
+                            <option value="rsibboi">RSI+BB+OI</option>
+                            <option value="wyckoff">Wyckoff/SMC</option>
+                            <option value="scryptomera">Scryptomera</option>
+                            <option value="scalper">Scalper</option>
+                            <option value="trend_following">Trend Following</option>
+                            <option value="mean_reversion">Mean Reversion</option>
+                            <option value="breakout">Breakout</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Symbol</label>
+                        <select id="symbol">
+                            <option value="BTCUSDT">BTC/USDT</option>
+                            <option value="ETHUSDT">ETH/USDT</option>
+                            <option value="SOLUSDT">SOL/USDT</option>
+                            <option value="XRPUSDT">XRP/USDT</option>
+                            <option value="DOGEUSDT">DOGE/USDT</option>
+                            <option value="BNBUSDT">BNB/USDT</option>
+                            <option value="ADAUSDT">ADA/USDT</option>
+                            <option value="AVAXUSDT">AVAX/USDT</option>
+                            <option value="LINKUSDT">LINK/USDT</option>
+                            <option value="DOTUSDT">DOT/USDT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Timeframe</label>
+                        <select id="timeframe">
+                            <option value="1m">1 Minute</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="15m">15 Minutes</option>
+                            <option value="1h" selected>1 Hour</option>
+                            <option value="4h">4 Hours</option>
+                            <option value="1d">1 Day</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Period (Days)</label>
+                        <input type="number" id="days" value="30" min="1" max="365">
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Balance ($)</label>
+                        <input type="number" id="initialBalance" value="10000" min="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Risk per Trade (%)</label>
+                        <input type="number" id="riskPerTrade" value="1" min="0.1" max="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Stop Loss (%)</label>
+                        <input type="number" id="stopLoss" value="2" min="0.5" max="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Take Profit (%)</label>
+                        <input type="number" id="takeProfit" value="4" min="0.5" max="20" step="0.1">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="runBacktest()" id="btnRunBacktest">
+                        <i class="fas fa-play"></i> Run Backtest
+                    </button>
+                    <button class="btn btn-secondary" onclick="runMonteCarloSimulation()">
+                        <i class="fas fa-dice"></i> Monte Carlo
+                    </button>
+                    <button class="btn btn-secondary" onclick="runOptimization()">
+                        <i class="fas fa-sliders-h"></i> Optimize
+                    </button>
+                    <button class="btn btn-secondary" onclick="runQuickBacktest()">
+                        <i class="fas fa-bolt"></i> Quick Compare
+                    </button>
+                    <button class="btn btn-live" onclick="startLiveMode()" id="btnStartLive" style="display: none;">
+                        <span class="live-dot"></span> Start Live
+                    </button>
+                    <button class="btn btn-secondary" onclick="stopLiveMode()" id="btnStopLive" style="display: none;">
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                    <button class="btn btn-primary" onclick="startReplayMode()" id="btnStartReplay" style="display: none;">
+                        <i class="fas fa-play"></i> Start Replay
+                    </button>
+                </div>
+            </div>
+
+            <!-- Replay Controls (for replay mode) -->
+            <div class="replay-controls" id="replayControls" style="display: none;">
+                <button class="replay-btn" onclick="strategyReplay.pause()">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="replay-btn primary" onclick="strategyReplay.play()">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="replay-progress" id="replayProgress">
+                    <div class="replay-progress-fill"></div>
+                </div>
+                <span class="replay-time" id="replayTime">0%</span>
+                <div class="speed-controls">
+                    <button class="speed-btn" data-speed="0.5" onclick="setReplaySpeed(0.5)">0.5x</button>
+                    <button class="speed-btn active" data-speed="1" onclick="setReplaySpeed(1)">1x</button>
+                    <button class="speed-btn" data-speed="2" onclick="setReplaySpeed(2)">2x</button>
+                    <button class="speed-btn" data-speed="5" onclick="setReplaySpeed(5)">5x</button>
+                </div>
+            </div>
+
+            <!-- Live Mode Panel -->
+            <div class="live-panel" id="livePanel" style="display: none;">
+                <div class="live-header">
+                    <h2>
+                        <span class="pulse" id="livePulse"></span>
+                        Live Strategy Execution
+                    </h2>
+                    <span class="live-status running" id="liveStatus">Running</span>
+                </div>
+                <div class="live-content">
+                    <!-- Chart Area -->
+                    <div>
+                        <div class="live-chart-container" id="liveChartContainer">
+                            <div class="live-chart-overlay">
+                                <div class="chart-info-badge">
+                                    <span class="symbol" id="liveSymbol">BTCUSDT</span>
+                                    <span class="price-up" id="liveCurrentPrice">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Live Trades Table -->
+                        <div class="live-trades-panel" style="margin-top: 15px;">
+                            <div class="trades-header">
+                                <h4>Recent Trades</h4>
+                            </div>
+                            <table class="live-trades-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Dir</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>PnL</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="liveTradesTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Sidebar -->
+                    <div class="live-sidebar">
+                        <!-- Stats -->
+                        <div class="live-stats-grid">
+                            <div class="live-stat-card">
+                                <div class="value" id="liveEquity">$10,000</div>
+                                <div class="label">Equity</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="value positive" id="livePnL">$0.00</div>
+                                <div class="label">Total P&L</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="value" id="liveTotalTrades">0</div>
+                                <div class="label">Trades</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="value" id="liveWinRate">0%</div>
+                                <div class="label">Win Rate</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="value" id="liveProfitFactor">0.00</div>
+                                <div class="label">Profit Factor</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="value" id="liveProgress">0%</div>
+                                <div class="label">Progress</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Indicators -->
+                        <div class="live-indicators-panel">
+                            <h4>Live Indicators</h4>
+                            <div id="liveIndicators"></div>
+                        </div>
+                        
+                        <!-- Patterns -->
+                        <div class="live-patterns-panel">
+                            <h4>Detected Patterns</h4>
+                            <div id="livePatterns">
+                                <div style="color: var(--text-muted); font-size: 12px; padding: 10px;">Waiting for patterns...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sentiment Gauge -->
+                        <div class="sentiment-gauge" id="sentimentGauge">
+                            <h4>Market Sentiment</h4>
+                            <div class="gauge-container">
+                                <div class="gauge-bg"></div>
+                                <div class="gauge-needle"></div>
+                            </div>
+                            <div class="gauge-value neutral">0</div>
+                        </div>
+                        
+                        <!-- Signals List -->
+                        <div class="live-signals-panel">
+                            <div class="signals-header">
+                                <h4>Signals</h4>
+                            </div>
+                            <div id="liveSignalsList">
+                                <div style="color: var(--text-muted); font-size: 12px; padding: 15px; text-align: center;">
+                                    Waiting for signals...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="results-panel" id="resultsPanel" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-chart-bar"></i> Backtest Results</h2>
+                    <div class="tabs">
+                        <div class="tab active" onclick="showTab('overview')">Overview</div>
+                        <div class="tab" onclick="showTab('trades')">Trades</div>
+                        <div class="tab" onclick="showTab('comparison')">Comparison</div>
+                    </div>
+                </div>
+                
+                <!-- Overview Tab -->
+                <div id="overviewTab">
+                    <div class="stats-grid" id="statsGrid"></div>
+                    <div class="chart-container">
+                        <canvas id="equityChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Trades Tab -->
+                <div id="tradesTab" style="display: none;">
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table class="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Entry Time</th>
+                                    <th>Exit Time</th>
+                                    <th>Symbol</th>
+                                    <th>Direction</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>PnL</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Comparison Tab -->
+                <div id="comparisonTab" style="display: none;">
+                    <div class="comparison-grid" id="comparisonGrid"></div>
+                </div>
+            </div>
+            
+            <!-- Monte Carlo Panel -->
+            <div class="monte-carlo-panel" id="monteCarloPanel" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-dice"></i> Monte Carlo Simulation</h2>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Risk analysis based on 1000 simulations with randomized trade order.
+                </p>
+                <div class="mc-stats" id="mcStats"></div>
+                <div class="chart-container" style="height: 300px; margin-top: 20px;">
+                    <canvas id="mcChart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        let strategies = [];
+        let selectedStrategies = new Set();
+        let equityChart = null;
+        let mcChart = null;
+        
+        // Load strategies on page load
+        document.addEventListener('DOMContentLoaded', loadStrategies);
+        
+        async function loadStrategies() {
+            try {
+                const res = await fetch('/api/backtest/strategies');
+                const data = await res.json();
+                strategies = data.strategies || [];
+                
+                const coreContainer = document.getElementById('coreStrategies');
+                const advancedContainer = document.getElementById('advancedStrategies');
+                
+                strategies.forEach(s => {
+                    const card = createStrategyCard(s);
+                    if (s.category === 'advanced') {
+                        advancedContainer.appendChild(card);
+                    } else {
+                        coreContainer.appendChild(card);
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to load strategies:', e);
+            }
+        }
+        
+        function createStrategyCard(strategy) {
+            const card = document.createElement('div');
+            card.className = 'strategy-card';
+            card.dataset.id = strategy.id;
+            card.innerHTML = `
+                <div class="strategy-icon" style="background: ${strategy.color}20; color: ${strategy.color}">
+                    ${strategy.icon}
+                </div>
+                <div class="strategy-info">
+                    <h4>${strategy.name}</h4>
+                    <p>${strategy.description.substring(0, 40)}...</p>
+                </div>
+                <div class="strategy-checkbox">
+                    <i class="fas fa-check"></i>
+                </div>
+            `;
+            card.onclick = () => toggleStrategy(strategy.id, card);
+            return card;
+        }
+        
+        function toggleStrategy(id, card) {
+            if (selectedStrategies.has(id)) {
+                selectedStrategies.delete(id);
+                card.classList.remove('selected');
+            } else {
+                selectedStrategies.add(id);
+                card.classList.add('selected');
+            }
+        }
+        
+        function selectAllStrategies() {
+            document.querySelectorAll('.strategy-card').forEach(card => {
+                const id = card.dataset.id;
+                selectedStrategies.add(id);
+                card.classList.add('selected');
+            });
+        }
+        
+        function clearSelection() {
+            selectedStrategies.clear();
+            document.querySelectorAll('.strategy-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+        }
+        
+        function getConfig() {
+            return {
+                symbol: document.getElementById('symbol').value,
+                timeframe: document.getElementById('timeframe').value,
+                days: parseInt(document.getElementById('days').value),
+                initial_balance: parseFloat(document.getElementById('initialBalance').value),
+                risk_per_trade: parseFloat(document.getElementById('riskPerTrade').value),
+                stop_loss_percent: parseFloat(document.getElementById('stopLoss').value),
+                take_profit_percent: parseFloat(document.getElementById('takeProfit').value)
+            };
+        }
+        
+        async function runBacktest() {
+            if (selectedStrategies.size === 0) {
+                alert('Please select at least one strategy');
+                return;
+            }
+            
+            const config = getConfig();
+            config.strategies = Array.from(selectedStrategies);
+            
+            showLoading(true);
+            
+            try {
+                const res = await fetch('/api/backtest/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    displayResults(data.results);
+                } else {
+                    alert('Backtest failed: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function runQuickBacktest() {
+            const config = getConfig();
+            
+            showLoading(true);
+            
+            try {
+                const res = await fetch(`/api/backtest/quick?symbol=${config.symbol}&timeframe=${config.timeframe}&days=${config.days}`, {
+                    method: 'POST'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    displayQuickComparison(data.summary);
+                } else {
+                    alert('Quick backtest failed: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function runMonteCarloSimulation() {
+            if (selectedStrategies.size !== 1) {
+                alert('Please select exactly one strategy for Monte Carlo simulation');
+                return;
+            }
+            
+            const config = getConfig();
+            config.strategy = Array.from(selectedStrategies)[0];
+            config.n_simulations = 1000;
+            config.confidence_level = 0.95;
+            
+            showLoading(true);
+            document.querySelector('.loading-content p').textContent = 'Running 1000 simulations...';
+            
+            try {
+                const res = await fetch('/api/backtest/monte-carlo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    displayMonteCarloResults(data);
+                } else {
+                    alert('Monte Carlo failed: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                showLoading(false);
+                document.querySelector('.loading-content p').textContent = 'Running backtest...';
+            }
+        }
+        
+        async function runOptimization() {
+            if (selectedStrategies.size !== 1) {
+                alert('Please select exactly one strategy for optimization');
+                return;
+            }
+            
+            const config = getConfig();
+            config.strategy = Array.from(selectedStrategies)[0];
+            
+            showLoading(true);
+            document.querySelector('.loading-content p').textContent = 'Optimizing parameters...';
+            
+            try {
+                const res = await fetch('/api/backtest/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    displayOptimizationResults(data);
+                } else {
+                    alert('Optimization failed: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                showLoading(false);
+                document.querySelector('.loading-content p').textContent = 'Running backtest...';
+            }
+        }
+        
+        function displayResults(results) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('monteCarloPanel').style.display = 'none';
+            
+            // Get first result for stats display
+            const strategyNames = Object.keys(results);
+            if (strategyNames.length === 0) return;
+            
+            const firstResult = results[strategyNames[0]];
+            
+            // Display stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="value neutral">${firstResult.total_trades}</div>
+                    <div class="label">Total Trades</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${firstResult.win_rate >= 50 ? 'positive' : 'negative'}">${firstResult.win_rate.toFixed(1)}%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${firstResult.total_pnl_percent >= 0 ? 'positive' : 'negative'}">${firstResult.total_pnl_percent >= 0 ? '+' : ''}${firstResult.total_pnl_percent.toFixed(2)}%</div>
+                    <div class="label">Total P&L</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${firstResult.profit_factor >= 1.5 ? 'positive' : 'neutral'}">${firstResult.profit_factor.toFixed(2)}</div>
+                    <div class="label">Profit Factor</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value negative">-${firstResult.max_drawdown_percent.toFixed(1)}%</div>
+                    <div class="label">Max Drawdown</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${firstResult.sharpe_ratio >= 1 ? 'positive' : 'neutral'}">${firstResult.sharpe_ratio.toFixed(2)}</div>
+                    <div class="label">Sharpe Ratio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value positive">$${firstResult.final_balance.toFixed(2)}</div>
+                    <div class="label">Final Balance</div>
+                </div>
+            `;
+            
+            // Draw equity chart
+            drawEquityChart(results);
+            
+            // Populate trades table
+            const tbody = document.getElementById('tradesTableBody');
+            tbody.innerHTML = '';
+            firstResult.trades.forEach(trade => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(trade.entry_time).toLocaleString()}</td>
+                    <td>${new Date(trade.exit_time).toLocaleString()}</td>
+                    <td>${trade.symbol}</td>
+                    <td><span class="badge badge-${trade.direction.toLowerCase()}">${trade.direction}</span></td>
+                    <td>$${trade.entry_price.toFixed(2)}</td>
+                    <td>$${trade.exit_price.toFixed(2)}</td>
+                    <td style="color: ${trade.pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                        ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)} (${trade.pnl_percent >= 0 ? '+' : ''}${trade.pnl_percent.toFixed(2)}%)
+                    </td>
+                    <td>${trade.reason}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Populate comparison
+            displayComparison(results);
+            
+            showTab('overview');
+        }
+        
+        function displayComparison(results) {
+            const grid = document.getElementById('comparisonGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(results).forEach(([name, result]) => {
+                const strategy = strategies.find(s => s.id === name) || { name, icon: '📊', color: '#8b5cf6' };
+                
+                const card = document.createElement('div');
+                card.className = 'comparison-card';
+                card.innerHTML = `
+                    <h4>
+                        <span style="font-size: 24px;">${strategy.icon}</span>
+                        ${strategy.name}
+                    </h4>
+                    <div class="comparison-stats">
+                        <div class="comparison-stat">
+                            <div class="value" style="color: ${result.win_rate >= 50 ? 'var(--accent-green)' : 'var(--accent-red)'}">${result.win_rate.toFixed(1)}%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                        <div class="comparison-stat">
+                            <div class="value" style="color: ${result.total_pnl_percent >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${result.total_pnl_percent >= 0 ? '+' : ''}${result.total_pnl_percent.toFixed(1)}%</div>
+                            <div class="label">P&L</div>
+                        </div>
+                        <div class="comparison-stat">
+                            <div class="value">${result.total_trades}</div>
+                            <div class="label">Trades</div>
+                        </div>
+                        <div class="comparison-stat">
+                            <div class="value">${result.profit_factor.toFixed(2)}</div>
+                            <div class="label">Profit Factor</div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function displayQuickComparison(summary) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('monteCarloPanel').style.display = 'none';
+            
+            // Convert summary to results format
+            const results = {};
+            Object.entries(summary).forEach(([name, data]) => {
+                results[name] = {
+                    total_trades: data.trades,
+                    win_rate: data.win_rate,
+                    total_pnl_percent: data.pnl_percent,
+                    profit_factor: data.profit_factor,
+                    max_drawdown_percent: data.max_drawdown,
+                    sharpe_ratio: data.sharpe_ratio,
+                    final_balance: 10000 * (1 + data.pnl_percent / 100),
+                    trades: [],
+                    equity_curve: []
+                };
+            });
+            
+            displayComparison(results);
+            showTab('comparison');
+        }
+        
+        function displayMonteCarloResults(data) {
+            document.getElementById('monteCarloPanel').style.display = 'block';
+            document.getElementById('resultsPanel').style.display = 'none';
+            
+            const mc = data.monte_carlo;
+            const statsContainer = document.getElementById('mcStats');
+            
+            statsContainer.innerHTML = `
+                <div class="mc-stat">
+                    <h4>Probability of Profit</h4>
+                    <div class="main-value" style="color: var(--accent-green)">${mc.probability_of_profit.toFixed(1)}%</div>
+                    <div class="sub-value">Chance to end profitable</div>
+                </div>
+                <div class="mc-stat">
+                    <h4>Expected Final Balance</h4>
+                    <div class="main-value">$${mc.final_balance.median.toFixed(2)}</div>
+                    <div class="sub-value">Median outcome</div>
+                </div>
+                <div class="mc-stat">
+                    <h4>95% Confidence Range</h4>
+                    <div class="main-value">$${mc.final_balance.percentile_5.toFixed(0)} - $${mc.final_balance.percentile_95.toFixed(0)}</div>
+                    <div class="sub-value">5th to 95th percentile</div>
+                </div>
+                <div class="mc-stat">
+                    <h4>Value at Risk (VaR 95%)</h4>
+                    <div class="main-value" style="color: var(--accent-red)">$${mc.var.value.toFixed(2)}</div>
+                    <div class="sub-value">${mc.var.percent.toFixed(1)}% of capital</div>
+                </div>
+                <div class="mc-stat">
+                    <h4>Max Drawdown (Median)</h4>
+                    <div class="main-value" style="color: var(--accent-yellow)">${mc.max_drawdown.median.toFixed(1)}%</div>
+                    <div class="sub-value">Worst: ${mc.max_drawdown.worst_case.toFixed(1)}%</div>
+                </div>
+                <div class="mc-stat">
+                    <h4>Risk of Ruin</h4>
+                    <div class="main-value" style="color: ${mc.probability_of_ruin < 5 ? 'var(--accent-green)' : 'var(--accent-red)'}">${mc.probability_of_ruin.toFixed(2)}%</div>
+                    <div class="sub-value">Chance to lose 50%+ of capital</div>
+                </div>
+            `;
+            
+            // Draw distribution chart
+            drawMCChart(data.distribution.balances_histogram);
+        }
+        
+        function displayOptimizationResults(data) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            document.getElementById('monteCarloPanel').style.display = 'none';
+            
+            const statsGrid = document.getElementById('statsGrid');
+            const best = data.best_result;
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card" style="grid-column: span 2; background: rgba(139, 92, 246, 0.1); border: 1px solid var(--accent-purple);">
+                    <div style="font-size: 14px; color: var(--accent-purple); margin-bottom: 10px;">🏆 Optimal Parameters</div>
+                    <div style="display: flex; gap: 30px; justify-content: center;">
+                        <div>
+                            <div class="value" style="font-size: 18px;">SL: ${best.params.stop_loss_percent}%</div>
+                        </div>
+                        <div>
+                            <div class="value" style="font-size: 18px;">TP: ${best.params.take_profit_percent}%</div>
+                        </div>
+                        <div>
+                            <div class="value" style="font-size: 18px;">Risk: ${best.params.risk_per_trade}%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${best.win_rate >= 50 ? 'positive' : 'negative'}">${best.win_rate.toFixed(1)}%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value ${best.total_pnl_percent >= 0 ? 'positive' : 'negative'}">${best.total_pnl_percent >= 0 ? '+' : ''}${best.total_pnl_percent.toFixed(2)}%</div>
+                    <div class="label">Total P&L</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value positive">${best.sharpe_ratio.toFixed(2)}</div>
+                    <div class="label">Sharpe Ratio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value neutral">${data.total_combinations}</div>
+                    <div class="label">Combinations Tested</div>
+                </div>
+            `;
+            
+            // Show top 10 results in comparison
+            const grid = document.getElementById('comparisonGrid');
+            grid.innerHTML = '<h3 style="grid-column: 1/-1; margin-bottom: 10px;">Top 10 Parameter Sets</h3>';
+            
+            data.top_10_results.forEach((result, idx) => {
+                const card = document.createElement('div');
+                card.className = 'comparison-card';
+                card.innerHTML = `
+                    <h4>#${idx + 1}: SL ${result.params.stop_loss_percent}% / TP ${result.params.take_profit_percent}%</h4>
+                    <div class="comparison-stats">
+                        <div class="comparison-stat">
+                            <div class="value">${result.sharpe_ratio.toFixed(2)}</div>
+                            <div class="label">Sharpe</div>
+                        </div>
+                        <div class="comparison-stat">
+                            <div class="value">${result.total_pnl_percent.toFixed(1)}%</div>
+                            <div class="label">P&L</div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            showTab('comparison');
+        }
+        
+        function drawEquityChart(results) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            
+            if (equityChart) equityChart.destroy();
+            
+            const datasets = [];
+            const colors = ['#8b5cf6', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+            
+            let colorIdx = 0;
+            Object.entries(results).forEach(([name, result]) => {
+                if (result.equity_curve && result.equity_curve.length > 0) {
+                    datasets.push({
+                        label: name,
+                        data: result.equity_curve.map(p => ({ x: p.time, y: p.equity })),
+                        borderColor: colors[colorIdx % colors.length],
+                        backgroundColor: 'transparent',
+                        tension: 0.1,
+                        pointRadius: 0
+                    });
+                    colorIdx++;
+                }
+            });
+            
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'top',
+                            labels: { color: '#a0a0b0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'category',
+                            ticks: { color: '#606070', maxTicksLimit: 10 },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            ticks: { color: '#606070' },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function drawMCChart(histogram) {
+            const ctx = document.getElementById('mcChart').getContext('2d');
+            
+            if (mcChart) mcChart.destroy();
+            
+            mcChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: histogram.map(h => `$${h.start.toFixed(0)}`),
+                    datasets: [{
+                        label: 'Frequency',
+                        data: histogram.map(h => h.percent),
+                        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { 
+                            display: true, 
+                            text: 'Final Balance Distribution',
+                            color: '#fff'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#606070' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#606070',
+                                callback: v => v + '%'
+                            },
+                            grid: { color: 'rgba(255,255,255,0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function showTab(tabName) {
+            // Hide all tabs
+            document.getElementById('overviewTab').style.display = 'none';
+            document.getElementById('tradesTab').style.display = 'none';
+            document.getElementById('comparisonTab').style.display = 'none';
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('active', show);
+        }
+
+        // ============== MODE SWITCHING ==============
+        let currentMode = 'backtest';
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Update mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode + 'ModeBtn')?.classList.add('active');
+            
+            // Hide all panels
+            document.getElementById('resultsPanel').style.display = 'none';
+            document.getElementById('monteCarloPanel').style.display = 'none';
+            document.getElementById('livePanel').style.display = 'none';
+            document.getElementById('replayControls').style.display = 'none';
+            
+            // Update buttons visibility
+            document.getElementById('btnRunBacktest').style.display = mode === 'backtest' ? 'inline-flex' : 'none';
+            document.getElementById('btnStartLive').style.display = mode === 'live' ? 'inline-flex' : 'none';
+            document.getElementById('btnStopLive').style.display = 'none';
+            document.getElementById('btnStartReplay').style.display = mode === 'replay' ? 'inline-flex' : 'none';
+            
+            // Show Monte Carlo and Optimize buttons only in backtest mode
+            document.querySelectorAll('.btn-group .btn-secondary').forEach(btn => {
+                if (btn.textContent.includes('Monte Carlo') || 
+                    btn.textContent.includes('Optimize') || 
+                    btn.textContent.includes('Quick Compare')) {
+                    btn.style.display = mode === 'backtest' ? 'inline-flex' : 'none';
+                }
+            });
+            
+            // Update live symbol display
+            if (mode === 'live' || mode === 'replay') {
+                document.getElementById('liveSymbol').textContent = document.getElementById('symbol').value;
+            }
+        }
+
+        // WebSocket status update
+        function updateWsStatus(connected) {
+            const dot = document.getElementById('wsLiveStatus');
+            const text = document.getElementById('wsLiveStatusText');
+            if (connected) {
+                dot.style.background = '#22c55e';
+                text.textContent = 'Connected';
+            } else {
+                dot.style.background = '#ef4444';
+                text.textContent = 'Offline';
+            }
+        }
+
+        // Override live mode functions to work with the panel
+        const origStartLive = typeof startLiveMode === 'function' ? startLiveMode : function() {};
+        const origStopLive = typeof stopLiveMode === 'function' ? stopLiveMode : function() {};
+
+        window.startLiveMode = function() {
+            document.getElementById('livePanel').style.display = 'block';
+            document.getElementById('livePulse')?.classList.add('active');
+            document.getElementById('btnStartLive').style.display = 'none';
+            document.getElementById('btnStopLive').style.display = 'inline-flex';
+            
+            // Update live symbol
+            document.getElementById('liveSymbol').textContent = document.getElementById('symbol').value;
+            
+            // Call the real function if available
+            if (typeof backtestAdvanced !== 'undefined') {
+                const config = {
+                    strategy: document.getElementById('liveStrategy')?.value || 'elcaro',
+                    symbol: document.getElementById('symbol')?.value || 'BTCUSDT',
+                    timeframe: document.getElementById('timeframe')?.value || '1h',
+                    params: {
+                        stop_loss_percent: parseFloat(document.getElementById('stopLoss')?.value || 2),
+                        take_profit_percent: parseFloat(document.getElementById('takeProfit')?.value || 4),
+                        risk_per_trade: parseFloat(document.getElementById('riskPerTrade')?.value || 1),
+                    },
+                    initial_balance: parseFloat(document.getElementById('initialBalance')?.value || 10000)
+                };
+                backtestAdvanced.startLiveSession(config);
+            }
+        };
+
+        window.stopLiveMode = function() {
+            document.getElementById('livePulse')?.classList.remove('active');
+            document.getElementById('btnStartLive').style.display = 'inline-flex';
+            document.getElementById('btnStopLive').style.display = 'none';
+            document.getElementById('liveStatus').textContent = 'Stopped';
+            document.getElementById('liveStatus').className = 'live-status stopped';
+            
+            if (typeof backtestAdvanced !== 'undefined') {
+                backtestAdvanced.stopLiveSession();
+            }
+        };
+
+        window.startReplayMode = async function() {
+            document.getElementById('livePanel').style.display = 'block';
+            document.getElementById('replayControls').style.display = 'flex';
+            document.getElementById('livePulse')?.classList.add('active');
+            document.getElementById('liveStatus').textContent = 'Replay';
+            document.getElementById('liveSymbol').textContent = document.getElementById('symbol').value;
+            
+            if (typeof strategyReplay !== 'undefined') {
+                const strategy = document.getElementById('liveStrategy')?.value || 'elcaro';
+                const symbol = document.getElementById('symbol')?.value || 'BTCUSDT';
+                const timeframe = document.getElementById('timeframe')?.value || '1h';
+                const days = parseInt(document.getElementById('days')?.value || 30);
+                
+                showLoading(true);
+                const loaded = await strategyReplay.load(strategy, symbol, timeframe, days);
+                showLoading(false);
+                
+                if (loaded) {
+                    strategyReplay.play();
+                } else {
+                    alert('Failed to load replay data');
+                }
+            }
+        };
+    </script>
+    <script src="/static/js/backtest-advanced.js"></script>
+</body>
+</html>

@@ -54,15 +54,24 @@ class RealBacktestEngine:
     
     def __init__(self):
         self.analyzers = {
+            # Core strategies
             "rsibboi": RSIBBOIAnalyzer(),
             "wyckoff": WyckoffAnalyzer(),
             "elcaro": ElCaroAnalyzer(),
             "scryptomera": ScryptomeraAnalyzer(),
-            "scalper": ScalperAnalyzer()
+            "scalper": ScalperAnalyzer(),
+            # Advanced strategies
+            "mean_reversion": MeanReversionAnalyzer(),
+            "trend_following": TrendFollowingAnalyzer(),
+            "breakout": BreakoutAnalyzer(),
+            "dca": DCAAnalyzer(),
+            "grid": GridAnalyzer(),
+            "momentum": MomentumAnalyzer(),
+            "volatility_breakout": VolatilityBreakoutAnalyzer(),
         }
     
     async def fetch_historical_data(self, symbol: str, timeframe: str, days: int) -> List[Dict]:
-        """Fetch OHLCV data from Binance with caching"""
+        """Fetch OHLCV data from Binance with caching - UNLIMITED data via pagination"""
         cache_key = f"{symbol}_{timeframe}_{days}"
         now = datetime.now().timestamp()
         
@@ -75,17 +84,28 @@ class RealBacktestEngine:
         tf_map = {"1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1d"}
         interval = tf_map.get(timeframe, "1h")
         
-        # Calculate limit based on timeframe
+        # Calculate total candles needed
         candles_per_day = {"1m": 1440, "5m": 288, "15m": 96, "1h": 24, "4h": 6, "1d": 1}
-        limit = min(days * candles_per_day.get(interval, 24), 1000)
+        total_candles_needed = days * candles_per_day.get(interval, 24)
         
-        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+        # Binance API limit is 1000, so we paginate
+        all_candles = []
+        end_time = int(datetime.now().timestamp() * 1000)
         
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
+            while len(all_candles) < total_candles_needed:
+                limit = min(1000, total_candles_needed - len(all_candles))
+                url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}&endTime={end_time}"
+                
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        break
+                    
                     data = await resp.json()
-                    candles = [
+                    if not data:
+                        break
+                    
+                    batch = [
                         {
                             "time": datetime.fromtimestamp(k[0] / 1000).isoformat(),
                             "timestamp": k[0],
@@ -97,10 +117,21 @@ class RealBacktestEngine:
                         }
                         for k in data
                     ]
-                    # Cache the data
-                    _data_cache[cache_key] = (candles, now)
-                    return candles
-                return []
+                    
+                    all_candles = batch + all_candles  # Prepend older candles
+                    
+                    # Set end_time for next batch (1ms before oldest candle)
+                    end_time = data[0][0] - 1
+                    
+                    # Safety: avoid infinite loop
+                    if len(data) < limit:
+                        break
+        
+        # Cache the data
+        if all_candles:
+            _data_cache[cache_key] = (all_candles, now)
+        
+        return all_candles
     
     def get_custom_strategy_analyzer(self, strategy_id: int) -> Optional["CustomStrategyAnalyzer"]:
         """Load a custom strategy from database and create analyzer"""
@@ -614,6 +645,218 @@ class RealBacktestEngine:
         std = math.sqrt(sum((r - mean) ** 2 for r in returns) / len(returns))
         return (mean / std) * math.sqrt(252) if std > 0 else 0
     
+    async def run_monte_carlo_simulation(
+        self,
+        strategy: str,
+        symbol: str,
+        timeframe: str,
+        days: int,
+        initial_balance: float = 10000,
+        risk_per_trade: float = 1.0,
+        stop_loss_percent: float = 2.0,
+        take_profit_percent: float = 4.0,
+        n_simulations: int = 1000,
+        confidence_level: float = 0.95
+    ) -> Dict[str, Any]:
+        """
+        Monte Carlo simulation to estimate strategy risk and expected outcomes.
+        Randomly shuffles trade order to see distribution of possible results.
+        """
+        import random
+        
+        # First run normal backtest to get trades
+        result = await self.run_backtest(
+            strategy=strategy,
+            symbol=symbol,
+            timeframe=timeframe,
+            days=days,
+            initial_balance=initial_balance,
+            risk_per_trade=risk_per_trade,
+            stop_loss_percent=stop_loss_percent,
+            take_profit_percent=take_profit_percent
+        )
+        
+        trades = result.get("trades", [])
+        if len(trades) < 10:
+            return {
+                "error": "Insufficient trades for Monte Carlo simulation (min 10)",
+                "original_result": result
+            }
+        
+        # Extract trade returns
+        trade_returns = [t["pnl_percent"] for t in trades]
+        
+        # Run simulations
+        final_balances = []
+        max_drawdowns = []
+        
+        for _ in range(n_simulations):
+            # Shuffle trade order
+            shuffled = trade_returns.copy()
+            random.shuffle(shuffled)
+            
+            # Simulate equity curve
+            equity = initial_balance
+            peak = equity
+            max_dd = 0
+            
+            for ret in shuffled:
+                equity *= (1 + ret / 100)
+                if equity > peak:
+                    peak = equity
+                dd = (peak - equity) / peak * 100
+                if dd > max_dd:
+                    max_dd = dd
+            
+            final_balances.append(equity)
+            max_drawdowns.append(max_dd)
+        
+        # Calculate statistics
+        final_balances.sort()
+        max_drawdowns.sort()
+        
+        n = len(final_balances)
+        lower_idx = int((1 - confidence_level) / 2 * n)
+        upper_idx = int((1 + confidence_level) / 2 * n)
+        
+        # VaR (Value at Risk) at confidence level
+        var_idx = int((1 - confidence_level) * n)
+        
+        return {
+            "success": True,
+            "n_simulations": n_simulations,
+            "confidence_level": confidence_level,
+            "original_result": {
+                "total_trades": result["total_trades"],
+                "win_rate": result["win_rate"],
+                "total_pnl_percent": result["total_pnl_percent"],
+                "max_drawdown": result["max_drawdown_percent"]
+            },
+            "monte_carlo": {
+                "final_balance": {
+                    "mean": sum(final_balances) / n,
+                    "median": final_balances[n // 2],
+                    "min": final_balances[0],
+                    "max": final_balances[-1],
+                    "percentile_5": final_balances[int(n * 0.05)],
+                    "percentile_25": final_balances[int(n * 0.25)],
+                    "percentile_75": final_balances[int(n * 0.75)],
+                    "percentile_95": final_balances[int(n * 0.95)],
+                    "confidence_interval": [final_balances[lower_idx], final_balances[upper_idx]]
+                },
+                "max_drawdown": {
+                    "mean": sum(max_drawdowns) / n,
+                    "median": max_drawdowns[n // 2],
+                    "worst_case": max_drawdowns[-1],
+                    "percentile_95": max_drawdowns[int(n * 0.95)]
+                },
+                "var": {
+                    "value": initial_balance - final_balances[var_idx],
+                    "percent": (initial_balance - final_balances[var_idx]) / initial_balance * 100
+                },
+                "probability_of_profit": sum(1 for b in final_balances if b > initial_balance) / n * 100,
+                "probability_of_ruin": sum(1 for b in final_balances if b < initial_balance * 0.5) / n * 100
+            },
+            "distribution": {
+                "balances_histogram": self._create_histogram(final_balances, 20),
+                "drawdown_histogram": self._create_histogram(max_drawdowns, 20)
+            }
+        }
+    
+    def _create_histogram(self, data: List[float], bins: int = 20) -> List[Dict]:
+        """Create histogram data for charting"""
+        if not data:
+            return []
+        
+        min_val = min(data)
+        max_val = max(data)
+        bin_size = (max_val - min_val) / bins if max_val > min_val else 1
+        
+        histogram = []
+        for i in range(bins):
+            bin_start = min_val + i * bin_size
+            bin_end = bin_start + bin_size
+            count = sum(1 for d in data if bin_start <= d < bin_end)
+            histogram.append({
+                "range": f"{bin_start:.2f}-{bin_end:.2f}",
+                "start": bin_start,
+                "end": bin_end,
+                "count": count,
+                "percent": count / len(data) * 100
+            })
+        
+        return histogram
+    
+    async def run_optimization(
+        self,
+        strategy: str,
+        symbol: str,
+        timeframe: str,
+        days: int,
+        initial_balance: float = 10000,
+        param_grid: Dict[str, List] = None
+    ) -> Dict[str, Any]:
+        """
+        Grid search optimization for strategy parameters.
+        Tests all combinations and finds optimal settings.
+        """
+        if not param_grid:
+            param_grid = {
+                "stop_loss_percent": [1.0, 1.5, 2.0, 2.5, 3.0],
+                "take_profit_percent": [2.0, 3.0, 4.0, 5.0, 6.0],
+                "risk_per_trade": [0.5, 1.0, 1.5, 2.0]
+            }
+        
+        results = []
+        best_result = None
+        best_sharpe = -999
+        
+        # Generate all parameter combinations
+        from itertools import product
+        param_names = list(param_grid.keys())
+        param_values = [param_grid[p] for p in param_names]
+        
+        for combo in product(*param_values):
+            params = dict(zip(param_names, combo))
+            
+            result = await self.run_backtest(
+                strategy=strategy,
+                symbol=symbol,
+                timeframe=timeframe,
+                days=days,
+                initial_balance=initial_balance,
+                risk_per_trade=params.get("risk_per_trade", 1.0),
+                stop_loss_percent=params.get("stop_loss_percent", 2.0),
+                take_profit_percent=params.get("take_profit_percent", 4.0)
+            )
+            
+            result_summary = {
+                "params": params,
+                "total_trades": result["total_trades"],
+                "win_rate": result["win_rate"],
+                "total_pnl_percent": result["total_pnl_percent"],
+                "profit_factor": result["profit_factor"],
+                "max_drawdown": result["max_drawdown_percent"],
+                "sharpe_ratio": result["sharpe_ratio"]
+            }
+            results.append(result_summary)
+            
+            if result["sharpe_ratio"] > best_sharpe:
+                best_sharpe = result["sharpe_ratio"]
+                best_result = result_summary
+        
+        # Sort by Sharpe ratio
+        results.sort(key=lambda x: x["sharpe_ratio"], reverse=True)
+        
+        return {
+            "success": True,
+            "total_combinations": len(results),
+            "best_params": best_result["params"] if best_result else None,
+            "best_result": best_result,
+            "top_10_results": results[:10],
+            "all_results": results
+        }
+    
     def _empty_result(self, initial: float) -> Dict:
         return {
             "total_trades": 0,
@@ -858,6 +1101,329 @@ class ScalperAnalyzer:
                 signals[i] = {"direction": "SHORT", "score": 60}
         
         return signals
+
+
+class MeanReversionAnalyzer:
+    """Mean Reversion Strategy - Buy oversold, sell overbought with Z-score"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        closes = [c["close"] for c in candles]
+        
+        for i in range(50, len(candles)):
+            window = closes[i-50:i+1]
+            mean = sum(window) / len(window)
+            std = math.sqrt(sum((p - mean) ** 2 for p in window) / len(window))
+            
+            if std == 0:
+                continue
+            
+            z_score = (closes[i] - mean) / std
+            
+            # Strong mean reversion signals
+            if z_score < -2.0:  # Extremely oversold
+                signals[i] = {"direction": "LONG", "score": 85}
+            elif z_score < -1.5:
+                signals[i] = {"direction": "LONG", "score": 70}
+            elif z_score > 2.0:  # Extremely overbought
+                signals[i] = {"direction": "SHORT", "score": 85}
+            elif z_score > 1.5:
+                signals[i] = {"direction": "SHORT", "score": 70}
+        
+        return signals
+
+
+class TrendFollowingAnalyzer:
+    """Trend Following Strategy - Multiple EMA crossovers with ADX filter"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        closes = [c["close"] for c in candles]
+        highs = [c["high"] for c in candles]
+        lows = [c["low"] for c in candles]
+        
+        # Calculate EMAs
+        ema_fast = self._calc_ema(closes, 12)
+        ema_mid = self._calc_ema(closes, 26)
+        ema_slow = self._calc_ema(closes, 50)
+        
+        # Calculate ADX for trend strength
+        adx = self._calc_adx(highs, lows, closes, 14)
+        
+        for i in range(55, len(candles)):
+            # Trend alignment: fast > mid > slow = bullish, fast < mid < slow = bearish
+            bullish_trend = ema_fast[i] > ema_mid[i] > ema_slow[i]
+            bearish_trend = ema_fast[i] < ema_mid[i] < ema_slow[i]
+            
+            trend_strength = adx[i] if i < len(adx) else 20
+            
+            # Only trade in strong trends
+            if trend_strength > 25:
+                if bullish_trend:
+                    # Check for pullback entry
+                    if closes[i] <= ema_fast[i] * 1.005 and closes[i] > ema_mid[i]:
+                        signals[i] = {"direction": "LONG", "score": 80 + min(trend_strength - 25, 15)}
+                elif bearish_trend:
+                    if closes[i] >= ema_fast[i] * 0.995 and closes[i] < ema_mid[i]:
+                        signals[i] = {"direction": "SHORT", "score": 80 + min(trend_strength - 25, 15)}
+        
+        return signals
+    
+    def _calc_ema(self, data: List[float], period: int) -> List[float]:
+        ema = []
+        mult = 2 / (period + 1)
+        for i in range(len(data)):
+            if i == 0:
+                ema.append(data[0])
+            elif i < period:
+                ema.append(sum(data[:i+1]) / (i+1))
+            else:
+                ema.append((data[i] - ema[-1]) * mult + ema[-1])
+        return ema
+    
+    def _calc_adx(self, highs: List[float], lows: List[float], closes: List[float], period: int) -> List[float]:
+        """Calculate ADX indicator"""
+        adx = []
+        tr_list = []
+        plus_dm_list = []
+        minus_dm_list = []
+        
+        for i in range(len(closes)):
+            if i == 0:
+                tr_list.append(highs[0] - lows[0])
+                plus_dm_list.append(0)
+                minus_dm_list.append(0)
+                adx.append(20)
+                continue
+            
+            # True Range
+            tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
+            tr_list.append(tr)
+            
+            # Directional Movement
+            up_move = highs[i] - highs[i-1]
+            down_move = lows[i-1] - lows[i]
+            
+            plus_dm = up_move if up_move > down_move and up_move > 0 else 0
+            minus_dm = down_move if down_move > up_move and down_move > 0 else 0
+            
+            plus_dm_list.append(plus_dm)
+            minus_dm_list.append(minus_dm)
+            
+            if i < period:
+                adx.append(20)
+                continue
+            
+            # Smoothed averages
+            atr = sum(tr_list[i-period+1:i+1]) / period
+            plus_di = 100 * sum(plus_dm_list[i-period+1:i+1]) / period / atr if atr > 0 else 0
+            minus_di = 100 * sum(minus_dm_list[i-period+1:i+1]) / period / atr if atr > 0 else 0
+            
+            dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di) if (plus_di + minus_di) > 0 else 0
+            adx.append(dx)
+        
+        return adx
+
+
+class BreakoutAnalyzer:
+    """Breakout Strategy - Trade breakouts from consolidation ranges"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        
+        for i in range(30, len(candles)):
+            window = candles[i-20:i]
+            
+            highs = [c["high"] for c in window]
+            lows = [c["low"] for c in window]
+            
+            range_high = max(highs)
+            range_low = min(lows)
+            range_size = range_high - range_low
+            
+            # Detect consolidation (low volatility)
+            avg_candle_size = sum(c["high"] - c["low"] for c in window) / len(window)
+            is_consolidating = avg_candle_size < range_size * 0.15
+            
+            close = candles[i]["close"]
+            volume = candles[i]["volume"]
+            avg_volume = sum(c["volume"] for c in window) / len(window)
+            
+            high_volume = volume > avg_volume * 1.5
+            
+            if is_consolidating:
+                # Breakout above range
+                if close > range_high:
+                    score = 80 if high_volume else 65
+                    signals[i] = {"direction": "LONG", "score": score}
+                # Breakdown below range
+                elif close < range_low:
+                    score = 80 if high_volume else 65
+                    signals[i] = {"direction": "SHORT", "score": score}
+        
+        return signals
+
+
+class DCAAnalyzer:
+    """Dollar Cost Averaging Strategy - Time-based entries with RSI filter"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        closes = [c["close"] for c in candles]
+        
+        # DCA every N candles with RSI filter
+        dca_interval = 24  # Every 24 candles (1 day for 1h timeframe)
+        
+        for i in range(30, len(candles)):
+            # Calculate RSI for filter
+            rsi = self._calc_rsi(closes[:i+1], 14)
+            
+            # DCA entry at intervals, filtered by RSI
+            if i % dca_interval == 0:
+                if rsi < 50:  # Only buy when RSI is below neutral
+                    score = 60 + (50 - rsi)  # Higher score for lower RSI
+                    signals[i] = {"direction": "LONG", "score": min(score, 90)}
+        
+        return signals
+    
+    def _calc_rsi(self, prices: List[float], period: int = 14) -> float:
+        if len(prices) < period + 1:
+            return 50
+        deltas = [prices[i] - prices[i-1] for i in range(1, len(prices))]
+        gains = [d if d > 0 else 0 for d in deltas[-period:]]
+        losses = [-d if d < 0 else 0 for d in deltas[-period:]]
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
+        if avg_loss == 0:
+            return 100
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
+
+
+class GridAnalyzer:
+    """Grid Trading Strategy - Buy at lower grids, sell at upper grids"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        
+        for i in range(50, len(candles)):
+            window = candles[i-50:i]
+            
+            # Define grid range based on recent price action
+            highs = [c["high"] for c in window]
+            lows = [c["low"] for c in window]
+            
+            range_high = max(highs)
+            range_low = min(lows)
+            grid_size = (range_high - range_low) / 10  # 10 grid levels
+            
+            close = candles[i]["close"]
+            prev_close = candles[i-1]["close"]
+            
+            # Calculate grid level (0-10)
+            if grid_size > 0:
+                grid_level = (close - range_low) / grid_size
+                prev_grid_level = (prev_close - range_low) / grid_size
+                
+                # Buy at lower grids (0-3), sell at upper grids (7-10)
+                if grid_level < 3 and prev_grid_level >= 3:
+                    signals[i] = {"direction": "LONG", "score": 75}
+                elif grid_level > 7 and prev_grid_level <= 7:
+                    signals[i] = {"direction": "SHORT", "score": 75}
+        
+        return signals
+
+
+class MomentumAnalyzer:
+    """Momentum Strategy - Trade strong momentum with ROC and volume confirmation"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        closes = [c["close"] for c in candles]
+        volumes = [c["volume"] for c in candles]
+        
+        for i in range(20, len(candles)):
+            # Rate of Change (ROC)
+            roc_10 = (closes[i] - closes[i-10]) / closes[i-10] * 100
+            roc_5 = (closes[i] - closes[i-5]) / closes[i-5] * 100
+            
+            # Volume confirmation
+            avg_volume = sum(volumes[i-10:i]) / 10
+            volume_ratio = volumes[i] / avg_volume if avg_volume > 0 else 1
+            
+            # Strong bullish momentum
+            if roc_10 > 3 and roc_5 > 1 and volume_ratio > 1.2:
+                score = 70 + min(roc_10, 15)
+                signals[i] = {"direction": "LONG", "score": min(score, 95)}
+            # Strong bearish momentum
+            elif roc_10 < -3 and roc_5 < -1 and volume_ratio > 1.2:
+                score = 70 + min(abs(roc_10), 15)
+                signals[i] = {"direction": "SHORT", "score": min(score, 95)}
+        
+        return signals
+
+
+class VolatilityBreakoutAnalyzer:
+    """Volatility Breakout Strategy - Trade breakouts using ATR and Keltner Channels"""
+    
+    def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
+        signals = {}
+        closes = [c["close"] for c in candles]
+        highs = [c["high"] for c in candles]
+        lows = [c["low"] for c in candles]
+        
+        # Calculate ATR
+        atr = self._calc_atr(highs, lows, closes, 14)
+        
+        # Calculate EMA for Keltner center
+        ema_20 = self._calc_ema(closes, 20)
+        
+        for i in range(25, len(candles)):
+            atr_val = atr[i] if i < len(atr) else 0
+            ema_val = ema_20[i] if i < len(ema_20) else closes[i]
+            
+            # Keltner Channel bands
+            upper_band = ema_val + 2 * atr_val
+            lower_band = ema_val - 2 * atr_val
+            
+            close = closes[i]
+            prev_close = closes[i-1]
+            
+            # Breakout signals
+            if close > upper_band and prev_close <= upper_band:
+                signals[i] = {"direction": "LONG", "score": 85}
+            elif close < lower_band and prev_close >= lower_band:
+                signals[i] = {"direction": "SHORT", "score": 85}
+        
+        return signals
+    
+    def _calc_ema(self, data: List[float], period: int) -> List[float]:
+        ema = []
+        mult = 2 / (period + 1)
+        for i in range(len(data)):
+            if i == 0:
+                ema.append(data[0])
+            elif i < period:
+                ema.append(sum(data[:i+1]) / (i+1))
+            else:
+                ema.append((data[i] - ema[-1]) * mult + ema[-1])
+        return ema
+    
+    def _calc_atr(self, highs: List[float], lows: List[float], closes: List[float], period: int) -> List[float]:
+        tr = []
+        for i in range(len(highs)):
+            if i == 0:
+                tr.append(highs[0] - lows[0])
+            else:
+                tr.append(max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1])))
+        
+        atr = []
+        for i in range(len(tr)):
+            if i < period:
+                atr.append(sum(tr[:i+1]) / (i+1))
+            else:
+                atr.append(sum(tr[i-period+1:i+1]) / period)
+        return atr
 
 
 class CustomStrategyAnalyzer:

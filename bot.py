@@ -2096,7 +2096,7 @@ def _parse_sqlite_ts_to_utc(s: str) -> float:
     return dt.timestamp()
 
 def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, update: Update = None):
-    """Generate main menu keyboard. COMPLETELY different for each exchange."""
+    """Generate main menu keyboard. Clean and user-friendly for each exchange."""
     t = ctx.t
     
     # Try to get user_id from update if not provided
@@ -2106,41 +2106,52 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         except:
             pass
     
-    # Get active exchange
+    # Get active exchange and trading mode
     active_exchange = get_exchange_type(user_id) if user_id else "bybit"
     
     if active_exchange == "hyperliquid":
         # ═══════════════════════════════════════════════════════════════
-        # ██  HYPERLIQUID KEYBOARD  ██
+        # ██  HYPERLIQUID - CLEAN MENU  ██
         # ═══════════════════════════════════════════════════════════════
+        hl_creds = get_hl_credentials(user_id) if user_id else {}
+        is_testnet = hl_creds.get("hl_testnet", False)
+        net_emoji = "🧪" if is_testnet else "🌐"
+        
         keyboard = [
-            # ─── Активная биржа + переключение ───
-            [ "🔷 HyperLiquid", "🔄 Switch to Bybit" ],
-            # ─── HL Торговля ───
-            [ "💰 HL Balance", "📊 HL Positions", "📈 HL Orders" ],
-            # ─── HL Команды ───
-            [ "🎯 HL Trade", "❌ HL Close All", "📋 HL History" ],
-            # ─── Настройки ───
-            [ "⚙️ HL Settings", t['button_lang'], "🔑 HL API" ],
-            # ─── Общие ───
-            [ t.get('button_subscribe', '💎 Subscribe'), t.get('button_webapp', '🌐 WebApp') ],
+            # ─── Header: Current Exchange + Quick Switch ───
+            [ f"🔷 HL {net_emoji}", "🔄 Bybit" ],
+            # ─── Core Trading ───
+            [ "💰 Balance", "📊 Positions" ],
+            [ "📈 Orders", "📋 History" ],
+            # ─── Quick Actions ───
+            [ "🎯 Trade", "❌ Close All" ],
+            # ─── Settings Row ───
+            [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
+            # ─── Premium & Tools ───
+            [ t.get('button_subscribe', '💎 Premium'), t.get('button_webapp', '🌐 WebApp') ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
-        # ██  BYBIT KEYBOARD  ██
+        # ██  BYBIT - CLEAN MENU  ██
         # ═══════════════════════════════════════════════════════════════
+        creds = get_all_user_credentials(user_id) if user_id else {}
+        trading_mode = creds.get("trading_mode", "demo")
+        mode_emoji = "🎮" if trading_mode == "demo" else ("💵" if trading_mode == "real" else "🔀")
+        
         keyboard = [
-            # ─── Активная биржа + переключение ───
-            [ "🟠 Bybit", "🔄 Switch to HL" ],
-            # ─── Bybit Информация ───
-            [ t['button_balance'],   t['button_orders'],   t['button_positions'] ],
-            [ t.get('button_stats', '📊 Statistics'),  t['button_market'],  t['button_lang'] ],
-            # ─── Bybit Настройки ───
-            [ t.get('button_strategy_settings', '⚙️ Strategies'),  t['button_settings'],  t['button_coins'] ],
-            # ─── Bybit API ───
-            [ "🟠 Bybit API", "🔷 HL API" ],
-            # ─── Подписка ───
-            [ t.get('button_subscribe', '💎 Subscribe'), t.get('button_webapp', '🌐 WebApp') ],
+            # ─── Header: Current Exchange + Quick Switch ───
+            [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid" ],
+            # ─── Core Trading ───
+            [ "💰 Balance", "📊 Positions" ],
+            [ "📈 Orders", "📋 History" ],
+            # ─── Quick Actions ───  
+            [ "🎯 Trade", "📉 Market" ],
+            # ─── Strategies & Coins (Bybit-specific) ───
+            [ "🤖 Strategies", t['button_coins'] ],
+            # ─── Settings Row ───
+            [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
+            # ─── Premium & Tools ───
+            [ t.get('button_subscribe', '💎 Premium'), t.get('button_webapp', '🌐 WebApp') ],
         ]
     
     # Add admin row if user is admin
@@ -8420,10 +8431,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 strat_settings = db.get_strategy_settings(uid, "rsi_bb")
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb")
-                sl_pct, tp_pct = params["sl_pct"], params["tp_pct"]
+                user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct)
                 except Exception as e:
                     logger.warning(f"[{uid}] {symbol}: calc_qty failed for rsi_bb: {e}")
                     continue
@@ -8447,7 +8458,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await ctx.bot.send_message(
                             uid,
                             t.get('rsi_bb_limit_entry', "📊 RSI+BB Limit: {symbol} {side} @ {price:.6f} qty={qty}")
-                             .format(symbol=symbol, side=side, price=liq, qty=qty, sl_pct=sl_pct),
+                             .format(symbol=symbol, side=side, price=liq, qty=qty, sl_pct=user_sl_pct),
                             parse_mode="Markdown"
                         )
                     except Exception as e:
@@ -8485,7 +8496,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             uid,
                             t.get('rsi_bb_market_ok', '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%')
                              .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, 
-                                     rsi=rv, zone=rsi_zone, sl_pct=sl_pct),
+                                     rsi=rv, zone=rsi_zone, sl_pct=user_sl_pct),
                             parse_mode="Markdown"
                         )
                         
@@ -8504,6 +8515,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side)
                 user_sl_pct = params["sl_pct"]
+                user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 logger.info(f"[{uid}] Scryptomera params: sl_pct={user_sl_pct}, risk_pct={risk_pct}, order_type={'limit' if use_limit else 'market'}")
                 try:
@@ -8583,6 +8595,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scalper", side=side)
                 user_sl_pct = params["sl_pct"]
+                user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
@@ -8935,6 +8948,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "oi")
                 user_sl_pct = params["sl_pct"]
+                user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
                     if user_sl_pct <= 0:
@@ -11225,85 +11239,128 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await cmd_api_settings(update, ctx)
     
     # Subscribe button
-    if text == ctx.t.get("button_subscribe", "💎 Subscribe"):
+    if text in [ctx.t.get('button_subscribe', '💎 Subscribe'), "💎 Premium", ctx.t.get('button_subscribe', '💎 Premium')]:
         return await cmd_subscribe(update, ctx)
     
-    # Exchange indicator button (shows current exchange info)
-    if text in ["🔷 HyperLiquid", "🟠 Bybit"]:
+    # Exchange header button - shows exchange status/info (supports short 🔷 HL and full 🔷 HyperLiquid)
+    if text.startswith("🔷 HL") or text.startswith("🔷 HyperLiquid") or text.startswith("🟠 Bybit"):
         return await cmd_exchange_status(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
     # ██  SWITCH EXCHANGE BUTTONS  ██
     # ═══════════════════════════════════════════════════════════════
-    if text == "🔄 Switch to Bybit":
+    if text in ["🔄 Bybit", "🔄 Switch to Bybit"]:
         set_exchange_type(uid, "bybit")
         await update.message.reply_text(
-            "🟠 *Switched to Bybit!*\n\nNow all commands work with Bybit.",
+            "🟠 *Switched to Bybit!*\n\n"
+            "All trading commands now work with your Bybit account.\n"
+            "Use ⚙️ Settings to configure trading mode (Demo/Real).",
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, uid)
         )
         return
     
-    if text == "🔄 Switch to HL":
+    if text in ["🔄 HyperLiquid", "🔄 Switch to HL"]:
         # Check if HL is configured
         hl_creds = get_hl_credentials(uid)
         if not hl_creds.get("hl_private_key"):
             await update.message.reply_text(
                 "❌ *HyperLiquid not configured!*\n\n"
-                "Please set up HyperLiquid first:\n"
-                "Press 🔷 HL API button to configure.",
+                "To trade on HyperLiquid:\n"
+                "1️⃣ Press 🔑 API Keys\n"
+                "2️⃣ Set up your wallet and private key\n\n"
+                "_You can use testnet for practice!_",
                 parse_mode="Markdown"
             )
             return
         set_exchange_type(uid, "hyperliquid")
         await update.message.reply_text(
-            "🔷 *Switched to HyperLiquid!*\n\nNow all commands work with HyperLiquid.",
+            "🔷 *Switched to HyperLiquid!*\n\n"
+            "All trading commands now work with HyperLiquid.\n"
+            "Use ⚙️ Settings to switch between Testnet/Mainnet.",
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, uid)
         )
         return
     
     # ═══════════════════════════════════════════════════════════════
-    # ██  HYPERLIQUID BUTTONS  ██
+    # ██  UNIFIED BUTTONS (work for both exchanges)  ██
     # ═══════════════════════════════════════════════════════════════
-    if text == "💰 HL Balance":
-        return await cmd_hl_balance(update, ctx)
+    active_exchange = get_exchange_type(uid)
     
-    if text == "📊 HL Positions":
-        return await cmd_hl_positions(update, ctx)
+    # Balance - works for current exchange
+    if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_balance(update, ctx)
+        else:
+            return await cmd_account(update, ctx)
     
-    if text == "📈 HL Orders":
-        return await cmd_hl_orders(update, ctx)
+    # Positions - works for current exchange
+    if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_positions(update, ctx)
+        else:
+            return await cmd_open_positions(update, ctx)
     
-    if text == "🎯 HL Trade":
-        return await cmd_hl_trade(update, ctx)
+    # Orders - works for current exchange
+    if text in ["📈 Orders", "📈 HL Orders", ctx.t.get('button_orders', '📈 Orders')]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_orders(update, ctx)
+        else:
+            return await cmd_openorders(update, ctx)
     
-    if text == "❌ HL Close All":
-        return await cmd_hl_close_all(update, ctx)
+    # History - works for current exchange
+    if text in ["📋 History", "📋 HL History"]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_history(update, ctx)
+        else:
+            return await cmd_trade_stats(update, ctx)
     
-    if text == "📋 HL History":
-        return await cmd_hl_history(update, ctx)
+    # Trade - works for current exchange
+    if text in ["🎯 Trade", "🎯 HL Trade"]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_trade(update, ctx)
+        else:
+            # Bybit quick trade - show order prompt
+            await update.message.reply_text(
+                "🎯 *Quick Trade*\n\n"
+                "Send your order in format:\n"
+                "`BTCUSDT long 10 10x`\n"
+                "`ETHUSDT short 5% 20x`\n\n"
+                "Or use /terminal for advanced trading.",
+                parse_mode="Markdown"
+            )
+            return
     
-    if text == "⚙️ HL Settings":
-        return await cmd_hl_settings(update, ctx)
+    # Close All - works for current exchange  
+    if text in ["❌ Close All", "❌ HL Close All"]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_close_all(update, ctx)
+        else:
+            return await cmd_close_all_positions(update, ctx)
     
-    if text == "🔑 HL API":
-        return await cmd_hl_settings(update, ctx)
+    # Market - Bybit only
+    if text in ["📉 Market", ctx.t.get('button_market', '📉 Market')]:
+        return await cmd_market(update, ctx)
     
-    # ═══════════════════════════════════════════════════════════════
-    # ██  BYBIT BUTTONS  ██
-    # ═══════════════════════════════════════════════════════════════
-    # Bybit API button
-    if text in ["🟠 Bybit API", ctx.t.get("button_api_bybit", "🟠 Bybit API")]:
+    # Settings - works for current exchange
+    if text in ["⚙️ Settings", "⚙️ HL Settings", ctx.t.get('button_settings', '⚙️ Settings')]:
+        if active_exchange == "hyperliquid":
+            return await cmd_hl_settings(update, ctx)
+        else:
+            return await cmd_show_config(update, ctx)
+    
+    # API Keys - unified API management
+    if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API"]:
         return await cmd_api_settings(update, ctx)
     
-    # HyperLiquid API button (from Bybit keyboard)
-    if text in ["🔷 HL API", ctx.t.get("button_api_hl", "🔷 HL API")]:
-        return await cmd_hl_settings(update, ctx)
+    # Strategies button
+    if text in ["🤖 Strategies", ctx.t.get('button_strategy_settings', '⚙️ Strategies')]:
+        return await cmd_strategy_settings(update, ctx)
     
-    # Switch exchange button (legacy)
-    if text == ctx.t.get("button_switch_exchange", "🔄 Switch Exchange"):
-        return await cmd_switch_exchange(update, ctx)
+    # ═══════════════════════════════════════════════════════════════
+    # ██  LEGACY BUTTONS (for backward compatibility)  ██
+    # ═══════════════════════════════════════════════════════════════
     
     # WebApp button
     if text == ctx.t.get("button_webapp", "🌐 WebApp"):
@@ -13135,51 +13192,100 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_exchange_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show current exchange status"""
+    """Show current exchange status with quick mode switch"""
     uid = update.effective_user.id
     t = ctx.t
     
     status = get_exchange_status(uid)
     active = status.get("active_exchange", "bybit")
-    mode = status.get("exchange_mode", "bybit")
     
     bybit_info = status.get("bybit", {})
     hl_info = status.get("hyperliquid", {})
     
-    text = f"📊 *Exchange Status*\n\n"
+    keyboard = []
     
-    # Active exchange
     if active == "hyperliquid":
-        text += "🔷 *Active:* HyperLiquid\n"
+        # ═══════════════════════════════════════════════════════════════
+        # ██  HYPERLIQUID STATUS  ██
+        # ═══════════════════════════════════════════════════════════════
+        is_testnet = hl_info.get("testnet", False)
+        wallet = hl_info.get("wallet", "")
+        wallet_short = f"{wallet[:8]}...{wallet[-6:]}" if len(wallet) > 20 else wallet
+        
+        text = "🔷 *HyperLiquid*\n\n"
+        
+        if hl_info.get("configured"):
+            text += f"🌐 Network: {'🧪 Testnet' if is_testnet else '💰 Mainnet'}\n"
+            text += f"📍 Wallet: `{wallet_short}`\n"
+            if hl_info.get("vault"):
+                text += f"🏦 Vault: Configured\n"
+            
+            # Quick network switch buttons
+            keyboard.append([
+                InlineKeyboardButton("🧪 Testnet" + (" ✓" if is_testnet else ""), callback_data="hl:testnet"),
+                InlineKeyboardButton("💰 Mainnet" + ("" if is_testnet else " ✓"), callback_data="hl:mainnet")
+            ])
+        else:
+            text += "❌ Not configured\n\n_Press 🔑 API Keys to set up_"
+        
+        # Switch to Bybit
+        if bybit_info.get("configured"):
+            keyboard.append([InlineKeyboardButton("🔄 Switch to 🟠 Bybit", callback_data="exchange:set_bybit")])
+        
     else:
-        text += "🟠 *Active:* Bybit\n"
+        # ═══════════════════════════════════════════════════════════════
+        # ██  BYBIT STATUS  ██
+        # ═══════════════════════════════════════════════════════════════
+        creds = get_all_user_credentials(uid) or {}
+        trading_mode = creds.get("trading_mode", "demo")
+        
+        text = "🟠 *Bybit*\n\n"
+        
+        if bybit_info.get("configured"):
+            has_demo = bybit_info.get("demo", False)
+            has_real = bybit_info.get("real", False)
+            
+            # Show current mode
+            mode_text = "🎮 Demo" if trading_mode == "demo" else ("💵 Real" if trading_mode == "real" else "🔀 Both")
+            text += f"📍 Mode: {mode_text}\n"
+            text += f"🧪 Demo: {'✅' if has_demo else '❌'}\n"
+            text += f"💼 Real: {'✅' if has_real else '❌'}\n"
+            
+            # Quick mode switch buttons
+            mode_buttons = []
+            if has_demo:
+                mode_buttons.append(InlineKeyboardButton(
+                    "🎮 Demo" + (" ✓" if trading_mode == "demo" else ""), 
+                    callback_data="bybit:mode_demo"
+                ))
+            if has_real:
+                mode_buttons.append(InlineKeyboardButton(
+                    "💵 Real" + (" ✓" if trading_mode == "real" else ""), 
+                    callback_data="bybit:mode_real"
+                ))
+            if has_demo and has_real:
+                mode_buttons.append(InlineKeyboardButton(
+                    "🔀 Both" + (" ✓" if trading_mode == "both" else ""), 
+                    callback_data="bybit:mode_both"
+                ))
+            if mode_buttons:
+                keyboard.append(mode_buttons)
+        else:
+            text += "❌ Not configured\n\n_Press 🔑 API Keys to set up_"
+        
+        # Switch to HyperLiquid
+        if hl_info.get("configured"):
+            keyboard.append([InlineKeyboardButton("🔄 Switch to 🔷 HyperLiquid", callback_data="exchange:set_hl")])
+        else:
+            keyboard.append([InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")])
     
-    text += f"⚙️ *Mode:* {mode}\n\n"
+    keyboard.append([InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")])
     
-    # Bybit status
-    text += "*Bybit:*\n"
-    if bybit_info.get("configured"):
-        text += f"  ✅ Configured (Demo: {'✓' if bybit_info.get('demo') else '✗'}, Real: {'✓' if bybit_info.get('real') else '✗'})\n"
-    else:
-        text += "  ❌ Not configured\n"
-    
-    # HyperLiquid status
-    text += "\n*HyperLiquid:*\n"
-    if hl_info.get("configured"):
-        net = "Testnet" if hl_info.get("testnet") else "Mainnet"
-        wallet = hl_info.get("wallet", "")[:15] + "..." if hl_info.get("wallet") else "N/A"
-        text += f"  ✅ Configured ({net})\n"
-        text += f"  📍 Wallet: {wallet}\n"
-    else:
-        text += "  ❌ Not configured\n"
-    
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Switch Exchange", callback_data="exchange:switch")],
-        [InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")],
-        [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
-    ])
-    
-    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    await update.message.reply_text(
+        text, 
+        parse_mode="Markdown", 
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 
 @with_texts
@@ -13491,6 +13597,58 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle Bybit mode switching callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    
+    if data == "bybit:mode_demo":
+        set_trading_mode(uid, "demo")
+        await q.edit_message_text(
+            "🎮 *Demo mode activated*\n\n"
+            "All trades will execute on your Demo account.\n"
+            "Perfect for testing strategies!",
+            parse_mode="Markdown"
+        )
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 Bybit 🎮 Demo",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "bybit:mode_real":
+        set_trading_mode(uid, "real")
+        await q.edit_message_text(
+            "💵 *Real mode activated*\n\n"
+            "⚠️ All trades will execute with real funds!\n"
+            "Trade responsibly.",
+            parse_mode="Markdown"
+        )
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 Bybit 💵 Real",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "bybit:mode_both":
+        set_trading_mode(uid, "both")
+        await q.edit_message_text(
+            "🔀 *Both mode activated*\n\n"
+            "⚠️ All signals will be executed on BOTH Demo and Real accounts!\n"
+            "Use with caution.",
+            parse_mode="Markdown"
+        )
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 Bybit 🔀 Both",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+
+
+@log_calls
 async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid callbacks"""
     q = update.callback_query
@@ -13500,6 +13658,29 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = q.data
     
     if data == "hl:mainnet":
+        # Check if user already has HL configured - just switch network
+        hl_creds = get_hl_credentials(uid)
+        if hl_creds.get("hl_private_key"):
+            # Already configured, just switch to mainnet
+            set_hl_credentials(uid, 
+                private_key=hl_creds.get("hl_private_key"),
+                wallet_address=hl_creds.get("hl_wallet_address"),
+                vault_address=hl_creds.get("hl_vault_address"),
+                testnet=False
+            )
+            await q.edit_message_text(
+                "🌐 *Switched to Mainnet*\n\n"
+                "⚠️ Now trading with real funds!",
+                parse_mode="Markdown"
+            )
+            await ctx.bot.send_message(
+                chat_id=uid,
+                text="🔷 HL 🌐",
+                reply_markup=main_menu_keyboard(ctx, user_id=uid)
+            )
+            return
+        
+        # New setup
         _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
         await q.edit_message_text(
             "🔑 *Connect to HyperLiquid Mainnet*\n\n"
@@ -13512,6 +13693,29 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "hl:testnet":
+        # Check if user already has HL configured - just switch network
+        hl_creds = get_hl_credentials(uid)
+        if hl_creds.get("hl_private_key"):
+            # Already configured, just switch to testnet
+            set_hl_credentials(uid, 
+                private_key=hl_creds.get("hl_private_key"),
+                wallet_address=hl_creds.get("hl_wallet_address"),
+                vault_address=hl_creds.get("hl_vault_address"),
+                testnet=True
+            )
+            await q.edit_message_text(
+                "🧪 *Switched to Testnet*\n\n"
+                "Safe for practice trading!",
+                parse_mode="Markdown"
+            )
+            await ctx.bot.send_message(
+                chat_id=uid,
+                text="🔷 HL 🧪",
+                reply_markup=main_menu_keyboard(ctx, user_id=uid)
+            )
+            return
+        
+        # New setup
         _hl_awaiting_key[uid] = {"waiting": True, "testnet": True}
         await q.edit_message_text(
             "🔑 *Connect to HyperLiquid Testnet*\n\n"
@@ -13915,6 +14119,7 @@ def main():
     app.add_handler(CommandHandler("hl_clear",           cmd_hl_clear))
     app.add_handler(CallbackQueryHandler(on_hl_callback, pattern=r"^hl:"))
     app.add_handler(CallbackQueryHandler(on_exchange_callback, pattern=r"^exchange:"))
+    app.add_handler(CallbackQueryHandler(on_bybit_callback, pattern=r"^bybit:"))
     app.add_handler(CallbackQueryHandler(on_hl_api_callback, pattern=r"^hl_api:"))
 
     app.add_handler(CommandHandler("terms",              cmd_terms))
