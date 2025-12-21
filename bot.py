@@ -28,7 +28,7 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
 from db import (
@@ -9982,6 +9982,28 @@ async def start_monitoring(app: Application):
     except Exception:
         pass
     
+    # Setup Menu Button with WebApp (if HTTPS tunnel available)
+    try:
+        webapp_url = None
+        # Check for Cloudflare tunnel first (best for Mini App)
+        tunnel_file = Path(__file__).parent / "run" / "tunnel_url.txt"
+        if tunnel_file.exists():
+            tunnel_url = tunnel_file.read_text().strip()
+            if tunnel_url and tunnel_url.startswith("https://") and "trycloudflare" in tunnel_url:
+                webapp_url = tunnel_url
+                
+        if webapp_url:
+            from telegram import MenuButtonWebApp
+            await app.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="📊 Terminal",
+                    web_app=WebAppInfo(url=f"{webapp_url}/terminal")
+                )
+            )
+            logger.info(f"Menu Button WebApp set to: {webapp_url}/terminal")
+    except Exception as e:
+        logger.debug(f"Could not set menu button: {e}")
+    
     # Start futures positions monitoring loop
     logger.info("Starting monitor_positions_loop task")
     task = asyncio.create_task(monitor_positions_loop(app), name="monitor_positions_loop")
@@ -13332,58 +13354,193 @@ async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# ==============================================================================
+# WebApp Data Handler (receives data from Telegram Mini App via sendData)
+# ==============================================================================
+
 @with_texts
 @log_calls
-async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Open WebApp in browser with auto-login"""
+async def handle_webapp_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle data sent from Telegram WebApp via Telegram.WebApp.sendData()
+    This allows Mini App to communicate actions back to the bot.
+    """
     t = ctx.t
     uid = update.effective_user.id
     
-    # Get ngrok URL from file or use localhost
-    webapp_url = "http://localhost:8765"
+    if not update.effective_message or not update.effective_message.web_app_data:
+        return
+    
+    data_raw = update.effective_message.web_app_data.data
+    
     try:
-        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-        if ngrok_file.exists():
-            webapp_url = ngrok_file.read_text().strip()
+        data = json.loads(data_raw)
+    except json.JSONDecodeError:
+        await update.message.reply_text("❌ Invalid data from WebApp")
+        return
+    
+    action = data.get("action")
+    
+    if action == "order_placed":
+        # Order was placed from WebApp
+        symbol = data.get("symbol", "Unknown")
+        side = data.get("side", "")
+        qty = data.get("qty", "")
+        price = data.get("price", "Market")
+        
+        await update.message.reply_text(
+            f"✅ *Order Placed from WebApp*\n\n"
+            f"Symbol: `{symbol}`\n"
+            f"Side: {side}\n"
+            f"Quantity: {qty}\n"
+            f"Price: {price}",
+            parse_mode="Markdown"
+        )
+        
+    elif action == "position_closed":
+        # Position closed from WebApp
+        symbol = data.get("symbol", "Unknown")
+        pnl = data.get("pnl", 0)
+        pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+        
+        await update.message.reply_text(
+            f"✅ *Position Closed from WebApp*\n\n"
+            f"Symbol: `{symbol}`\n"
+            f"PnL: {pnl_emoji} ${pnl:+.2f}",
+            parse_mode="Markdown"
+        )
+        
+    elif action == "strategy_deployed":
+        # Strategy deployed from backtest
+        strategy = data.get("strategy", "Unknown")
+        params = data.get("params", {})
+        
+        await update.message.reply_text(
+            f"🚀 *Strategy Deployed from WebApp*\n\n"
+            f"Strategy: `{strategy}`\n"
+            f"Parameters updated successfully!",
+            parse_mode="Markdown"
+        )
+        
+    elif action == "settings_updated":
+        # Settings changed in WebApp
+        setting = data.get("setting", "")
+        value = data.get("value", "")
+        
+        await update.message.reply_text(
+            f"⚙️ *Settings Updated from WebApp*\n\n"
+            f"`{setting}` → `{value}`",
+            parse_mode="Markdown"
+        )
+        
+    elif action == "preset_loaded":
+        # User preset loaded
+        preset_name = data.get("preset_name", "")
+        
+        await update.message.reply_text(
+            f"📋 *Preset Loaded from WebApp*\n\n"
+            f"Name: `{preset_name}`\n"
+            f"All settings applied!",
+            parse_mode="Markdown"
+        )
+        
+    else:
+        # Unknown action - log for debugging
+        logger.info(f"WebApp data from user {uid}: {data}")
+        await update.message.reply_text("📲 Data received from WebApp")
+
+
+@with_texts
+@log_calls
+async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Open WebApp - supports both Telegram Mini App and browser mode"""
+    t = ctx.t
+    uid = update.effective_user.id
+    
+    # Priority: Cloudflare Tunnel > ngrok > localhost
+    webapp_url = None
+    tunnel_url = None
+    
+    try:
+        # 1. Check Cloudflare Tunnel URL (best for Mini App - no warning pages)
+        tunnel_file = Path(__file__).parent / "run" / "tunnel_url.txt"
+        if tunnel_file.exists():
+            tunnel_url = tunnel_file.read_text().strip()
+            if tunnel_url and tunnel_url.startswith("https://"):
+                webapp_url = tunnel_url
     except:
         pass
     
-    # Generate auto-login token
+    if not webapp_url:
+        try:
+            # 2. Check ngrok URL
+            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+            if ngrok_file.exists():
+                ngrok_url = ngrok_file.read_text().strip()
+                if ngrok_url and ngrok_url.startswith("https://"):
+                    webapp_url = ngrok_url
+        except:
+            pass
+    
+    if not webapp_url:
+        webapp_url = "http://localhost:8765"
+    
+    # Generate auto-login token for browser mode
+    browser_login_url = webapp_url
     try:
         from webapp.services import telegram_auth
-        token, login_url = telegram_auth.generate_login_token(uid)
-        # Update login_url with current webapp URL (in case ngrok changed)
-        login_url = f"{webapp_url}/api/auth/token-login?token={token}"
+        token, _ = telegram_auth.generate_login_token(uid)
+        browser_login_url = f"{webapp_url}/api/auth/token-login?token={token}"
     except Exception as e:
         logging.warning(f"Failed to generate login token: {e}")
-        login_url = webapp_url
     
-    # Check if ngrok (free tier has warning page that breaks WebApp)
+    # Determine if URL is suitable for Telegram Mini App
+    # Mini App requires HTTPS and no warning pages (ngrok free has warning)
     is_ngrok = "ngrok" in webapp_url
+    is_cloudflare = "trycloudflare.com" in webapp_url or (tunnel_url and "trycloudflare" in tunnel_url)
+    is_https = webapp_url.startswith("https://")
+    can_use_miniapp = is_https and (is_cloudflare or not is_ngrok)
     
-    if is_ngrok:
-        # For ngrok, use regular URL buttons (WebAppInfo shows blank due to ngrok warning)
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", url=login_url)],
-            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
-        ])
+    # Build keyboard with options
+    buttons = []
+    
+    if can_use_miniapp:
+        # Cloudflare or production HTTPS - use native Telegram Mini App
+        buttons.append([InlineKeyboardButton("📱 Open Mini App", web_app=WebAppInfo(url=webapp_url))])
+        buttons.append([InlineKeyboardButton("🌐 Open in Browser", url=browser_login_url)])
     else:
-        # For production HTTPS, use WebAppInfo for native experience
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url))],
-            [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
-            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
-        ])
+        # ngrok or localhost - only browser mode
+        buttons.append([InlineKeyboardButton("🌐 Open WebApp", url=browser_login_url)])
+    
+    buttons.append([InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")])
+    
+    keyboard = InlineKeyboardMarkup(buttons)
+    
+    # Show connection type
+    if is_cloudflare:
+        conn_type = "☁️ Cloudflare Tunnel"
+    elif is_ngrok:
+        conn_type = "🔗 ngrok Tunnel"
+    elif is_https:
+        conn_type = "🔒 HTTPS"
+    else:
+        conn_type = "🏠 Local"
     
     text = (
         "🌐 *Trading WebApp*\n\n"
-        "Access your trading dashboard:\n\n"
-        "• 📊 View positions and orders\n"
+        f"Connection: {conn_type}\n\n"
+        "• 📊 View positions & orders\n"
         "• 💰 Check balances\n"
+        "• 📈 Trading terminal\n"
+        "• 🧪 Strategy backtesting\n"
         "• ⚙️ Manage settings\n"
-        "• 📈 Trading statistics\n\n"
-        "_Tap the button below to open_"
+        "• 📉 Trading statistics\n\n"
     )
+    
+    if can_use_miniapp:
+        text += "_📱 Tap 'Open Mini App' for native experience_"
+    else:
+        text += "_🌐 Opens in external browser_"
     
     await update.message.reply_text(
         text,
@@ -14071,6 +14228,9 @@ def main():
         .post_init(start_monitoring)   
         .build()
     )
+    
+    # WebApp data handler (receives data from Telegram Mini App)
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))

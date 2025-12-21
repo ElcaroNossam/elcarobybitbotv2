@@ -727,6 +727,184 @@ async def notify_position_update(user_id: int, position_data: dict):
 
 
 # ============================================================
+# SETTINGS SYNC WEBSOCKET
+# ============================================================
+class SettingsSyncManager:
+    """Manager for real-time settings synchronization"""
+    
+    def __init__(self):
+        self.user_connections: Dict[int, Set[WebSocket]] = {}
+        self._lock = asyncio.Lock()
+    
+    async def connect(self, websocket: WebSocket, user_id: int):
+        """Connect user's websocket for settings sync"""
+        await websocket.accept()
+        async with self._lock:
+            if user_id not in self.user_connections:
+                self.user_connections[user_id] = set()
+            self.user_connections[user_id].add(websocket)
+        
+        await websocket.send_json({
+            "type": "connected",
+            "message": "Settings sync connected",
+            "user_id": user_id
+        })
+    
+    def disconnect(self, websocket: WebSocket, user_id: int):
+        """Disconnect user's websocket"""
+        if user_id in self.user_connections:
+            self.user_connections[user_id].discard(websocket)
+    
+    async def broadcast_to_user(self, user_id: int, message: dict):
+        """Broadcast settings change to all user's connected devices"""
+        if user_id not in self.user_connections:
+            return
+        
+        dead = []
+        for ws in self.user_connections[user_id]:
+            try:
+                await ws.send_json(message)
+            except:
+                dead.append(ws)
+        
+        for ws in dead:
+            self.user_connections[user_id].discard(ws)
+    
+    async def notify_exchange_switched(self, user_id: int, new_exchange: str, old_exchange: str, status: dict):
+        """Notify all user devices that exchange was switched"""
+        await self.broadcast_to_user(user_id, {
+            "type": "exchange_switched",
+            "new_exchange": new_exchange,
+            "old_exchange": old_exchange,
+            "connection_status": status,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    async def notify_settings_changed(self, user_id: int, changes: dict, source: str = "unknown"):
+        """Notify all user devices about settings changes"""
+        await self.broadcast_to_user(user_id, {
+            "type": "settings_changed",
+            "changes": changes,
+            "source": source,  # "webapp", "bot", "api"
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    async def notify_strategy_deployed(self, user_id: int, strategy: str, params: dict, results: dict):
+        """Notify about strategy deployment from backtest to live"""
+        await self.broadcast_to_user(user_id, {
+            "type": "strategy_deployed",
+            "strategy": strategy,
+            "params": params,
+            "backtest_results": results,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    async def notify_credentials_updated(self, user_id: int, exchange: str, account_type: str = None):
+        """Notify that API credentials were updated"""
+        await self.broadcast_to_user(user_id, {
+            "type": "credentials_updated",
+            "exchange": exchange,
+            "account_type": account_type,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    async def notify_preset_loaded(self, user_id: int, preset_name: str, settings: dict):
+        """Notify that a preset was loaded"""
+        await self.broadcast_to_user(user_id, {
+            "type": "preset_loaded",
+            "preset_name": preset_name,
+            "settings": settings,
+            "timestamp": datetime.now().isoformat()
+        })
+
+
+# Global settings sync manager
+settings_sync_ws = SettingsSyncManager()
+
+
+@router.websocket("/settings-sync/{user_id}")
+async def settings_sync_websocket(websocket: WebSocket, user_id: int):
+    """
+    WebSocket for real-time settings synchronization.
+    Connect from terminal/webapp to receive instant updates when settings change.
+    """
+    await settings_sync_ws.connect(websocket, user_id)
+    
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.receive_json(), timeout=30)
+                msg_type = message.get("type")
+                
+                if msg_type == "ping":
+                    await websocket.send_json({"type": "pong"})
+                
+                elif msg_type == "get_settings":
+                    # Get current settings on demand
+                    import sys, os
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    import db
+                    
+                    exchange = message.get("exchange", "bybit")
+                    creds = db.get_all_user_credentials(user_id)
+                    
+                    await websocket.send_json({
+                        "type": "settings",
+                        "exchange": exchange,
+                        "settings": {
+                            "percent": creds.get("percent", 5),
+                            "leverage": creds.get("leverage", 10),
+                            "tp_percent": creds.get("tp_percent", 2),
+                            "sl_percent": creds.get("sl_percent", 1),
+                            "trading_mode": creds.get("trading_mode", "demo"),
+                            "active_exchange": db.get_exchange_type(user_id),
+                        }
+                    })
+                
+                elif msg_type == "update_setting":
+                    # Update a single setting and broadcast to other devices
+                    import sys, os
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                    import db
+                    
+                    key = message.get("key")
+                    value = message.get("value")
+                    
+                    if key and key in db.USER_FIELDS_WHITELIST:
+                        db.set_user_field(user_id, key, value)
+                        
+                        # Notify other devices (but not this one)
+                        for ws in settings_sync_ws.user_connections.get(user_id, set()):
+                            if ws != websocket:
+                                try:
+                                    await ws.send_json({
+                                        "type": "setting_updated",
+                                        "key": key,
+                                        "value": value,
+                                        "source": "websocket"
+                                    })
+                                except:
+                                    pass
+                        
+                        await websocket.send_json({
+                            "type": "update_confirmed",
+                            "key": key,
+                            "value": value
+                        })
+                
+            except asyncio.TimeoutError:
+                try:
+                    await websocket.send_json({"type": "ping"})
+                except:
+                    break
+                    
+    except WebSocketDisconnect:
+        settings_sync_ws.disconnect(websocket, user_id)
+    except Exception as e:
+        settings_sync_ws.disconnect(websocket, user_id)
+
+
+# ============================================================
 # LIVE BACKTEST WEBSOCKET
 # ============================================================
 @router.websocket("/backtest-live")

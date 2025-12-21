@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="/static/css/terminal-advanced.css" rel="stylesheet">
+    <!-- Telegram WebApp SDK for Mini App support -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://s3.tradingview.com/tv.js"></script>
     <style>
         :root {
@@ -29,6 +31,27 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden; }
+        
+        /* Telegram Mini App Optimizations */
+        body.telegram-miniapp { height: 100vh; overflow-x: hidden; }
+        body.telegram-miniapp .terminal-layout {
+            grid-template-columns: 1fr;
+            grid-template-rows: 28px 56px 1fr 180px auto;
+        }
+        body.telegram-miniapp .sidebar-left { display: none; }
+        body.telegram-miniapp .sidebar-right { 
+            grid-column: 1; 
+            grid-row: 5;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        body.telegram-miniapp .chart-panel { grid-column: 1; }
+        body.telegram-miniapp .bottom-panels { grid-column: 1; }
+        @media (max-width: 768px) {
+            body.telegram-miniapp .terminal-layout {
+                grid-template-rows: 28px auto 300px 120px auto;
+            }
+        }
         
         .bg-pattern {
             position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -2097,6 +2120,46 @@
         
         // Initialize advanced features on load
         document.addEventListener('DOMContentLoaded', () => {
+            // Telegram Mini App detection and setup
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                
+                // Apply Mini App theme
+                document.body.classList.add('telegram-miniapp');
+                
+                // Theme colors
+                if (tg.themeParams.bg_color) {
+                    document.documentElement.style.setProperty('--bg-primary', tg.themeParams.bg_color);
+                }
+                if (tg.themeParams.secondary_bg_color) {
+                    document.documentElement.style.setProperty('--bg-secondary', tg.themeParams.secondary_bg_color);
+                }
+                
+                // Back button
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => {
+                    window.history.back();
+                });
+                
+                // Store user ID
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    window.tgUserId = tg.initDataUnsafe.user.id;
+                }
+                
+                // Haptic feedback helper
+                window.haptic = (type = 'impact') => {
+                    if (tg.HapticFeedback) {
+                        if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+                        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
+                        else tg.HapticFeedback.impactOccurred('medium');
+                    }
+                };
+            } else {
+                window.haptic = () => {}; // Noop for browser
+            }
+            
             // Load advanced JS module
             const script = document.createElement('script');
             script.src = '/static/js/terminal-advanced.js';

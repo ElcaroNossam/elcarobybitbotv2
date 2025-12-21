@@ -4,6 +4,93 @@
  */
 
 // ============================================================
+// TELEGRAM MINI APP - Communication with bot
+// ============================================================
+const TelegramApp = {
+    isAvailable: !!(window.Telegram && window.Telegram.WebApp),
+    
+    /**
+     * Send data to bot via Telegram.WebApp.sendData()
+     * Bot will receive this in web_app_data message
+     */
+    sendToBot(action, data = {}) {
+        if (!this.isAvailable) {
+            console.log('Telegram WebApp not available, action:', action, data);
+            return false;
+        }
+        
+        try {
+            const payload = JSON.stringify({ action, ...data });
+            window.Telegram.WebApp.sendData(payload);
+            return true;
+        } catch (e) {
+            console.error('Failed to send data to Telegram:', e);
+            return false;
+        }
+    },
+    
+    /**
+     * Notify bot about order placed
+     */
+    notifyOrderPlaced(symbol, side, qty, price = 'Market') {
+        this.sendToBot('order_placed', { symbol, side, qty, price });
+        if (window.haptic) window.haptic('success');
+    },
+    
+    /**
+     * Notify bot about position closed
+     */
+    notifyPositionClosed(symbol, pnl) {
+        this.sendToBot('position_closed', { symbol, pnl });
+        if (window.haptic) window.haptic('success');
+    },
+    
+    /**
+     * Notify bot about settings change
+     */
+    notifySettingsUpdated(setting, value) {
+        this.sendToBot('settings_updated', { setting, value });
+    },
+    
+    /**
+     * Notify bot about preset loaded
+     */
+    notifyPresetLoaded(presetName) {
+        this.sendToBot('preset_loaded', { preset_name: presetName });
+    },
+    
+    /**
+     * Close the Mini App
+     */
+    close() {
+        if (this.isAvailable) {
+            window.Telegram.WebApp.close();
+        }
+    },
+    
+    /**
+     * Show main button
+     */
+    showMainButton(text, callback) {
+        if (!this.isAvailable) return;
+        
+        const btn = window.Telegram.WebApp.MainButton;
+        btn.setText(text);
+        btn.onClick(callback);
+        btn.show();
+    },
+    
+    /**
+     * Hide main button
+     */
+    hideMainButton() {
+        if (this.isAvailable) {
+            window.Telegram.WebApp.MainButton.hide();
+        }
+    }
+};
+
+// ============================================================
 // RISK CALCULATOR - Position sizing and risk management
 // ============================================================
 const RiskCalculator = {

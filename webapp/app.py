@@ -74,6 +74,13 @@ def create_app() -> FastAPI:
     except ImportError as e:
         print(f"Warning: marketplace router: {e}")
     
+    # Strategy Marketplace (sharing, presets, import/export)
+    try:
+        from webapp.api import strategy_marketplace
+        app.include_router(strategy_marketplace.router, prefix="/api/strategies", tags=["strategy-marketplace"])
+    except ImportError as e:
+        print(f"Warning: strategy_marketplace router: {e}")
+    
     # Screener WebSocket API
     try:
         from webapp.api import screener_ws

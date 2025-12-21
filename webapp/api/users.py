@@ -111,21 +111,130 @@ async def switch_exchange(
     data: ExchangeSwitch,
     user: dict = Depends(get_current_user)
 ):
-    """Switch active exchange."""
+    """
+    Switch active exchange with dynamic reconnection.
+    Invalidates cached connections and tests new exchange connectivity.
+    """
     user_id = user["user_id"]
     
     if data.exchange not in ["bybit", "hyperliquid"]:
         raise HTTPException(status_code=400, detail="Invalid exchange")
     
+    # Get current exchange for comparison
+    old_exchange = db.get_exchange_type(user_id)
+    
     # Check if HL is configured before switching
     if data.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         if not hl_creds.get("hl_private_key"):
-            raise HTTPException(status_code=400, detail="HyperLiquid not configured")
+            raise HTTPException(status_code=400, detail="HyperLiquid not configured. Add your wallet and private key first.")
     
+    # Check if Bybit is configured
+    if data.exchange == "bybit":
+        creds = db.get_all_user_credentials(user_id)
+        if not creds.get("demo_api_key") and not creds.get("real_api_key"):
+            raise HTTPException(status_code=400, detail="Bybit not configured. Add your API keys first.")
+    
+    # Update exchange type in database
     db.set_exchange_type(user_id, data.exchange)
     
-    return {"success": True, "exchange": data.exchange}
+    # Invalidate cached connections for this user
+    try:
+        from core import on_credentials_changed
+        on_credentials_changed(user_id)
+    except ImportError:
+        pass  # Core module not available
+    
+    # Notify settings sync manager
+    try:
+        from services.settings_sync import settings_sync
+        import asyncio
+        
+        creds = db.get_all_user_credentials(user_id) if data.exchange == "bybit" else db.get_hl_credentials(user_id)
+        asyncio.create_task(settings_sync.on_exchange_switch(user_id, old_exchange, data.exchange, creds))
+    except ImportError:
+        pass
+    
+    # Test connection to new exchange
+    connection_status = {"connected": False, "balance": None, "error": None}
+    
+    try:
+        if data.exchange == "bybit":
+            # Test Bybit connection
+            import aiohttp
+            import time
+            import hashlib
+            import hmac
+            
+            creds = db.get_all_user_credentials(user_id)
+            trading_mode = creds.get("trading_mode", "demo")
+            
+            if trading_mode == "demo":
+                api_key = creds.get("demo_api_key")
+                api_secret = creds.get("demo_api_secret")
+                base_url = "https://api-demo.bybit.com"
+            else:
+                api_key = creds.get("real_api_key")
+                api_secret = creds.get("real_api_secret")
+                base_url = "https://api.bybit.com"
+            
+            if api_key and api_secret:
+                timestamp = str(int(time.time() * 1000))
+                recv_window = "20000"
+                params = "accountType=UNIFIED"
+                param_str = f"{timestamp}{api_key}{recv_window}{params}"
+                signature = hmac.new(api_secret.encode(), param_str.encode(), hashlib.sha256).hexdigest()
+                
+                headers = {
+                    "X-BAPI-API-KEY": api_key,
+                    "X-BAPI-TIMESTAMP": timestamp,
+                    "X-BAPI-RECV-WINDOW": recv_window,
+                    "X-BAPI-SIGN": signature
+                }
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{base_url}/v5/account/wallet-balance?{params}",
+                        headers=headers,
+                        timeout=aiohttp.ClientTimeout(total=5)
+                    ) as resp:
+                        result = await resp.json()
+                        if result.get("retCode") == 0:
+                            connection_status["connected"] = True
+                            equity = result.get("result", {}).get("list", [{}])[0].get("totalEquity", "0")
+                            connection_status["balance"] = f"${float(equity):,.2f}"
+        
+        else:  # hyperliquid
+            import aiohttp
+            hl_creds = db.get_hl_credentials(user_id)
+            wallet = hl_creds.get("hl_wallet_address")
+            testnet = hl_creds.get("hl_testnet", False)
+            base_url = "https://api.hyperliquid-testnet.xyz" if testnet else "https://api.hyperliquid.xyz"
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/info",
+                    json={"type": "clearinghouseState", "user": wallet},
+                    timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    data_resp = await resp.json()
+                    if "marginSummary" in data_resp:
+                        connection_status["connected"] = True
+                        equity = float(data_resp["marginSummary"].get("accountValue", 0))
+                        connection_status["balance"] = f"${equity:,.2f}"
+                        
+    except Exception as e:
+        connection_status["error"] = str(e)
+        logger.warning(f"Exchange switch connection test failed: {e}")
+    
+    logger.info(f"User {user_id} switched from {old_exchange} to {data.exchange}")
+    
+    return {
+        "success": True,
+        "exchange": data.exchange,
+        "previous_exchange": old_exchange,
+        "connection": connection_status
+    }
 
 
 @router.post("/language")
