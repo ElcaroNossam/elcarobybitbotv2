@@ -10,15 +10,16 @@
     const LANGUAGES = {
         'en': { flag: '🇺🇸', name: 'English' },
         'ru': { flag: '🇷🇺', name: 'Русский' },
+        'uk': { flag: '🇺🇦', name: 'Українська' },
         'zh': { flag: '🇨🇳', name: '中文' },
         'es': { flag: '🇪🇸', name: 'Español' },
         'de': { flag: '🇩🇪', name: 'Deutsch' },
-        'ja': { flag: '🇯🇵', name: '日本語' },
-        'ar': { flag: '🇸🇦', name: 'العربية' },
         'fr': { flag: '🇫🇷', name: 'Français' },
         'it': { flag: '🇮🇹', name: 'Italiano' },
-        'pl': { flag: '🇵🇱', name: 'Polski' },
-        'uk': { flag: '🇺🇦', name: 'Українська' }
+        'ja': { flag: '🇯🇵', name: '日本語' },
+        'ar': { flag: '🇸🇦', name: 'العربية' },
+        'he': { flag: '🇮🇱', name: 'עברית' },
+        'pl': { flag: '🇵🇱', name: 'Polski' }
     };
     
     const STORAGE_KEYS = {
@@ -69,8 +70,8 @@
         // Dispatch event for other components
         window.dispatchEvent(new CustomEvent('elcaro:languageChanged', { detail: { lang, langData } }));
         
-        // Apply RTL for Arabic
-        if (lang === 'ar') {
+        // Apply RTL for Arabic and Hebrew
+        if (lang === 'ar' || lang === 'he') {
             document.documentElement.setAttribute('dir', 'rtl');
         } else {
             document.documentElement.removeAttribute('dir');

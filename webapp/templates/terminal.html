@@ -360,10 +360,93 @@
         
         /* Exchange & Account Selector */
         .account-selector { display: flex; gap: 8px; align-items: center; }
-        .exchange-select, .account-select { padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.8rem; cursor: pointer; }
-        .exchange-select:focus, .account-select:focus { outline: none; border-color: var(--accent); }
+        .exchange-select, .account-select { 
+            padding: 8px 14px; 
+            background: var(--bg-tertiary); 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            color: var(--text-primary); 
+            font-size: 0.8rem; 
+            font-weight: 500;
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+        }
+        .exchange-select:hover, .account-select:hover { 
+            background: var(--bg-hover); 
+            border-color: var(--accent); 
+        }
+        .exchange-select:focus, .account-select:focus { 
+            outline: none; 
+            border-color: var(--accent); 
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .exchange-select option, .account-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 8px;
+        }
         .demo-badge { background: var(--green-dim); color: var(--green); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
         .real-badge { background: var(--red-dim); color: var(--red); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        
+        /* Language & Theme Dropdowns */
+        .lang-selector, .theme-switcher { position: relative; }
+        .lang-btn, .theme-btn { 
+            padding: 8px 12px; 
+            background: var(--bg-tertiary); 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            color: var(--text-primary); 
+            font-size: 16px; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lang-btn:hover, .theme-btn:hover { 
+            background: var(--bg-hover); 
+            border-color: var(--accent); 
+        }
+        .lang-menu, .theme-menu { 
+            position: absolute; 
+            top: 100%; 
+            right: 0; 
+            min-width: 160px; 
+            background: var(--bg-secondary); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 8px; 
+            opacity: 0; 
+            visibility: hidden; 
+            transform: translateY(10px); 
+            transition: all 0.2s ease; 
+            z-index: 1000; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            margin-top: 8px;
+        }
+        .lang-menu.show, .theme-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .lang-item, .theme-option { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 10px 14px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+            color: var(--text-secondary); 
+            font-size: 14px; 
+        }
+        .lang-item:hover, .theme-option:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .lang-item.active, .theme-option.active { background: rgba(99, 102, 241, 0.15); color: var(--accent); }
+        .lang-item .flag { font-size: 18px; }
+        .lang-item .lang-name { font-weight: 500; }
         
         /* Analyzer Panel */
         .analyzer-panel { background: var(--bg-card); border-radius: 12px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
@@ -506,6 +589,10 @@
                             <span class="flag">🇷🇺</span>
                             <span class="lang-name">Русский</span>
                         </div>
+                        <div class="lang-item" data-lang="uk" onclick="setLanguage('uk')">
+                            <span class="flag">🇺🇦</span>
+                            <span class="lang-name">Українська</span>
+                        </div>
                         <div class="lang-item" data-lang="zh" onclick="setLanguage('zh')">
                             <span class="flag">🇨🇳</span>
                             <span class="lang-name">中文</span>
@@ -518,6 +605,14 @@
                             <span class="flag">🇩🇪</span>
                             <span class="lang-name">Deutsch</span>
                         </div>
+                        <div class="lang-item" data-lang="fr" onclick="setLanguage('fr')">
+                            <span class="flag">🇫🇷</span>
+                            <span class="lang-name">Français</span>
+                        </div>
+                        <div class="lang-item" data-lang="it" onclick="setLanguage('it')">
+                            <span class="flag">🇮🇹</span>
+                            <span class="lang-name">Italiano</span>
+                        </div>
                         <div class="lang-item" data-lang="ja" onclick="setLanguage('ja')">
                             <span class="flag">🇯🇵</span>
                             <span class="lang-name">日本語</span>
@@ -525,6 +620,14 @@
                         <div class="lang-item" data-lang="ar" onclick="setLanguage('ar')">
                             <span class="flag">🇸🇦</span>
                             <span class="lang-name">العربية</span>
+                        </div>
+                        <div class="lang-item" data-lang="he" onclick="setLanguage('he')">
+                            <span class="flag">🇮🇱</span>
+                            <span class="lang-name">עברית</span>
+                        </div>
+                        <div class="lang-item" data-lang="pl" onclick="setLanguage('pl')">
+                            <span class="flag">🇵🇱</span>
+                            <span class="lang-name">Polski</span>
                         </div>
                     </div>
                 </div>
@@ -3088,11 +3191,16 @@
         const LANGUAGES = {
             'en': { flag: '🇺🇸', name: 'English' },
             'ru': { flag: '🇷🇺', name: 'Русский' },
+            'uk': { flag: '🇺🇦', name: 'Українська' },
             'zh': { flag: '🇨🇳', name: '中文' },
             'es': { flag: '🇪🇸', name: 'Español' },
             'de': { flag: '🇩🇪', name: 'Deutsch' },
+            'fr': { flag: '🇫🇷', name: 'Français' },
+            'it': { flag: '🇮🇹', name: 'Italiano' },
             'ja': { flag: '🇯🇵', name: '日本語' },
-            'ar': { flag: '🇸🇦', name: 'العربية' }
+            'ar': { flag: '🇸🇦', name: 'العربية' },
+            'he': { flag: '🇮🇱', name: 'עברית' },
+            'pl': { flag: '🇵🇱', name: 'Polski' }
         };
         
         function toggleLangMenu() {
