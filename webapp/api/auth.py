@@ -254,8 +254,8 @@ async def telegram_token_auth(token: str, request: Request):
     # Create JWT token
     jwt_token = create_access_token(user_id, is_admin)
     
-    # Redirect to dashboard with token (will be saved by JS)
-    return RedirectResponse(url=f"/dashboard?auth_token={jwt_token}", status_code=302)
+    # Redirect to landing page with token (will be saved by JS)
+    return RedirectResponse(url=f"/?auth_token={jwt_token}", status_code=302)
 
 
 # ==============================================================================

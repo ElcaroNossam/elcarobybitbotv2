@@ -577,6 +577,64 @@
     </section>
     
     <script>
+        // ========================================
+        // AUTH HANDLING - Token from bot auto-login
+        // ========================================
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const authToken = params.get('auth_token');
+            if (authToken) {
+                // Save token to localStorage
+                localStorage.setItem('elcaro_token', authToken);
+                // Fetch user data and save
+                fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                })
+                .then(res => res.json())
+                .then(user => {
+                    if (user && user.user_id) {
+                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                        localStorage.setItem('elcaro_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('elcaro_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                        console.log('✅ Auto-login successful:', user.user_id);
+                    }
+                })
+                .catch(err => console.error('Auth error:', err));
+                // Remove token from URL for cleaner display
+                window.history.replaceState({}, document.title, '/');
+            }
+            
+            // Check existing token and refresh user data
+            const existingToken = localStorage.getItem('elcaro_token');
+            if (existingToken && !authToken) {
+                fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${existingToken}` }
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        // Token invalid, clear storage
+                        localStorage.removeItem('elcaro_token');
+                        localStorage.removeItem('elcaro_user');
+                        localStorage.removeItem('elcaro_user_id');
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(user => {
+                    if (user && user.user_id) {
+                        localStorage.setItem('elcaro_user', JSON.stringify(user));
+                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                        console.log('✅ Session restored:', user.user_id);
+                    }
+                })
+                .catch(err => console.warn('Session check failed:', err));
+            }
+        })();
+        
+        // ========================================
+        // PARTICLES ANIMATION
+        // ========================================
         // Generate particles
         const particlesContainer = document.getElementById('particles');
         for (let i = 0; i < 50; i++) {

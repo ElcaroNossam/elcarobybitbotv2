@@ -1005,6 +1005,31 @@
     </div>
     
     <script>
+        // ========================================
+        // AUTH HANDLING - Token from bot auto-login
+        // ========================================
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const authToken = params.get('auth_token');
+            if (authToken) {
+                localStorage.setItem('elcaro_token', authToken);
+                fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                })
+                .then(res => res.json())
+                .then(user => {
+                    if (user && user.user_id) {
+                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                        localStorage.setItem('elcaro_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('elcaro_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                    }
+                })
+                .catch(err => console.error('Auth error:', err));
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        })();
+        
         // State
         const state = {
             symbol: 'BTCUSDT',
