@@ -513,6 +513,84 @@
             gap: 15px;
         }
         .modal-actions .btn { flex: 1; }
+        
+        /* Light theme */
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Language Selector & Theme Switcher */
+        .lang-selector, .theme-switcher {
+            position: relative;
+        }
+        .header-icon-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .header-icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .lang-menu, .theme-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 160px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .lang-menu.show, .theme-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(5px);
+        }
+        .lang-item, .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .lang-item:hover, .theme-option:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .lang-item.active, .theme-option.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent);
+        }
+        .lang-item .flag { font-size: 18px; }
+        
         /* Responsive */
         @media (max-width: 1200px) {
             .builder-grid { grid-template-columns: 1fr; }
@@ -522,8 +600,11 @@
             .content { padding: 20px; }
             .indicators-grid { grid-template-columns: 1fr; }
             .preview-stats { grid-template-columns: repeat(2, 1fr); }
+            .nav-links { display: none; }
+            .header { padding: 0 16px; }
         }
     </style>
+    <script src="/static/js/elcaro-theme.js"></script>
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -539,6 +620,33 @@
             <a href="/marketplace">Marketplace</a>
             <a href="/leaderboard">Leaderboard</a>
         </nav>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- Language Selector -->
+            <div class="lang-selector" id="langSelector">
+                <button class="header-icon-btn" onclick="toggleLangMenu()" title="Language">
+                    <span id="currentLangFlag">🇺🇸</span>
+                </button>
+                <div class="lang-menu" id="langMenu">
+                    <div class="lang-item active" data-lang="en" onclick="setLanguage('en')"><span class="flag">🇺🇸</span><span class="lang-name">English</span></div>
+                    <div class="lang-item" data-lang="ru" onclick="setLanguage('ru')"><span class="flag">🇷🇺</span><span class="lang-name">Русский</span></div>
+                    <div class="lang-item" data-lang="zh" onclick="setLanguage('zh')"><span class="flag">🇨🇳</span><span class="lang-name">中文</span></div>
+                </div>
+            </div>
+            
+            <!-- Theme Switcher -->
+            <div class="theme-switcher" id="themeSwitcher">
+                <button class="header-icon-btn" onclick="toggleThemeMenu()" title="Theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <div class="theme-menu" id="themeMenu">
+                    <div class="theme-option active" data-theme="dark" onclick="setTheme('dark')"><i class="fas fa-moon"></i><span>Dark</span></div>
+                    <div class="theme-option" data-theme="light" onclick="setTheme('light')"><i class="fas fa-sun"></i><span>Light</span></div>
+                    <div class="theme-option" data-theme="system" onclick="setTheme('system')"><i class="fas fa-desktop"></i><span>System</span></div>
+                </div>
+            </div>
+            
+            <a href="/terminal" class="btn btn-primary" style="padding: 10px 20px; text-decoration: none;">Open Terminal</a>
+        </div>
     </header>
 
     <div class="main-container">

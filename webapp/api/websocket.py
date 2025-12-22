@@ -448,6 +448,52 @@ async def websocket_signals(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
+@router.websocket("/terminal")
+async def websocket_terminal_anonymous(websocket: WebSocket):
+    """WebSocket for terminal without user_id - public market data only"""
+    await websocket.accept()
+    
+    subscribed_symbol = "BTCUSDT"
+    running = True
+    
+    async def stream_prices():
+        """Stream price updates"""
+        nonlocal running
+        while running:
+            try:
+                price_data = await fetch_current_price(subscribed_symbol)
+                if price_data:
+                    await websocket.send_json({
+                        "type": "ticker",
+                        "price": price_data.get("price", 0),
+                        "change": price_data.get("change24h", 0),
+                        "symbol": subscribed_symbol
+                    })
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                await asyncio.sleep(2)
+    
+    price_task = asyncio.create_task(stream_prices())
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+            
+            if msg_type == "subscribe":
+                subscribed_symbol = data.get("symbol", "BTCUSDT")
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        running = False
+        price_task.cancel()
+    except Exception:
+        running = False
+        price_task.cancel()
+
+
 @router.websocket("/terminal/{user_id}")
 async def websocket_terminal(websocket: WebSocket, user_id: int):
     """WebSocket for terminal - live data, analysis, and auto-trading"""

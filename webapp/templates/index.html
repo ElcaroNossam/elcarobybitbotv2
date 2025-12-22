@@ -20,6 +20,9 @@
     <!-- Landing CSS -->
     <link rel="stylesheet" href="/static/css/landing.css">
     
+    <!-- Theme & Language Script -->
+    <script src="/static/js/elcaro-theme.js"></script>
+    
     <!-- Telegram WebApp Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -46,6 +49,31 @@
             </ul>
             
             <div class="nav-cta">
+                <!-- Language Selector -->
+                <div class="lang-selector" id="langSelector">
+                    <button class="btn btn-ghost lang-btn" onclick="toggleLangMenu()" title="Language">
+                        <span id="currentLangFlag">🇺🇸</span>
+                    </button>
+                    <div class="lang-menu" id="langMenu">
+                        <div class="lang-item active" data-lang="en" onclick="setLanguage('en')"><span class="flag">🇺🇸</span><span class="lang-name">English</span></div>
+                        <div class="lang-item" data-lang="ru" onclick="setLanguage('ru')"><span class="flag">🇷🇺</span><span class="lang-name">Русский</span></div>
+                        <div class="lang-item" data-lang="zh" onclick="setLanguage('zh')"><span class="flag">🇨🇳</span><span class="lang-name">中文</span></div>
+                        <div class="lang-item" data-lang="es" onclick="setLanguage('es')"><span class="flag">🇪🇸</span><span class="lang-name">Español</span></div>
+                    </div>
+                </div>
+                
+                <!-- Theme Switcher -->
+                <div class="theme-switcher" id="themeSwitcher">
+                    <button class="btn btn-ghost theme-btn" onclick="toggleThemeMenu()" title="Theme">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <div class="theme-menu" id="themeMenu">
+                        <div class="theme-option active" data-theme="dark" onclick="setTheme('dark')"><i class="fas fa-moon"></i><span>Dark</span></div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')"><i class="fas fa-sun"></i><span>Light</span></div>
+                        <div class="theme-option" data-theme="system" onclick="setTheme('system')"><i class="fas fa-desktop"></i><span>System</span></div>
+                    </div>
+                </div>
+                
                 <a href="https://t.me/elcaro_bybit_bot" class="btn btn-ghost" target="_blank">
                     <i class="fab fa-telegram"></i>
                 </a>

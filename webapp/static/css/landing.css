@@ -1570,6 +1570,107 @@ section {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   LIGHT THEME
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: rgba(0, 0, 0, 0.02);
+    --bg-card-hover: rgba(0, 0, 0, 0.05);
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.12);
+    
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .animated-bg {
+    background: 
+        radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
+}
+
+[data-theme="light"] .navbar {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LANGUAGE & THEME DROPDOWNS
+   ───────────────────────────────────────────────────────────────────────────── */
+.lang-selector, .theme-switcher {
+    position: relative;
+}
+
+.lang-btn, .theme-btn {
+    font-size: 16px;
+    padding: 10px 14px !important;
+}
+
+.lang-menu, .theme-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 160px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+    margin-top: 8px;
+}
+
+.lang-menu.show, .theme-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.lang-item, .theme-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.lang-item:hover, .theme-option:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.lang-item.active, .theme-option.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-primary);
+}
+
+.lang-item .flag {
+    font-size: 18px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    RESPONSIVE
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
@@ -1613,6 +1714,11 @@ section {
     .footer-social { justify-content: center; }
     .footer-brand p { max-width: 100%; }
     .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+    
+    /* Hide some nav-cta items on mobile */
+    .nav-cta .btn-primary {
+        display: none;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1621,4 +1727,8 @@ section {
     .cta-buttons { flex-direction: column; }
     .strategies-grid { grid-template-columns: 1fr; }
     .testimonial-card { min-width: 300px; }
+    
+    .nav-cta {
+        gap: 8px;
+    }
 }

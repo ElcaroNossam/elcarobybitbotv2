@@ -865,6 +865,85 @@
             margin-top: 20px;
         }
         
+        /* Light theme */
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-hover: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Language Selector & Theme Switcher */
+        .lang-selector, .theme-switcher {
+            position: relative;
+        }
+        .header-icon-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .header-icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .lang-menu, .theme-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 160px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .lang-menu.show, .theme-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(5px);
+        }
+        .lang-item, .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .lang-item:hover, .theme-option:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .lang-item.active, .theme-option.active {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-purple);
+        }
+        .lang-item .flag {
+            font-size: 18px;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .sidebar { width: 280px; }
@@ -911,6 +990,45 @@
                 </select>
                 <span id="accountBadge" style="background: var(--green-dim); color: var(--green); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">DEMO</span>
             </div>
+            
+            <!-- Language Selector -->
+            <div class="lang-selector" id="langSelector">
+                <button class="header-icon-btn" onclick="toggleLangMenu()" title="Language">
+                    <span id="currentLangFlag">🇺🇸</span>
+                </button>
+                <div class="lang-menu" id="langMenu">
+                    <div class="lang-item active" data-lang="en" onclick="setLanguage('en')">
+                        <span class="flag">🇺🇸</span>
+                        <span class="lang-name">English</span>
+                    </div>
+                    <div class="lang-item" data-lang="ru" onclick="setLanguage('ru')">
+                        <span class="flag">🇷🇺</span>
+                        <span class="lang-name">Русский</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Theme Switcher -->
+            <div class="theme-switcher" id="themeSwitcher">
+                <button class="header-icon-btn" onclick="toggleThemeMenu()" title="Theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+                <div class="theme-menu" id="themeMenu">
+                    <div class="theme-option active" data-theme="dark" onclick="setTheme('dark')">
+                        <i class="fas fa-moon"></i>
+                        <span>Dark</span>
+                    </div>
+                    <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <i class="fas fa-sun"></i>
+                        <span>Light</span>
+                    </div>
+                    <div class="theme-option" data-theme="system" onclick="setTheme('system')">
+                        <i class="fas fa-desktop"></i>
+                        <span>System</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="connection-badge" style="padding: 6px 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
                 <span class="status-dot" id="wsLiveStatus" style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
                 <span id="wsLiveStatusText">Offline</span>
@@ -3214,6 +3332,135 @@
                     </button>
                 `;
                 sidebar.appendChild(navSection);
+            }
+            
+            // Initialize language and theme
+            initLanguageAndTheme();
+        });
+        
+        // ===== Language & Theme Management =====
+        
+        const LANGUAGES = {
+            'en': { flag: '🇺🇸', name: 'English' },
+            'ru': { flag: '🇷🇺', name: 'Русский' }
+        };
+        
+        function toggleLangMenu() {
+            const menu = document.getElementById('langMenu');
+            const themeMenu = document.getElementById('themeMenu');
+            if (themeMenu && themeMenu.classList.contains('show')) {
+                themeMenu.classList.remove('show');
+            }
+            menu.classList.toggle('show');
+        }
+        
+        function toggleThemeMenu() {
+            const menu = document.getElementById('themeMenu');
+            const langMenu = document.getElementById('langMenu');
+            if (langMenu && langMenu.classList.contains('show')) {
+                langMenu.classList.remove('show');
+            }
+            menu.classList.toggle('show');
+        }
+        
+        function setLanguage(lang) {
+            const langData = LANGUAGES[lang];
+            if (!langData) return;
+            
+            document.getElementById('currentLangFlag').textContent = langData.flag;
+            document.querySelectorAll('.lang-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.lang === lang) {
+                    item.classList.add('active');
+                }
+            });
+            
+            localStorage.setItem('elcaro_language', lang);
+            document.getElementById('langMenu').classList.remove('show');
+        }
+        
+        function setTheme(theme) {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            html.removeAttribute('data-theme');
+            
+            if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun';
+            } else if (theme === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    html.setAttribute('data-theme', 'light');
+                }
+                icon.className = 'fas fa-desktop';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+            
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.theme === theme) {
+                    option.classList.add('active');
+                }
+            });
+            
+            localStorage.setItem('elcaro_theme', theme);
+            document.getElementById('themeMenu').classList.remove('show');
+        }
+        
+        function initLanguageAndTheme() {
+            const savedLang = localStorage.getItem('elcaro_language') || 'en';
+            const langData = LANGUAGES[savedLang];
+            if (langData) {
+                const flag = document.getElementById('currentLangFlag');
+                if (flag) flag.textContent = langData.flag;
+                document.querySelectorAll('.lang-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.lang === savedLang) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            
+            const savedTheme = localStorage.getItem('elcaro_theme') || 'dark';
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            if (savedTheme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                if (icon) icon.className = 'fas fa-sun';
+            } else if (savedTheme === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    html.setAttribute('data-theme', 'light');
+                }
+                if (icon) icon.className = 'fas fa-desktop';
+            } else {
+                if (icon) icon.className = 'fas fa-moon';
+            }
+            
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.theme === savedTheme) {
+                    option.classList.add('active');
+                }
+            });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.getElementById('langSelector');
+            const themeSwitcher = document.getElementById('themeSwitcher');
+            
+            if (langSelector && !langSelector.contains(e.target)) {
+                const menu = document.getElementById('langMenu');
+                if (menu) menu.classList.remove('show');
+            }
+            
+            if (themeSwitcher && !themeSwitcher.contains(e.target)) {
+                const menu = document.getElementById('themeMenu');
+                if (menu) menu.classList.remove('show');
             }
         });
     </script>

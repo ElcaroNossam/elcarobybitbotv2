@@ -43,14 +43,32 @@ class CloseAllRequest(BaseModel):
 class PlaceOrderRequest(BaseModel):
     symbol: str
     side: str  # 'buy' or 'sell' -> will be converted to 'Buy'/'Sell'
-    order_type: str = "market"  # 'market' or 'limit'
+    order_type: Optional[str] = "market"  # 'market' or 'limit'
+    type: Optional[str] = None  # Alias for order_type from frontend
     size: float
     price: Optional[float] = None
     leverage: int = 10
     take_profit: Optional[float] = None
     stop_loss: Optional[float] = None
+    tp: Optional[float] = None  # Alias for take_profit from frontend
+    sl: Optional[float] = None  # Alias for stop_loss from frontend
     exchange: str = "bybit"  # 'bybit' or 'hyperliquid'
     account_type: str = "demo"  # 'demo' or 'real'
+    reduceOnly: bool = False
+    postOnly: bool = False
+    timeInForce: str = "GTC"
+    
+    def get_order_type(self) -> str:
+        """Get order type from either order_type or type field"""
+        return self.type or self.order_type or "market"
+    
+    def get_take_profit(self) -> Optional[float]:
+        """Get take profit from either field"""
+        return self.tp or self.take_profit
+    
+    def get_stop_loss(self) -> Optional[float]:
+        """Get stop loss from either field"""
+        return self.sl or self.stop_loss
 
 
 class SetLeverageRequest(BaseModel):
@@ -770,7 +788,12 @@ async def place_order(
     
     # Normalize side
     side = "Buy" if req.side.lower() in ["buy", "long"] else "Sell"
-    order_type = "Market" if req.order_type.lower() == "market" else "Limit"
+    order_type_str = req.get_order_type()
+    order_type = "Market" if order_type_str.lower() == "market" else "Limit"
+    
+    # Update req with resolved values
+    req.take_profit = req.get_take_profit()
+    req.stop_loss = req.get_stop_loss()
     
     if req.exchange == "hyperliquid":
         return await _place_order_hyperliquid(user_id, req, side, order_type)

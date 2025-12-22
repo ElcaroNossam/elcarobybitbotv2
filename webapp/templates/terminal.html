@@ -491,8 +491,67 @@
                     <span class="ws-dot" id="wsStatus"></span>
                     <span id="wsStatusText">Connecting...</span>
                 </div>
-                <a href="/screener" style="color: var(--text-muted); padding: 8px;"><i class="fas fa-th"></i></a>
-                <a href="/settings" style="color: var(--text-muted); padding: 8px;"><i class="fas fa-cog"></i></a>
+                
+                <!-- Language Selector -->
+                <div class="lang-selector" id="langSelector">
+                    <button class="lang-btn" onclick="toggleLangMenu()" title="Language">
+                        <span id="currentLangFlag">🇺🇸</span>
+                    </button>
+                    <div class="lang-menu" id="langMenu">
+                        <div class="lang-item active" data-lang="en" onclick="setLanguage('en')">
+                            <span class="flag">🇺🇸</span>
+                            <span class="lang-name">English</span>
+                        </div>
+                        <div class="lang-item" data-lang="ru" onclick="setLanguage('ru')">
+                            <span class="flag">🇷🇺</span>
+                            <span class="lang-name">Русский</span>
+                        </div>
+                        <div class="lang-item" data-lang="zh" onclick="setLanguage('zh')">
+                            <span class="flag">🇨🇳</span>
+                            <span class="lang-name">中文</span>
+                        </div>
+                        <div class="lang-item" data-lang="es" onclick="setLanguage('es')">
+                            <span class="flag">🇪🇸</span>
+                            <span class="lang-name">Español</span>
+                        </div>
+                        <div class="lang-item" data-lang="de" onclick="setLanguage('de')">
+                            <span class="flag">🇩🇪</span>
+                            <span class="lang-name">Deutsch</span>
+                        </div>
+                        <div class="lang-item" data-lang="ja" onclick="setLanguage('ja')">
+                            <span class="flag">🇯🇵</span>
+                            <span class="lang-name">日本語</span>
+                        </div>
+                        <div class="lang-item" data-lang="ar" onclick="setLanguage('ar')">
+                            <span class="flag">🇸🇦</span>
+                            <span class="lang-name">العربية</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Theme Switcher -->
+                <div class="theme-switcher" id="themeSwitcher">
+                    <button class="theme-btn" onclick="toggleThemeMenu()" title="Theme">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <div class="theme-menu" id="themeMenu">
+                        <div class="theme-option active" data-theme="dark" onclick="setTheme('dark')">
+                            <i class="fas fa-moon"></i>
+                            <span>Dark</span>
+                        </div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                            <i class="fas fa-sun"></i>
+                            <span>Light</span>
+                        </div>
+                        <div class="theme-option" data-theme="system" onclick="setTheme('system')">
+                            <i class="fas fa-desktop"></i>
+                            <span>System</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="/screener" class="header-icon-btn" title="Screener"><i class="fas fa-th"></i></a>
+                <a href="/settings" class="header-icon-btn" title="Settings"><i class="fas fa-cog"></i></a>
             </div>
         </header>
         
@@ -2998,6 +3057,187 @@
                 }));
             }
         }
+        
+        // ===== Language & Theme Management =====
+        
+        const LANGUAGES = {
+            'en': { flag: '🇺🇸', name: 'English' },
+            'ru': { flag: '🇷🇺', name: 'Русский' },
+            'zh': { flag: '🇨🇳', name: '中文' },
+            'es': { flag: '🇪🇸', name: 'Español' },
+            'de': { flag: '🇩🇪', name: 'Deutsch' },
+            'ja': { flag: '🇯🇵', name: '日本語' },
+            'ar': { flag: '🇸🇦', name: 'العربية' }
+        };
+        
+        function toggleLangMenu() {
+            const menu = document.getElementById('langMenu');
+            const themeMenu = document.getElementById('themeMenu');
+            
+            // Close theme menu if open
+            if (themeMenu.classList.contains('show')) {
+                themeMenu.classList.remove('show');
+            }
+            
+            menu.classList.toggle('show');
+        }
+        
+        function toggleThemeMenu() {
+            const menu = document.getElementById('themeMenu');
+            const langMenu = document.getElementById('langMenu');
+            
+            // Close lang menu if open
+            if (langMenu.classList.contains('show')) {
+                langMenu.classList.remove('show');
+            }
+            
+            menu.classList.toggle('show');
+        }
+        
+        function setLanguage(lang) {
+            const langData = LANGUAGES[lang];
+            if (!langData) return;
+            
+            // Update flag icon
+            document.getElementById('currentLangFlag').textContent = langData.flag;
+            
+            // Update active state in menu
+            document.querySelectorAll('.lang-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.lang === lang) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem('elcaro_language', lang);
+            
+            // Close menu
+            document.getElementById('langMenu').classList.remove('show');
+            
+            // Show notification
+            showNotification(`Language changed to ${langData.name}`, 'info');
+            
+            // Apply translations (if available)
+            applyTranslations(lang);
+        }
+        
+        function applyTranslations(lang) {
+            // This would load translations from server or use bundled translations
+            // For now, just reload page with new language preference
+            // Future: fetch('/api/translations/' + lang).then(...)
+        }
+        
+        function setTheme(theme) {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            // Remove any existing theme
+            html.removeAttribute('data-theme');
+            
+            if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun';
+            } else if (theme === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    html.setAttribute('data-theme', 'light');
+                }
+                icon.className = 'fas fa-desktop';
+            } else {
+                // dark theme (default)
+                icon.className = 'fas fa-moon';
+            }
+            
+            // Update active state in menu
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.theme === theme) {
+                    option.classList.add('active');
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem('elcaro_theme', theme);
+            
+            // Close menu
+            document.getElementById('themeMenu').classList.remove('show');
+            
+            showNotification(`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)}`, 'info');
+        }
+        
+        // Initialize language and theme from localStorage
+        function initLanguageAndTheme() {
+            // Language
+            const savedLang = localStorage.getItem('elcaro_language') || 'en';
+            const langData = LANGUAGES[savedLang];
+            if (langData) {
+                document.getElementById('currentLangFlag').textContent = langData.flag;
+                document.querySelectorAll('.lang-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.lang === savedLang) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            
+            // Theme
+            const savedTheme = localStorage.getItem('elcaro_theme') || 'dark';
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            if (savedTheme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun';
+            } else if (savedTheme === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (!prefersDark) {
+                    html.setAttribute('data-theme', 'light');
+                }
+                icon.className = 'fas fa-desktop';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+            
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.theme === savedTheme) {
+                    option.classList.add('active');
+                }
+            });
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            const langSelector = document.getElementById('langSelector');
+            const themeSwitcher = document.getElementById('themeSwitcher');
+            
+            if (langSelector && !langSelector.contains(e.target)) {
+                document.getElementById('langMenu').classList.remove('show');
+            }
+            
+            if (themeSwitcher && !themeSwitcher.contains(e.target)) {
+                document.getElementById('themeMenu').classList.remove('show');
+            }
+        });
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            const savedTheme = localStorage.getItem('elcaro_theme');
+            if (savedTheme === 'system') {
+                const html = document.documentElement;
+                if (e.matches) {
+                    html.removeAttribute('data-theme');
+                } else {
+                    html.setAttribute('data-theme', 'light');
+                }
+            }
+        });
+        
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initLanguageAndTheme();
+        });
     </script>
 </body>
 </html>
