@@ -533,6 +533,9 @@
                 if (res.ok && data.token) {
                     localStorage.setItem('elcaro_token', data.token);
                     localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                    if (data.user && data.user.user_id) {
+                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
+                    }
                     showMessage('Login successful! Redirecting...', 'success');
                     setTimeout(() => window.location.href = '/dashboard', 500);
                 } else {
@@ -624,6 +627,9 @@
                     clearIntervals();
                     localStorage.setItem('elcaro_token', data.token);
                     localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                    if (data.user && data.user.user_id) {
+                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
+                    }
                     showMessage('Login approved! Redirecting...', 'success');
                     setTimeout(() => window.location.href = '/dashboard', 500);
                 } else if (data.status === 'denied') {

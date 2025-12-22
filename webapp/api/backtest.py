@@ -1238,3 +1238,1040 @@ class LiveBacktestManager:
 
 # Global instance
 live_manager = LiveBacktestManager()
+
+
+# ============== EXCHANGE VALIDATION ENDPOINTS ==============
+
+@router.get("/validate-exchange/{user_id}")
+async def validate_user_exchange(user_id: int, exchange: str = None):
+    """Validate exchange API credentials for a user"""
+    try:
+        from webapp.services.exchange_validator import validate_user_exchange_setup
+        return await validate_user_exchange_setup(user_id, exchange)
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
+
+@router.get("/exchange-health")
+async def exchange_health_check():
+    """Check connectivity to all exchanges"""
+    try:
+        from webapp.services.exchange_validator import ExchangeValidator
+        return await ExchangeValidator.health_check_all()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/validate-bybit")
+async def validate_bybit_credentials(
+    api_key: str,
+    api_secret: str,
+    demo: bool = True,
+    testnet: bool = False
+):
+    """Validate Bybit API credentials"""
+    try:
+        from webapp.services.exchange_validator import ExchangeValidator
+        return await ExchangeValidator.validate_bybit(api_key, api_secret, demo, testnet)
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
+
+@router.post("/validate-hyperliquid")
+async def validate_hyperliquid_credentials(
+    private_key: str,
+    testnet: bool = False
+):
+    """Validate HyperLiquid private key"""
+    try:
+        from webapp.services.exchange_validator import ExchangeValidator
+        return await ExchangeValidator.validate_hyperliquid(private_key, testnet)
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
+
+# ============== STRATEGY DEPLOYMENT V2 ==============
+
+class DeploymentRequest(BaseModel):
+    user_id: int
+    strategy: str
+    params: Dict[str, Any]
+    backtest_results: Dict[str, Any]
+    validation_rules: Optional[Dict[str, Any]] = None
+
+
+@router.post("/deploy-v2")
+async def deploy_strategy_v2(request: DeploymentRequest):
+    """Deploy a backtested strategy to live trading with validation"""
+    try:
+        from webapp.services.strategy_deployer import strategy_deployer
+        return await strategy_deployer.deploy(
+            user_id=request.user_id,
+            strategy=request.strategy,
+            params=request.params,
+            backtest_results=request.backtest_results,
+            validation_rules=request.validation_rules
+        )
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/undeploy/{user_id}/{strategy}")
+async def undeploy_strategy(user_id: int, strategy: str):
+    """Undeploy a strategy from live trading"""
+    try:
+        from webapp.services.strategy_deployer import strategy_deployer
+        return await strategy_deployer.undeploy(user_id, strategy)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/deployments/{user_id}")
+async def get_user_deployments(user_id: int):
+    """Get all active deployments for a user"""
+    try:
+        from webapp.services.strategy_deployer import strategy_deployer
+        deployments = await strategy_deployer.get_active_deployments(user_id)
+        return {"success": True, "deployments": deployments}
+    except Exception as e:
+        return {"success": False, "error": str(e), "deployments": []}
+
+
+@router.get("/deployment-history/{user_id}")
+async def get_deployment_history(user_id: int, limit: int = 50):
+    """Get deployment history for a user"""
+    try:
+        from webapp.services.strategy_deployer import strategy_deployer
+        history = await strategy_deployer.get_deployment_history(user_id, limit)
+        return {"success": True, "history": history}
+    except Exception as e:
+        return {"success": False, "error": str(e), "history": []}
+
+
+@router.get("/compare-performance/{user_id}/{strategy}")
+async def compare_backtest_vs_live(user_id: int, strategy: str):
+    """Compare backtest results vs live performance"""
+    try:
+        from webapp.services.strategy_deployer import strategy_deployer
+        return await strategy_deployer.compare_backtest_vs_live(user_id, strategy)
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============== INDICATOR CALCULATION ENDPOINTS ==============
+
+@router.post("/calculate-indicators")
+async def calculate_indicators(
+    symbol: str = "BTCUSDT",
+    timeframe: str = "1h",
+    days: int = 30,
+    indicators: List[str] = ["rsi", "macd", "bb", "ema"]
+):
+    """Calculate technical indicators for a symbol"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        from webapp.services.indicators import Indicators
+        
+        engine = RealBacktestEngine()
+        candles = await engine.fetch_historical_data(symbol, timeframe, days)
+        
+        if not candles or len(candles) < 50:
+            return {"success": False, "error": "Insufficient data"}
+        
+        closes = [c["close"] for c in candles]
+        results = {}
+        
+        if "rsi" in indicators:
+            results["rsi"] = Indicators.rsi(closes, 14)[-20:]  # Last 20 values
+        
+        if "macd" in indicators:
+            macd, signal, hist = Indicators.macd(closes)
+            results["macd"] = {
+                "line": macd[-20:],
+                "signal": signal[-20:],
+                "histogram": hist[-20:]
+            }
+        
+        if "bb" in indicators:
+            upper, middle, lower = Indicators.bollinger_bands(closes)
+            results["bollinger"] = {
+                "upper": upper[-20:],
+                "middle": middle[-20:],
+                "lower": lower[-20:]
+            }
+        
+        if "ema" in indicators:
+            results["ema"] = {
+                "ema20": Indicators.ema(closes, 20)[-20:],
+                "ema50": Indicators.ema(closes, 50)[-20:] if len(closes) >= 50 else None
+            }
+        
+        if "atr" in indicators:
+            results["atr"] = Indicators.atr(candles, 14)[-20:]
+        
+        if "supertrend" in indicators:
+            st, direction = Indicators.supertrend(candles)
+            results["supertrend"] = {
+                "values": st[-20:],
+                "direction": direction[-20:]
+            }
+        
+        if "obv" in indicators:
+            results["obv"] = Indicators.obv(candles)[-20:]
+        
+        if "adx" in indicators:
+            adx, plus_di, minus_di = Indicators.adx(candles)
+            results["adx"] = {
+                "adx": adx[-20:],
+                "plus_di": plus_di[-20:],
+                "minus_di": minus_di[-20:]
+            }
+        
+        if "stochastic" in indicators:
+            k, d = Indicators.stochastic(candles)
+            results["stochastic"] = {
+                "k": k[-20:],
+                "d": d[-20:]
+            }
+        
+        if "vwap" in indicators:
+            results["vwap"] = Indicators.vwap(candles)[-20:]
+        
+        return {
+            "success": True,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "indicators": results,
+            "last_close": closes[-1],
+            "timestamp": candles[-1].get("time")
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/trend-analysis/{symbol}")
+async def get_trend_analysis(symbol: str, timeframe: str = "1h"):
+    """Get comprehensive trend strength analysis"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        from webapp.services.indicators import Indicators
+        
+        engine = RealBacktestEngine()
+        candles = await engine.fetch_historical_data(symbol, timeframe, 100)
+        
+        if not candles or len(candles) < 50:
+            return {"success": False, "error": "Insufficient data"}
+        
+        analysis = Indicators.calculate_trend_strength(candles)
+        
+        # Add support/resistance levels
+        sr_levels = Indicators.detect_support_resistance(candles)
+        
+        # Add pivot points
+        pivots = Indicators.pivot_points(candles)
+        
+        return {
+            "success": True,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "trend": analysis,
+            "support_resistance": sr_levels,
+            "pivot_points": pivots,
+            "current_price": candles[-1]["close"]
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============== ADDITIONAL ENDPOINTS (merged from v2) ==============
+
+class MultiTimeframeRequest(BaseModel):
+    symbol: str = "BTCUSDT"
+    strategies: List[str] = ["elcaro", "rsibboi"]
+    timeframes: List[str] = ["1h", "4h", "1d"]
+    days: int = 90
+    initial_balance: float = 10000
+    stop_loss_percent: float = 2.0
+    take_profit_percent: float = 4.0
+    leverage: int = 1
+
+
+class HeatmapRequest(BaseModel):
+    symbol: str = "BTCUSDT"
+    strategy: str = "elcaro"
+    param1_name: str = "stop_loss_percent"
+    param1_range: List[float] = [1.0, 1.5, 2.0, 2.5, 3.0]
+    param2_name: str = "take_profit_percent"
+    param2_range: List[float] = [2.0, 3.0, 4.0, 5.0, 6.0]
+    timeframe: str = "1h"
+    days: int = 30
+
+
+class StressTestRequest(BaseModel):
+    symbol: str = "BTCUSDT"
+    strategy: str = "elcaro"
+    timeframe: str = "1h"
+    scenarios: List[str] = ["flash_crash", "high_volatility", "trend_reversal", "sideways"]
+
+
+@router.post("/multi-timeframe")
+async def run_multi_timeframe_backtest(request: MultiTimeframeRequest):
+    """Run backtest across multiple timeframes for the same symbol"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        engine = RealBacktestEngine()
+        
+        results = {}
+        for strategy in request.strategies:
+            strategy_results = {}
+            for tf in request.timeframes:
+                result = await engine.run_backtest(
+                    strategy=strategy,
+                    symbol=request.symbol,
+                    timeframe=tf,
+                    days=request.days,
+                    initial_balance=request.initial_balance,
+                    stop_loss_percent=request.stop_loss_percent,
+                    take_profit_percent=request.take_profit_percent
+                )
+                strategy_results[tf] = result
+            results[strategy] = strategy_results
+        
+        # Find best timeframe per strategy
+        best_timeframes = {}
+        for strategy, tf_results in results.items():
+            best_tf = max(tf_results.items(), key=lambda x: x[1].get("total_pnl_percent", 0))
+            best_timeframes[strategy] = {"timeframe": best_tf[0], "pnl": best_tf[1].get("total_pnl_percent", 0)}
+        
+        return {"success": True, "results": results, "best_timeframes": best_timeframes}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/heatmap")
+async def generate_parameter_heatmap(request: HeatmapRequest):
+    """Generate parameter optimization heatmap"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        engine = RealBacktestEngine()
+        
+        heatmap_data = []
+        for p1 in request.param1_range:
+            row = []
+            for p2 in request.param2_range:
+                params = {request.param1_name: p1, request.param2_name: p2}
+                result = await engine.run_backtest(
+                    strategy=request.strategy,
+                    symbol=request.symbol,
+                    timeframe=request.timeframe,
+                    days=request.days,
+                    initial_balance=10000,
+                    stop_loss_percent=params.get("stop_loss_percent", 2.0),
+                    take_profit_percent=params.get("take_profit_percent", 4.0)
+                )
+                row.append(result.get("sharpe_ratio", 0))
+            heatmap_data.append(row)
+        
+        # Find optimal
+        best_sharpe = -999
+        best_params = {}
+        for i, p1 in enumerate(request.param1_range):
+            for j, p2 in enumerate(request.param2_range):
+                if heatmap_data[i][j] > best_sharpe:
+                    best_sharpe = heatmap_data[i][j]
+                    best_params = {request.param1_name: p1, request.param2_name: p2}
+        
+        return {
+            "success": True,
+            "heatmap": heatmap_data,
+            "param1_values": request.param1_range,
+            "param2_values": request.param2_range,
+            "optimal": {"params": best_params, "sharpe": best_sharpe}
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/stress-test")
+async def stress_test_strategy(request: StressTestRequest):
+    """Test strategy under various market stress scenarios"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        engine = RealBacktestEngine()
+        
+        # Fetch base data
+        candles = await engine.fetch_historical_data(request.symbol, request.timeframe, 90)
+        if len(candles) < 100:
+            return {"success": False, "error": "Insufficient data"}
+        
+        scenario_results = {}
+        for scenario in request.scenarios:
+            # Apply stress scenario modifications
+            modified = apply_stress_scenario(candles, scenario)
+            
+            result = await engine.run_backtest(
+                strategy=request.strategy,
+                symbol=request.symbol,
+                timeframe=request.timeframe,
+                days=90,
+                initial_balance=10000
+            )
+            
+            scenario_results[scenario] = {
+                "trades": result.get("total_trades", 0),
+                "win_rate": result.get("win_rate", 0),
+                "total_pnl_pct": result.get("total_pnl_percent", 0),
+                "max_drawdown": result.get("max_drawdown_percent", 0),
+                "survived": result.get("total_pnl_percent", 0) > -50
+            }
+        
+        survival_rate = sum(1 for s in scenario_results.values() if s["survived"]) / len(scenario_results) * 100
+        
+        return {
+            "success": True,
+            "strategy": request.strategy,
+            "scenarios": scenario_results,
+            "robustness": {"survival_rate": survival_rate}
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def apply_stress_scenario(candles: List[Dict], scenario: str) -> List[Dict]:
+    """Apply stress scenario modifications to candle data"""
+    import copy
+    modified = copy.deepcopy(candles)
+    
+    if scenario == "flash_crash":
+        # Simulate 20% crash at random point
+        crash_idx = len(modified) // 2
+        for i in range(crash_idx, min(crash_idx + 10, len(modified))):
+            factor = 0.8 + (i - crash_idx) * 0.02
+            modified[i]["close"] *= factor
+            modified[i]["low"] *= factor * 0.95
+    
+    elif scenario == "high_volatility":
+        # Double the price swings
+        for c in modified:
+            mid = (c["high"] + c["low"]) / 2
+            c["high"] = mid + (c["high"] - mid) * 2
+            c["low"] = mid - (mid - c["low"]) * 2
+    
+    elif scenario == "trend_reversal":
+        # Reverse trend direction
+        half = len(modified) // 2
+        base = modified[half]["close"]
+        for i in range(half, len(modified)):
+            diff = modified[i]["close"] - base
+            modified[i]["close"] = base - diff
+            modified[i]["high"] = base - (modified[i]["low"] - base)
+            modified[i]["low"] = base - (modified[i]["high"] - base)
+    
+    elif scenario == "sideways":
+        # Flatten prices to sideways range
+        avg_price = sum(c["close"] for c in modified) / len(modified)
+        for c in modified:
+            c["close"] = avg_price + (c["close"] - avg_price) * 0.1
+            c["high"] = c["close"] * 1.005
+            c["low"] = c["close"] * 0.995
+    
+    return modified
+
+
+@router.get("/timeframes")
+async def list_timeframes():
+    """List all available timeframes"""
+    return {
+        "timeframes": [
+            {"value": "1m", "label": "1 Minute", "candles_per_day": 1440},
+            {"value": "5m", "label": "5 Minutes", "candles_per_day": 288},
+            {"value": "15m", "label": "15 Minutes", "candles_per_day": 96},
+            {"value": "30m", "label": "30 Minutes", "candles_per_day": 48},
+            {"value": "1h", "label": "1 Hour", "candles_per_day": 24},
+            {"value": "4h", "label": "4 Hours", "candles_per_day": 6},
+            {"value": "1d", "label": "1 Day", "candles_per_day": 1}
+        ]
+    }
+
+
+@router.get("/available-data/{symbol}")
+async def get_available_data(symbol: str, timeframe: str = "1d"):
+    """Get information about available historical data"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine
+        engine = RealBacktestEngine()
+        
+        candles = await engine.fetch_historical_data(symbol, timeframe, 365)
+        
+        if not candles:
+            return {"success": False, "error": "No data available"}
+        
+        return {
+            "success": True,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "first_date": candles[0]["time"][:10],
+            "last_date": candles[-1]["time"][:10],
+            "total_candles": len(candles)
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============== STRATEGY BUILDER ENDPOINTS ==============
+
+class CustomStrategyConfig(BaseModel):
+    name: str
+    description: str = ""
+    base_strategy: str = "custom"
+    entry_conditions: List[Dict[str, Any]]  # List of indicator conditions
+    exit_conditions: List[Dict[str, Any]]
+    risk_params: Dict[str, float] = {"stop_loss": 2.0, "take_profit": 4.0, "risk_per_trade": 1.0}
+    filters: Dict[str, Any] = {}  # Volume filter, trend filter, etc.
+
+
+class SaveStrategyRequest(BaseModel):
+    user_id: int
+    config: CustomStrategyConfig
+    backtest_results: Optional[Dict] = None
+    visibility: str = "private"  # private, public, premium
+    price: float = 0.0  # For premium strategies
+
+
+@router.post("/strategy-builder/save")
+async def save_custom_strategy(request: SaveStrategyRequest):
+    """Save a custom built strategy"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
+        
+        # Ensure table exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS custom_strategies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                base_strategy TEXT DEFAULT 'custom',
+                config_json TEXT NOT NULL,
+                backtest_results_json TEXT,
+                visibility TEXT DEFAULT 'private',
+                price REAL DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT,
+                UNIQUE(user_id, name)
+            )
+        """)
+        
+        now = datetime.now().isoformat()
+        
+        cur.execute("""
+            INSERT OR REPLACE INTO custom_strategies 
+            (user_id, name, description, base_strategy, config_json, backtest_results_json, 
+             visibility, price, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        """, (
+            request.user_id,
+            request.config.name,
+            request.config.description,
+            request.config.base_strategy,
+            json.dumps(request.config.dict()),
+            json.dumps(request.backtest_results) if request.backtest_results else None,
+            request.visibility,
+            request.price,
+            now, now
+        ))
+        
+        strategy_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "strategy_id": strategy_id, "message": f"Strategy '{request.config.name}' saved"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/strategy-builder/my-strategies/{user_id}")
+async def get_user_strategies(user_id: int):
+    """Get all strategies created by a user"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        # Ensure table exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS custom_strategies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                base_strategy TEXT DEFAULT 'custom',
+                config_json TEXT NOT NULL,
+                backtest_results_json TEXT,
+                visibility TEXT DEFAULT 'private',
+                price REAL DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            )
+        """)
+        
+        cur.execute("""
+            SELECT cs.*, 
+                   (SELECT COUNT(*) FROM live_deployments ld 
+                    WHERE ld.strategy_id = cs.id AND ld.user_id = cs.user_id AND ld.status = 'active') as is_live
+            FROM custom_strategies cs
+            WHERE cs.user_id = ? AND cs.is_active = 1 
+            ORDER BY cs.updated_at DESC
+        """, (user_id,))
+        
+        rows = cur.fetchall()
+        conn.close()
+        
+        strategies = []
+        for row in rows:
+            bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+            strategies.append({
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "base_strategy": row["base_strategy"],
+                "config": json.loads(row["config_json"]) if row["config_json"] else {},
+                "backtest_results": bt_results,
+                "visibility": row["visibility"],
+                "is_public": row["visibility"] in ("public", "premium"),
+                "is_live": row["is_live"] > 0 if row["is_live"] else False,
+                "price": row["price"],
+                "win_rate": bt_results.get("win_rate", 0),
+                "total_pnl_percent": bt_results.get("total_pnl_percent", 0),
+                "trades": bt_results.get("total_trades", 0),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"]
+            })
+        
+        return {"success": True, "strategies": strategies}
+    except Exception as e:
+        return {"success": False, "error": str(e), "strategies": []}
+
+
+@router.delete("/strategy-builder/{strategy_id}")
+async def delete_strategy(strategy_id: int, user_id: int):
+    """Delete a custom strategy"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE custom_strategies SET is_active = 0 
+            WHERE id = ? AND user_id = ?
+        """, (strategy_id, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Strategy deleted"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/strategy-builder/{strategy_id}")
+async def get_strategy_details(strategy_id: int, user_id: int = None):
+    """Get detailed info about a strategy"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT cs.*, u.username as author_name
+            FROM custom_strategies cs
+            LEFT JOIN users u ON cs.user_id = u.user_id
+            WHERE cs.id = ? AND cs.is_active = 1
+        """, (strategy_id,))
+        
+        row = cur.fetchone()
+        conn.close()
+        
+        if not row:
+            return {"success": False, "error": "Strategy not found"}
+        
+        # Check access: owner or public/premium
+        if row["user_id"] != user_id and row["visibility"] == "private":
+            return {"success": False, "error": "Access denied"}
+        
+        config = json.loads(row["config_json"]) if row["config_json"] else {}
+        bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+        
+        return {
+            "success": True,
+            "strategy": {
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "author": row["author_name"] or f"User #{row['user_id']}",
+                "base_strategy": row["base_strategy"],
+                "visibility": row["visibility"],
+                "price": row["price"],
+                "entry_conditions": config.get("entry_conditions", []),
+                "exit_conditions": config.get("exit_conditions", []),
+                "stop_loss_percent": config.get("stop_loss_percent", 2),
+                "take_profit_percent": config.get("take_profit_percent", 4),
+                "risk_per_trade": config.get("risk_per_trade", 1),
+                "max_positions": config.get("max_positions", 3),
+                "filters": config.get("filters", {}),
+                "backtest_results": bt_results,
+                "win_rate": bt_results.get("win_rate", 0),
+                "total_pnl_percent": bt_results.get("total_pnl_percent", 0),
+                "total_trades": bt_results.get("total_trades", 0),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"]
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/strategy-builder/test")
+async def test_custom_strategy(config: CustomStrategyConfig, symbol: str = "BTCUSDT", 
+                                timeframe: str = "1h", days: int = 30):
+    """Test a custom strategy configuration without saving"""
+    try:
+        from webapp.services.backtest_engine import RealBacktestEngine, CustomStrategyAnalyzer
+        
+        engine = RealBacktestEngine()
+        analyzer = CustomStrategyAnalyzer(config.dict(), config.base_strategy)
+        
+        candles = await engine.fetch_historical_data(symbol, timeframe, days)
+        
+        if not candles or len(candles) < 50:
+            return {"success": False, "error": "Insufficient data"}
+        
+        signals = analyzer.analyze(candles)
+        
+        # Simulate trades
+        result = await engine.run_backtest(
+            strategy="custom",
+            symbol=symbol,
+            timeframe=timeframe,
+            days=days,
+            initial_balance=10000,
+            stop_loss_percent=config.risk_params.get("stop_loss", 2.0),
+            take_profit_percent=config.risk_params.get("take_profit", 4.0)
+        )
+        
+        return {"success": True, "result": result, "signals_count": len([s for s in signals.values() if s.get("direction")])}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============== MARKETPLACE ENDPOINTS ==============
+
+@router.get("/marketplace/browse")
+async def browse_marketplace(
+    category: str = None,
+    sort_by: str = "rating",  # rating, copies, pnl, newest
+    limit: int = 20,
+    offset: int = 0
+):
+    """Browse public strategies in marketplace"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        query = """
+            SELECT cs.*, u.username as author_name
+            FROM custom_strategies cs
+            LEFT JOIN users u ON cs.user_id = u.user_id
+            WHERE cs.is_active = 1 AND cs.visibility IN ('public', 'premium')
+        """
+        params = []
+        
+        if category:
+            query += " AND json_extract(cs.config_json, '$.base_strategy') = ?"
+            params.append(category)
+        
+        sort_map = {
+            "rating": "cs.price DESC",  # Placeholder for rating
+            "copies": "cs.price DESC",  # Placeholder for copies count
+            "pnl": "json_extract(cs.backtest_results_json, '$.total_pnl_percent') DESC",
+            "newest": "cs.created_at DESC"
+        }
+        query += f" ORDER BY {sort_map.get(sort_by, 'cs.created_at DESC')}"
+        query += f" LIMIT {limit} OFFSET {offset}"
+        
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        conn.close()
+        
+        strategies = []
+        for row in rows:
+            bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+            strategies.append({
+                "id": row["id"],
+                "name": row["name"],
+                "description": row["description"],
+                "author": row["author_name"] or f"User #{row['user_id']}",
+                "base_strategy": row["base_strategy"],
+                "visibility": row["visibility"],
+                "price": row["price"],
+                "win_rate": bt_results.get("win_rate", 0),
+                "total_pnl": bt_results.get("total_pnl_percent", 0),
+                "total_trades": bt_results.get("total_trades", 0),
+                "created_at": row["created_at"]
+            })
+        
+        return {"success": True, "strategies": strategies, "total": len(strategies)}
+    except Exception as e:
+        return {"success": False, "error": str(e), "strategies": []}
+
+
+@router.post("/marketplace/copy/{strategy_id}")
+async def copy_strategy(strategy_id: int, user_id: int):
+    """Copy a public strategy to your account"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        # Get original strategy
+        cur.execute("""
+            SELECT * FROM custom_strategies 
+            WHERE id = ? AND visibility IN ('public', 'premium') AND is_active = 1
+        """, (strategy_id,))
+        
+        original = cur.fetchone()
+        if not original:
+            return {"success": False, "error": "Strategy not found or not public"}
+        
+        # Check if premium and payment required
+        if original["visibility"] == "premium" and original["price"] > 0:
+            # TODO: Check payment status
+            pass
+        
+        # Create copy for user
+        now = datetime.now().isoformat()
+        new_name = f"{original['name']} (copy)"
+        
+        cur.execute("""
+            INSERT INTO custom_strategies 
+            (user_id, name, description, base_strategy, config_json, backtest_results_json,
+             visibility, price, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'private', 0, 1, ?, ?)
+        """, (
+            user_id, new_name, original["description"], original["base_strategy"],
+            original["config_json"], original["backtest_results_json"], now, now
+        ))
+        
+        new_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "strategy_id": new_id, "message": f"Strategy copied as '{new_name}'"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/marketplace/publish/{strategy_id}")
+async def publish_to_marketplace(strategy_id: int, user_id: int, visibility: str = "public", price: float = 0):
+    """Publish your strategy to marketplace"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
+        
+        # Verify ownership
+        cur.execute("SELECT user_id FROM custom_strategies WHERE id = ?", (strategy_id,))
+        row = cur.fetchone()
+        
+        if not row or row[0] != user_id:
+            return {"success": False, "error": "Strategy not found or access denied"}
+        
+        cur.execute("""
+            UPDATE custom_strategies 
+            SET visibility = ?, price = ?, updated_at = ?
+            WHERE id = ? AND user_id = ?
+        """, (visibility, price, datetime.now().isoformat(), strategy_id, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": f"Strategy published as {visibility}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============== LIVE TRADING INTEGRATION ==============
+
+class GoLiveRequest(BaseModel):
+    user_id: int
+    exchange: str = "bybit"
+    account_type: str = "demo"
+    params: Optional[Dict[str, Any]] = None
+
+@router.post("/go-live/{strategy_id}")
+async def start_live_trading(strategy_id: int, request: GoLiveRequest):
+    """Deploy strategy to live trading in the bot"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        # Get strategy
+        cur.execute("""
+            SELECT * FROM custom_strategies WHERE id = ? AND is_active = 1
+        """, (strategy_id,))
+        
+        strategy = cur.fetchone()
+        if not strategy:
+            return {"success": False, "error": "Strategy not found"}
+        
+        # Check ownership or purchase
+        if strategy["user_id"] != request.user_id:
+            cur.execute("""
+                SELECT id FROM strategy_purchases 
+                WHERE strategy_id = ? AND buyer_id = ?
+            """, (strategy_id, request.user_id))
+            if not cur.fetchone():
+                return {"success": False, "error": "Access denied - purchase required"}
+        
+        config = json.loads(strategy["config_json"]) if strategy["config_json"] else {}
+        
+        # Merge with override params
+        if request.params:
+            config["risk_params"] = {**config.get("risk_params", {}), **request.params}
+        
+        # Create/update live deployment table with all fields
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS live_deployments (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                strategy_id INTEGER NOT NULL,
+                strategy_name TEXT,
+                exchange TEXT DEFAULT 'bybit',
+                account_type TEXT DEFAULT 'demo',
+                config_json TEXT,
+                status TEXT DEFAULT 'active',
+                started_at TEXT,
+                stopped_at TEXT,
+                trades_count INTEGER DEFAULT 0,
+                pnl_usd REAL DEFAULT 0,
+                win_rate REAL DEFAULT 0,
+                backtest_pnl REAL DEFAULT 0,
+                UNIQUE(user_id, strategy_id)
+            )
+        """)
+        
+        # Get backtest pnl
+        bt_results = json.loads(strategy["backtest_results_json"]) if strategy["backtest_results_json"] else {}
+        backtest_pnl = bt_results.get("total_pnl_percent", 0)
+        
+        now = datetime.now().isoformat()
+        
+        cur.execute("""
+            INSERT OR REPLACE INTO live_deployments 
+            (user_id, strategy_id, strategy_name, exchange, account_type, 
+             config_json, status, started_at, backtest_pnl)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+        """, (request.user_id, strategy_id, strategy["name"], request.exchange, 
+              request.account_type, json.dumps(config), now, backtest_pnl))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True, 
+            "message": f"Strategy '{strategy['name']}' is now LIVE on {request.exchange} ({request.account_type})",
+            "config": config
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class StopLiveRequest(BaseModel):
+    user_id: int
+
+@router.post("/stop-live/{strategy_id}")
+async def stop_live_trading(strategy_id: int, request: StopLiveRequest):
+    """Stop live trading for a strategy"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE live_deployments 
+            SET status = 'stopped', stopped_at = ?
+            WHERE strategy_id = ? AND user_id = ? AND status = 'active'
+        """, (datetime.now().isoformat(), strategy_id, request.user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Live trading stopped"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/live-status/{user_id}")
+async def get_live_status(user_id: int):
+    """Get all active live deployments for a user"""
+    try:
+        conn = sqlite3.connect(str(DB_FILE))
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        
+        # Ensure table exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS live_deployments (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                strategy_id INTEGER NOT NULL,
+                strategy_name TEXT,
+                exchange TEXT DEFAULT 'bybit',
+                account_type TEXT DEFAULT 'demo',
+                config_json TEXT,
+                status TEXT DEFAULT 'active',
+                started_at TEXT,
+                stopped_at TEXT,
+                trades_count INTEGER DEFAULT 0,
+                pnl_usd REAL DEFAULT 0,
+                win_rate REAL DEFAULT 0,
+                backtest_pnl REAL DEFAULT 0,
+                UNIQUE(user_id, strategy_id)
+            )
+        """)
+        conn.commit()
+        
+        cur.execute("""
+            SELECT ld.*, cs.backtest_results_json 
+            FROM live_deployments ld
+            LEFT JOIN custom_strategies cs ON ld.strategy_id = cs.id
+            WHERE ld.user_id = ? AND ld.status = 'active'
+        """, (user_id,))
+        
+        rows = cur.fetchall()
+        conn.close()
+        
+        deployments = []
+        for row in rows:
+            bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+            deployments.append({
+                "strategy_id": row["strategy_id"],
+                "strategy_name": row["strategy_name"],
+                "exchange": row["exchange"] or "bybit",
+                "account_type": row["account_type"] or "demo",
+                "config": json.loads(row["config_json"]) if row["config_json"] else {},
+                "started_at": row["started_at"],
+                "trades": row["trades_count"] or 0,
+                "live_pnl": row["pnl_usd"] or 0,
+                "win_rate": row["win_rate"] or 0,
+                "backtest_pnl": bt_results.get("total_pnl_percent", 0)
+            })
+        
+        return {"success": True, "active_deployments": deployments}
+    except Exception as e:
+        return {"success": False, "error": str(e), "active_deployments": []}
+

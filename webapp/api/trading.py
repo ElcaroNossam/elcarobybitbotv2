@@ -7,10 +7,13 @@ import time
 import json
 import hmac
 import hashlib
+import logging
 import aiohttp
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
@@ -235,7 +238,7 @@ async def get_positions(
                 for p in positions if float(p.get("size", 0)) != 0
             ]
         except Exception as e:
-            print(f"HL positions error: {e}")
+            logger.error(f"HL positions error: {e}")
             return []
     
     else:
@@ -266,7 +269,7 @@ async def get_positions(
                 for p in positions if float(p.get("size", 0)) != 0
             ]
         except Exception as e:
-            print(f"Bybit positions error: {e}")
+            logger.error(f"Bybit positions error: {e}")
             return []
 
 
@@ -296,12 +299,40 @@ async def get_orders(
                 return result["data"]
             return []
         except Exception as e:
-            print(f"HL orders error: {e}")
+            logger.error(f"HL orders error: {e}")
             return []
     
     else:
-        # Bybit orders - TODO
-        return []
+        # Bybit orders
+        try:
+            data = await bybit_request(
+                user_id, "GET", "/v5/order/realtime",
+                params={"category": "linear", "settleCoin": "USDT"},
+                account_type=account_type
+            )
+            
+            orders = data.get("result", {}).get("list", [])
+            return [
+                {
+                    "id": o.get("orderId"),
+                    "symbol": o.get("symbol"),
+                    "side": o.get("side").lower() if o.get("side") else "buy",
+                    "type": o.get("orderType", "Limit"),
+                    "price": float(o.get("price", 0)),
+                    "size": float(o.get("qty", 0)),
+                    "filled": float(o.get("cumExecQty", 0)),
+                    "remaining": float(o.get("leavesQty", 0)),
+                    "status": o.get("orderStatus"),
+                    "time": int(o.get("createdTime", 0)),
+                    "reduceOnly": o.get("reduceOnly", False),
+                    "exchange": "bybit",
+                    "account_type": account_type
+                }
+                for o in orders if o.get("orderStatus") in ["New", "PartiallyFilled", "Untriggered"]
+            ]
+        except Exception as e:
+            logger.error(f"Bybit orders error: {e}")
+            return []
 
 
 @router.post("/close")
@@ -332,8 +363,52 @@ async def close_position(
             raise HTTPException(status_code=500, detail=str(e))
     
     else:
-        # Bybit close - TODO
-        raise HTTPException(status_code=501, detail="Bybit close not implemented yet")
+        # Bybit close position
+        try:
+            # First get the position to know side and size
+            pos_data = await bybit_request(
+                user_id, "GET", "/v5/position/list",
+                params={"category": "linear", "symbol": req.symbol},
+                account_type=req.account_type
+            )
+            
+            positions = pos_data.get("result", {}).get("list", [])
+            if not positions:
+                raise HTTPException(status_code=404, detail="Position not found")
+            
+            pos = positions[0]
+            size = float(pos.get("size", 0))
+            if size == 0:
+                raise HTTPException(status_code=404, detail="No open position")
+            
+            # Close position by placing opposite order
+            close_side = "Sell" if pos.get("side") == "Buy" else "Buy"
+            
+            import uuid
+            result = await bybit_request(
+                user_id, "POST", "/v5/order/create",
+                body={
+                    "category": "linear",
+                    "symbol": req.symbol,
+                    "side": close_side,
+                    "orderType": "Market",
+                    "qty": str(size),
+                    "reduceOnly": True,
+                    "orderLinkId": f"close_{uuid.uuid4().hex[:12]}",
+                    "timeInForce": "IOC"
+                },
+                account_type=req.account_type
+            )
+            
+            return {
+                "success": True,
+                "message": f"Closed {req.symbol} position",
+                "order_id": result.get("result", {}).get("orderId")
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/close-all")
@@ -373,8 +448,122 @@ async def close_all_positions(
             raise HTTPException(status_code=500, detail=str(e))
     
     else:
-        # Bybit close all - TODO
-        raise HTTPException(status_code=501, detail="Bybit close-all not implemented yet")
+        # Bybit close all positions
+        import uuid
+        try:
+            # Get all open positions
+            pos_data = await bybit_request(
+                user_id, "GET", "/v5/position/list",
+                params={"category": "linear", "settleCoin": "USDT"},
+                account_type=req.account_type
+            )
+            
+            positions = pos_data.get("result", {}).get("list", [])
+            closed = 0
+            errors = []
+            
+            for pos in positions:
+                size = float(pos.get("size", 0))
+                if size == 0:
+                    continue
+                    
+                symbol = pos.get("symbol")
+                close_side = "Sell" if pos.get("side") == "Buy" else "Buy"
+                
+                try:
+                    await bybit_request(
+                        user_id, "POST", "/v5/order/create",
+                        body={
+                            "category": "linear",
+                            "symbol": symbol,
+                            "side": close_side,
+                            "orderType": "Market",
+                            "qty": str(size),
+                            "reduceOnly": True,
+                            "orderLinkId": f"closeall_{uuid.uuid4().hex[:10]}",
+                            "timeInForce": "IOC"
+                        },
+                        account_type=req.account_type
+                    )
+                    closed += 1
+                except Exception as e:
+                    errors.append(f"{symbol}: {str(e)}")
+            
+            return {
+                "success": closed > 0 or len(positions) == 0,
+                "closed": closed,
+                "total": len([p for p in positions if float(p.get("size", 0)) > 0]),
+                "errors": errors if errors else None
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/execution-history")
+async def get_execution_history(
+    exchange: str = Query("bybit"),
+    account_type: str = Query("demo"),
+    symbol: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    user: dict = Depends(get_current_user)
+) -> dict:
+    """Get execution history from exchange API (fills/executions)."""
+    user_id = user["user_id"]
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid execution history
+        hl_creds = db.get_hl_credentials(user_id)
+        if not hl_creds.get("hl_private_key"):
+            return {"executions": [], "error": "HL not configured"}
+        
+        try:
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=hl_creds.get("hl_testnet", False)
+            )
+            # Note: HyperLiquid fill history would require separate implementation
+            await adapter.close()
+            return {"executions": [], "message": "HL execution history not yet implemented"}
+        except Exception as e:
+            return {"executions": [], "error": str(e)}
+    
+    else:
+        # Bybit execution history (closed PnL)
+        try:
+            params = {"category": "linear", "limit": str(limit)}
+            if symbol:
+                params["symbol"] = symbol
+            
+            data = await bybit_request(
+                user_id, "GET", "/v5/position/closed-pnl",
+                params=params,
+                account_type=account_type
+            )
+            
+            executions = []
+            for e in data.get("result", {}).get("list", []):
+                executions.append({
+                    "id": e.get("orderId"),
+                    "symbol": e.get("symbol"),
+                    "side": e.get("side", "").lower(),
+                    "entry_price": float(e.get("avgEntryPrice", 0)),
+                    "exit_price": float(e.get("avgExitPrice", 0)),
+                    "size": float(e.get("qty", 0)),
+                    "pnl": float(e.get("closedPnl", 0)),
+                    "leverage": e.get("leverage"),
+                    "order_type": e.get("orderType"),
+                    "exec_type": e.get("execType"),
+                    "created_at": int(e.get("createdTime", 0)),
+                    "updated_at": int(e.get("updatedTime", 0)),
+                    "exchange": "bybit",
+                    "account_type": account_type
+                })
+            
+            return {"executions": executions, "total": len(executions)}
+        except HTTPException as e:
+            return {"executions": [], "error": e.detail}
+        except Exception as e:
+            return {"executions": [], "error": str(e)}
 
 
 @router.get("/trades")
@@ -454,7 +643,7 @@ async def get_trades(
         return {"trades": trades, "total": total}
         
     except Exception as e:
-        print(f"Trades fetch error: {e}")
+        logger.error(f"Trades fetch error: {e}")
         return {"trades": [], "total": 0, "error": str(e)}
 
 
@@ -556,7 +745,7 @@ async def get_trading_stats(
         }
         
     except Exception as e:
-        print(f"Stats fetch error: {e}")
+        logger.error(f"Stats fetch error: {e}")
         return {
             "total_trades": 0,
             "winning_trades": 0,
@@ -658,8 +847,8 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
     if not hl_creds.get("hl_private_key"):
         return {"success": False, "error": "HyperLiquid not configured", "exchange": "hyperliquid"}
     
-    # Use testnet based on account_type
-    testnet = req.account_type == "demo"
+    # Use testnet from saved credentials (set via settings or account type switch)
+    testnet = hl_creds.get("hl_testnet", False)
     
     try:
         adapter = HLAdapter(
@@ -714,7 +903,7 @@ async def set_leverage(
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
-                testnet=req.account_type == "demo"
+                testnet=hl_creds.get("hl_testnet", False)
             )
             await adapter.set_leverage(req.symbol.replace("USDT", "").replace("USDC", ""), req.leverage)
             await adapter.close()
@@ -755,7 +944,7 @@ async def cancel_order(
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
-                testnet=req.account_type == "demo"
+                testnet=hl_creds.get("hl_testnet", False)
             )
             result = await adapter.cancel_order(req.symbol, req.order_id)
             await adapter.close()
@@ -803,6 +992,136 @@ async def get_account_info(
         },
         "active_exchange": db.get_exchange_type(user_id)
     }
+
+
+class ModifyTPSLRequest(BaseModel):
+    """Request model for modifying TP/SL on an existing position"""
+    symbol: str
+    take_profit: Optional[float] = None
+    stop_loss: Optional[float] = None
+    tp_trigger_by: str = "LastPrice"  # MarkPrice, LastPrice, IndexPrice
+    sl_trigger_by: str = "LastPrice"
+    position_idx: int = 0  # 0 for one-way, 1 for Buy hedge, 2 for Sell hedge
+    exchange: str = "bybit"
+    account_type: str = "demo"
+
+
+@router.post("/modify-tpsl")
+async def modify_position_tpsl(
+    req: ModifyTPSLRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Modify Take Profit / Stop Loss for an existing position"""
+    user_id = user["user_id"]
+    
+    if req.exchange == "hyperliquid":
+        hl_creds = db.get_hl_credentials(user_id)
+        if not hl_creds.get("hl_private_key"):
+            return {"success": False, "error": "HyperLiquid not configured"}
+        
+        try:
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=hl_creds.get("hl_testnet", False)
+            )
+            
+            # Get position to determine side
+            pos_result = await adapter.fetch_positions()
+            positions = pos_result.get("result", {}).get("list", [])
+            pos = next((p for p in positions if p.get("symbol") == req.symbol), None)
+            
+            if not pos:
+                await adapter.close()
+                return {"success": False, "error": "Position not found"}
+            
+            is_long = pos.get("side", "").lower() == "buy" or pos.get("side", "").lower() == "long"
+            
+            # Set TP/SL via trigger orders
+            result = await adapter.set_tp_sl(
+                symbol=req.symbol,
+                is_long=is_long,
+                take_profit=req.take_profit,
+                stop_loss=req.stop_loss
+            )
+            await adapter.close()
+            
+            return {"success": True, "message": "TP/SL updated", "result": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    else:
+        # Bybit TP/SL modification
+        try:
+            body = {
+                "category": "linear",
+                "symbol": req.symbol,
+                "positionIdx": req.position_idx
+            }
+            
+            if req.take_profit is not None:
+                body["takeProfit"] = str(req.take_profit)
+                body["tpTriggerBy"] = req.tp_trigger_by
+            
+            if req.stop_loss is not None:
+                body["stopLoss"] = str(req.stop_loss)
+                body["slTriggerBy"] = req.sl_trigger_by
+            
+            result = await bybit_request(
+                user_id, "POST", "/v5/position/trading-stop",
+                body=body,
+                account_type=req.account_type
+            )
+            
+            return {
+                "success": True,
+                "message": "TP/SL updated successfully",
+                "take_profit": req.take_profit,
+                "stop_loss": req.stop_loss
+            }
+        except HTTPException as e:
+            return {"success": False, "error": e.detail}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
+@router.post("/cancel-all-orders")
+async def cancel_all_orders(
+    exchange: str = Query("bybit"),
+    account_type: str = Query("demo"),
+    symbol: Optional[str] = Query(None),
+    user: dict = Depends(get_current_user)
+):
+    """Cancel all open orders"""
+    user_id = user["user_id"]
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid cancel all - would need implementation
+        return {"success": False, "error": "Not implemented for HyperLiquid yet"}
+    
+    else:
+        try:
+            body = {"category": "linear"}
+            if symbol:
+                body["symbol"] = symbol
+            else:
+                body["settleCoin"] = "USDT"
+            
+            result = await bybit_request(
+                user_id, "POST", "/v5/order/cancel-all",
+                body=body,
+                account_type=account_type
+            )
+            
+            cancelled = result.get("result", {}).get("list", [])
+            return {
+                "success": True,
+                "cancelled": len(cancelled),
+                "orders": cancelled
+            }
+        except HTTPException as e:
+            return {"success": False, "error": e.detail}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 
 # ===================== ADVANCED TRADING ENDPOINTS =====================
@@ -936,7 +1255,7 @@ async def _set_leverage_for_symbol(user_id: int, symbol: str, leverage: int, exc
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         if hl_creds.get("hl_private_key"):
-            adapter = HLAdapter(private_key=hl_creds["hl_private_key"], testnet=account_type == "demo")
+            adapter = HLAdapter(private_key=hl_creds["hl_private_key"], testnet=hl_creds.get("hl_testnet", False))
             await adapter.set_leverage(symbol.replace("USDT", "").replace("USDC", ""), leverage)
             await adapter.close()
     else:
@@ -974,7 +1293,7 @@ async def _place_single_order_hl(user_id: int, symbol: str, side: str, order_typ
         return {"success": False, "error": "HL not configured"}
     
     side_formatted = "Buy" if side.lower() in ["buy", "long"] else "Sell"
-    adapter = HLAdapter(private_key=hl_creds["hl_private_key"], testnet=account_type == "demo")
+    adapter = HLAdapter(private_key=hl_creds["hl_private_key"], testnet=hl_creds.get("hl_testnet", False))
     result = await adapter.place_order(symbol=symbol, side=side_formatted, qty=size, order_type=order_type, price=price)
     await adapter.close()
     
@@ -1174,3 +1493,176 @@ async def get_recent_trades(symbol: str, limit: int = Query(50, ge=10, le=500)):
         return {"error": str(e)}
     
     return {"error": "Failed to fetch trades"}
+
+
+@router.get("/symbols")
+async def search_symbols(
+    query: Optional[str] = Query(None, description="Search query"),
+    limit: int = Query(50, ge=1, le=200)
+):
+    """Search and list available trading symbols with live prices"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Get tickers with prices
+            url = "https://api.bybit.com/v5/market/tickers?category=linear"
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+                if data.get("retCode") != 0:
+                    return {"symbols": [], "error": data.get("retMsg")}
+                
+                tickers = data.get("result", {}).get("list", [])
+                
+                # Filter and format
+                symbols = []
+                for t in tickers:
+                    symbol = t.get("symbol", "")
+                    
+                    # Skip non-USDT pairs and illiquid
+                    if not symbol.endswith("USDT"):
+                        continue
+                    
+                    # Filter by query if provided
+                    if query:
+                        base = symbol.replace("USDT", "").lower()
+                        if query.lower() not in base and query.lower() not in symbol.lower():
+                            continue
+                    
+                    price = float(t.get("lastPrice", 0))
+                    change = float(t.get("price24hPcnt", 0)) * 100
+                    volume = float(t.get("turnover24h", 0))
+                    
+                    symbols.append({
+                        "symbol": symbol,
+                        "base": symbol.replace("USDT", ""),
+                        "price": price,
+                        "change_24h": round(change, 2),
+                        "high_24h": float(t.get("highPrice24h", 0)),
+                        "low_24h": float(t.get("lowPrice24h", 0)),
+                        "volume_24h": volume,
+                        "volume_formatted": _format_volume(volume),
+                        "funding_rate": float(t.get("fundingRate", 0)) * 100 if t.get("fundingRate") else None,
+                        "open_interest": float(t.get("openInterest", 0)) if t.get("openInterest") else None
+                    })
+                
+                # Sort by volume (most liquid first)
+                symbols.sort(key=lambda x: x["volume_24h"], reverse=True)
+                
+                return {
+                    "symbols": symbols[:limit],
+                    "total": len(symbols)
+                }
+                
+    except Exception as e:
+        return {"symbols": [], "error": str(e)}
+
+
+def _format_volume(volume: float) -> str:
+    """Format volume for display"""
+    if volume >= 1_000_000_000:
+        return f"${volume / 1_000_000_000:.2f}B"
+    elif volume >= 1_000_000:
+        return f"${volume / 1_000_000:.2f}M"
+    elif volume >= 1_000:
+        return f"${volume / 1_000:.2f}K"
+    return f"${volume:.2f}"
+
+
+@router.get("/funding-rates")
+async def get_funding_rates(limit: int = Query(30, ge=1, le=100)):
+    """Get funding rates for top symbols"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.bybit.com/v5/market/tickers?category=linear"
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+                if data.get("retCode") != 0:
+                    return {"rates": [], "error": data.get("retMsg")}
+                
+                tickers = data.get("result", {}).get("list", [])
+                
+                rates = []
+                for t in tickers:
+                    symbol = t.get("symbol", "")
+                    if not symbol.endswith("USDT"):
+                        continue
+                    
+                    funding = t.get("fundingRate")
+                    if funding is None:
+                        continue
+                    
+                    rates.append({
+                        "symbol": symbol,
+                        "funding_rate": float(funding) * 100,
+                        "price": float(t.get("lastPrice", 0)),
+                        "open_interest": float(t.get("openInterest", 0)) if t.get("openInterest") else 0
+                    })
+                
+                # Sort by absolute funding rate (highest first)
+                rates.sort(key=lambda x: abs(x["funding_rate"]), reverse=True)
+                
+                return {"rates": rates[:limit]}
+                
+    except Exception as e:
+        return {"rates": [], "error": str(e)}
+
+
+@router.get("/market-overview")
+async def get_market_overview():
+    """Get market overview with top gainers/losers and volume leaders"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.bybit.com/v5/market/tickers?category=linear"
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+                if data.get("retCode") != 0:
+                    return {"error": data.get("retMsg")}
+                
+                tickers = data.get("result", {}).get("list", [])
+                
+                # Filter USDT pairs only
+                usdt_tickers = [
+                    t for t in tickers 
+                    if t.get("symbol", "").endswith("USDT")
+                ]
+                
+                # Process tickers
+                processed = []
+                for t in usdt_tickers:
+                    change = float(t.get("price24hPcnt", 0)) * 100
+                    volume = float(t.get("turnover24h", 0))
+                    
+                    processed.append({
+                        "symbol": t.get("symbol"),
+                        "price": float(t.get("lastPrice", 0)),
+                        "change_24h": round(change, 2),
+                        "volume_24h": volume
+                    })
+                
+                # Sort for different categories
+                gainers = sorted(processed, key=lambda x: x["change_24h"], reverse=True)[:10]
+                losers = sorted(processed, key=lambda x: x["change_24h"])[:10]
+                volume_leaders = sorted(processed, key=lambda x: x["volume_24h"], reverse=True)[:10]
+                
+                # Calculate market sentiment
+                positive = sum(1 for t in processed if t["change_24h"] > 0)
+                negative = sum(1 for t in processed if t["change_24h"] < 0)
+                total = len(processed)
+                
+                return {
+                    "gainers": gainers,
+                    "losers": losers,
+                    "volume_leaders": volume_leaders,
+                    "sentiment": {
+                        "positive_count": positive,
+                        "negative_count": negative,
+                        "total": total,
+                        "bullish_percent": round(positive / total * 100, 1) if total > 0 else 0
+                    },
+                    "timestamp": int(time.time() * 1000)
+                }
+                
+    except Exception as e:
+        return {"error": str(e)}

@@ -938,4 +938,20 @@ Try again after payment is confirmed on blockchain.''',
     "hl_trading_enabled": "HyperLiquid Trading",
     "hl_reset_settings": "🔄 Reset to Bybit Settings",
 
+    # =====================================================
+    # HARDCODED PHRASES FIX
+    # =====================================================
+    "min_amount_error": "❌ Minimum amount is 1 USDT",
+    "max_amount_error": "❌ Maximum amount is 100,000 USDT",
+    "invalid_amount": "❌ Invalid number. Please enter a valid amount.",
+    "hl_no_positions": "📭 No open positions on HyperLiquid.",
+    "hl_no_orders": "📭 No open orders on HyperLiquid.",
+    "hl_no_history": "📭 No trade history on HyperLiquid.",
+    "cancelled": "❌ Cancelled.",
+    "invalid_number": "❌ Please enter a valid number.",
+    "entry_pct_range_error": "❌ Entry % must be between 0.1 and 100.",
+    "sl_tp_range_error": "❌ SL/TP % must be between 0.1 and 500.",
+    "leverage_range_error": "❌ Leverage must be between 1 and 100.",
+    "hl_setup_cancelled": "❌ HyperLiquid setup cancelled.",
+
 }

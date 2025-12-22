@@ -453,6 +453,77 @@ async def websocket_terminal(websocket: WebSocket, user_id: int):
     """WebSocket for terminal - live data, analysis, and auto-trading"""
     await manager.connect(websocket, user_id)
     
+    # Track subscriptions for this connection
+    subscribed_symbol = None
+    orderbook_task = None
+    price_task = None
+    
+    async def stream_orderbook(symbol: str):
+        """Stream orderbook updates to this connection"""
+        while True:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    url = f"https://api.bybit.com/v5/market/orderbook?category=linear&symbol={symbol}&limit=25"
+                    async with session.get(url) as resp:
+                        data = await resp.json()
+                        if data.get("retCode") == 0:
+                            result = data.get("result", {})
+                            asks = [[float(p), float(s)] for p, s in result.get("a", [])]
+                            bids = [[float(p), float(s)] for p, s in result.get("b", [])]
+                            
+                            # Calculate depth percentages
+                            ask_total, bid_total = 0, 0
+                            for a in asks:
+                                ask_total += a[1]
+                                a.append(ask_total)
+                            for b in bids:
+                                bid_total += b[1]
+                                b.append(bid_total)
+                            
+                            max_total = max(ask_total, bid_total) if ask_total + bid_total > 0 else 1
+                            for a in asks:
+                                a.append(a[2] / max_total * 100)
+                            for b in bids:
+                                b.append(b[2] / max_total * 100)
+                            
+                            # Calculate spread and imbalance
+                            spread = asks[0][0] - bids[0][0] if asks and bids else 0
+                            spread_pct = (spread / asks[0][0] * 100) if asks and asks[0][0] > 0 else 0
+                            bid_vol = sum(b[1] for b in bids[:10])
+                            ask_vol = sum(a[1] for a in asks[:10])
+                            imbalance = ((bid_vol - ask_vol) / (bid_vol + ask_vol) * 100) if (bid_vol + ask_vol) > 0 else 0
+                            
+                            await websocket.send_json({
+                                "type": "orderbook",
+                                "symbol": symbol,
+                                "asks": asks,
+                                "bids": bids,
+                                "spread": round(spread, 2),
+                                "spread_percent": round(spread_pct, 4),
+                                "imbalance": round(imbalance, 1),
+                                "timestamp": result.get("ts", 0)
+                            })
+                await asyncio.sleep(0.5)  # Update every 500ms
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                await asyncio.sleep(1)
+    
+    async def stream_prices(symbol: str):
+        """Stream price updates to this connection"""
+        while True:
+            try:
+                price_data = await fetch_current_price(symbol)
+                await websocket.send_json({
+                    "type": "price_update",
+                    "data": price_data
+                })
+                await asyncio.sleep(1)  # Update every second
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                await asyncio.sleep(2)
+    
     try:
         while True:
             try:
@@ -461,6 +532,33 @@ async def websocket_terminal(websocket: WebSocket, user_id: int):
                 
                 if msg_type == "ping":
                     await websocket.send_json({"type": "pong"})
+                
+                elif msg_type == "subscribe_orderbook":
+                    symbol = data.get("symbol", "BTCUSDT")
+                    
+                    # Cancel existing subscriptions
+                    if orderbook_task:
+                        orderbook_task.cancel()
+                    if price_task:
+                        price_task.cancel()
+                    
+                    subscribed_symbol = symbol
+                    orderbook_task = asyncio.create_task(stream_orderbook(symbol))
+                    price_task = asyncio.create_task(stream_prices(symbol))
+                    
+                    await websocket.send_json({
+                        "type": "subscribed",
+                        "symbol": symbol
+                    })
+                
+                elif msg_type == "unsubscribe_orderbook":
+                    if orderbook_task:
+                        orderbook_task.cancel()
+                        orderbook_task = None
+                    if price_task:
+                        price_task.cancel()
+                        price_task = None
+                    subscribed_symbol = None
                     
                 elif msg_type == "start_analysis":
                     # Start live analysis for symbol
@@ -518,13 +616,20 @@ async def websocket_terminal(websocket: WebSocket, user_id: int):
                     break
                     
     except WebSocketDisconnect:
-        if user_id in analysis_sessions:
-            analysis_sessions[user_id]["running"] = False
-        manager.disconnect(websocket, user_id)
+        pass
     except Exception:
+        pass
+    finally:
+        # Cleanup: cancel streaming tasks
+        if orderbook_task:
+            orderbook_task.cancel()
+        if price_task:
+            price_task.cancel()
         if user_id in analysis_sessions:
             analysis_sessions[user_id]["running"] = False
-        manager.disconnect(websocket)
+            if analysis_sessions[user_id].get("task"):
+                analysis_sessions[user_id]["task"].cancel()
+        manager.disconnect(websocket, user_id)
 
 
 async def run_live_analysis(

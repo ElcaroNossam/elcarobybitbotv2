@@ -18,16 +18,18 @@ import jwt
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
+from coin_params import ADMIN_ID
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
 
-# Configuration
-JWT_SECRET = os.getenv("JWT_SECRET", "elcaro-trading-bot-secret-2024")
+# Configuration - secrets MUST be set in environment
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 168  # 7 days
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-ADMIN_ID = 511692487
 
 
 class TelegramWebAppAuth(BaseModel):
@@ -356,98 +358,3 @@ async def check_2fa_status(data: TwoFACheckRequest, request: Request):
         }
     
     return {"success": False, "status": status['status']}
-
-
-# ==============================================================================
-# Telegram Mini App Authentication (Native WebApp in Telegram)
-# ==============================================================================
-
-class MiniAppAuthRequest(BaseModel):
-    """Telegram Mini App authentication using initData"""
-    initData: str
-
-
-@router.post("/telegram-miniapp")
-async def telegram_miniapp_auth(data: MiniAppAuthRequest):
-    """
-    Authenticate via Telegram Mini App (WebApp).
-    Uses initData from Telegram.WebApp.initData for secure authentication.
-    
-    The initData is cryptographically signed by Telegram servers,
-    ensuring the user identity is verified.
-    """
-    
-    # Verify and extract user data from initData
-    user_data = verify_webapp_data(data.initData)
-    
-    if not user_data:
-        # Try parsing without verification (for dev mode)
-        try:
-            parsed = parse_qs(data.initData)
-            if 'user' in parsed:
-                user_data = json.loads(parsed['user'][0])
-        except:
-            pass
-    
-    if not user_data or 'id' not in user_data:
-        raise HTTPException(
-            status_code=401, 
-            detail="Invalid Mini App authentication. Please reopen from Telegram."
-        )
-    
-    user_id = user_data['id']
-    first_name = user_data.get('first_name', 'User')
-    last_name = user_data.get('last_name', '')
-    username = user_data.get('username')
-    language_code = user_data.get('language_code', 'en')
-    is_premium_tg = user_data.get('is_premium', False)
-    
-    # Ensure user exists in DB
-    db.ensure_user(user_id)
-    
-    # Update user info from Telegram
-    if first_name:
-        db.set_user_field(user_id, "first_name", first_name)
-    if username:
-        db.set_user_field(user_id, "username", username)
-    
-    # Auto-set language from Telegram if not set
-    db_user = db.get_all_user_credentials(user_id)
-    if not db_user.get('lang'):
-        # Map Telegram language codes to our supported languages
-        lang_map = {
-            'ru': 'ru', 'uk': 'uk', 'de': 'de', 'fr': 'fr', 
-            'es': 'es', 'it': 'it', 'pl': 'pl', 'zh': 'zh',
-            'ja': 'ja', 'ar': 'ar', 'he': 'he', 'cs': 'cs',
-            'lt': 'lt', 'sq': 'sq'
-        }
-        lang = lang_map.get(language_code, 'en')
-        db.set_user_field(user_id, "lang", lang)
-    
-    # Refresh user data
-    db_user = db.get_all_user_credentials(user_id)
-    exchange_status = db.get_exchange_status(user_id)
-    
-    is_admin = user_id == ADMIN_ID
-    is_premium = db_user.get('license_type') == 'premium' or db_user.get('is_lifetime')
-    
-    # Create JWT token
-    token = create_access_token(user_id, is_admin)
-    
-    return {
-        "success": True,
-        "token": token,
-        "user": {
-            "user_id": user_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "username": username,
-            "is_admin": is_admin,
-            "is_premium": is_premium,
-            "is_premium_telegram": is_premium_tg,
-            "exchange_type": exchange_status.get("active_exchange", "bybit"),
-            "language": db_user.get("lang", "en"),
-            "license_type": db_user.get("license_type"),
-            "is_allowed": db_user.get("is_allowed", False),
-        }
-    }

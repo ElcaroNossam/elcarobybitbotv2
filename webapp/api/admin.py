@@ -12,12 +12,11 @@ import secrets
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
+from coin_params import ADMIN_ID
 
 router = APIRouter()
 
 from webapp.api.auth import get_current_user, require_admin
-
-ADMIN_ID = 511692487
 
 
 class LicenseCreate(BaseModel):

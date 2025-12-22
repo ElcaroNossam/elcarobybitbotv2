@@ -7,51 +7,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="/static/css/terminal-advanced.css" rel="stylesheet">
-    <!-- Telegram WebApp SDK for Mini App support -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://s3.tradingview.com/tv.js"></script>
     <style>
         :root {
+            /* Unified ElCaro Design System */
             --bg-primary: #0a0a0f;
             --bg-secondary: #111118;
+            --bg-tertiary: #16161f;
             --bg-card: #16161f;
             --bg-hover: #1e1e28;
             --accent: #6366f1;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
             --green: #22c55e;
+            --accent-green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.15);
             --red: #ef4444;
+            --accent-red: #ef4444;
             --red-dim: rgba(239, 68, 68, 0.15);
             --yellow: #eab308;
+            --accent-yellow: #f59e0b;
+            --accent-cyan: #06b6d4;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
             --border: rgba(255, 255, 255, 0.06);
+            --border-color: rgba(255, 255, 255, 0.06);
             --font-sans: 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+            --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            /* Exchange-specific colors */
+            --bybit-color: #f7a600;
+            --hl-color: #00ff88;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden; }
-        
-        /* Telegram Mini App Optimizations */
-        body.telegram-miniapp { height: 100vh; overflow-x: hidden; }
-        body.telegram-miniapp .terminal-layout {
-            grid-template-columns: 1fr;
-            grid-template-rows: 28px 56px 1fr 180px auto;
-        }
-        body.telegram-miniapp .sidebar-left { display: none; }
-        body.telegram-miniapp .sidebar-right { 
-            grid-column: 1; 
-            grid-row: 5;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-        body.telegram-miniapp .chart-panel { grid-column: 1; }
-        body.telegram-miniapp .bottom-panels { grid-column: 1; }
-        @media (max-width: 768px) {
-            body.telegram-miniapp .terminal-layout {
-                grid-template-rows: 28px auto 300px 120px auto;
-            }
-        }
         
         .bg-pattern {
             position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -300,6 +292,9 @@
         .bottom-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
         .bottom-tab.active { color: var(--accent); background: rgba(99, 102, 241, 0.1); }
         .bottom-tab .count { background: var(--accent); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; }
+        .bottom-tab-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+        .bottom-tab-actions .action-btn { padding: 6px 12px; font-size: 0.75rem; }
+        .bottom-tab-actions .action-btn i { margin-right: 4px; }
         
         .bottom-content { flex: 1; overflow: auto; }
         .positions-table, .orders-table, .history-table { width: 100%; border-collapse: collapse; }
@@ -322,6 +317,20 @@
         .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
         .empty-state i { font-size: 2rem; margin-bottom: 10px; opacity: 0.5; }
         
+        /* Loading and Error States */
+        .loading-overlay { position: absolute; inset: 0; background: rgba(16,18,26,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 10; }
+        .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .loading-overlay span { color: var(--text-muted); font-size: 0.85rem; }
+        .error-state { text-align: center; padding: 30px; color: var(--text-muted); }
+        .error-state i { font-size: 2rem; margin-bottom: 10px; color: var(--red); opacity: 0.7; }
+        .error-state button { margin-top: 10px; padding: 6px 16px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; }
+        .error-state button:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-loading { position: relative; pointer-events: none; opacity: 0.7; }
+        .btn-loading::after { content: ''; position: absolute; width: 16px; height: 16px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.6s linear infinite; right: 10px; top: 50%; transform: translateY(-50%); }
+        
         /* Symbol Search Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex; }
@@ -339,11 +348,15 @@
         .symbol-item-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; }
         .symbol-item-name { font-weight: 500; }
         .symbol-item-full { font-size: 0.75rem; color: var(--text-muted); }
+        .symbol-item-stats { display: flex; gap: 20px; align-items: center; }
         .symbol-item-price { text-align: right; }
         .symbol-item-price .price { font-family: var(--font-mono); font-weight: 500; }
         .symbol-item-price .change { font-size: 0.8rem; }
         .symbol-item-price .change.positive { color: var(--green); }
         .symbol-item-price .change.negative { color: var(--red); }
+        .symbol-item-volume { text-align: right; min-width: 70px; }
+        .symbol-item-volume .volume-label { font-size: 0.7rem; color: var(--text-muted); }
+        .symbol-item-volume .volume-value { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary); }
         
         /* Exchange & Account Selector */
         .account-selector { display: flex; gap: 8px; align-items: center; }
@@ -399,6 +412,22 @@
             .terminal-layout { grid-template-columns: 1fr 300px; }
             .left-panel { display: none; }
             .ticker-tape { display: none; }
+        }
+        
+        /* Exchange-specific styles */
+        [data-exchange="hyperliquid"] .bybit-only { display: none !important; }
+        [data-exchange="bybit"] .hl-only { display: none !important; }
+        .hl-hidden { display: none !important; }
+        
+        /* Exchange badge colors */
+        .exchange-select option[value="bybit"] { color: var(--bybit-color); }
+        .exchange-select option[value="hyperliquid"] { color: var(--hl-color); }
+        
+        [data-exchange="hyperliquid"] .logo-icon { 
+            background: linear-gradient(135deg, #00ff88, #00cc66); 
+        }
+        [data-exchange="bybit"] .logo-icon { 
+            background: linear-gradient(135deg, var(--accent), #8b5cf6); 
         }
     </style>
 </head>
@@ -830,6 +859,17 @@
                 <div class="bottom-tab" data-panel="history">
                     <i class="fas fa-history"></i> Trade History
                 </div>
+                <div class="bottom-tab-actions">
+                    <button class="action-btn close" onclick="closeAllPositions()" title="Close All Positions">
+                        <i class="fas fa-times-circle"></i> Close All
+                    </button>
+                    <button class="action-btn edit" onclick="cancelAllOrders()" title="Cancel All Orders">
+                        <i class="fas fa-ban"></i> Cancel All
+                    </button>
+                    <button class="action-btn" onclick="loadPositions(); loadOrders(); loadBalance();" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div class="bottom-content">
                 <div id="positionsPanel">
@@ -916,15 +956,57 @@
             size: 0,
             tpslEnabled: false,
             exchange: 'bybit',
+            accountType: 'demo',
             ws: null,
+            settingsWs: null,
             positions: [],
             orders: [],
             orderbookGroup: 0.01,
             orderbookView: 'both',
             recentTrades: [],
             lastPrice: 97542.30,
-            marginMode: 'cross'
+            marginMode: 'cross',
+            // Loading states
+            loading: {
+                positions: false,
+                orders: false,
+                balance: false,
+                symbols: false,
+                order: false
+            },
+            // Error states
+            errors: {
+                positions: null,
+                orders: null,
+                balance: null,
+                symbols: null
+            }
         };
+        
+        // Loading overlay helper
+        function setLoading(element, isLoading, message = 'Loading...') {
+            const container = typeof element === 'string' ? document.getElementById(element) : element;
+            if (!container) return;
+            
+            const existingOverlay = container.querySelector('.loading-overlay');
+            if (isLoading && !existingOverlay) {
+                const overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.innerHTML = `<div class="loading-spinner"></div><span>${message}</span>`;
+                container.style.position = 'relative';
+                container.appendChild(overlay);
+            } else if (!isLoading && existingOverlay) {
+                existingOverlay.remove();
+            }
+        }
+        
+        // Show error in table
+        function showTableError(tbodyId, colspan, message) {
+            const tbody = document.getElementById(tbodyId);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="error-state"><i class="fas fa-exclamation-triangle"></i><p>${message}</p><button class="btn btn-sm btn-secondary" onclick="location.reload()">Retry</button></td></tr>`;
+            }
+        }
         
         const symbols = [
             { symbol: 'BTCUSDT', name: 'Bitcoin', price: 97542.30, change: 2.34 },
@@ -946,8 +1028,17 @@
             initEventListeners();
             initOrderbook();
             loadPositions();
+            loadOrders();
+            loadBalance();
             connectWebSocket();
             renderSymbolList();
+            
+            // Auto-refresh data every 10 seconds
+            setInterval(() => {
+                loadPositions();
+                loadOrders();
+                loadBalance();
+            }, 10000);
         });
         
         function initTickerTape() {
@@ -1390,18 +1481,122 @@
         }
         
         async function loadPositions() {
+            const posTable = document.querySelector('.positions-table');
             try {
+                state.loading.positions = true;
+                state.errors.positions = null;
+                setLoading(posTable, true, 'Loading positions...');
+                
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) {
+                    showTableError('positionsBody', 9, 'Please log in to view positions');
+                    return;
+                }
+                
+                const params = new URLSearchParams({
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                });
+                
+                const res = await fetch(`/api/trading/positions?${params}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Failed to load positions' }));
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+                
+                const data = await res.json();
+                state.positions = data;
+                renderPositions(data);
+            } catch (e) {
+                console.error('loadPositions error:', e);
+                state.errors.positions = e.message;
+                showTableError('positionsBody', 9, e.message);
+            } finally {
+                state.loading.positions = false;
+                setLoading(posTable, false);
+            }
+        }
+        
+        async function loadOrders() {
+            const ordersTable = document.querySelector('.orders-table');
+            try {
+                state.loading.orders = true;
+                state.errors.orders = null;
+                setLoading(ordersTable, true, 'Loading orders...');
+                
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) {
+                    showTableError('ordersBody', 8, 'Please log in to view orders');
+                    return;
+                }
+                
+                const params = new URLSearchParams({
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                });
+                
+                const res = await fetch(`/api/trading/orders?${params}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Failed to load orders' }));
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+                
+                const data = await res.json();
+                state.orders = data;
+                renderOrders(data);
+            } catch (e) {
+                console.error('loadOrders error:', e);
+                state.errors.orders = e.message;
+                showTableError('ordersBody', 8, e.message);
+            } finally {
+                state.loading.orders = false;
+                setLoading(ordersTable, false);
+            }
+        }
+        
+        async function loadBalance() {
+            const balanceCard = document.querySelector('.balance-display');
+            try {
+                state.loading.balance = true;
+                
                 const token = localStorage.getItem('elcaro_token');
                 if (!token) return;
                 
-                const res = await fetch('/api/trading/positions', {
+                const params = new URLSearchParams({
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                });
+                
+                const res = await fetch(`/api/trading/balance?${params}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    renderPositions(data);
+                
+                if (!res.ok) {
+                    throw new Error('Failed to load balance');
                 }
-            } catch (e) { console.error(e); }
+                
+                const data = await res.json();
+                document.getElementById('availableBalance').textContent = '$' + (data.available || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('equity').textContent = '$' + (data.equity || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const pnl = data.unrealized_pnl || 0;
+                const pnlEl = document.getElementById('unrealizedPnl');
+                pnlEl.textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                pnlEl.className = 'balance-value ' + (pnl >= 0 ? 'positive' : 'negative');
+            } catch (e) {
+                console.error('loadBalance error:', e);
+                // Show error in balance display
+                document.getElementById('availableBalance').textContent = '--';
+                document.getElementById('equity').textContent = '--';
+                document.getElementById('unrealizedPnl').textContent = '--';
+            } finally {
+                state.loading.balance = false;
+            }
         }
         
         function renderPositions(positions) {
@@ -1446,10 +1641,10 @@
                 <td><strong>${o.symbol}</strong></td>
                 <td>${o.type}</td>
                 <td><span class="position-side ${o.side}">${o.side.toUpperCase()}</span></td>
-                <td style="font-family: var(--font-mono);">$${o.price.toLocaleString()}</td>
+                <td style="font-family: var(--font-mono);">$${parseFloat(o.price || 0).toLocaleString()}</td>
                 <td style="font-family: var(--font-mono);">${o.size}</td>
                 <td>${o.filled || 0}%</td>
-                <td><button class="action-btn close" onclick="cancelOrder('${o.id}')">Cancel</button></td>
+                <td><button class="action-btn close" onclick="cancelOrder('${o.id}', '${o.symbol}')">Cancel</button></td>
             </tr>`).join('');
         }
         
@@ -1513,11 +1708,28 @@
         });
         
         async function submitOrder() {
+            const submitBtn = document.querySelector('.submit-btn');
             const price = parseFloat(document.getElementById('priceInput').value);
             const size = parseFloat(document.getElementById('sizeInput').value);
             
-            if (!size || (state.orderType !== 'market' && !price)) {
-                alert('Please enter price and size');
+            // Validation
+            const errors = [];
+            if (!size || size <= 0) {
+                errors.push('Enter valid order size');
+            }
+            if (state.orderType !== 'market' && (!price || price <= 0)) {
+                errors.push('Enter valid price for limit order');
+            }
+            if (!state.symbol) {
+                errors.push('Select a trading pair');
+            }
+            if (!localStorage.getItem('elcaro_token')) {
+                showNotification('Please log in to trade', 'error');
+                return;
+            }
+            
+            if (errors.length > 0) {
+                errors.forEach(e => showNotification(e, 'warning'));
                 return;
             }
             
@@ -1529,18 +1741,33 @@
                 const entryPrice = state.orderType === 'market' ? state.lastPrice : price;
                 
                 if (tpslMode === 'price') {
-                    tp = tpVal;
-                    sl = slVal;
+                    tp = tpVal || null;
+                    sl = slVal || null;
                 } else if (tpslMode === 'percent') {
                     const isBuy = state.side === 'buy';
-                    tp = isBuy ? entryPrice * (1 + tpVal/100) : entryPrice * (1 - tpVal/100);
-                    sl = isBuy ? entryPrice * (1 - slVal/100) : entryPrice * (1 + slVal/100);
+                    if (tpVal) tp = isBuy ? entryPrice * (1 + tpVal/100) : entryPrice * (1 - tpVal/100);
+                    if (slVal) sl = isBuy ? entryPrice * (1 - slVal/100) : entryPrice * (1 + slVal/100);
                 } else { // ROE mode
                     const isBuy = state.side === 'buy';
-                    const tpPct = tpVal / state.leverage;
-                    const slPct = slVal / state.leverage;
-                    tp = isBuy ? entryPrice * (1 + tpPct/100) : entryPrice * (1 - tpPct/100);
-                    sl = isBuy ? entryPrice * (1 - slPct/100) : entryPrice * (1 + slPct/100);
+                    if (tpVal) {
+                        const tpPct = tpVal / state.leverage;
+                        tp = isBuy ? entryPrice * (1 + tpPct/100) : entryPrice * (1 - tpPct/100);
+                    }
+                    if (slVal) {
+                        const slPct = slVal / state.leverage;
+                        sl = isBuy ? entryPrice * (1 - slPct/100) : entryPrice * (1 + slPct/100);
+                    }
+                }
+                
+                // Validate TP/SL logic
+                if (tp && sl) {
+                    const isBuy = state.side === 'buy';
+                    const entryPrice = state.orderType === 'market' ? state.lastPrice : price;
+                    if (isBuy && (tp <= entryPrice || sl >= entryPrice)) {
+                        showNotification('For LONG: TP must be above entry, SL below', 'warning');
+                    } else if (!isBuy && (tp >= entryPrice || sl <= entryPrice)) {
+                        showNotification('For SHORT: TP must be below entry, SL above', 'warning');
+                    }
                 }
             }
             
@@ -1553,12 +1780,17 @@
                 leverage: state.leverage,
                 tp: tp,
                 sl: sl,
+                exchange: state.exchange || 'bybit',
+                account_type: state.accountType || 'demo',
                 reduceOnly: document.getElementById('reduceOnly')?.checked || false,
                 postOnly: document.getElementById('postOnly')?.checked || false,
                 timeInForce: document.getElementById('tifSelect')?.value || 'GTC'
             };
             
             try {
+                state.loading.order = true;
+                if (submitBtn) submitBtn.classList.add('btn-loading');
+                
                 const token = localStorage.getItem('elcaro_token');
                 const res = await fetch('/api/trading/order', {
                     method: 'POST',
@@ -1570,15 +1802,20 @@
                 });
                 
                 const data = await res.json();
-                if (data.success) {
-                    showNotification('Order placed successfully!', 'success');
+                if (data.success || res.ok) {
+                    showNotification(`${state.side.toUpperCase()} ${state.symbol} order placed!`, 'success');
                     document.getElementById('sizeInput').value = '';
                     loadPositions();
+                    loadOrders();
                 } else {
-                    showNotification(data.error || 'Order failed', 'error');
+                    showNotification(data.error || data.detail || 'Order failed', 'error');
                 }
             } catch (e) {
-                showNotification('Failed to place order', 'error');
+                console.error('Order error:', e);
+                showNotification('Failed to place order: ' + e.message, 'error');
+            } finally {
+                state.loading.order = false;
+                if (submitBtn) submitBtn.classList.remove('btn-loading');
             }
         }
         
@@ -1593,7 +1830,11 @@
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token 
                     },
-                    body: JSON.stringify({ symbol })
+                    body: JSON.stringify({ 
+                        symbol,
+                        exchange: state.exchange || 'bybit',
+                        account_type: state.accountType || 'demo'
+                    })
                 });
                 
                 const data = await res.json();
@@ -1608,32 +1849,247 @@
             }
         }
         
-        function showNotification(msg, type) {
+        async function editPosition(symbol) {
+            const tp = prompt('Enter Take Profit price (leave empty to skip):');
+            const sl = prompt('Enter Stop Loss price (leave empty to skip):');
+            
+            if (!tp && !sl) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/trading/modify-tpsl', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ 
+                        symbol,
+                        take_profit: tp ? parseFloat(tp) : null,
+                        stop_loss: sl ? parseFloat(sl) : null,
+                        exchange: state.exchange || 'bybit',
+                        account_type: state.accountType || 'demo'
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('TP/SL updated', 'success');
+                    loadPositions();
+                } else {
+                    showNotification(data.error || 'Failed to update TP/SL', 'error');
+                }
+            } catch (e) {
+                showNotification('Error updating TP/SL', 'error');
+            }
+        }
+        
+        async function cancelOrder(orderId, symbol) {
+            if (!confirm('Cancel this order?')) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/trading/order', {
+                    method: 'DELETE',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ 
+                        symbol: symbol,
+                        order_id: orderId,
+                        exchange: state.exchange || 'bybit',
+                        account_type: state.accountType || 'demo'
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('Order cancelled', 'success');
+                    loadOrders();
+                } else {
+                    showNotification(data.error || 'Failed to cancel order', 'error');
+                }
+            } catch (e) {
+                showNotification('Error cancelling order', 'error');
+            }
+        }
+        
+        async function closeAllPositions() {
+            const count = state.positions?.length || 0;
+            if (count === 0) {
+                showNotification('No open positions', 'info');
+                return;
+            }
+            if (!confirm(`Close ALL ${count} positions? This action cannot be undone.`)) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/trading/close-all', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({
+                        exchange: state.exchange || 'bybit',
+                        account_type: state.accountType || 'demo'
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(`Closed ${data.closed || count} positions`, 'success');
+                    loadPositions();
+                    loadBalance();
+                } else {
+                    showNotification(data.error || 'Failed to close all positions', 'error');
+                }
+            } catch (e) {
+                showNotification('Error closing positions', 'error');
+            }
+        }
+        
+        async function cancelAllOrders() {
+            const count = state.orders?.length || 0;
+            if (count === 0) {
+                showNotification('No open orders', 'info');
+                return;
+            }
+            if (!confirm(`Cancel ALL ${count} orders?`)) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const params = new URLSearchParams({
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                });
+                
+                const res = await fetch(`/api/trading/cancel-all-orders?${params}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + token 
+                    }
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(`Cancelled ${data.cancelled || count} orders`, 'success');
+                    loadOrders();
+                } else {
+                    showNotification(data.error || 'Failed to cancel orders', 'error');
+                }
+            } catch (e) {
+                showNotification('Error cancelling orders', 'error');
+            }
+        }
+        
+        // Notification system with stacking
+        const notifications = [];
+        function showNotification(msg, type = 'info', duration = 3500) {
+            // Create container if not exists
+            let container = document.getElementById('notificationContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notificationContainer';
+                container.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;';
+                document.body.appendChild(container);
+            }
+            
             const n = document.createElement('div');
-            n.style.cssText = `position: fixed; top: 80px; right: 20px; padding: 16px 24px; border-radius: 12px; z-index: 10000; 
-                background: ${type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)'}; 
-                color: white; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
-            n.textContent = msg;
-            document.body.appendChild(n);
-            setTimeout(() => n.remove(), 3000);
+            const icons = { success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle' };
+            const colors = { success: 'var(--green)', error: 'var(--red)', warning: '#f59e0b', info: 'var(--accent)' };
+            
+            n.className = 'notification notification-' + type;
+            n.style.cssText = `padding: 14px 20px; border-radius: 12px; background: ${colors[type] || colors.info}; 
+                color: white; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px;
+                animation: slideIn 0.3s ease; cursor: pointer;`;
+            n.innerHTML = `<i class="fas fa-${icons[type] || icons.info}"></i><span>${msg}</span>`;
+            n.onclick = () => dismissNotification(n);
+            
+            container.appendChild(n);
+            notifications.push(n);
+            
+            // Auto dismiss
+            setTimeout(() => dismissNotification(n), duration);
+        }
+        
+        function dismissNotification(n) {
+            if (!n || !n.parentNode) return;
+            n.style.animation = 'slideOut 0.2s ease';
+            setTimeout(() => {
+                n.remove();
+                const idx = notifications.indexOf(n);
+                if (idx > -1) notifications.splice(idx, 1);
+            }, 200);
         }
         
         // Symbol Modal
         function openSymbolModal() {
             document.getElementById('symbolModal').classList.add('active');
             document.getElementById('symbolSearch').focus();
+            // Load fresh symbols from API
+            fetchSymbolsFromAPI();
         }
         
         function closeSymbolModal() {
             document.getElementById('symbolModal').classList.remove('active');
         }
         
+        let liveSymbols = symbols; // Will be updated with API data
+        
+        async function fetchSymbolsFromAPI(query = '') {
+            const list = document.getElementById('symbolList');
+            try {
+                state.loading.symbols = true;
+                list.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><span>Loading symbols...</span></div>';
+                
+                const params = new URLSearchParams({ limit: '50' });
+                if (query) params.append('query', query);
+                
+                const res = await fetch(`/api/trading/symbols?${params}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.symbols && data.symbols.length > 0) {
+                        liveSymbols = data.symbols.map(s => ({
+                            symbol: s.symbol,
+                            name: s.base,
+                            price: s.price || 0,
+                            change: s.change_24h || 0,
+                            volume: s.volume_formatted || 'N/A',
+                            funding: s.funding_rate ? (s.funding_rate * 100).toFixed(4) + '%' : null
+                        }));
+                        renderSymbolList();
+                    }
+                }
+            } catch (e) {
+                console.log('Symbol fetch error:', e);
+                list.innerHTML = '<div class="error-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load symbols</p></div>';
+            } finally {
+                state.loading.symbols = false;
+            }
+        }
+        
+        function formatVolume(vol) {
+            if (!vol || isNaN(vol)) return 'N/A';
+            if (vol >= 1e9) return (vol / 1e9).toFixed(2) + 'B';
+            if (vol >= 1e6) return (vol / 1e6).toFixed(2) + 'M';
+            if (vol >= 1e3) return (vol / 1e3).toFixed(1) + 'K';
+            return vol.toFixed(0);
+        }
+        
         function renderSymbolList(filter = '') {
             const list = document.getElementById('symbolList');
-            const filtered = symbols.filter(s => 
+            const sourceSymbols = liveSymbols.length > 0 ? liveSymbols : symbols;
+            const filtered = sourceSymbols.filter(s => 
                 s.symbol.toLowerCase().includes(filter.toLowerCase()) || 
                 s.name.toLowerCase().includes(filter.toLowerCase())
             );
+            
+            if (!filtered.length) {
+                list.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>No symbols found</p></div>';
+                return;
+            }
             
             list.innerHTML = filtered.map(s => `
                 <div class="symbol-item" onclick="selectSymbol('${s.symbol}')">
@@ -1644,9 +2100,15 @@
                             <div class="symbol-item-full">${s.name} Perpetual</div>
                         </div>
                     </div>
-                    <div class="symbol-item-price">
-                        <div class="price">$${s.price.toLocaleString()}</div>
-                        <div class="change ${s.change >= 0 ? 'positive' : 'negative'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%</div>
+                    <div class="symbol-item-stats">
+                        <div class="symbol-item-price">
+                            <div class="price">$${parseFloat(s.price || 0).toLocaleString(undefined, {maximumFractionDigits: 6})}</div>
+                            <div class="change ${s.change >= 0 ? 'positive' : 'negative'}">${s.change >= 0 ? '+' : ''}${(s.change || 0).toFixed(2)}%</div>
+                        </div>
+                        <div class="symbol-item-volume">
+                            <div class="volume-label">Vol 24h</div>
+                            <div class="volume-value">${s.volume || 'N/A'}</div>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -2120,45 +2582,11 @@
         
         // Initialize advanced features on load
         document.addEventListener('DOMContentLoaded', () => {
-            // Telegram Mini App detection and setup
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.ready();
-                tg.expand();
-                
-                // Apply Mini App theme
-                document.body.classList.add('telegram-miniapp');
-                
-                // Theme colors
-                if (tg.themeParams.bg_color) {
-                    document.documentElement.style.setProperty('--bg-primary', tg.themeParams.bg_color);
-                }
-                if (tg.themeParams.secondary_bg_color) {
-                    document.documentElement.style.setProperty('--bg-secondary', tg.themeParams.secondary_bg_color);
-                }
-                
-                // Back button
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => {
-                    window.history.back();
-                });
-                
-                // Store user ID
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    window.tgUserId = tg.initDataUnsafe.user.id;
-                }
-                
-                // Haptic feedback helper
-                window.haptic = (type = 'impact') => {
-                    if (tg.HapticFeedback) {
-                        if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
-                        else if (type === 'error') tg.HapticFeedback.notificationOccurred('error');
-                        else tg.HapticFeedback.impactOccurred('medium');
-                    }
-                };
-            } else {
-                window.haptic = () => {}; // Noop for browser
-            }
+            // Load user settings from server
+            loadUserSettings();
+            
+            // Connect to Settings Sync WebSocket
+            connectSettingsSyncWebSocket();
             
             // Load advanced JS module
             const script = document.createElement('script');
@@ -2183,6 +2611,393 @@
                 Notification.requestPermission();
             }
         });
+        
+        // ============================================================
+        // EXCHANGE & ACCOUNT SWITCHING
+        // ============================================================
+        
+        async function loadUserSettings() {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) return;
+                
+                const res = await fetch('/api/users/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user) {
+                        // Set exchange and account type from user settings
+                        state.exchange = data.user.exchange_type || 'bybit';
+                        state.accountType = data.user.trading_mode || 'demo';
+                        state.leverage = data.user.leverage || 10;
+                        
+                        // Update UI
+                        document.getElementById('exchangeSelect').value = state.exchange;
+                        document.getElementById('accountSelect').value = state.accountType;
+                        updateAccountBadge();
+                        updateExchangeUI();
+                        setLeverage(state.leverage);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load user settings:', e);
+            }
+        }
+        
+        async function changeExchange() {
+            const newExchange = document.getElementById('exchangeSelect').value;
+            if (newExchange === state.exchange) return;
+            
+            const prevExchange = state.exchange;
+            state.exchange = newExchange;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/users/exchange', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ 
+                        exchange: newExchange,
+                        reconnect: true
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showNotification(`Switched to ${newExchange.toUpperCase()}`, 'success');
+                    updateExchangeUI();
+                    updateAccountTypeOptions();
+                    
+                    // Reconnect WebSocket for new exchange
+                    reconnectWebSockets();
+                    
+                    // Reload positions for new exchange
+                    loadPositions();
+                    
+                    // Update balance display
+                    if (data.balance) {
+                        document.getElementById('availableBalance').textContent = '$' + data.balance.available.toLocaleString();
+                        document.getElementById('equity').textContent = '$' + data.balance.equity.toLocaleString();
+                    }
+                } else {
+                    // Revert on failure
+                    state.exchange = prevExchange;
+                    document.getElementById('exchangeSelect').value = prevExchange;
+                    showNotification(data.error || 'Failed to switch exchange', 'error');
+                }
+            } catch (e) {
+                state.exchange = prevExchange;
+                document.getElementById('exchangeSelect').value = prevExchange;
+                showNotification('Connection error', 'error');
+            }
+        }
+        
+        async function changeAccountType() {
+            const newAccountType = document.getElementById('accountSelect').value;
+            if (newAccountType === state.accountType) return;
+            
+            const prevAccountType = state.accountType;
+            state.accountType = newAccountType;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/users/switch-account-type', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    body: JSON.stringify({ 
+                        account_type: newAccountType,
+                        exchange: state.exchange
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showNotification(`Switched to ${newAccountType.toUpperCase()}`, 'success');
+                    updateAccountBadge();
+                    
+                    // Reload positions for new account type
+                    loadPositions();
+                    
+                    // Update balance
+                    if (data.balance) {
+                        document.getElementById('availableBalance').textContent = '$' + data.balance.available.toLocaleString();
+                        document.getElementById('equity').textContent = '$' + data.balance.equity.toLocaleString();
+                    }
+                } else {
+                    state.accountType = prevAccountType;
+                    document.getElementById('accountSelect').value = prevAccountType;
+                    showNotification(data.error || 'Failed to switch account', 'error');
+                }
+            } catch (e) {
+                state.accountType = prevAccountType;
+                document.getElementById('accountSelect').value = prevAccountType;
+                showNotification('Connection error', 'error');
+            }
+        }
+        
+        function updateAccountBadge() {
+            const badge = document.getElementById('accountBadge');
+            if (state.accountType === 'demo' || state.accountType === 'testnet') {
+                badge.className = 'demo-badge';
+                badge.textContent = 'DEMO';
+            } else {
+                badge.className = 'real-badge';
+                badge.textContent = 'REAL';
+            }
+        }
+        
+        function updateAccountTypeOptions() {
+            const select = document.getElementById('accountSelect');
+            select.innerHTML = '';
+            
+            if (state.exchange === 'bybit') {
+                select.innerHTML = `
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                `;
+            } else if (state.exchange === 'hyperliquid') {
+                select.innerHTML = `
+                    <option value="testnet">Testnet</option>
+                    <option value="mainnet">Mainnet</option>
+                `;
+            }
+            
+            // Set current value
+            if (state.exchange === 'hyperliquid') {
+                state.accountType = state.accountType === 'demo' ? 'testnet' : 
+                                    state.accountType === 'real' ? 'mainnet' : state.accountType;
+            } else {
+                state.accountType = state.accountType === 'testnet' ? 'demo' : 
+                                    state.accountType === 'mainnet' ? 'real' : state.accountType;
+            }
+            
+            select.value = state.accountType;
+            updateAccountBadge();
+        }
+        
+        function updateExchangeUI() {
+            const exchangeBadge = document.querySelector('.exchange-select');
+            const logo = document.querySelector('.logo-icon');
+            
+            // Update exchange-specific styling
+            document.body.setAttribute('data-exchange', state.exchange);
+            
+            if (state.exchange === 'hyperliquid') {
+                // HyperLiquid specific features
+                document.querySelectorAll('.bybit-only').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.hl-only').forEach(el => el.style.display = '');
+                
+                // Update max leverage for HyperLiquid
+                const slider = document.getElementById('leverageSlider');
+                slider.max = 50; // HyperLiquid max
+                if (state.leverage > 50) setLeverage(50);
+                
+                // Update leverage marks
+                const marks = document.querySelector('.leverage-marks');
+                if (marks) {
+                    marks.innerHTML = `
+                        <span onclick="setLeverage(1)">1x</span>
+                        <span onclick="setLeverage(5)">5x</span>
+                        <span onclick="setLeverage(10)">10x</span>
+                        <span onclick="setLeverage(20)">20x</span>
+                        <span onclick="setLeverage(50)">50x</span>
+                    `;
+                }
+                
+                // HyperLiquid doesn't have margin mode selection
+                document.querySelector('.margin-mode-row')?.classList.add('hl-hidden');
+                
+            } else {
+                // Bybit specific features
+                document.querySelectorAll('.bybit-only').forEach(el => el.style.display = '');
+                document.querySelectorAll('.hl-only').forEach(el => el.style.display = 'none');
+                
+                // Restore max leverage for Bybit
+                const slider = document.getElementById('leverageSlider');
+                slider.max = 100;
+                
+                // Restore leverage marks
+                const marks = document.querySelector('.leverage-marks');
+                if (marks) {
+                    marks.innerHTML = `
+                        <span onclick="setLeverage(1)">1x</span>
+                        <span onclick="setLeverage(5)">5x</span>
+                        <span onclick="setLeverage(10)">10x</span>
+                        <span onclick="setLeverage(25)">25x</span>
+                        <span onclick="setLeverage(50)">50x</span>
+                        <span onclick="setLeverage(100)">100x</span>
+                    `;
+                }
+                
+                document.querySelector('.margin-mode-row')?.classList.remove('hl-hidden');
+            }
+            
+            // Update TradingView chart symbol prefix
+            initTradingView();
+        }
+        
+        function reconnectWebSockets() {
+            // Close existing connections
+            if (state.ws) {
+                state.ws.close();
+            }
+            
+            // Reconnect with new exchange context
+            setTimeout(() => {
+                connectWebSocket();
+                connectAdvancedWebSocket();
+            }, 500);
+        }
+        
+        // ============================================================
+        // SETTINGS SYNC WEBSOCKET
+        // ============================================================
+        
+        function connectSettingsSyncWebSocket() {
+            let userId = localStorage.getItem('elcaro_user_id');
+            
+            // Fallback: try to get from elcaro_user object
+            if (!userId) {
+                try {
+                    const userObj = JSON.parse(localStorage.getItem('elcaro_user') || '{}');
+                    if (userObj.user_id) {
+                        userId = userObj.user_id.toString();
+                        localStorage.setItem('elcaro_user_id', userId);
+                    }
+                } catch (e) {}
+            }
+            
+            if (!userId) {
+                console.log('No user_id for settings sync, will retry after auth');
+                return;
+            }
+            
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            
+            try {
+                state.settingsWs = new WebSocket(`${proto}//${location.host}/ws/settings-sync/${userId}`);
+                
+                state.settingsWs.onopen = () => {
+                    console.log('Settings sync connected');
+                    // Request current settings
+                    state.settingsWs.send(JSON.stringify({ type: 'get_settings' }));
+                };
+                
+                state.settingsWs.onmessage = (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        handleSettingsSyncMessage(data);
+                    } catch (err) {
+                        console.log('Settings sync parse error:', err);
+                    }
+                };
+                
+                state.settingsWs.onclose = () => {
+                    console.log('Settings sync disconnected, reconnecting...');
+                    setTimeout(connectSettingsSyncWebSocket, 5000);
+                };
+                
+                state.settingsWs.onerror = () => {
+                    state.settingsWs.close();
+                };
+            } catch (e) {
+                console.error('Failed to connect settings sync:', e);
+            }
+        }
+        
+        function handleSettingsSyncMessage(data) {
+            switch (data.type) {
+                case 'exchange_switched':
+                    // Another device switched exchange
+                    if (data.exchange !== state.exchange) {
+                        state.exchange = data.exchange;
+                        document.getElementById('exchangeSelect').value = data.exchange;
+                        updateExchangeUI();
+                        updateAccountTypeOptions();
+                        showNotification(`Exchange switched to ${data.exchange.toUpperCase()} from another device`, 'info');
+                        reconnectWebSockets();
+                        loadPositions();
+                    }
+                    break;
+                    
+                case 'settings_changed':
+                    // Settings updated from another source
+                    if (data.settings) {
+                        if (data.settings.leverage && data.settings.leverage !== state.leverage) {
+                            setLeverage(data.settings.leverage);
+                        }
+                        if (data.settings.trading_mode && data.settings.trading_mode !== state.accountType) {
+                            state.accountType = data.settings.trading_mode;
+                            document.getElementById('accountSelect').value = state.accountType;
+                            updateAccountBadge();
+                        }
+                    }
+                    break;
+                    
+                case 'strategy_deployed':
+                    // Strategy was deployed from backtest
+                    showNotification(`Strategy "${data.strategy_name}" deployed! Parameters applied.`, 'success');
+                    if (data.params) {
+                        // Apply strategy parameters
+                        if (data.params.leverage) setLeverage(data.params.leverage);
+                        if (data.params.tp_percent) {
+                            document.getElementById('tpInput').value = data.params.tp_percent;
+                        }
+                        if (data.params.sl_percent) {
+                            document.getElementById('slInput').value = data.params.sl_percent;
+                        }
+                    }
+                    break;
+                    
+                case 'preset_loaded':
+                    // User loaded a preset from marketplace
+                    showNotification(`Preset "${data.preset_name}" loaded`, 'success');
+                    loadUserSettings(); // Reload all settings
+                    break;
+                    
+                case 'credentials_updated':
+                    // API credentials were updated
+                    showNotification('API credentials updated, reconnecting...', 'info');
+                    reconnectWebSockets();
+                    loadPositions();
+                    break;
+                    
+                case 'current_settings':
+                    // Initial settings load
+                    if (data.settings) {
+                        state.exchange = data.settings.exchange_type || 'bybit';
+                        state.accountType = data.settings.trading_mode || 'demo';
+                        state.leverage = data.settings.leverage || 10;
+                        
+                        document.getElementById('exchangeSelect').value = state.exchange;
+                        updateAccountTypeOptions();
+                        setLeverage(state.leverage);
+                        updateExchangeUI();
+                    }
+                    break;
+            }
+        }
+        
+        // Notify settings changes to sync
+        function notifySettingsChange(changeType, data) {
+            if (state.settingsWs && state.settingsWs.readyState === WebSocket.OPEN) {
+                state.settingsWs.send(JSON.stringify({
+                    type: 'update_setting',
+                    change_type: changeType,
+                    data: data
+                }));
+            }
+        }
     </script>
 </body>
 </html>

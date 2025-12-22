@@ -58,8 +58,8 @@ class WebAppConfig:
     # CORS
     allow_origins: list = field(default_factory=lambda: ["*"])
     
-    # Session
-    secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY", "elcaro-super-secret-2025"))
+    # Session - SECRET_KEY must be set in environment for production
+    secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY") or os.urandom(32).hex())
 
 
 @dataclass  

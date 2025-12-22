@@ -28,7 +28,7 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
 from db import (
@@ -1879,10 +1879,10 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             amount = float(text)
             if amount < 1:
-                await update.message.reply_text("❌ Minimum amount is 1 USDT")
+                await update.message.reply_text(t.get("min_amount_error", "❌ Minimum amount is 1 USDT"))
                 return True
             if amount > 100000:
-                await update.message.reply_text("❌ Maximum amount is 100,000 USDT")
+                await update.message.reply_text(t.get("max_amount_error", "❌ Maximum amount is 100,000 USDT"))
                 return True
             
             cfg = db.get_user_config(uid)
@@ -1903,7 +1903,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             
             return True
         except ValueError:
-            await update.message.reply_text("❌ Invalid number. Please enter a valid amount.")
+            await update.message.reply_text(t.get("invalid_amount", "❌ Invalid number. Please enter a valid amount."))
             return True
     
     return False
@@ -2396,9 +2396,38 @@ async def detect_exit_reason(user_id: int, symbol: str) -> tuple[str, str]:
                             return "MANUAL", order_type
                 except Exception as e:
                     logger.debug(f"Could not fetch order history for {symbol}: {e}")
+            
+            # Step 3: If still unknown but we have reduceOnly trades, assume MANUAL
+            if reason == "UNKNOWN":
+                return "MANUAL", order_type
                     
     except Exception as e:
         logger.warning(f"Error in detect_exit_reason for {symbol}: {e}")
+    
+    # Step 4: If no reduceOnly trades found, check closed-pnl API for execType
+    if reason == "UNKNOWN":
+        try:
+            pnl_data = await _bybit_request(
+                user_id,
+                "GET",
+                "/v5/position/closed-pnl",
+                params={
+                    "category": "linear",
+                    "symbol": symbol,
+                    "limit": 5
+                }
+            )
+            pnl_list = pnl_data.get("list", [])
+            if pnl_list:
+                latest = pnl_list[0]
+                exec_type = (latest.get("execType") or "").lower()
+                if "trade" in exec_type:
+                    # Check orderType for hints
+                    ot = (latest.get("orderType") or "").lower()
+                    if ot == "market":
+                        return "MANUAL", "Market"
+        except Exception as e:
+            logger.debug(f"Could not fetch closed-pnl for detect_exit_reason: {e}")
     
     return reason, order_type
 
@@ -3025,7 +3054,8 @@ async def split_market_plus_one_limit(
     t: dict,
     *,
     market_msg: str,           
-    limit_msg: str             
+    limit_msg: str,
+    strategy: str | None = None,
 ) -> None:
     filt = await get_symbol_filters(uid, symbol)
     step_qty  = float(filt["qtyStep"])
@@ -3119,7 +3149,8 @@ async def split_market_plus_one_limit(
     add_active_position(
         user_id=uid, symbol=symbol, side=side_s,
         entry_price=entry, size=size,
-        timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf))
+        timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf)),
+        strategy=strategy
     )
 
     await strict_set_sl_tp(side_s, entry, tp_pct, sl_pct)
@@ -3755,15 +3786,33 @@ async def place_order_hyperliquid(
             if hl_qty <= 0:
                 return None
             
-            # Place market order
+            # Set leverage first (required before placing order)
             is_buy = side.lower() in ("buy", "long")
+            try:
+                await adapter._client.update_leverage(coin=coin, leverage=hl_leverage, is_cross=True)
+            except Exception as lev_err:
+                logger.warning(f"[{user_id}] Could not set HL leverage: {lev_err}")
+            
+            # Place market order
             result = await adapter._client.market_open(
                 coin=coin,
                 is_buy=is_buy,
                 sz=hl_qty,
-                leverage=hl_leverage,
                 slippage=0.01  # 1% slippage
             )
+            
+            # Set TP/SL if provided
+            if result.get("status") == "ok" and (hl_tp or hl_sl):
+                try:
+                    tp_price = None
+                    sl_price = None
+                    if hl_tp and hl_tp > 0:
+                        tp_price = price * (1 + hl_tp / 100) if is_buy else price * (1 - hl_tp / 100)
+                    if hl_sl and hl_sl > 0:
+                        sl_price = price * (1 - hl_sl / 100) if is_buy else price * (1 + hl_sl / 100)
+                    await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price)
+                except Exception as tpsl_err:
+                    logger.warning(f"[{user_id}] Could not set HL TP/SL: {tpsl_err}")
             
             logger.info(f"✅ [{user_id}] HL order placed: {symbol} {side} qty={hl_qty} lev={hl_leverage}x")
             return {
@@ -4160,7 +4209,7 @@ def get_scalper_side_keyboard(side: str, t: dict) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", callback_data=f"strat_param:scalper:{side}_atr_periods")],
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", callback_data=f"strat_param:scalper:{side}_atr_multiplier_sl")],
         [InlineKeyboardButton(f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", callback_data=f"strat_param:scalper:{side}_atr_trigger_pct")],
-        [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data=f"strat_hl:{strategy}")],
+        [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data="strat_hl:scalper")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:scalper")],
     ]
     return InlineKeyboardMarkup(buttons)
@@ -6302,6 +6351,94 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # Open Positions Management (detailed view with pagination and close buttons)
 # ------------------------------------------------------------------------------------
 
+POSITIONS_PER_PAGE = 10  # Show 10 positions per page
+
+def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKeyboardMarkup:
+    """Build inline keyboard for paginated positions list (10 per page)."""
+    buttons = []
+    total = len(positions)
+    total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
+    
+    if total == 0:
+        return InlineKeyboardMarkup([[
+            InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+        ]])
+    
+    # Get positions for current page
+    start_idx = page * POSITIONS_PER_PAGE
+    end_idx = min(start_idx + POSITIONS_PER_PAGE, total)
+    page_positions = positions[start_idx:end_idx]
+    
+    # Create button for each position on this page
+    for idx, pos in enumerate(page_positions):
+        global_idx = start_idx + idx + 1  # 1-based index
+        sym = pos.get("symbol", "-")
+        side = pos.get("side", "-")
+        pnl = float(pos.get("unrealisedPnl") or 0)
+        
+        emoji = "🟢" if side == "Buy" else "🔴"
+        pnl_emoji = "📈" if pnl >= 0 else "📉"
+        
+        # Row: position button + close button
+        buttons.append([
+            InlineKeyboardButton(
+                f"{emoji} {global_idx}. {sym} {pnl_emoji}{pnl:+.2f}",
+                callback_data=f"pos:view:{sym}"
+            ),
+            InlineKeyboardButton("❌", callback_data=f"pos:close:{sym}")
+        ])
+    
+    # Navigation row (if multiple pages)
+    if total_pages > 1:
+        nav_row = []
+        # Previous page
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("◀️ Prev", callback_data=f"pos:list:{page - 1}"))
+        
+        # Page counter
+        nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="pos:noop"))
+        
+        # Next page
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("Next ▶️", callback_data=f"pos:list:{page + 1}"))
+        
+        buttons.append(nav_row)
+    
+    # Action buttons
+    action_row = [InlineKeyboardButton("🔄", callback_data=f"pos:list:{page}")]
+    if total > 1:
+        action_row.append(
+            InlineKeyboardButton(
+                f"⚠️ {t.get('btn_close_all', 'Close all')} ({total})",
+                callback_data="pos:close_all"
+            )
+        )
+    buttons.append(action_row)
+    
+    # Back button
+    buttons.append([
+        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+    ])
+    
+    return InlineKeyboardMarkup(buttons)
+
+
+def format_positions_list_header(positions: list, page: int, t: dict) -> str:
+    """Format header for paginated positions list."""
+    total = len(positions)
+    total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
+    
+    total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
+    pnl_emoji = "📈" if total_pnl >= 0 else "📉"
+    
+    return (
+        f"📊 *{t.get('open_positions', 'Open Positions')}* ({total})\n"
+        f"{pnl_emoji} Total P/L: `{total_pnl:+.2f}` USDT\n"
+        f"📄 Page {page + 1}/{total_pages}\n"
+        f"_Tap position to view details_"
+    )
+
+
 def get_positions_paginated_keyboard(positions: list, current_idx: int, t: dict) -> InlineKeyboardMarkup:
     """Build inline keyboard for single position view with pagination."""
     buttons = []
@@ -6561,8 +6698,8 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Do nothing - just for counter button
         return
     
-    if data == "pos:refresh" or data == "pos:page:0":
-        # Refresh positions list - show first position with pagination
+    if data == "pos:refresh":
+        # Refresh positions list - show list view
         positions = await fetch_open_positions(uid)
         if not positions:
             await query.edit_message_text(
@@ -6573,13 +6710,35 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        text = format_single_position(positions[0], 0, len(positions), t)
-        keyboard = get_positions_paginated_keyboard(positions, 0, t)
+        text = format_positions_list_header(positions, 0, t)
+        keyboard = get_positions_list_keyboard(positions, 0, t)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        return
+    
+    if data.startswith("pos:list:"):
+        # Navigate to specific page of positions list
+        page = int(data.split(":")[2])
+        positions = await fetch_open_positions(uid)
+        if not positions:
+            await query.edit_message_text(
+                t.get('no_positions', 'No open positions'),
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+                ]])
+            )
+            return
+        
+        # Ensure valid page
+        total_pages = (len(positions) + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
+        page = max(0, min(page, total_pages - 1))
+        
+        text = format_positions_list_header(positions, page, t)
+        keyboard = get_positions_list_keyboard(positions, page, t)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:page:"):
-        # Navigate to specific position page
+        # Legacy: Navigate to specific single position (keeping for backward compatibility)
         page_idx = int(data.split(":")[2])
         positions = await fetch_open_positions(uid)
         if not positions:
@@ -6879,16 +7038,16 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_open_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show open positions with inline management buttons and pagination."""
+    """Show open positions with inline management buttons and pagination (10 per page)."""
     uid = update.effective_user.id
     positions = await fetch_open_positions(uid)
     
     if not positions:
         return await update.message.reply_text(ctx.t.get('no_positions', 'No open positions'))
     
-    # Show first position with pagination
-    text = format_single_position(positions[0], 0, len(positions), ctx.t)
-    keyboard = get_positions_paginated_keyboard(positions, 0, ctx.t)
+    # Show positions list with pagination (10 per page)
+    text = format_positions_list_header(positions, 0, ctx.t)
+    keyboard = get_positions_list_keyboard(positions, 0, ctx.t)
     
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
@@ -7834,15 +7993,16 @@ def parse_scalper_signal(text: str) -> dict | None:
 # --- Elcaro parser (new format) ---
 # Header: "Elcaro" on first line (optional - can detect by structure)
 ELCARO_RE_HDR = re.compile(r'^Elcaro\s*$', re.I | re.M)
-# Symbol line: 🔔 FILUSDT 📉 SHORT or 🔔 BTCUSDT 📈 LONG
-ELCARO_RE_MAIN = re.compile(r'🔔\s*([A-Z0-9]+USDT)\s*[📉📈]?\s*(LONG|SHORT)', re.I)
+# Symbol line: 🔔 FILUSDT 📉 SHORT or 🔔 BTCUSDT 📈 LONG or 🔔 XRPUSDT 📉 SHORT 🟢⚪️⚪️
+# More flexible pattern - allows emojis and extra characters between symbol and side
+ELCARO_RE_MAIN = re.compile(r'🔔\s*([A-Z0-9]+(?:USDT|USDC)?)\s*[📉📈🔻🔺]*\s*(LONG|SHORT)', re.I)
 # Timeframe and leverage: ⏱️ 60 | 🎚 68  OR  ⏱️ 5 | 🎚 62
 ELCARO_RE_TF_LEV = re.compile(r'⏱️\s*(\d+)\s*\|\s*🎚\s*(\d+)', re.I)
-# Entry price: 💰 Entry: 1.253000
+# Entry price: 💰 Entry: 1.253000 (also handle commas in prices)
 ELCARO_RE_ENTRY = re.compile(r'💰\s*Entry\s*[:：]\s*' + NUM, re.I)
-# SL: 🛑 SL: 1.281500 (2.27%) [ATR]
+# SL: 🛑 SL: 1.281500 (2.27%) [ATR] - make the bracket part optional
 ELCARO_RE_SL = re.compile(r'🛑\s*SL\s*[:：]\s*' + NUM + r'\s*\((' + NUM + r')%\)', re.I)
-# TP: 🎯 TP: 1.215000 (3.03%) [AGG]
+# TP: 🎯 TP: 1.215000 (3.03%) [AGG] - make the bracket part optional
 ELCARO_RE_TP = re.compile(r'🎯\s*TP\s*[:：]\s*' + NUM + r'\s*\((' + NUM + r')%\)', re.I)
 # ATR line: 📉 ATR: 14 | ×1.5 | Trigger: 30%
 # Note: NUM already has capture group, so we use indices 1, 2, 4 for periods, mult, trigger
@@ -7857,14 +8017,24 @@ def is_elcaro_signal(text: str) -> bool:
     # Has explicit header
     if ELCARO_RE_HDR.search(text):
         return True
-    # Detect by structure: has 🔔 SYMBOL, Entry, SL with %, TP with %, and ATR params
+    # Detect by structure: has 🔔 SYMBOL, Entry, SL with %, TP with %
+    # ATR Exit marker is optional now (more flexible detection)
     has_main = ELCARO_RE_MAIN.search(text)
     has_entry = ELCARO_RE_ENTRY.search(text)
     has_sl = ELCARO_RE_SL.search(text)
     has_tp = ELCARO_RE_TP.search(text)
+    has_atr = ELCARO_RE_ATR.search(text)
     has_atr_exit = ELCARO_RE_ATR_EXIT.search(text)
-    # If has main signal, entry, SL%, TP% and ATR Exit marker - it's Elcaro format
-    return bool(has_main and has_entry and has_sl and has_tp and has_atr_exit)
+    has_tf_lev = ELCARO_RE_TF_LEV.search(text)
+    
+    # Core detection: 🔔 SYMBOL + Entry + SL% + TP%
+    core_match = bool(has_main and has_entry and has_sl and has_tp)
+    
+    # Additional indicators that strengthen the match
+    has_additional = has_atr_exit or has_atr or has_tf_lev
+    
+    # If core match and at least one additional indicator, it's Elcaro
+    return core_match and has_additional
 
 def parse_elcaro_signal(text: str) -> dict | None:
     """
@@ -9982,28 +10152,6 @@ async def start_monitoring(app: Application):
     except Exception:
         pass
     
-    # Setup Menu Button with WebApp (if HTTPS tunnel available)
-    try:
-        webapp_url = None
-        # Check for Cloudflare tunnel first (best for Mini App)
-        tunnel_file = Path(__file__).parent / "run" / "tunnel_url.txt"
-        if tunnel_file.exists():
-            tunnel_url = tunnel_file.read_text().strip()
-            if tunnel_url and tunnel_url.startswith("https://") and "trycloudflare" in tunnel_url:
-                webapp_url = tunnel_url
-                
-        if webapp_url:
-            from telegram import MenuButtonWebApp
-            await app.bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(
-                    text="📊 Terminal",
-                    web_app=WebAppInfo(url=f"{webapp_url}/terminal")
-                )
-            )
-            logger.info(f"Menu Button WebApp set to: {webapp_url}/terminal")
-    except Exception as e:
-        logger.debug(f"Could not set menu button: {e}")
-    
     # Start futures positions monitoring loop
     logger.info("Starting monitor_positions_loop task")
     task = asyncio.create_task(monitor_positions_loop(app), name="monitor_positions_loop")
@@ -11359,7 +11507,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if active_exchange == "hyperliquid":
             return await cmd_hl_close_all(update, ctx)
         else:
-            return await cmd_close_all_positions(update, ctx)
+            # Show positions with close buttons (user can close all from there)
+            return await cmd_open_positions(update, ctx)
     
     # Market - Bybit only
     if text in ["📉 Market", ctx.t.get('button_market', '📉 Market')]:
@@ -12869,6 +13018,7 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show HyperLiquid positions"""
     uid = update.effective_user.id
+    t = ctx.t
     
     hl_creds = get_hl_credentials(uid)
     if not hl_creds.get("hl_private_key"):
@@ -12890,7 +13040,7 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if result.get("success"):
             positions = result.get("data", [])
             if not positions:
-                await update.message.reply_text("📭 No open positions on HyperLiquid.")
+                await update.message.reply_text(t.get("hl_no_positions", "📭 No open positions on HyperLiquid."))
                 return
             
             network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
@@ -12960,6 +13110,7 @@ async def cmd_hl_switch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show HyperLiquid open orders"""
     uid = update.effective_user.id
+    t = ctx.t
     
     hl_creds = get_hl_credentials(uid)
     if not hl_creds.get("hl_private_key"):
@@ -12981,7 +13132,7 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if result.get("success"):
             orders = result.get("data", [])
             if not orders:
-                await update.message.reply_text("📭 No open orders on HyperLiquid.")
+                await update.message.reply_text(t.get("hl_no_orders", "📭 No open orders on HyperLiquid."))
                 return
             
             network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
@@ -13081,6 +13232,7 @@ async def cmd_hl_close_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show HyperLiquid trade history"""
     uid = update.effective_user.id
+    t = ctx.t
     
     hl_creds = get_hl_credentials(uid)
     if not hl_creds.get("hl_private_key"):
@@ -13102,7 +13254,7 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if result.get("success"):
             trades = result.get("data", [])
             if not trades:
-                await update.message.reply_text("📭 No trade history on HyperLiquid.")
+                await update.message.reply_text(t.get("hl_no_history", "📭 No trade history on HyperLiquid."))
                 return
             
             network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
@@ -13354,193 +13506,58 @@ async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# ==============================================================================
-# WebApp Data Handler (receives data from Telegram Mini App via sendData)
-# ==============================================================================
-
-@with_texts
-@log_calls
-async def handle_webapp_data(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """
-    Handle data sent from Telegram WebApp via Telegram.WebApp.sendData()
-    This allows Mini App to communicate actions back to the bot.
-    """
-    t = ctx.t
-    uid = update.effective_user.id
-    
-    if not update.effective_message or not update.effective_message.web_app_data:
-        return
-    
-    data_raw = update.effective_message.web_app_data.data
-    
-    try:
-        data = json.loads(data_raw)
-    except json.JSONDecodeError:
-        await update.message.reply_text("❌ Invalid data from WebApp")
-        return
-    
-    action = data.get("action")
-    
-    if action == "order_placed":
-        # Order was placed from WebApp
-        symbol = data.get("symbol", "Unknown")
-        side = data.get("side", "")
-        qty = data.get("qty", "")
-        price = data.get("price", "Market")
-        
-        await update.message.reply_text(
-            f"✅ *Order Placed from WebApp*\n\n"
-            f"Symbol: `{symbol}`\n"
-            f"Side: {side}\n"
-            f"Quantity: {qty}\n"
-            f"Price: {price}",
-            parse_mode="Markdown"
-        )
-        
-    elif action == "position_closed":
-        # Position closed from WebApp
-        symbol = data.get("symbol", "Unknown")
-        pnl = data.get("pnl", 0)
-        pnl_emoji = "🟢" if pnl >= 0 else "🔴"
-        
-        await update.message.reply_text(
-            f"✅ *Position Closed from WebApp*\n\n"
-            f"Symbol: `{symbol}`\n"
-            f"PnL: {pnl_emoji} ${pnl:+.2f}",
-            parse_mode="Markdown"
-        )
-        
-    elif action == "strategy_deployed":
-        # Strategy deployed from backtest
-        strategy = data.get("strategy", "Unknown")
-        params = data.get("params", {})
-        
-        await update.message.reply_text(
-            f"🚀 *Strategy Deployed from WebApp*\n\n"
-            f"Strategy: `{strategy}`\n"
-            f"Parameters updated successfully!",
-            parse_mode="Markdown"
-        )
-        
-    elif action == "settings_updated":
-        # Settings changed in WebApp
-        setting = data.get("setting", "")
-        value = data.get("value", "")
-        
-        await update.message.reply_text(
-            f"⚙️ *Settings Updated from WebApp*\n\n"
-            f"`{setting}` → `{value}`",
-            parse_mode="Markdown"
-        )
-        
-    elif action == "preset_loaded":
-        # User preset loaded
-        preset_name = data.get("preset_name", "")
-        
-        await update.message.reply_text(
-            f"📋 *Preset Loaded from WebApp*\n\n"
-            f"Name: `{preset_name}`\n"
-            f"All settings applied!",
-            parse_mode="Markdown"
-        )
-        
-    else:
-        # Unknown action - log for debugging
-        logger.info(f"WebApp data from user {uid}: {data}")
-        await update.message.reply_text("📲 Data received from WebApp")
-
-
 @with_texts
 @log_calls
 async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Open WebApp - supports both Telegram Mini App and browser mode"""
+    """Open WebApp in browser with auto-login"""
     t = ctx.t
     uid = update.effective_user.id
     
-    # Priority: Cloudflare Tunnel > ngrok > localhost
-    webapp_url = None
-    tunnel_url = None
-    
+    # Get ngrok URL from file or use localhost
+    webapp_url = "http://localhost:8765"
     try:
-        # 1. Check Cloudflare Tunnel URL (best for Mini App - no warning pages)
-        tunnel_file = Path(__file__).parent / "run" / "tunnel_url.txt"
-        if tunnel_file.exists():
-            tunnel_url = tunnel_file.read_text().strip()
-            if tunnel_url and tunnel_url.startswith("https://"):
-                webapp_url = tunnel_url
+        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+        if ngrok_file.exists():
+            webapp_url = ngrok_file.read_text().strip()
     except:
         pass
     
-    if not webapp_url:
-        try:
-            # 2. Check ngrok URL
-            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-            if ngrok_file.exists():
-                ngrok_url = ngrok_file.read_text().strip()
-                if ngrok_url and ngrok_url.startswith("https://"):
-                    webapp_url = ngrok_url
-        except:
-            pass
-    
-    if not webapp_url:
-        webapp_url = "http://localhost:8765"
-    
-    # Generate auto-login token for browser mode
-    browser_login_url = webapp_url
+    # Generate auto-login token
     try:
         from webapp.services import telegram_auth
-        token, _ = telegram_auth.generate_login_token(uid)
-        browser_login_url = f"{webapp_url}/api/auth/token-login?token={token}"
+        token, login_url = telegram_auth.generate_login_token(uid)
+        # Update login_url with current webapp URL (in case ngrok changed)
+        login_url = f"{webapp_url}/api/auth/token-login?token={token}"
     except Exception as e:
         logging.warning(f"Failed to generate login token: {e}")
+        login_url = webapp_url
     
-    # Determine if URL is suitable for Telegram Mini App
-    # Mini App requires HTTPS and no warning pages (ngrok free has warning)
+    # Check if ngrok (free tier has warning page that breaks WebApp)
     is_ngrok = "ngrok" in webapp_url
-    is_cloudflare = "trycloudflare.com" in webapp_url or (tunnel_url and "trycloudflare" in tunnel_url)
-    is_https = webapp_url.startswith("https://")
-    can_use_miniapp = is_https and (is_cloudflare or not is_ngrok)
     
-    # Build keyboard with options
-    buttons = []
-    
-    if can_use_miniapp:
-        # Cloudflare or production HTTPS - use native Telegram Mini App
-        buttons.append([InlineKeyboardButton("📱 Open Mini App", web_app=WebAppInfo(url=webapp_url))])
-        buttons.append([InlineKeyboardButton("🌐 Open in Browser", url=browser_login_url)])
+    if is_ngrok:
+        # For ngrok, use regular URL buttons (WebAppInfo shows blank due to ngrok warning)
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Open WebApp", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
     else:
-        # ngrok or localhost - only browser mode
-        buttons.append([InlineKeyboardButton("🌐 Open WebApp", url=browser_login_url)])
-    
-    buttons.append([InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")])
-    
-    keyboard = InlineKeyboardMarkup(buttons)
-    
-    # Show connection type
-    if is_cloudflare:
-        conn_type = "☁️ Cloudflare Tunnel"
-    elif is_ngrok:
-        conn_type = "🔗 ngrok Tunnel"
-    elif is_https:
-        conn_type = "🔒 HTTPS"
-    else:
-        conn_type = "🏠 Local"
+        # For production HTTPS, use WebAppInfo for native experience
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
     
     text = (
         "🌐 *Trading WebApp*\n\n"
-        f"Connection: {conn_type}\n\n"
-        "• 📊 View positions & orders\n"
+        "Access your trading dashboard:\n\n"
+        "• 📊 View positions and orders\n"
         "• 💰 Check balances\n"
-        "• 📈 Trading terminal\n"
-        "• 🧪 Strategy backtesting\n"
         "• ⚙️ Manage settings\n"
-        "• 📉 Trading statistics\n\n"
+        "• 📈 Trading statistics\n\n"
+        "_Tap the button below to open_"
     )
-    
-    if can_use_miniapp:
-        text += "_📱 Tap 'Open Mini App' for native experience_"
-    else:
-        text += "_🌐 Opens in external browser_"
     
     await update.message.reply_text(
         text,
@@ -14060,18 +14077,23 @@ async def handle_hl_strategy_param(update: Update, ctx: ContextTypes.DEFAULT_TYP
     if uid not in _awaiting_hl_param:
         return False
     
+    # Get translations
+    cfg = get_user_config(uid)
+    lang = cfg.get("lang", DEFAULT_LANG)
+    t = LANGS.get(lang, LANGS[DEFAULT_LANG])
+    
     text = update.message.text.strip()
     
     # Cancel
     if text.lower() == "/cancel":
         del _awaiting_hl_param[uid]
-        await update.message.reply_text("❌ Cancelled.")
+        await update.message.reply_text(t.get("cancelled", "❌ Cancelled."))
         return True
     
     try:
         value = float(text)
     except ValueError:
-        await update.message.reply_text("❌ Please enter a valid number.")
+        await update.message.reply_text(t.get("invalid_number", "❌ Please enter a valid number."))
         return True
     
     info = _awaiting_hl_param[uid]
@@ -14080,13 +14102,13 @@ async def handle_hl_strategy_param(update: Update, ctx: ContextTypes.DEFAULT_TYP
     
     # Validate ranges
     if param == "hl_percent" and (value <= 0 or value > 100):
-        await update.message.reply_text("❌ Entry % must be between 0.1 and 100.")
+        await update.message.reply_text(t.get("entry_pct_range_error", "❌ Entry % must be between 0.1 and 100."))
         return True
     if param in ["hl_sl_percent", "hl_tp_percent"] and (value <= 0 or value > 500):
-        await update.message.reply_text("❌ SL/TP % must be between 0.1 and 500.")
+        await update.message.reply_text(t.get("sl_tp_range_error", "❌ SL/TP % must be between 0.1 and 500."))
         return True
     if param == "hl_leverage" and (value < 1 or value > 100):
-        await update.message.reply_text("❌ Leverage must be between 1 and 100.")
+        await update.message.reply_text(t.get("leverage_range_error", "❌ Leverage must be between 1 and 100."))
         return True
     
     # Save the value
@@ -14123,12 +14145,17 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
     if uid not in _hl_awaiting_key or not _hl_awaiting_key[uid].get("waiting"):
         return False
     
+    # Get translations
+    cfg = get_user_config(uid)
+    lang = cfg.get("lang", DEFAULT_LANG)
+    t = LANGS.get(lang, LANGS[DEFAULT_LANG])
+    
     text = update.message.text.strip()
     
     # Cancel
     if text.lower() == "/cancel":
         del _hl_awaiting_key[uid]
-        await update.message.reply_text("❌ HyperLiquid setup cancelled.")
+        await update.message.reply_text(t.get("hl_setup_cancelled", "❌ HyperLiquid setup cancelled."))
         return True
     
     # Validate private key format
@@ -14228,9 +14255,6 @@ def main():
         .post_init(start_monitoring)   
         .build()
     )
-    
-    # WebApp data handler (receives data from Telegram Mini App)
-    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))

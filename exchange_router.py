@@ -41,25 +41,27 @@ async def place_order_universal(
                 vault_address=hl_creds.get("hl_vault_address")
             )
             
-            # Set leverage if specified
-            if leverage:
-                await adapter.set_leverage(symbol, leverage)
-            
-            # Place order
-            result = await adapter.place_order(
-                symbol=symbol,
-                side=side,
-                qty=qty,
-                order_type=orderType,
-                price=price,
-                reduce_only=reduce_only
-            )
-            
-            if result.get("success"):
-                logger.info(f"HL Order placed: {result}")
-                return result.get("data", {})
-            else:
-                raise ValueError(f"HyperLiquid order failed: {result.get('error', 'Unknown error')}")
+            async with adapter:
+                # Set leverage if specified
+                if leverage:
+                    await adapter.set_leverage(symbol, leverage)
+                
+                # Place order
+                result = await adapter.place_order(
+                    symbol=symbol,
+                    side=side,
+                    qty=qty,
+                    order_type=orderType,
+                    price=price,
+                    reduce_only=reduce_only
+                )
+                
+                # HLAdapter returns Bybit-like format with retCode
+                if result.get("retCode") == 0:
+                    logger.info(f"HL Order placed: {result}")
+                    return result.get("result", {})
+                else:
+                    raise ValueError(f"HyperLiquid order failed: {result.get('retMsg', 'Unknown error')}")
                 
         except Exception as e:
             logger.error(f"HyperLiquid order error: {e}")
@@ -105,8 +107,9 @@ async def fetch_positions_universal(
             
             result = await adapter.fetch_positions()
             
-            if result.get("success"):
-                positions = result.get("data", [])
+            # HLAdapter returns Bybit-like format with retCode
+            if result.get("retCode") == 0:
+                positions = result.get("result", {}).get("list", [])
                 if symbol:
                     positions = [p for p in positions if p.get("symbol") == symbol]
                 return positions
@@ -152,7 +155,8 @@ async def set_leverage_universal(
             )
             
             result = await adapter.set_leverage(symbol, leverage)
-            return result.get("success", False)
+            # HLAdapter returns Bybit-like format with retCode
+            return result.get("retCode") == 0
             
         except Exception as e:
             logger.error(f"HL set leverage error: {e}")
@@ -191,13 +195,15 @@ async def close_position_universal(
                 vault_address=hl_creds.get("hl_vault_address")
             )
             
-            result = await adapter.close_position(symbol, size, side)
-            
-            if result.get("success"):
-                logger.info(f"HL Position closed: {result}")
-                return result.get("data", {})
-            else:
-                raise ValueError(f"HyperLiquid close failed: {result.get('error', 'Unknown error')}")
+            async with adapter:
+                result = await adapter.close_position(symbol, size)
+                
+                # HLAdapter returns Bybit-like format with retCode
+                if result.get("retCode") == 0:
+                    logger.info(f"HL Position closed: {result}")
+                    return result.get("result", {})
+                else:
+                    raise ValueError(f"HyperLiquid close failed: {result.get('retMsg', 'Unknown error')}")
                 
         except Exception as e:
             logger.error(f"HyperLiquid close error: {e}")
@@ -236,11 +242,13 @@ async def get_balance_universal(user_id: int, bybit_get_balance_func=None) -> di
                 vault_address=hl_creds.get("hl_vault_address")
             )
             
-            result = await adapter.get_balance()
-            
-            if result.get("success"):
-                return result.get("data", {})
-            return {"equity": 0, "available": 0, "margin_used": 0, "unrealized_pnl": 0}
+            async with adapter:
+                result = await adapter.get_balance()
+                
+                # get_balance returns {"success": True, "data": {...}}
+                if result.get("success"):
+                    return result.get("data", {})
+                return {"equity": 0, "available": 0, "margin_used": 0, "unrealized_pnl": 0}
             
         except Exception as e:
             logger.error(f"HL get balance error: {e}")

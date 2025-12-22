@@ -25,7 +25,9 @@ def _get_encryption_key() -> bytes:
         return base64.urlsafe_b64decode(key_env)
     
     # Derive key from a secret (in production, use proper key management)
-    secret = os.environ.get("BOT_SECRET", "default-secret-change-in-production")
+    secret = os.environ.get("BOT_SECRET")
+    if not secret:
+        raise RuntimeError("BOT_SECRET or ENCRYPTION_KEY environment variable is required")
     salt = b"bybit-bot-salt-v1"
     
     if HAS_CRYPTO:

@@ -20,6 +20,8 @@ ENV/
 *.env
 secrets.json
 credentials.json
+.server_credentials
+*.pem
 
 # Database files
 *.db

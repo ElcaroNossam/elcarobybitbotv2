@@ -9,6 +9,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 APP_DIR = Path(__file__).parent
 
@@ -46,54 +49,56 @@ def create_app() -> FastAPI:
         from webapp.api import stats
         app.include_router(stats.router, prefix="/api/stats", tags=["statistics"])
     except ImportError as e:
-        print(f"Warning: stats router: {e}")
+        logger.warning(f"stats router not available: {e}")
     
     try:
         from webapp.api import backtest
         app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
     except ImportError as e:
-        print(f"Warning: backtest router: {e}")
+        logger.warning(f"backtest router not available: {e}")
+    
+    # Note: backtest_v2 was merged into backtest.py
     
     try:
         from webapp.api import ai
         app.include_router(ai.router, prefix="/api/ai", tags=["ai-agent"])
     except ImportError as e:
-        print(f"Warning: ai router: {e}")
+        logger.warning(f"ai router not available: {e}")
     
     # WebSocket for live trades
     try:
         from webapp.api import websocket
         app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
     except ImportError as e:
-        print(f"Warning: websocket router: {e}")
+        logger.warning(f"websocket router not available: {e}")
     
     # Marketplace for custom strategies
     try:
         from webapp.api import marketplace
         app.include_router(marketplace.router, prefix="/api/marketplace", tags=["marketplace"])
     except ImportError as e:
-        print(f"Warning: marketplace router: {e}")
+        logger.warning(f"marketplace router not available: {e}")
     
     # Strategy Marketplace (sharing, presets, import/export)
     try:
         from webapp.api import strategy_marketplace
         app.include_router(strategy_marketplace.router, prefix="/api/strategies", tags=["strategy-marketplace"])
     except ImportError as e:
-        print(f"Warning: strategy_marketplace router: {e}")
+        logger.warning(f"strategy_marketplace router not available: {e}")
     
     # Screener WebSocket API
     try:
         from webapp.api import screener_ws
         app.include_router(screener_ws.router, tags=["screener"])
     except ImportError as e:
-        print(f"Warning: screener router: {e}")
+        logger.warning(f"screener router not available: {e}")
     
     # Strategy Sync API (bidirectional webapp <-> bot)
     try:
         from webapp.api import strategy_sync
         app.include_router(strategy_sync.router, prefix="/api/sync", tags=["strategy-sync"])
     except ImportError as e:
-        print(f"Warning: strategy_sync router: {e}")
+        logger.warning(f"strategy_sync router not available: {e}")
     
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)

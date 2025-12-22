@@ -19,6 +19,12 @@ from webapp.api.auth import get_current_user
 
 class ExchangeSwitch(BaseModel):
     exchange: str
+    reconnect: bool = True
+
+
+class AccountTypeSwitch(BaseModel):
+    account_type: str  # 'demo', 'real', 'testnet', 'mainnet'
+    exchange: str = None
 
 
 class LanguageChange(BaseModel):
@@ -233,6 +239,136 @@ async def switch_exchange(
         "success": True,
         "exchange": data.exchange,
         "previous_exchange": old_exchange,
+        "connection": connection_status
+    }
+
+
+@router.post("/switch-account-type")
+async def switch_account_type(
+    data: AccountTypeSwitch,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Switch trading mode (demo/real for Bybit, testnet/mainnet for HyperLiquid).
+    """
+    user_id = user["user_id"]
+    exchange = data.exchange or db.get_exchange_type(user_id)
+    
+    # Validate account type based on exchange
+    if exchange == "bybit":
+        if data.account_type not in ["demo", "real", "both"]:
+            raise HTTPException(status_code=400, detail="Invalid account type for Bybit. Use: demo, real, both")
+        # For Bybit, directly use trading_mode
+        new_mode = data.account_type
+    else:  # hyperliquid
+        if data.account_type not in ["testnet", "mainnet"]:
+            raise HTTPException(status_code=400, detail="Invalid account type for HyperLiquid. Use: testnet, mainnet")
+        # Map HL account types to trading mode
+        new_mode = data.account_type
+        
+        # Update HL testnet setting
+        hl_testnet = data.account_type == "testnet"
+        db.set_user_field(user_id, "hl_testnet", hl_testnet)
+    
+    # Get old mode for comparison
+    old_mode = db.get_trading_mode(user_id)
+    
+    # Update trading mode
+    if exchange == "bybit":
+        db.set_trading_mode(user_id, new_mode)
+    
+    # Invalidate cached connections
+    try:
+        from core import on_credentials_changed
+        on_credentials_changed(user_id)
+    except ImportError:
+        pass
+    
+    # Test connection with new account type
+    connection_status = {"connected": False, "balance": None, "error": None}
+    
+    try:
+        if exchange == "bybit":
+            import aiohttp
+            import time
+            import hashlib
+            import hmac
+            
+            creds = db.get_all_user_credentials(user_id)
+            
+            if new_mode in ["demo", "both"]:
+                api_key = creds.get("demo_api_key")
+                api_secret = creds.get("demo_api_secret")
+                base_url = "https://api-demo.bybit.com"
+            else:
+                api_key = creds.get("real_api_key")
+                api_secret = creds.get("real_api_secret")
+                base_url = "https://api.bybit.com"
+            
+            if api_key and api_secret:
+                timestamp = str(int(time.time() * 1000))
+                recv_window = "20000"
+                params = "accountType=UNIFIED"
+                param_str = f"{timestamp}{api_key}{recv_window}{params}"
+                signature = hmac.new(api_secret.encode(), param_str.encode(), hashlib.sha256).hexdigest()
+                
+                headers = {
+                    "X-BAPI-API-KEY": api_key,
+                    "X-BAPI-TIMESTAMP": timestamp,
+                    "X-BAPI-RECV-WINDOW": recv_window,
+                    "X-BAPI-SIGN": signature
+                }
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"{base_url}/v5/account/wallet-balance?{params}",
+                        headers=headers,
+                        timeout=aiohttp.ClientTimeout(total=5)
+                    ) as resp:
+                        result = await resp.json()
+                        if result.get("retCode") == 0:
+                            connection_status["connected"] = True
+                            equity = result.get("result", {}).get("list", [{}])[0].get("totalEquity", "0")
+                            available = result.get("result", {}).get("list", [{}])[0].get("totalAvailableBalance", "0")
+                            connection_status["balance"] = {
+                                "equity": float(equity),
+                                "available": float(available)
+                            }
+        else:  # hyperliquid
+            import aiohttp
+            hl_creds = db.get_hl_credentials(user_id)
+            wallet = hl_creds.get("hl_wallet_address")
+            testnet = data.account_type == "testnet"
+            base_url = "https://api.hyperliquid-testnet.xyz" if testnet else "https://api.hyperliquid.xyz"
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/info",
+                    json={"type": "clearinghouseState", "user": wallet},
+                    timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    data_resp = await resp.json()
+                    if "marginSummary" in data_resp:
+                        connection_status["connected"] = True
+                        equity = float(data_resp["marginSummary"].get("accountValue", 0))
+                        available = float(data_resp["marginSummary"].get("availableBalance", 0))
+                        connection_status["balance"] = {
+                            "equity": equity,
+                            "available": available
+                        }
+                        
+    except Exception as e:
+        connection_status["error"] = str(e)
+        logger.warning(f"Account type switch connection test failed: {e}")
+    
+    logger.info(f"User {user_id} switched account type from {old_mode} to {new_mode} ({exchange})")
+    
+    return {
+        "success": True,
+        "account_type": new_mode,
+        "previous_account_type": old_mode,
+        "exchange": exchange,
+        "balance": connection_status.get("balance"),
         "connection": connection_status
     }
 

@@ -8,23 +8,37 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
+            /* Unified ElCaro Design System */
             --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-tertiary: #1a1a25;
-            --bg-card: rgba(20, 20, 30, 0.8);
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
-            --text-muted: #606070;
+            --bg-secondary: #111118;
+            --bg-tertiary: #16161f;
+            --bg-card: #16161f;
+            --bg-hover: #1e1e28;
+            --accent: #6366f1;
             --accent-purple: #8b5cf6;
             --accent-blue: #3b82f6;
-            --accent-green: #10b981;
+            --green: #22c55e;
+            --accent-green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.15);
+            --red: #ef4444;
             --accent-red: #ef4444;
+            --red-dim: rgba(239, 68, 68, 0.15);
+            --yellow: #eab308;
             --accent-yellow: #f59e0b;
             --accent-cyan: #06b6d4;
-            --border-color: rgba(255,255,255,0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
             --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-            --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            /* Exchange-specific colors */
+            --bybit-color: #f7a600;
+            --hl-color: #00ff88;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -309,6 +323,15 @@
             color: white;
         }
         
+        .btn-danger {
+            background: var(--gradient-red);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+        
         .btn-group {
             display: flex;
             gap: 10px;
@@ -567,16 +590,293 @@
             text-transform: uppercase;
         }
         
+        /* Strategy Builder Panel */
+        .strategy-builder-panel, .marketplace-panel, .my-strategies-panel, .live-status-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .builder-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .builder-section {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .builder-section h3 {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .condition-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .condition-row select, .condition-row input {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        .indicator-select { flex: 2; }
+        .comparison-select { flex: 2; }
+        .value-input { flex: 1; width: 80px; }
+        
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-purple);
+        }
+        
+        .builder-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Marketplace Grid */
+        .marketplace-filters {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .marketplace-filters select {
+            padding: 8px 15px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        .marketplace-grid, .my-strategies-grid, .live-strategies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .strategy-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .strategy-card:hover {
+            border-color: var(--accent-purple);
+            transform: translateY(-2px);
+        }
+        
+        .strategy-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .strategy-card h4 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .strategy-card .author {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .strategy-card .rating {
+            color: var(--accent-yellow);
+            font-size: 14px;
+        }
+        
+        .strategy-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .strategy-stat {
+            text-align: center;
+        }
+        
+        .strategy-stat .value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .strategy-stat .label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        .strategy-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .strategy-tag {
+            padding: 3px 8px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent);
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        .strategy-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .strategy-card-actions .btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        /* Live Status */
+        .live-indicator {
+            width: 10px;
+            height: 10px;
+            background: var(--green);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-live 1.5s infinite;
+        }
+        
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        }
+        
+        .live-strategy-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--green);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .live-strategy-card .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .live-strategy-card .performance {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .performance-item {
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .performance-item .value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .performance-item .label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        
+        .marketplace-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .sidebar { width: 280px; }
             .content { margin-left: 280px; }
+            .builder-grid { grid-template-columns: 1fr; }
         }
         
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .content { margin-left: 0; }
             .nav-links { display: none; }
+            .strategy-stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
     <link rel="stylesheet" href="/static/css/backtest-advanced.css">
@@ -600,6 +900,17 @@
             <a href="/marketplace">Marketplace</a>
         </nav>
         <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="account-selector" style="display: flex; gap: 8px; align-items: center;">
+                <select id="exchangeSelect" onchange="switchExchange()" style="padding: 6px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 12px; cursor: pointer;">
+                    <option value="bybit">Bybit</option>
+                    <option value="hyperliquid">HyperLiquid</option>
+                </select>
+                <select id="accountSelect" onchange="switchAccountType()" style="padding: 6px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 12px; cursor: pointer;">
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                </select>
+                <span id="accountBadge" style="background: var(--green-dim); color: var(--green); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">DEMO</span>
+            </div>
             <div class="connection-badge" style="padding: 6px 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
                 <span class="status-dot" id="wsLiveStatus" style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
                 <span id="wsLiveStatusText">Offline</span>
@@ -651,6 +962,12 @@
                 <button class="mode-btn" onclick="setMode('live')" id="liveModeBtn">
                     <span class="live-dot" style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
                     Live Mode
+                </button>
+                <button class="mode-btn" onclick="setMode('builder')" id="builderModeBtn">
+                    <i class="fas fa-tools"></i> Builder
+                </button>
+                <button class="mode-btn" onclick="setMode('marketplace')" id="marketplaceModeBtn">
+                    <i class="fas fa-store"></i> Marketplace
                 </button>
             </div>
 
@@ -935,6 +1252,210 @@
                     <canvas id="mcChart"></canvas>
                 </div>
             </div>
+            
+            <!-- Strategy Builder Panel -->
+            <div class="strategy-builder-panel" id="strategyBuilderPanel" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-tools"></i> Strategy Builder</h2>
+                    <button class="btn btn-primary" onclick="testCustomStrategy()">
+                        <i class="fas fa-play"></i> Test Strategy
+                    </button>
+                </div>
+                
+                <div class="builder-grid">
+                    <!-- Strategy Info -->
+                    <div class="builder-section">
+                        <h3><i class="fas fa-info-circle"></i> Strategy Info</h3>
+                        <div class="form-group">
+                            <label>Strategy Name</label>
+                            <input type="text" id="strategyName" placeholder="My Custom Strategy">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="strategyDescription" rows="2" placeholder="Describe your strategy..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Base Strategy</label>
+                            <select id="baseStrategy">
+                                <option value="custom">Custom (from scratch)</option>
+                                <option value="elcaro">Based on ElCaro</option>
+                                <option value="rsibboi">Based on RSI+BB</option>
+                                <option value="trend_following">Based on Trend Following</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Entry Conditions -->
+                    <div class="builder-section">
+                        <h3><i class="fas fa-sign-in-alt" style="color: var(--green);"></i> Entry Conditions</h3>
+                        <div id="entryConditions">
+                            <div class="condition-row">
+                                <select class="indicator-select">
+                                    <option value="rsi">RSI</option>
+                                    <option value="macd">MACD</option>
+                                    <option value="bb">Bollinger Bands</option>
+                                    <option value="ema_cross">EMA Cross</option>
+                                    <option value="supertrend">SuperTrend</option>
+                                    <option value="volume">Volume Spike</option>
+                                </select>
+                                <select class="comparison-select">
+                                    <option value="lt">< (Less than)</option>
+                                    <option value="gt">> (Greater than)</option>
+                                    <option value="cross_above">Cross Above</option>
+                                    <option value="cross_below">Cross Below</option>
+                                </select>
+                                <input type="number" class="value-input" placeholder="30" value="30">
+                                <button class="btn-icon" onclick="removeCondition(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="addEntryCondition()">
+                            <i class="fas fa-plus"></i> Add Condition
+                        </button>
+                    </div>
+                    
+                    <!-- Exit Conditions -->
+                    <div class="builder-section">
+                        <h3><i class="fas fa-sign-out-alt" style="color: var(--red);"></i> Exit Conditions</h3>
+                        <div id="exitConditions">
+                            <div class="condition-row">
+                                <select class="indicator-select">
+                                    <option value="rsi">RSI</option>
+                                    <option value="macd">MACD</option>
+                                    <option value="bb">Bollinger Bands</option>
+                                    <option value="trailing_stop">Trailing Stop</option>
+                                    <option value="time_exit">Time-based Exit</option>
+                                </select>
+                                <select class="comparison-select">
+                                    <option value="gt">> (Greater than)</option>
+                                    <option value="lt">< (Less than)</option>
+                                    <option value="cross_above">Cross Above</option>
+                                    <option value="cross_below">Cross Below</option>
+                                </select>
+                                <input type="number" class="value-input" placeholder="70" value="70">
+                                <button class="btn-icon" onclick="removeCondition(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="addExitCondition()">
+                            <i class="fas fa-plus"></i> Add Condition
+                        </button>
+                    </div>
+                    
+                    <!-- Risk Management -->
+                    <div class="builder-section">
+                        <h3><i class="fas fa-shield-alt" style="color: var(--accent);"></i> Risk Management</h3>
+                        <div class="risk-grid">
+                            <div class="form-group">
+                                <label>Stop Loss %</label>
+                                <input type="number" id="builderSL" value="2" step="0.5" min="0.5" max="20">
+                            </div>
+                            <div class="form-group">
+                                <label>Take Profit %</label>
+                                <input type="number" id="builderTP" value="4" step="0.5" min="1" max="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Risk per Trade %</label>
+                                <input type="number" id="builderRisk" value="1" step="0.25" min="0.25" max="10">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Positions</label>
+                                <input type="number" id="builderMaxPos" value="3" min="1" max="10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="builder-section">
+                        <h3><i class="fas fa-filter"></i> Trade Filters</h3>
+                        <div class="filter-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterTrend" checked> Trade with trend only
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterVolume"> Require volume confirmation
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="filterSession"> Limit to trading sessions
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="builder-actions">
+                    <button class="btn btn-secondary" onclick="resetBuilder()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                    <button class="btn btn-secondary" onclick="saveStrategy('private')">
+                        <i class="fas fa-save"></i> Save (Private)
+                    </button>
+                    <button class="btn btn-success" onclick="saveStrategy('public')">
+                        <i class="fas fa-globe"></i> Publish to Marketplace
+                    </button>
+                    <button class="btn btn-primary" onclick="goLiveWithStrategy()">
+                        <i class="fas fa-rocket"></i> Go Live
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Marketplace Panel -->
+            <div class="marketplace-panel" id="marketplacePanel" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-store"></i> Strategy Marketplace</h2>
+                    <div class="marketplace-filters">
+                        <select id="marketplaceSort" onchange="loadMarketplace()">
+                            <option value="rating">Top Rated</option>
+                            <option value="pnl">Best Performance</option>
+                            <option value="copies">Most Copied</option>
+                            <option value="newest">Newest</option>
+                        </select>
+                        <select id="marketplaceCategory" onchange="loadMarketplace()">
+                            <option value="">All Categories</option>
+                            <option value="scalping">Scalping</option>
+                            <option value="swing">Swing Trading</option>
+                            <option value="trend_following">Trend Following</option>
+                            <option value="mean_reversion">Mean Reversion</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="marketplace-grid" id="marketplaceGrid">
+                    <!-- Strategy cards will be loaded here -->
+                </div>
+                
+                <div class="marketplace-actions">
+                    <button class="btn btn-secondary" onclick="loadMoreStrategies()">
+                        <i class="fas fa-chevron-down"></i> Load More
+                    </button>
+                </div>
+            </div>
+            
+            <!-- My Strategies Panel -->
+            <div class="my-strategies-panel" id="myStrategiesPanel" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-folder"></i> My Strategies</h2>
+                    <button class="btn btn-primary" onclick="showPanel('strategyBuilderPanel')">
+                        <i class="fas fa-plus"></i> Create New
+                    </button>
+                </div>
+                
+                <div class="my-strategies-grid" id="myStrategiesGrid">
+                    <!-- User's strategies will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Live Status Panel -->
+            <div class="live-status-panel" id="liveStatusPanel" style="display: none;">
+                <div class="results-header">
+                    <h2>
+                        <span class="live-indicator"></span>
+                        <i class="fas fa-broadcast-tower"></i> Live Trading Status
+                    </h2>
+                </div>
+                
+                <div class="live-strategies-grid" id="liveStrategiesGrid">
+                    <!-- Active live strategies will be shown here -->
+                </div>
+            </div>
         </main>
     </div>
     
@@ -943,9 +1464,251 @@
         let selectedStrategies = new Set();
         let equityChart = null;
         let mcChart = null;
+        let settingsWs = null;
+        let currentExchange = 'bybit';
+        let currentAccountType = 'demo';
         
         // Load strategies on page load
-        document.addEventListener('DOMContentLoaded', loadStrategies);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStrategies();
+            loadUserSettings();
+            connectSettingsSyncWebSocket();
+        });
+        
+        // ============================================================
+        // SETTINGS SYNC
+        // ============================================================
+        
+        async function loadUserSettings() {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) return;
+                
+                const res = await fetch('/api/users/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user) {
+                        currentExchange = data.user.exchange_type || 'bybit';
+                        currentAccountType = data.user.trading_mode || 'demo';
+                        
+                        // Update selectors
+                        document.getElementById('exchangeSelect').value = currentExchange;
+                        updateAccountTypeOptions();
+                        updateExchangeDisplay();
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load user settings:', e);
+            }
+        }
+        
+        function connectSettingsSyncWebSocket() {
+            let userId = localStorage.getItem('elcaro_user_id');
+            
+            // Fallback: try to get from elcaro_user object
+            if (!userId) {
+                try {
+                    const userObj = JSON.parse(localStorage.getItem('elcaro_user') || '{}');
+                    if (userObj.user_id) {
+                        userId = userObj.user_id.toString();
+                        localStorage.setItem('elcaro_user_id', userId);
+                    }
+                } catch (e) {}
+            }
+            
+            if (!userId) {
+                console.log('No user_id for settings sync');
+                return;
+            }
+            
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            
+            try {
+                settingsWs = new WebSocket(`${proto}//${location.host}/ws/settings-sync/${userId}`);
+                
+                settingsWs.onopen = () => {
+                    console.log('Backtest: Settings sync connected');
+                    updateWsStatus(true);
+                };
+                
+                settingsWs.onmessage = (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        handleSettingsSyncMessage(data);
+                    } catch (err) {
+                        console.log('Settings sync parse error:', err);
+                    }
+                };
+                
+                settingsWs.onclose = () => {
+                    updateWsStatus(false);
+                    setTimeout(connectSettingsSyncWebSocket, 5000);
+                };
+                
+                settingsWs.onerror = () => {
+                    settingsWs.close();
+                };
+            } catch (e) {
+                console.error('Failed to connect settings sync:', e);
+            }
+        }
+        
+        function handleSettingsSyncMessage(data) {
+            switch (data.type) {
+                case 'exchange_switched':
+                    currentExchange = data.exchange;
+                    updateExchangeDisplay();
+                    showToast(`Exchange switched to ${data.exchange.toUpperCase()}`);
+                    break;
+                    
+                case 'strategy_deployed':
+                    showToast(`Strategy "${data.strategy_name}" is now live!`, 'success');
+                    break;
+                    
+                case 'current_settings':
+                    if (data.settings) {
+                        currentExchange = data.settings.exchange_type || 'bybit';
+                        currentAccountType = data.settings.trading_mode || 'demo';
+                        updateExchangeDisplay();
+                    }
+                    break;
+            }
+        }
+        
+        function updateExchangeDisplay() {
+            // Update any exchange-specific UI elements
+            document.body.setAttribute('data-exchange', currentExchange);
+            
+            // Update connection badge
+            const statusText = document.getElementById('wsLiveStatusText');
+            if (statusText) {
+                statusText.textContent = `${currentExchange.toUpperCase()} ${currentAccountType === 'demo' || currentAccountType === 'testnet' ? '(Demo)' : '(Real)'}`;
+            }
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; top: 80px; right: 20px; padding: 16px 24px; border-radius: 12px; z-index: 10000; 
+                background: ${type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--accent)'}; 
+                color: white; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // ============================================================
+        // EXCHANGE & ACCOUNT SWITCHING
+        // ============================================================
+        
+        async function switchExchange() {
+            const newExchange = document.getElementById('exchangeSelect').value;
+            if (newExchange === currentExchange) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/users/exchange', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ exchange: newExchange, reconnect: true })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentExchange = newExchange;
+                    updateAccountTypeOptions();
+                    updateExchangeDisplay();
+                    showToast(`Switched to ${newExchange.toUpperCase()}`, 'success');
+                } else {
+                    document.getElementById('exchangeSelect').value = currentExchange;
+                    showToast(data.detail || 'Failed to switch exchange', 'error');
+                }
+            } catch (e) {
+                document.getElementById('exchangeSelect').value = currentExchange;
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        async function switchAccountType() {
+            const newAccountType = document.getElementById('accountSelect').value;
+            if (newAccountType === currentAccountType) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/users/switch-account-type', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ 
+                        account_type: newAccountType,
+                        exchange: currentExchange
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentAccountType = newAccountType;
+                    updateAccountBadge();
+                    showToast(`Switched to ${newAccountType.toUpperCase()}`, 'success');
+                } else {
+                    document.getElementById('accountSelect').value = currentAccountType;
+                    showToast(data.detail || 'Failed to switch account', 'error');
+                }
+            } catch (e) {
+                document.getElementById('accountSelect').value = currentAccountType;
+                showToast('Connection error', 'error');
+            }
+        }
+        
+        function updateAccountTypeOptions() {
+            const select = document.getElementById('accountSelect');
+            select.innerHTML = '';
+            
+            if (currentExchange === 'bybit') {
+                select.innerHTML = `
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                `;
+                // Map HL types to Bybit types
+                if (currentAccountType === 'testnet') currentAccountType = 'demo';
+                if (currentAccountType === 'mainnet') currentAccountType = 'real';
+            } else {
+                select.innerHTML = `
+                    <option value="testnet">Testnet</option>
+                    <option value="mainnet">Mainnet</option>
+                `;
+                // Map Bybit types to HL types
+                if (currentAccountType === 'demo') currentAccountType = 'testnet';
+                if (currentAccountType === 'real') currentAccountType = 'mainnet';
+            }
+            
+            select.value = currentAccountType;
+            updateAccountBadge();
+        }
+        
+        function updateAccountBadge() {
+            const badge = document.getElementById('accountBadge');
+            if (currentAccountType === 'demo' || currentAccountType === 'testnet') {
+                badge.style.background = 'var(--green-dim)';
+                badge.style.color = 'var(--green)';
+                badge.textContent = 'DEMO';
+            } else {
+                badge.style.background = 'var(--red-dim)';
+                badge.style.color = 'var(--red)';
+                badge.textContent = 'REAL';
+            }
+        }
         
         async function loadStrategies() {
             try {
@@ -1161,8 +1924,12 @@
             if (strategyNames.length === 0) return;
             
             const firstResult = results[strategyNames[0]];
+            const firstStrategyName = strategyNames[0];
             
-            // Display stats
+            // Check if strategy is deployable
+            const isDeployable = firstResult.win_rate >= 50 && firstResult.profit_factor >= 1.2;
+            
+            // Display stats with deploy button
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
                 <div class="stat-card">
@@ -1193,6 +1960,17 @@
                     <div class="value positive">$${firstResult.final_balance.toFixed(2)}</div>
                     <div class="label">Final Balance</div>
                 </div>
+                ${isDeployable ? `
+                <div class="stat-card" style="background: var(--gradient-green); cursor: pointer;" onclick="deployStrategy('${firstStrategyName}', ${JSON.stringify(firstResult).replace(/"/g, '&quot;')})">
+                    <div class="value" style="color: white;"><i class="fas fa-rocket"></i></div>
+                    <div class="label" style="color: rgba(255,255,255,0.9);">Deploy to Live</div>
+                </div>
+                ` : `
+                <div class="stat-card" style="opacity: 0.5;" title="Win rate >= 50% and Profit Factor >= 1.2 required">
+                    <div class="value"><i class="fas fa-lock"></i></div>
+                    <div class="label">Not Ready</div>
+                </div>
+                `}
             `;
             
             // Draw equity chart
@@ -1523,6 +2301,16 @@
             document.getElementById('monteCarloPanel').style.display = 'none';
             document.getElementById('livePanel').style.display = 'none';
             document.getElementById('replayControls').style.display = 'none';
+            document.getElementById('strategyBuilderPanel').style.display = 'none';
+            document.getElementById('marketplacePanel').style.display = 'none';
+            document.getElementById('myStrategiesPanel').style.display = 'none';
+            document.getElementById('liveStatusPanel').style.display = 'none';
+            
+            // Show config panel only in backtest/replay/live modes
+            const configPanel = document.querySelector('.config-panel');
+            if (configPanel) {
+                configPanel.style.display = ['backtest', 'replay', 'live'].includes(mode) ? 'block' : 'none';
+            }
             
             // Update buttons visibility
             document.getElementById('btnRunBacktest').style.display = mode === 'backtest' ? 'inline-flex' : 'none';
@@ -1542,6 +2330,14 @@
             // Update live symbol display
             if (mode === 'live' || mode === 'replay') {
                 document.getElementById('liveSymbol').textContent = document.getElementById('symbol').value;
+            }
+            
+            // Show special panels for new modes
+            if (mode === 'builder') {
+                document.getElementById('strategyBuilderPanel').style.display = 'block';
+            } else if (mode === 'marketplace') {
+                document.getElementById('marketplacePanel').style.display = 'block';
+                loadMarketplace();
             }
         }
 
@@ -1624,6 +2420,802 @@
                 }
             }
         };
+        
+        // ============================================================
+        // STRATEGY DEPLOYMENT
+        // ============================================================
+        
+        async function deployStrategy(strategyName, results) {
+            if (!confirm(`Deploy strategy "${strategyName}" to live trading?\n\nThis will apply the following parameters:\n• TP: ${getConfig().take_profit_percent}%\n• SL: ${getConfig().stop_loss_percent}%\n• Risk: ${getConfig().risk_per_trade}%`)) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const config = getConfig();
+                
+                const res = await fetch('/api/backtest/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        strategy_name: strategyName,
+                        params: {
+                            stop_loss_percent: config.stop_loss_percent,
+                            take_profit_percent: config.take_profit_percent,
+                            risk_per_trade: config.risk_per_trade,
+                            symbol: config.symbol,
+                            timeframe: config.timeframe
+                        },
+                        backtest_results: {
+                            win_rate: results.win_rate,
+                            profit_factor: results.profit_factor,
+                            total_pnl_percent: results.total_pnl_percent,
+                            max_drawdown_percent: results.max_drawdown_percent,
+                            sharpe_ratio: results.sharpe_ratio,
+                            total_trades: results.total_trades
+                        },
+                        exchange: currentExchange,
+                        account_type: currentAccountType
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Strategy "${strategyName}" deployed successfully!`, 'success');
+                    
+                    // Notify via WebSocket to sync with terminal
+                    if (settingsWs && settingsWs.readyState === WebSocket.OPEN) {
+                        settingsWs.send(JSON.stringify({
+                            type: 'strategy_deployed',
+                            strategy_name: strategyName,
+                            params: {
+                                tp_percent: config.take_profit_percent,
+                                sl_percent: config.stop_loss_percent,
+                                risk_percent: config.risk_per_trade
+                            }
+                        }));
+                    }
+                } else {
+                    showToast(data.error || 'Failed to deploy strategy', 'error');
+                }
+            } catch (e) {
+                showToast('Error deploying strategy', 'error');
+                console.error(e);
+            }
+        }
+        
+        // Save strategy as preset
+        async function saveAsPreset(strategyName, results) {
+            const presetName = prompt('Enter preset name:', `${strategyName} - ${new Date().toLocaleDateString()}`);
+            if (!presetName) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const config = getConfig();
+                
+                const res = await fetch('/api/strategies/presets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        name: presetName,
+                        description: `Backtest: ${results.win_rate.toFixed(1)}% WR, ${results.profit_factor.toFixed(2)} PF`,
+                        settings: {
+                            strategy: strategyName,
+                            stop_loss_percent: config.stop_loss_percent,
+                            take_profit_percent: config.take_profit_percent,
+                            risk_per_trade: config.risk_per_trade,
+                            symbol: config.symbol,
+                            timeframe: config.timeframe
+                        }
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Preset "${presetName}" saved!`, 'success');
+                } else {
+                    showToast(data.error || 'Failed to save preset', 'error');
+                }
+            } catch (e) {
+                showToast('Error saving preset', 'error');
+            }
+        }
+        
+        // ============================================================
+        // STRATEGY BUILDER FUNCTIONS
+        // ============================================================
+        
+        function showPanel(panelId) {
+            // Hide all special panels
+            ['strategyBuilderPanel', 'marketplacePanel', 'myStrategiesPanel', 'liveStatusPanel'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            // Show selected panel
+            document.getElementById(panelId).style.display = 'block';
+            
+            // Load data for specific panels
+            if (panelId === 'marketplacePanel') loadMarketplace();
+            if (panelId === 'myStrategiesPanel') loadMyStrategies();
+            if (panelId === 'liveStatusPanel') loadLiveStatus();
+        }
+        
+        function addEntryCondition() {
+            const container = document.getElementById('entryConditions');
+            const row = createConditionRow();
+            container.appendChild(row);
+        }
+        
+        function addExitCondition() {
+            const container = document.getElementById('exitConditions');
+            const row = createConditionRow();
+            container.appendChild(row);
+        }
+        
+        function createConditionRow() {
+            const row = document.createElement('div');
+            row.className = 'condition-row';
+            row.innerHTML = `
+                <select class="indicator-select">
+                    <option value="rsi">RSI</option>
+                    <option value="macd">MACD</option>
+                    <option value="bb">Bollinger Bands</option>
+                    <option value="ema_cross">EMA Cross</option>
+                    <option value="supertrend">SuperTrend</option>
+                    <option value="volume">Volume Spike</option>
+                    <option value="trailing_stop">Trailing Stop</option>
+                </select>
+                <select class="comparison-select">
+                    <option value="lt">< (Less than)</option>
+                    <option value="gt">> (Greater than)</option>
+                    <option value="cross_above">Cross Above</option>
+                    <option value="cross_below">Cross Below</option>
+                </select>
+                <input type="number" class="value-input" placeholder="Value">
+                <button class="btn-icon" onclick="removeCondition(this)"><i class="fas fa-times"></i></button>
+            `;
+            return row;
+        }
+        
+        function removeCondition(btn) {
+            btn.closest('.condition-row').remove();
+        }
+        
+        function getCustomStrategyConfig() {
+            const entryConditions = [];
+            document.querySelectorAll('#entryConditions .condition-row').forEach(row => {
+                entryConditions.push({
+                    indicator: row.querySelector('.indicator-select').value,
+                    comparison: row.querySelector('.comparison-select').value,
+                    value: parseFloat(row.querySelector('.value-input').value) || 0
+                });
+            });
+            
+            const exitConditions = [];
+            document.querySelectorAll('#exitConditions .condition-row').forEach(row => {
+                exitConditions.push({
+                    indicator: row.querySelector('.indicator-select').value,
+                    comparison: row.querySelector('.comparison-select').value,
+                    value: parseFloat(row.querySelector('.value-input').value) || 0
+                });
+            });
+            
+            return {
+                name: document.getElementById('strategyName').value || 'My Strategy',
+                description: document.getElementById('strategyDescription').value || '',
+                base_strategy: document.getElementById('baseStrategy').value,
+                entry_conditions: entryConditions,
+                exit_conditions: exitConditions,
+                stop_loss_percent: parseFloat(document.getElementById('builderSL').value) || 2,
+                take_profit_percent: parseFloat(document.getElementById('builderTP').value) || 4,
+                risk_per_trade: parseFloat(document.getElementById('builderRisk').value) || 1,
+                max_positions: parseInt(document.getElementById('builderMaxPos').value) || 3,
+                filters: {
+                    trade_with_trend: document.getElementById('filterTrend').checked,
+                    require_volume: document.getElementById('filterVolume').checked,
+                    limit_sessions: document.getElementById('filterSession').checked
+                }
+            };
+        }
+        
+        async function testCustomStrategy() {
+            const config = getCustomStrategyConfig();
+            showLoading(true);
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch('/api/backtest/strategy-builder/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        config: config,
+                        symbol: document.getElementById('symbol')?.value || 'BTCUSDT',
+                        timeframe: document.getElementById('timeframe')?.value || '1h',
+                        days: parseInt(document.getElementById('days')?.value) || 30,
+                        initial_balance: parseFloat(document.getElementById('initialBalance')?.value) || 10000
+                    })
+                });
+                
+                const data = await res.json();
+                showLoading(false);
+                
+                if (data.success) {
+                    displaySingleResult({ [config.name]: data.result });
+                    showToast('Strategy tested successfully!', 'success');
+                } else {
+                    showToast(data.error || 'Test failed', 'error');
+                }
+            } catch (e) {
+                showLoading(false);
+                showToast('Error testing strategy', 'error');
+                console.error(e);
+            }
+        }
+        
+        async function saveStrategy(visibility) {
+            const config = getCustomStrategyConfig();
+            
+            if (!config.name.trim()) {
+                showToast('Please enter a strategy name', 'warning');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch('/api/backtest/strategy-builder/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        config: config,
+                        is_public: visibility === 'public'
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast(`Strategy "${config.name}" saved!`, 'success');
+                    if (visibility === 'public') {
+                        showToast('Published to marketplace!', 'info');
+                    }
+                } else {
+                    showToast(data.error || 'Failed to save', 'error');
+                }
+            } catch (e) {
+                showToast('Error saving strategy', 'error');
+                console.error(e);
+            }
+        }
+        
+        function resetBuilder() {
+            document.getElementById('strategyName').value = '';
+            document.getElementById('strategyDescription').value = '';
+            document.getElementById('baseStrategy').value = 'custom';
+            document.getElementById('builderSL').value = '2';
+            document.getElementById('builderTP').value = '4';
+            document.getElementById('builderRisk').value = '1';
+            document.getElementById('builderMaxPos').value = '3';
+            document.getElementById('filterTrend').checked = true;
+            document.getElementById('filterVolume').checked = false;
+            document.getElementById('filterSession').checked = false;
+            
+            // Reset to default conditions
+            document.getElementById('entryConditions').innerHTML = `
+                <div class="condition-row">
+                    <select class="indicator-select">
+                        <option value="rsi">RSI</option>
+                        <option value="macd">MACD</option>
+                        <option value="bb">Bollinger Bands</option>
+                        <option value="ema_cross">EMA Cross</option>
+                        <option value="supertrend">SuperTrend</option>
+                        <option value="volume">Volume Spike</option>
+                    </select>
+                    <select class="comparison-select">
+                        <option value="lt">< (Less than)</option>
+                        <option value="gt">> (Greater than)</option>
+                        <option value="cross_above">Cross Above</option>
+                        <option value="cross_below">Cross Below</option>
+                    </select>
+                    <input type="number" class="value-input" placeholder="30" value="30">
+                    <button class="btn-icon" onclick="removeCondition(this)"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+            document.getElementById('exitConditions').innerHTML = `
+                <div class="condition-row">
+                    <select class="indicator-select">
+                        <option value="rsi">RSI</option>
+                        <option value="macd">MACD</option>
+                        <option value="bb">Bollinger Bands</option>
+                        <option value="trailing_stop">Trailing Stop</option>
+                    </select>
+                    <select class="comparison-select">
+                        <option value="gt">> (Greater than)</option>
+                        <option value="lt">< (Less than)</option>
+                        <option value="cross_above">Cross Above</option>
+                        <option value="cross_below">Cross Below</option>
+                    </select>
+                    <input type="number" class="value-input" placeholder="70" value="70">
+                    <button class="btn-icon" onclick="removeCondition(this)"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+        }
+        
+        // ============================================================
+        // MARKETPLACE FUNCTIONS
+        // ============================================================
+        
+        let marketplacePage = 0;
+        const MARKETPLACE_LIMIT = 12;
+        
+        async function loadMarketplace(append = false) {
+            const sortBy = document.getElementById('marketplaceSort').value;
+            const category = document.getElementById('marketplaceCategory').value;
+            
+            if (!append) marketplacePage = 0;
+            const offset = marketplacePage * MARKETPLACE_LIMIT;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const url = `/api/backtest/marketplace/browse?sort_by=${sortBy}&category=${encodeURIComponent(category || '')}&offset=${offset}&limit=${MARKETPLACE_LIMIT}`;
+                
+                const res = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await res.json();
+                const grid = document.getElementById('marketplaceGrid');
+                
+                if (!append) grid.innerHTML = '';
+                
+                if (data.strategies && data.strategies.length > 0) {
+                    data.strategies.forEach(strategy => {
+                        grid.appendChild(createStrategyCard(strategy));
+                    });
+                } else if (!append) {
+                    grid.innerHTML = '<p style="color: var(--text-muted); text-align: center; grid-column: 1/-1;">No strategies found</p>';
+                }
+            } catch (e) {
+                console.error('Error loading marketplace:', e);
+            }
+        }
+        
+        function createStrategyCard(strategy) {
+            const card = document.createElement('div');
+            card.className = 'strategy-card';
+            
+            const pnlClass = strategy.total_pnl_percent >= 0 ? 'positive' : 'negative';
+            const rating = strategy.rating || 0;
+            const stars = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+            
+            card.innerHTML = `
+                <div class="strategy-card-header">
+                    <div>
+                        <h4>${strategy.name}</h4>
+                        <div class="author">by ${strategy.author || 'Anonymous'}</div>
+                    </div>
+                    <div class="rating">${stars}</div>
+                </div>
+                <div class="strategy-tags">
+                    ${strategy.tags?.map(t => `<span class="strategy-tag">${t}</span>`).join('') || ''}
+                </div>
+                <div class="strategy-stats">
+                    <div class="strategy-stat">
+                        <div class="value ${pnlClass}">${strategy.total_pnl_percent >= 0 ? '+' : ''}${strategy.total_pnl_percent?.toFixed(1) || 0}%</div>
+                        <div class="label">P&L</div>
+                    </div>
+                    <div class="strategy-stat">
+                        <div class="value">${strategy.win_rate?.toFixed(1) || 0}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="strategy-stat">
+                        <div class="value">${strategy.copies || 0}</div>
+                        <div class="label">Copies</div>
+                    </div>
+                </div>
+                <div class="strategy-card-actions">
+                    <button class="btn btn-secondary" onclick="viewStrategy('${strategy.id}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    <button class="btn btn-primary" onclick="copyStrategy('${strategy.id}')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+        
+        function loadMoreStrategies() {
+            marketplacePage++;
+            loadMarketplace(true);
+        }
+        
+        async function copyStrategy(strategyId) {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/marketplace/copy/${strategyId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Strategy copied to your collection!', 'success');
+                } else {
+                    showToast(data.error || 'Failed to copy strategy', 'error');
+                }
+            } catch (e) {
+                showToast('Error copying strategy', 'error');
+                console.error(e);
+            }
+        }
+        
+        async function viewStrategy(strategyId) {
+            // Load strategy details and show in builder for viewing/editing
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const res = await fetch(`/api/backtest/strategy-builder/${strategyId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await res.json();
+                
+                if (data.strategy) {
+                    // Populate builder with strategy data
+                    const s = data.strategy;
+                    document.getElementById('strategyName').value = s.name + ' (copy)';
+                    document.getElementById('strategyDescription').value = s.description || '';
+                    document.getElementById('baseStrategy').value = s.base_strategy || 'custom';
+                    document.getElementById('builderSL').value = s.stop_loss_percent || 2;
+                    document.getElementById('builderTP').value = s.take_profit_percent || 4;
+                    document.getElementById('builderRisk').value = s.risk_per_trade || 1;
+                    
+                    showPanel('strategyBuilderPanel');
+                }
+            } catch (e) {
+                console.error('Error loading strategy:', e);
+            }
+        }
+        
+        // ============================================================
+        // MY STRATEGIES FUNCTIONS
+        // ============================================================
+        
+        async function loadMyStrategies() {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/strategy-builder/my-strategies/${userId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await res.json();
+                const grid = document.getElementById('myStrategiesGrid');
+                grid.innerHTML = '';
+                
+                if (data.strategies && data.strategies.length > 0) {
+                    data.strategies.forEach(strategy => {
+                        const card = createMyStrategyCard(strategy);
+                        grid.appendChild(card);
+                    });
+                } else {
+                    grid.innerHTML = `
+                        <div style="text-align: center; grid-column: 1/-1; padding: 40px;">
+                            <i class="fas fa-folder-open" style="font-size: 48px; color: var(--text-muted); margin-bottom: 15px;"></i>
+                            <p style="color: var(--text-muted);">No strategies yet. Create your first one!</p>
+                            <button class="btn btn-primary" style="margin-top: 15px;" onclick="showPanel('strategyBuilderPanel')">
+                                <i class="fas fa-plus"></i> Create Strategy
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error loading strategies:', e);
+            }
+        }
+        
+        function createMyStrategyCard(strategy) {
+            const card = document.createElement('div');
+            card.className = 'strategy-card';
+            
+            const status = strategy.is_live ? 
+                '<span style="color: var(--green);"><i class="fas fa-broadcast-tower"></i> Live</span>' : 
+                '<span style="color: var(--text-muted);">Offline</span>';
+            
+            card.innerHTML = `
+                <div class="strategy-card-header">
+                    <div>
+                        <h4>${strategy.name}</h4>
+                        <div class="author">${status}</div>
+                    </div>
+                    <div>
+                        ${strategy.is_public ? '<i class="fas fa-globe" title="Public"></i>' : '<i class="fas fa-lock" title="Private"></i>'}
+                    </div>
+                </div>
+                <div class="strategy-stats">
+                    <div class="strategy-stat">
+                        <div class="value">${strategy.total_pnl_percent?.toFixed(1) || 0}%</div>
+                        <div class="label">Backtest P&L</div>
+                    </div>
+                    <div class="strategy-stat">
+                        <div class="value">${strategy.win_rate?.toFixed(1) || 0}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="strategy-stat">
+                        <div class="value">${strategy.trades || 0}</div>
+                        <div class="label">Trades</div>
+                    </div>
+                </div>
+                <div class="strategy-card-actions">
+                    <button class="btn btn-secondary" onclick="editStrategy('${strategy.id}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteStrategy('${strategy.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn btn-success" onclick="goLive('${strategy.id}')">
+                        <i class="fas fa-rocket"></i> Go Live
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+        
+        async function deleteStrategy(strategyId) {
+            if (!confirm('Delete this strategy?')) return;
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/strategy-builder/${strategyId}?user_id=${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Strategy deleted', 'success');
+                    loadMyStrategies();
+                } else {
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            } catch (e) {
+                showToast('Error deleting strategy', 'error');
+            }
+        }
+        
+        async function editStrategy(strategyId) {
+            // Load strategy into builder
+            await viewStrategy(strategyId);
+        }
+        
+        // ============================================================
+        // LIVE TRADING FUNCTIONS
+        // ============================================================
+        
+        async function goLive(strategyId) {
+            const exchange = document.getElementById('exchangeSelect')?.value || 'bybit';
+            const accountType = document.getElementById('accountSelect')?.value || 'demo';
+            
+            if (accountType === 'real' && !confirm('⚠️ You are about to deploy to REAL trading!\n\nAre you sure you want to proceed?')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/go-live/${strategyId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        exchange: exchange,
+                        account_type: accountType
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('🚀 Strategy deployed to live trading!', 'success');
+                    showPanel('liveStatusPanel');
+                } else {
+                    showToast(data.error || 'Failed to deploy', 'error');
+                }
+            } catch (e) {
+                showToast('Error deploying strategy', 'error');
+                console.error(e);
+            }
+        }
+        
+        async function goLiveWithStrategy() {
+            // First save the current builder config, then deploy
+            const config = getCustomStrategyConfig();
+            
+            if (!config.name.trim()) {
+                showToast('Please enter a strategy name first', 'warning');
+                return;
+            }
+            
+            // Save first
+            await saveStrategy('private');
+            
+            // Then deploy (would need strategy ID from save response)
+            showToast('Strategy saved! Deploy from My Strategies panel.', 'info');
+            showPanel('myStrategiesPanel');
+        }
+        
+        async function stopLive(strategyId) {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/stop-live/${strategyId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showToast('Strategy stopped', 'success');
+                    loadLiveStatus();
+                } else {
+                    showToast(data.error || 'Failed to stop', 'error');
+                }
+            } catch (e) {
+                showToast('Error stopping strategy', 'error');
+            }
+        }
+        
+        async function loadLiveStatus() {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                const userId = localStorage.getItem('elcaro_user_id') || 'anonymous';
+                
+                const res = await fetch(`/api/backtest/live-status/${userId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                const data = await res.json();
+                const grid = document.getElementById('liveStrategiesGrid');
+                grid.innerHTML = '';
+                
+                if (data.active_deployments && data.active_deployments.length > 0) {
+                    data.active_deployments.forEach(deployment => {
+                        grid.appendChild(createLiveCard(deployment));
+                    });
+                } else {
+                    grid.innerHTML = `
+                        <div style="text-align: center; grid-column: 1/-1; padding: 40px;">
+                            <i class="fas fa-broadcast-tower" style="font-size: 48px; color: var(--text-muted); margin-bottom: 15px;"></i>
+                            <p style="color: var(--text-muted);">No active strategies</p>
+                            <button class="btn btn-primary" style="margin-top: 15px;" onclick="showPanel('myStrategiesPanel')">
+                                <i class="fas fa-rocket"></i> Deploy a Strategy
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error loading live status:', e);
+            }
+        }
+        
+        function createLiveCard(deployment) {
+            const card = document.createElement('div');
+            card.className = 'live-strategy-card';
+            
+            const pnlClass = (deployment.live_pnl || 0) >= 0 ? 'positive' : 'negative';
+            const runtime = getRuntime(deployment.started_at);
+            
+            card.innerHTML = `
+                <div class="status-bar">
+                    <span class="live-indicator"></span>
+                    <strong>${deployment.strategy_name}</strong>
+                    <span style="margin-left: auto; color: var(--text-muted);">${deployment.exchange} ${deployment.account_type}</span>
+                </div>
+                <div>Started: ${runtime}</div>
+                <div class="performance">
+                    <div class="performance-item">
+                        <div class="value ${pnlClass}">${(deployment.live_pnl || 0) >= 0 ? '+' : ''}${(deployment.live_pnl || 0).toFixed(2)}%</div>
+                        <div class="label">Live P&L</div>
+                    </div>
+                    <div class="performance-item">
+                        <div class="value">${deployment.trades || 0}</div>
+                        <div class="label">Trades</div>
+                    </div>
+                    <div class="performance-item">
+                        <div class="value">${(deployment.win_rate || 0).toFixed(1)}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="performance-item">
+                        <div class="value">${(deployment.backtest_pnl || 0).toFixed(1)}%</div>
+                        <div class="label">Backtest P&L</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-danger" onclick="stopLive('${deployment.strategy_id}')" style="width: 100%;">
+                        <i class="fas fa-stop"></i> Stop Trading
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+        
+        function getRuntime(startedAt) {
+            if (!startedAt) return 'Unknown';
+            const start = new Date(startedAt);
+            const now = new Date();
+            const diff = now - start;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+            if (days > 0) return `${days}d ${hours % 24}h ago`;
+            if (hours > 0) return `${hours}h ago`;
+            return 'Just now';
+        }
+        
+        // ============================================================
+        // NAVIGATION - Add sidebar buttons for new panels
+        // ============================================================
+        
+        // Add navigation buttons after DOM load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add quick access buttons to sidebar
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                const navSection = document.createElement('div');
+                navSection.className = 'sidebar-section';
+                navSection.innerHTML = `
+                    <h3 class="sidebar-title">Quick Access</h3>
+                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;" onclick="showPanel('strategyBuilderPanel')">
+                        <i class="fas fa-tools"></i> Strategy Builder
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;" onclick="showPanel('marketplacePanel')">
+                        <i class="fas fa-store"></i> Marketplace
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;" onclick="showPanel('myStrategiesPanel')">
+                        <i class="fas fa-folder"></i> My Strategies
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="showPanel('liveStatusPanel')">
+                        <i class="fas fa-broadcast-tower"></i> Live Status
+                    </button>
+                `;
+                sidebar.appendChild(navSection);
+            }
+        });
     </script>
     <script src="/static/js/backtest-advanced.js"></script>
 </body>

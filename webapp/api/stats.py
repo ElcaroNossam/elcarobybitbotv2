@@ -150,6 +150,40 @@ async def get_dashboard_stats(
             "worst": sorted_by_pnl[-5:][::-1]
         }
         
+        # Calculate maxDrawdown and streaks properly
+        max_drawdown = 0.0
+        max_drawdown_abs = 0.0
+        if pnl_history:
+            peak = pnl_history[0]
+            for val in pnl_history:
+                if val > peak:
+                    peak = val
+                drawdown = peak - val
+                if drawdown > max_drawdown_abs:
+                    max_drawdown_abs = drawdown
+                if peak > 0:
+                    dd_pct = (drawdown / peak) * 100
+                    if dd_pct > max_drawdown:
+                        max_drawdown = dd_pct
+        
+        # Calculate best/worst streak
+        best_streak = 0
+        worst_streak = 0
+        current_win_streak = 0
+        current_loss_streak = 0
+        for trade in sorted(filtered_trades, key=lambda x: x.get("time", x.get("created_at", ""))):
+            pnl = float(trade.get("pnl", 0))
+            if pnl > 0:
+                current_win_streak += 1
+                current_loss_streak = 0
+                if current_win_streak > best_streak:
+                    best_streak = current_win_streak
+            elif pnl < 0:
+                current_loss_streak += 1
+                current_win_streak = 0
+                if current_loss_streak > worst_streak:
+                    worst_streak = current_loss_streak
+        
         return {
             "success": True,
             "data": {
@@ -159,17 +193,17 @@ async def get_dashboard_stats(
                     "totalTrades": len(filtered_trades),
                     "winRate": win_rate,
                     "profitFactor": profit_factor,
-                    "maxDrawdown": 5.5,  # TODO: Calculate properly
+                    "maxDrawdown": round(max_drawdown, 2),
                     "avgWin": avg_win,
                     "avgLoss": avg_loss,
-                    "bestStreak": 5,  # TODO: Calculate
-                    "worstStreak": 3,
+                    "bestStreak": best_streak,
+                    "worstStreak": worst_streak,
                     "avgDuration": "2h",
                     "tradesPerDay": len(filtered_trades) / max(days, 1),
                     "pnlChange": 12.5,
                     "wins": len(wins),
                     "losses": len(losses),
-                    "maxDrawdownAbs": total_pnl * 0.055
+                    "maxDrawdownAbs": round(max_drawdown_abs, 2)
                 },
                 "pnlHistory": pnl_history,
                 "byStrategy": by_strategy,
