@@ -675,7 +675,250 @@ except ExchangeError as e:
 
 ---
 
+# 🖥️ SERVER & DEPLOYMENT DETAILS
+
+## Server Connection
+
+| Parameter | Value |
+|-----------|-------|
+| **IP** | `46.62.211.0` |
+| **User** | `ubuntu` |
+| **SSH Key** | `rita.pem` (в корне проекта, НЕ в git) |
+| **Bot Path** | `/home/ubuntu/project/elcarobybitbotv2/` |
+| **Python venv** | `/home/ubuntu/project/elcarobybitbotv2/venv/` |
+
+### SSH Подключение
+```bash
+# Локально (из папки проекта)
+ssh -i rita.pem ubuntu@46.62.211.0
+
+# Или с полным путём
+ssh -i /path/to/bybit_demo/rita.pem ubuntu@46.62.211.0
+```
+
+### ⚠️ Другие проекты на сервере (НЕ ТРОГАТЬ!)
+- `/home/ubuntu/project/noetdat/` - Django screener (порт 8000)
+- `/home/ubuntu/project/spain/` - rita.py бот
+
+---
+
+## Cloudflare Tunnel (Argo Tunnel)
+
+### Текущий URL
+```
+https://kevin-longitude-night-pro.trycloudflare.com
+```
+
+### Как работает
+1. Cloudflare tunnel запускается локально или на сервере
+2. Создаёт безопасный туннель до Cloudflare edge
+3. URL вида `*.trycloudflare.com` (меняется при каждом перезапуске!)
+
+### Запуск туннеля на сервере
+```bash
+# Подключиться к серверу
+ssh -i rita.pem ubuntu@46.62.211.0
+
+# Запустить туннель в фоне
+nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
+
+# Получить URL туннеля
+grep -o 'https://[a-z-]*\.trycloudflare\.com' /tmp/cloudflared.log | tail -1
+```
+
+### Обновление URL в боте
+После получения нового URL туннеля:
+```bash
+# На сервере - обновить файл URL
+echo "https://NEW-URL.trycloudflare.com" > /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
+
+# Перезапустить бота чтобы применить новый URL для Menu Button
+sudo systemctl restart elcaro-bot
+```
+
+### Проверка работы туннеля
+```bash
+# Проверить что туннель работает
+curl -s https://YOUR-URL.trycloudflare.com/health
+
+# Должен вернуть:
+# {"status":"healthy","version":"2.0.0",...}
+```
+
+---
+
+## Systemd Services
+
+### elcaro-bot.service (Telegram Bot)
+```bash
+# Статус
+sudo systemctl status elcaro-bot
+
+# Перезапуск
+sudo systemctl restart elcaro-bot
+
+# Логи (live)
+journalctl -u elcaro-bot -f --no-pager
+
+# Логи (последние 100 строк)
+journalctl -u elcaro-bot -n 100 --no-pager
+
+# Остановить (не рекомендуется)
+sudo systemctl stop elcaro-bot
+```
+
+### Конфигурация сервиса
+Файл: `/etc/systemd/system/elcaro-bot.service`
+```ini
+[Unit]
+Description=Elcaro Bybit Trading Bot v2
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/project/elcarobybitbotv2
+ExecStart=/home/ubuntu/project/elcarobybitbotv2/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### WebApp (Uvicorn)
+WebApp запускается отдельно (не через systemd):
+```bash
+# На сервере - запуск webapp
+cd /home/ubuntu/project/elcarobybitbotv2
+source venv/bin/activate
+JWT_SECRET=elcaro_jwt_secret_key_2024_v2_secure python -m uvicorn webapp.app:app --host 0.0.0.0 --port 8765 &
+
+# Проверка
+curl localhost:8765/health
+```
+
+---
+
+## Полный Workflow Деплоя
+
+### 1. Локальные изменения
+```bash
+# Внести изменения в код
+# Тестировать локально
+
+# Закоммитить
+git add -A
+git commit -m "описание изменений"
+
+# Запушить
+git push origin webapp-screener-auth-2fa-dec21
+```
+
+### 2. Применить на сервере
+```bash
+# Подключиться
+ssh -i rita.pem ubuntu@46.62.211.0
+
+# Перейти в проект
+cd /home/ubuntu/project/elcarobybitbotv2
+
+# Получить изменения
+git pull origin webapp-screener-auth-2fa-dec21
+
+# Перезапустить бота
+sudo systemctl restart elcaro-bot
+
+# Проверить логи
+journalctl -u elcaro-bot -f --no-pager
+```
+
+### 3. Если нужен новый туннель
+```bash
+# Убить старый туннель
+pkill cloudflared
+
+# Запустить новый
+nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
+
+# Подождать 5 сек
+sleep 5
+
+# Получить URL
+NEW_URL=$(grep -o 'https://[a-z-]*\.trycloudflare\.com' /tmp/cloudflared.log | tail -1)
+echo $NEW_URL
+
+# Обновить файл
+echo $NEW_URL > /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
+
+# Перезапустить бота
+sudo systemctl restart elcaro-bot
+```
+
+---
+
+## Troubleshooting
+
+### ❌ Ошибка "Conflict: terminated by other getUpdates request"
+**Причина:** Запущено несколько экземпляров бота
+
+**Решение:**
+```bash
+# Убить все процессы бота
+pkill -9 -f 'python.*bot.py'
+
+# Подождать
+sleep 5
+
+# Перезапустить через systemd (запустится один)
+sudo systemctl restart elcaro-bot
+```
+
+### ❌ WebApp недоступен через туннель
+**Проверить:**
+```bash
+# 1. WebApp работает?
+curl localhost:8765/health
+
+# 2. Туннель работает?
+ps aux | grep cloudflared
+
+# 3. Если нет - запустить
+nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
+```
+
+### ❌ Бот не запускается
+**Проверить логи:**
+```bash
+journalctl -u elcaro-bot -n 50 --no-pager
+
+# Или файл логов
+tail -50 /home/ubuntu/project/elcarobybitbotv2/nohup.out
+```
+
+### ❌ Нужен sudo пароль
+На сервере sudo работает без пароля для пользователя ubuntu
+
+---
+
+## Recent Fixes (December 22, 2025)
+
+### SL Validation Skip
+- **Problem:** `ValueError: SL (X) must be < current price (Y) for LONG` - ошибка когда SL уже сработал
+- **File:** `bot.py` lines 2912-2922
+- **Fix:** Вместо `raise ValueError` теперь `logger.warning()` + `sl_price = None` (пропуск SL)
+
+### WebApp UI Improvements
+- **Files:** `terminal.html`, `index.html`, `elcaro-theme.js`
+- **Changes:**
+  - Улучшены стили exchange-select/account-select (лучший фон, hover эффекты)
+  - Добавлены стили для lang-menu dropdown с флагами
+  - Расширен список языков до 12 (EN, RU, UK, ZH, ES, DE, FR, IT, JA, AR, HE, PL)
+  - Добавлена RTL поддержка для иврита (he)
+
+---
+
 *Last updated: December 22, 2025*
 *Version: 2.1.0*
-*Exchange APIs: Bybit (34 methods), HyperLiquid (41 methods)**Last updated: December 2024*
-*Version: 2.0.0*
+*Current Tunnel: https://kevin-longitude-night-pro.trycloudflare.com*
+*Exchange APIs: Bybit (34 methods), HyperLiquid (41 methods)*
