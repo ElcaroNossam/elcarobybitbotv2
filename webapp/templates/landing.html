@@ -6,6 +6,8 @@
     <title>ElCaro Trading Bot - Professional Crypto Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Telegram WebApp Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -578,57 +580,114 @@
     
     <script>
         // ========================================
-        // AUTH HANDLING - Token from bot auto-login
+        // AUTH HANDLING - Telegram WebApp + Token auto-login
         // ========================================
-        (function() {
+        (async function() {
             const params = new URLSearchParams(window.location.search);
+            
+            // Method 1: Check for Telegram WebApp
+            const webApp = window.Telegram?.WebApp;
+            const startParam = params.get('start') || webApp?.startParam;
+            
+            if (webApp) {
+                webApp.ready();
+                webApp.expand();
+            }
+            
+            // Method 2: Check for auth_token (from token-login redirect)
             const authToken = params.get('auth_token');
             if (authToken) {
-                // Save token to localStorage
                 localStorage.setItem('elcaro_token', authToken);
-                // Fetch user data and save
-                fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                })
-                .then(res => res.json())
-                .then(user => {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    const user = await res.json();
                     if (user && user.user_id) {
                         localStorage.setItem('elcaro_user_id', user.user_id.toString());
                         localStorage.setItem('elcaro_user', JSON.stringify(user));
                         if (user.language) localStorage.setItem('elcaro_language', user.language);
                         if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
-                        console.log('✅ Auto-login successful:', user.user_id);
+                        console.log('✅ Auto-login via token:', user.user_id);
                     }
-                })
-                .catch(err => console.error('Auth error:', err));
-                // Remove token from URL for cleaner display
+                } catch (err) {
+                    console.error('Auth error:', err);
+                }
                 window.history.replaceState({}, document.title, '/');
+                return;
             }
             
-            // Check existing token and refresh user data
+            // Method 3: Check for start param (user_id from Telegram)
+            if (startParam) {
+                const userId = parseInt(startParam, 10);
+                if (!isNaN(userId) && userId > 0) {
+                    try {
+                        const res = await fetch('/api/auth/direct-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId })
+                        });
+                        const data = await res.json();
+                        if (data.access_token) {
+                            localStorage.setItem('elcaro_token', data.access_token);
+                            localStorage.setItem('elcaro_user_id', userId.toString());
+                            localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
+                            console.log('✅ Auto-login via start param:', userId);
+                        }
+                    } catch (err) {
+                        console.error('Direct login error:', err);
+                    }
+                    window.history.replaceState({}, document.title, '/');
+                    return;
+                }
+            }
+            
+            // Method 4: Check for Telegram initData
+            if (webApp?.initData && webApp.initData.length > 0) {
+                try {
+                    const res = await fetch('/api/auth/telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ init_data: webApp.initData })
+                    });
+                    const data = await res.json();
+                    if (data.token) {
+                        localStorage.setItem('elcaro_token', data.token);
+                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
+                        localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                        console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
+                    }
+                } catch (err) {
+                    console.error('Telegram auth error:', err);
+                }
+                window.history.replaceState({}, document.title, '/');
+                return;
+            }
+            
+            // Method 5: Check existing token and refresh user data
             const existingToken = localStorage.getItem('elcaro_token');
-            if (existingToken && !authToken) {
-                fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${existingToken}` }
-                })
-                .then(res => {
+            if (existingToken) {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${existingToken}` }
+                    });
                     if (!res.ok) {
-                        // Token invalid, clear storage
                         localStorage.removeItem('elcaro_token');
                         localStorage.removeItem('elcaro_user');
                         localStorage.removeItem('elcaro_user_id');
-                        return null;
+                    } else {
+                        const user = await res.json();
+                        if (user && user.user_id) {
+                            localStorage.setItem('elcaro_user', JSON.stringify(user));
+                            localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                            console.log('✅ Session restored:', user.user_id);
+                        }
                     }
-                    return res.json();
-                })
-                .then(user => {
-                    if (user && user.user_id) {
-                        localStorage.setItem('elcaro_user', JSON.stringify(user));
-                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
-                        console.log('✅ Session restored:', user.user_id);
-                    }
-                })
-                .catch(err => console.warn('Session check failed:', err));
+                } catch (err) {
+                    console.warn('Session check failed:', err);
+                }
             }
         })();
         

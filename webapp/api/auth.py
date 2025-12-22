@@ -222,6 +222,59 @@ async def logout():
 
 
 # ==============================================================================
+# Direct login by user_id (from Telegram WebApp start param)
+# ==============================================================================
+
+class DirectLoginRequest(BaseModel):
+    """Direct login by Telegram user_id"""
+    user_id: int
+
+
+@router.post("/direct-login")
+async def direct_login(data: DirectLoginRequest, request: Request):
+    """
+    Authenticate directly using Telegram user_id.
+    This is used when user opens WebApp from bot menu button.
+    The user_id is passed via ?start={user_id} URL param.
+    """
+    user_id = data.user_id
+    
+    if user_id <= 0:
+        raise HTTPException(status_code=400, detail="Invalid user_id")
+    
+    # Ensure user exists
+    db.ensure_user(user_id)
+    
+    # Get user info
+    db_user = db.get_all_user_credentials(user_id)
+    exchange_status = db.get_exchange_status(user_id)
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found. Start the bot first with /start")
+    
+    is_admin = user_id == ADMIN_ID
+    is_premium = db_user.get('license_type') == 'premium' or db_user.get('is_lifetime')
+    
+    # Create JWT token
+    token = create_access_token(user_id, is_admin)
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": user_id,
+            "first_name": db_user.get("first_name", "User"),
+            "username": db_user.get("username"),
+            "is_admin": is_admin,
+            "is_premium": is_premium,
+            "exchange_type": exchange_status.get("active_exchange", "bybit"),
+            "language": db_user.get("lang", "en"),
+            "license_type": db_user.get("license_type"),
+        }
+    }
+
+
+# ==============================================================================
 # Auto-login with token (from bot WebApp button)
 # ==============================================================================
 

@@ -28,7 +28,7 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, BotCommand
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
 from db import (
@@ -2127,8 +2127,8 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             [ "🎯 Trade", "❌ Close All" ],
             # ─── Settings Row ───
             [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
-            # ─── Premium & Tools ───
-            [ t.get('button_subscribe', '💎 Premium'), t.get('button_webapp', '🌐 WebApp') ],
+            # ─── Premium ───
+            [ t.get('button_subscribe', '💎 Premium') ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
@@ -2150,8 +2150,8 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             [ "🤖 Strategies", t['button_coins'] ],
             # ─── Settings Row ───
             [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
-            # ─── Premium & Tools ───
-            [ t.get('button_subscribe', '💎 Premium'), t.get('button_webapp', '🌐 WebApp') ],
+            # ─── Premium ───
+            [ t.get('button_subscribe', '💎 Premium') ],
         ]
     
     # Add admin row if user is admin
@@ -2916,10 +2916,13 @@ async def set_trading_stop(
             if effective_side == "Sell" and tp_price >= mark:
                 raise ValueError(f"TP ({tp_price}) must be < current price ({mark}) for SHORT")
         if sl_price is not None:
+            # Skip SL if price already passed SL level (position in deep loss)
             if effective_side == "Buy" and sl_price >= mark:
-                raise ValueError(f"SL ({sl_price}) must be < current price ({mark}) for LONG")
+                logger.warning(f"{symbol}: SL ({sl_price}) >= current price ({mark}) for LONG - skipping SL (already triggered)")
+                sl_price = None
             if effective_side == "Sell" and sl_price <= mark:
-                raise ValueError(f"SL ({sl_price}) must be > current price ({mark}) for SHORT")
+                logger.warning(f"{symbol}: SL ({sl_price}) <= current price ({mark}) for SHORT - skipping SL (already triggered)")
+                sl_price = None
 
     def _stricter(side_: str, new_sl: float, cur_sl):
         if cur_sl in (None, "", 0, "0", 0.0):
@@ -5560,6 +5563,23 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(ctx.t['need_terms'])
         await cmd_terms(update, ctx)
         return
+    
+    # Setup personalized Menu Button with user_id for auto-login
+    try:
+        webapp_url = "https://elcaro.bot"
+        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+        if ngrok_file.exists():
+            webapp_url = ngrok_file.read_text().strip()
+        
+        # Add user_id as start param for auto-login
+        webapp_url_with_user = f"{webapp_url}?start={uid}"
+        menu_button = MenuButtonWebApp(
+            text="🖥️ Terminal",
+            web_app=WebAppInfo(url=webapp_url_with_user)
+        )
+        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
+    except Exception as e:
+        logger.warning(f"Failed to set menu button for {uid}: {e}")
 
     # Send user guide PDF on first start (only once)
     if not cfg.get("guide_sent", 0):
@@ -10151,6 +10171,24 @@ async def start_monitoring(app: Application):
         db.init_db()
     except Exception:
         pass
+    
+    # Setup Menu Button (Terminal) with WebApp
+    try:
+        # Get webapp URL from ngrok or use default
+        webapp_url = "https://elcaro.bot"  # Default production URL
+        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+        if ngrok_file.exists():
+            webapp_url = ngrok_file.read_text().strip()
+        
+        # Set the menu button for all users
+        menu_button = MenuButtonWebApp(
+            text="🖥️ Terminal",
+            web_app=WebAppInfo(url=webapp_url)
+        )
+        await app.bot.set_chat_menu_button(menu_button=menu_button)
+        logger.info(f"Menu button set to Terminal: {webapp_url}")
+    except Exception as e:
+        logger.warning(f"Failed to set menu button: {e}")
     
     # Start futures positions monitoring loop
     logger.info("Starting monitor_positions_loop task")
