@@ -121,3 +121,104 @@ select {
 .badge-warning { background: #78350f; color: #fbbf24; }
 .badge-error { background: #7f1d1d; color: #f87171; }
 .badge-info { background: #1e3a5f; color: #60a5fa; }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE & TOUCH OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Safe areas for iOS notch */
+@supports (padding: env(safe-area-inset-top)) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+    
+    .navbar {
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    .toast {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+}
+
+/* Touch-friendly targets */
+@media (hover: none) and (pointer: coarse) {
+    button, .btn, a, select, input {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .btn-sm {
+        min-height: 36px;
+        padding: 8px 16px;
+    }
+    
+    /* Prevent text selection on tap */
+    button, .btn {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Faster touch response */
+    * {
+        touch-action: manipulation;
+    }
+    
+    /* Disable hover effects on touch */
+    .card-hover:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+/* iOS Safari fixes */
+@supports (-webkit-touch-callout: none) {
+    /* Fix 100vh issue on iOS */
+    .full-height {
+        height: -webkit-fill-available;
+    }
+    
+    /* Fix sticky positioning on iOS */
+    .sticky {
+        position: -webkit-sticky;
+        position: sticky;
+    }
+    
+    /* Fix input zoom on iOS */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Prevent pull-to-refresh on mobile */
+html {
+    overscroll-behavior: none;
+}
+
+/* Mac/Retina display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .spinner {
+        border-width: 2px;
+    }
+}
+
+/* Responsive toast for mobile */
+@media (max-width: 480px) {
+    .toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        text-align: center;
+    }
+}
+
+/* Print styles */
+@media print {
+    .toast, .navbar, .sidebar {
+        display: none !important;
+    }
+}

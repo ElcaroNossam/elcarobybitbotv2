@@ -146,3 +146,31 @@ class UserService:
                 "total_pnl": 0,
                 "avg_pnl": 0,
             }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SINGLETON INSTANCE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Lazy singleton - initialized when db module is available
+_user_service_instance = None
+
+def get_user_service():
+    """Get or create UserService singleton"""
+    global _user_service_instance
+    if _user_service_instance is None:
+        try:
+            import db
+            _user_service_instance = UserService(db)
+        except ImportError:
+            logger.warning("db module not available, UserService not initialized")
+            return None
+    return _user_service_instance
+
+# Create singleton on module load (if db available)
+try:
+    import db as _db_module
+    user_service = UserService(_db_module)
+except ImportError:
+    user_service = None
+    logger.warning("db module not available at import time")

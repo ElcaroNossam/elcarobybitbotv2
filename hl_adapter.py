@@ -311,6 +311,381 @@ class HLAdapter:
             coin = coin.replace(suffix, "")
         return coin_to_asset_id(coin) is not None
 
+    # ==================== NEW ADVANCED FEATURES ====================
+
+    async def get_candles(
+        self,
+        symbol: str,
+        interval: str = "1h",
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Get OHLCV candle data.
+        Intervals: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, 1d, 3d, 1w, 1M
+        """
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            candles = await self._client.get_candles(coin, interval, start_time, end_time)
+            result_list = []
+            for c in candles:
+                result_list.append({
+                    "timestamp": c.get("t", 0),
+                    "open": float(c.get("o", 0)),
+                    "high": float(c.get("h", 0)),
+                    "low": float(c.get("l", 0)),
+                    "close": float(c.get("c", 0)),
+                    "volume": float(c.get("v", 0)),
+                    "trades": c.get("n", 0),
+                })
+            return {"success": True, "data": result_list}
+        except Exception as e:
+            logger.error(f"get_candles error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_historical_orders(self) -> Dict[str, Any]:
+        """Get historical orders"""
+        await self.initialize()
+        try:
+            orders = await self._client.get_historical_orders()
+            result_list = []
+            for o in orders:
+                order = o.get("order", {})
+                result_list.append({
+                    "orderId": str(order.get("oid", "")),
+                    "symbol": f"{order.get('coin', '')}USDC",
+                    "side": "Buy" if order.get("side") == "B" else "Sell",
+                    "orderType": order.get("orderType", ""),
+                    "price": order.get("limitPx", "0"),
+                    "size": order.get("origSz", "0"),
+                    "status": o.get("status", ""),
+                    "reduceOnly": order.get("reduceOnly", False),
+                    "timestamp": order.get("timestamp", 0),
+                })
+            return {"success": True, "data": result_list}
+        except Exception as e:
+            logger.error(f"get_historical_orders error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_order_status(self, order_id: int = None, cloid: str = None) -> Dict[str, Any]:
+        """Get status of a specific order"""
+        await self.initialize()
+        try:
+            result = await self._client.get_order_status(oid=order_id, cloid=cloid)
+            return {"success": True, "data": result}
+        except Exception as e:
+            logger.error(f"get_order_status error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_rate_limits(self) -> Dict[str, Any]:
+        """Get user rate limits"""
+        await self.initialize()
+        try:
+            limits = await self._client.get_rate_limits()
+            return {"success": True, "data": limits}
+        except Exception as e:
+            logger.error(f"get_rate_limits error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_user_fees(self) -> Dict[str, Any]:
+        """Get user fee schedule"""
+        await self.initialize()
+        try:
+            fees = await self._client.get_user_fees()
+            return {"success": True, "data": fees}
+        except Exception as e:
+            logger.error(f"get_user_fees error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_portfolio(self) -> Dict[str, Any]:
+        """Get portfolio with PnL history"""
+        await self.initialize()
+        try:
+            portfolio = await self._client.get_portfolio()
+            return {"success": True, "data": portfolio}
+        except Exception as e:
+            logger.error(f"get_portfolio error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_referral_info(self) -> Dict[str, Any]:
+        """Get referral information"""
+        await self.initialize()
+        try:
+            info = await self._client.get_referral_info()
+            return {"success": True, "data": info}
+        except Exception as e:
+            logger.error(f"get_referral_info error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_subaccounts(self) -> Dict[str, Any]:
+        """Get list of subaccounts"""
+        await self.initialize()
+        try:
+            accounts = await self._client.get_subaccounts()
+            return {"success": True, "data": accounts if accounts else []}
+        except Exception as e:
+            logger.error(f"get_subaccounts error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_meta(self) -> Dict[str, Any]:
+        """Get exchange metadata (all coins info)"""
+        await self.initialize()
+        try:
+            meta = await self._client.meta()
+            return meta
+        except Exception as e:
+            logger.error(f"get_meta error: {e}")
+            return {}
+
+    async def get_all_coins_info(self) -> Dict[str, Any]:
+        """Get detailed info for all coins"""
+        await self.initialize()
+        try:
+            coins = await self._client.get_all_coins_info()
+            return {"success": True, "data": coins}
+        except Exception as e:
+            logger.error(f"get_all_coins_info error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_ticker(self, symbol: str) -> Dict[str, Any]:
+        """Get ticker info for a symbol"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            ticker = await self._client.get_ticker(coin)
+            return ticker if ticker else {}
+        except Exception as e:
+            logger.error(f"get_ticker error: {e}")
+            return {}
+
+    async def get_orderbook(self, symbol: str, depth: int = 20) -> Dict[str, Any]:
+        """Get L2 orderbook"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            book = await self._client.get_orderbook(coin, depth)
+            return {"success": True, "data": book}
+        except Exception as e:
+            logger.error(f"get_orderbook error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_funding_history(
+        self,
+        symbol: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get funding rate history"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            history = await self._client.get_funding_history(coin, start_time, end_time)
+            return {"success": True, "data": history}
+        except Exception as e:
+            logger.error(f"get_funding_history error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_predicted_funding(self, symbol: str) -> Dict[str, Any]:
+        """Get predicted funding rate"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            funding = await self._client.get_predicted_funding(coin)
+            return {"success": True, "data": funding}
+        except Exception as e:
+            logger.error(f"get_predicted_funding error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def modify_order(
+        self,
+        symbol: str,
+        order_id: int,
+        side: str,
+        qty: float,
+        price: float,
+        reduce_only: bool = False
+    ) -> Dict[str, Any]:
+        """Modify an existing order"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        is_buy = side.lower() == "buy"
+        try:
+            result = await self._client.modify_order(
+                oid=order_id,
+                coin=coin,
+                is_buy=is_buy,
+                sz=qty,
+                limit_px=price,
+                reduce_only=reduce_only
+            )
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"modify_order error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def schedule_cancel(self, time_ms: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Schedule cancel-all (dead man's switch).
+        time_ms must be at least 5 seconds in future.
+        Pass None to remove scheduled cancel.
+        """
+        await self.initialize()
+        try:
+            result = await self._client.schedule_cancel(time_ms)
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"schedule_cancel error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def transfer_usdc(self, destination: str, amount: float) -> Dict[str, Any]:
+        """Transfer USDC to another address"""
+        await self.initialize()
+        try:
+            result = await self._client.transfer_usdc(destination, amount)
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"transfer_usdc error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def spot_transfer(self, to_perp: bool, amount: float) -> Dict[str, Any]:
+        """Transfer USDC between spot and perp accounts"""
+        await self.initialize()
+        try:
+            result = await self._client.spot_transfer(to_perp, amount)
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"spot_transfer error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def update_isolated_margin(
+        self,
+        symbol: str,
+        is_buy: bool,
+        margin_change: float
+    ) -> Dict[str, Any]:
+        """Add or remove margin from isolated position"""
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        try:
+            result = await self._client.update_isolated_margin(coin, is_buy, margin_change)
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"update_isolated_margin error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def place_twap_order(
+        self,
+        symbol: str,
+        side: str,
+        qty: float,
+        reduce_only: bool = False,
+        duration_minutes: int = 60,
+        randomize: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Place TWAP (Time Weighted Average Price) order.
+        Splits order into smaller pieces over duration.
+        """
+        await self.initialize()
+        coin = self._normalize_symbol(symbol)
+        is_buy = side.lower() == "buy"
+        try:
+            result = await self._client.place_twap_order(
+                coin=coin,
+                is_buy=is_buy,
+                sz=qty,
+                reduce_only=reduce_only,
+                duration_minutes=duration_minutes,
+                randomize=randomize
+            )
+            twap_id = None
+            if result.get("status") == "ok":
+                data = result.get("response", {}).get("data", {})
+                status = data.get("status", {})
+                if "running" in status:
+                    twap_id = status["running"].get("twapId")
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": {"twapId": twap_id}
+            }
+        except Exception as e:
+            logger.error(f"place_twap_order error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def cancel_twap(self, twap_id: int) -> Dict[str, Any]:
+        """Cancel a TWAP order"""
+        await self.initialize()
+        try:
+            result = await self._client.cancel_twap(twap_id)
+            return {
+                "retCode": 0 if result.get("status") == "ok" else 1,
+                "retMsg": "OK" if result.get("status") == "ok" else str(result),
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"cancel_twap error: {e}")
+            return {"retCode": 1, "retMsg": str(e), "result": {}}
+
+    async def get_symbols(self) -> List[str]:
+        """Get list of all tradable symbols"""
+        await self.initialize()
+        try:
+            return await self._client.get_all_symbols()
+        except Exception as e:
+            logger.error(f"get_symbols error: {e}")
+            return []
+
+    async def get_fills_by_time(
+        self,
+        start_time: int,
+        end_time: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get fills within time range (for pagination)"""
+        await self.initialize()
+        try:
+            fills = await self._client.user_fills(start_time=start_time)
+            result_list = []
+            for fill in fills:
+                if end_time and fill.get("time", 0) > end_time:
+                    continue
+                result_list.append({
+                    "symbol": f"{fill.get('coin', '')}USDC",
+                    "side": "Buy" if fill.get("side") == "B" else "Sell",
+                    "size": float(fill.get("sz", 0)),
+                    "price": float(fill.get("px", 0)),
+                    "pnl": float(fill.get("closedPnl", 0)),
+                    "fee": float(fill.get("fee", 0)),
+                    "time": fill.get("time", 0),
+                    "hash": fill.get("hash", ""),
+                    "direction": fill.get("dir", ""),
+                })
+            return {"success": True, "data": result_list}
+        except Exception as e:
+            logger.error(f"get_fills_by_time error: {e}")
+            return {"success": False, "error": str(e)}
+
 
 async def create_hl_adapter(private_key: str, testnet: bool = False, vault_address: Optional[str] = None) -> HLAdapter:
     adapter = HLAdapter(private_key=private_key, testnet=testnet, vault_address=vault_address)

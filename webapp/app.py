@@ -79,6 +79,13 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"marketplace router not available: {e}")
     
+    # Protected Strategy Backtest & Custom Strategy Builder
+    try:
+        from webapp.api import strategy_backtest
+        app.include_router(strategy_backtest.router, prefix="/api", tags=["strategy"])
+    except ImportError as e:
+        logger.warning(f"strategy_backtest router not available: {e}")
+    
     # Strategy Marketplace (sharing, presets, import/export)
     try:
         from webapp.api import strategy_marketplace

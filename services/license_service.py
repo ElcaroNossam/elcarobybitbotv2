@@ -200,3 +200,16 @@ class LicenseService:
         """Generate random promo code"""
         chars = string.ascii_uppercase + string.digits
         return "".join(secrets.choice(chars) for _ in range(length))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SINGLETON INSTANCE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Create singleton on module load (if db available)
+try:
+    import db as _db_module
+    license_service = LicenseService(_db_module)
+except ImportError:
+    license_service = None
+    logger.warning("db module not available at import time")

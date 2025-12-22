@@ -175,10 +175,13 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 |------|-------------|
 | `coin_params.py` | `ADMIN_ID`, `COIN_PARAMS`, `BLACKLIST`, `DEFAULT_TP_PCT`, `DEFAULT_SL_PCT` |
 | `db.py` | `get_user_config`, `set_user_value`, `USER_FIELDS_WHITELIST`, `invalidate_user_cache` |
-| `exchange_router.py` | `place_order_universal`, `fetch_positions_universal` - routes to Bybit or HyperLiquid |
-| `hl_adapter.py` | `HLAdapter` - HyperLiquid async client wrapper |
+| `exchange_router.py` | `place_order_universal`, `fetch_positions_universal`, `set_leverage_universal`, `close_position_universal`, `get_balance_universal` |
+| `hl_adapter.py` | `HLAdapter` (41 methods) - HyperLiquid async client wrapper |
+| `exchanges/bybit.py` | `BybitExchange` (34 methods) - Bybit async client |
+| `exchanges/base.py` | `BaseExchange`, `Balance`, `Position`, `Order`, `OrderResult`, `OrderSide`, `OrderType`, `PositionSide` |
 | `services/exchange_service.py` | `ExchangeAdapter`, `BybitAdapter`, `HyperLiquidAdapter`, `OrderType`, `OrderSide` |
 | `core/__init__.py` | All infrastructure exports: caching, rate limiting, metrics, exceptions |
+| `core/exchange_client.py` | `UnifiedExchangeClient`, `ExchangeCredentials`, `ExchangeType`, `AccountMode` |
 
 ## After Code Changes
 ```bash
@@ -390,7 +393,7 @@ BotException           # Base
 
 ### HyperLiquid Integration (hl_adapter.py, hyperliquid/)
 
-**HLAdapter** - Wrapper for HyperLiquid API:
+**HLAdapter** - Wrapper for HyperLiquid API (41 методов):
 ```python
 adapter = HLAdapter(private_key, testnet=False, vault_address=None)
 await adapter.initialize()
@@ -400,6 +403,107 @@ await adapter.set_leverage(symbol, leverage)
 await adapter.close()
 ```
 
+**HLAdapter Full Method List:**
+| Category | Method | Description |
+|----------|--------|-------------|
+| **Core** | `initialize()` | Initialize client connection |
+| | `close()` | Close connection |
+| | `is_supported_symbol(symbol)` | Check if symbol is tradable |
+| **Account** | `get_balance()` | Get account balance |
+| | `fetch_balance()` | Alias for get_balance |
+| | `get_portfolio()` | Get full portfolio details |
+| | `get_user_fees()` | Get user fee rates |
+| | `get_referral_info()` | Get referral stats |
+| | `get_subaccounts()` | Get subaccounts list |
+| | `get_rate_limits()` | Get current rate limits |
+| **Positions** | `fetch_positions()` | Get all open positions |
+| | `close_position(symbol, size)` | Close position |
+| | `update_isolated_margin(symbol, delta)` | Adjust isolated margin |
+| **Orders** | `place_order(...)` | Place new order |
+| | `modify_order(order_id, ...)` | Modify existing order |
+| | `cancel_order(symbol, order_id)` | Cancel order |
+| | `cancel_all_orders(symbol)` | Cancel all orders |
+| | `schedule_cancel(time)` | Schedule future cancel |
+| | `place_twap_order(...)` | Place TWAP order |
+| | `cancel_twap(twap_id)` | Cancel TWAP order |
+| | `fetch_open_orders()` | Get open orders |
+| | `fetch_orders()` | Get order history |
+| | `get_order_status(order_id)` | Get order status |
+| | `get_historical_orders(...)` | Get historical orders |
+| **Market Data** | `get_price(symbol)` | Get current price |
+| | `get_all_prices()` | Get all prices |
+| | `get_ticker(symbol)` | Get ticker with bid/ask |
+| | `get_orderbook(symbol, depth)` | Get orderbook |
+| | `get_candles(symbol, interval, limit)` | Get candlestick data |
+| | `get_symbols()` | Get all tradable symbols |
+| | `get_all_coins_info()` | Get coins metadata |
+| | `get_meta()` | Get exchange metadata |
+| **History** | `fetch_trade_history(limit)` | Get trade fills |
+| | `get_fills_by_time(start, end)` | Get fills by time range |
+| | `get_funding_history(...)` | Get funding payments |
+| | `get_predicted_funding(symbol)` | Get predicted funding |
+| **Settings** | `set_leverage(symbol, leverage)` | Set leverage |
+| | `set_take_profit(symbol, price)` | Set TP |
+| | `set_stop_loss(symbol, price)` | Set SL |
+| **Transfers** | `transfer_usdc(amount, dest)` | Transfer USDC |
+| | `spot_transfer(coin, amount)` | Spot to perp transfer |
+
+### Bybit Integration (exchanges/bybit.py)
+
+**BybitExchange** - Bybit API Adapter (34 методов):
+```python
+from exchanges.bybit import BybitExchange
+
+bybit = BybitExchange(
+    api_key=api_key,
+    api_secret=api_secret,
+    testnet=False,  # Use testnet
+    demo=True       # Use demo account
+)
+await bybit.initialize()
+await bybit.place_order(symbol, side, size, order_type=OrderType.MARKET)
+await bybit.get_positions()
+await bybit.close()
+```
+
+**BybitExchange Full Method List:**
+| Category | Method | Description |
+|----------|--------|-------------|
+| **Core** | `initialize()` | Initialize client connection |
+| | `close()` | Close connection |
+| | `normalize_symbol(symbol)` | Normalize to USDT pair |
+| **Account** | `get_balance()` | Get account balance (Balance dataclass) |
+| | `get_wallet_balance()` | Get detailed wallet per-coin |
+| | `get_account_info()` | Get account config |
+| | `get_fee_rates(symbol)` | Get maker/taker fees |
+| **Positions** | `get_positions()` | Get all open positions |
+| | `get_position(symbol)` | Get specific position |
+| | `close_position(symbol, size)` | Close position |
+| **Orders** | `place_order(...)` | Place new order (OrderResult) |
+| | `modify_order(symbol, order_id, ...)` | Amend order |
+| | `cancel_order(symbol, order_id)` | Cancel order |
+| | `cancel_all_orders(symbol)` | Cancel all orders |
+| | `get_open_orders(symbol)` | Get open orders |
+| | `get_order_history(...)` | Get historical orders |
+| **Market Data** | `get_price(symbol)` | Get last price |
+| | `get_ticker(symbol)` | Get ticker with 24h stats |
+| | `get_orderbook(symbol, depth)` | Get orderbook |
+| | `get_candles(symbol, interval, limit)` | Get OHLCV data |
+| | `get_symbols()` | Get all tradable symbols |
+| | `get_instrument_info(symbol)` | Get symbol specs |
+| | `get_server_time()` | Get server timestamp |
+| | `get_open_interest(symbol)` | Get open interest |
+| | `get_risk_limit(symbol)` | Get risk limit tiers |
+| **History** | `get_trade_history(...)` | Get trade fills |
+| | `get_pnl_history(...)` | Get closed P&L |
+| | `get_funding_history(...)` | Get funding payments |
+| | `get_current_funding_rate(symbol)` | Get current funding |
+| **Settings** | `set_leverage(symbol, leverage)` | Set leverage |
+| | `set_take_profit(symbol, price)` | Set TP |
+| | `set_stop_loss(symbol, price)` | Set SL |
+| | `set_margin_mode(symbol, mode)` | Set ISOLATED/CROSS |
+| | `set_position_mode(mode)` | Set hedge/one-way |
+
 **Exchange Router (exchange_router.py):**
 ```python
 # Unified order placement - routes based on user's exchange setting
@@ -408,6 +512,12 @@ await place_order_universal(
     price=None, leverage=None, reduce_only=False,
     bybit_place_order_func=place_order
 )
+
+# Other universal functions
+await fetch_positions_universal(user_id, symbol, bybit_fetch_positions_func)
+await set_leverage_universal(user_id, symbol, leverage, bybit_set_leverage_func)
+await close_position_universal(user_id, symbol, size, side, bybit_place_order_func)
+await get_balance_universal(user_id, bybit_get_balance_func)
 ```
 
 ## 📊 Trading Strategies
@@ -565,5 +675,7 @@ except ExchangeError as e:
 
 ---
 
-*Last updated: December 2024*
+*Last updated: December 22, 2025*
+*Version: 2.1.0*
+*Exchange APIs: Bybit (34 methods), HyperLiquid (41 methods)**Last updated: December 2024*
 *Version: 2.0.0*

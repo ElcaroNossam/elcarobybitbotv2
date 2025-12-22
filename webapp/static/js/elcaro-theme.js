@@ -256,4 +256,70 @@
     window.setTheme = setTheme;
     window.initLanguageAndTheme = initLanguageAndTheme;
     
+    // ===== Mobile Menu =====
+    
+    function setupMobileMenu() {
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+        
+        if (!mobileToggle) return;
+        
+        // Create mobile nav overlay
+        let mobileNav = document.querySelector('.mobile-nav');
+        if (!mobileNav && navLinks) {
+            mobileNav = document.createElement('div');
+            mobileNav.className = 'mobile-nav';
+            mobileNav.innerHTML = `
+                <button class="mobile-close" onclick="toggleMobileMenu()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="mobile-nav-links">
+                    ${navLinks.innerHTML}
+                </div>
+            `;
+            document.body.appendChild(mobileNav);
+        }
+        
+        mobileToggle.addEventListener('click', toggleMobileMenu);
+        
+        // Close on link click
+        if (mobileNav) {
+            mobileNav.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileNav.classList.remove('open');
+                    document.body.style.overflow = '';
+                });
+            });
+        }
+    }
+    
+    function toggleMobileMenu() {
+        const mobileNav = document.querySelector('.mobile-nav');
+        const mobileToggle = document.getElementById('mobile-toggle');
+        
+        if (mobileNav) {
+            mobileNav.classList.toggle('open');
+            document.body.style.overflow = mobileNav.classList.contains('open') ? 'hidden' : '';
+            
+            // Update toggle icon
+            if (mobileToggle) {
+                const icon = mobileToggle.querySelector('i');
+                if (icon) {
+                    icon.className = mobileNav.classList.contains('open') ? 'fas fa-times' : 'fas fa-bars';
+                }
+            }
+        }
+    }
+    
+    // Expose mobile menu functions
+    window.toggleMobileMenu = toggleMobileMenu;
+    
+    // Setup mobile menu on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMobileMenu);
+    } else {
+        setupMobileMenu();
+    }
+    
 })();

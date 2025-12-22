@@ -298,3 +298,324 @@ class HyperLiquidClient:
             pnl = float(pos.get("unrealizedPnl", 0))
             total_pnl += pnl
         return total_pnl
+
+    # ==================== NEW ADVANCED FEATURES ====================
+
+    async def get_candles(
+        self, 
+        coin: str, 
+        interval: str = "1h", 
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get OHLCV candle data for a coin.
+        Intervals: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, 1d, 3d, 1w, 1M
+        Returns up to 5000 candles.
+        """
+        import time
+        # candleSnapshot requires: req { coin, interval, startTime, endTime }
+        now = int(time.time() * 1000)
+        data = {
+            "req": {
+                "coin": coin, 
+                "interval": interval,
+                "startTime": start_time or (now - 24 * 60 * 60 * 1000),  # default 24h ago
+                "endTime": end_time or now
+            }
+        }
+        return await self._info_request("candleSnapshot", **data)
+    
+    async def get_historical_orders(
+        self, 
+        address: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get historical orders (up to 2000)"""
+        addr = address or self._address
+        return await self._info_request("historicalOrders", user=addr)
+    
+    async def get_order_status(
+        self, 
+        oid: Optional[int] = None,
+        cloid: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Query order status by oid or cloid"""
+        data = {"user": self._address}
+        if oid:
+            data["oid"] = oid
+        elif cloid:
+            data["cloid"] = cloid
+        else:
+            raise HyperLiquidError("Either oid or cloid must be provided")
+        return await self._info_request("orderStatus", **data)
+    
+    async def get_rate_limits(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Query user rate limits"""
+        addr = address or self._address
+        return await self._info_request("userRateLimit", user=addr)
+    
+    async def get_user_fees(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Query user fee rates and schedule"""
+        addr = address or self._address
+        return await self._info_request("userFees", user=addr)
+    
+    async def get_portfolio(self, address: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get user portfolio with PnL history"""
+        addr = address or self._address
+        return await self._info_request("portfolio", user=addr)
+    
+    async def get_referral_info(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Get user referral information"""
+        addr = address or self._address
+        return await self._info_request("referral", user=addr)
+    
+    async def get_subaccounts(self, address: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get user's subaccounts"""
+        addr = address or self._address
+        return await self._info_request("subAccounts", user=addr)
+    
+    async def get_user_role(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Query user role (user, agent, vault, subAccount)"""
+        addr = address or self._address
+        return await self._info_request("userRole", user=addr)
+    
+    async def get_vault_details(self, vault_address: str) -> Dict[str, Any]:
+        """Get vault details"""
+        return await self._info_request("vaultDetails", vaultAddress=vault_address)
+    
+    async def get_funding_history(
+        self, 
+        coin: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Get funding rate history for a coin"""
+        import time as time_module
+        now = int(time_module.time() * 1000)
+        
+        # fundingHistory format: { type, coin, startTime }
+        data = {
+            "coin": coin,
+            "startTime": start_time or (now - 7 * 24 * 60 * 60 * 1000),  # default 7 days ago
+        }
+        if end_time:
+            data["endTime"] = end_time
+        return await self._info_request("fundingHistory", **data)
+    
+    async def get_predicted_funding(self, coin: str) -> Dict[str, Any]:
+        """Get predicted funding rate for next period"""
+        meta = await self.meta()
+        universe = meta.get("universe", [])
+        for asset in universe:
+            if asset.get("name") == coin:
+                funding = asset.get("funding")
+                return {
+                    "coin": coin,
+                    "funding_rate": funding,
+                    "next_funding": asset.get("nextFunding")
+                }
+        return {}
+    
+    async def modify_order(
+        self,
+        oid: int,
+        coin: str,
+        is_buy: bool,
+        sz: float,
+        limit_px: float,
+        reduce_only: bool = False,
+        order_type: Optional[Dict[str, Any]] = None,
+        cloid: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Modify an existing order"""
+        if order_type is None:
+            order_type = {"limit": {"tif": "Gtc"}}
+        
+        asset = coin_to_asset_id(coin)
+        if asset is None:
+            raise HyperLiquidError(f"Unknown coin: {coin}")
+        
+        order_req = {
+            "coin": coin, 
+            "is_buy": is_buy, 
+            "sz": sz, 
+            "limit_px": limit_px, 
+            "reduce_only": reduce_only, 
+            "order_type": order_type
+        }
+        if cloid:
+            order_req["cloid"] = cloid
+        
+        order_wire = order_request_to_order_wire(order_req, asset)
+        order_wire["oid"] = oid
+        
+        action = {
+            "type": "batchModify",
+            "modifies": [order_wire]
+        }
+        return await self._exchange_request(action)
+    
+    async def schedule_cancel(self, time_ms: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Schedule a cancel-all operation (dead man's switch).
+        time_ms must be at least 5 seconds in future.
+        Pass None to remove scheduled cancel.
+        """
+        action = {
+            "type": "scheduleCancel",
+            "time": time_ms
+        }
+        return await self._exchange_request(action)
+    
+    async def transfer_usdc(
+        self,
+        destination: str,
+        amount: float
+    ) -> Dict[str, Any]:
+        """Transfer USDC to another address on L1"""
+        nonce = get_timestamp_ms()
+        
+        # This requires a special signature format
+        action = {
+            "type": "usdSend",
+            "hyperliquidChain": "Mainnet" if not self._testnet else "Testnet",
+            "signatureChainId": "0xa4b1" if not self._testnet else "0x66eee",
+            "destination": destination,
+            "amount": str(amount),
+            "time": nonce
+        }
+        return await self._exchange_request(action)
+    
+    async def spot_transfer(self, usd_to_perp: bool, usd_amount: float) -> Dict[str, Any]:
+        """Transfer USDC between spot and perp accounts"""
+        action = {
+            "type": "spotUser",
+            "classTransfer": {
+                "usdc": float_to_wire(usd_amount),
+                "toPerp": usd_to_perp
+            }
+        }
+        return await self._exchange_request(action)
+    
+    async def update_isolated_margin(
+        self,
+        coin: str,
+        is_buy: bool,
+        margin_change: float
+    ) -> Dict[str, Any]:
+        """Add or remove margin from isolated position"""
+        asset = coin_to_asset_id(coin)
+        if asset is None:
+            raise HyperLiquidError(f"Unknown coin: {coin}")
+        
+        action = {
+            "type": "updateIsolatedMargin",
+            "asset": asset,
+            "isBuy": is_buy,
+            "ntli": margin_change
+        }
+        return await self._exchange_request(action)
+    
+    async def place_twap_order(
+        self,
+        coin: str,
+        is_buy: bool,
+        sz: float,
+        reduce_only: bool = False,
+        duration_minutes: int = 60,
+        randomize: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Place a TWAP (Time Weighted Average Price) order.
+        Splits order into smaller pieces over duration.
+        """
+        asset = coin_to_asset_id(coin)
+        if asset is None:
+            raise HyperLiquidError(f"Unknown coin: {coin}")
+        
+        action = {
+            "type": "twapOrder",
+            "twap": {
+                "a": asset,
+                "b": is_buy,
+                "s": float_to_wire(sz),
+                "r": reduce_only,
+                "m": duration_minutes,
+                "t": randomize
+            }
+        }
+        return await self._exchange_request(action)
+    
+    async def cancel_twap(self, twap_id: int) -> Dict[str, Any]:
+        """Cancel a TWAP order"""
+        action = {
+            "type": "twapCancel",
+            "a": twap_id
+        }
+        return await self._exchange_request(action)
+    
+    async def get_all_coins_info(self) -> List[Dict[str, Any]]:
+        """Get detailed info for all coins including funding rates"""
+        meta = await self.meta()
+        mids = await self.get_all_mids()
+        
+        result = []
+        for asset in meta.get("universe", []):
+            coin = asset.get("name")
+            result.append({
+                "coin": coin,
+                "price": mids.get(coin, 0),
+                "maxLeverage": asset.get("maxLeverage"),
+                "funding": asset.get("funding"),
+                "openInterest": asset.get("openInterest"),
+                "prevDayPx": asset.get("prevDayPx"),
+                "dayNtlVlm": asset.get("dayNtlVlm"),
+            })
+        return result
+    
+    async def get_ticker(self, coin: str) -> Optional[Dict[str, Any]]:
+        """Get ticker info for a coin (alias for compatibility)"""
+        meta = await self.meta()
+        mid = await self.get_mid_price(coin)
+        
+        for asset in meta.get("universe", []):
+            if asset.get("name") == coin:
+                prev_price = float(asset.get("prevDayPx", mid) or mid)
+                change_24h = ((mid - prev_price) / prev_price * 100) if prev_price else 0
+                
+                return {
+                    "symbol": f"{coin}USDC",
+                    "price": mid,
+                    "change_24h": round(change_24h, 2),
+                    "volume_24h": float(asset.get("dayNtlVlm", 0) or 0),
+                    "funding_rate": asset.get("funding"),
+                    "open_interest": asset.get("openInterest"),
+                    "max_leverage": asset.get("maxLeverage"),
+                }
+        return None
+    
+    async def get_orderbook(self, coin: str, depth: int = 20) -> Dict[str, Any]:
+        """Get L2 orderbook snapshot"""
+        result = await self.l2_snapshot(coin)
+        levels = result.get("levels", [[], []])
+        
+        bids = []
+        asks = []
+        
+        if len(levels) >= 2:
+            for bid in levels[0][:depth]:
+                bids.append([float(bid.get("px", 0)), float(bid.get("sz", 0))])
+            for ask in levels[1][:depth]:
+                asks.append([float(ask.get("px", 0)), float(ask.get("sz", 0))])
+        
+        return {
+            "coin": coin,
+            "bids": bids,
+            "asks": asks,
+            "timestamp": result.get("time", 0)
+        }
+    
+    async def get_all_symbols(self) -> List[str]:
+        """Get list of all tradable symbols"""
+        meta = await self.meta()
+        return [asset.get("name") for asset in meta.get("universe", [])]
