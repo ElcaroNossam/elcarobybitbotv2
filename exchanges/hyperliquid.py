@@ -4,9 +4,11 @@ HyperLiquid Exchange Implementation
 import logging
 from typing import Dict, Any, Optional, List
 
-from .base import (
-    BaseExchange, Position, Order, Balance, OrderResult,
-    OrderSide, OrderType, PositionSide,
+from .base import BaseExchange
+from models import (
+    Position, Order, Balance, OrderResult,
+    OrderSide, OrderType, PositionSide, OrderStatus,
+    normalize_symbol as unified_normalize_symbol
 )
 
 from hyperliquid import HyperLiquidClient, HyperLiquidError

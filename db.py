@@ -85,6 +85,8 @@ USER_FIELDS_WHITELIST = {
     # доступ/согласие
     "is_allowed", "is_banned", "terms_accepted",
     "guide_sent",  # 0/1 - отправлен ли PDF гайд
+    # License info (добавлено для admin API)
+    "license_type", "license_expires", "current_license",
     # для совместимости с текущим кодом бота
     "first_seen_ts", "last_seen_ts",
 }
@@ -256,6 +258,10 @@ def init_db():
             ("hl_enabled",         "ALTER TABLE users ADD COLUMN hl_enabled         INTEGER NOT NULL DEFAULT 0"),
             ("exchange_mode",      "ALTER TABLE users ADD COLUMN exchange_mode      TEXT NOT NULL DEFAULT 'bybit'"),
             ("exchange_type",      "ALTER TABLE users ADD COLUMN exchange_type      TEXT NOT NULL DEFAULT 'bybit'"),
+            # ELCARO Token balances
+            ("elc_balance",        "ALTER TABLE users ADD COLUMN elc_balance        REAL NOT NULL DEFAULT 0.0"),
+            ("elc_staked",         "ALTER TABLE users ADD COLUMN elc_staked         REAL NOT NULL DEFAULT 0.0"),
+            ("elc_locked",         "ALTER TABLE users ADD COLUMN elc_locked         REAL NOT NULL DEFAULT 0.0"),
         ]:
             if not _col_exists(conn, "users", col):
                 cur.execute(ddl)
@@ -338,6 +344,86 @@ def init_db():
         """
         )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_pyramids_user ON pyramids(user_id)")
+
+        # ELC PURCHASES - track USDT → ELC purchases on TON
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS elc_purchases (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            payment_id      TEXT UNIQUE NOT NULL,
+            usdt_amount     REAL NOT NULL,
+            elc_amount      REAL NOT NULL,
+            platform_fee    REAL NOT NULL,
+            status          TEXT NOT NULL DEFAULT 'pending',  -- pending, completed, failed
+            payment_method  TEXT NOT NULL,  -- ton_usdt, direct_wallet
+            tx_hash         TEXT,
+            created_at      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+            completed_at    DATETIME,
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_user ON elc_purchases(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_status ON elc_purchases(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_created ON elc_purchases(created_at DESC)")
+
+        # ELC TRANSACTIONS - track all ELC balance changes
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS elc_transactions (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id           INTEGER NOT NULL,
+            transaction_type  TEXT NOT NULL,  -- purchase, subscription, marketplace, burn, stake, unstake, withdraw
+            amount            REAL NOT NULL,  -- negative for spending, positive for receiving
+            balance_after     REAL NOT NULL,
+            description       TEXT,
+            metadata          TEXT,  -- JSON for additional data
+            created_at        DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_user ON elc_transactions(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_type ON elc_transactions(transaction_type)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_created ON elc_transactions(created_at DESC)")
+
+        # ELC STATS - global token statistics
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS elc_stats (
+            id                  INTEGER PRIMARY KEY DEFAULT 1,
+            total_burned        REAL NOT NULL DEFAULT 0.0,
+            total_staked        REAL NOT NULL DEFAULT 0.0,
+            circulating_supply  REAL NOT NULL DEFAULT 1000000000.0,  -- 1 billion initial
+            total_purchases     REAL NOT NULL DEFAULT 0.0,
+            total_subscriptions REAL NOT NULL DEFAULT 0.0,
+            last_burn_at        DATETIME,
+            last_update         DATETIME DEFAULT (CURRENT_TIMESTAMP)
+        )
+        """
+        )
+        # Insert initial row if not exists
+        cur.execute("""
+            INSERT OR IGNORE INTO elc_stats (id, total_burned, total_staked, circulating_supply) 
+            VALUES (1, 0.0, 0.0, 1000000000.0)
+        """)
+
+        # CONNECTED WALLETS - for cold wallet trading (MetaMask, WalletConnect)
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS connected_wallets (
+            user_id         INTEGER PRIMARY KEY,
+            wallet_address  TEXT NOT NULL,
+            wallet_type     TEXT NOT NULL,  -- metamask, walletconnect, tonkeeper
+            chain           TEXT NOT NULL DEFAULT 'ethereum',  -- ethereum, ton, polygon, bsc
+            connected_at    DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+            last_used_at    DATETIME,
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_connected_wallets_address ON connected_wallets(wallet_address)")
 
         # META (k/v)
         cur.execute(
@@ -627,6 +713,10 @@ def init_db():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_user ON custom_strategies(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_public ON custom_strategies(is_public, is_active)")
+        
+        # Add performance_stats column if not exists
+        if not _col_exists(conn, "custom_strategies", "performance_stats"):
+            cur.execute("ALTER TABLE custom_strategies ADD COLUMN performance_stats TEXT")
         
         # Marketplace listings (strategies for sale)
         cur.execute("""
@@ -3685,7 +3775,7 @@ def get_user_purchases(user_id: int) -> list:
     """Get all strategies purchased by user."""
     with get_conn() as conn:
         cur = conn.execute(
-            """SELECT p.id, p.marketplace_id, p.strategy_id, p.price_paid, 
+            """SELECT p.id, p.marketplace_id, p.strategy_id, p.amount_paid as price_paid, 
                       p.purchased_at, s.name, s.description, s.config
                FROM strategy_purchases p
                JOIN custom_strategies s ON p.strategy_id = s.id
@@ -3878,3 +3968,125 @@ def close_trade(trade_id: int, exit_price: float, pnl: float, pnl_percent: float
         )
         conn.commit()
         return cur.rowcount > 0
+
+
+
+# =====================================================
+# PAYMENT & SUBSCRIPTION FUNCTIONS
+# =====================================================
+
+def add_payment_record(
+    user_id: int,
+    plan: str,
+    period: str,
+    amount: float,
+    payment_method: str,
+    wallet_address: str = None,
+    transaction_hash: str = None
+):
+    """Record a payment transaction"""
+    import time
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO payment_history (
+                user_id, amount, payment_method, plan_type, 
+                transaction_id, created_at, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_id,
+            amount,
+            payment_method,
+            f"{plan}_{period}",
+            transaction_hash or f"manual_{int(time.time())}",
+            int(time.time()),
+            "completed"
+        ))
+
+
+def get_user_by_referral_code(referral_code: str) -> int:
+    """Get user ID by referral code"""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT user_id FROM users WHERE referral_code = ?",
+            (referral_code,)
+        ).fetchone()
+        return row[0] if row else None
+
+
+def add_referral_connection(user_id: int, referrer_id: int):
+    """Create referral connection between users"""
+    with get_conn() as conn:
+        # Add referral field if not exists
+        if not _col_exists(conn, "users", "referred_by"):
+            conn.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+        
+        conn.execute(
+            "UPDATE users SET referred_by = ? WHERE user_id = ?",
+            (referrer_id, user_id)
+        )
+        
+        # Give bonus to referrer (e.g., 7 days premium)
+        extend_license(referrer_id, 7)
+
+
+def get_user_payments(user_id: int, limit: int = 50) -> list:
+    """Get user's payment history"""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT 
+                amount, payment_method, plan_type, 
+                transaction_id, created_at, status
+            FROM payment_history
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (user_id, limit)).fetchall()
+        
+        return [
+            {
+                "amount": r[0],
+                "method": r[1],
+                "plan": r[2],
+                "transaction_id": r[3],
+                "date": r[4],
+                "status": r[5]
+            }
+            for r in rows
+        ]
+
+
+def get_referral_stats(user_id: int) -> dict:
+    """Get user's referral statistics"""
+    with get_conn() as conn:
+        # Count referrals
+        row = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE referred_by = ?",
+            (user_id,)
+        ).fetchone()
+        
+        total_referrals = row[0] if row else 0
+        
+        # Get referral code
+        row = conn.execute(
+            "SELECT referral_code FROM users WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+        
+        referral_code = row[0] if row else None
+        
+        # Generate referral code if not exists
+        if not referral_code:
+            import random
+            import string
+            referral_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            conn.execute(
+                "UPDATE users SET referral_code = ? WHERE user_id = ?",
+                (referral_code, user_id)
+            )
+        
+        return {
+            "referral_code": referral_code,
+            "total_referrals": total_referrals,
+            "earnings": total_referrals * 5  # $5 per referral
+        }
+

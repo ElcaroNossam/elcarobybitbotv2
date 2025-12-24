@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Ciao! Scegli un’azione:',
+    'no_strategies':               '❌ Nessuna',
     'guide_caption':               '📚 Guida Utente del Bot di Trading\n\nLeggi questa guida per imparare a configurare le strategie e usare il bot in modo efficace.',
     'privacy_caption':             '📜 Informativa sulla Privacy & Termini di Utilizzo\n\nSi prega di leggere attentamente questo documento.',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             'Seleziona lingua:',
     'language_set':                'Lingua impostata su:',
     'lang_en':                     'English',
-    'lang_it':                     'Italiano',
 
     # Manual order
     'order_type_prompt':           'Seleziona tipo di ordine:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *L\'IA fa il lavoro per te!*',
-    'elcaro_ai_params_header': 'I seguenti sono analizzati da ogni segnale:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • Leva • Timeframe',
 
     # Leverage settings
     'param_leverage': '⚡ Leva',

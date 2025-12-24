@@ -61,8 +61,9 @@ BOLD='\033[1m'
 print_banner() {
     echo ""
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}⚡ ElCaro Trading Platform${NC}                                  ${CYAN}║${NC}"
-    echo -e "${CYAN}║${NC}  ${BLUE}Bot + WebApp + Screener + Analytics${NC}                          ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}⚡ ElCaro Trading Platform v2.1.0${NC}                           ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BLUE}Bot + WebApp + Real-time Screener + Analytics${NC}                ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${PURPLE}Bybit + HyperLiquid | Futures + Spot${NC}                         ${CYAN}║${NC}"
     echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -158,52 +159,100 @@ stop_ngrok() {
 
 stop_all() {
     echo ""
-    log "Stopping all services..."
+    log "Stopping all services in reverse order..."
+    echo -e "${BLUE}─────────────────────────────────────────${NC}"
+    
+    # Stop in reverse order: tunnel → webapp → bot
     stop_cloudflare
+    sleep 1
     stop_ngrok
+    sleep 1
     stop_webapp
+    sleep 2
     stop_bot
+    
+    # Cleanup stale PID files
+    rm -f run/*.pid
+    
+    echo -e "${BLUE}─────────────────────────────────────────${NC}"
+    success "All services stopped cleanly"
     echo ""
-    success "All services stopped"
 }
 
 start_bot() {
     local daemon=$1
-    log "Starting Bot..."
+    log "Starting Telegram Bot..."
+    
+    # Check if bot.py exists
+    if [ ! -f "bot.py" ]; then
+        error "bot.py not found!"
+        return 1
+    fi
     
     if [ "$daemon" = "true" ]; then
         nohup $PYTHON_CMD bot.py >> "$BOT_LOG" 2>&1 &
         echo $! > "$BOT_PID_FILE"
-        sleep 2
+        sleep 3
         if get_pid "$BOT_PID_FILE" >/dev/null; then
-            success "Bot started (PID: $(cat $BOT_PID_FILE))"
+            local pid=$(cat $BOT_PID_FILE)
+            success "Bot started (PID: $pid)"
+            log "Bot logs: tail -f $BOT_LOG"
         else
             error "Bot failed to start! Check $BOT_LOG"
+            tail -20 "$BOT_LOG"
             return 1
         fi
     else
+        log "Starting in foreground mode (Ctrl+C to stop)..."
         $PYTHON_CMD bot.py 2>&1 | tee -a "$BOT_LOG"
     fi
 }
 
 start_webapp() {
     local daemon=$1
-    log "Starting WebApp on port $WEBAPP_PORT..."
+    log "Starting WebApp + Screener on port $WEBAPP_PORT..."
     
     # Ensure port is free
     kill_port $WEBAPP_PORT
     
+    # Check if webapp exists
+    if [ ! -d "webapp" ]; then
+        error "webapp/ directory not found!"
+        return 1
+    fi
+    
     if [ "$daemon" = "true" ]; then
+        # Set JWT secret for webapp
+        export JWT_SECRET=${JWT_SECRET:-"elcaro_jwt_secret_key_2024_v2_secure"}
+        
         nohup $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT >> "$WEBAPP_LOG" 2>&1 &
         echo $! > "$WEBAPP_PID_FILE"
-        sleep 3
-        if is_port_busy $WEBAPP_PORT; then
-            success "WebApp started (PID: $(cat $WEBAPP_PID_FILE)) → http://localhost:$WEBAPP_PORT"
+        sleep 4
+        
+        # Health check
+        local health_check=false
+        for i in {1..10}; do
+            if curl -s http://localhost:$WEBAPP_PORT/health >/dev/null 2>&1; then
+                health_check=true
+                break
+            fi
+            sleep 1
+        done
+        
+        if [ "$health_check" = true ]; then
+            success "WebApp started (PID: $(cat $WEBAPP_PID_FILE))"
+            log "  → Terminal:  http://localhost:$WEBAPP_PORT/terminal"
+            log "  → Screener:  http://localhost:$WEBAPP_PORT/screener"
+            log "  → API Docs:  http://localhost:$WEBAPP_PORT/api/docs"
+            log "  → Health:    http://localhost:$WEBAPP_PORT/health"
         else
             error "WebApp failed to start! Check $WEBAPP_LOG"
+            tail -20 "$WEBAPP_LOG"
             return 1
         fi
     else
+        log "Starting in foreground with hot reload (Ctrl+C to stop)..."
+        export JWT_SECRET=${JWT_SECRET:-"elcaro_jwt_secret_key_2024_v2_secure"}
         $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT --reload 2>&1 | tee -a "$WEBAPP_LOG"
     fi
 }
@@ -537,32 +586,91 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 
 echo ""
-echo -e "${BOLD}Starting services...${NC}"
-echo -e "─────────────────────────────────────────"
+echo -e "${BOLD}${CYAN}Starting services in optimal order...${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
 if [ "$BOT_ONLY" = true ]; then
+    # Start bot only
     start_bot "$DAEMON"
+    
 elif [ "$WEBAPP_ONLY" = true ]; then
+    # Start webapp only
     start_webapp "$DAEMON"
+    
 else
-    # Start all services
+    # Start all services in proper sequence
     if [ "$DAEMON" = true ]; then
-        start_bot "true"
-        start_webapp "true"
-        
-        # Start tunnel (tries Cloudflare first, falls back to ngrok)
-        start_cloudflare
+        echo ""
+        log "${BOLD}Step 1/4:${NC} Starting Telegram Bot..."
+        start_bot "true" || {
+            error "Bot startup failed! Aborting."
+            exit 1
+        }
         
         echo ""
-        echo -e "─────────────────────────────────────────"
-        success "All services started!"
+        log "${BOLD}Step 2/4:${NC} Starting WebApp + Screener..."
+        start_webapp "true" || {
+            error "WebApp startup failed! Stopping bot and aborting."
+            stop_bot
+            exit 1
+        }
+        
+        echo ""
+        log "${BOLD}Step 3/4:${NC} Starting Cloudflare Tunnel..."
+        start_cloudflare || {
+            warn "Tunnel failed, services still accessible locally"
+        }
+        
+        echo ""
+        log "${BOLD}Step 4/4:${NC} Final health checks..."
+        sleep 2
+        
+        # Final verification
+        all_ok=true
+        if ! get_pid "$BOT_PID_FILE" >/dev/null; then
+            error "Bot died after startup!"
+            all_ok=false
+        fi
+        if ! is_port_busy $WEBAPP_PORT; then
+            error "WebApp died after startup!"
+            all_ok=false
+        fi
+        
+        echo ""
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        if [ "$all_ok" = true ]; then
+            success "${BOLD}All services started successfully!${NC}"
+        else
+            error "${BOLD}Some services failed! Check logs.${NC}"
+        fi
         echo ""
         show_status
-    else
-        # Foreground mode - start webapp only (bot needs separate terminal)
-        warn "Foreground mode: Starting WebApp only"
-        warn "Run bot in separate terminal: ./start.sh --bot"
+        
+        # Show useful commands
         echo ""
+        echo -e "${BOLD}${CYAN}Quick Commands:${NC}"
+        echo -e "  ${YELLOW}./start.sh --status${NC}     Check status"
+        echo -e "  ${YELLOW}./start.sh --restart${NC}    Restart all"
+        echo -e "  ${YELLOW}./start.sh --stop${NC}       Stop all"
+        echo -e "  ${YELLOW}tail -f logs/bot.log${NC}    View bot logs"
+        echo -e "  ${YELLOW}tail -f logs/webapp.log${NC} View webapp logs"
+        echo ""
+        
+    else
+        # Foreground mode - start both in parallel
+        warn "${BOLD}Foreground mode:${NC} Both services will run in parallel"
+        warn "Use ${YELLOW}./start.sh --daemon${NC} for background mode"
+        warn "Press ${YELLOW}Ctrl+C${NC} to stop all services"
+        echo ""
+        
+        # Trap Ctrl+C to stop all
+        trap 'echo ""; warn "Stopping all services..."; stop_all; exit 0' INT TERM
+        
+        # Start bot in background for foreground mode
+        start_bot "true"
+        sleep 2
+        
+        # Start webapp in foreground (blocks)
         start_webapp "false"
     fi
 fi

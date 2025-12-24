@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Ahoj! Vyber akci:',
+    'no_strategies':               '❌ Žádné',
     'guide_caption':               '📚 Uživatelská příručka Trading Bota\n\nPřečtěte si tuto příručku, abyste se naučili konfigurovat strategie a efektivně používat bota.',
     'privacy_caption':             '📜 Zásady ochrany osobních údajů a podmínky použití\n\nPečlivě si přečtěte tento dokument.',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             'Vyber jazyk:',
     'language_set':                'Jazyk nastaven na:',
     'lang_en':                     'English',
-    'lang_cs':                     'Čeština',
 
     # Manual order
     'order_type_prompt':           'Vyber typ příkazu:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *AI dělá práci za vás!*',
-    'elcaro_ai_params_header': 'Následující je analyzováno z každého signálu:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • Páka • Časový rámec',
 
     # Leverage settings
     'param_leverage': '⚡ Páka',

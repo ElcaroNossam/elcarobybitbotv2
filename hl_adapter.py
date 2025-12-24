@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional, List
 
 from hyperliquid import HyperLiquidClient, HyperLiquidError, coin_to_asset_id
-
+from models import Position, Order, Balance, OrderResult, OrderSide, PositionSide
 
 logger = logging.getLogger(__name__)
 

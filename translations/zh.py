@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 你好！请选择操作：',
+    'no_strategies':               '❌ 无',
     'guide_caption':               '📚 交易机器人用户指南\n\n请阅读此指南，了解如何配置策略并有效使用机器人。',
     'privacy_caption':             '📜 隐私政策和使用条款\n\n请仔细阅读本文档。',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             '选择语言：',
     'language_set':                '语言已设置为：',
     'lang_en':                     'English',
-    'lang_zh':                     '中文',
 
     # Manual order
     'order_type_prompt':           '选择订单类型：',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *AI替你完成工作！*',
-    'elcaro_ai_params_header': '从每个信号中解析以下内容:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • 杠杆 • 时间框架',
 
     # Leverage settings
     'param_leverage': '⚡ 杠杆',

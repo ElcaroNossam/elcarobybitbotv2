@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElCaro Trading - Pricing & Subscriptions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <!-- Toast Notifications -->
+    <script src="/static/js/toast-notifications.js"></script>
+    <!-- Modal Dialogs -->
+    <script src="/static/js/modal-dialogs.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-tertiary: #16161f;
+            --bg-card: #16161f;
+            --bg-hover: #1e1e28;
+            --accent: #6366f1;
+            --accent-purple: #8b5cf6;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.06);
+            color-scheme: dark;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .pricing-header {
+            padding: 80px 20px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            position: relative;
+        }
+        
+        .pricing-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .pricing-header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+        
+        .pricing-header p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Period Toggle */
+        .period-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 40px 0;
+            padding: 0 20px;
+        }
+        
+        .period-btn {
+            padding: 12px 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .period-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        
+        .period-btn.active {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .period-btn .discount-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--green);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        
+        /* Pricing Grid */
+        .pricing-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
+            margin-bottom: 60px;
+        }
+        
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent);
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.2);
+        }
+        
+        .pricing-card.featured {
+            border: 2px solid var(--accent);
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.05) 0%, var(--bg-card) 100%);
+        }
+        
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .plan-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        
+        .plan-price {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .price-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .price-currency {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .price-period {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        
+        .savings {
+            font-size: 0.85rem;
+            color: var(--green);
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+        
+        .features-list {
+            list-style: none;
+            margin: 32px 0;
+        }
+        
+        .features-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+        
+        .features-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-icon {
+            color: var(--green);
+            font-size: 1.1rem;
+        }
+        
+        .feature-disabled {
+            opacity: 0.4;
+        }
+        
+        .feature-disabled .feature-icon {
+            color: var(--text-muted);
+        }
+        
+        /* CTA Buttons */
+        .cta-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        
+        /* Payment Modal */
+        .payment-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        
+        .payment-modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        .payment-methods {
+            display: grid;
+            gap: 12px;
+            margin: 24px 0;
+        }
+        
+        .payment-method {
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .payment-method:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover);
+        }
+        
+        .payment-method.selected {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        
+        .payment-icon {
+            font-size: 2rem;
+        }
+        
+        .payment-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        
+        .payment-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .order-summary {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .summary-row:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .pricing-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .period-toggle {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pricing-header">
+        <h1>🚀 Choose Your Plan</h1>
+        <p>Select the perfect plan for your trading journey. All plans include core features.</p>
+    </div>
+    
+    <!-- Period Toggle -->
+    <div class="period-toggle">
+        <button class="period-btn active" data-period="monthly" onclick="changePeriod('monthly')">
+            Monthly
+        </button>
+        <button class="period-btn" data-period="quarterly" onclick="changePeriod('quarterly')">
+            Quarterly
+            <span class="discount-badge">-10%</span>
+        </button>
+        <button class="period-btn" data-period="yearly" onclick="changePeriod('yearly')">
+            Yearly
+            <span class="discount-badge">-25%</span>
+        </button>
+    </div>
+    
+    <!-- Pricing Cards -->
+    <div class="pricing-container">
+        <div class="pricing-grid" id="pricingGrid">
+            <!-- Cards will be generated dynamically -->
+        </div>
+    </div>
+    
+    <!-- Payment Modal -->
+    <div class="payment-modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Complete Purchase</h2>
+                <button class="close-btn" onclick="closePaymentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="order-summary" id="orderSummary">
+                <!-- Order details will be filled dynamically -->
+            </div>
+            
+            <h3 style="margin: 24px 0 16px;">Select Payment Method</h3>
+            
+            <div class="payment-methods">
+                <div class="payment-method" onclick="selectPayment('ton')">
+                    <div class="payment-icon">💎</div>
+                    <div class="payment-info">
+                        <h4>TON Wallet</h4>
+                        <p>Pay with TON cryptocurrency</p>
+                    </div>
+                </div>
+                
+                <div class="payment-method" onclick="selectPayment('usdt')">
+                    <div class="payment-icon">💵</div>
+                    <div class="payment-info">
+                        <h4>USDT (TON)</h4>
+                        <p>Pay with jUSDT on TON chain</p>
+                    </div>
+                </div>
+                
+                <div class="payment-method" onclick="selectPayment('web3')">
+                    <div class="payment-icon">🦊</div>
+                    <div class="payment-info">
+                        <h4>MetaMask / Web3</h4>
+                        <p>Connect your Ethereum wallet</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%; margin-top: 24px;" onclick="processPayment()">
+                <i class="fas fa-lock"></i>
+                Proceed to Payment
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Pricing Data
+        const pricingPlans = {
+            trial: {
+                name: 'Trial',
+                description: 'Try all features for 7 days',
+                monthly: 0,
+                quarterly: 0,
+                yearly: 0,
+                features: [
+                    { text: 'Demo Trading Only', enabled: true },
+                    { text: 'All Strategies Access', enabled: true },
+                    { text: 'Basic Analytics', enabled: true },
+                    { text: 'Community Support', enabled: true },
+                    { text: 'Real Trading', enabled: false },
+                    { text: 'Advanced Backtesting', enabled: false },
+                    { text: 'AI Agent', enabled: false },
+                ]
+            },
+            basic: {
+                name: 'Basic',
+                description: 'Perfect for beginners',
+                monthly: 29,
+                quarterly: 78,
+                yearly: 261,
+                features: [
+                    { text: 'Real Trading Access', enabled: true },
+                    { text: 'Basic Strategies (4)', enabled: true },
+                    { text: 'Standard Analytics', enabled: true },
+                    { text: 'Email Support', enabled: true },
+                    { text: 'Bybit Exchange', enabled: true },
+                    { text: 'Premium Strategies', enabled: false },
+                    { text: 'AI Agent', enabled: false },
+                ]
+            },
+            premium: {
+                name: 'Premium',
+                description: 'Full power for professionals',
+                monthly: 99,
+                quarterly: 267,
+                yearly: 891,
+                featured: true,
+                features: [
+                    { text: 'All Strategies (7+)', enabled: true },
+                    { text: 'Multi-Exchange (Bybit, HyperLiquid)', enabled: true },
+                    { text: 'Advanced Backtesting', enabled: true },
+                    { text: 'AI Trading Agent', enabled: true },
+                    { text: 'Advanced Analytics', enabled: true },
+                    { text: 'Priority Support', enabled: true },
+                    { text: 'Custom Strategy Builder', enabled: true },
+                    { text: 'Cold Wallet Trading', enabled: true },
+                ]
+            }
+        };
+        
+        let currentPeriod = 'monthly';
+        let selectedPlan = null;
+        let selectedPaymentMethod = null;
+        
+        // Initialize
+        function init() {
+            renderPricingCards();
+        }
+        
+        // Change Period
+        function changePeriod(period) {
+            currentPeriod = period;
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.period === period) {
+                    btn.classList.add('active');
+                }
+            });
+            renderPricingCards();
+        }
+        
+        // Render Pricing Cards
+        function renderPricingCards() {
+            const grid = document.getElementById('pricingGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(pricingPlans).forEach(([key, plan]) => {
+                const price = plan[currentPeriod];
+                const monthlyEquivalent = currentPeriod === 'quarterly' ? price / 3 : currentPeriod === 'yearly' ? price / 12 : price;
+                const savings = currentPeriod === 'quarterly' ? 10 : currentPeriod === 'yearly' ? 25 : 0;
+                
+                const card = document.createElement('div');
+                card.className = `pricing-card${plan.featured ? ' featured' : ''}`;
+                card.innerHTML = `
+                    ${plan.featured ? '<div class="popular-badge">Most Popular</div>' : ''}
+                    <h3 class="plan-name">${plan.name}</h3>
+                    <p class="plan-description">${plan.description}</p>
+                    <div class="plan-price">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">${price}</span>
+                        <span class="price-period">/${currentPeriod === 'monthly' ? 'mo' : currentPeriod === 'quarterly' ? '3mo' : 'year'}</span>
+                    </div>
+                    ${savings > 0 ? `<div class="savings">💰 Save ${savings}% ($${Math.round(monthlyEquivalent * (savings/100) * (currentPeriod === 'quarterly' ? 3 : 12))}/year)</div>` : ''}
+                    <ul class="features-list">
+                        ${plan.features.map(f => `
+                            <li class="${f.enabled ? '' : 'feature-disabled'}">
+                                <i class="fas ${f.enabled ? 'fa-check' : 'fa-times'} feature-icon"></i>
+                                <span>${f.text}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    <div class="cta-buttons">
+                        ${price === 0 ? 
+                            `<button class="btn btn-secondary" onclick="startTrial()"><i class="fas fa-rocket"></i> Start Trial</button>` :
+                            `<button class="btn btn-primary" onclick="buyPlan('${key}')"><i class="fas fa-shopping-cart"></i> Buy Now</button>`
+                        }
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        // Buy Plan
+        function buyPlan(planKey) {
+            selectedPlan = {
+                key: planKey,
+                ...pricingPlans[planKey],
+                period: currentPeriod,
+                price: pricingPlans[planKey][currentPeriod]
+            };
+            
+            // Fill order summary
+            const summary = document.getElementById('orderSummary');
+            summary.innerHTML = `
+                <div class="summary-row">
+                    <span>Plan</span>
+                    <span>${selectedPlan.name}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Period</span>
+                    <span>${currentPeriod}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total</span>
+                    <span>$${selectedPlan.price}</span>
+                </div>
+            `;
+            
+            document.getElementById('paymentModal').classList.add('active');
+        }
+        
+        // Start Trial
+        function startTrial() {
+            // Redirect to terminal with trial activation
+            window.location.href = '/terminal?trial=activate';
+        }
+        
+        // Close Modal
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+            selectedPlan = null;
+            selectedPaymentMethod = null;
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+        }
+        
+        // Select Payment Method
+        function selectPayment(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+        
+        // Process Payment
+        async function processPayment() {
+            if (!selectedPaymentMethod) {
+                showToast('Пожалуйста выберите способ оплаты', 'warning');
+                return;
+            }
+            
+            if (!selectedPlan) {
+                showToast('План не выбран', 'error');
+                return;
+            }
+            
+            try {
+                // Call payment API based on selected method
+                if (selectedPaymentMethod === 'web3') {
+                    await processWeb3Payment();
+                } else if (selectedPaymentMethod === 'ton') {
+                    await processTONPayment();
+                } else if (selectedPaymentMethod === 'usdt') {
+                    await processUSDTPayment();
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showToast('Ошибка оплаты: ' + error.message, 'error');
+            }
+        }
+        
+        // Web3 Payment
+        async function processWeb3Payment() {
+            if (!window.ethereum) {
+                alert('Please install MetaMask');
+                return;
+            }
+            
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const web3 = new Web3(window.ethereum);
+                const accounts = await web3.eth.getAccounts();
+                
+                // Call backend API to create payment
+                const response = await fetch('/api/payments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan: selectedPlan.key,
+                        period: selectedPlan.period,
+                        amount: selectedPlan.price,
+                        payment_method: 'web3',
+                        wallet_address: accounts[0]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Payment successful! Redirecting...');
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error(data.error || 'Payment failed');
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // TON Payment
+        async function processTONPayment() {
+            alert('TON payment integration coming soon!');
+            // Implement TON payment logic
+        }
+        
+        // USDT Payment
+        async function processUSDTPayment() {
+            alert('USDT payment integration coming soon!');
+            // Implement USDT payment logic
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

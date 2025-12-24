@@ -73,6 +73,80 @@ class BacktestResponse(BaseModel):
     success: bool
     results: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    backtest_id: Optional[str] = None  # For WebSocket tracking
+
+
+@router.post("/run-async")
+async def run_backtest_async(request: BacktestRequest):
+    """Run backtest asynchronously with WebSocket progress updates"""
+    try:
+        from webapp.api.backtest_ws import create_backtest_session, send_progress, send_result, send_error, is_backtest_cancelled
+        from webapp.services.backtest_engine import RealBacktestEngine
+        
+        # Create backtest session
+        backtest_id = create_backtest_session(request.dict())
+        
+        # Start backtest in background
+        asyncio.create_task(run_backtest_with_progress(backtest_id, request))
+        
+        return {
+            "success": True,
+            "backtest_id": backtest_id,
+            "message": "Backtest started. Connect to WebSocket for progress updates."
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+async def run_backtest_with_progress(backtest_id: str, request: BacktestRequest):
+    """Run backtest with progress updates via WebSocket"""
+    try:
+        from webapp.api.backtest_ws import send_progress, send_result, send_error, is_backtest_cancelled
+        from webapp.services.backtest_engine import RealBacktestEngine
+        
+        engine = RealBacktestEngine()
+        all_results = {}
+        
+        total_strategies = len(request.strategies)
+        
+        for idx, strategy in enumerate(request.strategies):
+            # Check if cancelled
+            if is_backtest_cancelled(backtest_id):
+                await send_error(backtest_id, "Backtest cancelled by user")
+                return
+            
+            # Send progress
+            progress = (idx / total_strategies) * 100
+            await send_progress(
+                backtest_id,
+                progress,
+                f"Testing strategy: {strategy}",
+                {"current_strategy": strategy, "completed": idx, "total": total_strategies}
+            )
+            
+            # Run backtest for this strategy
+            result = await engine.run_backtest(
+                strategy=strategy,
+                symbol=request.symbol,
+                timeframe=request.timeframe,
+                days=request.days,
+                initial_balance=request.initial_balance,
+                risk_per_trade=request.risk_per_trade,
+                stop_loss_percent=request.stop_loss_percent,
+                take_profit_percent=request.take_profit_percent
+            )
+            all_results[strategy] = result
+        
+        # Send final results
+        await send_progress(backtest_id, 100, "Completed", {"completed": total_strategies, "total": total_strategies})
+        await send_result(backtest_id, all_results)
+        
+    except Exception as e:
+        await send_error(backtest_id, str(e))
 
 
 @router.post("/run")

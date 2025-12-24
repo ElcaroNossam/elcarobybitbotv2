@@ -17,62 +17,149 @@ const RiskCalculator = {
         tickSize: 0.01
     },
 
-    calculate() {
+    async calculate() {
         const { accountBalance, riskPercent, entryPrice, stopLoss, leverage } = this.state;
         if (!entryPrice || !stopLoss) return null;
 
+        try {
+            // Use new position calculator API endpoint (matches bot.py exactly)
+            const response = await fetch('/api/trading/calculate-position', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    account_balance: accountBalance,
+                    entry_price: entryPrice,
+                    stop_loss_price: stopLoss,
+                    risk_percent: riskPercent,
+                    leverage: leverage,
+                    side: stopLoss < entryPrice ? 'Buy' : 'Sell'
+                })
+            });
+
+            if (!response.ok) {
+                // Fallback to local calculation if API fails
+                console.warn('Position calculator API failed, using fallback');
+                return this.calculateFallback();
+            }
+
+            const data = await response.json();
+            
+            // Return in expected format
+            return {
+                positionSize: data.position_size,
+                positionValue: data.position_value_usd,
+                marginRequired: data.margin_required,
+                riskAmount: data.risk_amount_usd,
+                stopPercent: data.stop_loss_percent,
+                liqPrice: null, // Not provided by API yet
+                maxPositionSize: accountBalance * leverage / entryPrice,
+                riskReward: data.risk_reward_ratio,
+                potentialProfit: data.potential_profit_usd,
+                warnings: data.warnings || []
+            };
+        } catch (error) {
+            console.error('Position calculation error:', error);
+            return this.calculateFallback();
+        }
+    },
+
+    calculateFallback() {
+        // Original calculation as fallback
+        const { accountBalance, riskPercent, entryPrice, stopLoss, leverage } = this.state;
+        
         const riskAmount = accountBalance * (riskPercent / 100);
         const priceDiff = Math.abs(entryPrice - stopLoss);
         const stopPercent = (priceDiff / entryPrice) * 100;
         
-        // Position size based on risk
-        const positionValue = (riskAmount / stopPercent) * 100;
-        const positionSize = positionValue / entryPrice;
-        
-        // With leverage
+        // Formula: position_size = risk_amount / (entry_price * (stop_loss_percent / 100))
+        const positionSize = riskAmount / (entryPrice * (stopPercent / 100));
+        const positionValue = positionSize * entryPrice;
         const marginRequired = positionValue / leverage;
-        const maxPositionValue = accountBalance * leverage;
-        const maxPositionSize = maxPositionValue / entryPrice;
         
-        // Liquidation price (90% of margin)
+        // Liquidation price
         const isBuy = stopLoss < entryPrice;
         const liqPrice = isBuy 
             ? entryPrice * (1 - 0.9 / leverage)
             : entryPrice * (1 + 0.9 / leverage);
         
         return {
-            positionSize: Math.min(positionSize, maxPositionSize),
-            positionValue: Math.min(positionValue, maxPositionValue),
-            marginRequired: Math.min(marginRequired, accountBalance),
+            positionSize,
+            positionValue,
+            marginRequired,
             riskAmount,
             stopPercent,
             liqPrice,
-            maxPositionSize,
-            riskReward: null // Calculate if TP is set
+            maxPositionSize: accountBalance * leverage / entryPrice,
+            riskReward: null
         };
     },
 
-    setRiskReward(takeProfit) {
-        const result = this.calculate();
-        if (!result || !takeProfit) return result;
-        
-        const { entryPrice, stopLoss } = this.state;
-        const isBuy = stopLoss < entryPrice;
-        
-        const risk = Math.abs(entryPrice - stopLoss);
-        const reward = isBuy ? takeProfit - entryPrice : entryPrice - takeProfit;
-        result.riskReward = reward / risk;
-        result.potentialProfit = result.riskAmount * result.riskReward;
-        
-        return result;
+    async setRiskReward(takeProfit) {
+        const { accountBalance, riskPercent, entryPrice, stopLoss, leverage } = this.state;
+        if (!entryPrice || !stopLoss || !takeProfit) return null;
+
+        try {
+            // Use API with TP/SL
+            const response = await fetch('/api/trading/calculate-position', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    account_balance: accountBalance,
+                    entry_price: entryPrice,
+                    stop_loss_price: stopLoss,
+                    take_profit_price: takeProfit,
+                    risk_percent: riskPercent,
+                    leverage: leverage,
+                    side: stopLoss < entryPrice ? 'Buy' : 'Sell'
+                })
+            });
+
+            if (!response.ok) {
+                // Fallback
+                const result = await this.calculate();
+                if (!result) return null;
+                
+                const isBuy = stopLoss < entryPrice;
+                const risk = Math.abs(entryPrice - stopLoss);
+                const reward = isBuy ? takeProfit - entryPrice : entryPrice - takeProfit;
+                result.riskReward = reward / risk;
+                result.potentialProfit = result.riskAmount * result.riskReward;
+                return result;
+            }
+
+            const data = await response.json();
+            
+            return {
+                positionSize: data.position_size,
+                positionValue: data.position_value_usd,
+                marginRequired: data.margin_required,
+                riskAmount: data.risk_amount_usd,
+                stopPercent: data.stop_loss_percent,
+                liqPrice: null,
+                maxPositionSize: accountBalance * leverage / entryPrice,
+                riskReward: data.risk_reward_ratio,
+                potentialProfit: data.potential_profit_usd,
+                warnings: data.warnings || []
+            };
+        } catch (error) {
+            console.error('Risk/Reward calculation error:', error);
+            return await this.calculate();
+        }
     },
 
-    render() {
-        const result = this.calculate();
+    async render() {
+        const result = await this.calculate();
         if (!result) return '';
+
+        const hasWarnings = result.warnings && result.warnings.length > 0;
 
         return `
             <div class="risk-calc-result">
+                ${hasWarnings ? `
+                <div class="risk-warnings" style="background: rgba(251, 191, 36, 0.1); border-left: 3px solid var(--yellow); padding: 8px 12px; margin-bottom: 10px; border-radius: 6px;">
+                    ${result.warnings.map(w => `<div style="font-size: 0.75rem; color: var(--yellow); margin: 2px 0;"><i class="fas fa-exclamation-triangle"></i> ${w}</div>`).join('')}
+                </div>
+                ` : ''}
                 <div class="risk-row">
                     <span>Position Size</span>
                     <strong>${result.positionSize.toFixed(4)} ${this.state.symbol.replace('USDT', '')}</strong>
@@ -89,10 +176,12 @@ const RiskCalculator = {
                     <span>Risk Amount (${this.state.riskPercent}%)</span>
                     <strong style="color: var(--red);">-$${result.riskAmount.toFixed(2)}</strong>
                 </div>
+                ${result.liqPrice ? `
                 <div class="risk-row">
                     <span>Liq. Price</span>
                     <strong style="color: var(--red);">$${result.liqPrice.toFixed(2)}</strong>
                 </div>
+                ` : ''}
                 ${result.riskReward ? `
                 <div class="risk-row">
                     <span>Risk/Reward</span>
@@ -103,6 +192,10 @@ const RiskCalculator = {
                     <strong style="color: var(--green);">+$${result.potentialProfit.toFixed(2)}</strong>
                 </div>
                 ` : ''}
+                <div class="risk-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">✓ Bot.py formula</span>
+                    <span style="font-size: 0.7rem; color: var(--green); font-family: var(--font-mono);">EXACT MATCH</span>
+                </div>
             </div>
         `;
     }

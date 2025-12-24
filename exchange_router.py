@@ -259,3 +259,86 @@ async def get_balance_universal(user_id: int, bybit_get_balance_func=None) -> di
         if bybit_get_balance_func:
             return await bybit_get_balance_func(user_id)
         return {"equity": 0, "available": 0, "margin_used": 0, "unrealized_pnl": 0}
+
+
+# ===========================
+# Utility Functions
+# ===========================
+
+def normalize_symbol_for_hl(symbol: str) -> str:
+    """
+    Normalize symbol for HyperLiquid format.
+    Bybit: BTCUSDT -> HyperLiquid: BTC
+    """
+    if symbol.endswith("USDT"):
+        return symbol[:-4]
+    if symbol.endswith("USDC"):
+        return symbol[:-4]
+    return symbol
+
+
+def convert_side_for_hl(side: str) -> str:
+    """
+    Convert Bybit side format to HyperLiquid format.
+    Bybit: Buy/Sell -> HyperLiquid: BUY/SELL
+    """
+    side_map = {
+        "Buy": "BUY",
+        "Sell": "SELL",
+        "buy": "BUY",
+        "sell": "SELL",
+    }
+    return side_map.get(side, side.upper())
+
+
+def convert_order_type_for_hl(order_type: str) -> str:
+    """
+    Convert Bybit order type to HyperLiquid format.
+    Bybit: Market/Limit -> HyperLiquid: MARKET/LIMIT
+    """
+    type_map = {
+        "Market": "MARKET",
+        "Limit": "LIMIT",
+        "market": "MARKET",
+        "limit": "LIMIT",
+    }
+    if order_type not in type_map:
+        raise ValueError(f"Invalid order type: {order_type}")
+    return type_map[order_type]
+
+
+def normalize_response(response: dict, exchange: str) -> dict:
+    """
+    Normalize exchange response to unified format.
+    
+    Args:
+        response: Raw exchange API response
+        exchange: 'bybit' or 'hyperliquid'
+    
+    Returns:
+        Normalized dict with 'success', 'data', 'error' keys
+    """
+    if exchange == "bybit":
+        # Bybit format: {"retCode": 0, "retMsg": "OK", "result": {...}}
+        return {
+            "success": response.get("retCode") == 0,
+            "data": response.get("result", {}),
+            "error": response.get("retMsg") if response.get("retCode") != 0 else None
+        }
+    
+    elif exchange == "hyperliquid":
+        # HyperLiquid format: {"status": "ok", "response": {...}}
+        return {
+            "success": response.get("status") == "ok",
+            "data": response.get("response", {}),
+            "error": response.get("error") if response.get("status") != "ok" else None
+        }
+    
+    else:
+        # Unknown exchange - pass through
+        return {
+            "success": response.get("success", False),
+            "data": response.get("data", response),
+            "error": response.get("error")
+        }
+

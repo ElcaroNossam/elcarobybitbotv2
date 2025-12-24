@@ -12,9 +12,11 @@ import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from exchanges.base import (
-    BaseExchange, Balance, Position, Order, OrderResult,
-    OrderSide, OrderType, PositionSide
+from exchanges.base import BaseExchange
+from models import (
+    Balance, Position, Order, OrderResult,
+    OrderSide, OrderType, PositionSide, OrderStatus,
+    normalize_symbol as unified_normalize_symbol
 )
 
 logger = logging.getLogger(__name__)

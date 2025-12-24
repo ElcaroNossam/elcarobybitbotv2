@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Përshëndetje! Zgjidh një veprim:',
+    'no_strategies':               '❌ Asnjë',
     'guide_caption':               '📚 Udhëzuesi i Përdoruesit të Botit\n\nLexoni këtë udhëzues për të mësuar si të konfiguroni strategjitë dhe të përdorni botin në mënyrë efektive.',
     'privacy_caption':             '📜 Politika e Privatësisë dhe Kushtet e Përdorimit\n\nJu lutemi lexoni këtë dokument me kujdes.',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             'Zgjidh gjuhën:',
     'language_set':                'Gjuha u vendos në:',
     'lang_en':                     'English',
-    'lang_sq':                     'Shqip',
 
     # Manual order
     'order_type_prompt':           'Zgjidh llojin e urdhrit:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *AI bën punën për ju!*',
-    'elcaro_ai_params_header': 'Nga çdo sinjal analizohen:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • Leverage • Korniza kohore',
 
     # Leverage settings
     'param_leverage': '⚡ Leva',

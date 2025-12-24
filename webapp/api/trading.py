@@ -19,6 +19,25 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from hl_adapter import HLAdapter
 
+# NEW: Use services integration layer
+try:
+    from webapp.services_integration import (
+        get_positions_service, get_balance_service,
+        place_order_service, close_position_service, set_leverage_service
+    )
+    SERVICES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Services integration not available: {e}")
+    SERVICES_AVAILABLE = False
+
+# Import position calculator
+try:
+    from webapp.services.position_calculator import position_calculator
+    POSITION_CALCULATOR_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Position calculator not available: {e}")
+    POSITION_CALCULATOR_AVAILABLE = False
+
 router = APIRouter()
 
 # Import auth dependencies
@@ -28,6 +47,46 @@ from webapp.api.auth import get_current_user
 BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
 
+
+# ==================== POSITION CALCULATOR MODELS ====================
+
+class CalculatePositionRequest(BaseModel):
+    """Request for position size calculation"""
+    account_balance: float
+    entry_price: float
+    stop_loss_price: Optional[float] = None
+    stop_loss_percent: Optional[float] = None
+    risk_percent: float = 1.0
+    leverage: int = 10
+    side: str = "Buy"  # 'Buy' or 'Sell'
+    take_profit_price: Optional[float] = None
+    take_profit_percent: Optional[float] = None
+    
+    # Exchange limits (optional)
+    min_order_size: Optional[float] = None
+    max_order_size: Optional[float] = None
+    qty_step: Optional[float] = None
+
+
+class PositionCalculationResponse(BaseModel):
+    """Response from position calculator"""
+    position_size: float
+    position_value_usd: float
+    margin_required: float
+    risk_amount_usd: float
+    stop_loss_price: float
+    stop_loss_percent: float
+    take_profit_price: Optional[float] = None
+    take_profit_percent: Optional[float] = None
+    potential_profit_usd: Optional[float] = None
+    risk_reward_ratio: Optional[float] = None
+    max_loss_usd: float
+    margin_ratio: float
+    is_valid: bool = True
+    warnings: List[str] = []
+
+
+# ==================== OTHER MODELS ====================
 
 class ClosePositionRequest(BaseModel):
     symbol: str
@@ -161,6 +220,18 @@ async def get_balance(
     """Get account balance for specified exchange."""
     user_id = user["user_id"]
     
+    # NEW: Use services integration if available
+    if SERVICES_AVAILABLE:
+        try:
+            result = await get_balance_service(user_id, exchange, account_type)
+            if result.get("success"):
+                return result["data"]
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": result.get("error")}
+        except Exception as e:
+            logger.error(f"Services balance error: {e}")
+            # Fall through to old code
+    
+    # OLD CODE (fallback)
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         if not hl_creds.get("hl_private_key"):
@@ -228,6 +299,18 @@ async def get_positions(
     """Get open positions for specified exchange."""
     user_id = user["user_id"]
     
+    # NEW: Use services integration if available
+    if SERVICES_AVAILABLE:
+        try:
+            result = await get_positions_service(user_id, exchange, account_type)
+            if result.get("success"):
+                return result["data"]
+            return []
+        except Exception as e:
+            logger.error(f"Services positions error: {e}")
+            # Fall through to old code
+    
+    # OLD CODE (fallback)
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         if not hl_creds.get("hl_private_key"):
@@ -361,6 +444,18 @@ async def close_position(
     """Close a specific position."""
     user_id = user["user_id"]
     
+    # NEW: Use services integration if available
+    if SERVICES_AVAILABLE:
+        try:
+            result = await close_position_service(user_id, req.symbol, req.exchange, req.account_type)
+            if result.get("success"):
+                return {"success": True, "message": result.get("message")}
+            return {"success": False, "error": result.get("error")}
+        except Exception as e:
+            logger.error(f"Services close error: {e}")
+            # Fall through to old code
+    
+    # OLD CODE (fallback)
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         if not hl_creds.get("hl_private_key"):
@@ -1324,60 +1419,90 @@ async def _place_single_order_hl(user_id: int, symbol: str, side: str, order_typ
 
 
 @router.post("/calculate-position")
-async def calculate_position_size(req: RiskCalcRequest):
-    """Calculate optimal position size based on risk parameters"""
+async def calculate_position_size(req: CalculatePositionRequest):
+    """
+    Calculate optimal position size based on risk parameters.
+    Matches bot.py exact formulas for consistency.
     
-    # Calculate price difference for stop loss
-    price_diff = abs(req.entry_price - req.stop_loss_price)
-    stop_percent = (price_diff / req.entry_price) * 100
-    
-    if stop_percent <= 0:
-        return {"error": "Invalid stop loss price"}
-    
-    # Risk amount in account currency
-    risk_amount = req.account_balance * (req.risk_percent / 100)
-    
-    # Position value based on risk
-    position_value = (risk_amount / stop_percent) * 100
-    position_size = position_value / req.entry_price
-    
-    # With leverage
-    margin_required = position_value / req.leverage
-    max_position_value = req.account_balance * req.leverage
-    max_position_size = max_position_value / req.entry_price
-    
-    # Limit to max if over-leveraged
-    if position_value > max_position_value:
-        position_value = max_position_value
-        position_size = max_position_size
-        margin_required = req.account_balance
-    
-    # Liquidation price (assuming 90% margin maintenance)
-    is_long = req.stop_loss_price < req.entry_price
-    liq_price = req.entry_price * (1 - 0.9 / req.leverage) if is_long else req.entry_price * (1 + 0.9 / req.leverage)
-    
-    result = {
-        "position_size": round(position_size, 6),
-        "position_value": round(position_value, 2),
-        "margin_required": round(margin_required, 2),
-        "risk_amount": round(risk_amount, 2),
-        "stop_percent": round(stop_percent, 2),
-        "liquidation_price": round(liq_price, 2),
-        "max_position_size": round(max_position_size, 6),
-        "side": "long" if is_long else "short"
-    }
-    
-    # Calculate risk/reward if take profit provided
-    if req.take_profit_price:
-        reward_diff = abs(req.take_profit_price - req.entry_price)
-        risk_reward_ratio = reward_diff / price_diff if price_diff > 0 else 0
-        potential_profit = risk_amount * risk_reward_ratio
+    Args:
+        req: Position calculation request with balance, entry, stop loss, risk%, leverage
         
-        result["risk_reward_ratio"] = round(risk_reward_ratio, 2)
-        result["potential_profit"] = round(potential_profit, 2)
-        result["expected_value"] = round(potential_profit - risk_amount, 2)  # Simplified
+    Returns:
+        Complete position calculation with size, margin, risk/reward, warnings
+    """
+    if not POSITION_CALCULATOR_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Position calculator service unavailable")
     
-    return result
+    try:
+        # Determine if using price or percent for stop loss
+        if req.stop_loss_price is not None:
+            # Calculate from price
+            result = position_calculator.calculate(
+                account_balance=req.account_balance,
+                entry_price=req.entry_price,
+                stop_loss_price=req.stop_loss_price,
+                risk_percent=req.risk_percent,
+                leverage=req.leverage,
+                side=req.side,
+                take_profit_price=req.take_profit_price
+            )
+        elif req.stop_loss_percent is not None:
+            # Calculate from percent
+            result = position_calculator.calculate_from_percent(
+                account_balance=req.account_balance,
+                entry_price=req.entry_price,
+                stop_loss_percent=req.stop_loss_percent,
+                risk_percent=req.risk_percent,
+                leverage=req.leverage,
+                side=req.side,
+                take_profit_percent=req.take_profit_percent
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Either stop_loss_price or stop_loss_percent must be provided"
+            )
+        
+        # Validate against exchange limits if provided
+        warnings = []
+        if req.min_order_size and result.position_size < req.min_order_size:
+            warnings.append(f"Position size {result.position_size} below minimum {req.min_order_size}")
+        
+        if req.max_order_size and result.position_size > req.max_order_size:
+            warnings.append(f"Position size {result.position_size} exceeds maximum {req.max_order_size}")
+        
+        # Round to qty_step if provided
+        final_size = result.position_size
+        if req.qty_step:
+            final_size = round(result.position_size / req.qty_step) * req.qty_step
+            if abs(final_size - result.position_size) > 0.0001:
+                warnings.append(f"Position size rounded from {result.position_size} to {final_size} (qty_step: {req.qty_step})")
+        
+        # Build response
+        response = PositionCalculationResponse(
+            position_size=final_size,
+            position_value_usd=result.position_value_usd,
+            margin_required=result.margin_required,
+            risk_amount_usd=result.risk_amount_usd,
+            stop_loss_price=result.stop_loss_price,
+            stop_loss_percent=result.stop_loss_percent,
+            take_profit_price=result.take_profit_price,
+            take_profit_percent=result.take_profit_percent,
+            potential_profit_usd=result.potential_profit_usd,
+            risk_reward_ratio=result.risk_reward_ratio,
+            max_loss_usd=result.max_loss_usd,
+            margin_ratio=result.margin_ratio,
+            is_valid=len(warnings) == 0,
+            warnings=warnings
+        )
+        
+        return response.dict()
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Position calculation error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Calculation failed: {str(e)}")
 
 
 @router.get("/symbol-info/{symbol}")

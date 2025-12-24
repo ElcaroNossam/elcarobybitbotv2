@@ -1,34 +1,114 @@
-# Elcaro Bybit Trading Bot v2
+# ElCaro Trading Platform v2.1.0
 
-Async Telegram trading bot for Bybit cryptocurrency futures.
+**Multi-exchange async trading bot + WebApp + Real-time Screener**
 
-## Server Setup
+Supported Exchanges: Bybit, HyperLiquid  
+Markets: Futures, Spot  
+Features: Telegram Bot, Web Terminal, Live Screener, AI Agent, Backtesting
+
+---
+
+## 🚀 Quick Start (Updated Dec 23, 2025)
+
+### Local Development
+
+```bash
+# 1. Clone and setup
+cd bybit_demo/
+cp .env.example .env
+nano .env  # Add TELEGRAM_TOKEN and SIGNAL_CHANNEL_IDS
+
+# 2. Install dependencies
+./start.sh --install
+
+# 3. Start all services (daemon mode)
+./start.sh --daemon
+# or simply
+./start.sh --restart
+```
+
+**Services Started:**
+- ✅ Telegram Bot (PID tracked)
+- ✅ WebApp on port 8765 (with health checks)
+- ✅ Real-time Screener (WebSocket updates every 3s)
+- ✅ Cloudflare Tunnel (auto-generated public URL)
+
+---
+
+## 📋 Commands (start.sh v2.1.0)
+
+| Command | Description |
+|---------|-------------|
+| `./start.sh --daemon` | Start all services in background |
+| `./start.sh --restart` | Restart all services |
+| `./start.sh --status` | Show service status |
+| `./start.sh --stop` | Stop all services |
+| `./start.sh --bot` | Start only Telegram bot |
+| `./start.sh --webapp` | Start only WebApp |
+| `./start.sh --install` | Install/update dependencies |
+| `./start.sh --clean` | Clean caches and temp files |
+| `./start.sh --help` | Show all options |
+
+### Examples
+
+```bash
+# Start everything
+./start.sh --restart
+
+# Check if running
+./start.sh --status
+
+# View logs
+tail -f logs/bot.log
+tail -f logs/webapp.log
+
+# Stop everything
+./start.sh --stop
+
+# Development mode (hot reload)
+./start.sh  # foreground mode with --reload
+```
+
+---
+
+## 🌐 Access Points
+
+After `./start.sh --daemon`:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **WebApp** | http://localhost:8765 | Main dashboard |
+| **Terminal** | http://localhost:8765/terminal | Trading terminal |
+| **Screener** | http://localhost:8765/screener | Real-time market data |
+| **API Docs** | http://localhost:8765/api/docs | Swagger UI |
+| **Health** | http://localhost:8765/health | Health check endpoint |
+| **Tunnel** | https://xxx.trycloudflare.com | Public URL (auto) |
+
+---
+
+## 🖥️ Server Setup (Production)
 
 **Path:** `/home/ubuntu/project/elcarobybitbotv2`
 
-### Quick Start
-
+### SSH Connection
 ```bash
-# 1. Go to project folder
+ssh -i rita.pem ubuntu@46.62.211.0
 cd /home/ubuntu/project/elcarobybitbotv2
-
-# 2. Create .env file
-cp .env.example .env
-nano .env  # Fill in TELEGRAM_TOKEN and SIGNAL_CHANNEL_IDS
-
-# 3. Install and run
-./start.sh --install -b
 ```
 
-### Commands
-
+### Deploy Changes
 ```bash
-./start.sh                # Run in foreground
-./start.sh -b             # Run in background
-./start.sh --install -b   # Install deps + run
-./start.sh --status       # Check status
-./start.sh --stop         # Stop bot
-./start.sh --restart      # Restart bot
+# Pull latest changes
+git pull origin main
+
+# Restart services
+./start.sh --restart
+
+# Check status
+./start.sh --status
+
+# View logs
+journalctl -u elcaro-bot -f --no-pager
 ```
 
 ### Systemd (Autostart)

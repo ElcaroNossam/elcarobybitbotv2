@@ -350,7 +350,7 @@ class UnifiedExchangeClient:
 # FACTORY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
-async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None) -> UnifiedExchangeClient:
+async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None, account_type: Optional[str] = None) -> UnifiedExchangeClient:
     """
     Create an exchange client for a user.
     
@@ -358,12 +358,14 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None)
         user_id: Telegram user ID
         exchange_type: Force specific exchange ('bybit' or 'hyperliquid')
                       If None, uses user's preferred exchange
+        account_type: Force account type ('demo', 'real', 'testnet')
+                     If None, uses user's trading_mode setting
     
     Returns:
         UnifiedExchangeClient ready to use
     
     Example:
-        async with await get_exchange_client(user_id) as client:
+        async with await get_exchange_client(user_id, account_type='demo') as client:
             balance = await client.get_balance()
     """
     import db
@@ -384,15 +386,26 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None)
             mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL
         )
     else:
-        trading_mode = db.get_trading_mode(user_id)
-        account_type = "real" if trading_mode == "real" else "demo"
+        # Use explicit account_type if provided, otherwise get from user settings
+        if account_type is None:
+            trading_mode = db.get_trading_mode(user_id)
+            account_type = "real" if trading_mode == "real" else "demo"
+        
         api_key, api_secret = db.get_user_credentials(user_id, account_type)
+        
+        # Support testnet mode
+        if account_type == "testnet":
+            mode = AccountMode.TESTNET
+        elif account_type == "real":
+            mode = AccountMode.REAL
+        else:
+            mode = AccountMode.DEMO
         
         credentials = ExchangeCredentials(
             exchange=ExchangeType.BYBIT,
             api_key=api_key,
             api_secret=api_secret,
-            mode=AccountMode.DEMO if account_type == "demo" else AccountMode.REAL
+            mode=mode
         )
     
     client = UnifiedExchangeClient(credentials)

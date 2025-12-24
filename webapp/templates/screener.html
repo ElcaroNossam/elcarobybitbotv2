@@ -184,6 +184,89 @@
         }
         .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
         .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        
+        /* Market Type Toggle (from scan project) */
+        .market-type-toggle {
+            display: inline-flex;
+            gap: 0.5rem;
+            margin: 0;
+            padding: 0.5rem;
+            background: linear-gradient(135deg, rgba(10, 10, 15, 0.9), rgba(17, 17, 24, 0.9));
+            border-radius: 8px;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+            position: relative;
+        }
+        .market-type-btn {
+            padding: 0.6rem 1.2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            cursor: pointer !important;
+            user-select: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 100px;
+            font-weight: 500;
+            pointer-events: auto !important;
+            touch-action: manipulation;
+        }
+        .market-type-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .market-type-btn.active {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-color: var(--accent);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4), 0 0 30px rgba(139, 92, 246, 0.2);
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Exchange Selector */
+        .exchange-selector {
+            display: inline-flex;
+            gap: 8px;
+            margin: 0;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .exchange-btn {
+            padding: 0.6rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .exchange-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .exchange-btn.active {
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+        }
+        .exchange-icon {
+            font-size: 16px;
+        }
+        
         .search-box {
             flex: 1;
             max-width: 320px;
@@ -386,6 +469,10 @@
             .filters-bar { flex-direction: column; }
             .search-box { max-width: 100%; }
         }
+    
+        .exchange-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+        .exchange-btn.active { background: linear-gradient(135deg, var(--green), #00cc6a); border-color: transparent; color: #000; font-weight: 600; }
+
     </style>
 </head>
 <body>
@@ -399,6 +486,7 @@
         <nav class="nav-links">
             <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/terminal" class="nav-link">Terminal</a>
+            <a href="/backtest" class="nav-link">Backtest</a>
             <a href="/strategies" class="nav-link">Strategies</a>
             <a href="/screener" class="nav-link active">Screener</a>
             <a href="/marketplace" class="nav-link">Marketplace</a>
@@ -443,10 +531,23 @@
         </div>
         
         <div class="filters-bar">
-            <div class="filter-group" id="marketFilter">
-                <button class="filter-btn active" data-market="futures">Futures</button>
-                <button class="filter-btn" data-market="spot">Spot</button>
+            <div class="market-type-toggle" id="marketFilter">
+                <button class="market-type-btn active" data-market="futures" id="btn-futures">Futures</button>
+                <button class="market-type-btn" data-market="spot" id="btn-spot">Spot</button>
             </div>
+            
+            <div class="exchange-selector" id="exchangeFilter">
+                <button class="exchange-btn active" data-exchange="binance" title="Binance">
+                    <i class="fab fa-bitcoin"></i> Binance
+                </button>
+                <button class="exchange-btn" data-exchange="bybit" title="Bybit">
+                    <span class="exchange-icon">⚡</span> Bybit
+                </button>
+                <button class="exchange-btn" data-exchange="okx" title="OKX">
+                    <span class="exchange-icon">🔷</span> OKX
+                </button>
+            </div>
+            
             <div class="filter-group" id="typeFilter">
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="gainers"><i class="fas fa-arrow-up"></i> Gainers</button>
@@ -472,11 +573,17 @@
                                 <tr>
                                     <th data-sort="symbol"># Symbol</th>
                                     <th data-sort="price">Price</th>
+                                    <th data-sort="change1m">1m %</th>
+                                    <th data-sort="change5m">5m %</th>
+                                    <th data-sort="change15m">15m %</th>
                                     <th data-sort="change1h">1h %</th>
                                     <th data-sort="change24h">24h %</th>
-                                    <th data-sort="volume">Volume</th>
-                                    <th data-sort="oi">Open Interest</th>
+                                    <th data-sort="volume15m">Vol 15m</th>
+                                    <th data-sort="volume1h">Vol 1h</th>
+                                    <th data-sort="oi">OI</th>
+                                    <th data-sort="oi_change_15m">OI Δ 15m</th>
                                     <th data-sort="funding">Funding</th>
+                                    <th data-sort="volatility_15m">Volatility</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -518,7 +625,7 @@
     </div>
     
     <script>
-        let marketData = [], sortColumn = 'volume', sortDirection = 'desc', activeFilter = 'all', activeMarket = 'futures', ws = null;
+        let marketData = [], sortColumn = 'volume', sortDirection = 'desc', activeFilter = 'all', activeMarket = 'futures', activeExchange = 'binance', ws = null;
         
         const formatPrice = p => !p ? '$0' : p >= 1000 ? '$' + p.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : p >= 1 ? '$' + p.toFixed(4) : '$' + p.toFixed(6);
         const formatVolume = v => !v ? '$0' : v >= 1e9 ? '$' + (v/1e9).toFixed(2) + 'B' : v >= 1e6 ? '$' + (v/1e6).toFixed(2) + 'M' : '$' + v.toFixed(0);
@@ -531,7 +638,7 @@
             ws.onopen = () => { 
                 document.getElementById('wsStatus').classList.add('connected');
                 document.getElementById('wsStatusText').textContent = 'Live';
-                ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket }));
+                ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket, exchange: activeExchange }));
             };
             ws.onmessage = e => handleData(JSON.parse(e.data));
             ws.onclose = () => {
@@ -605,19 +712,31 @@
             
             tbody.innerHTML = data.slice(0, 100).map((d, i) => {
                 const sym = d.symbol.replace('USDT', '');
+                const c1m = d.change_1m || 0;
+                const c5m = d.change_5m || 0;
+                const c15m = d.change_15m || 0;
                 const c1h = d.change_1h || 0;
                 const c24h = d.change_24h || d.change24h || 0;
-                const vol = d.volume || d.volume24h || 0;
+                const vol15m = d.volume_15m || d.volume || 0;
+                const vol1h = d.volume_1h || d.volume || 0;
                 const oi = d.open_interest || 0;
+                const oi_ch_15m = d.oi_change_15m || 0;
                 const fund = d.funding_rate;
+                const vol_15m = d.volatility_15m || 0;
                 return `<tr onclick="location.href='/terminal?symbol=${d.symbol}'">
                     <td><div class="symbol-cell"><span class="symbol-rank">${i+1}</span><div class="symbol-icon">${sym.slice(0,2)}</div><div><div class="symbol-name">${sym}</div><div class="symbol-base">USDT Perp</div></div></div></td>
                     <td class="price-cell">${formatPrice(d.price)}</td>
+                    <td><span class="change-cell ${c1m >= 0 ? 'positive' : 'negative'}">${formatPercent(c1m)}</span></td>
+                    <td><span class="change-cell ${c5m >= 0 ? 'positive' : 'negative'}">${formatPercent(c5m)}</span></td>
+                    <td><span class="change-cell ${c15m >= 0 ? 'positive' : 'negative'}">${formatPercent(c15m)}</span></td>
                     <td><span class="change-cell ${c1h >= 0 ? 'positive' : 'negative'}">${formatPercent(c1h)}</span></td>
                     <td><span class="change-cell ${c24h >= 0 ? 'positive' : 'negative'}">${formatPercent(c24h)}</span></td>
-                    <td class="volume-cell">${formatVolume(vol)}<div class="volume-bar"><div class="volume-bar-fill" style="width:${(vol/maxVol*100).toFixed(1)}%"></div></div></td>
+                    <td class="volume-cell">${formatVolume(vol15m)}</td>
+                    <td class="volume-cell">${formatVolume(vol1h)}</td>
                     <td class="volume-cell">${formatVolume(oi)}</td>
+                    <td><span class="change-cell ${oi_ch_15m >= 0 ? 'positive' : 'negative'}">${formatPercent(oi_ch_15m)}</span></td>
                     <td class="funding-cell ${(fund||0) >= 0 ? 'positive' : 'negative'}">${formatFunding(fund)}</td>
+                    <td class="volume-cell">${vol_15m.toFixed(4)}</td>
                     <td><button class="action-btn" onclick="event.stopPropagation();location.href='/terminal?symbol=${d.symbol}'"><i class="fas fa-chart-line"></i> Trade</button></td>
                 </tr>`;
             }).join('');
@@ -665,13 +784,37 @@
             while (cont.children.length > 10) cont.removeChild(cont.lastChild);
         }
         
-        // Events
-        document.querySelectorAll('#marketFilter .filter-btn').forEach(btn => btn.addEventListener('click', () => {
-            document.querySelectorAll('#marketFilter .filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            activeMarket = btn.dataset.market;
-            if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket }));
-        }));
+        // Events - Market Type Toggle
+        const btnFutures = document.getElementById('btn-futures');
+        const btnSpot = document.getElementById('btn-spot');
+        
+        if (btnFutures) {
+            btnFutures.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Switching to Futures');
+                document.querySelectorAll('.market-type-btn').forEach(b => b.classList.remove('active'));
+                btnFutures.classList.add('active');
+                activeMarket = 'futures';
+                if (ws?.readyState === 1) {
+                    ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket, exchange: activeExchange }));
+                }
+            }, true);
+        }
+        
+        if (btnSpot) {
+            btnSpot.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Switching to Spot');
+                document.querySelectorAll('.market-type-btn').forEach(b => b.classList.remove('active'));
+                btnSpot.classList.add('active');
+                activeMarket = 'spot';
+                if (ws?.readyState === 1) {
+                    ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket, exchange: activeExchange }));
+                }
+            }, true);
+        }
         
         document.querySelectorAll('#typeFilter .filter-btn').forEach(btn => btn.addEventListener('click', () => {
             document.querySelectorAll('#typeFilter .filter-btn').forEach(b => b.classList.remove('active'));
@@ -699,6 +842,29 @@
         
         document.getElementById('searchInput').addEventListener('input', renderTable);
         
+        
+        // Exchange Switching
+        document.querySelectorAll('.exchange-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const newExchange = btn.dataset.exchange;
+                console.log('Switching exchange to:', newExchange);
+                
+                // Update UI
+                document.querySelectorAll('.exchange-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                activeExchange = newExchange;
+                
+                // Reconnect WebSocket with new exchange
+                if (ws?.readyState === 1) {
+                    ws.send(JSON.stringify({ type: 'subscribe', market: activeMarket, exchange: activeExchange }));
+                }
+            });
+        });
+
         // Start
         connectWS();
         

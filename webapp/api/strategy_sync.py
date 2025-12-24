@@ -13,7 +13,16 @@ from pydantic import BaseModel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
-from services.strategy_service import StrategySyncService, LiveBacktestVisualization, StrategyRankingService
+
+# Import services with error handling
+try:
+    from services.strategy_service import StrategySyncService
+    STRATEGY_SERVICE_AVAILABLE = True
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Strategy service not available: {e}")
+    STRATEGY_SERVICE_AVAILABLE = False
+    StrategySyncService = None
 
 router = APIRouter()
 

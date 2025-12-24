@@ -432,7 +432,7 @@ async def get_marketplace_stats(
     active_listings = cur.fetchone()[0]
     
     # Total sales
-    cur.execute("SELECT COUNT(*), SUM(price_paid) FROM strategy_purchases")
+    cur.execute("SELECT COUNT(*), SUM(amount_paid) FROM strategy_purchases")
     row = cur.fetchone()
     total_sales = row[0] or 0
     total_revenue = row[1] or 0
@@ -448,7 +448,7 @@ async def get_marketplace_stats(
     
     # Top sellers
     cur.execute("""
-        SELECT seller_id, COUNT(*) as sales, SUM(price_paid) as revenue
+        SELECT seller_id, COUNT(*) as sales, SUM(amount_paid) as revenue
         FROM strategy_purchases
         GROUP BY seller_id
         ORDER BY revenue DESC

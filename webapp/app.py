@@ -57,6 +57,12 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"backtest router not available: {e}")
     
+    try:
+        from webapp.api import backtest_enhanced
+        app.include_router(backtest_enhanced.router, prefix="/api/backtest-v2", tags=["backtest-enhanced"])
+    except ImportError as e:
+        logger.warning(f"backtest_enhanced router not available: {e}")
+    
     # Note: backtest_v2 was merged into backtest.py
     
     try:
@@ -71,6 +77,14 @@ def create_app() -> FastAPI:
         app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
     except ImportError as e:
         logger.warning(f"websocket router not available: {e}")
+    
+    # Real-time market data WebSocket
+    try:
+        from webapp.api import realtime
+        app.include_router(realtime.router, prefix="/ws", tags=["realtime"])
+        logger.info("✅ Real-time market data WebSocket enabled")
+    except ImportError as e:
+        logger.warning(f"realtime router not available: {e}")
     
     # Marketplace for custom strategies
     try:
@@ -93,6 +107,22 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"strategy_marketplace router not available: {e}")
     
+    # ELCARO Token Payment System (USDT → ELC, Cold Wallet Trading)
+    try:
+        from webapp.api import elcaro_payments
+        app.include_router(elcaro_payments.router, prefix="/api/elcaro", tags=["elcaro-payments"])
+        logger.info("✅ ELCARO payment system loaded")
+    except ImportError as e:
+        logger.warning(f"elcaro_payments router not available: {e}")
+    
+    # Web3 Blockchain Integration
+    try:
+        from webapp.api import web3
+        app.include_router(web3.router, prefix="/api/web3", tags=["web3", "blockchain"])
+        logger.info("Web3 router registered at /api/web3")
+    except ImportError as e:
+        logger.warning(f"Web3 router not available: {e}")
+    
     # Screener WebSocket API
     try:
         from webapp.api import screener_ws
@@ -100,12 +130,28 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"screener router not available: {e}")
     
+    # Backtest WebSocket API
+    try:
+        from webapp.api import backtest_ws
+        app.include_router(backtest_ws.router, tags=["backtest-ws"])
+        logger.info("✅ Backtest WebSocket enabled")
+    except ImportError as e:
+        logger.warning(f"backtest_ws router not available: {e}")
+    
     # Strategy Sync API (bidirectional webapp <-> bot)
     try:
         from webapp.api import strategy_sync
         app.include_router(strategy_sync.router, prefix="/api/sync", tags=["strategy-sync"])
     except ImportError as e:
         logger.warning(f"strategy_sync router not available: {e}")
+    
+    # Payments & Subscriptions API
+    try:
+        from webapp.api import payments
+        app.include_router(payments.router, prefix="/api/payments", tags=["payments", "subscriptions"])
+        logger.info("✅ Payments API loaded")
+    except ImportError as e:
+        logger.warning(f"payments router not available: {e}")
     
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)
@@ -154,6 +200,11 @@ def create_app() -> FastAPI:
     async def screener_page(request: Request):
         return templates.TemplateResponse("screener.html", {"request": request})
     
+    @app.get("/enhanced-screener", response_class=HTMLResponse)
+    async def enhanced_screener_page(request: Request):
+        """Enhanced screener with top 200 Bybit + all HyperLiquid symbols."""
+        return templates.TemplateResponse("enhanced_screener.html", {"request": request})
+    
     @app.get("/backtest", response_class=HTMLResponse)
     async def backtest_page(request: Request):
         return templates.TemplateResponse("backtest.html", {"request": request})
@@ -166,10 +217,44 @@ def create_app() -> FastAPI:
     async def portfolio_page(request: Request):
         return templates.TemplateResponse("dashboard.html", {"request": request})
     
+    @app.get("/pricing", response_class=HTMLResponse)
+    async def pricing_page(request: Request):
+        return templates.TemplateResponse("pricing.html", {"request": request})
+    
+    @app.get("/realtime-test", response_class=HTMLResponse)
+    async def realtime_test_page(request: Request):
+        """Real-time market data test page"""
+        return templates.TemplateResponse("realtime_test.html", {"request": request})
+    
     @app.get("/health")
     async def health():
         """Basic health check"""
-        return {"status": "healthy", "version": "2.0.0", "features": ["trading_terminal", "ai_agent", "backtesting", "statistics", "websocket", "multi_exchange", "marketplace", "screener"]}
+        return {"status": "healthy", "version": "2.0.0", "features": ["trading_terminal", "ai_agent", "backtesting", "statistics", "websocket", "multi_exchange", "marketplace", "screener", "realtime"]}
+    
+    @app.on_event("startup")
+    async def startup_event():
+        """Start real-time workers on application startup."""
+        try:
+            from webapp.realtime import start_workers
+            # Start with default symbols
+            await start_workers(
+                bybit_symbols=['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 
+                              'ADAUSDT', 'DOGEUSDT', 'MATICUSDT', 'DOTUSDT', 'LTCUSDT'],
+                hl_symbols=['BTC', 'ETH', 'SOL', 'ARB', 'OP']
+            )
+            logger.info("✅ Real-time workers started on application startup")
+        except Exception as e:
+            logger.error(f"Failed to start real-time workers: {e}", exc_info=True)
+    
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Stop real-time workers on application shutdown."""
+        try:
+            from webapp.realtime import stop_workers
+            await stop_workers()
+            logger.info("✅ Real-time workers stopped")
+        except Exception as e:
+            logger.error(f"Error stopping workers: {e}")
     
     @app.get("/health/detailed")
     async def health_detailed():

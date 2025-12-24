@@ -1,6 +1,6 @@
 """
 Crypto Screener WebSocket API for ElcaroBot
-Real-time market data from Binance
+Real-time market data from multiple exchanges
 """
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from typing import Dict, List, Optional, Set
@@ -9,22 +9,51 @@ import aiohttp
 import json
 from datetime import datetime
 import logging
+from .exchange_fetchers import BybitDataFetcher, OKXDataFetcher
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Binance API endpoints
+# Exchange API endpoints
 BINANCE_FUTURES_API = "https://fapi.binance.com"
 BINANCE_SPOT_API = "https://api.binance.com"
 BINANCE_FUTURES_WS = "wss://fstream.binance.com"
 
-# Cache for market data
+BYBIT_API = "https://api.bybit.com"
+OKX_API = "https://www.okx.com"
+
+# Cache for market data (per exchange)
 class MarketDataCache:
     def __init__(self):
-        self.futures_data: Dict[str, dict] = {}
-        self.spot_data: Dict[str, dict] = {}
+        # Binance data
+        self.binance_futures_data: Dict[str, dict] = {}
+        self.binance_spot_data: Dict[str, dict] = {}
+        # Bybit data
+        self.bybit_futures_data: Dict[str, dict] = {}
+        self.bybit_spot_data: Dict[str, dict] = {}
+        # OKX data
+        self.okx_futures_data: Dict[str, dict] = {}
+        self.okx_spot_data: Dict[str, dict] = {}
+        # Common data
         self.btc_data: dict = {}
         self.liquidations: List[dict] = []
+        self.last_update: datetime = datetime.now()
+    
+    def get_futures_data(self, exchange: str = 'binance') -> Dict[str, dict]:
+        """Get futures data for specific exchange"""
+        if exchange == 'bybit':
+            return self.bybit_futures_data
+        elif exchange == 'okx':
+            return self.okx_futures_data
+        return self.binance_futures_data
+    
+    def get_spot_data(self, exchange: str = 'binance') -> Dict[str, dict]:
+        """Get spot data for specific exchange"""
+        if exchange == 'bybit':
+            return self.bybit_spot_data
+        elif exchange == 'okx':
+            return self.okx_spot_data
+        return self.binance_spot_data
         self.last_update: datetime = datetime.now()
         
 cache = MarketDataCache()
@@ -120,53 +149,148 @@ class BinanceDataFetcher:
         
         # Approximate shorter timeframe changes (we'll improve this with klines)
         change_1h = change_24h / 24 if change_24h else 0
-        change_5m = change_1h / 12 if change_1h else 0
+        change_15m = change_1h / 4 if change_1h else 0
+        change_5m = change_15m / 3 if change_15m else 0
         change_1m = change_5m / 5 if change_5m else 0
+        change_30m = change_15m * 2 if change_15m else 0
+        change_4h = change_1h * 4 if change_1h else 0
+        change_8h = change_4h * 2 if change_4h else 0
+        
+        # OI changes (approximation)
+        oi_base = float(ticker.get('openInterest', 0)) if 'openInterest' in ticker else volume * 0.1
+        oi_change_1m = change_1m * 0.8  # OI changes slower than price
+        oi_change_5m = change_5m * 0.8
+        oi_change_15m = change_15m * 0.8
+        oi_change_30m = change_30m * 0.8
+        oi_change_1h = change_1h * 0.8
+        oi_change_4h = change_4h * 0.8
+        oi_change_8h = change_8h * 0.8
+        oi_change_1d = change_24h * 0.8
+        
+        # Volatility (simplified calculation)
+        volatility_base = ((high - low) / price * 100) if price > 0 else 0
+        volatility_1m = volatility_base / 24 / 60
+        volatility_5m = volatility_base / 24 / 12
+        volatility_15m = volatility_base / 24 / 4
+        volatility_30m = volatility_base / 24 / 2
+        volatility_1h = volatility_base / 24
+        
+        # Volumes (approximation based on 24h volume)
+        volume_1m = volume / 24 / 60
+        volume_5m = volume / 24 / 12
+        volume_15m = volume / 24 / 4
+        volume_30m = volume / 24 / 2
+        volume_1h = volume / 24
+        volume_4h = volume / 6
+        volume_8h = volume / 3
         
         return {
             "symbol": symbol,
             "price": price,
             "change_1m": round(change_1m, 2),
             "change_5m": round(change_5m, 2),
-            "change_15m": round(change_5m * 3, 2),
+            "change_15m": round(change_15m, 2),
+            "change_30m": round(change_30m, 2),
             "change_1h": round(change_1h, 2),
-            "change_4h": round(change_1h * 4, 2),
+            "change_4h": round(change_4h, 2),
+            "change_8h": round(change_8h, 2),
             "change_24h": round(change_24h, 2),
+            "volume_1m": volume_1m,
+            "volume_5m": volume_5m,
+            "volume_15m": volume_15m,
+            "volume_30m": volume_30m,
+            "volume_1h": volume_1h,
+            "volume_4h": volume_4h,
+            "volume_8h": volume_8h,
             "volume": volume,
+            "volume24h": volume,
             "high_24h": high,
             "low_24h": low,
-            "open_interest": float(ticker.get('openInterest', 0)) if 'openInterest' in ticker else volume * 0.1,
+            "open_interest": oi_base,
+            "oi_change_1m": round(oi_change_1m, 2),
+            "oi_change_5m": round(oi_change_5m, 2),
+            "oi_change_15m": round(oi_change_15m, 2),
+            "oi_change_30m": round(oi_change_30m, 2),
+            "oi_change_1h": round(oi_change_1h, 2),
+            "oi_change_4h": round(oi_change_4h, 2),
+            "oi_change_8h": round(oi_change_8h, 2),
+            "oi_change_1d": round(oi_change_1d, 2),
             "funding_rate": funding_rates.get(symbol, 0),
+            "volatility_1m": round(volatility_1m, 4),
+            "volatility_5m": round(volatility_5m, 4),
+            "volatility_15m": round(volatility_15m, 4),
+            "volatility_30m": round(volatility_30m, 4),
+            "volatility_1h": round(volatility_1h, 4),
             "vdelta": 0,  # Will be calculated from trades
             "timestamp": datetime.now().isoformat()
         }
 
-fetcher = BinanceDataFetcher()
+# Initialize all fetchers
+binance_fetcher = BinanceDataFetcher()
+bybit_fetcher = BybitDataFetcher()
+okx_fetcher = OKXDataFetcher()
 
 async def update_market_data():
-    """Background task to update market data every 3 seconds"""
+    """Background task to update market data every 3 seconds for all exchanges"""
     while True:
         try:
-            # Fetch data
-            funding_rates = await fetcher.fetch_funding_rates()
-            futures_tickers = await fetcher.fetch_futures_tickers()
-            spot_tickers = await fetcher.fetch_spot_tickers()
+            # Update Binance data
+            try:
+                funding_rates = await binance_fetcher.fetch_funding_rates()
+                futures_tickers = await binance_fetcher.fetch_futures_tickers()
+                spot_tickers = await binance_fetcher.fetch_spot_tickers()
+                
+                for ticker in futures_tickers:
+                    processed = binance_fetcher.process_ticker(ticker, funding_rates)
+                    cache.binance_futures_data[processed['symbol']] = processed
+                
+                for ticker in spot_tickers:
+                    processed = binance_fetcher.process_ticker(ticker, {})
+                    processed['funding_rate'] = None
+                    processed['open_interest'] = None
+                    cache.binance_spot_data[processed['symbol']] = processed
+            except Exception as e:
+                logger.error(f"Error updating Binance data: {e}")
             
-            # Process futures
-            for ticker in futures_tickers:
-                processed = fetcher.process_ticker(ticker, funding_rates)
-                cache.futures_data[processed['symbol']] = processed
+            # Update Bybit data
+            try:
+                funding_rates = await bybit_fetcher.fetch_funding_rates()
+                futures_tickers = await bybit_fetcher.fetch_futures_tickers()
+                spot_tickers = await bybit_fetcher.fetch_spot_tickers()
+                
+                for ticker in futures_tickers:
+                    processed = bybit_fetcher.process_ticker(ticker, funding_rates)
+                    cache.bybit_futures_data[processed['symbol']] = processed
+                
+                for ticker in spot_tickers:
+                    processed = bybit_fetcher.process_ticker(ticker, {})
+                    processed['funding_rate'] = None
+                    processed['open_interest'] = None
+                    cache.bybit_spot_data[processed['symbol']] = processed
+            except Exception as e:
+                logger.error(f"Error updating Bybit data: {e}")
             
-            # Process spot
-            for ticker in spot_tickers:
-                processed = fetcher.process_ticker(ticker, {})
-                processed['funding_rate'] = None
-                processed['open_interest'] = None
-                cache.spot_data[processed['symbol']] = processed
+            # Update OKX data
+            try:
+                funding_rates = await okx_fetcher.fetch_funding_rates()
+                futures_tickers = await okx_fetcher.fetch_futures_tickers()
+                spot_tickers = await okx_fetcher.fetch_spot_tickers()
+                
+                for ticker in futures_tickers:
+                    processed = okx_fetcher.process_ticker(ticker, funding_rates)
+                    cache.okx_futures_data[processed['symbol']] = processed
+                
+                for ticker in spot_tickers:
+                    processed = okx_fetcher.process_ticker(ticker, {})
+                    processed['funding_rate'] = None
+                    processed['open_interest'] = None
+                    cache.okx_spot_data[processed['symbol']] = processed
+            except Exception as e:
+                logger.error(f"Error updating OKX data: {e}")
             
-            # Update BTC data
-            if 'BTCUSDT' in cache.futures_data:
-                btc = cache.futures_data['BTCUSDT']
+            # Update BTC data (from Binance as primary)
+            if 'BTCUSDT' in cache.binance_futures_data:
+                btc = cache.binance_futures_data['BTCUSDT']
                 cache.btc_data = {
                     "price": btc['price'],
                     "change": btc['change_24h']
@@ -190,9 +314,13 @@ async def broadcast_update():
     disconnected = set()
     for ws in active_connections:
         try:
-            # Send based on subscribed market
+            # Send based on subscribed market and exchange
             market = getattr(ws, 'subscribed_market', 'futures')
-            data = list(cache.futures_data.values()) if market == 'futures' else list(cache.spot_data.values())
+            exchange = getattr(ws, 'subscribed_exchange', 'binance')
+            
+            futures_data = cache.get_futures_data(exchange)
+            spot_data = cache.get_spot_data(exchange)
+            data = list(futures_data.values()) if market == 'futures' else list(spot_data.values())
             
             await ws.send_json({
                 "type": "update",
@@ -221,7 +349,9 @@ async def shutdown():
     global background_task
     if background_task:
         background_task.cancel()
-    await fetcher.close()
+    await binance_fetcher.close()
+    await bybit_fetcher.close()
+    await okx_fetcher.close()
 
 @router.websocket("/ws/screener")
 async def screener_websocket(websocket: WebSocket):
@@ -229,10 +359,12 @@ async def screener_websocket(websocket: WebSocket):
     await websocket.accept()
     active_connections.add(websocket)
     websocket.subscribed_market = 'futures'
+    websocket.subscribed_exchange = 'binance'
     
     try:
         # Send initial snapshot
-        data = list(cache.futures_data.values())
+        futures_data = cache.get_futures_data('binance')
+        data = list(futures_data.values())
         await websocket.send_json({
             "type": "snapshot",
             "data": data,
@@ -248,8 +380,15 @@ async def screener_websocket(websocket: WebSocket):
                 
                 if msg_type == 'subscribe':
                     market = message.get('market', 'futures')
+                    exchange = message.get('exchange', 'binance')
+                    
                     websocket.subscribed_market = market
-                    data = list(cache.futures_data.values()) if market == 'futures' else list(cache.spot_data.values())
+                    websocket.subscribed_exchange = exchange
+                    
+                    futures_data = cache.get_futures_data(exchange)
+                    spot_data = cache.get_spot_data(exchange)
+                    data = list(futures_data.values()) if market == 'futures' else list(spot_data.values())
+                    
                     await websocket.send_json({
                         "type": "snapshot",
                         "data": data,

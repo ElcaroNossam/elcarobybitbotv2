@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Cześć! Wybierz działanie:',
+    'no_strategies':               '❌ Brak',
     'guide_caption':               '📚 Przewodnik Użytkownika Bota\n\nPrzeczytaj ten przewodnik, aby dowiedzieć się jak skonfigurować strategie i efektywnie korzystać z bota.',
     'privacy_caption':             '📜 Polityka Prywatności i Warunki Użytkowania\n\nProsimy o uważne przeczytanie tego dokumentu.',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             'Wybierz język:',
     'language_set':                'Ustawiono język:',
     'lang_en':                     'English',
-    'lang_pl':                     'Polski',
 
     # Manual order
     'order_type_prompt':           'Wybierz typ zlecenia:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *AI robi pracę za Ciebie!*',
-    'elcaro_ai_params_header': 'Z każdego sygnału analizowane są:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • Dźwignia • Interwał czasowy',
 
     # Leverage settings
     'param_leverage': '⚡ Dźwignia',

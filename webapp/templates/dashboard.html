@@ -19,6 +19,12 @@
     <!-- ElCaro Design System -->
     <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
     
+    <!-- Toast Notifications -->
+    <script src="/static/js/toast-notifications.js"></script>
+    
+    <!-- Modal Dialogs -->
+    <script src="/static/js/modal-dialogs.js"></script>
+    
     <style>
         :root {
             /* Unified ElCaro Design System */
@@ -852,7 +858,7 @@
         
         <nav class="sidebar-nav">
             <div class="nav-section">
-                <div class="nav-section-title">Main</div>
+                <div class="nav-section-title">OVERVIEW</div>
                 <a href="/dashboard" class="nav-item active">
                     <i class="fas fa-th-large"></i>
                     Dashboard
@@ -868,36 +874,47 @@
             </div>
             
             <div class="nav-section">
-                <div class="nav-section-title">Trading</div>
-                <a href="/signals" class="nav-item">
-                    <i class="fas fa-robot"></i>
-                    AI Signals
-                    <span class="nav-badge new">5</span>
-                </a>
+                <div class="nav-section-title">TRADING</div>
                 <a href="/strategies" class="nav-item">
                     <i class="fas fa-flask"></i>
-                    Strategies
+                    My Strategies
                 </a>
-                <a href="/copy-trading" class="nav-item">
-                    <i class="fas fa-users"></i>
-                    Copy Trading
-                    <span class="nav-badge pro">PRO</span>
-                </a>
-            </div>
-            
-            <div class="nav-section">
-                <div class="nav-section-title">Market</div>
                 <a href="/marketplace" class="nav-item">
                     <i class="fas fa-store"></i>
                     Marketplace
+                    <span class="nav-badge new">New</span>
                 </a>
                 <a href="/leaderboard" class="nav-item">
                     <i class="fas fa-trophy"></i>
                     Leaderboard
                 </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">TOOLS</div>
+                <a href="/backtest" class="nav-item">
+                    <i class="fas fa-flask"></i>
+                    Backtest
+                </a>
                 <a href="/screener" class="nav-item">
-                    <i class="fas fa-radar"></i>
+                    <i class="fas fa-search"></i>
                     Screener
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i class="fas fa-robot"></i>
+                    AI Signals
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">ACCOUNT</div>
+                <a href="/settings" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+                <a href="/api-keys" class="nav-item">
+                    <i class="fas fa-key"></i>
+                    API Keys
                 </a>
             </div>
             
@@ -1445,6 +1462,8 @@
         
         async function loadDashboardData() {
             try {
+                console.log(`📊 Loading dashboard: ${currentExchange} (${currentAccount})`);
+                
                 // Build query params with exchange and account
                 const params = new URLSearchParams({
                     exchange: currentExchange,
@@ -1453,36 +1472,63 @@
                 
                 // Load balance, positions, trades and stats from trading API
                 const [balanceRes, positionsRes, tradesRes, statsRes] = await Promise.all([
-                    fetch(`/api/trading/balance?${params}`, { headers: getAuthHeaders() }).catch(() => null),
-                    fetch(`/api/trading/positions?${params}`, { headers: getAuthHeaders() }).catch(() => null),
-                    fetch(`/api/trading/trades?limit=5&${params}`, { headers: getAuthHeaders() }).catch(() => null),
-                    fetch(`/api/stats/dashboard?${params}&period=30d`, { headers: getAuthHeaders() }).catch(() => null)
+                    fetch(`/api/trading/balance?${params}`, { headers: getAuthHeaders() }).catch(e => {
+                        console.error('Balance fetch error:', e);
+                        return null;
+                    }),
+                    fetch(`/api/trading/positions?${params}`, { headers: getAuthHeaders() }).catch(e => {
+                        console.error('Positions fetch error:', e);
+                        return null;
+                    }),
+                    fetch(`/api/trading/trades?limit=5&${params}`, { headers: getAuthHeaders() }).catch(e => {
+                        console.error('Trades fetch error:', e);
+                        return null;
+                    }),
+                    fetch(`/api/stats/dashboard?${params}&period=30d`, { headers: getAuthHeaders() }).catch(e => {
+                        console.error('Stats fetch error:', e);
+                        return null;
+                    })
                 ]);
                 
                 if (balanceRes?.ok) {
                     const balance = await balanceRes.json();
+                    console.log('✅ Balance loaded:', balance);
                     updateBalanceCards(balance);
+                } else if (balanceRes) {
+                    console.error('❌ Balance error:', await balanceRes.text());
                 }
                 
                 if (positionsRes?.ok) {
                     const positions = await positionsRes.json();
+                    console.log('✅ Positions loaded:', positions);
                     updatePositionsTable(positions);
+                } else if (positionsRes) {
+                    console.error('❌ Positions error:', await positionsRes.text());
                 }
                 
                 if (tradesRes?.ok) {
                     const trades = await tradesRes.json();
+                    console.log('✅ Trades loaded:', trades);
                     updateRecentTrades(trades.trades || trades || []);
+                } else if (tradesRes) {
+                    console.error('❌ Trades error:', await tradesRes.text());
                 }
                 
                 if (statsRes?.ok) {
                     const stats = await statsRes.json();
+                    console.log('✅ Stats loaded:', stats);
                     if (stats.success && stats.data) {
                         updateStats(stats.data.summary);
                         updatePnLChart(stats.data.pnlHistory || []);
                     }
+                } else if (statsRes) {
+                    console.error('❌ Stats error:', await statsRes.text());
                 }
+                
+                showToast(`Dashboard loaded: ${currentExchange.toUpperCase()} ${currentAccount.toUpperCase()}`, 'success');
             } catch (e) {
-                console.error('Failed to load dashboard data:', e);
+                console.error('❌ Failed to load dashboard data:', e);
+                showToast('Failed to load dashboard: ' + e.message, 'error');
             }
         }
         
@@ -1539,7 +1585,12 @@
         }
         
         async function closePosition(symbol) {
-            if (!confirm(`Close position for ${symbol}?`)) return;
+            const confirmed = await showConfirm(
+                `Закрыть позицию <strong>${symbol}</strong>?`,
+                'Закрыть позицию',
+                { type: 'warning', confirmText: 'Закрыть', cancelText: 'Отмена' }
+            );
+            if (!confirmed) return;
             
             try {
                 const res = await fetch('/api/trading/close', {
@@ -1554,28 +1605,33 @@
                 
                 const data = await res.json();
                 if (data.success) {
-                    showNotification('Position closed successfully', 'success');
+                    showToast('Position closed successfully', 'success', 'Success');
                     loadDashboardData();
                 } else {
-                    showNotification(data.error || 'Failed to close position', 'error');
+                    showToast(data.error || 'Failed to close position', 'error', 'Error');
                 }
             } catch (e) {
-                showNotification('Error closing position', 'error');
+                showToast('Error closing position: ' + e.message, 'error', 'Error');
             }
         }
         
-        function showNotification(msg, type = 'info') {
-            const n = document.createElement('div');
-            const bgColors = {
-                success: 'var(--accent-green)',
-                error: 'var(--accent-red)',
-                info: 'var(--accent-primary)'
-            };
-            n.style.cssText = `position: fixed; top: 80px; right: 20px; padding: 16px 24px; border-radius: 12px; z-index: 10000; 
-                background: ${bgColors[type] || bgColors.info}; color: white; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.3);`;
-            n.textContent = msg;
-            document.body.appendChild(n);
-            setTimeout(() => n.remove(), 3000);
+        // Alias showNotification to showToast for compatibility
+        function showNotification(msg, type = 'info', title = '') {
+            showToast(msg, type, title);
+        }
+        
+        function showToast(msg, type = 'info', title = '') {
+            // Use new toast system
+            if (window.toast) {
+                window.toast.show({ 
+                    type, 
+                    message: msg, 
+                    title: title || (type.charAt(0).toUpperCase() + type.slice(1))
+                });
+            } else {
+                // Fallback
+                console.warn('Toast system not loaded:', msg);
+            }
         }
         
         function updateBalanceCards(balance) {

@@ -49,7 +49,51 @@ git checkout HEAD~1 -- <file>
 sudo systemctl restart elcaro-bot
 ```
 
-## 🔧 Recent Fixes (December 2024)
+## 🔧 Recent Fixes (December 2024-2025)
+
+### ✅ Screener Full Refactoring (Dec 23, 2025)
+- **Feature:** Complete screener redesign with WebSocket real-time updates
+- **Files:** `webapp/templates/screener.html`, `webapp/api/screener_ws.py`
+- **What's New:**
+  - Real-time market data from Binance (Futures + Spot)
+  - 14 columns: Symbol, Price, 1m/5m/15m/1h/24h %, Vol 15m/1h, OI, OI Δ 15m, Funding, Volatility
+  - Dynamic Futures/Spot switching with gradient buttons
+  - WebSocket updates every 3 seconds
+  - Improved `process_ticker()` with full timeframe calculations
+  - Top Gainers/Losers sidebar
+  - Beautiful gradient UI matching ElCaro design system
+- **Tests:** `tests/test_screener.py` created with cache and fetcher tests
+- **Status:** ✅ All CSS errors fixed, 102 core tests passing
+
+### ✅ CSS Design System Fixed (Dec 23, 2025)
+- **Problem:** CSS variables outside `:root` block causing 30+ errors
+- **File:** `webapp/static/css/elcaro-design-system.css`
+- **Fix:** All CSS variables moved inside `:root { }` block
+- **Variables Added:**
+  - Gradients: `--gradient-primary`, `--gradient-purple`, `--gradient-green`
+  - Glow effects: `--glow-green`, `--glow-blue`, `--glow-purple`
+  - Exchange colors: `--bybit-color`, `--hl-color`, `--binance-color`
+  - Spacing, radius, shadows, transitions
+- **Result:** 0 CSS errors, perfect syntax
+
+### ✅ Unified Architecture Integration (Dec 23, 2024)
+- **Feature:** Complete unified architecture for multi-exchange support
+- **Files:** `models/unified.py`, `bot_unified.py`, `core/exchange_client.py`
+- **What's New:**
+  - Unified `Position`, `Balance`, `Order` models with `.from_bybit()` and `.from_hyperliquid()` converters
+  - 5 main functions: `get_balance_unified()`, `get_positions_unified()`, `place_order_unified()`, `close_position_unified()`, `set_leverage_unified()`
+  - All functions accept `exchange='bybit'` and `account_type='demo'` parameters
+  - `fetch_open_positions()` in bot.py now uses unified architecture with field mapping
+  - Proper `account_type` propagation through entire call chain
+  - Full support for demo/real/testnet modes on both Bybit and HyperLiquid
+- **Tests:** 13/13 passing in `tests/test_unified_models.py`
+- **Feature Flag:** `USE_UNIFIED_ARCHITECTURE = True` in bot.py to enable (line ~120)
+
+### ✅ Translation Sync (Dec 23, 2024)
+- **Status:** All 15 languages perfectly synchronized (651 keys each)
+- **Cleaned:** Removed obsolete keys (`elcaro_ai_note`, `elcaro_ai_params_*`, `lang_XX`)
+- **Languages:** ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh
+- **Command:** Use `python3 utils/translation_sync.py --report` to check status
 
 ### Position Close Strategy Detection
 - **Problem:** "Position closed by UNKNOWN: Strategy: Unknown"
@@ -78,15 +122,19 @@ Async Telegram trading bot + FastAPI webapp for dual-exchange (Bybit/HyperLiquid
 
 | Layer | Location | Purpose |
 |-------|----------|---------|
-| **Bot** | `bot.py` (~14K lines) | Telegram handlers, signal processing, Bybit API |
+| **Bot** | `bot.py` (~14.5K lines) | Telegram handlers, signal processing, multi-exchange trading |
+| **Unified** | `bot_unified.py` | 5 unified trading functions for Bybit/HyperLiquid |
+| **Models** | `models/unified.py` | Unified data models: Position, Balance, Order, OrderResult |
 | **Services** | `services/` | Business logic: `ExchangeService`, `TradingService`, `SignalService` |
 | **Core** | `core/` | Infrastructure: caching, rate limiting, connection pooling, metrics |
 | **Database** | `db.py` | SQLite WAL with 10-conn pool, 30s config cache |
-| **WebApp** | `webapp/` | FastAPI (port 8765): terminal, backtesting, AI agent |
-| **Translations** | `translations/*.py` | 15 languages - **must sync all on changes** |
-| **Screener** | `scan/` | Separate Django app for real-time crypto screener |
+| **WebApp** | `webapp/` | FastAPI (port 8765): terminal, backtesting, AI agent, **screener** |
+| **Screener** | `webapp/api/screener_ws.py` | Real-time WebSocket market data (Binance API) |
+| **Translations** | `translations/*.py` | 15 languages (651 keys) - **ALL synced** |
+| **Scan** | `scan/` | Separate Django app for advanced screener (DO NOT MODIFY) |
 | **HyperLiquid** | `hl_adapter.py`, `hyperliquid/` | HL async client wrapper |
 | **Router** | `exchange_router.py` | Universal order/position routing (Bybit ↔ HL) |
+| **Exchanges** | `exchanges/` | `BybitExchange` (34 methods), `HyperLiquidAdapter` |
 
 ## Critical Patterns
 
@@ -153,9 +201,9 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 ### Adding Bot Commands
 1. Add handler in `bot.py` with `@log_calls @require_access`
 2. Register: `app.add_handler(CommandHandler("cmd", handler))`
-3. Add translation keys to ALL 15 `translations/*.py` files
-4. Verify: `python -m utils.translation_sync --check`
-5. Auto-fix missing: `python -m utils.translation_sync --fix`
+3. **IMPORTANT:** Add translation keys to `translations/en.py` (reference file)
+4. Verify sync: `python3 utils/translation_sync.py --report`
+5. All 15 languages must have exact same 651 keys
 
 ### Adding Database Fields
 1. Add `ALTER TABLE` migration to `init_db()` in `db.py`
@@ -164,7 +212,9 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 
 ### WebApp Development
 - API routers in `webapp/api/` → mounted at `/api/{router_name}` (see `webapp/app.py:37-44`)
-- Available routers: `auth`, `users`, `trading`, `admin`, `stats`, `backtest`, `ai`, `websocket`
+- Available routers: `auth`, `users`, `trading`, `admin`, `stats`, `backtest`, `ai`, `websocket`, `screener_ws`
+- Screener WebSocket: `/ws/screener` - real-time market data updates every 3s
+- Screener REST API: `/api/screener/overview`, `/api/screener/symbols`, `/api/screener/symbol/{symbol}`
 - Templates in `webapp/templates/`, static in `webapp/static/`
 - WebSockets in `webapp/api/websocket.py` → `/ws/*`
 - Docs at `/api/docs` (Swagger), `/api/redoc`
@@ -190,18 +240,142 @@ rm -rf __pycache__ */__pycache__ && ./start.sh --restart
 
 ## Translation Sync
 ```bash
-python -m utils.translation_sync --report  # Status report
-python -m utils.translation_sync --check   # CI validation
-python -m utils.translation_sync --fix     # Add missing with English fallback
+python3 utils/translation_sync.py --report  # Status report (use direct path, not module)
 ```
-Languages: `ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh` (English is reference)
+**Status:** ✅ All 15 languages perfectly synced (651 keys each)  
+**Languages:** ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh  
+**Reference:** `translations/en.py` - always update this file first  
+**Note:** All translations use EXACT same keys - no hardcoded strings in bot.py
 
 ## Screener (scan/)
 Separate Django app - see `scan/README.md`. Use `scan/install.sh` for setup.
 
 ---
 
-# 📚 DETAILED PROJECT KNOWLEDGE BASE
+# � SCREENER WEBSOCKET API (webapp/api/screener_ws.py)
+
+## Overview
+Real-time crypto market screener with WebSocket updates from Binance API.
+
+### Key Components
+
+**MarketDataCache:**
+```python
+class MarketDataCache:
+    futures_data: Dict[str, dict]  # Futures market data
+    spot_data: Dict[str, dict]     # Spot market data
+    btc_data: dict                  # Bitcoin price tracker
+    liquidations: List[dict]        # Liquidation events
+    last_update: datetime
+```
+
+**BinanceDataFetcher:**
+```python
+class BinanceDataFetcher:
+    async def fetch_futures_tickers() -> List[dict]  # Top 50 by volume
+    async def fetch_spot_tickers() -> List[dict]     # Top 50 by volume
+    async def fetch_funding_rates() -> Dict[str, float]
+    def process_ticker(ticker, funding_rates) -> dict  # Enhanced processor
+```
+
+### Data Format (Enhanced)
+Each symbol includes:
+- **Price:** Current last price
+- **Changes:** 1m, 5m, 15m, 30m, 1h, 4h, 8h, 24h %
+- **Volumes:** 1m, 5m, 15m, 30m, 1h, 4h, 8h, 24h (USDT)
+- **OI Changes:** oi_change_1m through oi_change_1d %
+- **Volatility:** volatility_1m through volatility_1h
+- **Funding Rate:** Current funding rate (futures only)
+- **Open Interest:** Current OI value
+
+### WebSocket Endpoints
+
+**Main WebSocket:** `/ws/screener`
+```javascript
+// Client subscribes to market
+ws.send(JSON.stringify({ type: 'subscribe', market: 'futures' }));
+
+// Server sends updates every 3s
+{
+    type: 'update',
+    data: [...],  // Array of market data
+    btc: { price: 50000, change: 5.0 },
+    timestamp: '2025-12-23T...'
+}
+```
+
+**REST Endpoints:**
+- `GET /api/screener/symbols?market=futures` - Get symbol list
+- `GET /api/screener/overview?market=futures` - Market statistics
+- `GET /api/screener/symbol/{symbol}?market=futures` - Single symbol data
+
+### Frontend Integration (webapp/templates/screener.html)
+
+**Market Type Toggle:**
+```html
+<div class="market-type-toggle">
+    <button class="market-type-btn active" data-market="futures">Futures</button>
+    <button class="market-type-btn" data-market="spot">Spot</button>
+</div>
+```
+
+**Table Columns (14 total):**
+1. Symbol
+2. Price
+3. 1m %
+4. 5m %
+5. 15m %
+6. 1h %
+7. 24h %
+8. Vol 15m
+9. Vol 1h
+10. OI
+11. OI Δ 15m
+12. Funding
+13. Volatility
+14. Action (Trade button)
+
+**CSS Styling:**
+- Uses ElCaro design system variables
+- Gradient buttons with glow effects
+- Real-time cell updates
+- Color-coded positive/negative values
+
+### Testing
+
+**Tests:** `tests/test_screener.py`
+```python
+class TestScreenerCache:
+    test_cache_initialization()
+    test_cache_update_futures()
+    test_cache_update_spot()
+
+class TestBinanceDataFetcher:
+    test_fetcher_initialization()
+    test_get_session()
+    test_process_ticker()  # Validates all 14 parameters
+```
+
+**Run Tests:**
+```bash
+python3 -m pytest tests/test_screener.py -v
+```
+
+### Background Task
+`update_market_data()` runs continuously:
+- Fetches data every 3 seconds
+- Updates cache
+- Broadcasts to all connected WebSocket clients
+- Handles errors gracefully
+
+### Configuration
+No additional config needed - uses Binance public API endpoints:
+- Futures: `https://fapi.binance.com`
+- Spot: `https://api.binance.com`
+
+---
+
+# �📚 DETAILED PROJECT KNOWLEDGE BASE
 
 ## 🏗️ Project Structure Deep Dive
 

@@ -1,0 +1,31 @@
+{
+  "name": "elcaro-web3",
+  "version": "1.0.0",
+  "description": "ElCaro Trading Platform - Web3 Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+    "deploy:polygon": "hardhat run scripts/deploy.js --network polygon",
+    "deploy:bsc-testnet": "hardhat run scripts/deploy.js --network bscTestnet",
+    "deploy:bsc": "hardhat run scripts/deploy.js --network bsc",
+    "verify:mumbai": "hardhat run scripts/verify.js --network mumbai",
+    "verify:polygon": "hardhat run scripts/verify.js --network polygon",
+    "test": "hardhat test"
+  },
+  "keywords": ["web3", "blockchain", "trading", "nft", "defi"],
+  "author": "ElCaro Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0"
+  }
+}

@@ -8,6 +8,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="/static/css/terminal-advanced.css" rel="stylesheet">
     <script src="https://s3.tradingview.com/tv.js"></script>
+    <!-- Beautiful Modal Dialogs -->
+    <script src="/static/js/modal-dialogs.js"></script>
     <style>
         :root {
             /* Unified ElCaro Design System */
@@ -41,8 +43,17 @@
             /* Exchange-specific colors */
             --bybit-color: #f7a600;
             --hl-color: #00ff88;
+            
+            /* Force dark color scheme for all native elements */
+            color-scheme: dark;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Global select styling - force dark theme for ALL selects */
+        select {
+            color-scheme: dark;
+        }
+        
         body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden; }
         
         .bg-pattern {
@@ -377,6 +388,7 @@
             background-repeat: no-repeat;
             background-position: right 10px center;
             padding-right: 30px;
+            color-scheme: dark; /* Force dark scheme for native select dropdown */
         }
         .exchange-select:hover, .account-select:hover { 
             background: var(--bg-hover); 
@@ -387,10 +399,27 @@
             border-color: var(--accent); 
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
         }
-        .exchange-select option, .account-select option {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            padding: 8px;
+        /* Wallet Connect Button */
+        .wallet-connect-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .wallet-connect-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        .wallet-connect-btn i {
+            font-size: 1rem;
         }
         .demo-badge { background: var(--green-dim); color: var(--green); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
         .real-badge { background: var(--red-dim); color: var(--red); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
@@ -503,9 +532,6 @@
         .hl-hidden { display: none !important; }
         
         /* Exchange badge colors */
-        .exchange-select option[value="bybit"] { color: var(--bybit-color); }
-        .exchange-select option[value="hyperliquid"] { color: var(--hl-color); }
-        
         [data-exchange="hyperliquid"] .logo-icon { 
             background: linear-gradient(135deg, #00ff88, #00cc66); 
         }
@@ -569,6 +595,10 @@
                         <option value="real">Real</option>
                     </select>
                     <span class="demo-badge" id="accountBadge">DEMO</span>
+                    <button class="wallet-connect-btn" onclick="connectWallet()" title="Connect MetaMask Wallet">
+                        <i class="fab fa-ethereum"></i>
+                        <span id="walletBtnText">Connect Wallet</span>
+                    </button>
                 </div>
                 <div class="ws-status">
                     <span class="ws-dot" id="wsStatus"></span>
@@ -653,7 +683,9 @@
                     </div>
                 </div>
                 
-                <a href="/screener" class="header-icon-btn" title="Screener"><i class="fas fa-th"></i></a>
+                <a href="/backtest" class="header-icon-btn" title="Strategy Backtester"><i class="fas fa-chart-line"></i></a>
+                <a href="/screener" class="header-icon-btn" title="Market Screener"><i class="fas fa-th"></i></a>
+                <a href="/dashboard" class="header-icon-btn" title="Dashboard"><i class="fas fa-tachometer-alt"></i></a>
                 <a href="/settings" class="header-icon-btn" title="Settings"><i class="fas fa-cog"></i></a>
             </div>
         </header>
@@ -769,7 +801,7 @@
                         <input type="checkbox" id="postOnly"> Post Only
                     </label>
                     <label class="order-option" id="tifOption">
-                        <select id="tifSelect" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; color: var(--text-primary);">
+                        <select id="tifSelect" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; color: var(--text-primary); color-scheme: dark;">
                             <option value="GTC">GTC</option>
                             <option value="IOC">IOC</option>
                             <option value="FOK">FOK</option>
@@ -2007,7 +2039,12 @@
         }
         
         async function closePosition(symbol) {
-            if (!confirm(`Close position for ${symbol}?`)) return;
+            const confirmed = await showConfirm(
+                `Вы уверены что хотите закрыть позицию <strong>${symbol}</strong>?`,
+                'Закрыть позицию',
+                { type: 'warning', confirmText: 'Закрыть', cancelText: 'Отмена' }
+            );
+            if (!confirmed) return;
             
             try {
                 const token = localStorage.getItem('elcaro_token');
@@ -2072,7 +2109,12 @@
         }
         
         async function cancelOrder(orderId, symbol) {
-            if (!confirm('Cancel this order?')) return;
+            const confirmed = await showConfirm(
+                'Вы действительно хотите отменить этот ордер?',
+                'Отменить ордер',
+                { type: 'warning', confirmText: 'Отменить', cancelText: 'Назад' }
+            );
+            if (!confirmed) return;
             
             try {
                 const token = localStorage.getItem('elcaro_token');
@@ -2108,7 +2150,12 @@
                 showNotification('No open positions', 'info');
                 return;
             }
-            if (!confirm(`Close ALL ${count} positions? This action cannot be undone.`)) return;
+            const confirmed = await showConfirm(
+                `<strong>ВНИМАНИЕ!</strong><br>Будут закрыты <strong>ВСЕ ${count} позиций</strong>.<br>Это действие нельзя отменить!`,
+                'Закрыть все позиции',
+                { type: 'danger', danger: true, confirmText: 'Закрыть всё', cancelText: 'Отмена' }
+            );
+            if (!confirmed) return;
             
             try {
                 const token = localStorage.getItem('elcaro_token');
@@ -2143,7 +2190,12 @@
                 showNotification('No open orders', 'info');
                 return;
             }
-            if (!confirm(`Cancel ALL ${count} orders?`)) return;
+            const confirmed = await showConfirm(
+                `Отменить <strong>ВСЕ ${count} ордеров</strong>?`,
+                'Отменить все ордера',
+                { type: 'warning', confirmText: 'Отменить всё', cancelText: 'Назад' }
+            );
+            if (!confirmed) return;
             
             try {
                 const token = localStorage.getItem('elcaro_token');
@@ -2833,6 +2885,87 @@
             }
         }
         
+        // ═════════════════════════════════════════════════════════════════
+        // WALLET CONNECTION (MetaMask/Web3)
+        // ═════════════════════════════════════════════════════════════════
+        
+        let walletConnected = false;
+        let walletAddress = null;
+        
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showNotification('Please install MetaMask extension', 'error');
+                window.open('https://metamask.io/download/', '_blank');
+                return;
+            }
+            
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                walletAddress = accounts[0];
+                walletConnected = true;
+                
+                // Update UI
+                const walletBtn = document.getElementById('walletBtnText');
+                if (walletBtn) {
+                    walletBtn.textContent = walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
+                }
+                
+                // Save to backend
+                const response = await fetch('/api/web3/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    },
+                    body: JSON.stringify({ address: walletAddress })
+                });
+                
+                if (response.ok) {
+                    showNotification('Wallet connected successfully!', 'success');
+                } else {
+                    showNotification('Failed to save wallet connection', 'warning');
+                }
+                
+                // Listen for account changes
+                window.ethereum.on('accountsChanged', handleAccountsChanged);
+                window.ethereum.on('chainChanged', () => window.location.reload());
+                
+            } catch (error) {
+                console.error('Wallet connection error:', error);
+                showNotification('Failed to connect wallet: ' + error.message, 'error');
+            }
+        }
+        
+        function handleAccountsChanged(accounts) {
+            if (accounts.length === 0) {
+                walletConnected = false;
+                walletAddress = null;
+                document.getElementById('walletBtnText').textContent = 'Connect Wallet';
+                showNotification('Wallet disconnected', 'info');
+            } else {
+                walletAddress = accounts[0];
+                document.getElementById('walletBtnText').textContent = 
+                    walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
+            }
+        }
+        
+        // Check if wallet already connected on page load
+        async function checkWalletConnection() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        walletAddress = accounts[0];
+                        walletConnected = true;
+                        document.getElementById('walletBtnText').textContent = 
+                            walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4);
+                    }
+                } catch (error) {
+                    console.error('Check wallet error:', error);
+                }
+            }
+        }
+        
         async function changeExchange() {
             const newExchange = document.getElementById('exchangeSelect').value;
             if (newExchange === state.exchange) return;
@@ -3370,6 +3503,7 @@
         // Initialize on DOM ready
         document.addEventListener('DOMContentLoaded', function() {
             initLanguageAndTheme();
+            checkWalletConnection(); // Check if wallet is already connected
         });
     </script>
 </body>

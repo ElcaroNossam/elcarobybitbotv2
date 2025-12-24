@@ -21,6 +21,19 @@ from dotenv import load_dotenv
 load_dotenv()
 from zoneinfo import ZoneInfo
 from math import floor
+
+# Unified models and functions (NEW ARCHITECTURE)
+try:
+    from models import Position, Order, Balance, OrderSide, OrderType, normalize_symbol
+    from bot_unified import (
+        get_balance_unified, get_positions_unified, 
+        place_order_unified, close_position_unified, set_leverage_unified
+    )
+    UNIFIED_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Unified models not available: {e}")
+    UNIFIED_AVAILABLE = False
+
 from telegram.error import TimedOut as TgTimedOut, NetworkError, BadRequest
 from telegram.request import HTTPXRequest
 from urllib.parse import urlencode
@@ -31,6 +44,8 @@ from aiohttp import ClientSession, ClientTimeout, TCPConnector
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, BotCommand
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
+from services.notification_service import init_notification_service
+from services.notification_service import init_notification_service
 from db import (
     get_subscribed_users,
     get_user_config,
@@ -149,6 +164,17 @@ if not logger.handlers:
     console_h.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
     logger.addHandler(console_h)
 
+# ═══════════════════════════════════════════════════════════════
+# UNIFIED ARCHITECTURE - Feature Flag
+# ═══════════════════════════════════════════════════════════════
+USE_UNIFIED_ARCHITECTURE = os.getenv("USE_UNIFIED", "true").lower() == "true"
+
+if USE_UNIFIED_ARCHITECTURE and UNIFIED_AVAILABLE:
+    logger.info("✅ Unified Architecture ENABLED - using new models and exchange client")
+else:
+    logger.info("⚠️  Unified Architecture DISABLED - using legacy functions")
+# ═══════════════════════════════════════════════════════════════
+
     file_h = logging.FileHandler("bot_debug.log", mode="a", encoding="utf-8")
     file_h.setLevel(logging.INFO)
     file_h.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
@@ -162,6 +188,9 @@ PRICE_RANGE = float(os.getenv("PRICE_RANGE", "50.0"))
 EPSILON = 1e-8
 ATR_INTERVAL = "5" 
 ATR_TRIGGER_PCT = 1
+
+# Global notification service instance
+notification_service = None
 
 # Spot DCA Settings
 SPOT_DCA_COINS = os.getenv("SPOT_DCA_COINS", "BTC,ETH").split(",")  # Coins for Spot DCA
@@ -5595,7 +5624,20 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Failed to send user guide PDF to {uid}: {e}")
 
-    await update.message.reply_text(ctx.t['welcome'], reply_markup=main_menu_keyboard(ctx, update=update))
+    # Build active strategies list for welcome message
+    strategy_map = {
+        "trade_oi": "📊 OI",
+        "trade_rsi_bb": "📉 RSI+BB", 
+        "trade_scryptomera": "🔮 Scryptomera",
+        "trade_scalper": "🎯 Scalper",
+        "trade_elcaro": "🔥 Elcaro",
+        "trade_wyckoff": "📐 Wyckoff",
+    }
+    active_strategies = [name for key, name in strategy_map.items() if cfg.get(key, 0)]
+    strategies_text = ", ".join(active_strategies) if active_strategies else ctx.t.get('no_strategies', '❌ None')
+    
+    welcome_text = f"{ctx.t['welcome']}\n\n📡 <b>Active Strategies:</b> {strategies_text}"
+    await update.message.reply_text(welcome_text, reply_markup=main_menu_keyboard(ctx, update=update), parse_mode="HTML")
 
 @with_texts
 async def _notify_admin_new_user(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -6197,6 +6239,60 @@ def _normalize_order_id(res: dict) -> str:
 
 @log_calls
 async def fetch_open_positions(user_id, *args, **kwargs) -> list:
+    """
+    Fetch open positions using unified architecture when available
+    Falls back to direct Bybit API if unified is disabled
+    """
+    # Use unified architecture if available
+    if USE_UNIFIED_ARCHITECTURE and UNIFIED_AVAILABLE:
+        try:
+            uid = None
+            if isinstance(user_id, int):
+                uid = user_id
+            else:
+                update = user_id
+                uid = getattr(getattr(update, "effective_user", None), "id", None)
+            
+            if uid is None:
+                uid = kwargs.get("user_id")
+            
+            if uid is None:
+                raise RuntimeError("fetch_open_positions: не удалось определить user_id")
+            
+            # Get exchange and account type from user settings
+            exchange_type = db.get_exchange_type(uid) or 'bybit'
+            account_type = kwargs.get('account_type')
+            if account_type is None:
+                trading_mode = db.get_trading_mode(uid)
+                account_type = 'real' if trading_mode == 'real' else 'demo'
+            
+            # Get unified Position objects
+            positions = await get_positions_unified(
+                uid, 
+                exchange=exchange_type, 
+                account_type=account_type
+            )
+            
+            # Convert to dicts for backward compatibility
+            result = []
+            for pos in positions:
+                pos_dict = pos.to_dict()
+                # Map unified fields to Bybit format for compatibility
+                pos_dict['avgPrice'] = pos_dict['entry_price']
+                pos_dict['markPrice'] = pos_dict['mark_price']
+                pos_dict['unrealisedPnl'] = pos_dict['unrealized_pnl']
+                pos_dict['positionIM'] = pos_dict['margin_used']
+                pos_dict['liqPrice'] = pos_dict.get('liquidation_price')
+                result.append(pos_dict)
+            
+            logger.info(f"✅ Fetched {len(result)} positions via unified architecture")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Unified fetch_open_positions error: {e}", exc_info=True)
+            # Fall through to old code
+    
+    # OLD CODE (fallback)
     try:
         uid = None
         if isinstance(user_id, int):
@@ -6903,6 +6999,27 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Clean up internal tracking  
             remove_active_position(uid, symbol)
             reset_pyramid(uid, symbol)
+            
+            # Send notification about closed position
+            if notification_service:
+                try:
+                    await notification_service.send_position_closed_notification(
+                        user_id=uid,
+                        position_data={
+                            'symbol': symbol,
+                            'side': side_text,
+                            'entry_price': entry_price,
+                            'exit_price': mark_price,
+                            'quantity': size,
+                            'pnl': unrealized_pnl,
+                            'pnl_percent': pnl_pct,
+                            'strategy': strategy_display,
+                            'close_reason': 'Manual'
+                        },
+                        t=t
+                    )
+                except Exception as notif_err:
+                    logger.error(f"Failed to send position closed notification: {notif_err}")
             
             # Format beautiful close message
             pnl_emoji = "📈" if unrealized_pnl >= 0 else "📉"
@@ -10243,6 +10360,25 @@ async def start_monitoring(app: Application):
             logger.info("spot_tp_rebalance_loop finished normally")
 
     tp_task.add_done_callback(_on_tp_done)
+    
+    # Start notification service loop for market alerts
+    if notification_service:
+        logger.info("Starting notification_service_loop task")
+        notif_task = asyncio.create_task(notification_service.start_notification_loop(), name="notification_loop")
+        app.bot_data["notification_task"] = notif_task
+
+        def _on_notif_done(t: asyncio.Task):
+            try:
+                exc = t.exception() 
+            except asyncio.CancelledError:
+                logger.info("notification_loop cancelled")
+                return
+            if exc:
+                logger.error("notification_loop crashed", exc_info=(type(exc), exc, exc.__traceback__))
+            else:
+                logger.info("notification_loop finished normally")
+
+        notif_task.add_done_callback(_on_notif_done)
 
 @with_texts
 @log_calls
@@ -14293,6 +14429,14 @@ def main():
         .post_init(start_monitoring)   
         .build()
     )
+    
+    # Initialize notification service
+    try:
+        global notification_service
+        notification_service = init_notification_service(app.bot, db)
+        logger.info("Notification service initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize notification service: {e}")
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))

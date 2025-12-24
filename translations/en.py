@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Hello! Choose an action:',
+    'no_strategies':               '❌ None',
     'guide_caption':               '📚 Trading Bot User Guide\n\nPlease read this guide to learn how to configure strategies and use the bot effectively.',
     'privacy_caption':             '📜 Privacy Policy & Terms of Use\n\nPlease read this document carefully.',
     'button_api':                  '🔑 API',

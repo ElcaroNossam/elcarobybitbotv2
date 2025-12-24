@@ -27,19 +27,46 @@ class TradingTerminal {
 
     async loadUserData() {
         try {
-            const [posRes, ordRes, tradesRes, statsRes] = await Promise.all([
-                fetch('/api/trading/positions'),
-                fetch('/api/trading/orders'),
-                fetch('/api/trading/history?limit=100'),
-                fetch('/api/trading/stats')
+            // Get current exchange and account from selectors
+            const exchange = document.querySelector('.exchange-select')?.value || this.currentExchange;
+            const accountType = document.querySelector('.account-select')?.value || 'demo';
+            
+            const [posRes, ordRes, tradesRes, statsRes, balRes] = await Promise.all([
+                fetch(`/api/trading/positions?exchange=${exchange}&account_type=${accountType}`),
+                fetch(`/api/trading/orders?exchange=${exchange}&account_type=${accountType}`),
+                fetch(`/api/trading/trades?limit=100`),
+                fetch(`/api/trading/stats`),
+                fetch(`/api/trading/balance?exchange=${exchange}&account_type=${accountType}`)
             ]);
             
-            if (posRes.ok) this.positions = (await posRes.json()).data || [];
-            if (ordRes.ok) this.orders = (await ordRes.json()).data || [];
-            if (tradesRes.ok) this.trades = (await tradesRes.json()).data || [];
-            if (statsRes.ok) this.stats = (await statsRes.json()).data || {};
+            if (posRes.ok) {
+                const data = await posRes.json();
+                this.positions = Array.isArray(data) ? data : (data.data || []);
+                this.renderPositions();
+            }
+            if (ordRes.ok) {
+                const data = await ordRes.json();
+                this.orders = Array.isArray(data) ? data : (data.data || []);
+                this.renderOrders();
+            }
+            if (tradesRes.ok) {
+                const data = await tradesRes.json();
+                this.trades = Array.isArray(data) ? data : (data.data || []);
+                this.renderTrades();
+            }
+            if (statsRes.ok) {
+                const data = await statsRes.json();
+                this.stats = data.data || data || {};
+            }
+            if (balRes.ok) {
+                const balance = await balRes.json();
+                this.updateBalanceDisplay(balance);
+            }
         } catch (e) {
             console.error('Failed to load user data:', e);
+            if (window.Notifications) {
+                window.Notifications.show('Failed to load trading data', 'error');
+            }
         }
     }
 
@@ -140,6 +167,24 @@ class TradingTerminal {
                 this.updateChart();
             });
         });
+        
+        // Exchange select dropdown (if exists)
+        const exchangeSelect = document.querySelector('.exchange-select');
+        if (exchangeSelect) {
+            exchangeSelect.addEventListener('change', (e) => {
+                this.currentExchange = e.target.value;
+                this.loadUserData();
+                this.updateChart();
+            });
+        }
+        
+        // Account type select dropdown (if exists)
+        const accountSelect = document.querySelector('.account-select');
+        if (accountSelect) {
+            accountSelect.addEventListener('change', () => {
+                this.loadUserData();
+            });
+        }
     }
 
     updateChart() {
@@ -185,6 +230,28 @@ class TradingTerminal {
         this.trades.unshift(data);
         if (this.trades.length > 100) this.trades.pop();
         this.renderTrades();
+    }
+    
+    updateBalanceDisplay(balance) {
+        // Update equity
+        const equityEl = document.querySelector('[data-balance="equity"]');
+        if (equityEl) {
+            equityEl.textContent = `$${parseFloat(balance.equity || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+        
+        // Update available balance
+        const availableEl = document.querySelector('[data-balance="available"]');
+        if (availableEl) {
+            availableEl.textContent = `$${parseFloat(balance.available || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+        
+        // Update unrealized P&L
+        const pnlEl = document.querySelector('[data-balance="pnl"]');
+        if (pnlEl) {
+            const pnl = parseFloat(balance.unrealized_pnl || 0);
+            pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+            pnlEl.className = pnl >= 0 ? 'balance-value positive' : 'balance-value negative';
+        }
     }
 
     renderPositions() {

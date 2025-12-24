@@ -3,6 +3,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 Sveiki! Pasirinkite veiksmą:',
+    'no_strategies':               '❌ Nėra',
     'guide_caption':               '📚 Prekybos boto naudotojo vadovas\n\nPerskaitykite šį vadovą, kad sužinotumėte, kaip konfigruoti strategijas ir efektyviai naudoti botą.',
     'privacy_caption':             '📜 Privatumo politika ir naudojimo sąlygos\n\nAtidžiai perskaitykite šį dokumentą.',
     'button_api':                  '🔑 API',
@@ -45,7 +46,6 @@ TEXTS = {
     'select_language':             'Pasirinkite kalbą:',
     'language_set':                'Kalba nustatyta:',
     'lang_en':                     'English',
-    'lang_lt':                     'Lietuvių',
 
     # Manual order
     'order_type_prompt':           'Pasirinkite įsakymo tipą:',
@@ -689,9 +689,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *DI atlieka darbą už jus!*',
-    'elcaro_ai_params_header': 'Iš kiekvieno signalo analizuojama:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • Svertas • Laiko intervalas',
 
     # Leverage settings
     'param_leverage': '⚡ Svertas',

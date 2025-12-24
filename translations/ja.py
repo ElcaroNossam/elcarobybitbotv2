@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 こんにちは！ 操作を選んでください:',
+    'no_strategies':               '❌ なし',
     'guide_caption':               '📚 トレーディングボットユーザーガイド\n\nこのガイドを読んで、戦略の設定方法とボットの効果的な使い方を学んでください。',
     'privacy_caption':             '📜 プライバシーポリシーと利用規約\n\nこの文書をよくお読みください。',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             '言語を選択:',
     'language_set':                '言語を設定しました:',
     'lang_en':                     'English',
-    'lang_ja':                     '日本語',
 
     # Manual order
     'order_type_prompt':           '注文タイプを選択:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *AIがあなたの代わりに仕事をします！*',
-    'elcaro_ai_params_header': '各シグナルから以下が解析されます:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • レバレッジ • 時間枠',
 
     # Leverage settings
     'param_leverage': '⚡ レバレッジ',

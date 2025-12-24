@@ -6,17 +6,50 @@ import aiohttp
 import asyncio
 import sqlite3
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
 import math
 
+# Setup logging
+logger = logging.getLogger(__name__)
+
+# Error handling decorator for strategy analyzers
+def safe_analyze(func):
+    """Decorator to safely execute analyzer with error handling"""
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (ZeroDivisionError, ValueError, IndexError, KeyError, TypeError) as e:
+            logger.error(f"Analyzer {func.__name__} failed: {e}")
+            return {}  # Return empty signals on error
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}")
+            return {}
+    return wrapper
+
 # In-memory cache for historical data (5 min TTL)
 _data_cache: Dict[str, tuple] = {}
 _cache_ttl = 300  # 5 minutes
 
 DB_FILE = Path(__file__).parent.parent.parent / "bot.db"
+
+# Trading costs configuration
+class TradingCosts:
+    """Realistic trading costs for backtesting"""
+    BYBIT_MAKER_FEE = 0.00055  # 0.055% maker fee
+    BYBIT_TAKER_FEE = 0.00075  # 0.075% taker fee
+    SLIPPAGE = 0.0005          # 0.05% slippage
+    
+    @classmethod
+    def calculate(cls, entry_value: float, exit_value: float, is_maker: bool = False) -> float:
+        """Calculate total trading costs (commissions + slippage)"""
+        entry_fee = entry_value * (cls.BYBIT_MAKER_FEE if is_maker else cls.BYBIT_TAKER_FEE)
+        exit_fee = exit_value * cls.BYBIT_TAKER_FEE  # Exit usually market order
+        slippage = entry_value * cls.SLIPPAGE
+        return entry_fee + exit_fee + slippage
 
 
 @dataclass
@@ -99,24 +132,40 @@ class RealBacktestEngine:
                 
                 async with session.get(url) as resp:
                     if resp.status != 200:
+                        logger.error(f"Binance API error: {resp.status}")
                         break
                     
                     data = await resp.json()
                     if not data:
                         break
                     
-                    batch = [
-                        {
-                            "time": datetime.fromtimestamp(k[0] / 1000).isoformat(),
-                            "timestamp": k[0],
-                            "open": float(k[1]),
-                            "high": float(k[2]),
-                            "low": float(k[3]),
-                            "close": float(k[4]),
-                            "volume": float(k[5])
-                        }
-                        for k in data
-                    ]
+                    # Validate and parse candles
+                    batch = []
+                    for k in data:
+                        try:
+                            candle = {
+                                "time": datetime.fromtimestamp(k[0] / 1000).isoformat(),
+                                "timestamp": k[0],
+                                "open": float(k[1]),
+                                "high": float(k[2]),
+                                "low": float(k[3]),
+                                "close": float(k[4]),
+                                "volume": float(k[5])
+                            }
+                            # Data validation
+                            if candle["high"] < candle["low"]:
+                                logger.warning(f"Invalid candle: high < low")
+                                continue
+                            if any(candle[x] <= 0 for x in ["open", "high", "low", "close"]):
+                                logger.warning(f"Invalid candle: price <= 0")
+                                continue
+                            if candle["volume"] < 0:
+                                logger.warning(f"Invalid candle: negative volume")
+                                continue
+                            batch.append(candle)
+                        except (ValueError, IndexError, TypeError, KeyError) as e:
+                            logger.error(f"Failed to parse candle: {e}")
+                            continue
                     
                     all_candles = batch + all_candles  # Prepend older candles
                     
@@ -149,6 +198,131 @@ class RealBacktestEngine:
             return None
         except Exception:
             return None
+    
+    async def run_backtest_with_config(
+        self,
+        strategy_config: 'StrategyConfig',
+        symbol: str,
+        timeframe: str,
+        days: int,
+        initial_balance: float
+    ) -> Dict[str, Any]:
+        """
+        Run backtest using StrategyConfig object with custom parameters
+        Allows full customization of indicators and parameters
+        """
+        # Import here to avoid circular dependency
+        from webapp.services.strategy_parameters import StrategyConfig
+        
+        # Fetch historical data
+        candles = await self.fetch_historical_data(symbol, timeframe, days)
+        
+        if not candles or len(candles) < 50:
+            return self._empty_result(initial_balance)
+        
+        # Get analyzer based on base strategy
+        analyzer = self.analyzers.get(strategy_config.base_strategy)
+        if not analyzer:
+            return self._empty_result(initial_balance)
+        
+        # Apply custom parameters to analyzer
+        analyzer = self._create_custom_analyzer(strategy_config, analyzer)
+        
+        # Run strategy analysis
+        signals = analyzer.analyze(candles)
+        
+        # Use strategy config parameters for risk management
+        risk_per_trade = strategy_config.risk_per_trade
+        stop_loss_percent = strategy_config.stop_loss_percent
+        take_profit_percent = strategy_config.take_profit_percent
+        
+        # Simulate trades
+        trades = []
+        equity = initial_balance
+        equity_curve = [{"time": candles[0]["time"], "equity": equity}]
+        
+        position = None
+        
+        for i, candle in enumerate(candles):
+            if i < 20:  # Skip first candles for indicator warmup
+                continue
+            
+            signal = signals.get(i, {})
+            
+            # Check for exit
+            if position:
+                exit_signal = self._check_exit(position, candle, stop_loss_percent, take_profit_percent, signal)
+                if exit_signal:
+                    pnl = self._calculate_pnl(position, candle["close"])
+                    equity += pnl
+                    
+                    trades.append({
+                        "entry_time": position["entry_time"],
+                        "exit_time": candle["time"],
+                        "symbol": symbol,
+                        "direction": position["direction"],
+                        "entry_price": position["entry_price"],
+                        "exit_price": candle["close"],
+                        "size": position["size"],
+                        "pnl": pnl,
+                        "pnl_percent": (pnl / position["size"]) * 100,
+                        "reason": exit_signal
+                    })
+                    
+                    equity_curve.append({"time": candle["time"], "equity": equity})
+                    position = None
+            
+            # Check for entry
+            if not position and signal.get("direction"):
+                size = equity * (risk_per_trade / 100) / (stop_loss_percent / 100)
+                position = {
+                    "entry_time": candle["time"],
+                    "entry_price": candle["close"],
+                    "direction": signal["direction"],
+                    "size": size,
+                    "stop_loss": candle["close"] * (1 - stop_loss_percent / 100) if signal["direction"] == "LONG" else candle["close"] * (1 + stop_loss_percent / 100),
+                    "take_profit": candle["close"] * (1 + take_profit_percent / 100) if signal["direction"] == "LONG" else candle["close"] * (1 - take_profit_percent / 100)
+                }
+        
+        # Close any remaining position
+        if position:
+            pnl = self._calculate_pnl(position, candles[-1]["close"])
+            equity += pnl
+            trades.append({
+                "entry_time": position["entry_time"],
+                "exit_time": candles[-1]["time"],
+                "symbol": symbol,
+                "direction": position["direction"],
+                "entry_price": position["entry_price"],
+                "exit_price": candles[-1]["close"],
+                "size": position["size"],
+                "pnl": pnl,
+                "pnl_percent": (pnl / position["size"]) * 100,
+                "reason": "EOB"
+            })
+            equity_curve.append({"time": candles[-1]["time"], "equity": equity})
+        
+        # Calculate statistics
+        return self._calculate_statistics(trades, equity_curve, initial_balance, equity)
+    
+    def _create_custom_analyzer(self, strategy_config: 'StrategyConfig', base_analyzer):
+        """
+        Create custom analyzer with modified parameters based on StrategyConfig
+        """
+        # Clone the analyzer
+        import copy
+        custom_analyzer = copy.deepcopy(base_analyzer)
+        
+        # Apply custom indicator parameters
+        for ind_name, indicator in strategy_config.indicators.items():
+            if not indicator.enabled:
+                continue
+            
+            # Update analyzer parameters based on indicator type
+            if hasattr(custom_analyzer, '_apply_custom_params'):
+                custom_analyzer._apply_custom_params(ind_name, indicator.params)
+        
+        return custom_analyzer
     
     async def run_backtest(
         self,
@@ -594,11 +768,25 @@ class RealBacktestEngine:
         return None
     
     def _calculate_pnl(self, position: Dict, exit_price: float) -> float:
-        """Calculate PnL for a position"""
+        """Calculate PnL for a position with realistic costs (commissions + slippage)"""
+        entry_value = position["size"]
+        exit_value = position["size"]
+        
+        # Calculate gross P&L
         if position["direction"] == "LONG":
-            return position["size"] * (exit_price - position["entry_price"]) / position["entry_price"]
+            gross_pnl = position["size"] * (exit_price - position["entry_price"]) / position["entry_price"]
         else:
-            return position["size"] * (position["entry_price"] - exit_price) / position["entry_price"]
+            gross_pnl = position["size"] * (position["entry_price"] - exit_price) / position["entry_price"]
+        
+        # Deduct trading costs
+        costs = TradingCosts.calculate(
+            entry_value=entry_value,
+            exit_value=exit_value,
+            is_maker=False  # Conservative: assume taker fees
+        )
+        
+        net_pnl = gross_pnl - costs
+        return net_pnl
     
     def _calculate_statistics(self, trades: List[Dict], equity_curve: List[Dict], initial: float, final: float) -> Dict:
         """Calculate backtest statistics"""
@@ -621,29 +809,68 @@ class RealBacktestEngine:
             if dd > max_dd:
                 max_dd = dd
         
+        total_return = (final - initial) / initial * 100
+        
         return {
             "total_trades": len(trades),
             "winning_trades": len(wins),
             "losing_trades": len(losses),
             "win_rate": len(wins) / len(trades) * 100 if trades else 0,
             "total_pnl": final - initial,
-            "total_pnl_percent": (final - initial) / initial * 100,
+            "total_pnl_percent": total_return,
             "profit_factor": gross_profit / gross_loss if gross_loss > 0 else 999,
             "max_drawdown_percent": max_dd,
             "sharpe_ratio": self._calculate_sharpe(trades),
+            "sortino_ratio": self._calculate_sortino(trades),
+            "calmar_ratio": self._calculate_calmar(total_return, max_dd),
+            "expectancy": self._calculate_expectancy(trades),
+            "avg_win": gross_profit / len(wins) if wins else 0,
+            "avg_loss": gross_loss / len(losses) if losses else 0,
             "final_balance": final,
             "trades": trades[-50:],  # Last 50 trades
             "equity_curve": equity_curve
         }
     
     def _calculate_sharpe(self, trades: List[Dict]) -> float:
-        """Calculate Sharpe ratio"""
+        """Calculate Sharpe ratio (annualized)"""
         if len(trades) < 2:
             return 0
         returns = [t["pnl_percent"] for t in trades]
         mean = sum(returns) / len(returns)
         std = math.sqrt(sum((r - mean) ** 2 for r in returns) / len(returns))
         return (mean / std) * math.sqrt(252) if std > 0 else 0
+    
+    def _calculate_sortino(self, trades: List[Dict]) -> float:
+        """Calculate Sortino ratio (downside deviation only)"""
+        if len(trades) < 2:
+            return 0
+        returns = [t["pnl_percent"] for t in trades]
+        mean = sum(returns) / len(returns)
+        # Only consider negative returns for downside deviation
+        downside_returns = [r for r in returns if r < 0]
+        if not downside_returns:
+            return 999  # No losses
+        downside_std = math.sqrt(sum(r ** 2 for r in downside_returns) / len(downside_returns))
+        return (mean / downside_std) * math.sqrt(252) if downside_std > 0 else 0
+    
+    def _calculate_calmar(self, total_return: float, max_dd: float) -> float:
+        """Calculate Calmar ratio (return / max drawdown)"""
+        if max_dd == 0:
+            return 999
+        return total_return / max_dd if max_dd > 0 else 0
+    
+    def _calculate_expectancy(self, trades: List[Dict]) -> float:
+        """Calculate trade expectancy (average win * win_rate - average loss * loss_rate)"""
+        if not trades:
+            return 0
+        wins = [t["pnl"] for t in trades if t["pnl"] > 0]
+        losses = [abs(t["pnl"]) for t in trades if t["pnl"] <= 0]
+        
+        win_rate = len(wins) / len(trades) if trades else 0
+        avg_win = sum(wins) / len(wins) if wins else 0
+        avg_loss = sum(losses) / len(losses) if losses else 0
+        
+        return (avg_win * win_rate) - (avg_loss * (1 - win_rate))
     
     async def run_monte_carlo_simulation(
         self,
@@ -879,6 +1106,7 @@ class RealBacktestEngine:
 class RSIBBOIAnalyzer:
     """Based on aiboll/aiboll.py and spain_rsibb_oi/oi.py"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -926,6 +1154,7 @@ class RSIBBOIAnalyzer:
 class WyckoffAnalyzer:
     """Wyckoff + SMC with Fibonacci zones and order blocks"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1028,6 +1257,7 @@ class WyckoffAnalyzer:
 class ElCaroAnalyzer:
     """Main ElCaro strategy - Channel breakout with momentum"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         
@@ -1055,6 +1285,7 @@ class ElCaroAnalyzer:
 class ScryptomeraAnalyzer:
     """Based on pazzle/damp.py - Volume profile strategy"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         
@@ -1083,6 +1314,7 @@ class ScryptomeraAnalyzer:
 class ScalperAnalyzer:
     """High frequency scalping strategy"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         
@@ -1106,6 +1338,7 @@ class ScalperAnalyzer:
 class MeanReversionAnalyzer:
     """Mean Reversion Strategy - Buy oversold, sell overbought with Z-score"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1136,6 +1369,7 @@ class MeanReversionAnalyzer:
 class TrendFollowingAnalyzer:
     """Trend Following Strategy - Multiple EMA crossovers with ADX filter"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1228,6 +1462,7 @@ class TrendFollowingAnalyzer:
 class BreakoutAnalyzer:
     """Breakout Strategy - Trade breakouts from consolidation ranges"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         
@@ -1267,6 +1502,7 @@ class BreakoutAnalyzer:
 class DCAAnalyzer:
     """Dollar Cost Averaging Strategy - Time-based entries with RSI filter"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1303,6 +1539,7 @@ class DCAAnalyzer:
 class GridAnalyzer:
     """Grid Trading Strategy - Buy at lower grids, sell at upper grids"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         
@@ -1337,6 +1574,7 @@ class GridAnalyzer:
 class MomentumAnalyzer:
     """Momentum Strategy - Trade strong momentum with ROC and volume confirmation"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1366,6 +1604,7 @@ class MomentumAnalyzer:
 class VolatilityBreakoutAnalyzer:
     """Volatility Breakout Strategy - Trade breakouts using ATR and Keltner Channels"""
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         signals = {}
         closes = [c["close"] for c in candles]
@@ -1437,6 +1676,7 @@ class CustomStrategyAnalyzer:
         self.exit_conditions = config.get("exit_conditions", {})
         self.risk_management = config.get("risk_management", {})
     
+    @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         """Generate signals based on custom strategy configuration"""
         signals = {}

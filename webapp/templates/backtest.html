@@ -543,6 +543,65 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Progress Bar */
+        .progress-bar-container {
+            width: 400px;
+            height: 30px;
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px auto;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-green);
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 600;
+            color: var(--text-primary);
+            z-index: 1;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        
+        #loadingText {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        
         /* Comparison Grid */
         .comparison-grid {
             display: grid;
@@ -940,6 +999,108 @@
             background: rgba(139, 92, 246, 0.1);
             color: var(--accent-purple);
         }
+        
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 1400px) {
+            .config-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 280px;
+            }
+            .content {
+                margin-left: 280px;
+            }
+            .config-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 968px) {
+            .sidebar {
+                position: fixed;
+                left: -320px;
+                width: 320px;
+                transition: left 0.3s ease;
+                z-index: 1001;
+            }
+            .sidebar.mobile-open {
+                left: 0;
+            }
+            .content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+            .header {
+                padding: 0 15px;
+            }
+            .nav-links {
+                display: none;
+            }
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .header {
+                height: 60px;
+            }
+            .logo-text {
+                font-size: 18px;
+            }
+            .config-panel, .results-panel {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+        
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        @media (max-width: 968px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+        
+        /* Chart Visibility */
+        .results-panel {
+            display: block !important; /* Always show results panel */
+        }
+        
+        #resultsChart {
+            min-height: 400px;
+            height: 500px;
+        }
+        
+        @media (max-width: 640px) {
+            #resultsChart {
+                min-height: 300px;
+                height: 350px;
+            }
+        }
         .lang-item .flag {
             font-size: 18px;
         }
@@ -968,6 +1129,9 @@
     
     <!-- Header -->
     <header class="header">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
         <a href="/" class="logo">
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
             <span class="logo-text">ElCaro</span>
@@ -1040,7 +1204,14 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="spinner"></div>
-            <p>Running backtest...</p>
+            <p id="loadingText">Running backtest...</p>
+            <div class="progress-bar-container" id="progressBarContainer" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
+            <button class="btn btn-secondary" onclick="cancelBacktest()" id="btnCancelBacktest" style="display: none; margin-top: 20px;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
         </div>
     </div>
     
@@ -1312,7 +1483,7 @@
             </div>
             
             <!-- Results Panel -->
-            <div class="results-panel" id="resultsPanel" style="display: none;">
+            <div class="results-panel" id="resultsPanel" style="display: block;">
                 <div class="results-header">
                     <h2><i class="fas fa-chart-bar"></i> Backtest Results</h2>
                     <div class="tabs">
@@ -1591,7 +1762,177 @@
             loadStrategies();
             loadUserSettings();
             connectSettingsSyncWebSocket();
+            initializeChart();
         });
+        
+        // ============================================================
+        // MOBILE MENU
+        // ============================================================
+        
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('mobile-open');
+        }
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            const sidebar = document.querySelector('.sidebar');
+            const menuBtn = document.querySelector('.mobile-menu-btn');
+            
+            if (window.innerWidth <= 968 && 
+                sidebar && 
+                sidebar.classList.contains('mobile-open') &&
+                !sidebar.contains(e.target) && 
+                !menuBtn.contains(e.target)) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
+        
+        // ============================================================
+        // CHART INITIALIZATION
+        // ============================================================
+        
+        function initializeChart() {
+            const ctx = document.getElementById('equityChart');
+            if (!ctx) return;
+            
+            // Check if there's previous backtest data
+            const savedData = localStorage.getItem('lastBacktestResult');
+            let labels = [];
+            let equityData = [];
+            let drawdownData = [];
+            
+            if (savedData) {
+                try {
+                    const result = JSON.parse(savedData);
+                    if (result.equity_curve) {
+                        labels = result.equity_curve.map((_, i) => i);
+                        equityData = result.equity_curve;
+                        drawdownData = result.drawdown_curve || [];
+                        
+                        // Update stats if available
+                        if (result.metrics) {
+                            displayBacktestStats(result.metrics);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load previous backtest:', e);
+                }
+            }
+            
+            // Show sample data if no previous backtest
+            if (equityData.length === 0) {
+                // Generate sample equity curve
+                const initialBalance = 10000;
+                equityData = [initialBalance];
+                labels = [0];
+                
+                for (let i = 1; i <= 30; i++) {
+                    const change = (Math.random() - 0.45) * 200; // Slight upward bias
+                    equityData.push(equityData[i-1] + change);
+                    labels.push(i);
+                }
+                
+                // Calculate sample drawdown
+                let peak = initialBalance;
+                drawdownData = equityData.map(equity => {
+                    if (equity > peak) peak = equity;
+                    return ((equity - peak) / peak) * 100;
+                });
+            }
+            
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Equity',
+                        data: equityData,
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.1,
+                        borderWidth: 2
+                    }, {
+                        label: 'Drawdown (%)',
+                        data: drawdownData,
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.1,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'rgb(203, 213, 225)',
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgb(30, 41, 59)',
+                            titleColor: 'rgb(203, 213, 225)',
+                            bodyColor: 'rgb(148, 163, 184)',
+                            borderColor: 'rgb(51, 65, 85)',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(71, 85, 105, 0.3)' },
+                            ticks: { color: 'rgb(148, 163, 184)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(71, 85, 105, 0.3)' },
+                            ticks: { color: 'rgb(148, 163, 184)' },
+                            position: 'left'
+                        },
+                        y1: {
+                            grid: { display: false },
+                            ticks: { color: 'rgb(239, 68, 68)' },
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function displayBacktestStats(metrics) {
+            const statsGrid = document.getElementById('statsGrid');
+            if (!statsGrid) return;
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value ${metrics.total_pnl >= 0 ? 'positive' : 'negative'}">
+                        $${metrics.total_pnl?.toFixed(2) || '0.00'}
+                    </div>
+                    <div class="stat-label">Total P&L</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${metrics.total_trades || 0}</div>
+                    <div class="stat-label">Total Trades</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value ${metrics.win_rate >= 50 ? 'positive' : 'negative'}">
+                        ${metrics.win_rate?.toFixed(1) || '0.0'}%
+                    </div>
+                    <div class="stat-label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${metrics.sharpe_ratio?.toFixed(2) || '0.00'}</div>
+                    <div class="stat-label">Sharpe Ratio</div>
+                </div>
+            `;
+        }
         
         // ============================================================
         // SETTINGS SYNC
@@ -1907,6 +2248,9 @@
             };
         }
         
+        let backtestWs = null;
+        let currentBacktestId = null;
+        
         async function runBacktest() {
             if (selectedStrategies.size === 0) {
                 alert('Please select at least one strategy');
@@ -1917,9 +2261,12 @@
             config.strategies = Array.from(selectedStrategies);
             
             showLoading(true);
+            document.getElementById('progressBarContainer').style.display = 'block';
+            document.getElementById('btnCancelBacktest').style.display = 'inline-flex';
             
             try {
-                const res = await fetch('/api/backtest/run', {
+                // Start backtest and get backtest ID
+                const res = await fetch('/api/backtest/run-async', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
@@ -1927,16 +2274,85 @@
                 
                 const data = await res.json();
                 
-                if (data.success) {
-                    displayResults(data.results);
+                if (data.success && data.backtest_id) {
+                    currentBacktestId = data.backtest_id;
+                    
+                    // Connect to WebSocket for progress updates
+                    connectBacktestWebSocket(data.backtest_id);
                 } else {
-                    alert('Backtest failed: ' + data.error);
+                    alert('Failed to start backtest: ' + (data.error || 'Unknown error'));
+                    showLoading(false);
                 }
             } catch (e) {
                 alert('Error: ' + e.message);
-            } finally {
                 showLoading(false);
             }
+        }
+        
+        function connectBacktestWebSocket(backtestId) {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            backtestWs = new WebSocket(`${proto}//${location.host}/ws/backtest/${backtestId}`);
+            
+            backtestWs.onopen = () => {
+                console.log('Backtest WebSocket connected');
+            };
+            
+            backtestWs.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                console.log('Backtest message:', data);
+                
+                if (data.type === 'progress') {
+                    // Update progress bar
+                    document.getElementById('progressBar').style.width = data.progress + '%';
+                    document.getElementById('progressText').textContent = Math.round(data.progress) + '%';
+                    document.getElementById('loadingText').textContent = data.stage;
+                } else if (data.type === 'completed') {
+                    // Backtest completed
+                    console.log('Backtest completed:', data.results);
+                    displayResults(data.results);
+                    showLoading(false);
+                    resetProgress();
+                    backtestWs.close();
+                } else if (data.type === 'error') {
+                    // Error occurred
+                    alert('Backtest error: ' + data.error);
+                    showLoading(false);
+                    resetProgress();
+                    backtestWs.close();
+                } else if (data.type === 'cancelled') {
+                    // Backtest cancelled
+                    alert('Backtest cancelled');
+                    showLoading(false);
+                    resetProgress();
+                    backtestWs.close();
+                }
+            };
+            
+            backtestWs.onerror = (e) => {
+                console.error('Backtest WebSocket error:', e);
+                alert('WebSocket connection error');
+                showLoading(false);
+                resetProgress();
+            };
+            
+            backtestWs.onclose = () => {
+                console.log('Backtest WebSocket closed');
+                currentBacktestId = null;
+            };
+        }
+        
+        function cancelBacktest() {
+            if (backtestWs && backtestWs.readyState === WebSocket.OPEN) {
+                backtestWs.send(JSON.stringify({ type: 'cancel' }));
+            }
+        }
+        
+        function resetProgress() {
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressText').textContent = '0%';
+            document.getElementById('loadingText').textContent = 'Running backtest...';
+            document.getElementById('progressBarContainer').style.display = 'none';
+            document.getElementById('btnCancelBacktest').style.display = 'none';
         }
         
         async function runQuickBacktest() {
@@ -2043,6 +2459,9 @@
             
             const firstResult = results[strategyNames[0]];
             const firstStrategyName = strategyNames[0];
+            
+            // Save to localStorage for future page loads
+            localStorage.setItem('lastBacktestResult', JSON.stringify(firstResult));
             
             // Check if strategy is deployable
             const isDeployable = firstResult.win_rate >= 50 && firstResult.profit_factor >= 1.2;

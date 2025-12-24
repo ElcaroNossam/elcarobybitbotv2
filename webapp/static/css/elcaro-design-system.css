@@ -91,6 +91,9 @@
     --transition-fast: 0.15s ease;
     --transition-normal: 0.2s ease;
     --transition-slow: 0.3s ease;
+    
+    /* === Force dark theme for native elements === */
+    color-scheme: dark;
 }
 
 /* === Base Styles === */
@@ -272,6 +275,7 @@ body {
     color: var(--text-primary);
     font-size: 14px;
     cursor: pointer;
+    color-scheme: dark;
 }
 
 .form-select:focus {
@@ -718,6 +722,7 @@ body {
     font-size: 0.875rem;
     cursor: pointer;
     transition: all var(--transition-normal);
+    color-scheme: dark;
 }
 
 .custom-select select:hover {

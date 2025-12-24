@@ -66,6 +66,12 @@ class Balance:
     margin_used: float
     unrealized_pnl: float
     currency: str = "USDC"
+    used_margin: Optional[float] = None  # Alias for margin_used
+    
+    def __post_init__(self):
+        # Set used_margin from margin_used if not provided
+        if self.used_margin is None:
+            self.used_margin = self.margin_used
 
 
 @dataclass

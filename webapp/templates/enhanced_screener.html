@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Screener - ElCaro Trading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-active {
+            background: #10b981 !important;
+            color: white;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .symbol {
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        .price {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .metric-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .filter-input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .filter-input:focus {
+            border-color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .no-data-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Enhanced Crypto Screener</h1>
+            <p class="subtitle">Real-time market data with advanced metrics (vDelta, Volatility, OI)</p>
+        </header>
+
+        <div class="controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label style="font-weight: 600;">Exchange:</label>
+                    <button id="btn-bybit" class="btn-secondary btn-active" onclick="switchExchange('bybit')">
+                        Bybit (Top 200)
+                    </button>
+                    <button id="btn-hyperliquid" class="btn-secondary" onclick="switchExchange('hyperliquid')">
+                        HyperLiquid (All)
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn-primary" onclick="reconnect()">
+                        🔄 Reconnect
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <input 
+                        type="text" 
+                        id="search" 
+                        class="filter-input" 
+                        placeholder="Search symbol..."
+                        onkeyup="filterTable()"
+                    />
+                </div>
+
+                <div class="control-group" style="margin-left: auto;">
+                    <span id="status" class="status status-disconnected">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Symbols</div>
+                <div class="stat-value" id="symbol-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Exchange</div>
+                <div class="stat-value" id="exchange-name" style="font-size: 1.5rem;">Bybit</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Updates Received</div>
+                <div class="stat-value" id="update-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Update Rate</div>
+                <div class="stat-value" id="update-rate">0 <span style="font-size: 1rem;">/sec</span></div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Connecting to WebSocket...</p>
+        </div>
+
+        <div id="table-container" style="display: none;">
+            <table id="screener-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('symbol')">Symbol ▼</th>
+                        <th onclick="sortTable('price')">Price</th>
+                        <th onclick="sortTable('change_24h')">24h Change %</th>
+                        <th onclick="sortTable('volume_24h')">24h Volume</th>
+                        <th onclick="sortTable('vdelta_1m')">vDelta 1m</th>
+                        <th onclick="sortTable('volatility_1m')">Volatility 1m</th>
+                        <th onclick="sortTable('trades_1m')">Trades 1m</th>
+                        <th onclick="sortTable('open_interest')">Open Interest</th>
+                        <th onclick="sortTable('funding_rate')">Funding Rate</th>
+                    </tr>
+                </thead>
+                <tbody id="screener-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentExchange = 'bybit';
+        let marketData = {};
+        let updateCount = 0;
+        let lastUpdateTime = Date.now();
+        let updateRates = [];
+
+        function switchExchange(exchange) {
+            if (exchange === currentExchange) return;
+            
+            currentExchange = exchange;
+            
+            // Update UI
+            document.getElementById('btn-bybit').classList.toggle('btn-active', exchange === 'bybit');
+            document.getElementById('btn-hyperliquid').classList.toggle('btn-active', exchange === 'hyperliquid');
+            document.getElementById('exchange-name').textContent = exchange === 'bybit' ? 'Bybit' : 'HyperLiquid';
+            
+            // Clear data
+            marketData = {};
+            updateTable();
+            
+            // Reconnect
+            connectWebSocket();
+        }
+
+        function connectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/realtime/${currentExchange}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                document.getElementById('status').textContent = 'Connected';
+                document.getElementById('status').className = 'status status-connected';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('table-container').style.display = 'block';
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'market_data') {
+                    updateCount++;
+                    
+                    // Calculate update rate
+                    const now = Date.now();
+                    const elapsed = (now - lastUpdateTime) / 1000;
+                    if (elapsed > 0) {
+                        updateRates.push(1 / elapsed);
+                        if (updateRates.length > 10) updateRates.shift();
+                    }
+                    lastUpdateTime = now;
+                    
+                    // Update data
+                    message.data.forEach(item => {
+                        marketData[item.symbol] = item;
+                    });
+                    
+                    updateTable();
+                    updateStats();
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+                document.getElementById('status').textContent = 'Disconnected';
+                document.getElementById('status').className = 'status status-disconnected';
+                
+                // Auto-reconnect after 3s
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('screener-body');
+            const symbols = Object.values(marketData).sort((a, b) => 
+                (b.volume_24h || 0) - (a.volume_24h || 0)
+            );
+
+            if (symbols.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="no-data">
+                            <div class="no-data-icon">📊</div>
+                            <p>No data yet. Waiting for market updates...</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = symbols.slice(0, 100).map(item => {
+                const change = item.change_24h || 0;
+                const vdelta = item.vdelta_1m || 0;
+                const volatility = item.volatility_1m || 0;
+                
+                return `
+                    <tr>
+                        <td class="symbol">${item.symbol}</td>
+                        <td class="price">$${formatNumber(item.price)}</td>
+                        <td class="${change >= 0 ? 'positive' : 'negative'}">
+                            ${change >= 0 ? '+' : ''}${change.toFixed(2)}%
+                        </td>
+                        <td>${formatVolume(item.volume_24h)}</td>
+                        <td class="${vdelta >= 0 ? 'positive' : 'negative'}">
+                            ${vdelta >= 0 ? '+' : ''}${formatVolume(vdelta)}
+                        </td>
+                        <td>
+                            <span class="metric-badge ${getVolatilityClass(volatility)}">
+                                ${volatility.toFixed(2)}%
+                            </span>
+                        </td>
+                        <td>${item.trades_1m || 0}</td>
+                        <td>${formatNumber(item.open_interest)}</td>
+                        <td class="${(item.funding_rate || 0) >= 0 ? 'positive' : 'negative'}">
+                            ${((item.funding_rate || 0) * 100).toFixed(4)}%
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('symbol-count').textContent = Object.keys(marketData).length;
+            document.getElementById('update-count').textContent = updateCount;
+            
+            const avgRate = updateRates.length > 0 
+                ? updateRates.reduce((a, b) => a + b, 0) / updateRates.length 
+                : 0;
+            document.getElementById('update-rate').innerHTML = 
+                `${avgRate.toFixed(1)} <span style="font-size: 1rem;">/sec</span>`;
+        }
+
+        function formatNumber(num) {
+            if (!num) return '0';
+            if (num >= 1000) return num.toFixed(2);
+            if (num >= 1) return num.toFixed(4);
+            return num.toFixed(6);
+        }
+
+        function formatVolume(num) {
+            if (!num) return '0';
+            if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toFixed(2);
+        }
+
+        function getVolatilityClass(vol) {
+            if (vol > 5) return 'badge-high';
+            if (vol > 2) return 'badge-medium';
+            return 'badge-low';
+        }
+
+        function filterTable() {
+            const search = document.getElementById('search').value.toUpperCase();
+            const rows = document.querySelectorAll('#screener-body tr');
+            
+            rows.forEach(row => {
+                const symbol = row.querySelector('.symbol')?.textContent || '';
+                row.style.display = symbol.includes(search) ? '' : 'none';
+            });
+        }
+
+        function sortTable(key) {
+            const symbols = Object.values(marketData);
+            symbols.sort((a, b) => {
+                const aVal = a[key] || 0;
+                const bVal = b[key] || 0;
+                return typeof aVal === 'string' 
+                    ? aVal.localeCompare(bVal)
+                    : bVal - aVal;
+            });
+            
+            marketData = {};
+            symbols.forEach(item => {
+                marketData[item.symbol] = item;
+            });
+            
+            updateTable();
+        }
+
+        function reconnect() {
+            connectWebSocket();
+        }
+
+        // Start connection
+        connectWebSocket();
+    </script>
+</body>
+</html>

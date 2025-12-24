@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Market Data Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .btn-connect {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-disconnect {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-left: 20px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #4CAF50;
+        }
+        
+        .status.disconnected {
+            background: #f44336;
+        }
+        
+        .exchange-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .symbol-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .symbol-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        
+        .symbol-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .price {
+            font-size: 2em;
+            margin: 10px 0;
+        }
+        
+        .price.up {
+            color: #4CAF50;
+        }
+        
+        .price.down {
+            color: #f44336;
+        }
+        
+        .meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        .meta-item {
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 5px;
+        }
+        
+        .meta-label {
+            opacity: 0.7;
+            font-size: 0.8em;
+        }
+        
+        .meta-value {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .stats {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            opacity: 0.7;
+        }
+        
+        .change {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .change.positive {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+        }
+        
+        .change.negative {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Real-Time Market Data Test</h1>
+        
+        <div class="controls">
+            <button class="btn btn-connect" id="connectBtn" onclick="connectAll()">Connect All</button>
+            <button class="btn btn-disconnect" id="disconnectBtn" onclick="disconnectAll()" disabled>Disconnect All</button>
+            <span class="status disconnected" id="statusBybit">Bybit: Disconnected</span>
+            <span class="status disconnected" id="statusHL">HyperLiquid: Disconnected</span>
+        </div>
+        
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSymbols">0</div>
+                <div class="stat-label">Total Symbols</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="updateRate">0</div>
+                <div class="stat-label">Updates/sec</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="latency">0ms</div>
+                <div class="stat-label">Latency</div>
+            </div>
+        </div>
+        
+        <div class="exchange-tabs">
+            <div class="tab active" data-exchange="bybit" onclick="switchExchange('bybit')">
+                Bybit
+            </div>
+            <div class="tab" data-exchange="hyperliquid" onclick="switchExchange('hyperliquid')">
+                HyperLiquid
+            </div>
+        </div>
+        
+        <div class="data-grid" id="dataGrid">
+            <div class="no-data">Connect to start receiving data...</div>
+        </div>
+    </div>
+    
+    <script src="/static/js/realtime-client.js"></script>
+    <script>
+        let bybitClient = null;
+        let hlClient = null;
+        let currentExchange = 'bybit';
+        let updateCount = 0;
+        let lastUpdateTime = Date.now();
+        
+        function connectAll() {
+            // Connect to Bybit
+            bybitClient = new RealtimeClient('bybit');
+            bybitClient.on('connected', () => {
+                document.getElementById('statusBybit').textContent = 'Bybit: Connected';
+                document.getElementById('statusBybit').className = 'status connected';
+                updateButtons();
+            });
+            bybitClient.on('disconnected', () => {
+                document.getElementById('statusBybit').textContent = 'Bybit: Disconnected';
+                document.getElementById('statusBybit').className = 'status disconnected';
+                updateButtons();
+            });
+            bybitClient.on('data', (data) => handleData('bybit', data));
+            bybitClient.connect();
+            
+            // Connect to HyperLiquid
+            hlClient = new RealtimeClient('hyperliquid');
+            hlClient.on('connected', () => {
+                document.getElementById('statusHL').textContent = 'HyperLiquid: Connected';
+                document.getElementById('statusHL').className = 'status connected';
+                updateButtons();
+            });
+            hlClient.on('disconnected', () => {
+                document.getElementById('statusHL').textContent = 'HyperLiquid: Disconnected';
+                document.getElementById('statusHL').className = 'status disconnected';
+                updateButtons();
+            });
+            hlClient.on('data', (data) => handleData('hyperliquid', data));
+            hlClient.connect();
+        }
+        
+        function disconnectAll() {
+            if (bybitClient) bybitClient.disconnect();
+            if (hlClient) hlClient.disconnect();
+            updateButtons();
+        }
+        
+        function updateButtons() {
+            const connected = (bybitClient && bybitClient.isConnected) || (hlClient && hlClient.isConnected);
+            document.getElementById('connectBtn').disabled = connected;
+            document.getElementById('disconnectBtn').disabled = !connected;
+        }
+        
+        function handleData(exchange, { type, data, timestamp }) {
+            console.log(`[${exchange}] Received ${type}:`, Object.keys(data).length, 'symbols');
+            
+            // Update stats
+            updateCount++;
+            const now = Date.now();
+            const timeDiff = (now - lastUpdateTime) / 1000;
+            if (timeDiff >= 1) {
+                const rate = updateCount / timeDiff;
+                document.getElementById('updateRate').textContent = rate.toFixed(1);
+                updateCount = 0;
+                lastUpdateTime = now;
+            }
+            
+            // Update display if this is current exchange
+            if (exchange === currentExchange) {
+                renderData(data);
+            }
+            
+            // Update total symbols
+            const totalSymbols = Object.keys(bybitClient?.data || {}).length + Object.keys(hlClient?.data || {}).length;
+            document.getElementById('totalSymbols').textContent = totalSymbols;
+        }
+        
+        function renderData(data) {
+            const grid = document.getElementById('dataGrid');
+            const symbols = Object.values(data);
+            
+            if (symbols.length === 0) {
+                grid.innerHTML = '<div class="no-data">No data available...</div>';
+                return;
+            }
+            
+            // Sort by price descending
+            symbols.sort((a, b) => (b.price || 0) - (a.price || 0));
+            
+            grid.innerHTML = symbols.map(symbol => {
+                const change = symbol.change_24h || 0;
+                const changeClass = change >= 0 ? 'positive' : 'negative';
+                const priceClass = change >= 0 ? 'up' : 'down';
+                
+                return `
+                    <div class="symbol-card">
+                        <div class="symbol-name">${symbol.symbol}</div>
+                        <div class="price ${priceClass}">
+                            $${(symbol.price || 0).toFixed(2)}
+                            ${change !== 0 ? `<span class="change ${changeClass}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</span>` : ''}
+                        </div>
+                        <div class="meta">
+                            ${symbol.volume_24h ? `
+                            <div class="meta-item">
+                                <div class="meta-label">Volume 24h</div>
+                                <div class="meta-value">$${formatNumber(symbol.volume_24h)}</div>
+                            </div>
+                            ` : ''}
+                            ${symbol.high_24h ? `
+                            <div class="meta-item">
+                                <div class="meta-label">High 24h</div>
+                                <div class="meta-value">$${symbol.high_24h.toFixed(2)}</div>
+                            </div>
+                            ` : ''}
+                            ${symbol.low_24h ? `
+                            <div class="meta-item">
+                                <div class="meta-label">Low 24h</div>
+                                <div class="meta-value">$${symbol.low_24h.toFixed(2)}</div>
+                            </div>
+                            ` : ''}
+                            ${symbol.bid && symbol.ask ? `
+                            <div class="meta-item">
+                                <div class="meta-label">Spread</div>
+                                <div class="meta-value">${(((symbol.ask - symbol.bid) / symbol.bid) * 100).toFixed(4)}%</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function switchExchange(exchange) {
+            currentExchange = exchange;
+            
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.exchange === exchange);
+            });
+            
+            // Render data for selected exchange
+            const client = exchange === 'bybit' ? bybitClient : hlClient;
+            if (client && client.data) {
+                renderData(client.data);
+            }
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toFixed(2);
+        }
+        
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, auto-connecting...');
+            setTimeout(connectAll, 500);
+        });
+    </script>
+</body>
+</html>

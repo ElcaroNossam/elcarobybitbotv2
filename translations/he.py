@@ -2,6 +2,7 @@
 TEXTS = {
     # Main menu
     'welcome':                     '👋 היי! בחר פעולה:',
+    'no_strategies':               '❌ אין',
     'guide_caption':               '📚 מדריך למשתמש בוט מסחר\n\nקרא מדריך זה כדי ללמוד כיצד להגדיר אסטרטגיות ולהשתמש בבוט ביעילות.',
     'privacy_caption':             '📜 מדיניות פרטיות ותנאי שימוש\n\nאנא קרא מסמך זה בעיון.',
     'button_api':                  '🔑 API',
@@ -44,7 +45,6 @@ TEXTS = {
     'select_language':             'בחר שפה:',
     'language_set':                'השפה הוגדרה ל:',
     'lang_en':                     'English',
-    'lang_he':                     'עברית',
 
     # Manual order
     'order_type_prompt':           'בחר סוג פקודה:',
@@ -688,9 +688,6 @@ TEXTS = {
     'group_global': '📊 Global (use common setting)',
 
     # Elcaro AI settings
-    'elcaro_ai_note': '🤖 *הבינה המלאכותית עושה את העבודה בשבילך!*',
-    'elcaro_ai_params_header': 'הבאים מנותחים מכל אות:',
-    'elcaro_ai_params_list': '• SL% • TP% • ATR • מינוף • מסגרת זמן',
 
     # Leverage settings
     'param_leverage': '⚡ מינוף',
