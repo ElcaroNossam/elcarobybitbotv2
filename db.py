@@ -127,7 +127,8 @@ def _col_exists(conn: sqlite3.Connection, table: str, col: str) -> bool:
     """Check if column exists in table - SAFE from SQL injection"""
     # Security: Validate table and column names against whitelists
     if table not in {'users', 'signals', 'active_positions', 'pending_limit_orders',
-                      'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies'}:
+                      'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies',
+                      'market_snapshots', 'payment_history', 'user_achievements'}:
         raise ValueError(f"Invalid table name: {table}")
     
     if not col.replace('_', '').isalnum():
