@@ -6,13 +6,14 @@
 
 1. **НЕ УДАЛЯТЬ** критический код — только оптимизация и улучшения
 2. **НЕ УПРОЩАТЬ** логику — сохранять всю существующую функциональность
-3. **Production сервер:** `/home/ubuntu/project/elcarobybitbotv2/` (systemd service: `elcaro-bot`)
-4. **На сервере есть другой проект `noetdat`** — НЕ трогать его, работать ТОЛЬКО с `elcarobybitbotv2`
-5. При изменениях сначала тестировать локально, затем деплоить
+3. **Production сервер:** AWS EC2 (eu-central-1) — `ec2-3-66-84-33.eu-central-1.compute.amazonaws.com`
+4. **Только ElCaro бот** на production сервере — всё остальное почищено
+5. **Cloudflare Tunnel:** Автоматически создается при старте (FREE, безлимит!)
+6. При изменениях сначала тестировать локально, затем деплоить
 
-## 🚀 Deployment Workflow
+## 🚀 Deployment Workflow (Updated Dec 24, 2025)
 
-**Credentials:** `.server_credentials` (локально, НЕ в git)
+**SSH Credentials:** `noet-dat.pem` (в корне проекта, НЕ в git)
 
 ### 1. Локальная разработка и тест
 ```bash
@@ -21,10 +22,10 @@
 ./start.sh --status     # Проверить статус
 ```
 
-### 2. Деплой на сервер (после одобрения)
+### 2. Деплой на AWS сервер
 ```bash
 # SSH подключение
-ssh -i rita.pem ubuntu@46.62.211.0
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com
 
 # На сервере:
 cd /home/ubuntu/project/elcarobybitbotv2
@@ -32,15 +33,15 @@ cd /home/ubuntu/project/elcarobybitbotv2
 # Pull изменений
 git pull origin main
 
-# Рестарт Cloudflare tunnel
-sudo systemctl restart cloudflared
-
-# Рестарт бота
+# Рестарт бота (Cloudflare tunnel автоматически пересоздастся!)
 sudo systemctl restart elcaro-bot
 
 # Проверка статуса
-sudo systemctl status elcaro-bot
+sudo systemctl status elcaro-bot --no-pager
 journalctl -u elcaro-bot -f --no-pager -n 50
+
+# Получить текущий Cloudflare URL
+cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
 ```
 
 ### 3. Откат при проблемах
@@ -48,6 +49,107 @@ journalctl -u elcaro-bot -f --no-pager -n 50
 git checkout HEAD~1 -- <file>
 sudo systemctl restart elcaro-bot
 ```
+
+### 4. Мониторинг ресурсов
+```bash
+# Диск
+df -h | grep /dev/root
+
+# Память
+free -h
+
+# Процессы
+ps aux | grep -E '(python|cloudflared)' | grep -v grep
+```
+
+---
+
+## 🌐 Cloudflare Tunnel (FREE, Безлимит!)
+
+### Как работает
+1. **Автоматический старт:** При запуске бота через `start_bot.sh` создается туннель
+2. **Получение URL:** Парсится из логов cloudflared (~10 секунд)
+3. **Сохранение:** URL записывается в `.env` (WEBAPP_URL) и `run/ngrok_url.txt`
+4. **Использование:** WebApp доступен по этому URL, бот передает ссылку пользователям
+
+### Текущий URL
+```bash
+# На сервере
+cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
+
+# Пример: https://wendy-series-strike-minnesota.trycloudflare.com
+```
+
+### Обновление туннеля
+URL автоматически обновляется при каждом рестарте бота:
+```bash
+sudo systemctl restart elcaro-bot
+sleep 15
+cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
+```
+
+### Файлы
+- **Startup скрипт:** `/home/ubuntu/project/elcarobybitbotv2/start_bot.sh`
+- **Логи туннеля:** `/tmp/cloudflared.log`
+- **URL файл:** `/home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt`
+- **Env файл:** `/home/ubuntu/project/elcarobybitbotv2/.env` (WEBAPP_URL=...)
+
+### Проверка работы
+```bash
+# Процессы
+ps aux | grep cloudflared
+
+# Логи
+tail -20 /tmp/cloudflared.log
+
+# Тест доступа
+curl -s https://YOUR-URL.trycloudflare.com/health
+```
+
+---
+
+## 🧹 Auto-cleanup System (Автоочистка)
+
+### Cron задача
+Ежедневная очистка в **03:00 UTC**:
+```bash
+0 3 * * * /home/ubuntu/cleanup.sh >> /home/ubuntu/cleanup.log 2>&1
+```
+
+### Что чистится
+- Журналы systemd (vacuum до 100MB)
+- APT кеш
+- Python `__pycache__` и `*.pyc`
+- Временные файлы `/tmp` старше 3 дней
+- Логи бота старше 7 дней
+
+### Ручной запуск
+```bash
+/home/ubuntu/cleanup.sh
+```
+
+### Проверка cron
+```bash
+crontab -l
+cat /home/ubuntu/cleanup.log
+```
+
+---
+
+## 📊 Server Info
+
+| Parameter | Value |
+|-----------|-------|
+| **IP** | `ec2-3-66-84-33.eu-central-1.compute.amazonaws.com` |
+| **User** | `ubuntu` |
+| **SSH Key** | `noet-dat.pem` (в корне проекта, НЕ в git) |
+| **Bot Path** | `/home/ubuntu/project/elcarobybitbotv2/` |
+| **Python venv** | `/home/ubuntu/project/elcarobybitbotv2/venv/` |
+| **Disk** | 16GB (21% used - 13GB free) |
+| **Memory** | 1.9GB + 1GB swap |
+| **Services** | `elcaro-bot.service` (enabled, auto-restart) |
+
+---
 
 ## 🔧 Recent Fixes (December 2024-2025)
 

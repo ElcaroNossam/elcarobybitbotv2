@@ -8,7 +8,30 @@ Features: Telegram Bot, Web Terminal, Live Screener, AI Agent, Backtesting
 
 ---
 
-## 🚀 Quick Start (Updated Dec 23, 2025)
+## 🌐 Production Server Info (Updated Dec 24, 2025)
+
+**AWS EC2 Server (eu-central-1)**
+- **Host:** `ec2-3-66-84-33.eu-central-1.compute.amazonaws.com`
+- **User:** `ubuntu`
+- **SSH Key:** `noet-dat.pem` (в корне проекта)
+- **Bot Path:** `/home/ubuntu/project/elcarobybitbotv2/`
+- **Systemd Service:** `elcaro-bot.service` (enabled, auto-restart)
+- **Cloudflare Tunnel:** 🆓 Автоматически создается при каждом запуске!
+- **Current URL:** Обновляется в `/run/ngrok_url.txt` и `.env`
+
+**Server Resources:**
+- Disk: 16GB (21% used - 13GB free)
+- Memory: 1.9GB + 1GB swap
+- Auto-cleanup: Daily at 3 AM UTC (cron)
+
+**SSH Connect:**
+```bash
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com
+```
+
+---
+
+## 🚀 Quick Start (Updated Dec 24, 2025)
 
 ### Local Development
 
