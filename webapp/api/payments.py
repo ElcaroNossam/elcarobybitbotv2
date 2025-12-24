@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 
 import db
+from webapp.api.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -69,11 +70,18 @@ async def get_pricing_plans():
 
 
 @router.post("/create")
-async def create_payment(payment: PaymentRequest):
+async def create_payment(
+    payment: PaymentRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
     Create a new payment/subscription
     Validates payment and activates subscription
+    
+    **SECURITY:** Requires JWT authentication
     """
+    user_id = current_user['user_id']
+    
     try:
         # Validate plan and period
         if payment.plan not in PRICING:
@@ -86,20 +94,56 @@ async def create_payment(payment: PaymentRequest):
         if abs(payment.amount - expected_amount) > 0.01:
             raise HTTPException(status_code=400, detail=f"Invalid amount. Expected ${expected_amount}")
         
-        # Verify payment (simplified - in production, verify on-chain)
+        # Verify payment on blockchain
         if payment.payment_method == 'web3':
-            if not payment.wallet_address:
-                raise HTTPException(status_code=400, detail="Wallet address required")
-            # TODO: Verify Web3 payment
+            if not payment.wallet_address or not payment.transaction_hash:
+                raise HTTPException(status_code=400, detail="Wallet address and transaction hash required")
+            
+            # Import Web3 verification
+            try:
+                from blockchain.web3_client import verify_payment_transaction
+                is_valid = await verify_payment_transaction(
+                    tx_hash=payment.transaction_hash,
+                    expected_amount=payment.amount,
+                    from_address=payment.wallet_address
+                )
+                if not is_valid:
+                    raise HTTPException(status_code=400, detail="Invalid Web3 transaction")
+            except ImportError:
+                logger.error("Web3 verification not available - PAYMENT BLOCKED")
+                raise HTTPException(status_code=503, detail="Web3 payment verification unavailable")
+                
         elif payment.payment_method == 'ton':
-            # TODO: Verify TON payment
-            pass
+            if not payment.transaction_hash:
+                raise HTTPException(status_code=400, detail="Transaction hash required")
+            
+            try:
+                from ton_payment_gateway import verify_ton_transaction
+                is_valid = await verify_ton_transaction(
+                    tx_hash=payment.transaction_hash,
+                    expected_amount=payment.amount
+                )
+                if not is_valid:
+                    raise HTTPException(status_code=400, detail="Invalid TON transaction")
+            except ImportError:
+                logger.error("TON verification not available - PAYMENT BLOCKED")
+                raise HTTPException(status_code=503, detail="TON payment verification unavailable")
+                
         elif payment.payment_method == 'usdt':
-            # TODO: Verify USDT payment
-            pass
-        
-        # For demo purposes, simulate user_id (in production, get from auth)
-        user_id = 123456  # Replace with actual user ID from session/JWT
+            if not payment.transaction_hash:
+                raise HTTPException(status_code=400, detail="Transaction hash required")
+            
+            try:
+                from blockchain.web3_client import verify_usdt_transaction
+                is_valid = await verify_usdt_transaction(
+                    tx_hash=payment.transaction_hash,
+                    expected_amount=payment.amount
+                )
+                if not is_valid:
+                    raise HTTPException(status_code=400, detail="Invalid USDT transaction")
+            except ImportError:
+                logger.error("USDT verification not available - PAYMENT BLOCKED")
+                raise HTTPException(status_code=503, detail="USDT payment verification unavailable")
         
         # Calculate expiration
         if payment.plan == 'trial':
@@ -145,9 +189,11 @@ async def create_payment(payment: PaymentRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/subscription/{user_id}")
-async def get_subscription(user_id: int):
-    """Get user's current subscription info"""
+@router.get("/subscription")
+async def get_subscription(current_user: dict = Depends(get_current_user)):
+    """Get current user's subscription info"""
+    user_id = current_user['user_id']
+    
     try:
         license_info = db.get_user_license(user_id)
         
@@ -166,9 +212,11 @@ async def get_subscription(user_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cancel/{user_id}")
-async def cancel_subscription(user_id: int):
-    """Cancel user's subscription (turn off auto-renew)"""
+@router.post("/cancel")
+async def cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """Cancel current user's subscription (turn off auto-renew)"""
+    user_id = current_user['user_id']
+    
     try:
         # In a real system, you'd disable auto-renew but keep access until expiration
         db.set_user_value(user_id, "auto_renew", False)
@@ -184,11 +232,12 @@ async def cancel_subscription(user_id: int):
 
 @router.post("/upgrade")
 async def upgrade_subscription(
-    user_id: int = Body(...),
     new_plan: str = Body(...),
-    new_period: str = Body(...)
+    new_period: str = Body(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """Upgrade user's subscription"""
+    user_id = current_user['user_id']
     try:
         if new_plan not in PRICING:
             raise HTTPException(status_code=400, detail="Invalid plan")

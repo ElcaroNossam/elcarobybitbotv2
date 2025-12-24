@@ -124,6 +124,15 @@ def release_conn(conn: sqlite3.Connection):
 
 
 def _col_exists(conn: sqlite3.Connection, table: str, col: str) -> bool:
+    """Check if column exists in table - SAFE from SQL injection"""
+    # Security: Validate table and column names against whitelists
+    if table not in {'users', 'signals', 'active_positions', 'pending_limit_orders',
+                      'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies'}:
+        raise ValueError(f"Invalid table name: {table}")
+    
+    if not col.replace('_', '').isalnum():
+        raise ValueError(f"Invalid column name: {col}")
+    
     rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
     return any(r[1] == col for r in rows)
 

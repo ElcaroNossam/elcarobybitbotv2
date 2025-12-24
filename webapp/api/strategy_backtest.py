@@ -7,6 +7,8 @@ Key Features:
 3. Beautiful configuration interface for all timeframes and coins
 4. Strategy marketplace integration
 
+**SECURITY:** All endpoints require JWT authentication
+
 (c) ElCaro Trading Platform 2024
 """
 
@@ -20,9 +22,15 @@ import hashlib
 import json
 import logging
 
+from webapp.api.auth import get_current_user
+from core.rate_limiter import RateLimiter
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/strategy", tags=["strategy"])
+
+# Rate limiter: 5 backtests per hour per user
+_backtest_limiter = RateLimiter(name="backtest", max_requests=5, window_seconds=3600)
 
 
 # ======================= ENUMS =======================
@@ -457,14 +465,23 @@ async def get_available_symbols(
 @router.post("/backtest/built-in")
 async def backtest_built_in_strategy(
     request: BacktestRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
 ) -> BacktestResult:
     """
     Backtest a BUILT-IN strategy.
     
     ⚠️ IMPORTANT: Strategy indicator logic is completely HIDDEN.
     Only backtest results and metrics are returned.
+    
+    **REQUIRES:** JWT Authentication
+    **RATE LIMIT:** 5 backtests per hour
     """
+    user_id = current_user['user_id']
+    
+    # Rate limiting check
+    if not await _backtest_limiter.acquire(user_id, "backtest"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 backtests per hour.")
     from webapp.services.backtest_engine_v2 import ProBacktestEngine
     
     engine = ProBacktestEngine()
@@ -515,14 +532,23 @@ async def backtest_built_in_strategy(
 @router.post("/backtest/custom")
 async def backtest_custom_strategy(
     request: CustomBacktestRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
 ) -> BacktestResult:
     """
     Backtest a USER-DEFINED custom strategy.
     
     Users can create strategies from available public indicators
     and backtest them across any symbols and timeframes.
+    
+    **REQUIRES:** JWT Authentication
+    **RATE LIMIT:** 5 backtests per hour
     """
+    user_id = current_user['user_id']
+    
+    # Rate limiting check
+    if not await _backtest_limiter.acquire(user_id, "backtest"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 backtests per hour.")
     from webapp.services.backtest_engine_v2 import ProBacktestEngine
     from webapp.services.indicators import IndicatorCalculator
     
@@ -622,11 +648,17 @@ async def backtest_custom_strategy(
 
 
 @router.post("/save")
-async def save_custom_strategy(request: SaveStrategyRequest, user_id: int = 1):  # TODO: auth
+async def save_custom_strategy(
+    request: SaveStrategyRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
     Save a custom strategy to database.
     Can optionally list on marketplace for sale.
+    
+    **REQUIRES:** JWT Authentication
     """
+    user_id = current_user['user_id']
     strategy_hash = hashlib.sha256(
         json.dumps(request.strategy.dict(), sort_keys=True).encode()
     ).hexdigest()[:16]
@@ -647,15 +679,30 @@ async def save_custom_strategy(request: SaveStrategyRequest, user_id: int = 1): 
 
 
 @router.get("/my-strategies")
-async def get_user_strategies(user_id: int = 1) -> List[Dict]:  # TODO: auth
-    """Get user's saved custom strategies"""
+async def get_user_strategies(
+    current_user: dict = Depends(get_current_user)
+) -> List[Dict]:
+    """
+    Get user's saved custom strategies
+    
+    **REQUIRES:** JWT Authentication
+    """
+    user_id = current_user['user_id']
     # TODO: Fetch from database
     return []
 
 
 @router.delete("/delete/{strategy_id}")
-async def delete_strategy(strategy_id: str, user_id: int = 1):  # TODO: auth
-    """Delete a custom strategy"""
+async def delete_strategy(
+    strategy_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a custom strategy
+    
+    **REQUIRES:** JWT Authentication
+    """
+    user_id = current_user['user_id']
     # TODO: Delete from database
     return {"status": "deleted", "strategy_id": strategy_id}
 
