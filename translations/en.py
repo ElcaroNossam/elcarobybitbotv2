@@ -955,4 +955,19 @@ Try again after payment is confirmed on blockchain.''',
     "leverage_range_error": "❌ Leverage must be between 1 and 100.",
     "hl_setup_cancelled": "❌ HyperLiquid setup cancelled.",
 
+    # =====================================================
+    # DEEP LOSS POSITION ALERTS
+    # =====================================================
+    "btn_close_position": "❌ Close Position",
+    "btn_enable_dca": "📈 Enable DCA Averaging",
+    "btn_ignore": "🔇 Ignore",
+    "deep_loss_alert": "⚠️ <b>Position in Deep Loss!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Loss: <code>{loss_pct:.2f}%</code>\n💰 Entry: <code>{entry}</code>\n📍 Current: <code>{mark}</code>\n\n❌ Stop-loss cannot be set above entry price.\n\n<b>What to do?</b>\n• <b>Close</b> - lock in the loss\n• <b>DCA Average</b> - add to position to average down\n• <b>Ignore</b> - leave as is",
+    "position_already_closed": "❌ Position {symbol} is already closed.",
+    "deep_loss_closed": "✅ Position {symbol} closed.\n\nLoss locked in. Sometimes it's better to take a small loss than hope for a reversal.",
+    "deep_loss_close_error": "❌ Error closing position: {error}",
+    "dca_already_enabled": "✅ DCA averaging is already enabled!\n\n📊 <b>{symbol}</b>\nBot will automatically add to position on drawdown:\n• -10% → add\n• -25% → add\n\nThis helps average the entry price.",
+    "dca_enabled_for_symbol": "✅ DCA averaging enabled!\n\n📊 <b>{symbol}</b>\nBot will automatically add to position on drawdown:\n• -10% → add (average down)\n• -25% → add (average down)\n\n⚠️ DCA requires sufficient balance for adds.\nConfigure settings: /strategy_settings",
+    "dca_enable_error": "❌ Error: {error}",
+    "deep_loss_ignored": "🔇 Got it, position {symbol} left unchanged.\n\n⚠️ Remember: without stop-loss, risk of losses is unlimited.\nYou can close the position manually via /positions",
+
 }

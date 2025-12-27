@@ -3091,10 +3091,10 @@ async def set_trading_stop(
         if "no open positions" in err_str or "position not exists" in err_str:
             logger.debug(f"[{uid}] Position for {symbol} closed during set_trading_stop")
             return False
-        # Handle invalid SL/TP price errors - skip silently (position already in deep loss)
+        # Handle invalid SL/TP price errors - position in deep loss
         if "should lower than" in err_str or "should higher than" in err_str:
-            logger.warning(f"[{uid}] {symbol}: SL/TP price invalid (position in deep loss), skipping")
-            return False
+            logger.warning(f"[{uid}] {symbol}: SL/TP price invalid (position in deep loss)")
+            return "deep_loss"  # Special return value to indicate deep loss
         raise
 
 async def _position_idx_for_cached(uid: int, symbol: str, side: str) -> int:
@@ -9868,6 +9868,10 @@ async def monitor_positions_loop(app: Application):
     # Track SL notifications already sent to avoid spam
     # Key: (uid, symbol), Value: timestamp when last notification was sent
     _sl_notified = {}
+    
+    # Track deep loss notifications (position without SL in deep loss)
+    # Key: (uid, symbol), Value: timestamp when notification was sent
+    _deep_loss_notified = {}
 
     while True:
         try:
@@ -9979,6 +9983,7 @@ async def monitor_positions_loop(app: Application):
                                 reset_pyramid(uid, pos["symbol"])
                                 _atr_triggered.pop((uid, pos["symbol"]), None)
                                 _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
+                                _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
                             except Exception as e:
                                 logger.error(f"Auto-close {pos['symbol']} failed: {e}")
                                 
@@ -10057,13 +10062,79 @@ async def monitor_positions_loop(app: Application):
                                 already_notified = sl_notify_key in _sl_notified
                                 should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified
                                 
+                                # Helper to handle deep loss notification
+                                async def notify_deep_loss(symbol, side, entry, mark, move_pct):
+                                    deep_loss_key = (uid, symbol)
+                                    if deep_loss_key in _deep_loss_notified:
+                                        return  # Already notified
+                                    _deep_loss_notified[deep_loss_key] = now
+                                    
+                                    # Calculate loss percentage
+                                    loss_pct = abs(move_pct)
+                                    
+                                    # Create inline keyboard with options
+                                    keyboard = [
+                                        [
+                                            InlineKeyboardButton(
+                                                t.get('btn_close_position', '❌ Закрыть позицию'),
+                                                callback_data=f"deep_loss:close:{symbol}"
+                                            )
+                                        ],
+                                        [
+                                            InlineKeyboardButton(
+                                                t.get('btn_enable_dca', '📈 Включить DCA добор'),
+                                                callback_data=f"deep_loss:dca:{symbol}"
+                                            )
+                                        ],
+                                        [
+                                            InlineKeyboardButton(
+                                                t.get('btn_ignore', '🔇 Игнорировать'),
+                                                callback_data=f"deep_loss:ignore:{symbol}"
+                                            )
+                                        ]
+                                    ]
+                                    
+                                    msg_text = t.get('deep_loss_alert', 
+                                        "⚠️ <b>Позиция в глубоком минусе!</b>\n\n"
+                                        "📊 <b>{symbol}</b> ({side})\n"
+                                        "📉 Убыток: <code>{loss_pct:.2f}%</code>\n"
+                                        "💰 Вход: <code>{entry}</code>\n"
+                                        "📍 Текущая: <code>{mark}</code>\n\n"
+                                        "❌ Стоп-лосс невозможно установить выше цены входа.\n\n"
+                                        "<b>Что делать?</b>\n"
+                                        "• <b>Закрыть</b> - зафиксировать убыток\n"
+                                        "• <b>DCA добор</b> - усреднить позицию доборами\n"
+                                        "• <b>Игнорировать</b> - оставить как есть"
+                                    ).format(
+                                        symbol=symbol,
+                                        side="LONG" if side == "Buy" else "SHORT",
+                                        loss_pct=loss_pct,
+                                        entry=entry,
+                                        mark=mark
+                                    )
+                                    
+                                    try:
+                                        await bot.send_message(
+                                            uid,
+                                            msg_text,
+                                            parse_mode="HTML",
+                                            reply_markup=InlineKeyboardMarkup(keyboard)
+                                        )
+                                    except Exception as e:
+                                        logger.warning(f"Failed to send deep loss notification to {uid}: {e}")
+                                
                                 if not pos_use_atr:
                                     kwargs = {"sl_price": sl_price}
                                     if current_tp is None:
                                         if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                             kwargs["tp_price"] = tp_price
                                     try:
-                                        await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                        result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                        if result == "deep_loss":
+                                            # Calculate move_pct for deep loss notification
+                                            move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                            await notify_deep_loss(sym, side, entry, mark, move_pct_local)
+                                            continue
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position closed before SL/TP could be set")
@@ -10084,7 +10155,12 @@ async def monitor_positions_loop(app: Application):
                                             )
                                 else:
                                     try:
-                                        await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                        result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                        if result == "deep_loss":
+                                            # Calculate move_pct for deep loss notification
+                                            move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                            await notify_deep_loss(sym, side, entry, mark, move_pct_local)
+                                            continue
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position closed before SL could be set")
@@ -10119,6 +10195,7 @@ async def monitor_positions_loop(app: Application):
                                 finally:
                                     _atr_triggered.pop((uid, sym), None)
                                     _sl_notified.pop((uid, sym), None)
+                                    _deep_loss_notified.pop((uid, sym), None)
                                 continue
                             
                             logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
@@ -10219,6 +10296,7 @@ async def monitor_positions_loop(app: Application):
                                 finally:
                                     _atr_triggered.pop((uid, sym), None)
                                     _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
+                                    _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
 
                     active = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
                     tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
@@ -14440,6 +14518,121 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+@require_access
+async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle deep loss position actions: close, enable DCA, or ignore"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    t = ctx.t
+    data = q.data  # Format: deep_loss:action:symbol
+    
+    parts = data.split(":")
+    if len(parts) != 3:
+        return
+    
+    _, action, symbol = parts
+    
+    if action == "close":
+        # Close the position
+        try:
+            # Get position info
+            positions = await fetch_open_positions(uid)
+            pos = next((p for p in positions if p.get("symbol") == symbol), None)
+            
+            if not pos:
+                await q.edit_message_text(
+                    t.get('position_already_closed', "❌ Позиция {symbol} уже закрыта.").format(symbol=symbol),
+                    parse_mode="HTML"
+                )
+                return
+            
+            side = pos.get("side")
+            size = float(pos.get("size", 0))
+            close_side = "Sell" if side == "Buy" else "Buy"
+            
+            # Place close order
+            await place_order(
+                user_id=uid,
+                symbol=symbol,
+                side=close_side,
+                orderType="Market",
+                qty=size,
+                reduceOnly=True
+            )
+            
+            await q.edit_message_text(
+                t.get('deep_loss_closed', 
+                    "✅ Позиция {symbol} закрыта.\n\n"
+                    "Убыток зафиксирован. Иногда лучше принять небольшой убыток, чем надеяться на разворот."
+                ).format(symbol=symbol),
+                parse_mode="HTML"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error closing deep loss position {symbol} for {uid}: {e}")
+            await q.edit_message_text(
+                t.get('deep_loss_close_error', "❌ Ошибка при закрытии позиции: {error}").format(error=str(e)[:100]),
+                parse_mode="HTML"
+            )
+    
+    elif action == "dca":
+        # Enable DCA for this symbol
+        try:
+            cfg = get_user_config(uid)
+            
+            # Check if DCA is already enabled globally
+            dca_enabled = cfg.get("dca_enabled", 0)
+            
+            if dca_enabled:
+                await q.edit_message_text(
+                    t.get('dca_already_enabled',
+                        "✅ DCA добор уже включен!\n\n"
+                        "📊 <b>{symbol}</b>\n"
+                        "Бот будет автоматически добавлять к позиции при просадке:\n"
+                        "• -10% → добор\n"
+                        "• -25% → добор\n\n"
+                        "Это поможет усреднить цену входа."
+                    ).format(symbol=symbol),
+                    parse_mode="HTML"
+                )
+            else:
+                # Enable DCA globally
+                set_user_value(uid, "dca_enabled", 1)
+                
+                await q.edit_message_text(
+                    t.get('dca_enabled_for_symbol',
+                        "✅ DCA добор включен!\n\n"
+                        "📊 <b>{symbol}</b>\n"
+                        "Бот будет автоматически добавлять к позиции при просадке:\n"
+                        "• -10% → добор (усреднение)\n"
+                        "• -25% → добор (усреднение)\n\n"
+                        "⚠️ DCA требует достаточный баланс для доборов.\n"
+                        "Настроить параметры: /strategy_settings"
+                    ).format(symbol=symbol),
+                    parse_mode="HTML"
+                )
+                
+        except Exception as e:
+            logger.error(f"Error enabling DCA for {symbol} for {uid}: {e}")
+            await q.edit_message_text(
+                t.get('dca_enable_error', "❌ Ошибка: {error}").format(error=str(e)[:100]),
+                parse_mode="HTML"
+            )
+    
+    elif action == "ignore":
+        await q.edit_message_text(
+            t.get('deep_loss_ignored',
+                "🔇 Понял, позиция {symbol} оставлена без изменений.\n\n"
+                "⚠️ Помните: без стоп-лосса риск потерь неограничен.\n"
+                "Вы можете закрыть позицию вручную через /positions"
+            ).format(symbol=symbol),
+            parse_mode="HTML"
+        )
+
+
+@log_calls
 async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle exchange switching callbacks"""
     q = update.callback_query
@@ -15096,6 +15289,7 @@ def main():
     app.add_handler(CommandHandler("hl_switch",          cmd_hl_switch))
     app.add_handler(CommandHandler("hl_clear",           cmd_hl_clear))
     app.add_handler(CallbackQueryHandler(on_hl_callback, pattern=r"^hl:"))
+    app.add_handler(CallbackQueryHandler(on_deep_loss_callback, pattern=r"^deep_loss:"))
     app.add_handler(CallbackQueryHandler(on_exchange_callback, pattern=r"^exchange:"))
     app.add_handler(CallbackQueryHandler(on_bybit_callback, pattern=r"^bybit:"))
     app.add_handler(CallbackQueryHandler(on_hl_api_callback, pattern=r"^hl_api:"))

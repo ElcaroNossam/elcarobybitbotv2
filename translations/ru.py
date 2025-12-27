@@ -936,16 +936,31 @@ TEXTS = {
 
 
 
-    # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    # === HyperLiquid и дополнительные строки ===
+    'cancelled': '❌ Отменено.',
+    'entry_pct_range_error': '❌ % входа должен быть от 0.1 до 100.',
+    'hl_no_history': '📭 Нет истории торгов на HyperLiquid.',
+    'hl_no_orders': '📭 Нет открытых ордеров на HyperLiquid.',
+    'hl_no_positions': '📭 Нет открытых позиций на HyperLiquid.',
+    'hl_setup_cancelled': '❌ Настройка HyperLiquid отменена.',
+    'invalid_amount': '❌ Неверное число. Введите корректную сумму.',
+    'leverage_range_error': '❌ Плечо должно быть от 1 до 100.',
+    'max_amount_error': '❌ Максимальная сумма 100,000 USDT',
+    'min_amount_error': '❌ Минимальная сумма 1 USDT',
+    'sl_tp_range_error': '❌ SL/TP % должен быть от 0.1 до 500.',
+    
+    # =====================================================
+    # DEEP LOSS - ПОЗИЦИЯ В ГЛУБОКОМ МИНУСЕ
+    # =====================================================
+    'btn_close_position': '❌ Закрыть позицию',
+    'btn_enable_dca': '📈 Включить DCA добор',
+    'btn_ignore': '🔇 Игнорировать',
+    'deep_loss_alert': '⚠️ <b>Позиция в глубоком минусе!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Убыток: <code>{loss_pct:.2f}%</code>\n💰 Вход: <code>{entry}</code>\n📍 Текущая: <code>{mark}</code>\n\n❌ Стоп-лосс невозможно установить выше цены входа.\n\n<b>Что делать?</b>\n• <b>Закрыть</b> - зафиксировать убыток\n• <b>DCA добор</b> - усреднить позицию доборами\n• <b>Игнорировать</b> - оставить как есть',
+    'position_already_closed': '❌ Позиция {symbol} уже закрыта.',
+    'deep_loss_closed': '✅ Позиция {symbol} закрыта.\n\nУбыток зафиксирован. Иногда лучше принять небольшой убыток, чем надеяться на разворот.',
+    'deep_loss_close_error': '❌ Ошибка при закрытии позиции: {error}',
+    'dca_already_enabled': '✅ DCA добор уже включен!\n\n📊 <b>{symbol}</b>\nБот будет автоматически добавлять к позиции при просадке:\n• -10% → добор\n• -25% → добор\n\nЭто поможет усреднить цену входа.',
+    'dca_enabled_for_symbol': '✅ DCA добор включен!\n\n📊 <b>{symbol}</b>\nБот будет автоматически добавлять к позиции при просадке:\n• -10% → добор (усреднение)\n• -25% → добор (усреднение)\n\n⚠️ DCA требует достаточный баланс для доборов.\nНастроить параметры: /strategy_settings',
+    'dca_enable_error': '❌ Ошибка: {error}',
+    'deep_loss_ignored': '🔇 Понял, позиция {symbol} оставлена без изменений.\n\n⚠️ Помните: без стоп-лосса риск потерь неограничен.\nВы можете закрыть позицию вручную через /positions',
 }
