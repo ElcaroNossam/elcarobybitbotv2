@@ -29,6 +29,11 @@ _CLIENT_POOL_TTL = 300  # 5 minutes - unused clients will be closed
 _CLIENT_POOL_CLEANUP_INTERVAL = 60  # Check for stale clients every minute
 _last_cleanup_time = 0.0
 
+# Cache for auth errors - don't create clients for users with expired keys
+# Key: (user_id, exchange_type, account_type), Value: timestamp
+_auth_error_cache: Dict[Tuple[int, str, str], float] = {}
+_AUTH_ERROR_CACHE_TTL = 3600  # 1 hour
+
 
 def _safe_float(val, default=0.0):
     """Safely convert value to float, handling empty strings and None"""
@@ -61,6 +66,7 @@ class ExchangeCredentials:
     wallet_address: Optional[str] = None
     vault_address: Optional[str] = None
     mode: AccountMode = AccountMode.DEMO
+    user_id: Optional[int] = None  # For auth error caching
     
     @property
     def is_valid(self) -> bool:
@@ -90,6 +96,9 @@ class UnifiedExchangeClient:
             await client.place_order(symbol="BTCUSDT", side="Buy", qty=0.001)
     """
     
+    # Auth error codes for Bybit
+    AUTH_ERROR_CODES = {"33004", "10003", "10004", "10005"}
+    
     def __init__(self, credentials: ExchangeCredentials):
         self.credentials = credentials
         self._client = None
@@ -100,6 +109,33 @@ class UnifiedExchangeClient:
             self._limiter = hl_limiter
         else:
             self._limiter = bybit_limiter
+    
+    def _cache_auth_error(self) -> None:
+        """Cache auth error for this user to prevent repeated failed requests"""
+        if not self.credentials.user_id:
+            return
+        
+        pool_key = (
+            self.credentials.user_id,
+            self.credentials.exchange.value,
+            self.credentials.mode.value
+        )
+        _auth_error_cache[pool_key] = time.time()
+        logger.warning(f"Auth error cached for user {self.credentials.user_id} "
+                      f"({self.credentials.exchange.value}/{self.credentials.mode.value}) - "
+                      f"will skip requests for {_AUTH_ERROR_CACHE_TTL}s")
+    
+    def _is_auth_error(self, error: Exception) -> bool:
+        """Check if error is an authentication error that should be cached"""
+        error_str = str(error).lower()
+        # Check for Bybit auth error codes
+        for code in self.AUTH_ERROR_CODES:
+            if code in error_str:
+                return True
+        # Check for common auth error messages
+        if any(x in error_str for x in ["expired", "invalid key", "authentication"]):
+            return True
+        return False
     
     async def __aenter__(self):
         await self.initialize()
@@ -204,7 +240,11 @@ class UnifiedExchangeClient:
             return result
             
         except Exception as e:
-            logger.error(f"get_balance error: {e}")
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"get_balance error: {e}")
             return ExchangeResult(
                 success=False,
                 error=str(e),
@@ -244,7 +284,11 @@ class UnifiedExchangeClient:
             )
             
         except Exception as e:
-            logger.error(f"get_positions error: {e}", exc_info=True)
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"get_positions error: {e}", exc_info=True)
             return ExchangeResult(
                 success=False,
                 error=str(e),
@@ -330,7 +374,11 @@ class UnifiedExchangeClient:
                 )
             
         except Exception as e:
-            logger.error(f"place_order error: {e}")
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"place_order error: {e}")
             return ExchangeResult(
                 success=False,
                 error=str(e),
@@ -350,7 +398,11 @@ class UnifiedExchangeClient:
                 return ExchangeResult(success=success, exchange=self.credentials.exchange.value)
             
         except Exception as e:
-            logger.error(f"set_leverage error: {e}")
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"set_leverage error: {e}")
             return ExchangeResult(success=False, error=str(e), exchange=self.credentials.exchange.value)
     
     async def close_position(self, symbol: str, size: Optional[float] = None) -> ExchangeResult:
@@ -378,7 +430,11 @@ class UnifiedExchangeClient:
                 )
             
         except Exception as e:
-            logger.error(f"close_position error: {e}")
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"close_position error: {e}")
             return ExchangeResult(success=False, error=str(e), exchange=self.credentials.exchange.value)
 
 
@@ -447,6 +503,15 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None,
     # Create pool key
     pool_key = (user_id, exchange_type, account_type)
     
+    # Check if user has auth error cached - skip creating client
+    now = time.time()
+    if pool_key in _auth_error_cache:
+        error_ts = _auth_error_cache[pool_key]
+        if now - error_ts < _AUTH_ERROR_CACHE_TTL:
+            raise ValueError(f"API key error cached for user {user_id} (retry in {int(_AUTH_ERROR_CACHE_TTL - (now - error_ts))}s)")
+        else:
+            del _auth_error_cache[pool_key]
+    
     async with _client_pool_lock:
         # Check if we have a valid cached client
         if pool_key in _client_pool:
@@ -469,7 +534,8 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None,
                 private_key=hl_creds.get("hl_private_key"),
                 wallet_address=hl_creds.get("hl_wallet_address"),
                 vault_address=hl_creds.get("hl_vault_address"),
-                mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL
+                mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL,
+                user_id=user_id
             )
         else:
             api_key, api_secret = db.get_user_credentials(user_id, account_type)
@@ -486,7 +552,8 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None,
                 exchange=ExchangeType.BYBIT,
                 api_key=api_key,
                 api_secret=api_secret,
-                mode=mode
+                mode=mode,
+                user_id=user_id
             )
         
         client = UnifiedExchangeClient(credentials)
@@ -522,6 +589,28 @@ async def invalidate_client(user_id: int, exchange_type: Optional[str] = None, a
                     logger.debug(f"Invalidated client for {key}")
                 except Exception as e:
                     logger.debug(f"Error closing invalidated client: {e}")
+    
+    # Also clear auth error cache for this user
+    clear_auth_error_cache(user_id, exchange_type, account_type)
+
+
+def clear_auth_error_cache(user_id: int, exchange_type: Optional[str] = None, account_type: Optional[str] = None):
+    """
+    Clear auth error cache for a user.
+    Call this when user updates their API credentials.
+    """
+    keys_to_remove = []
+    
+    for key in list(_auth_error_cache.keys()):
+        uid, exch, acc = key
+        if uid == user_id:
+            if exchange_type is None or exch == exchange_type:
+                if account_type is None or acc == account_type:
+                    keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        _auth_error_cache.pop(key, None)
+        logger.debug(f"Cleared auth error cache for {key}")
 
 
 def create_credentials_from_config(

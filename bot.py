@@ -324,6 +324,13 @@ def clear_expired_api_cache(user_id: int, account_type: str = None):
     keys_to_remove = [k for k in _expired_api_keys_cache if k[0] == user_id and (account_type is None or k[1] == account_type)]
     for k in keys_to_remove:
         _expired_api_keys_cache.pop(k, None)
+    
+    # Also clear unified exchange client auth cache
+    try:
+        from core import clear_auth_error_cache
+        clear_auth_error_cache(user_id, exchange_type="bybit", account_type=account_type)
+    except Exception:
+        pass
 
 
 def _parse_chat_ids(*keys: str) -> list[int]:

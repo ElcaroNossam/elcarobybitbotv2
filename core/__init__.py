@@ -91,6 +91,7 @@ from .exchange_client import (
     get_exchange_client,
     create_credentials_from_config,
     invalidate_client,
+    clear_auth_error_cache,
 )
 
 __all__ = [
@@ -166,4 +167,5 @@ __all__ = [
     "get_exchange_client",
     "create_credentials_from_config",
     "invalidate_client",
+    "clear_auth_error_cache",
 ]
