@@ -432,11 +432,17 @@ def log_calls(func):
                         uid = args[0].effective_user.id
                     except:
                         pass
-            logger.exception(
-                f"✖ {func.__name__}"
-                + (f" [uid={uid}]" if uid else "")
-                + f": {e}"
-            )
+            # Skip logging for expected SL/TP validation errors
+            err_str = str(e).lower()
+            if "should lower than" in err_str or "should higher than" in err_str:
+                # Expected error for positions in deep loss - don't spam logs
+                pass
+            else:
+                logger.exception(
+                    f"✖ {func.__name__}"
+                    + (f" [uid={uid}]" if uid else "")
+                    + f": {e}"
+                )
             raise
     return wrapper
 
