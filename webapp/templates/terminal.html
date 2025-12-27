@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
     <title>ElCaro Trading Terminal v2.0 - Professional Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="/static/css/terminal-advanced.css" rel="stylesheet">
+    
+    <!-- Mobile Responsive CSS -->
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    
     <script src="https://s3.tradingview.com/tv.js"></script>
     <!-- Beautiful Modal Dialogs -->
     <script src="/static/js/modal-dialogs.js"></script>
@@ -689,6 +697,11 @@
                 <a href="/settings" class="header-icon-btn" title="Settings"><i class="fas fa-cog"></i></a>
             </div>
         </header>
+        
+        <!-- Mobile Sidebar Toggle Button -->
+        <button class="sidebar-toggle" aria-label="Toggle sidebar" style="display: none;">
+            <i class="fas fa-bars"></i>
+        </button>
         
         <!-- Left Panel - Order Book -->
         <aside class="left-panel">
@@ -3506,5 +3519,8 @@
             checkWalletConnection(); // Check if wallet is already connected
         });
     </script>
+    
+    <!-- Mobile Navigation & Utilities -->
+    <script src="/static/js/mobile-navigation.js"></script>
 </body>
 </html>

@@ -857,6 +857,44 @@
     </main>
     
     <script>
+        // ========================================
+        // AUTO-LOGIN FROM TELEGRAM (start parameter)
+        // ========================================
+        (async function() {
+            const params = new URLSearchParams(window.location.search);
+            const startParam = params.get('start');
+            
+            // If start param exists, try auto-login
+            if (startParam) {
+                const userId = parseInt(startParam, 10);
+                if (!isNaN(userId) && userId > 0) {
+                    try {
+                        const res = await fetch('/api/auth/direct-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId })
+                        });
+                        const data = await res.json();
+                        if (data.access_token) {
+                            localStorage.setItem('elcaro_token', data.access_token);
+                            localStorage.setItem('elcaro_user_id', userId.toString());
+                            localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
+                            console.log('✅ Auto-login on dashboard:', userId);
+                        }
+                    } catch (err) {
+                        console.error('Dashboard auto-login error:', err);
+                    }
+                    // Clean URL
+                    window.history.replaceState({}, document.title, '/dashboard');
+                }
+            }
+        })();
+        
+        // ========================================
+        // TOKEN CHECK & MAIN LOGIC
+        // ========================================
         const token = localStorage.getItem('elcaro_token');
         if (!token) window.location.href = '/login';
         

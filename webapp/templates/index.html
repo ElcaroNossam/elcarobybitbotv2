@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
     <meta name="description" content="ElCaro Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
     <title>ElCaro Trading Terminal | AI-Powered Crypto Trading</title>
     
@@ -19,6 +23,9 @@
     
     <!-- Landing CSS -->
     <link rel="stylesheet" href="/static/css/landing.css">
+    
+    <!-- Mobile Responsive CSS -->
+    <link rel="stylesheet" href="/static/css/mobile.css">
     
     <!-- Theme & Language Script -->
     <script src="/static/js/elcaro-theme.js"></script>
@@ -90,7 +97,8 @@
                 </a>
             </div>
             
-            <button class="mobile-toggle" id="mobile-toggle">
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
@@ -1076,11 +1084,126 @@
 
         populateTicker();
 
-        // Telegram WebApp redirect
-        if (window.Telegram?.WebApp?.initData) {
-            // Optionally redirect to terminal for Telegram users
-            // window.location.href = '/terminal';
-        }
+        // ========================================
+        // AUTH HANDLING - Telegram WebApp + Token auto-login
+        // ========================================
+        (async function() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Method 1: Check for Telegram WebApp
+            const webApp = window.Telegram?.WebApp;
+            const startParam = params.get('start') || webApp?.startParam;
+            
+            if (webApp) {
+                webApp.ready();
+                webApp.expand();
+            }
+            
+            // Method 2: Check for auth_token (from token-login redirect)
+            const authToken = params.get('auth_token');
+            if (authToken) {
+                localStorage.setItem('elcaro_token', authToken);
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    const user = await res.json();
+                    if (user && user.user_id) {
+                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                        localStorage.setItem('elcaro_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('elcaro_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                        console.log('✅ Auto-login via token:', user.user_id);
+                        // Redirect to dashboard after successful auto-login
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Auth error:', err);
+                }
+                window.history.replaceState({}, document.title, '/');
+                return;
+            }
+            
+            // Method 3: Check for start param (user_id from Telegram)
+            if (startParam) {
+                const userId = parseInt(startParam, 10);
+                if (!isNaN(userId) && userId > 0) {
+                    try {
+                        const res = await fetch('/api/auth/direct-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId })
+                        });
+                        const data = await res.json();
+                        if (data.access_token) {
+                            localStorage.setItem('elcaro_token', data.access_token);
+                            localStorage.setItem('elcaro_user_id', userId.toString());
+                            localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
+                            console.log('✅ Auto-login via start param:', userId);
+                            // Redirect to dashboard after successful auto-login
+                            window.location.href = '/dashboard';
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Direct login error:', err);
+                    }
+                    window.history.replaceState({}, document.title, '/');
+                    return;
+                }
+            }
+            
+            // Method 4: Check for Telegram initData
+            if (webApp?.initData && webApp.initData.length > 0) {
+                try {
+                    const res = await fetch('/api/auth/telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ init_data: webApp.initData })
+                    });
+                    const data = await res.json();
+                    if (data.token) {
+                        localStorage.setItem('elcaro_token', data.token);
+                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
+                        localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                        console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
+                        // Redirect to dashboard after successful auto-login
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Telegram auth error:', err);
+                }
+                window.history.replaceState({}, document.title, '/');
+                return;
+            }
+            
+            // Method 5: Check existing token and refresh user data
+            const existingToken = localStorage.getItem('elcaro_token');
+            if (existingToken) {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${existingToken}` }
+                    });
+                    if (!res.ok) {
+                        localStorage.removeItem('elcaro_token');
+                        localStorage.removeItem('elcaro_user');
+                        localStorage.removeItem('elcaro_user_id');
+                    } else {
+                        const user = await res.json();
+                        if (user && user.user_id) {
+                            localStorage.setItem('elcaro_user', JSON.stringify(user));
+                            localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                            console.log('✅ Session restored:', user.user_id);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Session check failed:', err);
+                }
+            }
+        })();
 
         // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -1096,5 +1219,8 @@
             });
         });
     </script>
+    
+    <!-- Mobile Navigation & Utilities -->
+    <script src="/static/js/mobile-navigation.js"></script>
 </body>
 </html>

@@ -609,6 +609,9 @@
                         if (user.language) localStorage.setItem('elcaro_language', user.language);
                         if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
                         console.log('✅ Auto-login via token:', user.user_id);
+                        // Redirect to dashboard after successful auto-login
+                        window.location.href = '/dashboard';
+                        return;
                     }
                 } catch (err) {
                     console.error('Auth error:', err);
@@ -635,6 +638,9 @@
                             if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
                             if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
                             console.log('✅ Auto-login via start param:', userId);
+                            // Redirect to dashboard after successful auto-login
+                            window.location.href = '/dashboard';
+                            return;
                         }
                     } catch (err) {
                         console.error('Direct login error:', err);
@@ -658,6 +664,9 @@
                         localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
                         localStorage.setItem('elcaro_user', JSON.stringify(data.user));
                         console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
+                        // Redirect to dashboard after successful auto-login
+                        window.location.href = '/dashboard';
+                        return;
                     }
                 } catch (err) {
                     console.error('Telegram auth error:', err);
@@ -735,6 +744,28 @@
             
             requestAnimationFrame(update);
         }
+        
+        // Smart navigation: redirect logged-in users to dashboard
+        function updateNavigationLinks() {
+            const isLoggedIn = !!localStorage.getItem('elcaro_token');
+            const targetPage = isLoggedIn ? '/dashboard' : '/terminal';
+            
+            // Update all "Launch App" and "Start Trading" buttons
+            document.querySelectorAll('a[href="/terminal"]').forEach(link => {
+                // Keep Terminal link in nav menu as is, but change action buttons
+                if (link.classList.contains('nav-btn') || 
+                    link.classList.contains('btn-primary') || 
+                    link.textContent.includes('Start Trading') ||
+                    link.textContent.includes('Launch App')) {
+                    link.href = targetPage;
+                }
+            });
+            
+            console.log(`🔗 Navigation updated: ${isLoggedIn ? 'Dashboard (logged in)' : 'Terminal (guest)'}`);
+        }
+        
+        // Call after auth check completes
+        setTimeout(updateNavigationLinks, 100);
         
         // Trigger animation when visible
         const observer = new IntersectionObserver((entries) => {
