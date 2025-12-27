@@ -2972,6 +2972,12 @@ async def set_trading_stop(
         mark = float(pos.get("markPrice"))
     except (TypeError, ValueError):
         mark = None
+    
+    # Bybit validates SL/TP against entry price (avgPrice), not mark price
+    try:
+        entry_price = float(pos.get("avgPrice") or pos.get("entry_price") or 0)
+    except (TypeError, ValueError):
+        entry_price = None
 
     def _q(x: float) -> float:
         return quantize(x, tick)
@@ -2988,19 +2994,25 @@ async def set_trading_stop(
     if tp_price is not None:
         tp_price = _q(tp_price)
 
-    if mark is not None:
+    # Validate against both mark price AND entry price (Bybit uses entry for validation)
+    validation_price = entry_price if entry_price and entry_price > 0 else mark
+    
+    if validation_price is not None:
         if tp_price is not None:
-            if effective_side == "Buy" and tp_price <= mark:
-                raise ValueError(f"TP ({tp_price}) must be > current price ({mark}) for LONG")
-            if effective_side == "Sell" and tp_price >= mark:
-                raise ValueError(f"TP ({tp_price}) must be < current price ({mark}) for SHORT")
+            if effective_side == "Buy" and tp_price <= validation_price:
+                logger.warning(f"{symbol}: TP ({tp_price}) <= entry price ({validation_price}) for LONG - skipping TP")
+                tp_price = None
+            if effective_side == "Sell" and tp_price >= validation_price:
+                logger.warning(f"{symbol}: TP ({tp_price}) >= entry price ({validation_price}) for SHORT - skipping TP")
+                tp_price = None
         if sl_price is not None:
             # Skip SL if price already passed SL level (position in deep loss)
-            if effective_side == "Buy" and sl_price >= mark:
-                logger.warning(f"{symbol}: SL ({sl_price}) >= current price ({mark}) for LONG - skipping SL (already triggered)")
+            # Bybit validates: for LONG, SL must be < entry price
+            if effective_side == "Buy" and sl_price >= validation_price:
+                logger.warning(f"{symbol}: SL ({sl_price}) >= entry price ({validation_price}) for LONG - skipping SL")
                 sl_price = None
-            if effective_side == "Sell" and sl_price <= mark:
-                logger.warning(f"{symbol}: SL ({sl_price}) <= current price ({mark}) for SHORT - skipping SL (already triggered)")
+            if effective_side == "Sell" and sl_price <= validation_price:
+                logger.warning(f"{symbol}: SL ({sl_price}) <= entry price ({validation_price}) for SHORT - skipping SL")
                 sl_price = None
 
     def _stricter(side_: str, new_sl: float, cur_sl):
