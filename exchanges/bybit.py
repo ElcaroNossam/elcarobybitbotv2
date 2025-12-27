@@ -223,7 +223,7 @@ class BybitExchange(BaseExchange):
         
         positions = []
         for pos in result.get("list", []):
-            size = float(pos.get("size", 0))
+            size = safe_float(pos.get("size"), 0)
             if size == 0:
                 continue
             
@@ -239,12 +239,12 @@ class BybitExchange(BaseExchange):
                 symbol=pos.get("symbol", ""),
                 side=side,
                 size=size,
-                entry_price=float(pos.get("avgPrice", 0)),
-                unrealized_pnl=float(pos.get("unrealisedPnl", 0)),
-                leverage=float(pos.get("leverage", 1)),
+                entry_price=safe_float(pos.get("avgPrice"), 0),
+                unrealized_pnl=safe_float(pos.get("unrealisedPnl"), 0),
+                leverage=safe_float(pos.get("leverage"), 1),
                 margin_mode=pos.get("tradeMode", "cross"),
-                liquidation_price=float(pos.get("liqPrice", 0)) or None,
-                margin_used=float(pos.get("positionMM", 0))
+                liquidation_price=safe_float(pos.get("liqPrice")) or None,
+                margin_used=safe_float(pos.get("positionMM"), 0)
             ))
         
         return positions
@@ -262,7 +262,7 @@ class BybitExchange(BaseExchange):
         )
         
         for pos in result.get("list", []):
-            size = float(pos.get("size", 0))
+            size = safe_float(pos.get("size"), 0)
             if size == 0:
                 continue
             
@@ -278,12 +278,12 @@ class BybitExchange(BaseExchange):
                 symbol=pos.get("symbol", ""),
                 side=side,
                 size=size,
-                entry_price=float(pos.get("avgPrice", 0)),
-                unrealized_pnl=float(pos.get("unrealisedPnl", 0)),
-                leverage=float(pos.get("leverage", 1)),
+                entry_price=safe_float(pos.get("avgPrice"), 0),
+                unrealized_pnl=safe_float(pos.get("unrealisedPnl"), 0),
+                leverage=safe_float(pos.get("leverage"), 1),
                 margin_mode=pos.get("tradeMode", "cross"),
-                liquidation_price=float(pos.get("liqPrice", 0)) or None,
-                margin_used=float(pos.get("positionMM", 0))
+                liquidation_price=safe_float(pos.get("liqPrice")) or None,
+                margin_used=safe_float(pos.get("positionMM"), 0)
             )
         
         return None
