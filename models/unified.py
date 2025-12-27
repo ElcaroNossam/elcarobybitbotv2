@@ -190,9 +190,11 @@ class Position:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict for JSON serialization"""
+        # Handle side - could be enum or string
+        side_value = self.side.value if hasattr(self.side, 'value') else str(self.side)
         return {
             'symbol': self.symbol,
-            'side': self.side.value,
+            'side': side_value,
             'size': self.size,
             'entry_price': self.entry_price,
             'mark_price': self.mark_price,
@@ -294,16 +296,20 @@ class Order:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict for JSON serialization"""
+        # Handle enums that might be strings
+        side_val = self.side.value if hasattr(self.side, 'value') else str(self.side)
+        type_val = self.order_type.value if hasattr(self.order_type, 'value') else str(self.order_type)
+        status_val = self.status.value if hasattr(self.status, 'value') else str(self.status)
         return {
             'order_id': self.order_id,
             'symbol': self.symbol,
-            'side': self.side.value,
-            'order_type': self.order_type.value,
+            'side': side_val,
+            'order_type': type_val,
             'size': self.size,
             'price': self.price,
             'filled_size': self.filled_size,
             'avg_fill_price': self.avg_fill_price,
-            'status': self.status.value,
+            'status': status_val,
             'reduce_only': self.reduce_only,
             'fill_percent': self.fill_percent,
             'exchange': self.exchange,
