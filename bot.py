@@ -2748,7 +2748,12 @@ async def _bybit_request(user_id: int, method: str, path: str,
                 return {"list": []}
 
             if data.get("retCode") not in (0, None):
-                logger.error(f"Bybit error for user {user_id} on {path}: {data}")
+                ret_msg = str(data.get("retMsg", "")).lower()
+                # SL/TP validation errors - log as warning, not error (expected for deep loss positions)
+                if data.get("retCode") == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
+                    logger.warning(f"Bybit SL/TP validation: {path} - {data.get('retMsg')}")
+                else:
+                    logger.error(f"Bybit error for user {user_id} on {path}: {data}")
                 raise RuntimeError(f"Bybit error {path}: {data}")
 
             return data.get("result") or data
