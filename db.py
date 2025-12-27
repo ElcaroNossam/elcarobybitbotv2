@@ -955,6 +955,16 @@ def set_user_credentials(user_id: int, api_key: str, api_secret: str, account_ty
             (api_key, api_secret, user_id),
         )
         conn.commit()
+    
+    # Clear expired API keys cache for this user (they updated their keys)
+    try:
+        from core import invalidate_client
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(invalidate_client(user_id, account_type=account_type))
+    except Exception:
+        pass  # Ignore if core not available
 
 def get_user_credentials(user_id: int, account_type: str = None) -> tuple[str | None, str | None]:
     """Get API credentials for specified account type.

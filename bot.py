@@ -313,6 +313,19 @@ SYMBOL_FILTERS_CACHE_TTL = 3600  # 1 hour - filters rarely change
 _last_api_keys_notice: dict[int, float] = {}
 API_KEYS_NOTICE_INTERVAL = 86400  # 24 hours in seconds
 
+# Cache for expired/invalid API keys - skip monitoring for these users
+# Key: (user_id, account_type), Value: timestamp when error occurred
+_expired_api_keys_cache: dict[tuple[int, str], float] = {}
+EXPIRED_API_KEYS_CACHE_TTL = 3600  # 1 hour - don't retry for 1 hour after auth error
+
+
+def clear_expired_api_cache(user_id: int, account_type: str = None):
+    """Clear expired API keys cache for a user when they update their credentials."""
+    keys_to_remove = [k for k in _expired_api_keys_cache if k[0] == user_id and (account_type is None or k[1] == account_type)]
+    for k in keys_to_remove:
+        _expired_api_keys_cache.pop(k, None)
+
+
 def _parse_chat_ids(*keys: str) -> list[int]:
     import re
     raw_parts = []
@@ -2687,6 +2700,17 @@ async def _bybit_request(user_id: int, method: str, path: str,
         retries: Number of retry attempts
         account_type: 'demo', 'real', or None (auto-detect from trading_mode)
     """
+    # Check if API key is known to be expired/invalid - skip API call
+    cache_key = (user_id, account_type or "auto")
+    now = time.time()
+    if cache_key in _expired_api_keys_cache:
+        expired_ts = _expired_api_keys_cache[cache_key]
+        if now - expired_ts < EXPIRED_API_KEYS_CACHE_TTL:
+            raise MissingAPICredentials(f"API key expired/invalid (cached, retry after {int(EXPIRED_API_KEYS_CACHE_TTL - (now - expired_ts))}s)")
+        else:
+            # TTL expired, remove from cache and retry
+            del _expired_api_keys_cache[cache_key]
+    
     # Get credentials for specified account type
     api_key, api_secret = get_user_credentials(user_id, account_type)
     if not api_key or not api_secret:
@@ -2754,9 +2778,19 @@ async def _bybit_request(user_id: int, method: str, path: str,
                 return {"list": []}
 
             if data.get("retCode") not in (0, None):
+                ret_code = data.get("retCode")
                 ret_msg = str(data.get("retMsg", "")).lower()
+                
+                # Handle expired/invalid API keys - cache to avoid spamming
+                if ret_code in (33004, 10003, 10004, 10005):
+                    # 33004 = API key expired, 10003/4/5 = invalid API key/signature
+                    cache_key = (user_id, account_type or "auto")
+                    _expired_api_keys_cache[cache_key] = time.time()
+                    logger.warning(f"API key error for user {user_id} (cached for {EXPIRED_API_KEYS_CACHE_TTL}s): {data.get('retMsg')}")
+                    raise MissingAPICredentials(f"API key error: {data.get('retMsg')}")
+                
                 # SL/TP validation errors - log as warning, not error (expected for deep loss positions)
-                if data.get("retCode") == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
+                if ret_code == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
                     logger.warning(f"Bybit SL/TP validation: {path} - {data.get('retMsg')}")
                 else:
                     logger.error(f"Bybit error for user {user_id} on {path}: {data}")
@@ -12483,12 +12517,16 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         if api_type == "demo_key":
             set_user_credentials(uid, text, creds.get("demo_api_secret") or "", "demo")
+            clear_expired_api_cache(uid, "demo")
         elif api_type == "demo_secret":
             set_user_credentials(uid, creds.get("demo_api_key") or "", text, "demo")
+            clear_expired_api_cache(uid, "demo")
         elif api_type == "real_key":
             set_user_credentials(uid, text, creds.get("real_api_secret") or "", "real")
+            clear_expired_api_cache(uid, "real")
         elif api_type == "real_secret":
             set_user_credentials(uid, creds.get("real_api_key") or "", text, "real")
+            clear_expired_api_cache(uid, "real")
         
         ctx.user_data.pop("mode", None)
         
@@ -12506,12 +12544,14 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Legacy API modes (backward compatibility)
     if mode == "enter_api":
         set_user_credentials(uid, text, "", "demo")
+        clear_expired_api_cache(uid, "demo")
         ctx.user_data.pop("mode", None)
         return await update.message.reply_text(ctx.t.get("api_saved", "API saved"), reply_markup=main_menu_keyboard(ctx, update=update))
 
     if mode == "enter_secret":
         creds = get_all_user_credentials(uid)
         set_user_credentials(uid, creds.get("demo_api_key") or "", text, "demo")
+        clear_expired_api_cache(uid, "demo")
         ctx.user_data.pop("mode", None)
         return await update.message.reply_text(ctx.t.get("secret_saved", "Secret saved"), reply_markup=main_menu_keyboard(ctx, update=update))
 
