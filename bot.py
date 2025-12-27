@@ -10065,7 +10065,9 @@ async def monitor_positions_loop(app: Application):
                                 # Helper to handle deep loss notification
                                 async def notify_deep_loss(symbol, side, entry, mark, move_pct):
                                     deep_loss_key = (uid, symbol)
+                                    logger.info(f"[{uid}] {symbol}: Sending deep loss notification (loss: {move_pct:.2f}%)")
                                     if deep_loss_key in _deep_loss_notified:
+                                        logger.debug(f"[{uid}] {symbol}: Already notified about deep loss, skipping")
                                         return  # Already notified
                                     _deep_loss_notified[deep_loss_key] = now
                                     
