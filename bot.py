@@ -2978,6 +2978,9 @@ async def set_trading_stop(
         entry_price = float(pos.get("avgPrice") or pos.get("entry_price") or 0)
     except (TypeError, ValueError):
         entry_price = None
+    
+    # Debug: log validation parameters
+    logger.debug(f"{symbol}: set_trading_stop validation - entry_price={entry_price}, mark={mark}, sl_price={sl_price}, tp_price={tp_price}, side={effective_side}")
 
     def _q(x: float) -> float:
         return quantize(x, tick)
