@@ -957,15 +957,15 @@ Try again after payment is confirmed on blockchain.''',
 
 
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    'cancelled': '❌ 已取消。',
+    'entry_pct_range_error': '❌ 入场百分比必须在0.1到100之间。',
+    'hl_no_history': '📭 HyperLiquid上没有交易历史。',
+    'hl_no_orders': '📭 HyperLiquid上没有未完成的订单。',
+    'hl_no_positions': '📭 HyperLiquid上没有未平仓的头寸。',
+    'hl_setup_cancelled': '❌ HyperLiquid设置已取消。',
+    'invalid_amount': '❌ 无效数字。请输入有效金额。',
+    'leverage_range_error': '❌ 杠杆必须在1到100之间。',
+    'max_amount_error': '❌ 最大金额为100,000 USDT',
+    'min_amount_error': '❌ 最小金额为1 USDT',
+    'sl_tp_range_error': '❌ SL/TP百分比必须在0.1到500之间。',
 }

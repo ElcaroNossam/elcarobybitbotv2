@@ -963,15 +963,15 @@ Try again after payment is confirmed on blockchain.''',
 
 
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    'cancelled': '❌ تم الإلغاء.',
+    'entry_pct_range_error': '❌ نسبة الدخول يجب أن تكون بين 0.1 و 100.',
+    'hl_no_history': '📭 لا يوجد تاريخ تداول على HyperLiquid.',
+    'hl_no_orders': '📭 لا توجد أوامر مفتوحة على HyperLiquid.',
+    'hl_no_positions': '📭 لا توجد صفقات مفتوحة على HyperLiquid.',
+    'hl_setup_cancelled': '❌ تم إلغاء إعداد HyperLiquid.',
+    'invalid_amount': '❌ رقم غير صالح. أدخل مبلغاً صالحاً.',
+    'leverage_range_error': '❌ الرافعة المالية يجب أن تكون بين 1 و 100.',
+    'max_amount_error': '❌ الحد الأقصى 100,000 USDT',
+    'min_amount_error': '❌ الحد الأدنى 1 USDT',
+    'sl_tp_range_error': '❌ نسبة SL/TP يجب أن تكون بين 0.1 و 500.',
 }

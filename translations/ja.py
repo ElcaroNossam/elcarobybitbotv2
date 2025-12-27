@@ -957,15 +957,15 @@ Try again after payment is confirmed on blockchain.''',
 
 
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    'cancelled': '❌ キャンセルしました。',
+    'entry_pct_range_error': '❌ エントリー%は0.1から100の間でなければなりません。',
+    'hl_no_history': '📭 HyperLiquidに取引履歴がありません。',
+    'hl_no_orders': '📭 HyperLiquidに未決注文がありません。',
+    'hl_no_positions': '📭 HyperLiquidにオープンポジションがありません。',
+    'hl_setup_cancelled': '❌ HyperLiquidの設定がキャンセルされました。',
+    'invalid_amount': '❌ 無効な数字です。有効な金額を入力してください。',
+    'leverage_range_error': '❌ レバレッジは1から100の間でなければなりません。',
+    'max_amount_error': '❌ 最大金額は100,000 USDTです',
+    'min_amount_error': '❌ 最小金額は1 USDTです',
+    'sl_tp_range_error': '❌ SL/TP%は0.1から500の間でなければなりません。',
 }

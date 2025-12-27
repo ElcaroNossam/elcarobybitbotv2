@@ -957,15 +957,15 @@ Try again after payment is confirmed on blockchain.''',
 
 
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    'cancelled': '❌ בוטל.',
+    'entry_pct_range_error': '❌ אחוז כניסה חייב להיות בין 0.1 ל-100.',
+    'hl_no_history': '📭 אין היסטוריית מסחר ב-HyperLiquid.',
+    'hl_no_orders': '📭 אין פקודות פתוחות ב-HyperLiquid.',
+    'hl_no_positions': '📭 אין פוזיציות פתוחות ב-HyperLiquid.',
+    'hl_setup_cancelled': '❌ הגדרת HyperLiquid בוטלה.',
+    'invalid_amount': '❌ מספר לא תקין. הזן סכום תקין.',
+    'leverage_range_error': '❌ מינוף חייב להיות בין 1 ל-100.',
+    'max_amount_error': '❌ סכום מקסימלי 100,000 USDT',
+    'min_amount_error': '❌ סכום מינימלי 1 USDT',
+    'sl_tp_range_error': '❌ אחוז SL/TP חייב להיות בין 0.1 ל-500.',
 }

@@ -958,15 +958,15 @@ Try again after payment is confirmed on blockchain.''',
 
 
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
-    'cancelled': '❌ Cancelled.',  # TODO: translate from EN
-    'entry_pct_range_error': '❌ Entry % must be between 0.1 and 100.',  # TODO: translate from EN
-    'hl_no_history': '📭 No trade history on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_orders': '📭 No open orders on HyperLiquid.',  # TODO: translate from EN
-    'hl_no_positions': '📭 No open positions on HyperLiquid.',  # TODO: translate from EN
-    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',  # TODO: translate from EN
-    'invalid_amount': '❌ Invalid number. Please enter a valid amount.',  # TODO: translate from EN
-    'leverage_range_error': '❌ Leverage must be between 1 and 100.',  # TODO: translate from EN
-    'max_amount_error': '❌ Maximum amount is 100,000 USDT',  # TODO: translate from EN
-    'min_amount_error': '❌ Minimum amount is 1 USDT',  # TODO: translate from EN
-    'sl_tp_range_error': '❌ SL/TP % must be between 0.1 and 500.',  # TODO: translate from EN
+    'cancelled': '❌ Atšaukta.',
+    'entry_pct_range_error': '❌ Įėjimo % turi būti nuo 0.1 iki 100.',
+    'hl_no_history': '📭 Nėra prekybos istorijos HyperLiquid.',
+    'hl_no_orders': '📭 Nėra atvirų orderių HyperLiquid.',
+    'hl_no_positions': '📭 Nėra atvirų pozicijų HyperLiquid.',
+    'hl_setup_cancelled': '❌ HyperLiquid nustatymas atšauktas.',
+    'invalid_amount': '❌ Neteisingas skaičius. Įveskite tinkamą sumą.',
+    'leverage_range_error': '❌ Svertas turi būti nuo 1 iki 100.',
+    'max_amount_error': '❌ Maksimali suma 100 000 USDT',
+    'min_amount_error': '❌ Minimali suma 1 USDT',
+    'sl_tp_range_error': '❌ SL/TP % turi būti nuo 0.1 iki 500.',
 }
