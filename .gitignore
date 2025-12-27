@@ -80,3 +80,6 @@ bot.pid
 
 # Nohup output
 nohup.out
+
+# SSH keys
+*.pem
