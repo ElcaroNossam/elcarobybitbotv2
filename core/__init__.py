@@ -37,8 +37,15 @@ from .cache import (
     symbol_info_cache,
     api_response_cache,
     balance_cache,
+    position_cache,
+    order_cache,
+    market_data_cache,
+    credentials_cache,
     invalidate_user_caches,
+    invalidate_position_cache,
+    invalidate_balance_cache,
     get_all_cache_stats,
+    periodic_cache_cleanup,
 )
 
 # Rate limiting
@@ -83,6 +90,7 @@ from .exchange_client import (
     UnifiedExchangeClient,
     get_exchange_client,
     create_credentials_from_config,
+    invalidate_client,
 )
 
 __all__ = [
@@ -112,8 +120,15 @@ __all__ = [
     "symbol_info_cache",
     "api_response_cache",
     "balance_cache",
+    "position_cache",
+    "order_cache",
+    "market_data_cache",
+    "credentials_cache",
     "invalidate_user_caches",
+    "invalidate_position_cache",
+    "invalidate_balance_cache",
     "get_all_cache_stats",
+    "periodic_cache_cleanup",
     
     # Rate limiting
     "TokenBucket",
@@ -150,4 +165,5 @@ __all__ = [
     "UnifiedExchangeClient",
     "get_exchange_client",
     "create_credentials_from_config",
+    "invalidate_client",
 ]

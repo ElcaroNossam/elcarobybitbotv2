@@ -10,7 +10,7 @@ Replace old bot.py functions with these.
 """
 import logging
 from typing import Optional, List, Dict, Any
-from models import Position, Order, Balance, OrderResult, OrderSide, OrderType, normalize_symbol
+from models import Position, Order, Balance, OrderResult, OrderSide, OrderType, PositionSide, normalize_symbol
 from core import get_exchange_client, track_latency, count_errors
 import db
 
@@ -33,6 +33,7 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
     Returns:
         Balance object or None if error
     """
+    client = None
     try:
         from core.exchange_client import get_exchange_client
         client = await get_exchange_client(user_id, exchange_type=exchange, account_type=account_type)
@@ -62,11 +63,30 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
         logger.error(f"get_balance_unified error for user {user_id}: {e}")
         count_errors('bot.get_balance')
         return None
+    # NOTE: Client is pooled - do NOT close it manually!
 
 
 # ═══════════════════════════════════════════════════════════════
 # 2. GET POSITIONS
 # ═══════════════════════════════════════════════════════════════
+
+def _safe_float(value, default=0.0):
+    """Safely convert value to float, handling empty strings and None"""
+    if value is None or value == '' or value == '0':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+def _safe_int(value, default=0):
+    """Safely convert value to int, handling empty strings and None"""
+    if value is None or value == '' or value == '0':
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
 
 @track_latency(name='bot.get_positions')
 async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exchange: str = 'bybit', account_type: str = 'demo') -> List[Position]:
@@ -82,6 +102,7 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
     Returns:
         List of Position objects
     """
+    client = None
     try:
         from core.exchange_client import get_exchange_client
         client = await get_exchange_client(user_id, exchange_type=exchange, account_type=account_type)
@@ -107,25 +128,40 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
             if isinstance(pos_dict, Position):
                 positions.append(pos_dict)
             else:
-                # Convert dict to Position
-                positions.append(Position(
-                    symbol=pos_dict['symbol'],
-                    side=pos_dict['side'],
-                    size=float(pos_dict['size']),
-                    entry_price=float(pos_dict['entry_price']),
-                    mark_price=float(pos_dict.get('mark_price', pos_dict['entry_price'])),
-                    unrealized_pnl=float(pos_dict.get('unrealized_pnl', 0)),
-                    leverage=int(pos_dict.get('leverage', 1)),
-                    margin_mode=pos_dict.get('margin_mode', 'cross'),
-                    margin_used=float(pos_dict.get('margin_used', 0)),
-                    liquidation_price=float(pos_dict['liquidation_price']) if pos_dict.get('liquidation_price') else None
-                ))
+                # Convert dict to Position with safe parsing
+                try:
+                    # Convert side string to PositionSide enum
+                    side_str = pos_dict.get('side', 'Buy')
+                    if side_str in ('Buy', 'LONG', 'Long'):
+                        side = PositionSide.LONG
+                    elif side_str in ('Sell', 'SHORT', 'Short'):
+                        side = PositionSide.SHORT
+                    else:
+                        side = PositionSide.NONE
+                    
+                    positions.append(Position(
+                        symbol=pos_dict.get('symbol', ''),
+                        side=side,
+                        size=_safe_float(pos_dict.get('size')),
+                        entry_price=_safe_float(pos_dict.get('entry_price')),
+                        mark_price=_safe_float(pos_dict.get('mark_price', pos_dict.get('entry_price'))),
+                        unrealized_pnl=_safe_float(pos_dict.get('unrealized_pnl')),
+                        leverage=_safe_int(pos_dict.get('leverage'), 1),
+                        margin_mode=pos_dict.get('margin_mode', 'cross'),
+                        margin_used=_safe_float(pos_dict.get('margin_used')),
+                        liquidation_price=_safe_float(pos_dict.get('liquidation_price')) if pos_dict.get('liquidation_price') else None
+                    ))
+                except Exception as pos_err:
+                    logger.warning(f"Skipping invalid position: {pos_err}, data: {pos_dict}")
+                    continue
         
         return positions
     except Exception as e:
         logger.error(f"get_positions_unified error for user {user_id}: {e}")
         count_errors('bot.get_positions')
         return []
+    # NOTE: Client is pooled - do NOT close it manually!
+    # The pool handles lifecycle automatically.
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -167,6 +203,7 @@ async def place_order_unified(
     Returns:
         Dict with success status and order details
     """
+    client = None
     try:
         from core.exchange_client import get_exchange_client
         
@@ -259,6 +296,7 @@ async def place_order_unified(
             'success': False,
             'error': str(e)
         }
+    # NOTE: Client is pooled - do NOT close it manually!
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -286,6 +324,7 @@ async def close_position_unified(
     Returns:
         Dict with success status
     """
+    client = None
     try:
         from core.exchange_client import get_exchange_client
         
@@ -375,6 +414,7 @@ async def close_position_unified(
             'success': False,
             'error': str(e)
         }
+    # NOTE: Client is pooled - do NOT close it manually!
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -402,6 +442,7 @@ async def set_leverage_unified(
     Returns:
         True if successful
     """
+    client = None
     try:
         from core.exchange_client import get_exchange_client
         
@@ -422,6 +463,7 @@ async def set_leverage_unified(
         logger.error(f"set_leverage_unified error for user {user_id}: {e}")
         count_errors('bot.set_leverage')
         return False
+    # NOTE: Client is pooled - do NOT close it manually!
 
 
 # Compatibility functions for gradual migration

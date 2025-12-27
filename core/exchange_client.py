@@ -4,16 +4,30 @@ Provides a clean interface for creating exchange clients with proper configurati
 """
 from __future__ import annotations
 
+import asyncio
 import logging
-from typing import Optional, Dict, Any, TypedDict
+import time
+from typing import Optional, Dict, Any, TypedDict, Tuple
 from enum import Enum
 from dataclasses import dataclass
+from weakref import WeakValueDictionary
 
 from core.cache import balance_cache, async_cached
 from core.rate_limiter import bybit_limiter, hl_limiter
 
 
 logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# CLIENT CONNECTION POOL - Prevent session leaks!
+# ═══════════════════════════════════════════════════════════════
+# Cache for exchange clients to prevent creating new sessions every request
+# Key: (user_id, exchange_type, account_type), Value: (client, last_used_timestamp)
+_client_pool: Dict[Tuple[int, str, str], Tuple[Any, float]] = {}
+_client_pool_lock = asyncio.Lock()
+_CLIENT_POOL_TTL = 300  # 5 minutes - unused clients will be closed
+_CLIENT_POOL_CLEANUP_INTERVAL = 60  # Check for stale clients every minute
+_last_cleanup_time = 0.0
 
 
 def _safe_float(val, default=0.0):
@@ -372,9 +386,36 @@ class UnifiedExchangeClient:
 # FACTORY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
+async def _cleanup_stale_clients():
+    """Close clients that haven't been used for a while"""
+    global _last_cleanup_time
+    
+    now = time.time()
+    if now - _last_cleanup_time < _CLIENT_POOL_CLEANUP_INTERVAL:
+        return
+    
+    _last_cleanup_time = now
+    
+    async with _client_pool_lock:
+        stale_keys = []
+        for key, (client, last_used) in _client_pool.items():
+            if now - last_used > _CLIENT_POOL_TTL:
+                stale_keys.append(key)
+        
+        for key in stale_keys:
+            client, _ = _client_pool.pop(key, (None, 0))
+            if client:
+                try:
+                    await client.close()
+                    logger.debug(f"Closed stale client for {key}")
+                except Exception as e:
+                    logger.debug(f"Error closing stale client: {e}")
+
+
 async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None, account_type: Optional[str] = None) -> UnifiedExchangeClient:
     """
-    Create an exchange client for a user.
+    Get or create an exchange client for a user.
+    Uses a connection pool to prevent creating new sessions every request.
     
     Args:
         user_id: Telegram user ID
@@ -384,55 +425,103 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None,
                      If None, uses user's trading_mode setting
     
     Returns:
-        UnifiedExchangeClient ready to use
+        UnifiedExchangeClient ready to use (pooled, do NOT close it manually!)
     
-    Example:
-        async with await get_exchange_client(user_id, account_type='demo') as client:
-            balance = await client.get_balance()
+    NOTE: Clients are pooled and reused. Do NOT call client.close() - 
+          the pool handles lifecycle automatically.
     """
     import db
     
+    # Cleanup stale clients periodically
+    await _cleanup_stale_clients()
+    
     # Get user's exchange preference
     if exchange_type is None:
-        exchange_type = db.get_exchange_type(user_id)
+        exchange_type = db.get_exchange_type(user_id) or 'bybit'
     
-    exchange = ExchangeType(exchange_type) if exchange_type else ExchangeType.BYBIT
+    # Determine account_type
+    if account_type is None:
+        trading_mode = db.get_trading_mode(user_id)
+        account_type = "real" if trading_mode == "real" else "demo"
     
-    if exchange == ExchangeType.HYPERLIQUID:
-        hl_creds = db.get_hl_credentials(user_id)
-        credentials = ExchangeCredentials(
-            exchange=ExchangeType.HYPERLIQUID,
-            private_key=hl_creds.get("hl_private_key"),
-            wallet_address=hl_creds.get("hl_wallet_address"),
-            vault_address=hl_creds.get("hl_vault_address"),
-            mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL
-        )
-    else:
-        # Use explicit account_type if provided, otherwise get from user settings
-        if account_type is None:
-            trading_mode = db.get_trading_mode(user_id)
-            account_type = "real" if trading_mode == "real" else "demo"
+    # Create pool key
+    pool_key = (user_id, exchange_type, account_type)
+    
+    async with _client_pool_lock:
+        # Check if we have a valid cached client
+        if pool_key in _client_pool:
+            client, _ = _client_pool[pool_key]
+            if client._initialized and client._client is not None:
+                # Update last used time
+                _client_pool[pool_key] = (client, time.time())
+                return client
+            else:
+                # Client is closed/invalid, remove from pool
+                _client_pool.pop(pool_key, None)
         
-        api_key, api_secret = db.get_user_credentials(user_id, account_type)
+        # Create new client
+        exchange = ExchangeType(exchange_type) if exchange_type else ExchangeType.BYBIT
         
-        # Support testnet mode
-        if account_type == "testnet":
-            mode = AccountMode.TESTNET
-        elif account_type == "real":
-            mode = AccountMode.REAL
+        if exchange == ExchangeType.HYPERLIQUID:
+            hl_creds = db.get_hl_credentials(user_id)
+            credentials = ExchangeCredentials(
+                exchange=ExchangeType.HYPERLIQUID,
+                private_key=hl_creds.get("hl_private_key"),
+                wallet_address=hl_creds.get("hl_wallet_address"),
+                vault_address=hl_creds.get("hl_vault_address"),
+                mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL
+            )
         else:
-            mode = AccountMode.DEMO
+            api_key, api_secret = db.get_user_credentials(user_id, account_type)
+            
+            # Support testnet mode
+            if account_type == "testnet":
+                mode = AccountMode.TESTNET
+            elif account_type == "real":
+                mode = AccountMode.REAL
+            else:
+                mode = AccountMode.DEMO
+            
+            credentials = ExchangeCredentials(
+                exchange=ExchangeType.BYBIT,
+                api_key=api_key,
+                api_secret=api_secret,
+                mode=mode
+            )
         
-        credentials = ExchangeCredentials(
-            exchange=ExchangeType.BYBIT,
-            api_key=api_key,
-            api_secret=api_secret,
-            mode=mode
-        )
+        client = UnifiedExchangeClient(credentials)
+        await client.initialize()
+        
+        # Store in pool
+        _client_pool[pool_key] = (client, time.time())
+        logger.debug(f"Created new pooled client for user {user_id}, {exchange_type}, {account_type}")
+        
+        return client
+
+
+async def invalidate_client(user_id: int, exchange_type: Optional[str] = None, account_type: Optional[str] = None):
+    """
+    Force close and remove a client from the pool.
+    Call this when user credentials change.
+    """
+    keys_to_remove = []
     
-    client = UnifiedExchangeClient(credentials)
-    await client.initialize()
-    return client
+    async with _client_pool_lock:
+        for key in list(_client_pool.keys()):
+            uid, exch, acc = key
+            if uid == user_id:
+                if exchange_type is None or exch == exchange_type:
+                    if account_type is None or acc == account_type:
+                        keys_to_remove.append(key)
+        
+        for key in keys_to_remove:
+            client, _ = _client_pool.pop(key, (None, 0))
+            if client:
+                try:
+                    await client.close()
+                    logger.debug(f"Invalidated client for {key}")
+                except Exception as e:
+                    logger.debug(f"Error closing invalidated client: {e}")
 
 
 def create_credentials_from_config(
