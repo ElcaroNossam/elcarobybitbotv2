@@ -10135,6 +10135,7 @@ async def monitor_positions_loop(app: Application):
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
                                             move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                            logger.debug(f"[{uid}] {sym} deep_loss: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
                                             await notify_deep_loss(sym, side, entry, mark, move_pct_local)
                                             continue
                                     except RuntimeError as e:
@@ -10161,6 +10162,7 @@ async def monitor_positions_loop(app: Application):
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
                                             move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                            logger.debug(f"[{uid}] {sym} deep_loss ATR: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
                                             await notify_deep_loss(sym, side, entry, mark, move_pct_local)
                                             continue
                                     except RuntimeError as e:
