@@ -3080,6 +3080,10 @@ async def set_trading_stop(
         if "no open positions" in err_str or "position not exists" in err_str:
             logger.debug(f"[{uid}] Position for {symbol} closed during set_trading_stop")
             return False
+        # Handle invalid SL/TP price errors - skip silently (position already in deep loss)
+        if "should lower than" in err_str or "should higher than" in err_str:
+            logger.warning(f"[{uid}] {symbol}: SL/TP price invalid (position in deep loss), skipping")
+            return False
         raise
 
 async def _position_idx_for_cached(uid: int, symbol: str, side: str) -> int:
