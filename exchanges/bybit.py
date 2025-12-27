@@ -96,9 +96,14 @@ class BybitExchange(BaseExchange):
     async def close(self):
         """Close the exchange connection"""
         if self._session and not self._session.closed:
-            await self._session.close()
+            try:
+                await self._session.close()
+                # Wait a bit for the session to fully close
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.debug(f"Error closing Bybit session: {e}")
+        self._session = None
         self._initialized = False
-        logger.info("Bybit exchange connection closed")
     
     def _sign_request(self, params: Dict[str, Any], is_post: bool = False) -> Dict[str, str]:
         """Create signature for authenticated request"""

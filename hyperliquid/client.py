@@ -82,12 +82,21 @@ class HyperLiquidClient:
     
     async def initialize(self):
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30)
+            )
             self._own_session = True
     
     async def close(self):
-        if self._own_session and self._session and not self._session.closed:
-            await self._session.close()
+        if self._session and not self._session.closed:
+            try:
+                await self._session.close()
+                # Wait a bit for the session to fully close
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.debug(f"Error closing session: {e}")
+        self._session = None
+        self._own_session = False
     
     async def __aenter__(self):
         await self.initialize()

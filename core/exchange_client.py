@@ -130,9 +130,13 @@ class UnifiedExchangeClient:
     
     async def close(self) -> None:
         """Close the client connection"""
-        if self._client and self._initialized:
-            await self._client.close()
-            self._initialized = False
+        if self._client:
+            try:
+                await self._client.close()
+            except Exception as e:
+                logger.debug(f"Error closing exchange client: {e}")
+        self._client = None
+        self._initialized = False
     
     def _normalize_symbol(self, symbol: str) -> str:
         """Normalize symbol for the exchange"""

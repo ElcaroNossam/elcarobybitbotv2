@@ -39,9 +39,12 @@ class HLAdapter:
             self._initialized = True
 
     async def close(self):
-        if self._initialized:
-            await self._client.close()
-            self._initialized = False
+        if self._client:
+            try:
+                await self._client.close()
+            except Exception as e:
+                logger.debug(f"Error closing HLAdapter client: {e}")
+        self._initialized = False
 
     async def __aenter__(self):
         await self.initialize()
