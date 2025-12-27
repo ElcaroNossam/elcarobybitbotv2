@@ -462,7 +462,10 @@ async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: f
     if not pos_candidates:
         raise RuntimeError(f"No open position for {symbol} to set SL/TP")
     pos = max(pos_candidates, key=lambda p: abs(float(p.get("size") or 0.0)))
-    entry = float(pos.get("avgPrice"))
+    entry_val = pos.get("avgPrice") or pos.get("entry_price") or 0
+    entry = float(entry_val) if entry_val else 0.0
+    if entry == 0:
+        raise RuntimeError(f"Could not get entry price for {symbol}")
     sl_price = round(entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6)
     tp_price = round(entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6)
     await set_trading_stop(uid, symbol, sl_price=sl_price, tp_price=tp_price, side_hint=side)

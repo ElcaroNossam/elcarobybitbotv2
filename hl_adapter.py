@@ -10,6 +10,16 @@ from models import Position, Order, Balance, OrderResult, OrderSide, PositionSid
 logger = logging.getLogger(__name__)
 
 
+def _safe_float(val, default=0.0):
+    """Safely convert value to float, handling empty strings and None"""
+    if val is None or val == '':
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
 class HLAdapter:
     def __init__(self, private_key: str, testnet: bool = False, vault_address: Optional[str] = None):
         self._client = HyperLiquidClient(private_key=private_key, testnet=testnet, vault_address=vault_address)
@@ -49,7 +59,7 @@ class HLAdapter:
                 coin = pos.get("coin", "")
                 if symbol and self._normalize_symbol(symbol) != coin:
                     continue
-                size = float(pos.get("szi", 0))
+                size = _safe_float(pos.get("szi"))
                 if size == 0:
                     continue
                 leverage_info = pos.get("leverage", {})
@@ -158,8 +168,8 @@ class HLAdapter:
                 result_list.append({
                     "symbol": f"{coin}USDC",
                     "side": "Buy" if order.get("side") == "B" else "Sell",
-                    "size": float(order.get("sz", 0)),
-                    "price": float(order.get("limitPx", 0)),
+                    "size": _safe_float(order.get("sz")),
+                    "price": _safe_float(order.get("limitPx")),
                     "order_type": "Limit",
                     "order_id": str(order.get("oid", "")),
                 })
@@ -179,9 +189,9 @@ class HLAdapter:
                 result_list.append({
                     "symbol": f"{fill.get('coin', '')}USDC",
                     "side": "Buy" if fill.get("side") == "B" else "Sell",
-                    "size": float(fill.get("sz", 0)),
-                    "price": float(fill.get("px", 0)),
-                    "pnl": float(fill.get("closedPnl", 0)),
+                    "size": _safe_float(fill.get("sz")),
+                    "price": _safe_float(fill.get("px")),
+                    "pnl": _safe_float(fill.get("closedPnl")),
                     "time": fill.get("time", 0),
                 })
             return {"success": True, "data": result_list}
@@ -332,11 +342,11 @@ class HLAdapter:
             for c in candles:
                 result_list.append({
                     "timestamp": c.get("t", 0),
-                    "open": float(c.get("o", 0)),
-                    "high": float(c.get("h", 0)),
-                    "low": float(c.get("l", 0)),
-                    "close": float(c.get("c", 0)),
-                    "volume": float(c.get("v", 0)),
+                    "open": _safe_float(c.get("o")),
+                    "high": _safe_float(c.get("h")),
+                    "low": _safe_float(c.get("l")),
+                    "close": _safe_float(c.get("c")),
+                    "volume": _safe_float(c.get("v")),
                     "trades": c.get("n", 0),
                 })
             return {"success": True, "data": result_list}
@@ -673,10 +683,10 @@ class HLAdapter:
                 result_list.append({
                     "symbol": f"{fill.get('coin', '')}USDC",
                     "side": "Buy" if fill.get("side") == "B" else "Sell",
-                    "size": float(fill.get("sz", 0)),
-                    "price": float(fill.get("px", 0)),
-                    "pnl": float(fill.get("closedPnl", 0)),
-                    "fee": float(fill.get("fee", 0)),
+                    "size": _safe_float(fill.get("sz")),
+                    "price": _safe_float(fill.get("px")),
+                    "pnl": _safe_float(fill.get("closedPnl")),
+                    "fee": _safe_float(fill.get("fee")),
                     "time": fill.get("time", 0),
                     "hash": fill.get("hash", ""),
                     "direction": fill.get("dir", ""),

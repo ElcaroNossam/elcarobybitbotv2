@@ -16,6 +16,16 @@ from core.rate_limiter import bybit_limiter, hl_limiter
 logger = logging.getLogger(__name__)
 
 
+def _safe_float(val, default=0.0):
+    """Safely convert value to float, handling empty strings and None"""
+    if val is None or val == '':
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
 class ExchangeType(str, Enum):
     BYBIT = "bybit"
     HYPERLIQUID = "hyperliquid"
@@ -90,6 +100,10 @@ class UnifiedExchangeClient:
             return
         
         if self.credentials.exchange == ExchangeType.HYPERLIQUID:
+            # Validate HyperLiquid credentials
+            if not self.credentials.private_key:
+                raise ValueError("HyperLiquid private_key is required")
+            
             from hl_adapter import HLAdapter
             self._client = HLAdapter(
                 private_key=self.credentials.private_key,
@@ -98,6 +112,10 @@ class UnifiedExchangeClient:
             )
             await self._client.initialize()
         else:
+            # Validate Bybit credentials
+            if not self.credentials.api_key or not self.credentials.api_secret:
+                raise ValueError("Bybit api_key and api_secret are required")
+            
             # Bybit client setup
             from exchanges.bybit import BybitExchange
             self._client = BybitExchange(
@@ -143,10 +161,10 @@ class UnifiedExchangeClient:
             if self.credentials.exchange == ExchangeType.HYPERLIQUID:
                 result = await self._client.get_balance()
                 data = {
-                    "total_equity": float(result.get("accountValue", 0)),
-                    "available_balance": float(result.get("withdrawable", 0)),
-                    "margin_used": float(result.get("marginUsed", 0)),
-                    "unrealized_pnl": float(result.get("unrealizedPnl", 0)),
+                    "total_equity": _safe_float(result.get("accountValue")),
+                    "available_balance": _safe_float(result.get("withdrawable")),
+                    "margin_used": _safe_float(result.get("marginUsed")),
+                    "unrealized_pnl": _safe_float(result.get("unrealizedPnl")),
                     "currency": "USDC"
                 }
             else:
