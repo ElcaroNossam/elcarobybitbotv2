@@ -60,8 +60,13 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
             logger.error(f"Unexpected result type from get_balance: {type(result)}")
             return None
     except Exception as e:
-        logger.error(f"get_balance_unified error for user {user_id}: {e}")
-        count_errors('bot.get_balance')
+        error_str = str(e)
+        # Don't log cached auth errors at ERROR level - they are expected
+        if "cached" in error_str.lower() or "retry in" in error_str:
+            logger.debug(f"get_balance_unified skipped for user {user_id}: {e}")
+        else:
+            logger.error(f"get_balance_unified error for user {user_id}: {e}")
+            count_errors('bot.get_balance')
         return None
     # NOTE: Client is pooled - do NOT close it manually!
 
@@ -157,8 +162,13 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         
         return positions
     except Exception as e:
-        logger.error(f"get_positions_unified error for user {user_id}: {e}")
-        count_errors('bot.get_positions')
+        error_str = str(e)
+        # Don't log cached auth errors at ERROR level - they are expected
+        if "cached" in error_str.lower() or "retry in" in error_str:
+            logger.debug(f"get_positions_unified skipped for user {user_id}: {e}")
+        else:
+            logger.error(f"get_positions_unified error for user {user_id}: {e}")
+            count_errors('bot.get_positions')
         return []
     # NOTE: Client is pooled - do NOT close it manually!
     # The pool handles lifecycle automatically.
@@ -290,8 +300,13 @@ async def place_order_unified(
         }
         
     except Exception as e:
-        logger.error(f"place_order_unified error for user {user_id}: {e}")
-        count_errors('bot.place_order')
+        error_str = str(e)
+        # Don't log cached auth errors at ERROR level - they are expected
+        if "cached" in error_str.lower() or "retry in" in error_str:
+            logger.debug(f"place_order_unified skipped for user {user_id}: {e}")
+        else:
+            logger.error(f"place_order_unified error for user {user_id}: {e}")
+            count_errors('bot.place_order')
         return {
             'success': False,
             'error': str(e)
@@ -408,8 +423,13 @@ async def close_position_unified(
         }
         
     except Exception as e:
-        logger.error(f"close_position_unified error for user {user_id}: {e}")
-        count_errors('bot.close_position')
+        error_str = str(e)
+        # Don't log cached auth errors at ERROR level - they are expected
+        if "cached" in error_str.lower() or "retry in" in error_str:
+            logger.debug(f"close_position_unified skipped for user {user_id}: {e}")
+        else:
+            logger.error(f"close_position_unified error for user {user_id}: {e}")
+            count_errors('bot.close_position')
         return {
             'success': False,
             'error': str(e)
@@ -460,8 +480,13 @@ async def set_leverage_unified(
             return False
         
     except Exception as e:
-        logger.error(f"set_leverage_unified error for user {user_id}: {e}")
-        count_errors('bot.set_leverage')
+        error_str = str(e)
+        # Don't log cached auth errors at ERROR level - they are expected
+        if "cached" in error_str.lower() or "retry in" in error_str:
+            logger.debug(f"set_leverage_unified skipped for user {user_id}: {e}")
+        else:
+            logger.error(f"set_leverage_unified error for user {user_id}: {e}")
+            count_errors('bot.set_leverage')
         return False
     # NOTE: Client is pooled - do NOT close it manually!
 
