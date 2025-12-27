@@ -272,6 +272,9 @@ def init_db():
             ("elc_balance",        "ALTER TABLE users ADD COLUMN elc_balance        REAL NOT NULL DEFAULT 0.0"),
             ("elc_staked",         "ALTER TABLE users ADD COLUMN elc_staked         REAL NOT NULL DEFAULT 0.0"),
             ("elc_locked",         "ALTER TABLE users ADD COLUMN elc_locked         REAL NOT NULL DEFAULT 0.0"),
+            # User info for webapp login
+            ("username",           "ALTER TABLE users ADD COLUMN username           TEXT"),
+            ("first_name",         "ALTER TABLE users ADD COLUMN first_name         TEXT"),
         ]:
             if not _col_exists(conn, "users", col):
                 cur.execute(ddl)
@@ -487,41 +490,80 @@ def init_db():
         )
 
         # ACTIVE POSITIONS
-        cur.execute(
+        # Проверяем нужна ли миграция PRIMARY KEY (добавление account_type в PK)
+        needs_pk_migration = False
+        if _table_exists(conn, "active_positions"):
+            # Проверяем текущий PRIMARY KEY - если account_type нет в PK, нужна миграция
+            pk_info = cur.execute("PRAGMA table_info(active_positions)").fetchall()
+            pk_cols = [col[1] for col in pk_info if col[5] > 0]  # col[5] = pk flag
+            if "account_type" not in pk_cols:
+                needs_pk_migration = True
+        
+        if needs_pk_migration:
+            # Миграция: пересоздаём таблицу с новым PRIMARY KEY (user_id, symbol, account_type)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS active_positions_new (
+                    user_id      INTEGER NOT NULL,
+                    symbol       TEXT    NOT NULL,
+                    account_type TEXT    NOT NULL DEFAULT 'demo',
+                    side         TEXT,
+                    entry_price  REAL,
+                    size         REAL,
+                    open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+                    timeframe    TEXT,
+                    signal_id    INTEGER,
+                    dca_10_done  INTEGER NOT NULL DEFAULT 0,
+                    dca_25_done  INTEGER NOT NULL DEFAULT 0,
+                    strategy     TEXT,
+                    PRIMARY KEY(user_id, symbol, account_type),
+                    FOREIGN KEY(user_id)  REFERENCES users(user_id)   ON DELETE CASCADE,
+                    FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE SET NULL
+                )
+            """)
+            # Копируем данные из старой таблицы
+            cur.execute("""
+                INSERT OR IGNORE INTO active_positions_new 
+                    (user_id, symbol, account_type, side, entry_price, size, open_ts, timeframe, signal_id, dca_10_done, dca_25_done, strategy)
+                SELECT 
+                    user_id, symbol, COALESCE(account_type, 'demo'), side, entry_price, size, open_ts, timeframe, signal_id,
+                    COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy
+                FROM active_positions
+            """)
+            cur.execute("DROP TABLE active_positions")
+            cur.execute("ALTER TABLE active_positions_new RENAME TO active_positions")
+        else:
+            # Создание новой таблицы с правильным PRIMARY KEY
+            cur.execute(
+                """
+            CREATE TABLE IF NOT EXISTS active_positions (
+                user_id      INTEGER NOT NULL,
+                symbol       TEXT    NOT NULL,
+                account_type TEXT    NOT NULL DEFAULT 'demo',
+                side         TEXT,
+                entry_price  REAL,
+                size         REAL,
+                open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+                timeframe    TEXT,
+                signal_id    INTEGER,
+                dca_10_done  INTEGER NOT NULL DEFAULT 0,
+                dca_25_done  INTEGER NOT NULL DEFAULT 0,
+                strategy     TEXT,
+                PRIMARY KEY(user_id, symbol, account_type),
+                FOREIGN KEY(user_id)  REFERENCES users(user_id)   ON DELETE CASCADE,
+                FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE SET NULL
+            )
             """
-        CREATE TABLE IF NOT EXISTS active_positions (
-            user_id      INTEGER NOT NULL,
-            symbol       TEXT    NOT NULL,
-            side         TEXT,
-            entry_price  REAL,
-            size         REAL,
-            open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            timeframe    TEXT,
-            signal_id    INTEGER,
-            PRIMARY KEY(user_id, symbol),
-            FOREIGN KEY(user_id)  REFERENCES users(user_id)   ON DELETE CASCADE,
-            FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE SET NULL
-        )
-        """
-        )
+            )
+        
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)"
         )
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_active_sig  ON active_positions(signal_id)"
         )
-
-        # Миграция: добавляем флаги DCA в active_positions
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "dca_10_done"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN dca_10_done INTEGER NOT NULL DEFAULT 0")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "dca_25_done"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN dca_25_done INTEGER NOT NULL DEFAULT 0")
-        # Миграция: добавляем колонку strategy
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "strategy"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN strategy TEXT DEFAULT NULL")
-        # Миграция: добавляем account_type для поддержки demo/real режимов
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "account_type"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN account_type TEXT DEFAULT 'demo'")
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)"
+        )
 
         # TRADE LOGS
         cur.execute(
@@ -842,6 +884,29 @@ def ensure_user(user_id: int):
             (user_id,),
         )
         conn.commit()
+
+def update_user_info(user_id: int, username: str = None, first_name: str = None):
+    """Updates user info (username, first_name) if provided"""
+    ensure_user(user_id)
+    updates = []
+    params = []
+    
+    if username is not None:
+        updates.append("username = ?")
+        params.append(username)
+    
+    if first_name is not None:
+        updates.append("first_name = ?")
+        params.append(first_name)
+    
+    if updates:
+        params.append(user_id)
+        with get_conn() as conn:
+            conn.execute(
+                f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?",
+                params
+            )
+            conn.commit()
 
 def delete_user(user_id: int):
     """
@@ -1846,52 +1911,44 @@ def add_active_position(
 ):
     """
     UPSERT с обновлением ключевых полей.
+    PRIMARY KEY включает account_type - позволяет иметь одновременно Demo и Real позиции.
     """
     ensure_user(user_id)
     with get_conn() as conn:
-        # Проверяем наличие колонки account_type
-        has_account_type = _col_exists(conn, "active_positions", "account_type")
-        
-        if has_account_type:
-            conn.execute(
-                """
-              INSERT INTO active_positions
-                (user_id, symbol, side, entry_price, size, timeframe, signal_id, dca_10_done, dca_25_done, strategy, account_type)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
-              ON CONFLICT(user_id, symbol) DO UPDATE SET
-                side        = excluded.side,
-                entry_price = excluded.entry_price,
-                size        = excluded.size,
-                timeframe   = COALESCE(excluded.timeframe, active_positions.timeframe),
-                signal_id   = COALESCE(excluded.signal_id,   active_positions.signal_id),
-                strategy    = COALESCE(excluded.strategy,    active_positions.strategy),
-                account_type = COALESCE(excluded.account_type, active_positions.account_type)
-            """,
-                (user_id, symbol, side, entry_price, size, timeframe, signal_id, strategy, account_type),
-            )
-        else:
-            conn.execute(
-                """
-              INSERT INTO active_positions
-                (user_id, symbol, side, entry_price, size, timeframe, signal_id, dca_10_done, dca_25_done, strategy)
-              VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
-              ON CONFLICT(user_id, symbol) DO UPDATE SET
-                side        = excluded.side,
-                entry_price = excluded.entry_price,
-                size        = excluded.size,
-                timeframe   = COALESCE(excluded.timeframe, active_positions.timeframe),
-                signal_id   = COALESCE(excluded.signal_id,   active_positions.signal_id),
-                strategy    = COALESCE(excluded.strategy,    active_positions.strategy)
-            """,
-                (user_id, symbol, side, entry_price, size, timeframe, signal_id, strategy),
-            )
+        conn.execute(
+            """
+          INSERT INTO active_positions
+            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, dca_10_done, dca_25_done, strategy)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+          ON CONFLICT(user_id, symbol, account_type) DO UPDATE SET
+            side        = excluded.side,
+            entry_price = excluded.entry_price,
+            size        = excluded.size,
+            timeframe   = COALESCE(excluded.timeframe, active_positions.timeframe),
+            signal_id   = COALESCE(excluded.signal_id,   active_positions.signal_id),
+            strategy    = COALESCE(excluded.strategy,    active_positions.strategy)
+        """,
+            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, strategy),
+        )
         conn.commit()
 
-def get_active_positions(user_id: int) -> list[dict]:
+def get_active_positions(user_id: int, account_type: str | None = None) -> list[dict]:
+    """
+    Получает активные позиции пользователя.
+    Если account_type указан - фильтрует по нему.
+    """
     with get_conn() as conn:
-        has_account_type = _col_exists(conn, "active_positions", "account_type")
-        
-        if has_account_type:
+        if account_type:
+            rows = conn.execute(
+                """
+              SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
+                     COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy, account_type
+                FROM active_positions
+               WHERE user_id=? AND account_type=?
+            """,
+                (user_id, account_type),
+            ).fetchall()
+        else:
             rows = conn.execute(
                 """
               SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
@@ -1901,59 +1958,45 @@ def get_active_positions(user_id: int) -> list[dict]:
             """,
                 (user_id,),
             ).fetchall()
-            return [
-                {
-                    "symbol": r[0],
-                    "side": r[1],
-                    "entry_price": r[2],
-                    "size": r[3],
-                    "open_ts": r[4],
-                    "timeframe": r[5],
-                    "signal_id": r[6],
-                    "dca_10_done": bool(r[7]),
-                    "dca_25_done": bool(r[8]),
-                    "strategy": r[9],
-                    "account_type": r[10] or "demo",
-                }
-                for r in rows
-            ]
-        else:
-            rows = conn.execute(
-                """
-              SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
-                     COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy
-                FROM active_positions
-               WHERE user_id=?
-            """,
-                (user_id,),
-            ).fetchall()
-            return [
-                {
-                    "symbol": r[0],
-                    "side": r[1],
-                    "entry_price": r[2],
-                    "size": r[3],
-                    "open_ts": r[4],
-                    "timeframe": r[5],
-                    "signal_id": r[6],
-                    "dca_10_done": bool(r[7]),
-                    "dca_25_done": bool(r[8]),
-                    "strategy": r[9] if len(r) > 9 else None,
-                    "account_type": "demo",
-                }
-                for r in rows
-            ]
+        return [
+            {
+                "symbol": r[0],
+                "side": r[1],
+                "entry_price": r[2],
+                "size": r[3],
+                "open_ts": r[4],
+                "timeframe": r[5],
+                "signal_id": r[6],
+                "dca_10_done": bool(r[7]),
+                "dca_25_done": bool(r[8]),
+                "strategy": r[9],
+                "account_type": r[10] or "demo",
+            }
+            for r in rows
+        ]
 
-def remove_active_position(user_id: int, symbol: str):
+
+def remove_active_position(user_id: int, symbol: str, account_type: str | None = None):
+    """
+    Удаляет активную позицию.
+    Если account_type указан - удаляет только для этого типа.
+    Если не указан - удаляет все позиции по символу (для обратной совместимости).
+    """
     with get_conn() as conn:
-        conn.execute(
-            "DELETE FROM active_positions WHERE user_id=? AND symbol=?",
-            (user_id, symbol),
-        )
+        if account_type:
+            conn.execute(
+                "DELETE FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
+                (user_id, symbol, account_type),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM active_positions WHERE user_id=? AND symbol=?",
+                (user_id, symbol),
+            )
         conn.commit()
 
 
-def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True):
+def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True, account_type: str = "demo"):
     """
     Устанавливает флаг DCA для позиции.
     level: 10 или 25 (процент)
@@ -1963,13 +2006,13 @@ def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True):
         raise ValueError(f"Invalid DCA level: {level}")
     with get_conn() as conn:
         conn.execute(
-            f"UPDATE active_positions SET {col}=? WHERE user_id=? AND symbol=?",
-            (1 if value else 0, user_id, symbol),
+            f"UPDATE active_positions SET {col}=? WHERE user_id=? AND symbol=? AND account_type=?",
+            (1 if value else 0, user_id, symbol, account_type),
         )
         conn.commit()
 
 
-def get_dca_flag(user_id: int, symbol: str, level: int) -> bool:
+def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "demo") -> bool:
     """
     Проверяет, был ли выполнен DCA на данном уровне.
     level: 10 или 25 (процент)
@@ -1979,8 +2022,8 @@ def get_dca_flag(user_id: int, symbol: str, level: int) -> bool:
         raise ValueError(f"Invalid DCA level: {level}")
     with get_conn() as conn:
         row = conn.execute(
-            f"SELECT {col} FROM active_positions WHERE user_id=? AND symbol=?",
-            (user_id, symbol),
+            f"SELECT {col} FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
+            (user_id, symbol, account_type),
         ).fetchone()
     return bool(row[0]) if row else False
 

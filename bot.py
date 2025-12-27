@@ -31,7 +31,8 @@ try:
     )
     UNIFIED_AVAILABLE = True
 except ImportError as e:
-    logger.warning(f"Unified models not available: {e}")
+    # logger not available yet at import time
+    print(f"[WARNING] Unified models not available: {e}")
     UNIFIED_AVAILABLE = False
 
 from telegram.error import TimedOut as TgTimedOut, NetworkError, BadRequest
@@ -41,7 +42,7 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, BotCommand
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, MenuButtonDefault, BotCommand
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
 from services.notification_service import init_notification_service
@@ -526,6 +527,16 @@ def require_access(func):
             return await func(update, ctx, *args, **kw)
 
         t = ctx.t
+        
+        # Update user info (username, first_name) on every interaction
+        try:
+            user = update.effective_user
+            if user:
+                username = user.username
+                first_name = user.first_name
+                db.update_user_info(uid, username=username, first_name=first_name)
+        except Exception as e:
+            logger.warning(f"Failed to update user info for {uid}: {e}")
 
         if uid == ADMIN_ID:
             return await func(update, ctx, *args, **kw)
@@ -1953,10 +1964,11 @@ def _decimals_from_step(step: float) -> int:
         return len(s.split(".")[1])
     return 0
 
-def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_id: int | None = None) -> tuple[float, float]:
+def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_id: int | None = None, side: str | None = None) -> tuple[float, float]:
     """
     Resolve SL/TP percentages for a trade.
     If strategy is provided and user has per-strategy settings, use those.
+    For Scryptomera/Scalper, side-specific settings (long_sl_percent, short_sl_percent) take priority.
     Otherwise fallback to global user settings, then coin-specific defaults.
     """
     coin_cfg = COIN_PARAMS.get(symbol, COIN_PARAMS["DEFAULT"])
@@ -1966,8 +1978,23 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     strat_tp = None
     if strategy and user_id:
         strat_settings = db.get_strategy_settings(user_id, strategy)
-        strat_sl = strat_settings.get("sl_percent")
-        strat_tp = strat_settings.get("tp_percent")
+        
+        # For Scryptomera and Scalper, check side-specific settings first
+        if strategy in ("scryptomera", "scalper") and side:
+            side_prefix = "long" if side in ("Buy", "LONG", "long") else "short"
+            side_sl = strat_settings.get(f"{side_prefix}_sl_percent")
+            side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
+            
+            if side_sl is not None and side_sl > 0:
+                strat_sl = side_sl
+            if side_tp is not None and side_tp > 0:
+                strat_tp = side_tp
+        
+        # Fallback to general strategy settings if side-specific not set
+        if strat_sl is None:
+            strat_sl = strat_settings.get("sl_percent")
+        if strat_tp is None:
+            strat_tp = strat_settings.get("tp_percent")
 
     # Priority: strategy settings > user global settings > coin defaults
     # SL
@@ -2198,6 +2225,7 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str], bool] = {}
+_close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 
 @log_calls
 async def get_position_mode(user_id: int, symbol: str, account_type: str = None) -> str:
@@ -2583,21 +2611,27 @@ async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None) -> f
 
 
 @log_calls
-async def fetch_last_closed_pnl(user_id: int, symbol: str) -> dict:
-    data = await _bybit_request(
-        user_id,
-        "GET",
-        "/v5/position/closed-pnl",
-        params={
-            "category": "linear",
-            "symbol":   symbol,
-            "limit":    1
-        }
-    )
-    recs = data.get("list", [])
-    if not recs:
-        raise RuntimeError("There are no records of closed PnL")
-    return recs[0]
+async def fetch_last_closed_pnl(user_id: int, symbol: str) -> dict | None:
+    """Fetch last closed PnL record for a symbol. Returns None if no records found."""
+    try:
+        data = await _bybit_request(
+            user_id,
+            "GET",
+            "/v5/position/closed-pnl",
+            params={
+                "category": "linear",
+                "symbol":   symbol,
+                "limit":    1
+            }
+        )
+        recs = data.get("list", [])
+        if not recs:
+            logger.debug(f"[{user_id}] No closed PnL records for {symbol}")
+            return None
+        return recs[0]
+    except Exception as e:
+        logger.debug(f"[{user_id}] fetch_last_closed_pnl error: {e}")
+        return None
 
 @log_calls
 async def fetch_last_execution_price(user_id: int, symbol: str) -> float:
@@ -2699,6 +2733,16 @@ async def _bybit_request(user_id: int, method: str, path: str,
             if path == "/v5/position/trading-stop" and data.get("retCode") == 34040:
                 logger.debug(f"{path}: not modified (retCode=34040) — ok")
                 return data.get("result", {})
+
+            # Handle "leverage not modified" - not an error, just already set
+            if path == "/v5/position/set-leverage" and data.get("retCode") == 110043:
+                logger.debug(f"{path}: leverage not modified (retCode=110043) — ok")
+                return data.get("result", {})
+            
+            # Handle "no closed PnL" - not critical, return empty
+            if path == "/v5/position/closed-pnl" and data.get("retCode") == 10016:
+                logger.debug(f"{path}: no closed PnL records (retCode=10016)")
+                return {"list": []}
 
             if data.get("retCode") not in (0, None):
                 logger.error(f"Bybit error for user {user_id} on {path}: {data}")
@@ -2867,7 +2911,8 @@ async def set_trading_stop(
     tp_price: float | None = None,
     sl_price: float | None = None,
     side_hint: str | None = None,  
-):
+) -> bool:
+    """Set TP/SL for a position. Returns True if successful, False if position not found."""
     if tp_price is None and sl_price is None:
         raise ValueError("You must specify at least one of the levels: TP or SL")
 
@@ -2887,7 +2932,9 @@ async def set_trading_stop(
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
 
     if not pos_candidates:
-        raise RuntimeError(f"There are no open positions for{symbol}")
+        # Position was closed - return False instead of raising
+        logger.debug(f"[{uid}] No open positions for {symbol}, skipping SL/TP update")
+        return False
 
     pos = None
     if side_hint:
@@ -3000,18 +3047,13 @@ async def set_trading_stop(
 
     try:
         await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body)
+        return True
     except RuntimeError as e:
+        err_str = str(e).lower()
+        if "no open positions" in err_str or "position not exists" in err_str:
+            logger.debug(f"[{uid}] Position for {symbol} closed during set_trading_stop")
+            return False
         raise
-
-
-    return {
-        "symbol": symbol,
-        "side": effective_side,
-        "positionIdx": position_idx,
-        "takeProfit": tp_price if tp_price is not None else current_tp,
-        "stopLoss": sl_price if sl_price is not None else current_sl,
-        "changed": True,
-    }
 
 async def _position_idx_for_cached(uid: int, symbol: str, side: str) -> int:
     mode = await get_position_mode(uid, symbol)
@@ -3088,6 +3130,7 @@ async def split_market_plus_one_limit(
     market_msg: str,           
     limit_msg: str,
     strategy: str | None = None,
+    account_type: str = "demo",
 ) -> None:
     filt = await get_symbol_filters(uid, symbol)
     step_qty  = float(filt["qtyStep"])
@@ -3182,7 +3225,8 @@ async def split_market_plus_one_limit(
         user_id=uid, symbol=symbol, side=side_s,
         entry_price=entry, size=size,
         timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf)),
-        strategy=strategy
+        strategy=strategy,
+        account_type=account_type
     )
 
     await strict_set_sl_tp(side_s, entry, tp_pct, sl_pct)
@@ -3656,10 +3700,14 @@ async def place_order_all_accounts(
     timeInForce: str = "GTC",
     strategy: str = None,
     leverage: int = None,
+    signal_id: int | None = None,
+    timeframe: str = "24h",
+    add_position: bool = True,  # Whether to add position to DB
 ) -> dict:
     """
     Place order on all active accounts based on strategy's trading_mode or global trading_mode.
     If trading_mode is 'both', places order on both demo and real accounts.
+    Also adds active positions to DB with correct account_type for each successful order.
     Returns dict with results per account type.
     """
     if strategy:
@@ -3689,6 +3737,32 @@ async def place_order_all_accounts(
             res = await place_order(user_id, symbol, side, orderType, qty, price, timeInForce, account_type=acc_type)
             results[acc_type] = {"success": True, "result": res}
             logger.info(f"✅ [{acc_type.upper()}] {orderType} order placed: {symbol} {side}")
+            
+            # Store position in DB with correct account_type
+            if add_position and orderType == "Market":
+                # Get current price for entry_price
+                entry_price = price if price else 0
+                if not entry_price:
+                    try:
+                        ticker_data = await _bybit_request(user_id, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": symbol}, account_type=acc_type)
+                        ticker_list = ticker_data.get("list", [])
+                        if ticker_list:
+                            entry_price = float(ticker_list[0].get("lastPrice", 0))
+                    except Exception:
+                        pass  # Will be updated by monitoring
+                
+                add_active_position(
+                    user_id=user_id,
+                    signal_id=signal_id,
+                    symbol=symbol,
+                    side=side,
+                    size=qty,
+                    entry_price=entry_price,
+                    timeframe=timeframe,
+                    strategy=strategy,
+                    account_type=acc_type,
+                )
+                logger.info(f"📊 [{acc_type.upper()}] Position saved to DB: {symbol} {side} @ {entry_price}")
         except Exception as e:
             results[acc_type] = {"success": False, "error": str(e)}
             errors.append(f"[{acc_type.upper()}] {str(e)}")
@@ -5600,10 +5674,10 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if ngrok_file.exists():
             webapp_url = ngrok_file.read_text().strip()
         
-        # Add user_id as start param for auto-login
-        webapp_url_with_user = f"{webapp_url}?start={uid}"
+        # Add user_id as start param for auto-login and go directly to dashboard
+        webapp_url_with_user = f"{webapp_url}/dashboard?start={uid}"
         menu_button = MenuButtonWebApp(
-            text="🖥️ Terminal",
+            text="🖥️ Dashboard",
             web_app=WebAppInfo(url=webapp_url_with_user)
         )
         await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
@@ -6285,7 +6359,15 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
                 pos_dict['liqPrice'] = pos_dict.get('liquidation_price')
                 result.append(pos_dict)
             
-            logger.info(f"✅ Fetched {len(result)} positions via unified architecture")
+            # Only log if positions changed or every 5 minutes
+            if not hasattr(fetch_open_positions, '_last_count') or \
+               fetch_open_positions._last_count != len(result) or \
+               not hasattr(fetch_open_positions, '_last_log_time') or \
+               (asyncio.get_event_loop().time() - fetch_open_positions._last_log_time) > 300:
+                logger.info(f"✅ Fetched {len(result)} positions via unified architecture")
+                fetch_open_positions._last_count = len(result)
+                fetch_open_positions._last_log_time = asyncio.get_event_loop().time()
+            
             return result
             
         except Exception as e:
@@ -6317,12 +6399,13 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
         return []
 
 @log_calls
-async def fetch_open_orders(user_id: int, symbol: str | None = None) -> list:
+async def fetch_open_orders(user_id: int, symbol: str | None = None, account_type: str | None = None) -> list:
+    """Fetch open orders with optional account_type override."""
     params = {"category": "linear", "settleCoin": "USDT"}
     if symbol:
         params["symbol"] = symbol
     try:
-        res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params)
+        res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params, account_type=account_type)
     except MissingAPICredentials:
         return []
     ALIVE = {"Created", "New", "PendingNew", "PartiallyFilled"}
@@ -6332,14 +6415,65 @@ async def fetch_open_orders(user_id: int, symbol: str | None = None) -> list:
 @with_texts
 @log_calls
 async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show open orders with account type selection."""
     uid = update.effective_user.id
+    t = ctx.t
+    
+    # Get user's trading mode to show available options
+    trading_mode = get_trading_mode(uid)
+    
+    # If user has only one mode configured, show orders directly
+    if trading_mode in ('demo', 'real'):
+        await show_orders_for_account(update, ctx, trading_mode)
+        return
+    
+    # If both modes, show selection
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎮 Demo Orders", callback_data="orders:demo"),
+            InlineKeyboardButton("💎 Real Orders", callback_data="orders:real")
+        ],
+        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+    ])
+    
+    await update.message.reply_text(
+        t.get('select_account_orders', '📝 *Select Account Type*\n\nChoose which account orders to view:'),
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+
+
+async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
+    """Show orders for specific account type."""
+    uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
+    t = ctx.t
+    
     try:
-        ords = await fetch_open_orders(uid)
+        ords = await fetch_open_orders(uid, account_type=account_type)
+        
+        mode_emoji = "🎮" if account_type == "demo" else "💎"
+        mode_label = "Demo" if account_type == "demo" else "Real"
+        header = f"{mode_emoji} *{mode_label} Open Orders*\n\n"
+        
         if not ords:
-            await update.message.reply_text(ctx.t['no_open_orders'], reply_markup=main_menu_keyboard(ctx, update=update))
+            text = header + t.get('no_open_orders', 'No open orders')
+            
+            # Add keyboard to switch accounts
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                ],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+            
+            if hasattr(update, 'message'):
+                await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            else:
+                await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
             return
 
-        lines = [ctx.t['open_orders_header'], ""]
+        lines = [header + t.get('open_orders_header', '📝 Open Orders:'), ""]
         for i, o in enumerate(ords, start=1):
             price = o.get('price')
             price_str = str(price) if price not in (None, "", 0, "0") else "—"
@@ -6349,7 +6483,7 @@ async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             oid    = o.get('orderId', "—")
 
             lines.append(
-                ctx.t['open_orders_item'].format(
+                t.get('open_orders_item', '#{idx} {symbol} {side}\n  Qty: {qty} @ {price}\n  ID: {id}').format(
                     idx=i,
                     symbol=symbol,
                     side=side,
@@ -6361,18 +6495,58 @@ async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             lines.append("")
 
         text = "\n".join(lines)
+        
+        # Add keyboard to switch accounts
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="orders:real")
+            ],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
 
-        MAX_LEN = 3500
-        for pos in range(0, len(text), MAX_LEN):
-            chunk = text[pos:pos+MAX_LEN]
-            await update.message.reply_text(chunk, parse_mode="Markdown")
+        # Send message or edit existing
+        if hasattr(update, 'message') and update.message:
+            MAX_LEN = 3500
+            for pos in range(0, len(text), MAX_LEN):
+                chunk = text[pos:pos+MAX_LEN]
+                await update.message.reply_text(
+                    chunk, 
+                    parse_mode="Markdown",
+                    reply_markup=keyboard if pos + MAX_LEN >= len(text) else None
+                )
+        else:
+            # Callback query - edit message
+            if len(text) > 3500:
+                text = text[:3450] + "\n...(truncated)"
+            await update.callback_query.edit_message_text(
+                text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
 
     except Exception as e:
-        logger.error(f"Error in cmd_openorders: {e}", exc_info=True)
-        await update.message.reply_text(
-            ctx.t['open_orders_error'].format(error=e),
-            reply_markup=main_menu_keyboard(ctx, update=update)
-        )
+        logger.error(f"Error in show_orders_for_account: {e}", exc_info=True)
+        error_text = t.get('open_orders_error', 'Error fetching orders: {error}').format(error=e)
+        
+        if hasattr(update, 'message'):
+            await update.message.reply_text(error_text)
+        else:
+            await update.callback_query.edit_message_text(error_text)
+
+
+@log_calls
+async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle orders account selection callbacks."""
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    if not data.startswith("orders:"):
+        return
+    
+    account_type = data.split(":")[1]  # "demo" or "real"
+    await show_orders_for_account(update, ctx, account_type)
 
 @require_access
 @with_texts
@@ -6388,14 +6562,65 @@ async def cmd_select_coins(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show positions with account type selection."""
     uid = update.effective_user.id
-    pos_list = await fetch_open_positions(uid)
+    t = ctx.t
+    
+    # Get user's trading mode to show available options
+    trading_mode = get_trading_mode(uid)
+    
+    # If user has only one mode configured, show positions directly
+    if trading_mode in ('demo', 'real'):
+        await show_positions_for_account(update, ctx, trading_mode)
+        return
+    
+    # If both modes, show selection
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎮 Demo Positions", callback_data="positions:demo"),
+            InlineKeyboardButton("💎 Real Positions", callback_data="positions:real")
+        ],
+        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+    ])
+    
+    await update.message.reply_text(
+        t.get('select_account_type', '📊 *Select Account Type*\n\nChoose which account positions to view:'),
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+
+
+async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
+    """Show positions for specific account type."""
+    uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
+    t = ctx.t
+    
+    pos_list = await fetch_open_positions(uid, account_type=account_type)
+    
+    mode_emoji = "🎮" if account_type == "demo" else "💎"
+    mode_label = "Demo" if account_type == "demo" else "Real"
+    header = f"{mode_emoji} *{mode_label} Positions*\n\n"
+    
     if not pos_list:
-        return await update.message.reply_text(ctx.t['no_positions'])
+        text = header + t.get('no_positions', 'No open positions')
+        
+        # Add keyboard to switch accounts
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="positions:real")
+            ],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+        
+        if hasattr(update, 'message'):
+            return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
     total_pnl = 0.0
     total_im  = 0.0
-    lines = [ctx.t['positions_header']]
+    lines = [header + t.get('positions_header', '📊 Open Positions:')]
 
     for idx, p in enumerate(pos_list, start=1):
         sym   = p.get("symbol",    "-")
@@ -6423,7 +6648,7 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         total_im  += im
 
         lines.append(
-            ctx.t['position_item'].format(
+            t.get('position_item', '#{idx} {symbol} {side}x{leverage}\n  Size: {size}\n  Entry: {avg:.6f} → Mark: {mark:.6f}\n  Liq: {liq} | IM: {im:.2f} | MM: {mm:.2f}\n  TP: {tp} | SL: {sl}\n  PnL: {pnl:+.2f} ({pct:+.2f}%)').format(
                 idx=idx,
                 symbol=sym,
                 side=side,
@@ -6445,22 +6670,61 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if total_im:
         overall = total_pnl / total_im * 100
         lines.append(
-            ctx.t['positions_overall'].format(
+            "\n" + t.get('positions_overall', '💰 *Total PnL:* {pnl:+.2f} USDT ({pct:+.2f}%)').format(
                 pnl=total_pnl,
                 pct=overall
             )
         )
 
-    escaped = html.escape("\n".join(lines))
-    max_len = 3000
-    for i in range(0, len(escaped), max_len):
-        chunk = escaped[i : i + max_len]
-        await ctx.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"<pre>{chunk}</pre>",
+    text = "\n".join(lines)
+    
+    # Add keyboard to switch accounts
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+            InlineKeyboardButton("💎 Real", callback_data="positions:real")
+        ],
+        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+    ])
+
+    # Send message or edit existing
+    if hasattr(update, 'message') and update.message:
+        escaped = html.escape(text)
+        max_len = 3000
+        for i in range(0, len(escaped), max_len):
+            chunk = escaped[i : i + max_len]
+            await ctx.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"<pre>{chunk}</pre>",
+                parse_mode="HTML",
+                reply_markup=keyboard if i + max_len >= len(escaped) else None,
+                disable_web_page_preview=True
+            )
+    else:
+        # Callback query - edit message
+        escaped = html.escape(text)
+        if len(escaped) > 3000:
+            escaped = escaped[:2950] + "\n...(truncated)"
+        await update.callback_query.edit_message_text(
+            f"<pre>{escaped}</pre>",
             parse_mode="HTML",
+            reply_markup=keyboard,
             disable_web_page_preview=True
         )
+
+
+@log_calls
+async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle positions account selection callbacks."""
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    if not data.startswith("positions:"):
+        return
+    
+    account_type = data.split(":")[1]  # "demo" or "real"
+    await show_positions_for_account(update, ctx, account_type)
 
 
 # ------------------------------------------------------------------------------------
@@ -6794,6 +7058,137 @@ def format_position_detail(p: dict, t: dict) -> str:
     
     return "\n".join(lines)
 
+@log_calls
+@with_texts  
+async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle balance mode selection callbacks."""
+    query = update.callback_query
+    await query.answer()
+    
+    uid = update.effective_user.id
+    data = query.data
+    t = ctx.t
+    
+    if not data.startswith("balance:"):
+        return
+        
+    logger.info(f"Balance callback received: {data}")
+    parts = data.split(":")
+    if len(parts) != 3:
+        return
+        
+    _, exchange, mode = parts
+    logger.info(f"Balance request: exchange={exchange}, mode={mode}")
+    
+    if exchange == "bybit":
+        # Fetch Bybit balance for selected mode
+        try:
+            # Temporarily override trading mode for balance fetch
+            original_mode = get_trading_mode(uid)
+            set_trading_mode(uid, mode)
+            
+            bal = await fetch_usdt_balance(uid)
+            pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid))
+            pnl_week = await fetch_realized_pnl(uid, days=7)
+            positions = await fetch_open_positions(uid)
+            total_unreal = sum(float(p.get("unrealisedPnl", 0)) for p in positions)
+            total_im = sum(float(p.get("positionIM", 0)) for p in positions)
+            unreal_pct = (total_unreal / total_im * 100) if total_im else 0.0
+            
+            # Restore original mode
+            set_trading_mode(uid, original_mode)
+            
+            mode_emoji = "🎮" if mode == "demo" else "💎"
+            mode_label = "Demo" if mode == "demo" else "Real"
+            
+            text = f"""
+💰 *Bybit Balance* {mode_emoji} {mode_label}
+
+💵 *Balance:* {bal:.2f} USDT
+
+📊 *Realized PnL:*
+• Today: {pnl_today:+.2f} USDT
+• 7 Days: {pnl_week:+.2f} USDT
+
+📈 *Unrealized PnL:*
+• Total: {total_unreal:+.2f} USDT
+• Percent: {unreal_pct:+.2f}%
+"""
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
+                 InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
+                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+            ])
+            
+            await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            
+        except Exception as e:
+            logger.error(f"Balance fetch error (Bybit {mode}): {e}")
+            await query.edit_message_text(
+                f"❌ Error fetching balance: {str(e)}",
+                parse_mode="Markdown"
+            )
+            
+    elif exchange == "hl":
+        # Fetch HyperLiquid balance for selected mode
+        try:
+            testnet = (mode == "testnet")
+            
+            hl_creds = get_hl_credentials(uid)
+            if not hl_creds.get("hl_private_key"):
+                await query.edit_message_text(
+                    "❌ HyperLiquid not configured. Use /hl to set up.",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=testnet,
+                vault_address=hl_creds.get("hl_vault_address")
+            )
+            
+            result = await adapter.get_balance()
+            
+            if result.get("success"):
+                data_bal = result.get("data", {})
+                equity = float(data_bal.get("equity", 0))
+                available = float(data_bal.get("available", 0))
+                margin_used = float(data_bal.get("margin_used", 0))
+                unrealized_pnl = float(data_bal.get("unrealized_pnl", 0))
+                
+                pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+                
+                text = f"""
+💰 *HyperLiquid Balance* {network}
+
+💎 *Equity:* ${equity:,.2f}
+💵 *Available:* ${available:,.2f}
+📊 *Margin Used:* ${margin_used:,.2f}
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f}
+"""
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
+                     InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
+                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+                ])
+                
+                await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            else:
+                await query.edit_message_text(
+                    f"❌ Failed to fetch balance: {result.get('error', 'Unknown error')}",
+                    parse_mode="Markdown"
+                )
+                
+        except Exception as e:
+            logger.error(f"Balance fetch error (HL {mode}): {e}")
+            await query.edit_message_text(
+                f"❌ Error: {str(e)}",
+                parse_mode="Markdown"
+            )
+
 
 @with_texts
 async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -6981,6 +7376,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             # Log the trade
             try:
+                account_type = get_trading_mode(uid) or "demo"
                 log_exit_and_remove_position(
                     user_id=uid,
                     signal_id=ap.get("signal_id") if ap else None,
@@ -6991,13 +7387,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     exit_reason="MANUAL",
                     size=size,
                     strategy=strategy,
-                    account_type=get_trading_mode(uid) or "demo",
+                    account_type=account_type,
                 )
             except Exception as log_err:
                 logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
             
-            # Clean up internal tracking  
-            remove_active_position(uid, symbol)
+            # Clean up internal tracking (log_exit_and_remove_position already removes position)
             reset_pyramid(uid, symbol)
             
             # Send notification about closed position
@@ -7080,6 +7475,25 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    if data == "pos:pause_after_close":
+        # Disable all strategies after closing positions
+        set_user_field(uid, "trade_scryptomera", 0)
+        set_user_field(uid, "trade_scalper", 0)
+        set_user_field(uid, "trade_elcaro", 0)
+        set_user_field(uid, "trade_wyckoff", 0)
+        
+        await query.edit_message_text(
+            "✅ *All trading paused!*\n\n"
+            "All strategies disabled. No new positions will open.\n\n"
+            "To resume trading, enable strategies in Settings → Strategy.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("⚙️ Strategy Settings", callback_data="settings:strategy"),
+                InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+            ]])
+        )
+        return
+    
     if data == "pos:confirm_close_all":
         # Execute close all
         positions = await fetch_open_positions(uid)
@@ -7118,6 +7532,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 # Log the trade
                 ap = next((a for a in active_list if a["symbol"] == symbol), None)
                 strategy = ap.get("strategy") if ap else None
+                account_type = get_trading_mode(uid) or "demo"
                 try:
                     log_exit_and_remove_position(
                         user_id=uid,
@@ -7129,12 +7544,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         exit_reason="MANUAL",
                         size=size,
                         strategy=strategy,
-                        account_type=get_trading_mode(uid) or "demo",
+                        account_type=account_type,
                     )
                 except Exception as log_err:
                     logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
                 
-                remove_active_position(uid, symbol)
+                # log_exit_and_remove_position already removes position
                 reset_pyramid(uid, symbol)
                 closed += 1
                 total_pnl += unrealized_pnl
@@ -7146,6 +7561,10 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logger.error(f"Close position {pos['symbol']} failed: {e}")
                 errors += 1
+        
+        # Set cooldown flag to prevent monitoring loop from re-adding positions
+        import time
+        _close_all_cooldown[uid] = time.time() + 30  # 30 seconds cooldown
         
         # Format result message
         pnl_emoji = "📈" if total_pnl >= 0 else "📉"
@@ -7161,12 +7580,17 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if errors:
             result_lines.append(f"\n❌ {t.get('errors', 'Errors')}: {errors}")
         
+        result_lines.append("\n⚠️ *Strategies still active!* New signals may open positions.")
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⏸ Pause All Trading", callback_data="pos:pause_after_close")],
+            [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")]
+        ])
+        
         await query.edit_message_text(
             "\n".join(result_lines),
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
-            ]])
+            reply_markup=keyboard
         )
         return
 
@@ -8781,7 +9205,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             t.get('rsi_zone_neutral', 'neutral')
                         )
                         
-                        await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="rsi_bb", leverage=user_leverage)
+                        await place_order_all_accounts(
+                            uid, symbol, side, orderType="Market", qty=qty, 
+                            strategy="rsi_bb", leverage=user_leverage,
+                            signal_id=signal_id, timeframe=timeframe
+                        )
                         
                         # Also place on HyperLiquid if enabled
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -8790,12 +9218,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         inc_pyramid(uid, symbol, side)
                         
-                        # Store position with strategy
-                        add_active_position(
-                            user_id=uid, signal_id=signal_id, symbol=symbol,
-                            side=side, size=qty, entry_price=spot_price,
-                            timeframe=timeframe, strategy="rsi_bb"
-                        )
+                        # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         # Send unified entry message
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
@@ -8860,7 +9283,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 t.get('bitk_limit_error', "Scryptomera limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scryptomera", leverage=user_leverage)
+                        await place_order_all_accounts(
+                            uid, symbol, side, orderType="Market", qty=qty, 
+                            strategy="scryptomera", leverage=user_leverage,
+                            signal_id=signal_id, timeframe=timeframe
+                        )
                         
                         # Also place on HyperLiquid if enabled
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -8869,12 +9296,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         inc_pyramid(uid, symbol, side)
                         
-                        # Store position with strategy
-                        add_active_position(
-                            user_id=uid, signal_id=signal_id, symbol=symbol,
-                            side=side, size=qty, entry_price=spot_price,
-                            timeframe=timeframe, strategy="scryptomera"
-                        )
+                        # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
                         await ctx.bot.send_message(
@@ -8939,7 +9361,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 t.get('scalper_limit_error', "Scalper limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="scalper", leverage=user_leverage)
+                        await place_order_all_accounts(
+                            uid, symbol, side, orderType="Market", qty=qty, 
+                            strategy="scalper", leverage=user_leverage,
+                            signal_id=signal_id, timeframe=timeframe
+                        )
                         
                         # Also place on HyperLiquid if enabled
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -8948,12 +9374,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         inc_pyramid(uid, symbol, side)
                         
-                        # Store position with strategy
-                        add_active_position(
-                            user_id=uid, signal_id=signal_id, symbol=symbol,
-                            side=side, size=qty, entry_price=spot_price,
-                            timeframe=timeframe, strategy="scalper"
-                        )
+                        # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
                         await ctx.bot.send_message(
@@ -9069,7 +9490,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Market order - price is close to Entry
                         try:
-                            await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="elcaro", leverage=order_leverage)
+                            await place_order_all_accounts(
+                                uid, symbol, side, orderType="Market", qty=qty, 
+                                strategy="elcaro", leverage=order_leverage,
+                                signal_id=signal_id, timeframe=elcaro_timeframe
+                            )
                             
                             # Also place on HyperLiquid if enabled
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
@@ -9093,13 +9518,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Set TP/SL
                             await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side)
                             
-                            # Store position with Elcaro-specific ATR settings
-                            add_active_position(
-                                user_id=uid, signal_id=signal_id, symbol=symbol,
-                                side=side, size=qty, entry_price=spot_price,
-                                timeframe=elcaro_timeframe,
-                                strategy="elcaro",
-                            )
+                            # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
                             
                             # Format signal message
@@ -9171,25 +9590,35 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     
                     # Decide Market vs Limit based on entry zone
                     # If current price is within entry zone → Market
-                    # If current price is outside entry zone → Limit at mid-point
+                    # If current price is outside entry zone → Limit at best boundary
                     use_limit_entry = False
+                    limit_entry_price = wyckoff_entry  # Default to mid-point
+                    
                     if wyckoff_entry_low and wyckoff_entry_high:
+                        # For LONG: use lower boundary (buy cheaper)
+                        # For SHORT: use upper boundary (sell higher)
+                        if side == "Buy":
+                            limit_entry_price = wyckoff_entry_low
+                        else:  # Sell
+                            limit_entry_price = wyckoff_entry_high
+                        
                         if not (wyckoff_entry_low <= spot_price <= wyckoff_entry_high):
                             use_limit_entry = True
                     
                     if use_limit_entry:
-                        # Limit order at entry zone mid-point
+                        # Limit order at optimal entry zone boundary
                         try:
                             await place_limit_order_with_strategy(
-                                uid, symbol, side, price=wyckoff_entry, qty=qty,
+                                uid, symbol, side, price=limit_entry_price, qty=qty,
                                 signal_id=(signal_id or 0), strategy="wyckoff"
                             )
                             inc_pyramid(uid, symbol, side)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                            entry_zone_display = f"{wyckoff_entry_low:.6f} – {wyckoff_entry_high:.6f}"
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('wyckoff_limit_entry', "📐 *Wyckoff Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
-                                .format(symbol=symbol, side=side_display, price=wyckoff_entry, qty=qty, sl_pct=wyckoff_sl_pct),
+                                t.get('wyckoff_limit_entry', "📐 *Wyckoff Limit Entry*\n• {symbol} {side}\n• Limit: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                                .format(symbol=symbol, side=side_display, price=limit_entry_price, entry_zone=entry_zone_display, qty=qty, sl_pct=wyckoff_sl_pct),
                                 parse_mode="Markdown"
                             )
                         except Exception as e:
@@ -9200,7 +9629,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Market order - price is in entry zone
                         try:
-                            await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty, strategy="wyckoff", leverage=user_leverage)
+                            await place_order_all_accounts(
+                                uid, symbol, side, orderType="Market", qty=qty, 
+                                strategy="wyckoff", leverage=user_leverage,
+                                signal_id=signal_id, timeframe="1h"
+                            )
                             
                             # Also place on HyperLiquid if enabled
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="wyckoff", leverage=user_leverage, sl_percent=wyckoff_sl_pct, tp_percent=wyckoff_tp_pct)
@@ -9214,13 +9647,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Set TP/SL
                             await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side)
                             
-                            # Store position
-                            add_active_position(
-                                user_id=uid, signal_id=signal_id, symbol=symbol,
-                                side=side, size=qty, entry_price=spot_price,
-                                timeframe="1h",
-                                strategy="wyckoff",
-                            )
+                            # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
                             
                             # Format signal message
@@ -9297,19 +9724,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Full market order
                         qty_mkt = q_qty(qty_total)
-                        await place_order_all_accounts(uid, symbol, side, orderType="Market", qty=qty_mkt, strategy="oi", leverage=user_leverage)
+                        await place_order_all_accounts(
+                            uid, symbol, side, orderType="Market", qty=qty_mkt, 
+                            strategy="oi", leverage=user_leverage,
+                            signal_id=signal_id, timeframe=timeframe
+                        )
                         
                         # Also place on HyperLiquid if enabled
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
                         if hl_result and hl_result.get("success"):
                             await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
                         
-                        # Store position with strategy
-                        add_active_position(
-                            user_id=uid, signal_id=signal_id, symbol=symbol,
-                            side=side, size=qty_mkt, entry_price=spot_price,
-                            timeframe=timeframe, strategy="oi"
-                        )
+                        # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         await ctx.bot.send_message(
                             uid,
@@ -9378,7 +9804,7 @@ def log_exit_and_remove_position(
         exit_ts=int(time.time()*1000), exit_order_type=exit_order_type,
         strategy=strategy, account_type=account_type,
     )
-    remove_active_position(user_id, symbol)
+    remove_active_position(user_id, symbol, account_type=account_type)
 
 def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str) -> None:
     status = (status or "").upper()
@@ -9391,13 +9817,24 @@ def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str) -> N
 @log_calls
 async def monitor_positions_loop(app: Application):
     """Main monitoring loop - optimized for multi-user."""
+    global _close_all_cooldown
     bot = app.bot
+    
+    # Track previous open symbols per user to avoid spam notifications
+    _open_syms_prev = {}
+    
+    # Track SL notifications already sent to avoid spam
+    # Key: (uid, symbol), Value: timestamp when last notification was sent
+    _sl_notified = {}
 
     while True:
         try:
             # Use cached list of active trading users (with API keys)
             for uid in get_active_trading_users():
                 try:
+                    # Get previous symbols to avoid duplicate notifications
+                    open_syms_prev = _open_syms_prev.get(uid, set())
+                    
                     if GLOBAL_PAUSED:
                         continue
                     
@@ -9442,6 +9879,8 @@ async def monitor_positions_loop(app: Application):
                                 if order_id not in open_ids:
                                     pos = next((p for p in open_positions if p["symbol"] == sym), None)
                                     if pos:
+                                        # Use current trading mode for account_type
+                                        current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
                                         add_active_position(
                                             user_id     = uid,
                                             symbol      = sym,
@@ -9450,7 +9889,8 @@ async def monitor_positions_loop(app: Application):
                                             size        = float(pos["size"]),
                                             timeframe   = tf_for_sym,
                                             signal_id   = po["signal_id"],
-                                            strategy    = po.get("strategy")
+                                            strategy    = po.get("strategy"),
+                                            account_type = current_account_type
                                         )
                                         await bot.send_message(
                                             uid,
@@ -9466,7 +9906,7 @@ async def monitor_positions_loop(app: Application):
                                         )                                
                                     remove_pending_limit_order(uid, order_id)
 
-                    active        = get_active_positions(uid)
+                    active        = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
                     existing_syms = {ap["symbol"] for ap in active}
                     tf_map        = {ap["symbol"]: ap.get("timeframe", "24h") for ap in active}
                     for ap in active:
@@ -9477,6 +9917,7 @@ async def monitor_positions_loop(app: Application):
                         pos = next((p for p in open_positions if p["symbol"] == ap["symbol"]), None)
                         raw_tp = pos.get("takeProfit") if pos else None
                         sym = ap["symbol"]
+                        ap_account_type = ap.get("account_type", "demo")
                         if pos and elapsed >= secs and float(pos.get("unrealisedPnl", 0)) < 0:
                             close_side = "Sell" if pos["side"] == "Buy" else "Buy"
                             size       = float(pos["size"])
@@ -9492,9 +9933,10 @@ async def monitor_positions_loop(app: Application):
                                     uid,
                                     t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
                                 )
-                                remove_active_position(uid, pos["symbol"])
+                                remove_active_position(uid, pos["symbol"], account_type=ap_account_type)
                                 reset_pyramid(uid, pos["symbol"])
                                 _atr_triggered.pop((uid, pos["symbol"]), None)
+                                _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
                             except Exception as e:
                                 logger.error(f"Auto-close {pos['symbol']} failed: {e}")
                                 
@@ -9506,9 +9948,18 @@ async def monitor_positions_loop(app: Application):
                         side    = p["side"]
 
                         if sym not in existing_syms:
+                            # Check if we're in cooldown period after close_all
+                            cooldown_end = _close_all_cooldown.get(uid, 0)
+                            if now < cooldown_end:
+                                # Skip adding new positions during cooldown
+                                logger.info(f"[{uid}] Skipping {sym} - in close_all cooldown ({int(cooldown_end - now)}s left)")
+                                continue
+                            
                             tf_for_sym = tf_map.get(sym, "24h") 
                             signal_id = get_last_signal_id(uid, sym, tf_for_sym)
                             # Note: strategy is not known for externally opened positions
+                            # Use current trading mode for account_type
+                            current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
                             add_active_position(
                                 user_id    = uid,
                                 symbol     = sym,
@@ -9517,13 +9968,17 @@ async def monitor_positions_loop(app: Application):
                                 size       = size,
                                 timeframe  = tf_for_sym,
                                 signal_id  = signal_id,
-                                strategy   = None  # Unknown for manually opened positions
+                                strategy   = None,  # Unknown for manually opened positions
+                                account_type = current_account_type
                             )
 
-                            await bot.send_message(
-                                uid,
-                                t['new_position'].format(symbol=sym, entry=entry, size=size)
-                            )
+                            # Only send notification if not in cooldown
+                            cooldown_end = _close_all_cooldown.get(uid, 0)
+                            if now >= cooldown_end:
+                                await bot.send_message(
+                                    uid,
+                                    t['new_position'].format(symbol=sym, entry=entry, size=size)
+                                )
 
                         if raw_sl in (None, "", "0", 0):
                             # Get strategy from active position if available
@@ -9538,8 +9993,8 @@ async def monitor_positions_loop(app: Application):
                             else:
                                 pos_use_atr = use_atr
                             
-                            # Use strategy-aware SL/TP resolution
-                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid)
+                            # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
+                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
                             sl_price = round(
                                 entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6
                             )
@@ -9551,49 +10006,80 @@ async def monitor_positions_loop(app: Application):
                             current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
 
                             try:
+                                # Check if we should notify about SL/TP changes
+                                # 1. Skip if position existed in previous iteration (not new)
+                                # 2. Skip if we're in cooldown period (positions being closed)
+                                # 3. Skip if we already notified for this position
+                                cooldown_end = _close_all_cooldown.get(uid, 0)
+                                sl_notify_key = (uid, sym)
+                                already_notified = sl_notify_key in _sl_notified
+                                should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified
+                                
                                 if not pos_use_atr:
                                     kwargs = {"sl_price": sl_price}
                                     if current_tp is None:
                                         if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                             kwargs["tp_price"] = tp_price
-                                    await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                    if "tp_price" in kwargs:
-                                        await bot.send_message(
-                                            uid,
-                                            t['fixed_sl_tp'].format(symbol=sym, sl=sl_price, tp=tp_price)
-                                        )
-                                    else:
-                                        await bot.send_message(
-                                            uid,
-                                            t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
-                                        )
+                                    try:
+                                        await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position closed before SL/TP could be set")
+                                            continue
+                                        raise
+                                    # Only notify if truly new position AND not in cooldown AND not already notified
+                                    if should_notify:
+                                        _sl_notified[sl_notify_key] = now
+                                        if "tp_price" in kwargs:
+                                            await bot.send_message(
+                                                uid,
+                                                t['fixed_sl_tp'].format(symbol=sym, sl=sl_price, tp=tp_price)
+                                            )
+                                        else:
+                                            await bot.send_message(
+                                                uid,
+                                                t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
+                                            )
                                 else:
-
-                                    await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
-                                    await bot.send_message(uid, t['sl_auto_set'].format(price=sl_price))
+                                    try:
+                                        await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position closed before SL could be set")
+                                            continue
+                                        raise
+                                    # Only notify if truly new position AND not in cooldown AND not already notified
+                                    if should_notify:
+                                        _sl_notified[sl_notify_key] = now
+                                        await bot.send_message(uid, t['sl_auto_set'].format(price=sl_price))
                             except Exception as e:
-                                logger.error(f"Errors with SL/TP for {sym}: {e}")
+                                if "no open positions" not in str(e).lower():
+                                    logger.error(f"Errors with SL/TP for {sym}: {e}")
 
-                    active = get_active_positions(uid)
+                    active = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
                     for ap in active:
                         sym = ap["symbol"]
+                        ap_account_type = ap.get("account_type", "demo")
 
                         if _skip_until.get((uid, sym), 0) > now:
                             continue
 
                         if sym not in open_syms:
                             logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
-                            try:
-                                rec = await fetch_last_closed_pnl(uid, sym)
-                                logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
-                            except Exception as e:
-                                logger.warning(f"No closed-pnl for {uid}:{sym}: {e}")
+                            rec = await fetch_last_closed_pnl(uid, sym)
+                            
+                            if rec is None:
+                                # No closed PnL record - clean up silently
+                                logger.debug(f"[{uid}] No closed PnL for {sym}, cleaning up")
                                 try:
-                                    remove_active_position(uid, sym)
+                                    remove_active_position(uid, sym, account_type=ap_account_type)
                                     reset_pyramid(uid, sym)
                                 finally:
                                     _atr_triggered.pop((uid, sym), None)
+                                    _sl_notified.pop((uid, sym), None)
                                 continue
+                            
+                            logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
 
                             entry_price = float(rec["avgEntryPrice"])
                             exit_price  = float(rec["avgExitPrice"])
@@ -9624,7 +10110,7 @@ async def monitor_positions_loop(app: Application):
                                     entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap["open_ts"]) * 1000),
                                     exit_order_type=exit_order_type,
                                     strategy=ap.get("strategy"),
-                                    account_type=user_trading_mode if user_trading_mode in ("demo", "real") else "demo",
+                                    account_type=ap_account_type,
                                 )
 
                                 pnl_from_exch = rec.get("closedPnl")
@@ -9690,10 +10176,12 @@ async def monitor_positions_loop(app: Application):
                                     reset_pyramid(uid, sym)
                                 finally:
                                     _atr_triggered.pop((uid, sym), None)
+                                    _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
 
-                    active = get_active_positions(uid)
+                    active = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
                     tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
                     strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
+                    account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
 
                     for pos in open_positions:
                         sym        = pos["symbol"]
@@ -9755,9 +10243,12 @@ async def monitor_positions_loop(app: Application):
                         dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
                         dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
 
+                        # Get account_type for this position from map
+                        pos_account_type = account_type_map.get(sym, "demo")
+
                         # --- DCA при -dca_pct_1% против нас (только если DCA включён) ---
                         if dca_enabled and move_pct <= -dca_pct_1:
-                            if not get_dca_flag(uid, sym, 10):
+                            if not get_dca_flag(uid, sym, 10, account_type=pos_account_type):
                                 try:
                                     # Use strategy-specific percent if available
                                     if risk_pct_for_dca > 0:
@@ -9776,7 +10267,7 @@ async def monitor_positions_loop(app: Application):
                                                 orderType="Market",
                                                 qty=add_qty
                                             )
-                                            set_dca_flag(uid, sym, 10, True)
+                                            set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
                                             try:
                                                 await bot.send_message(
                                                     uid,
@@ -9797,7 +10288,7 @@ async def monitor_positions_loop(app: Application):
 
                         # --- DCA при -dca_pct_2% против нас (только если DCA включён) ---
                         if dca_enabled and move_pct <= -dca_pct_2:
-                            if not get_dca_flag(uid, sym, 25):
+                            if not get_dca_flag(uid, sym, 25, account_type=pos_account_type):
                                 try:
                                     # Use strategy-specific percent if available
                                     if risk_pct_for_dca > 0:
@@ -9816,7 +10307,7 @@ async def monitor_positions_loop(app: Application):
                                                 orderType="Market",
                                                 qty=add_qty
                                             )
-                                            set_dca_flag(uid, sym, 25, True)
+                                            set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
                                             try:
                                                 await bot.send_message(
                                                     uid,
@@ -9836,7 +10327,8 @@ async def monitor_positions_loop(app: Application):
                                     logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
 
                         if not position_use_atr:
-                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid)
+                            # Use side-specific SL/TP for Scryptomera/Scalper strategies
+                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
                             sl0 = round(
                                 entry * (1 - sl_pct/100) if side == "Buy"
                                 else entry * (1 + sl_pct/100),
@@ -9856,8 +10348,14 @@ async def monitor_positions_loop(app: Application):
                                     if (side == "Buy" and tp0 > mark) or (side == "Sell" and tp0 < mark):
                                         kwargs["tp_price"] = tp0
                                 if kwargs:
-                                    await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                    logger.info(f"{sym}: Fixed init → {kwargs}")
+                                    try:
+                                        await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                        logger.info(f"{sym}: Fixed init → {kwargs}")
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position already closed, skipping SL/TP update")
+                                        else:
+                                            raise
                                 continue
                            
                             # if move_pct >= trigger_pct:
@@ -9870,8 +10368,14 @@ async def monitor_positions_loop(app: Application):
                            
                             cand = _stricter_sl(side, sl0, current_sl)
                             if cand is not None:
-                                await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
-                                logger.info(f"{sym}: Fixed SL tightened to {cand}")
+                                try:
+                                    await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                    logger.info(f"{sym}: Fixed SL tightened to {cand}")
+                                except RuntimeError as e:
+                                    if "no open positions" in str(e).lower():
+                                        logger.debug(f"{sym}: Position already closed, skipping SL update")
+                                    else:
+                                        raise
                             continue
                         
                         if position_use_atr:
@@ -9888,8 +10392,14 @@ async def monitor_positions_loop(app: Application):
                                     or (side == "Sell" and sl0 < current_sl)  
                                 )
                                 if should_update:
-                                    await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
-                                    logger.info(f"{sym}: ATR-initial SL set/updated to {sl0}")
+                                    try:
+                                        await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
+                                        logger.info(f"{sym}: ATR-initial SL set/updated to {sl0}")
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position already closed")
+                                        else:
+                                            raise
                                 continue
 
                             _atr_triggered[key] = True
@@ -9910,7 +10420,13 @@ async def monitor_positions_loop(app: Application):
 
                                 new_sl = max(current_sl or -float("inf"), atr_cand) 
                                 if current_sl is None or new_sl > current_sl:
-                                    await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                    try:
+                                        await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position closed, skipping ATR SL")
+                                        else:
+                                            raise
 
                             else:  
                                 cand_raw    = mark + atr_val * atr_mult_sl
@@ -9920,7 +10436,16 @@ async def monitor_positions_loop(app: Application):
 
                                 new_sl = min(current_sl or float("inf"), atr_cand)  
                                 if current_sl is None or new_sl < current_sl:
-                                    await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                    try:
+                                        await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                    except RuntimeError as e:
+                                        if "no open positions" in str(e).lower():
+                                            logger.debug(f"{sym}: Position closed, skipping ATR SL")
+                                        else:
+                                            raise
+                    
+                    # Save current symbols for next iteration to prevent duplicate notifications
+                    _open_syms_prev[uid] = open_syms
 
                 except Exception as e:
                     logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
@@ -10289,7 +10814,7 @@ async def start_monitoring(app: Application):
     except Exception:
         pass
     
-    # Setup Menu Button (Terminal) with WebApp
+    # Setup Menu Button (Dashboard) with WebApp
     try:
         # Get webapp URL from ngrok or use default
         webapp_url = "https://elcaro.bot"  # Default production URL
@@ -10297,13 +10822,35 @@ async def start_monitoring(app: Application):
         if ngrok_file.exists():
             webapp_url = ngrok_file.read_text().strip()
         
-        # Set the menu button for all users
-        menu_button = MenuButtonWebApp(
-            text="🖥️ Terminal",
-            web_app=WebAppInfo(url=webapp_url)
-        )
-        await app.bot.set_chat_menu_button(menu_button=menu_button)
-        logger.info(f"Menu button set to Terminal: {webapp_url}")
+        # Check if menu button URL needs update
+        last_url_file = Path(__file__).parent / "run" / "last_menu_url.txt"
+        last_url = ""
+        if last_url_file.exists():
+            last_url = last_url_file.read_text().strip()
+        
+        current_url = f"{webapp_url}/dashboard"
+        
+        # Only update menu button if URL changed
+        if last_url != current_url:
+            logger.info(f"Menu button URL changed: {last_url} -> {current_url}")
+            
+            # Reset to default first to clear Telegram's cache
+            await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+            logger.info("Menu button reset to default (clearing cache)")
+            await asyncio.sleep(1)
+            
+            # Set the menu button for all users
+            menu_button = MenuButtonWebApp(
+                text="🖥️ Dashboard",
+                web_app=WebAppInfo(url=current_url)
+            )
+            await app.bot.set_chat_menu_button(menu_button=menu_button)
+            logger.info(f"Menu button set to Dashboard: {current_url}")
+            
+            # Save current URL
+            last_url_file.write_text(current_url)
+        else:
+            logger.info(f"Menu button URL unchanged: {current_url}")
     except Exception as e:
         logger.warning(f"Failed to set menu button: {e}")
     
@@ -11632,12 +12179,32 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════════
     active_exchange = get_exchange_type(uid)
     
-    # Balance - works for current exchange
+    # Balance - works for current exchange with mode selection
     if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
+        # Show mode selection menu
         if active_exchange == "hyperliquid":
-            return await cmd_hl_balance(update, ctx)
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
+                 InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
+                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+            ])
+            await update.message.reply_text(
+                "💰 *HyperLiquid Balance*\n\nSelect network:",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
         else:
-            return await cmd_account(update, ctx)
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
+                 InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
+                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+            ])
+            await update.message.reply_text(
+                "💰 *Bybit Balance*\n\nSelect account type:",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+        return
     
     # Positions - works for current exchange
     if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
@@ -14441,6 +15008,9 @@ def main():
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
     app.add_handler(CallbackQueryHandler(on_stats_callback, pattern=r"^stats:"))
+    app.add_handler(CallbackQueryHandler(handle_balance_callback, pattern=r"^balance:"))
+    app.add_handler(CallbackQueryHandler(handle_positions_callback, pattern=r"^positions:"))
+    app.add_handler(CallbackQueryHandler(handle_orders_callback, pattern=r"^orders:"))
     app.add_handler(CommandHandler("start",        cmd_start))
     app.add_handler(CommandHandler("account",      cmd_account))
     app.add_handler(CommandHandler("openorders",   cmd_openorders))
