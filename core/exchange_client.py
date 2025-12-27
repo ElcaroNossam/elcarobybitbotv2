@@ -226,7 +226,7 @@ class UnifiedExchangeClient:
             )
             
         except Exception as e:
-            logger.error(f"get_positions error: {e}")
+            logger.error(f"get_positions error: {e}", exc_info=True)
             return ExchangeResult(
                 success=False,
                 error=str(e),
