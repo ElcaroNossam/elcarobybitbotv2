@@ -145,6 +145,18 @@ api_response_cache = LRUCache[Dict[str, Any]](max_size=2000, default_ttl=60.0)
 # Balance cache - medium TTL, per user+exchange
 balance_cache = LRUCache[Dict[str, Any]](max_size=1000, default_ttl=15.0)
 
+# Position cache - short TTL, invalidate on order placement
+position_cache = LRUCache[Dict[str, Any]](max_size=2000, default_ttl=10.0)
+
+# Order cache - very short TTL, high update frequency
+order_cache = LRUCache[Dict[str, Any]](max_size=1500, default_ttl=5.0)
+
+# Market data cache - ticker, orderbook, trades
+market_data_cache = LRUCache[Dict[str, Any]](max_size=500, default_ttl=5.0)
+
+# Credentials cache - avoid decrypt on every call
+credentials_cache = LRUCache[Dict[str, Any]](max_size=2000, default_ttl=60.0)
+
 
 def _make_cache_key(*args, **kwargs) -> str:
     """Create a cache key from function arguments"""
@@ -268,9 +280,36 @@ def invalidate_user_caches(user_id: int) -> int:
     
     count += user_config_cache.delete_pattern(f"get_user_config:{prefix}")
     count += balance_cache.delete_pattern(f"balance:{prefix}")
+    count += position_cache.delete_pattern(f"positions:{prefix}")
+    count += order_cache.delete_pattern(f"orders:{prefix}")
+    count += credentials_cache.delete_pattern(f"creds:{prefix}")
     count += api_response_cache.delete_pattern(f"user_{prefix}")
     
     return count
+
+
+def invalidate_position_cache(user_id: int, exchange: str = None, account_type: str = None) -> int:
+    """
+    Invalidate position cache for a user. Call after order placement.
+    If exchange/account_type provided, invalidates only that cache.
+    """
+    if exchange and account_type:
+        key = f"positions:{user_id}:{exchange}:{account_type}"
+        return 1 if position_cache.delete(key) else 0
+    else:
+        # Invalidate all position caches for user
+        return position_cache.delete_pattern(f"positions:{user_id}")
+
+
+def invalidate_balance_cache(user_id: int, exchange: str = None, account_type: str = None) -> int:
+    """
+    Invalidate balance cache for a user. Call after order placement/closure.
+    """
+    if exchange and account_type:
+        key = f"balance:{user_id}:{exchange}:{account_type}"
+        return 1 if balance_cache.delete(key) else 0
+    else:
+        return balance_cache.delete_pattern(f"balance:{user_id}")
 
 
 async def periodic_cache_cleanup(interval: float = 300.0):
@@ -284,6 +323,10 @@ async def periodic_cache_cleanup(interval: float = 300.0):
         total_cleaned += symbol_info_cache.cleanup_expired()
         total_cleaned += api_response_cache.cleanup_expired()
         total_cleaned += balance_cache.cleanup_expired()
+        total_cleaned += position_cache.cleanup_expired()
+        total_cleaned += order_cache.cleanup_expired()
+        total_cleaned += market_data_cache.cleanup_expired()
+        total_cleaned += credentials_cache.cleanup_expired()
         
         if total_cleaned > 0:
             import logging
@@ -298,4 +341,8 @@ def get_all_cache_stats() -> Dict[str, Dict[str, Any]]:
         "symbol_info": symbol_info_cache.stats,
         "api_response": api_response_cache.stats,
         "balance": balance_cache.stats,
+        "position": position_cache.stats,
+        "order": order_cache.stats,
+        "market_data": market_data_cache.stats,
+        "credentials": credentials_cache.stats,
     }

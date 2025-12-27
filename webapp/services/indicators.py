@@ -117,8 +117,14 @@ class Indicators:
             avg_gain = (avg_gain * (period - 1) + gains[i]) / period
             avg_loss = (avg_loss * (period - 1) + losses[i]) / period
             
+            # Handle edge cases for flat prices
             if avg_loss == 0:
-                result.append(100.0)
+                if avg_gain == 0:
+                    # Completely flat prices = neutral RSI
+                    result.append(50.0)
+                else:
+                    # Only gains = overbought
+                    result.append(100.0)
             else:
                 rs = avg_gain / avg_loss
                 result.append(100 - (100 / (1 + rs)))

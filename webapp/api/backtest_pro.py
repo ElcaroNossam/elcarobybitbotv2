@@ -292,7 +292,7 @@ async def run_pro_backtest(request: ProBacktestRequest):
     Run professional backtest with advanced metrics and custom strategies
     """
     try:
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         result = await engine.run(
@@ -325,7 +325,7 @@ async def run_portfolio_backtest(request: PortfolioBacktestRequest):
     Run portfolio backtest with multiple strategies and correlation analysis
     """
     try:
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         result = await engine.run_portfolio(
@@ -434,7 +434,7 @@ async def compare_strategies(
     Compare multiple strategies side by side
     """
     try:
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         results = {}
@@ -939,7 +939,7 @@ async def market_replay(websocket: WebSocket, session_id: str):
         # Receive configuration
         config = await websocket.receive_json()
         
-        from webapp.services.backtest_engine_v2 import MarketReplayEngine
+        from webapp.services.backtest_engine_pro import MarketReplayEngine
         
         engine = MarketReplayEngine()
         await engine.initialize(

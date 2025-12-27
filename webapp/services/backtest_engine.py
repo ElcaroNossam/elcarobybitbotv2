@@ -772,11 +772,13 @@ class RealBacktestEngine:
         entry_value = position["size"]
         exit_value = position["size"]
         
-        # Calculate gross P&L
+        # Calculate gross P&L (absolute, not percentage)
+        # Formula: P&L = (Exit Price - Entry Price) × Position Size (in contracts/coins)
+        # Leverage is already applied in position size calculation during entry
         if position["direction"] == "LONG":
-            gross_pnl = position["size"] * (exit_price - position["entry_price"]) / position["entry_price"]
+            gross_pnl = position["size"] * (exit_price - position["entry_price"])
         else:
-            gross_pnl = position["size"] * (position["entry_price"] - exit_price) / position["entry_price"]
+            gross_pnl = position["size"] * (position["entry_price"] - exit_price)
         
         # Deduct trading costs
         costs = TradingCosts.calculate(

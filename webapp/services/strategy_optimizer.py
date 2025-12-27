@@ -70,7 +70,7 @@ class StrategyOptimizer:
         Exhaustive grid search over all parameter combinations.
         Optionally with walk-forward validation.
         """
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine, DataFetcher
+        from webapp.services.backtest_engine_pro import ProBacktestEngine, DataFetcher
         
         engine = ProBacktestEngine()
         
@@ -285,7 +285,7 @@ class StrategyOptimizer:
         Genetic Algorithm optimization.
         Much faster than grid search for large parameter spaces.
         """
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         
@@ -569,7 +569,7 @@ class StrategyOptimizer:
         """
         Random search - often as effective as grid search with fewer evaluations.
         """
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         
@@ -648,7 +648,7 @@ class StrategyOptimizer:
         Bayesian Optimization using Gaussian Process surrogate model.
         Most sample-efficient method for expensive objective functions.
         """
-        from webapp.services.backtest_engine_v2 import ProBacktestEngine
+        from webapp.services.backtest_engine_pro import ProBacktestEngine
         
         engine = ProBacktestEngine()
         

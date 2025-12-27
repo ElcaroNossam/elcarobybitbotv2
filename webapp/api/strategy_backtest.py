@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/strategy", tags=["strategy"])
 
 # Rate limiter: 5 backtests per hour per user
-_backtest_limiter = RateLimiter(name="backtest", max_requests=5, window_seconds=3600)
+_backtest_limiter = RateLimiter()
+_backtest_limiter.set_limit("backtest", capacity=5, refill_rate=5/3600)
 
 
 # ======================= ENUMS =======================
@@ -482,7 +483,7 @@ async def backtest_built_in_strategy(
     # Rate limiting check
     if not await _backtest_limiter.acquire(user_id, "backtest"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 backtests per hour.")
-    from webapp.services.backtest_engine_v2 import ProBacktestEngine
+    from webapp.services.backtest_engine_pro import ProBacktestEngine
     
     engine = ProBacktestEngine()
     
@@ -549,7 +550,7 @@ async def backtest_custom_strategy(
     # Rate limiting check
     if not await _backtest_limiter.acquire(user_id, "backtest"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 backtests per hour.")
-    from webapp.services.backtest_engine_v2 import ProBacktestEngine
+    from webapp.services.backtest_engine_pro import ProBacktestEngine
     from webapp.services.indicators import IndicatorCalculator
     
     engine = ProBacktestEngine()

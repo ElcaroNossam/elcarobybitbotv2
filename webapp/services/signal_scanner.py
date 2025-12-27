@@ -202,7 +202,7 @@ class SignalScanner:
     async def _fetch_data(self, symbol: str, timeframe: str, limit: int = 200) -> List[Dict]:
         """Fetch OHLCV data for symbol"""
         try:
-            from webapp.services.backtest_engine_v2 import DataFetcher
+            from webapp.services.backtest_engine_pro import DataFetcher
             
             fetcher = DataFetcher()
             data = await fetcher.fetch_historical(

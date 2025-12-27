@@ -658,7 +658,7 @@ class AIStrategyGenerator:
     ) -> Dict[str, float]:
         """Run quick backtest to estimate strategy performance"""
         try:
-            from webapp.services.backtest_engine_v2 import ProBacktestEngine
+            from webapp.services.backtest_engine_pro import ProBacktestEngine
             
             engine = ProBacktestEngine()
             

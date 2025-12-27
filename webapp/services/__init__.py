@@ -13,8 +13,8 @@ def __getattr__(name):
     if name in ("ProBacktestEngine", "BacktestConfig", "BacktestMetrics", 
                 "MarketReplayEngine", "DataFetcher", "MetricsCalculator", 
                 "PositionSizer", "RegimeDetector"):
-        from webapp.services import backtest_engine_v2
-        return getattr(backtest_engine_v2, name)
+        from webapp.services import backtest_engine_pro
+        return getattr(backtest_engine_pro, name)
     
     # Strategy Optimizer
     if name in ("StrategyOptimizer", "OptimizationResult", "OptimizationConfig"):

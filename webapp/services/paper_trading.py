@@ -294,7 +294,7 @@ class PaperTradingSession:
         if not current_price and order_type_enum == OrderType.MARKET:
             # Fetch current price
             try:
-                from webapp.services.backtest_engine_v2 import DataFetcher
+                from webapp.services.backtest_engine_pro import DataFetcher
                 fetcher = DataFetcher()
                 data = await fetcher.fetch_historical(symbol, "1m", 1)
                 if data:
@@ -865,7 +865,7 @@ class PaperTradingManager:
     
     async def _price_update_loop(self, symbols: List[str], interval: float):
         """Background task to update prices"""
-        from webapp.services.backtest_engine_v2 import DataFetcher
+        from webapp.services.backtest_engine_pro import DataFetcher
         fetcher = DataFetcher()
         
         while self._running:
