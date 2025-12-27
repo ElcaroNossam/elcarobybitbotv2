@@ -25,6 +25,16 @@ from .signer import (
 logger = logging.getLogger(__name__)
 
 
+def _safe_float(val, default=0.0):
+    """Safely convert value to float, handling empty strings and None"""
+    if val is None or val == '':
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
 class HyperLiquidError(Exception):
     def __init__(self, message: str, status_code: int = None, response: Dict = None):
         self.message = message
@@ -125,7 +135,7 @@ class HyperLiquidClient:
     
     async def get_all_mids(self) -> Dict[str, float]:
         result = await self._info_request("allMids")
-        return {k: float(v) for k, v in result.items()}
+        return {k: _safe_float(v) for k, v in result.items()}
     
     async def get_mid_price(self, coin: str) -> Optional[float]:
         mids = await self.get_all_mids()
@@ -188,7 +198,7 @@ class HyperLiquidClient:
         if position is None:
             raise HyperLiquidError(f"No position found for {coin}")
         
-        position_size = float(position.get("szi", 0))
+        position_size = _safe_float(position.get("szi"))
         if position_size == 0:
             raise HyperLiquidError(f"Position size is 0 for {coin}")
         
@@ -246,7 +256,7 @@ class HyperLiquidClient:
         if position is None:
             raise HyperLiquidError(f"No position found for {coin}")
         
-        position_size = float(position.get("szi", 0))
+        position_size = _safe_float(position.get("szi"))
         if position_size == 0:
             raise HyperLiquidError(f"Position size is 0 for {coin}")
         
@@ -277,7 +287,7 @@ class HyperLiquidClient:
         positions = []
         for pos in state.get("assetPositions", []):
             pos_info = pos.get("position", {})
-            if float(pos_info.get("szi", 0)) != 0:
+            if _safe_float(pos_info.get("szi")) != 0:
                 positions.append(pos_info)
         return positions
     
@@ -285,17 +295,17 @@ class HyperLiquidClient:
         state = await self.user_state()
         margin = state.get("marginSummary", {})
         return {
-            "account_value": float(margin.get("accountValue", 0)),
-            "total_margin_used": float(margin.get("totalMarginUsed", 0)),
-            "total_ntl_pos": float(margin.get("totalNtlPos", 0)),
-            "withdrawable": float(state.get("withdrawable", 0)),
+            "account_value": _safe_float(margin.get("accountValue")),
+            "total_margin_used": _safe_float(margin.get("totalMarginUsed")),
+            "total_ntl_pos": _safe_float(margin.get("totalNtlPos")),
+            "withdrawable": _safe_float(state.get("withdrawable")),
         }
     
     async def get_unrealized_pnl(self) -> float:
         positions = await self.get_all_positions()
         total_pnl = 0.0
         for pos in positions:
-            pnl = float(pos.get("unrealizedPnl", 0))
+            pnl = _safe_float(pos.get("unrealizedPnl"))
             total_pnl += pnl
         return total_pnl
 
@@ -580,14 +590,14 @@ class HyperLiquidClient:
         
         for asset in meta.get("universe", []):
             if asset.get("name") == coin:
-                prev_price = float(asset.get("prevDayPx", mid) or mid)
+                prev_price = _safe_float(asset.get("prevDayPx")) or mid or 0
                 change_24h = ((mid - prev_price) / prev_price * 100) if prev_price else 0
                 
                 return {
                     "symbol": f"{coin}USDC",
                     "price": mid,
                     "change_24h": round(change_24h, 2),
-                    "volume_24h": float(asset.get("dayNtlVlm", 0) or 0),
+                    "volume_24h": _safe_float(asset.get("dayNtlVlm")),
                     "funding_rate": asset.get("funding"),
                     "open_interest": asset.get("openInterest"),
                     "max_leverage": asset.get("maxLeverage"),
@@ -604,9 +614,9 @@ class HyperLiquidClient:
         
         if len(levels) >= 2:
             for bid in levels[0][:depth]:
-                bids.append([float(bid.get("px", 0)), float(bid.get("sz", 0))])
+                bids.append([_safe_float(bid.get("px")), _safe_float(bid.get("sz"))])
             for ask in levels[1][:depth]:
-                asks.append([float(ask.get("px", 0)), float(ask.get("sz", 0))])
+                asks.append([_safe_float(ask.get("px")), _safe_float(ask.get("sz"))])
         
         return {
             "coin": coin,
