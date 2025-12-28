@@ -6530,6 +6530,7 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     """Show orders for specific account type."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
+    trading_mode = get_trading_mode(uid)
     
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
@@ -6541,14 +6542,19 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
         if not ords:
             text = header + t.get('no_open_orders', 'No open orders')
             
-            # Add keyboard to switch accounts
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
-                ],
-                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-            ])
+            # Only show mode switch buttons if user has both modes
+            if trading_mode == 'both':
+                keyboard = InlineKeyboardMarkup([
+                    [
+                        InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                        InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                    ],
+                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+                ])
+            else:
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+                ])
             
             if hasattr(update, 'message'):
                 await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -6579,14 +6585,19 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
         text = "\n".join(lines)
         
-        # Add keyboard to switch accounts
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="orders:real")
-            ],
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
+        # Only show mode switch buttons if user has both modes
+        if trading_mode == 'both':
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                ],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
 
         # Send message or edit existing
         if hasattr(update, 'message') and update.message:
@@ -6677,6 +6688,7 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     """Show positions for specific account type."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
+    trading_mode = get_trading_mode(uid)
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
@@ -6687,14 +6699,19 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     if not pos_list:
         text = header + t.get('no_positions', 'No open positions')
         
-        # Add keyboard to switch accounts
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="positions:real")
-            ],
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
+        # Only show mode switch buttons if user has both modes
+        if trading_mode == 'both':
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                    InlineKeyboardButton("💎 Real", callback_data="positions:real")
+                ],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
         
         if hasattr(update, 'message'):
             return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -6761,14 +6778,19 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
 
     text = "\n".join(lines)
     
-    # Add keyboard to switch accounts
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-            InlineKeyboardButton("💎 Real", callback_data="positions:real")
-        ],
-        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-    ])
+    # Only show mode switch buttons if user has both modes
+    if trading_mode == 'both':
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="positions:real")
+            ],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+    else:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
 
     # Send message or edit existing
     if hasattr(update, 'message') and update.message:
@@ -7141,6 +7163,188 @@ def format_position_detail(p: dict, t: dict) -> str:
     
     return "\n".join(lines)
 
+
+# ------------------------------------------------------------------------------------
+# Direct Balance/Positions/Orders functions (skip mode selection for single-mode users)
+# ------------------------------------------------------------------------------------
+
+async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
+    """Show balance for specific account type directly (no mode selection menu)."""
+    uid = update.effective_user.id
+    t = ctx.t
+    trading_mode = get_trading_mode(uid)
+    
+    try:
+        # Temporarily set trading mode for balance fetch
+        original_mode = get_trading_mode(uid)
+        set_trading_mode(uid, account_type)
+        
+        bal = await fetch_usdt_balance(uid)
+        pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid))
+        pnl_week = await fetch_realized_pnl(uid, days=7)
+        positions = await fetch_open_positions(uid)
+        total_unreal = sum(float(p.get("unrealisedPnl", 0)) for p in positions)
+        total_im = sum(float(p.get("positionIM", 0)) for p in positions)
+        unreal_pct = (total_unreal / total_im * 100) if total_im else 0.0
+        
+        # Restore original mode
+        set_trading_mode(uid, original_mode)
+        
+        mode_emoji = "🎮" if account_type == "demo" else "💎"
+        mode_label = "Demo" if account_type == "demo" else "Real"
+        
+        text = f"""
+💰 *Bybit Balance* {mode_emoji} {mode_label}
+
+💵 *Balance:* {bal:.2f} USDT
+
+📊 *Realized PnL:*
+• Today: {pnl_today:+.2f} USDT
+• 7 Days: {pnl_week:+.2f} USDT
+
+📈 *Unrealized PnL:*
+• Total: {total_unreal:+.2f} USDT
+• Percent: {unreal_pct:+.2f}%
+"""
+        
+        # Only show mode switch buttons if user has both modes
+        if trading_mode == 'both':
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
+                 InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
+                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+            ])
+        else:
+            # Single mode - just back button
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Balance fetch error (Bybit {account_type}): {e}")
+        await update.message.reply_text(f"❌ Error fetching balance: {str(e)}")
+
+
+async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
+    """Show positions directly without mode selection (for single-mode users)."""
+    uid = update.effective_user.id
+    t = ctx.t
+    trading_mode = get_trading_mode(uid)
+    
+    pos_list = await fetch_open_positions(uid, account_type=account_type)
+    
+    mode_emoji = "🎮" if account_type == "demo" else "💎"
+    mode_label = "Demo" if account_type == "demo" else "Real"
+    
+    if not pos_list:
+        text = f"{mode_emoji} *{mode_label} Positions*\n\n" + t.get('no_positions', '🚫 No open positions')
+        
+        # Only show mode switch buttons if user has both modes
+        if trading_mode == 'both':
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                 InlineKeyboardButton("💎 Real", callback_data="positions:real")],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        
+        return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    # Show paginated positions list
+    text = format_positions_list_header(pos_list, 0, t)
+    text = f"{mode_emoji} *{mode_label}* " + text
+    
+    # Store account_type in context for pagination
+    ctx.user_data['positions_account_type'] = account_type
+    keyboard = get_positions_list_keyboard(pos_list, 0, t)
+    
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
+    """Show orders directly without mode selection (for single-mode users)."""
+    uid = update.effective_user.id
+    t = ctx.t
+    trading_mode = get_trading_mode(uid)
+    
+    try:
+        ords = await fetch_open_orders(uid, account_type=account_type)
+        
+        mode_emoji = "🎮" if account_type == "demo" else "💎"
+        mode_label = "Demo" if account_type == "demo" else "Real"
+        header = f"{mode_emoji} *{mode_label} Open Orders*\n\n"
+        
+        if not ords:
+            text = header + t.get('no_open_orders', '🚫 No open orders')
+            
+            # Only show mode switch buttons if user has both modes
+            if trading_mode == 'both':
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                     InlineKeyboardButton("💎 Real", callback_data="orders:real")],
+                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+                ])
+            else:
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+                ])
+            
+            await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            return
+
+        lines = [header + t.get('open_orders_header', '📝 Open Orders:'), ""]
+        for i, o in enumerate(ords, start=1):
+            price = o.get('price')
+            price_str = str(price) if price not in (None, "", 0, "0") else "—"
+            qty_str = str(o.get('qty', "—"))
+            symbol = o.get('symbol', "—")
+            side = o.get('side', "—")
+            oid = o.get('orderId', "—")
+
+            lines.append(
+                t.get('open_orders_item', '#{idx} {symbol} {side}\n  Qty: {qty} @ {price}\n  ID: {id}').format(
+                    idx=i,
+                    symbol=symbol,
+                    side=side,
+                    qty=qty_str,
+                    price=price_str,
+                    id=oid
+                )
+            )
+            lines.append("")
+
+        text = "\n".join(lines)
+        
+        # Only show mode switch buttons if user has both modes
+        if trading_mode == 'both':
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                 InlineKeyboardButton("💎 Real", callback_data="orders:real")],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+
+        MAX_LEN = 3500
+        for pos in range(0, len(text), MAX_LEN):
+            chunk = text[pos:pos+MAX_LEN]
+            await update.message.reply_text(
+                chunk,
+                parse_mode="Markdown",
+                reply_markup=keyboard if pos + MAX_LEN >= len(text) else None
+            )
+    except Exception as e:
+        logger.error(f"Orders fetch error ({account_type}): {e}")
+        await update.message.reply_text(f"❌ Error fetching orders: {str(e)}")
+
+
 @log_calls
 @with_texts  
 async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7198,11 +7402,17 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 • Percent: {unreal_pct:+.2f}%
 """
             
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
-                 InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
-                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
-            ])
+            # Only show mode switch buttons if user has both modes
+            if original_mode == 'both':
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
+                     InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
+                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+                ])
+            else:
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+                ])
             
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
             
@@ -12380,10 +12590,15 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════════
     active_exchange = get_exchange_type(uid)
     
-    # Balance - works for current exchange with mode selection
+    # Balance - works for current exchange with smart mode selection
     if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
-        # Show mode selection menu
+        trading_mode = get_trading_mode(uid)
+        
         if active_exchange == "hyperliquid":
+            # HyperLiquid: check testnet mode
+            hl_creds = get_hl_credentials(uid)
+            is_testnet = hl_creds.get("hl_testnet", False)
+            # For now, show selection - can be optimized later
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
                  InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
@@ -12395,31 +12610,49 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
         else:
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
-                 InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
-                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
-            ])
-            await update.message.reply_text(
-                "💰 *Bybit Balance*\n\nSelect account type:",
-                reply_markup=keyboard,
-                parse_mode="Markdown"
-            )
+            # Bybit: if only one mode, show directly
+            if trading_mode in ('demo', 'real'):
+                # Directly show balance for this mode
+                return await show_balance_for_account(update, ctx, trading_mode)
+            else:
+                # Both modes - show selection
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
+                     InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
+                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+                ])
+                await update.message.reply_text(
+                    "💰 *Bybit Balance*\n\nSelect account type:",
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
         return
     
-    # Positions - works for current exchange
+    # Positions - works for current exchange with smart mode
     if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
         else:
-            return await cmd_open_positions(update, ctx)
+            trading_mode = get_trading_mode(uid)
+            if trading_mode in ('demo', 'real'):
+                # Single mode - show directly
+                return await show_positions_direct(update, ctx, trading_mode)
+            else:
+                # Both modes - use standard flow with selection
+                return await cmd_positions(update, ctx)
     
-    # Orders - works for current exchange
+    # Orders - works for current exchange with smart mode
     if text in ["📈 Orders", "📈 HL Orders", ctx.t.get('button_orders', '📈 Orders')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
         else:
-            return await cmd_openorders(update, ctx)
+            trading_mode = get_trading_mode(uid)
+            if trading_mode in ('demo', 'real'):
+                # Single mode - show directly
+                return await show_orders_direct(update, ctx, trading_mode)
+            else:
+                # Both modes - use standard flow with selection
+                return await cmd_openorders(update, ctx)
     
     # History - works for current exchange
     if text in ["📋 History", "📋 HL History"]:
