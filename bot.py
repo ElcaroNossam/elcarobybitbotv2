@@ -6902,7 +6902,7 @@ def format_positions_list_header(positions: list, page: int, t: dict) -> str:
     )
 
 
-def get_positions_paginated_keyboard(positions: list, current_idx: int, t: dict) -> InlineKeyboardMarkup:
+def get_positions_paginated_keyboard(positions: list, current_idx: int, t: dict, page: int = 0) -> InlineKeyboardMarkup:
     """Build inline keyboard for single position view with pagination."""
     buttons = []
     total = len(positions)
@@ -6949,10 +6949,10 @@ def get_positions_paginated_keyboard(positions: list, current_idx: int, t: dict)
             )
         ])
     
-    # Refresh and Back
+    # Refresh and Back - use pos:refresh:PAGE to preserve page
     buttons.append([
-        InlineKeyboardButton("🔄", callback_data="pos:refresh"),
-        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
+        InlineKeyboardButton("🔄", callback_data=f"pos:refresh:{page}"),
+        InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:list:{page}")
     ])
     
     return InlineKeyboardMarkup(buttons)
@@ -7292,8 +7292,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Do nothing - just for counter button
         return
     
-    if data == "pos:refresh":
+    if data.startswith("pos:refresh"):
         # Refresh positions list - show list view
+        # Support pos:refresh or pos:refresh:PAGE format
+        parts = data.split(":")
+        saved_page = int(parts[2]) if len(parts) > 2 else ctx.user_data.get('positions_page', 0)
+        
         positions = await fetch_open_positions(uid)
         if not positions:
             await query.edit_message_text(
@@ -7304,8 +7308,13 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        text = format_positions_list_header(positions, 0, t)
-        keyboard = get_positions_list_keyboard(positions, 0, t)
+        # Validate page is still valid after position changes
+        total_pages = (len(positions) + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
+        page = max(0, min(saved_page, total_pages - 1))
+        ctx.user_data['positions_page'] = page
+        
+        text = format_positions_list_header(positions, page, t)
+        keyboard = get_positions_list_keyboard(positions, page, t)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
@@ -7325,6 +7334,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Ensure valid page
         total_pages = (len(positions) + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
         page = max(0, min(page, total_pages - 1))
+        
+        # Save current page for later restoration
+        ctx.user_data['positions_page'] = page
         
         text = format_positions_list_header(positions, page, t)
         keyboard = get_positions_list_keyboard(positions, page, t)
@@ -7347,8 +7359,11 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Ensure valid index
         page_idx = max(0, min(page_idx, len(positions) - 1))
         
+        # Get saved page from user_data
+        saved_page = ctx.user_data.get('positions_page', 0)
+        
         text = format_single_position(positions[page_idx], page_idx, len(positions), t)
-        keyboard = get_positions_paginated_keyboard(positions, page_idx, t)
+        keyboard = get_positions_paginated_keyboard(positions, page_idx, t, page=saved_page)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
@@ -7358,11 +7373,14 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         positions = await fetch_open_positions(uid)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
+        # Get saved page from user_data
+        saved_page = ctx.user_data.get('positions_page', 0)
+        
         if not pos:
             await query.edit_message_text(
                 t.get('position_not_found', 'Position not found'),
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
             )
             return
@@ -7370,7 +7388,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text = format_position_detail(pos, t)
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"❌ {t.get('btn_close_position', 'Close position')}", callback_data=f"pos:close:{symbol}")],
-            [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")]
+            [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")]
         ])
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
@@ -7381,11 +7399,14 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         positions = await fetch_open_positions(uid)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
+        # Get saved page
+        saved_page = ctx.user_data.get('positions_page', 0)
+        
         if not pos:
             await query.edit_message_text(
                 t.get('position_not_found', 'Position not found'),
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
             )
             return
@@ -7393,7 +7414,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Confirm close
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"✅ {t.get('btn_confirm_close', 'Confirm close')}", callback_data=f"pos:confirm_close:{symbol}")],
-            [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="pos:refresh")]
+            [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data=f"pos:refresh:{saved_page}")]
         ])
         side_text = "LONG" if pos["side"] == "Buy" else "SHORT"
         size = float(pos.get("size") or 0)
@@ -7416,11 +7437,14 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         positions = await fetch_open_positions(uid)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
+        # Get saved page
+        saved_page = ctx.user_data.get('positions_page', 0)
+        
         if not pos:
             await query.edit_message_text(
                 t.get('position_already_closed', 'Position already closed'),
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
             )
             return
@@ -7516,7 +7540,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 close_msg,
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
             )
         except Exception as e:
@@ -7524,7 +7548,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(
                 f"❌ {t.get('position_close_error', 'Error closing position')}: {str(e)}",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
                 ]])
             )
         return
@@ -7544,9 +7568,10 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
         pnl_emoji = "📈" if total_pnl >= 0 else "📉"
         
+        saved_page = ctx.user_data.get('positions_page', 0)
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"✅ {t.get('btn_confirm_close_all', 'Yes, close all')}", callback_data="pos:confirm_close_all")],
-            [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="pos:refresh")]
+            [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data=f"pos:refresh:{saved_page}")]
         ])
         
         await query.edit_message_text(
@@ -7565,6 +7590,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         set_user_field(uid, "trade_elcaro", 0)
         set_user_field(uid, "trade_wyckoff", 0)
         
+        saved_page = ctx.user_data.get('positions_page', 0)
         await query.edit_message_text(
             "✅ *All trading paused!*\n\n"
             "All strategies disabled. No new positions will open.\n\n"
@@ -7572,7 +7598,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("⚙️ Strategy Settings", callback_data="settings:strategy"),
-                InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")
+                InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")
             ]])
         )
         return
@@ -7665,9 +7691,10 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         result_lines.append("\n⚠️ *Strategies still active!* New signals may open positions.")
         
+        saved_page = ctx.user_data.get('positions_page', 0)
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("⏸ Pause All Trading", callback_data="pos:pause_after_close")],
-            [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:refresh")]
+            [InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data=f"pos:refresh:{saved_page}")]
         ])
         
         await query.edit_message_text(
@@ -10577,6 +10604,8 @@ async def monitor_positions_loop(app: Application):
                                 logger.warning(f"{sym}: failed to count ATR: {e}")
                                 continue
 
+                            logger.info(f"[ATR-TRAIL] {sym} side={side} mark={mark:.6f} entry={entry:.6f} move_pct={move_pct:.2f}% atr_val={atr_val:.6f} atr_mult={atr_mult_sl} current_sl={current_sl}")
+
                             if side == "Buy":
                                 cand_raw   = mark - atr_val * atr_mult_sl
                                 cand_ceil  = quantize_up(cand_raw, tick)
@@ -10584,9 +10613,11 @@ async def monitor_positions_loop(app: Application):
                                 atr_cand    = min(cand_ceil, max_allowed)
 
                                 new_sl = max(current_sl or -float("inf"), atr_cand) 
+                                logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
                                 if current_sl is None or new_sl > current_sl:
                                     try:
-                                        await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                        result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                        logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position closed, skipping ATR SL")
@@ -10600,9 +10631,11 @@ async def monitor_positions_loop(app: Application):
                                 atr_cand     = max(cand_floor, min_allowed)
 
                                 new_sl = min(current_sl or float("inf"), atr_cand)  
+                                logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
                                 if current_sl is None or new_sl < current_sl:
                                     try:
-                                        await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                        result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                        logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position closed, skipping ATR SL")
