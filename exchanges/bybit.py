@@ -157,7 +157,8 @@ class BybitExchange(BaseExchange):
         for attempt in range(max_retries):
             try:
                 if method == "GET":
-                    query = "&".join(f"{k}={v}" for k, v in params.items()) if params else ""
+                    # Use sorted params to match signature
+                    query = "&".join(f"{k}={v}" for k, v in sorted(params.items())) if params else ""
                     full_url = f"{url}?{query}" if query else url
                     async with self._session.get(full_url, headers=headers) as resp:
                         data = await resp.json()
