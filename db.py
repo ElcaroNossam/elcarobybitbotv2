@@ -92,6 +92,9 @@ USER_FIELDS_WHITELIST = {
     "license_type", "license_expires", "current_license",
     # для совместимости с текущим кодом бота
     "first_seen_ts", "last_seen_ts",
+    # HyperLiquid settings
+    "hl_testnet",  # 0/1 - testnet or mainnet
+    "hl_enabled",  # 0/1 - HL trading enabled
 }
 
 # ------------------------------------------------------------------------------------
