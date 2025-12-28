@@ -4258,8 +4258,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         leverage = strat_settings.get("leverage")
         lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
         
-        # ATR toggle
-        use_atr = strat_settings.get("use_atr", 0)
+        # ATR toggle - use 'or 0' because get() returns None if key exists with None value
+        use_atr = strat_settings.get("use_atr") or 0
         atr_status = "✅" if use_atr else "❌"
         
         buttons = [
@@ -4301,8 +4301,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         leverage = strat_settings.get("leverage")
         lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
         
-        # ATR toggle
-        use_atr = strat_settings.get("use_atr", 0)
+        # ATR toggle - use 'or 0' because get() returns None if key exists with None value
+        use_atr = strat_settings.get("use_atr") or 0
         atr_status = "✅" if use_atr else "❌"
         
         buttons = [
@@ -4388,8 +4388,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     leverage = strat_settings.get("leverage")
     lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
     
-    # ATR toggle for standard strategies
-    use_atr = strat_settings.get("use_atr", 0)
+    # ATR toggle for standard strategies - use 'or 0' because get() returns None if key exists with None value
+    use_atr = strat_settings.get("use_atr") or 0
     atr_status = "✅" if use_atr else "❌"
     
     # Standard layout for other strategies
@@ -5703,7 +5703,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_atr_toggle:"):
         strategy = data.split(":")[1]
         strat_settings = db.get_strategy_settings(uid, strategy)
-        current = strat_settings.get("use_atr", 0)
+        # Use 'or 0' because get() returns None if key exists with None value
+        current = strat_settings.get("use_atr") or 0
         new_value = 0 if current else 1
         
         logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
