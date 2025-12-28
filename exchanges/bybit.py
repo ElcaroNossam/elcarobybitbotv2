@@ -11,6 +11,7 @@ import logging
 import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+from urllib.parse import quote
 
 from exchanges.base import BaseExchange
 from models import (
@@ -105,6 +106,15 @@ class BybitExchange(BaseExchange):
         self._session = None
         self._initialized = False
     
+    def _build_query_string(self, params: Dict[str, Any]) -> str:
+        """Build query string with URL-encoded values, sorted alphabetically"""
+        if not params:
+            return ""
+        return "&".join(
+            f"{quote(str(k), safe='~')}={quote(str(v), safe='~')}" 
+            for k, v in sorted(params.items())
+        )
+    
     def _sign_request(self, params: Dict[str, Any], is_post: bool = False) -> Dict[str, str]:
         """Create signature for authenticated request"""
         timestamp = str(int(time.time() * 1000))
@@ -113,8 +123,8 @@ class BybitExchange(BaseExchange):
             # For POST requests, use JSON string
             param_str = json.dumps(params, separators=(',', ':')) if params else ""
         else:
-            # For GET requests, use query string format
-            param_str = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+            # For GET requests, use query string format with URL encoding
+            param_str = self._build_query_string(params)
         
         # Create signature string
         sign_str = f"{timestamp}{self.api_key}{self.recv_window}{param_str}"
@@ -157,8 +167,8 @@ class BybitExchange(BaseExchange):
         for attempt in range(max_retries):
             try:
                 if method == "GET":
-                    # Use sorted params to match signature
-                    query = "&".join(f"{k}={v}" for k, v in sorted(params.items())) if params else ""
+                    # Use same query string format as signature (sorted + URL-encoded)
+                    query = self._build_query_string(params)
                     full_url = f"{url}?{query}" if query else url
                     async with self._session.get(full_url, headers=headers) as resp:
                         data = await resp.json()
