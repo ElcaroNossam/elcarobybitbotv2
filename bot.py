@@ -3310,7 +3310,8 @@ async def split_market_plus_one_limit(
     async def strict_set_sl_tp(_side: str, _entry: float, hint_tp_pct: float, hint_sl_pct: float):
         cfg = get_user_config(uid) or {}
         use_atr = bool(cfg.get("use_atr") or 0)
-        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol)
+        # Use strategy-specific SL/TP if available
+        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=_side)
         sl_pct = hint_sl_pct or sl_pct
         tp_pct = hint_tp_pct or tp_pct
 
@@ -3338,7 +3339,8 @@ async def split_market_plus_one_limit(
         await asyncio.sleep(0.25)
 
     cfg = get_user_config(uid) or {}
-    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol)
+    # Use strategy-specific SL/TP if available  
+    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
     tf = timeframe or "24h"
     periods = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])["atr_periods"]
 
@@ -10465,6 +10467,9 @@ async def monitor_positions_loop(app: Application):
                         raw_sl  = p.get("stopLoss")
                         size    = float(p["size"])
                         side    = p["side"]
+                        
+                        # Reset detected_strategy for each position
+                        detected_strategy = None
 
                         if sym not in existing_syms:
                             # Check if we're in cooldown period after close_all
@@ -10528,9 +10533,17 @@ async def monitor_positions_loop(app: Application):
                                 )
 
                         if raw_sl in (None, "", "0", 0):
-                            # Get strategy from active position if available
-                            ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
-                            strategy = ap_for_sym.get("strategy") if ap_for_sym else None
+                            # Get strategy: for new positions use detected_strategy,
+                            # for existing positions get from active_positions table
+                            if detected_strategy:
+                                # New position - use what we just detected
+                                strategy = detected_strategy
+                            else:
+                                # Existing or unknown position - get from DB
+                                ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                                strategy = ap_for_sym.get("strategy") if ap_for_sym else None
+                            
+                            logger.debug(f"[{uid}] {sym}: SL/TP resolution with strategy={strategy}, side={side}")
                             
                             # Determine use_atr: strategy-specific takes priority over global
                             if strategy:
