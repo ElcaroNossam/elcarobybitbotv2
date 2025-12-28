@@ -7942,6 +7942,8 @@ STRATEGY_DISPLAY_NAMES = {
     "scryptomera": "🐱 Scryptomera",
     "scalper": "⚡ Scalper",
     "elcaro": "🔥 Elcaro",
+    "wyckoff": "📐 Wyckoff",
+    "manual": "✋ Manual",
     "all": "📈 All",
 }
 
@@ -8073,6 +8075,7 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         ("scalper", t.get('stats_scalper', '⚡ Scalper')),
         ("elcaro", t.get('stats_elcaro', '🔥 Elcaro')),
         ("wyckoff", t.get('stats_wyckoff', '📐 Wyckoff')),
+        ("manual", t.get('stats_manual', '✋ Manual')),
         ("spot", t.get('stats_spot', '💹 Spot')),
     ]
     
@@ -8245,6 +8248,27 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Special handling for Spot statistics
     if strategy == "spot":
         text = await format_spot_stats(uid, t, period_label, account_type=account_type)
+        keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        return
+    
+    # Special handling for Manual trades (NULL strategy)
+    if strategy == "manual":
+        from db import get_trade_stats_unknown
+        stats = get_trade_stats_unknown(uid, period=period, account_type=account_type)
+        # Format manual stats with minimal info
+        strat_display = "✋ Manual"
+        account_display = ACCOUNT_DISPLAY_NAMES.get(account_type, account_type.capitalize())
+        text = (
+            f"📊 *{t.get('stats_title', 'Trading Statistics')}* {account_display}\n"
+            f"├ {t.get('stats_strategy', 'Strategy')}: {strat_display}\n"
+            f"└ {t.get('stats_period', 'Period')}: 📅 {period_label}\n\n"
+            f"*{t.get('stats_overview', 'Overview')}*\n"
+            f"├─ {t.get('stats_total_trades', 'Total trades')}: {stats['total']}\n"
+            f"├─ {t.get('stats_winrate', 'Winrate')}: {stats['winrate']:.1f}%\n"
+            f"└─ PnL: {stats['total_pnl']:+.2f} USDT\n\n"
+            f"_These are trades closed manually without strategy attribution._"
+        )
         keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return

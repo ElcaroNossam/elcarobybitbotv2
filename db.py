@@ -2367,16 +2367,72 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         }
 
 
-def get_stats_by_strategy(user_id: int, period: str = "all") -> dict[str, dict]:
+def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None) -> dict:
+    """Get stats for trades with NULL/unknown strategy."""
+    import datetime
+    from zoneinfo import ZoneInfo
+    
+    with get_conn() as conn:
+        where_clauses = ["user_id = ?", "strategy IS NULL"]
+        params: list = [user_id]
+        
+        if account_type:
+            where_clauses.append("(account_type = ? OR account_type IS NULL)")
+            params.append(account_type)
+        
+        now = datetime.datetime.now(ZoneInfo("UTC"))
+        if period == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
+        elif period == "week":
+            start = now - datetime.timedelta(days=7)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
+        elif period == "month":
+            start = now - datetime.timedelta(days=30)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
+        
+        where_sql = " AND ".join(where_clauses)
+        
+        row = conn.execute(f"""
+            SELECT 
+                COUNT(*) as total,
+                SUM(pnl) as total_pnl,
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins
+            FROM trade_logs
+            WHERE {where_sql}
+        """, params).fetchone()
+        
+        total = row[0] or 0
+        total_pnl = row[1] or 0.0
+        wins = row[2] or 0
+        winrate = (wins / total * 100) if total > 0 else 0.0
+        
+        return {
+            "total": total,
+            "total_pnl": total_pnl,
+            "winrate": winrate,
+        }
+
+
+def get_stats_by_strategy(user_id: int, period: str = "all", account_type: str | None = None) -> dict[str, dict]:
     """Возвращает статистику по каждой стратегии отдельно."""
     strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"]
     result = {}
     for strat in strategies:
-        stats = get_trade_stats(user_id, strategy=strat, period=period)
+        stats = get_trade_stats(user_id, strategy=strat, period=period, account_type=account_type)
         if stats["total"] > 0:
             result[strat] = stats
+    
+    # Add unknown/manual trades
+    unknown_stats = get_trade_stats_unknown(user_id, period=period, account_type=account_type)
+    if unknown_stats["total"] > 0:
+        result["manual"] = unknown_stats
+    
     # Общая статистика
-    result["all"] = get_trade_stats(user_id, strategy=None, period=period)
+    result["all"] = get_trade_stats(user_id, strategy=None, period=period, account_type=account_type)
     return result
 
 
