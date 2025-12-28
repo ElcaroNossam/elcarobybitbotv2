@@ -2030,13 +2030,13 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     user_sl = cfg.get("sl_percent") or 0
     if strat_sl is not None and 0 < strat_sl <= 50:
         sl_pct = float(strat_sl)
-        logger.debug(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, sl_pct={sl_pct} (from strategy settings)")
+        logger.info(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, strat_sl={strat_sl}, user_sl={user_sl}, sl_pct={sl_pct} (from strategy settings)")
     elif 0 < user_sl <= 50:
         sl_pct = float(user_sl)
-        logger.debug(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, sl_pct={sl_pct} (from user global)")
+        logger.info(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, strat_sl={strat_sl}, user_sl={user_sl}, sl_pct={sl_pct} (from user global)")
     else:
         sl_pct = float(coin_cfg.get("sl_pct", DEFAULT_SL_PCT))
-        logger.debug(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, sl_pct={sl_pct} (from coin defaults)")
+        logger.info(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, strat_sl={strat_sl}, user_sl={user_sl}, sl_pct={sl_pct} (from coin defaults)")
 
     # TP
     if strat_tp is not None and float(strat_tp) > sl_pct:
