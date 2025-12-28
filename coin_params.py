@@ -1,4 +1,5 @@
 # coin_params.py
+import os
 from typing import Callable
 
 DEFAULT_TP_PCT = 8.0
@@ -9,8 +10,10 @@ DEFAULT_LANG = 'en'
 ADMIN_ID      = 511692487  # ваш Telegram-ID
 GLOBAL_PAUSED = False      # если True — торговля и рассылка для всех отключены
 
-MAX_OPEN_POSITIONS = 50
-MAX_LIMIT_ORDERS = 50
+# Position and order limits - 0 means unlimited
+# Can be overridden via environment variables
+MAX_OPEN_POSITIONS = int(os.getenv("MAX_OPEN_POSITIONS", "0"))  # 0 = unlimited
+MAX_LIMIT_ORDERS = int(os.getenv("MAX_LIMIT_ORDERS", "0"))  # 0 = unlimited
 BLACKLIST = {"FUSDT", "SKLUSDT", "BNBUSDT"}
 
 # состояния конверса

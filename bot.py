@@ -2574,14 +2574,19 @@ async def cmd_toggle_atr(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 async def check_trading_limits_user(user_id: int, t: dict) -> tuple[bool, str]:
-    positions = await fetch_open_positions(user_id)
-    if len(positions) >= MAX_OPEN_POSITIONS:
-        return False, t['limit_positions_exceeded'].format(max=MAX_OPEN_POSITIONS)
+    """Check if user can open new positions/orders. 0 = unlimited."""
+    # Check positions limit (0 = unlimited)
+    if MAX_OPEN_POSITIONS > 0:
+        positions = await fetch_open_positions(user_id)
+        if len(positions) >= MAX_OPEN_POSITIONS:
+            return False, t['limit_positions_exceeded'].format(max=MAX_OPEN_POSITIONS)
 
-    orders = await fetch_open_orders(user_id)
-    limit_orders = [o for o in orders if o.get("orderType") == "Limit"]
-    if len(limit_orders) >= MAX_LIMIT_ORDERS:
-        return False, t['limit_limit_orders_exceeded'].format(max=MAX_LIMIT_ORDERS)
+    # Check orders limit (0 = unlimited)
+    if MAX_LIMIT_ORDERS > 0:
+        orders = await fetch_open_orders(user_id)
+        limit_orders = [o for o in orders if o.get("orderType") == "Limit"]
+        if len(limit_orders) >= MAX_LIMIT_ORDERS:
+            return False, t['limit_limit_orders_exceeded'].format(max=MAX_LIMIT_ORDERS)
 
     return True, ""
 
@@ -2605,36 +2610,80 @@ def get_user_tz(user_id: int) -> str:
 
 
 @log_calls
-async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None) -> float:
+async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None, account_type: str | None = None, exchange: str | None = None) -> float:
+    """
+    Fetch today's realized PnL for user.
+    
+    Args:
+        user_id: Telegram user ID
+        tz_str: Timezone string (defaults to user's timezone)
+        account_type: 'demo' or 'real' (defaults to user's trading_mode)
+        exchange: 'bybit' or 'hyperliquid' (defaults to user's active exchange)
+    
+    Returns:
+        Total realized PnL for today in USDT
+    """
     tz = ZoneInfo(tz_str or get_user_tz(user_id))
     now_local   = datetime.datetime.now(tz)
     start_local = datetime.datetime(year=now_local.year, month=now_local.month, day=now_local.day, tzinfo=tz)
     end_local   = start_local + datetime.timedelta(days=1)
     start_ts = int(start_local.timestamp() * 1000)
     end_ts   = int(end_local.timestamp() * 1000)
+    
+    # Determine exchange
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or 'bybit'
+    
     total = 0.0
-    cursor = None
-    while True:
-        params = {
-            "category":  "linear",
-            "startTime": start_ts,
-            "endTime":   end_ts,
-            "limit":     100,
-        }
-        if cursor:
-            params["cursor"] = cursor
+    
+    if exchange == 'hyperliquid':
+        # Use HyperLiquid adapter for PnL
+        try:
+            creds = db.get_hl_credentials(user_id)
+            if creds and creds.get("private_key"):
+                from hl_adapter import HLAdapter
+                adapter = HLAdapter(
+                    private_key=creds["private_key"],
+                    testnet=bool(creds.get("testnet", False)),
+                    vault_address=creds.get("vault_address")
+                )
+                await adapter.initialize()
+                
+                # Get fills for today
+                fills = await adapter.get_fills_by_time(start_ts, end_ts)
+                for fill in fills:
+                    try:
+                        total += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
+                    except Exception:
+                        pass
+                
+                await adapter.close()
+        except Exception as e:
+            logger.warning(f"[{user_id}] HL realized PnL fetch error: {e}")
+    else:
+        # Bybit - use account_type for API request
+        cursor = None
+        while True:
+            params = {
+                "category":  "linear",
+                "startTime": start_ts,
+                "endTime":   end_ts,
+                "limit":     100,
+            }
+            if cursor:
+                params["cursor"] = cursor
 
-        res = await _bybit_request(user_id, "GET", "/v5/position/closed-pnl", params=params)
-        items = res.get("list", []) or []
-        for it in items:
-            try:
-                total += float(it.get("closedPnl") or 0.0)
-            except Exception:
-                pass
+            res = await _bybit_request(user_id, "GET", "/v5/position/closed-pnl", params=params, account_type=account_type)
+            items = res.get("list", []) or []
+            for it in items:
+                try:
+                    total += float(it.get("closedPnl") or 0.0)
+                except Exception:
+                    pass
 
-        cursor = res.get("nextPageCursor")
-        if not cursor:
-            break
+            cursor = res.get("nextPageCursor")
+            if not cursor:
+                break
 
     return total
 
@@ -5920,29 +5969,71 @@ async def on_moderate_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(ctx.t['unknown_action'], show_alert=True)
 
 @log_calls
-async def fetch_realized_pnl(uid: int, days: int = 1) -> float:
+async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None = None, exchange: str | None = None) -> float:
+    """
+    Fetch realized PnL for the last N days.
+    
+    Args:
+        uid: User ID
+        days: Number of days to look back (default: 1)
+        account_type: 'demo' or 'real' (defaults to user's trading_mode)
+        exchange: 'bybit' or 'hyperliquid' (defaults to user's active exchange)
+    
+    Returns:
+        Total realized PnL in USDT
+    """
     end_ts = int(time.time() * 1000)
     start_ts = end_ts - days * 24 * 60 * 60 * 1000
     total_pnl = 0.0
-    cursor = None
+    
+    # Determine exchange
+    if exchange is None:
+        exchange = db.get_exchange_type(uid) or 'bybit'
+    
+    if exchange == 'hyperliquid':
+        # Use HyperLiquid adapter for PnL
+        try:
+            creds = db.get_hl_credentials(uid)
+            if creds and creds.get("private_key"):
+                from hl_adapter import HLAdapter
+                adapter = HLAdapter(
+                    private_key=creds["private_key"],
+                    testnet=bool(creds.get("testnet", False)),
+                    vault_address=creds.get("vault_address")
+                )
+                await adapter.initialize()
+                
+                # Get fills for the period
+                fills = await adapter.get_fills_by_time(start_ts, end_ts)
+                for fill in fills:
+                    try:
+                        total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
+                    except Exception:
+                        pass
+                
+                await adapter.close()
+        except Exception as e:
+            logger.warning(f"[{uid}] HL realized PnL fetch error: {e}")
+    else:
+        # Bybit
+        cursor = None
+        while True:
+            params = {
+                "category": "linear",
+                "startTime": start_ts,
+                "endTime": end_ts,
+                "limit": 100,      
+            }
+            if cursor:
+                params["cursor"] = cursor
 
-    while True:
-        params = {
-            "category": "linear",
-            "startTime": start_ts,
-            "endTime": end_ts,
-            "limit": 100,      
-        }
-        if cursor:
-            params["cursor"] = cursor
+            res = await _bybit_request(uid, "GET", "/v5/position/closed-pnl", params=params, account_type=account_type)
+            for item in res.get("list", []):
+                total_pnl += float(item.get("closedPnl", 0))
 
-        res = await _bybit_request(uid, "GET", "/v5/position/closed-pnl", params=params)
-        for item in res.get("list", []):
-            total_pnl += float(item.get("closedPnl", 0))
-
-        cursor = res.get("nextPageCursor")
-        if not cursor:
-            break
+            cursor = res.get("nextPageCursor")
+            if not cursor:
+                break
 
     return total_pnl
 
@@ -6515,7 +6606,7 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
             logger.error(f"Unified fetch_open_positions error: {e}", exc_info=True)
             # Fall through to old code
     
-    # OLD CODE (fallback)
+    # OLD CODE (fallback) - with pagination
     try:
         uid = None
         if isinstance(user_id, int):
@@ -6531,11 +6622,27 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
         if uid is None:
             raise RuntimeError("fetch_open_positions: не удалось определить user_id")
 
-        res = await _bybit_request(
-            uid, "GET", "/v5/position/list",
-            params={"category": "linear", "settleCoin": "USDT"}
-        )
-        return [p for p in (res.get("list") or []) if float(p.get("size") or 0) != 0.0]
+        all_positions = []
+        cursor = None
+        
+        while True:
+            params = {"category": "linear", "settleCoin": "USDT", "limit": 200}
+            if cursor:
+                params["cursor"] = cursor
+            
+            res = await _bybit_request(
+                uid, "GET", "/v5/position/list",
+                params=params
+            )
+            
+            positions = [p for p in (res.get("list") or []) if float(p.get("size") or 0) != 0.0]
+            all_positions.extend(positions)
+            
+            cursor = res.get("nextPageCursor")
+            if not cursor:
+                break
+        
+        return all_positions
     except MissingAPICredentials:
         return []
 
@@ -7233,20 +7340,14 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
     trading_mode = get_trading_mode(uid)
     
     try:
-        # Temporarily set trading mode for balance fetch
-        original_mode = get_trading_mode(uid)
-        set_trading_mode(uid, account_type)
-        
-        bal = await fetch_usdt_balance(uid)
-        pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid))
-        pnl_week = await fetch_realized_pnl(uid, days=7)
-        positions = await fetch_open_positions(uid)
+        # Fetch balance for specific account type directly
+        bal = await fetch_usdt_balance(uid, account_type=account_type)
+        pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=account_type)
+        pnl_week = await fetch_realized_pnl(uid, days=7, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         total_unreal = sum(float(p.get("unrealisedPnl", 0)) for p in positions)
         total_im = sum(float(p.get("positionIM", 0)) for p in positions)
         unreal_pct = (total_unreal / total_im * 100) if total_im else 0.0
-        
-        # Restore original mode
-        set_trading_mode(uid, original_mode)
         
         mode_emoji = "🎮" if account_type == "demo" else "💎"
         mode_label = "Demo" if account_type == "demo" else "Real"
@@ -7426,22 +7527,17 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     logger.info(f"Balance request: exchange={exchange}, mode={mode}")
     
     if exchange == "bybit":
-        # Fetch Bybit balance for selected mode
+        # Fetch Bybit balance for selected mode directly
         try:
-            # Temporarily override trading mode for balance fetch
-            original_mode = get_trading_mode(uid)
-            set_trading_mode(uid, mode)
-            
-            bal = await fetch_usdt_balance(uid)
-            pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid))
-            pnl_week = await fetch_realized_pnl(uid, days=7)
-            positions = await fetch_open_positions(uid)
+            bal = await fetch_usdt_balance(uid, account_type=mode)
+            pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=mode)
+            pnl_week = await fetch_realized_pnl(uid, days=7, account_type=mode)
+            positions = await fetch_open_positions(uid, account_type=mode)
             total_unreal = sum(float(p.get("unrealisedPnl", 0)) for p in positions)
             total_im = sum(float(p.get("positionIM", 0)) for p in positions)
             unreal_pct = (total_unreal / total_im * 100) if total_im else 0.0
             
-            # Restore original mode
-            set_trading_mode(uid, original_mode)
+            trading_mode = get_trading_mode(uid)
             
             mode_emoji = "🎮" if mode == "demo" else "💎"
             mode_label = "Demo" if mode == "demo" else "Real"
@@ -7461,7 +7557,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 """
             
             # Only show mode switch buttons if user has both modes
-            if original_mode == 'both':
+            if trading_mode == 'both':
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
                      InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
@@ -8196,27 +8292,37 @@ async def get_unrealized_pnl(user_id: int, strategy: str | None = None) -> float
         
         for acc_type in account_types:
             try:
-                data = await _bybit_request(
-                    user_id, "GET", "/v5/position/list",
-                    params={"category": "linear", "settleCoin": "USDT"},
-                    account_type=acc_type
-                )
-                positions = data.get("list", [])
-                
-                for p in positions:
-                    size = float(p.get("size") or 0)
-                    if size <= 0:
-                        continue
+                cursor = None
+                while True:
+                    params = {"category": "linear", "settleCoin": "USDT", "limit": 200}
+                    if cursor:
+                        params["cursor"] = cursor
                     
-                    symbol = p.get("symbol", "")
-                    pos_strategy = symbol_strategy_map.get(symbol)
+                    data = await _bybit_request(
+                        user_id, "GET", "/v5/position/list",
+                        params=params,
+                        account_type=acc_type
+                    )
+                    positions = data.get("list", [])
                     
-                    # Filter by strategy if specified
-                    if strategy and pos_strategy != strategy:
-                        continue
+                    for p in positions:
+                        size = float(p.get("size") or 0)
+                        if size <= 0:
+                            continue
+                        
+                        symbol = p.get("symbol", "")
+                        pos_strategy = symbol_strategy_map.get(symbol)
+                        
+                        # Filter by strategy if specified
+                        if strategy and pos_strategy != strategy:
+                            continue
+                        
+                        unrealized = float(p.get("unrealisedPnl") or 0)
+                        total_unrealized += unrealized
                     
-                    unrealized = float(p.get("unrealisedPnl") or 0)
-                    total_unrealized += unrealized
+                    cursor = data.get("nextPageCursor")
+                    if not cursor:
+                        break
                     
             except Exception as e:
                 logger.warning(f"Failed to get positions for {acc_type}: {e}")

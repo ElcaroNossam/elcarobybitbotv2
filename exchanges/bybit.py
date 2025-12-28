@@ -219,40 +219,51 @@ class BybitExchange(BaseExchange):
         )
     
     async def get_positions(self) -> List[Position]:
-        """Get all open positions"""
-        result = await self._request(
-            "GET",
-            "/v5/position/list",
-            {"category": "linear", "settleCoin": "USDT"}
-        )
+        """Get all open positions (with pagination if needed)"""
+        all_positions = []
+        cursor = None
         
-        positions = []
-        for pos in result.get("list", []):
-            size = safe_float(pos.get("size"), 0)
-            if size == 0:
-                continue
+        while True:
+            params = {"category": "linear", "settleCoin": "USDT", "limit": 200}
+            if cursor:
+                params["cursor"] = cursor
             
-            side_str = pos.get("side", "None")
-            if side_str == "Buy":
-                side = PositionSide.LONG
-            elif side_str == "Sell":
-                side = PositionSide.SHORT
-            else:
-                side = PositionSide.NONE
-            
-            positions.append(Position(
-                symbol=pos.get("symbol", ""),
-                side=side,
-                size=size,
-                entry_price=safe_float(pos.get("avgPrice"), 0),
-                unrealized_pnl=safe_float(pos.get("unrealisedPnl"), 0),
-                leverage=safe_float(pos.get("leverage"), 1),
-                margin_mode=pos.get("tradeMode", "cross"),
-                liquidation_price=safe_float(pos.get("liqPrice")) or None,
-                margin_used=safe_float(pos.get("positionMM"), 0)
-            ))
+            result = await self._request("GET", "/v5/position/list", params)
         
-        return positions
+            positions = []
+            for pos in result.get("list", []):
+                size = safe_float(pos.get("size"), 0)
+                if size == 0:
+                    continue
+            
+                side_str = pos.get("side", "None")
+                if side_str == "Buy":
+                    side = PositionSide.LONG
+                elif side_str == "Sell":
+                    side = PositionSide.SHORT
+                else:
+                    side = PositionSide.NONE
+            
+                positions.append(Position(
+                    symbol=pos.get("symbol", ""),
+                    side=side,
+                    size=size,
+                    entry_price=safe_float(pos.get("avgPrice"), 0),
+                    unrealized_pnl=safe_float(pos.get("unrealisedPnl"), 0),
+                    leverage=safe_float(pos.get("leverage"), 1),
+                    margin_mode=pos.get("tradeMode", "cross"),
+                    liquidation_price=safe_float(pos.get("liqPrice")) or None,
+                    margin_used=safe_float(pos.get("positionMM"), 0)
+                ))
+            
+            all_positions.extend(positions)
+            
+            # Check for next page
+            cursor = result.get("nextPageCursor")
+            if not cursor:
+                break
+        
+        return all_positions
     
     async def get_position(self, symbol: str) -> Optional[Position]:
         """Get position for specific symbol"""
