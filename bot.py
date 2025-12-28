@@ -10572,6 +10572,9 @@ async def monitor_positions_loop(app: Application):
                         
                         if position_use_atr:
                             if move_pct < trigger_pct and not _atr_triggered.get(key, False):
+                                # Log ATR status for debugging
+                                logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
+                                
                                 # Use strategy-specific SL% if available (already calculated above)
                                 base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
 
