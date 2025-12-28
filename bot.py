@@ -116,6 +116,7 @@ from db import (
     ban_user,
     allow_user,
     delete_user,
+    update_position_strategy,
     # Admin reports
     get_global_trade_stats,
     get_global_stats_by_strategy,
@@ -10833,6 +10834,37 @@ async def monitor_positions_loop(app: Application):
                         
                         # Get strategy for this position
                         pos_strategy = strategy_map.get(sym)
+                        
+                        # Fallback: try to determine strategy from signal if not in DB
+                        if not pos_strategy:
+                            ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                            if ap_for_sym and ap_for_sym.get("signal_id"):
+                                sig = fetch_signal_by_id(ap_for_sym["signal_id"])
+                                if sig:
+                                    raw_msg = sig.get("raw_message", "")
+                                    if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
+                                        pos_strategy = "scryptomera"
+                                    elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
+                                        pos_strategy = "scalper"
+                                    elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
+                                        pos_strategy = "elcaro"
+                                    elif sig.get("source"):
+                                        source = sig.get("source", "").lower()
+                                        if "scryptomera" in source or "bitk" in source:
+                                            pos_strategy = "scryptomera"
+                                        elif "scalper" in source:
+                                            pos_strategy = "scalper"
+                                        elif "elcaro" in source:
+                                            pos_strategy = "elcaro"
+                                    
+                                    # Update DB with detected strategy for future iterations
+                                    if pos_strategy:
+                                        logger.info(f"[{uid}] {sym}: Detected strategy={pos_strategy} from signal, updating DB")
+                                        try:
+                                            pos_account_type = account_type_map.get(sym, "demo")
+                                            update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type)
+                                        except Exception as e:
+                                            logger.warning(f"[{uid}] Failed to update position strategy: {e}")
                         
                         # Get SL/TP from strategy settings if available, otherwise use global
                         if pos_strategy:
