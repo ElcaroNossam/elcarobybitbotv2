@@ -5706,7 +5706,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = strat_settings.get("use_atr", 0)
         new_value = 0 if current else 1
         
-        db.set_strategy_setting(uid, strategy, "use_atr", new_value)
+        logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
+        
+        result = db.set_strategy_setting(uid, strategy, "use_atr", new_value)
+        logger.info(f"[{uid}] ATR toggle result: {result}")
         
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
