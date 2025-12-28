@@ -8,10 +8,10 @@
 2. **НЕ УПРОЩАТЬ** логику — сохранять всю существующую функциональность
 3. **Production сервер:** AWS EC2 (eu-central-1) — `ec2-3-66-84-33.eu-central-1.compute.amazonaws.com`
 4. **Только ElCaro бот** на production сервере — всё остальное почищено
-5. **Cloudflare Tunnel:** Автоматически создается при старте (FREE, безлимит!)
+5. **WebApp:** Доступен через nginx + домен (НЕ Cloudflare Tunnel!)
 6. При изменениях сначала тестировать локально, затем деплоить
 
-## 🚀 Deployment Workflow (Updated Dec 24, 2025)
+## 🚀 Deployment Workflow (Updated Dec 28, 2025)
 
 **SSH Credentials:** `noet-dat.pem` (в корне проекта, НЕ в git)
 
@@ -33,15 +33,12 @@ cd /home/ubuntu/project/elcarobybitbotv2
 # Pull изменений
 git pull origin main
 
-# Рестарт бота (Cloudflare tunnel автоматически пересоздастся!)
+# Рестарт бота
 sudo systemctl restart elcaro-bot
 
 # Проверка статуса
 sudo systemctl status elcaro-bot --no-pager
 journalctl -u elcaro-bot -f --no-pager -n 50
-
-# Получить текущий Cloudflare URL
-cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
 ```
 
 ### 3. Откат при проблемах
@@ -59,51 +56,27 @@ df -h | grep /dev/root
 free -h
 
 # Процессы
-ps aux | grep -E '(python|cloudflared)' | grep -v grep
+ps aux | grep python | grep -v grep
 ```
 
 ---
 
-## 🌐 Cloudflare Tunnel (FREE, Безлимит!)
+## 🌐 WebApp (nginx + домен)
+
+WebApp доступен через nginx reverse proxy с SSL. Туннель НЕ используется.
 
 ### Как работает
-1. **Автоматический старт:** При запуске бота через `start_bot.sh` создается туннель
-2. **Получение URL:** Парсится из логов cloudflared (~10 секунд)
-3. **Сохранение:** URL записывается в `.env` (WEBAPP_URL) и `run/ngrok_url.txt`
-4. **Использование:** WebApp доступен по этому URL, бот передает ссылку пользователям
-
-### Текущий URL
-```bash
-# На сервере
-cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
-
-# Пример: https://wendy-series-strike-minnesota.trycloudflare.com
-```
-
-### Обновление туннеля
-URL автоматически обновляется при каждом рестарте бота:
-```bash
-sudo systemctl restart elcaro-bot
-sleep 15
-cat /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
-```
-
-### Файлы
-- **Startup скрипт:** `/home/ubuntu/project/elcarobybitbotv2/start_bot.sh`
-- **Логи туннеля:** `/tmp/cloudflared.log`
-- **URL файл:** `/home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt`
-- **Env файл:** `/home/ubuntu/project/elcarobybitbotv2/.env` (WEBAPP_URL=...)
+1. **nginx** слушает на 80/443 и проксирует на localhost:8765
+2. **uvicorn** запущен отдельным сервисом на порту 8765
+3. **start_bot.sh** запускает только бота (без туннеля)
 
 ### Проверка работы
 ```bash
-# Процессы
-ps aux | grep cloudflared
+# Локальный webapp
+curl localhost:8765/health
 
-# Логи
-tail -20 /tmp/cloudflared.log
-
-# Тест доступа
-curl -s https://YOUR-URL.trycloudflare.com/health
+# nginx status
+sudo systemctl status nginx
 ```
 
 ---
@@ -953,72 +926,40 @@ except ExchangeError as e:
 
 # 🖥️ SERVER & DEPLOYMENT DETAILS
 
-## Server Connection
+## Server Connection (AWS EC2)
 
 | Parameter | Value |
 |-----------|-------|
-| **IP** | `46.62.211.0` |
+| **IP** | `ec2-3-66-84-33.eu-central-1.compute.amazonaws.com` |
 | **User** | `ubuntu` |
-| **SSH Key** | `rita.pem` (в корне проекта, НЕ в git) |
+| **SSH Key** | `noet-dat.pem` (в корне проекта, НЕ в git) |
 | **Bot Path** | `/home/ubuntu/project/elcarobybitbotv2/` |
 | **Python venv** | `/home/ubuntu/project/elcarobybitbotv2/venv/` |
 
 ### SSH Подключение
 ```bash
 # Локально (из папки проекта)
-ssh -i rita.pem ubuntu@46.62.211.0
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com
 
-# Или с полным путём
-ssh -i /path/to/bybit_demo/rita.pem ubuntu@46.62.211.0
+# Или с IP
+ssh -i noet-dat.pem ubuntu@3.66.84.33
 ```
-
-### ⚠️ Другие проекты на сервере (НЕ ТРОГАТЬ!)
-- `/home/ubuntu/project/noetdat/` - Django screener (порт 8000)
-- `/home/ubuntu/project/spain/` - rita.py бот
 
 ---
 
-## Cloudflare Tunnel (Argo Tunnel)
+## Nginx + Domain (НЕ Cloudflare Tunnel!)
 
-### Текущий URL
-```
-https://kevin-longitude-night-pro.trycloudflare.com
-```
+WebApp доступен через nginx reverse proxy с SSL:
+- nginx слушает на 80/443 и проксирует на localhost:8765
+- uvicorn запущен отдельным сервисом на порту 8765
 
-### Как работает
-1. Cloudflare tunnel запускается локально или на сервере
-2. Создаёт безопасный туннель до Cloudflare edge
-3. URL вида `*.trycloudflare.com` (меняется при каждом перезапуске!)
-
-### Запуск туннеля на сервере
+### Проверка работы
 ```bash
-# Подключиться к серверу
-ssh -i rita.pem ubuntu@46.62.211.0
+# Локальный webapp
+curl localhost:8765/health
 
-# Запустить туннель в фоне
-nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
-
-# Получить URL туннеля
-grep -o 'https://[a-z-]*\.trycloudflare\.com' /tmp/cloudflared.log | tail -1
-```
-
-### Обновление URL в боте
-После получения нового URL туннеля:
-```bash
-# На сервере - обновить файл URL
-echo "https://NEW-URL.trycloudflare.com" > /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
-
-# Перезапустить бота чтобы применить новый URL для Menu Button
-sudo systemctl restart elcaro-bot
-```
-
-### Проверка работы туннеля
-```bash
-# Проверить что туннель работает
-curl -s https://YOUR-URL.trycloudflare.com/health
-
-# Должен вернуть:
-# {"status":"healthy","version":"2.0.0",...}
+# nginx status
+sudo systemctl status nginx
 ```
 
 ---
@@ -1088,47 +1029,25 @@ git add -A
 git commit -m "описание изменений"
 
 # Запушить
-git push origin webapp-screener-auth-2fa-dec21
+git push origin main
 ```
 
 ### 2. Применить на сервере
 ```bash
 # Подключиться
-ssh -i rita.pem ubuntu@46.62.211.0
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com
 
 # Перейти в проект
 cd /home/ubuntu/project/elcarobybitbotv2
 
 # Получить изменения
-git pull origin webapp-screener-auth-2fa-dec21
+git pull origin main
 
 # Перезапустить бота
 sudo systemctl restart elcaro-bot
 
 # Проверить логи
 journalctl -u elcaro-bot -f --no-pager
-```
-
-### 3. Если нужен новый туннель
-```bash
-# Убить старый туннель
-pkill cloudflared
-
-# Запустить новый
-nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
-
-# Подождать 5 сек
-sleep 5
-
-# Получить URL
-NEW_URL=$(grep -o 'https://[a-z-]*\.trycloudflare\.com' /tmp/cloudflared.log | tail -1)
-echo $NEW_URL
-
-# Обновить файл
-echo $NEW_URL > /home/ubuntu/project/elcarobybitbotv2/run/ngrok_url.txt
-
-# Перезапустить бота
-sudo systemctl restart elcaro-bot
 ```
 
 ---
@@ -1150,17 +1069,17 @@ sleep 5
 sudo systemctl restart elcaro-bot
 ```
 
-### ❌ WebApp недоступен через туннель
+### ❌ WebApp недоступен
 **Проверить:**
 ```bash
 # 1. WebApp работает?
 curl localhost:8765/health
 
-# 2. Туннель работает?
-ps aux | grep cloudflared
+# 2. nginx работает?
+sudo systemctl status nginx
 
-# 3. Если нет - запустить
-nohup cloudflared tunnel --url http://localhost:8765 > /tmp/cloudflared.log 2>&1 &
+# 3. Проверить логи nginx
+sudo tail -50 /var/log/nginx/error.log
 ```
 
 ### ❌ Бот не запускается
@@ -1177,24 +1096,26 @@ tail -50 /home/ubuntu/project/elcarobybitbotv2/nohup.out
 
 ---
 
-## Recent Fixes (December 22, 2025)
+## Recent Fixes (December 2024-2025)
 
-### SL Validation Skip
+### Pagination Fix (Dec 24, 2025)
+- **Problem:** При работе с позицией на 2/3 странице, возврат всегда на 1 страницу
+- **File:** `bot.py` - handlers `pos:refresh`, `pos:list`, `pos:close`, etc.
+- **Fix:** Сохранение текущей страницы в `ctx.user_data['positions_page']`, использование при возврате
+
+### ATR Trailing Stop Logging (Dec 24, 2025)
+- **Problem:** ATR trailing stop не перемещался
+- **File:** `bot.py` lines ~10573-10630
+- **Fix:** Добавлены логи `[ATR-WAIT]` и `[ATR-TRAIL]` для диагностики
+
+### SL Validation Skip (Dec 22, 2025)
 - **Problem:** `ValueError: SL (X) must be < current price (Y) for LONG` - ошибка когда SL уже сработал
 - **File:** `bot.py` lines 2912-2922
 - **Fix:** Вместо `raise ValueError` теперь `logger.warning()` + `sl_price = None` (пропуск SL)
 
-### WebApp UI Improvements
-- **Files:** `terminal.html`, `index.html`, `elcaro-theme.js`
-- **Changes:**
-  - Улучшены стили exchange-select/account-select (лучший фон, hover эффекты)
-  - Добавлены стили для lang-menu dropdown с флагами
-  - Расширен список языков до 12 (EN, RU, UK, ZH, ES, DE, FR, IT, JA, AR, HE, PL)
-  - Добавлена RTL поддержка для иврита (he)
-
 ---
 
-*Last updated: December 22, 2025*
-*Version: 2.1.0*
-*Current Tunnel: https://kevin-longitude-night-pro.trycloudflare.com*
+*Last updated: December 24, 2025*
+*Version: 2.2.0*
+*Infrastructure: AWS EC2 + nginx reverse proxy*
 *Exchange APIs: Bybit (34 methods), HyperLiquid (41 methods)*

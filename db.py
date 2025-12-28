@@ -1352,10 +1352,12 @@ def get_user_config(user_id: int) -> dict:
 # ------------------------------------------------------------------------------------
 # Default settings per strategy (used as fallback if user hasn't customized)
 # Extended with ATR settings: atr_periods, atr_multiplier_sl, atr_trigger_pct
+# use_atr: None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
 DEFAULT_STRATEGY_SETTINGS = {
     "oi": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",  # "market" or "limit"
         "coins_group": None,  # "ALL", "TOP100", "VOLATILE" or None for global
         "leverage": None,  # None = use current, or 1-100
@@ -1363,6 +1365,7 @@ DEFAULT_STRATEGY_SETTINGS = {
     "rsi_bb": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
@@ -1370,6 +1373,7 @@ DEFAULT_STRATEGY_SETTINGS = {
     "scryptomera": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
@@ -1385,13 +1389,23 @@ DEFAULT_STRATEGY_SETTINGS = {
     "scalper": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
+        # Direction filter: "all", "long", "short"
+        "direction": "all",
+        # Separate settings for LONG
+        "long_percent": None, "long_sl_percent": None, "long_tp_percent": None,
+        "long_atr_periods": None, "long_atr_multiplier_sl": None, "long_atr_trigger_pct": None,
+        # Separate settings for SHORT
+        "short_percent": None, "short_sl_percent": None, "short_tp_percent": None,
+        "short_atr_periods": None, "short_atr_multiplier_sl": None, "short_atr_trigger_pct": None,
     },
     "elcaro": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
         # leverage for elcaro comes from signal, not settings
@@ -1399,6 +1413,7 @@ DEFAULT_STRATEGY_SETTINGS = {
     "wyckoff": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
         "leverage": 10,  # Default leverage

@@ -4493,16 +4493,42 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         atr_per = strat_settings.get("atr_periods")
         atr_mult = strat_settings.get("atr_multiplier_sl")
         atr_trig = strat_settings.get("atr_trigger_pct")
+        use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
         mode = strat_settings.get("trading_mode", "global")
         mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
         
         status_parts = []
-        if pct is not None:
-            status_parts.append(f"Entry: {pct}%")
-        if sl is not None:
-            status_parts.append(f"SL: {sl}%")
-        if tp is not None:
-            status_parts.append(f"TP: {tp}%")
+        
+        # For scryptomera and scalper, show side-specific or direction info
+        if strat_key in ("scryptomera", "scalper"):
+            direction = strat_settings.get("direction", "all")
+            dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+            status_parts.append(f"{dir_emoji}")
+            
+            # Check for side-specific settings
+            l_pct = strat_settings.get("long_percent")
+            l_sl = strat_settings.get("long_sl_percent")
+            s_pct = strat_settings.get("short_percent")
+            s_sl = strat_settings.get("short_sl_percent")
+            
+            if l_pct is not None or l_sl is not None:
+                status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
+            if s_pct is not None or s_sl is not None:
+                status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
+        else:
+            # General settings for other strategies
+            if pct is not None:
+                status_parts.append(f"Entry: {pct}%")
+            if sl is not None:
+                status_parts.append(f"SL: {sl}%")
+            if tp is not None:
+                status_parts.append(f"TP: {tp}%")
+        
+        # ATR status (show if customized per strategy)
+        if use_atr is not None:
+            atr_emoji = "📊" if use_atr else "📉"
+            status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
+        
         if atr_per is not None:
             status_parts.append(f"ATR: {atr_per}p")
         if atr_mult is not None:
@@ -4676,20 +4702,50 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             atr_per = strat_settings.get("atr_periods")
             atr_mult = strat_settings.get("atr_multiplier_sl")
             atr_trig = strat_settings.get("atr_trigger_pct")
+            use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
+            mode = strat_settings.get("trading_mode", "global")
+            mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
             
             status_parts = []
-            if pct is not None:
-                status_parts.append(f"Entry: {pct}%")
-            if sl is not None:
-                status_parts.append(f"SL: {sl}%")
-            if tp is not None:
-                status_parts.append(f"TP: {tp}%")
+            
+            # For scryptomera and scalper, show side-specific or direction info
+            if strat_key in ("scryptomera", "scalper"):
+                direction = strat_settings.get("direction", "all")
+                dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+                status_parts.append(f"{dir_emoji}")
+                
+                # Check for side-specific settings
+                l_pct = strat_settings.get("long_percent")
+                l_sl = strat_settings.get("long_sl_percent")
+                s_pct = strat_settings.get("short_percent")
+                s_sl = strat_settings.get("short_sl_percent")
+                
+                if l_pct is not None or l_sl is not None:
+                    status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
+                if s_pct is not None or s_sl is not None:
+                    status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
+            else:
+                # General settings for other strategies
+                if pct is not None:
+                    status_parts.append(f"Entry: {pct}%")
+                if sl is not None:
+                    status_parts.append(f"SL: {sl}%")
+                if tp is not None:
+                    status_parts.append(f"TP: {tp}%")
+            
+            # ATR status (show if customized per strategy)
+            if use_atr is not None:
+                atr_emoji = "📊" if use_atr else "📉"
+                status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
+            
             if atr_per is not None:
                 status_parts.append(f"ATR: {atr_per}p")
             if atr_mult is not None:
                 status_parts.append(f"Mult: {atr_mult}")
             if atr_trig is not None:
                 status_parts.append(f"Trig: {atr_trig}%")
+            if mode != "global":
+                status_parts.append(f"Mode: {mode_text}")
             
             if status_parts:
                 lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
@@ -13086,11 +13142,17 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "short_atr_trigger_pct": "SHORT ATR Trigger %",
             }.get(param, param)
             
-            # Determine which keyboard to return to
+            # Determine which keyboard to return to based on strategy and param
             if param.startswith("long_"):
-                reply_kb = get_scryptomera_side_keyboard("long", ctx.t)
+                if strategy == "scalper":
+                    reply_kb = get_scalper_side_keyboard("long", ctx.t)
+                else:
+                    reply_kb = get_scryptomera_side_keyboard("long", ctx.t)
             elif param.startswith("short_"):
-                reply_kb = get_scryptomera_side_keyboard("short", ctx.t)
+                if strategy == "scalper":
+                    reply_kb = get_scalper_side_keyboard("short", ctx.t)
+                else:
+                    reply_kb = get_scryptomera_side_keyboard("short", ctx.t)
             else:
                 strat_settings = db.get_strategy_settings(uid, strategy)
                 reply_kb = get_strategy_param_keyboard(strategy, ctx.t, strat_settings)
