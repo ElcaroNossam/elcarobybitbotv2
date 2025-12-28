@@ -51,6 +51,8 @@ def invalidate_user_cache(user_id: int = None):
 
 # --- Полезные константы/whitelist'ы -------------------------------------------------
 USER_FIELDS_WHITELIST = {
+    "username",  # telegram username
+    "first_name", "last_name",  # telegram names
     "api_key", "api_secret",
     # Demo/Real API keys
     "demo_api_key", "demo_api_secret",
@@ -62,6 +64,7 @@ USER_FIELDS_WHITELIST = {
     "leverage",  # global leverage
     "use_atr", "lang",
     "global_order_type",  # 'market', 'limit' - global default order type
+    "exchange_type",  # 'bybit', 'hyperliquid'
     # стратегии/пороги (опционально)
     "strategies_enabled", "strategies_order",
     "rsi_lo", "rsi_hi", "bb_touch_k",
@@ -1401,15 +1404,18 @@ DEFAULT_STRATEGY_SETTINGS = {
     },
 }
 
-STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"]
+STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "manual"]
 STRATEGY_SETTING_FIELDS = [
     "percent", "sl_percent", "tp_percent",
+    "tp_pct", "sl_pct",  # Aliases for compatibility
     "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
     "use_atr",  # 0 or 1 - use ATR trailing or fixed SL/TP
     "order_type",  # "market" or "limit"
     "coins_group",  # "ALL", "TOP100", "VOLATILE" or None
     "leverage",  # 1-100 or None
     "trading_mode",  # "demo", "real", "both", or "global" (use user's global setting)
+    "enabled",  # True/False - enable this strategy
+    "account_types",  # "demo", "real", "both" - which accounts to use
     # Scryptomera-specific fields
     "direction", "long_percent", "long_sl_percent", "long_tp_percent",
     "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
@@ -2036,6 +2042,20 @@ def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "dem
             (user_id, symbol, account_type),
         ).fetchone()
     return bool(row[0]) if row else False
+
+
+def update_position_strategy(user_id: int, symbol: str, strategy: str, account_type: str = "demo") -> bool:
+    """
+    Обновляет strategy для существующей позиции.
+    Возвращает True если позиция была обновлена, False если не найдена.
+    """
+    with get_conn() as conn:
+        cursor = conn.execute(
+            "UPDATE active_positions SET strategy=? WHERE user_id=? AND symbol=? AND account_type=?",
+            (strategy, user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
 
 # ------------------------------------------------------------------------------------
 # Pending limit orders

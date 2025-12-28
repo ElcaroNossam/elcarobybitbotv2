@@ -3480,13 +3480,15 @@ async def manual_order_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
                 return ConversationHandler.END
 
-        res = await place_order(
+        res = await place_order_all_accounts(
             user_id=uid,
             symbol=symbol,
             side=side,
             orderType=typ,
             qty=q,
-            price=px_adj if typ == "Limit" else None
+            price=px_adj if typ == "Limit" else None,
+            strategy="manual",
+            add_position=(typ == "Market"),  # Only add position for Market orders
         )
 
         if typ == "Limit":
@@ -10306,7 +10308,30 @@ async def monitor_positions_loop(app: Application):
                             
                             tf_for_sym = tf_map.get(sym, "24h") 
                             signal_id = get_last_signal_id(uid, sym, tf_for_sym)
-                            # Note: strategy is not known for externally opened positions
+                            
+                            # Try to determine strategy from signal if available
+                            detected_strategy = None
+                            if signal_id:
+                                sig = fetch_signal_by_id(signal_id)
+                                if sig:
+                                    # Check signal source/strategy
+                                    raw_msg = sig.get("raw_message", "")
+                                    if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
+                                        detected_strategy = "scryptomera"
+                                    elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
+                                        detected_strategy = "scalper"
+                                    elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
+                                        detected_strategy = "elcaro"
+                                    elif sig.get("source"):
+                                        # Use source as strategy hint
+                                        source = sig.get("source", "").lower()
+                                        if "scryptomera" in source or "bitk" in source:
+                                            detected_strategy = "scryptomera"
+                                        elif "scalper" in source:
+                                            detected_strategy = "scalper"
+                                        elif "elcaro" in source:
+                                            detected_strategy = "elcaro"
+                            
                             # Use current trading mode for account_type
                             current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
                             add_active_position(
@@ -10317,9 +10342,14 @@ async def monitor_positions_loop(app: Application):
                                 size       = size,
                                 timeframe  = tf_for_sym,
                                 signal_id  = signal_id,
-                                strategy   = None,  # Unknown for manually opened positions
+                                strategy   = detected_strategy,  # Try to detect from signal, else None
                                 account_type = current_account_type
                             )
+                            
+                            if detected_strategy:
+                                logger.info(f"[{uid}] Position {sym} detected with strategy={detected_strategy} from signal")
+                            else:
+                                logger.debug(f"[{uid}] Position {sym} added without strategy (external/manual)")
 
                             # Only send notification if not in cooldown
                             cooldown_end = _close_all_cooldown.get(uid, 0)

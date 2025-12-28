@@ -41,52 +41,107 @@ def temp_db_path() -> Generator[str, None, None]:
 
 @pytest.fixture
 def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
-    """Create test database with schema"""
+    """Create test database with schema matching production"""
     conn = sqlite3.connect(temp_db_path)
     conn.row_factory = sqlite3.Row
     
-    # Create minimal schema
+    # Create full schema matching production db.py
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
             username TEXT,
+            first_name TEXT,
+            last_name TEXT,
             lang TEXT DEFAULT 'en',
+            -- Bybit API keys
             api_key TEXT,
             api_secret TEXT,
             api_key_real TEXT,
             api_secret_real TEXT,
+            demo_api_key TEXT,
+            demo_api_secret TEXT,
+            real_api_key TEXT,
+            real_api_secret TEXT,
+            -- Trading settings
             trading_mode TEXT DEFAULT 'demo',
             balance REAL DEFAULT 0,
             percent REAL DEFAULT 1.0,
-            tp_pct REAL DEFAULT 8.0,
-            sl_pct REAL DEFAULT 3.0,
+            coins TEXT DEFAULT 'ALL',
+            tp_percent REAL DEFAULT 8.0,
+            sl_percent REAL DEFAULT 3.0,
             leverage INTEGER DEFAULT 10,
+            limit_enabled INTEGER DEFAULT 0,
+            limit_only_default INTEGER DEFAULT 0,
+            global_order_type TEXT DEFAULT 'market',
+            -- Strategy toggles
+            trade_oi INTEGER DEFAULT 1,
+            trade_rsi_bb INTEGER DEFAULT 1,
+            trade_scryptomera INTEGER DEFAULT 0,
+            trade_scalper INTEGER DEFAULT 0,
+            trade_elcaro INTEGER DEFAULT 0,
+            trade_wyckoff INTEGER DEFAULT 0,
+            strategies_enabled TEXT,
+            strategies_order TEXT,
+            strategy_settings TEXT,
+            -- RSI/BB thresholds
+            rsi_lo REAL DEFAULT 30,
+            rsi_hi REAL DEFAULT 70,
+            bb_touch_k REAL DEFAULT 0.8,
+            oi_min_pct REAL DEFAULT 1.0,
+            price_min_pct REAL DEFAULT 0.5,
+            -- ATR settings
+            use_atr INTEGER DEFAULT 0,
+            atr_period INTEGER DEFAULT 14,
+            atr_mult REAL DEFAULT 1.5,
+            -- DCA settings
+            dca_enabled INTEGER DEFAULT 0,
+            dca_pct_1 REAL DEFAULT 5.0,
+            dca_pct_2 REAL DEFAULT 10.0,
+            -- Limit ladder
+            limit_ladder_enabled INTEGER DEFAULT 0,
+            limit_ladder_count INTEGER DEFAULT 3,
+            limit_ladder_settings TEXT,
+            -- Spot trading
+            spot_enabled INTEGER DEFAULT 0,
+            spot_settings TEXT,
+            -- HyperLiquid
             exchange_type TEXT DEFAULT 'bybit',
             hl_private_key TEXT,
             hl_vault_address TEXT,
+            hl_wallet_address TEXT,
             hl_testnet INTEGER DEFAULT 0,
+            hl_enabled INTEGER DEFAULT 0,
+            -- License
             license_type TEXT DEFAULT 'free',
-            license_expires INTEGER
+            license_expires INTEGER,
+            -- Access control
+            is_banned INTEGER DEFAULT 0,
+            is_allowed INTEGER DEFAULT 0,
+            terms_accepted INTEGER DEFAULT 0,
+            guide_sent INTEGER DEFAULT 0,
+            -- Timestamps
+            first_seen_ts INTEGER,
+            last_seen_ts INTEGER
         )
     """)
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS active_positions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            symbol TEXT,
-            side TEXT,
-            entry_price REAL,
-            quantity REAL,
-            leverage INTEGER,
-            tp_price REAL,
-            sl_price REAL,
-            strategy TEXT,
-            exchange TEXT DEFAULT 'bybit',
-            account_type TEXT DEFAULT 'demo',
-            opened_at INTEGER,
-            UNIQUE(user_id, symbol, side, exchange, account_type)
+            user_id      INTEGER NOT NULL,
+            symbol       TEXT    NOT NULL,
+            account_type TEXT    NOT NULL DEFAULT 'demo',
+            side         TEXT,
+            entry_price  REAL,
+            size         REAL,
+            open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+            timeframe    TEXT,
+            signal_id    INTEGER,
+            dca_10_done  INTEGER NOT NULL DEFAULT 0,
+            dca_25_done  INTEGER NOT NULL DEFAULT 0,
+            strategy     TEXT,
+            PRIMARY KEY(user_id, symbol, account_type),
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     """)
     
@@ -94,37 +149,88 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
         CREATE TABLE IF NOT EXISTS trade_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
+            signal_id INTEGER,
             symbol TEXT,
             side TEXT,
             entry_price REAL,
             exit_price REAL,
-            quantity REAL,
+            exit_reason TEXT,
             pnl REAL,
+            pnl_pct REAL,
+            ts DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            signal_source TEXT,
+            rsi REAL,
+            bb_hi REAL,
+            bb_lo REAL,
+            oi_prev REAL,
+            oi_now REAL,
+            oi_chg REAL,
+            vol_from REAL,
+            vol_to REAL,
+            price_chg REAL,
+            vol_delta REAL,
+            sl_pct REAL,
+            tp_pct REAL,
+            sl_price REAL,
+            tp_price REAL,
+            timeframe TEXT,
+            entry_ts INTEGER,
+            exit_ts INTEGER,
+            exit_order_type TEXT,
             strategy TEXT,
-            exchange TEXT DEFAULT 'bybit',
-            account_type TEXT DEFAULT 'demo',
-            opened_at INTEGER,
-            closed_at INTEGER
+            account_type TEXT DEFAULT 'demo'
         )
     """)
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS signals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            channel_id INTEGER,
-            symbol TEXT,
+            raw_message TEXT,
+            ts DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            tf TEXT,
             side TEXT,
-            entry_price REAL,
-            tp_price REAL,
-            sl_price REAL,
-            strategy TEXT,
-            raw_text TEXT,
-            created_at INTEGER
+            symbol TEXT,
+            price REAL,
+            oi_prev REAL,
+            oi_now REAL,
+            oi_chg REAL,
+            vol_from REAL,
+            vol_to REAL,
+            price_chg REAL,
+            vol_delta REAL,
+            rsi REAL,
+            bb_hi REAL,
+            bb_lo REAL
         )
     """)
     
+    # Create indexes like production
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_flags ON users(is_banned, is_allowed)")
+    
     conn.commit()
+    
+    # IMPORTANT: Patch db module to use this temporary database
+    import db as db_module
+    original_db_file = db_module.DB_FILE
+    db_module.DB_FILE = Path(temp_db_path)
+    
+    # Clear the connection pool to force new connections to temp db
+    while not db_module._pool.empty():
+        try:
+            old_conn = db_module._pool.get_nowait()
+            old_conn.close()
+        except:
+            pass
+    
+    # Don't call init_db() - we already created the schema above
+    # This avoids conflicts between test schema and production schema
+    
     yield conn
+    
+    # Restore original DB_FILE
+    db_module.DB_FILE = original_db_file
     conn.close()
 
 
