@@ -700,6 +700,11 @@ TEXTS = {
     'elcaro_ai_info': '🤖 *AI-Powered Trading*',
     'elcaro_ai_desc': '_All parameters are parsed from AI signals automatically:_',
 
+    # Fibonacci
+    'fibonacci_info': '📐 *Fibonacci Extension Strategy*',
+    'fibonacci_desc': '_Entry, SL, TP - from Fibonacci levels in signal._',
+    'prompt_min_quality': 'Enter Min Quality % (0-100):',
+
     # Limit Ladder
     'limit_ladder': '📉 Limit Ladder',
     'limit_ladder_header': '📉 *Limit Ladder Settings*',

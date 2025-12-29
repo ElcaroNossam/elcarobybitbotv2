@@ -5608,75 +5608,30 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             else:
                 ctx_label = "Demo" if context["account_type"] == "demo" else "Real"
             
+            # Use unified build function for settings display
             lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
             lines.append(f"_{context['exchange'].title()} / {ctx_label}_")
             lines.append("")
             
-            # Order type
-            order_type = strat_settings.get("order_type", "market")
-            order_emoji = "🎯" if order_type == "limit" else "⚡"
-            order_label = "Limit" if order_type == "limit" else "Market"
-            lines.append(f"*Order Type*: {order_emoji} {order_label}")
+            # Build settings text based on strategy features
+            settings_text = build_strategy_settings_text(strategy, strat_settings, t)
+            # Skip header from build function since we already have it
+            settings_lines = settings_text.split("\n")
+            if len(settings_lines) > 1:
+                lines.extend(settings_lines[2:])  # Skip header and empty line
             
-            # Coins group
-            coins_group = strat_settings.get("coins_group")
-            coins_label = coins_group if coins_group else t.get('global_default', 'Global')
-            lines.append(f"*Coins*: {coins_label}")
-            lines.append("")
-            
-            global_lbl = t.get('global_default', 'Global')
-            pct = strat_settings.get("percent")
-            
-            # Elcaro - special display (AI parsed)
-            if strategy == "elcaro":
-                lines.append(f"📊 *Position Size %*: {pct if pct is not None else global_lbl}")
+            # Special info for Elcaro/Fibonacci - AI signals
+            if strategy in ("elcaro", "fibonacci"):
                 lines.append("")
                 lines.append("━━━━━━━━━━━━━━━━━━")
-                lines.append(t.get('elcaro_ai_info', '🤖 *AI-Powered Trading*'))
-                lines.append("")
-                lines.append(t.get('elcaro_ai_desc', '_Entry, SL, TP, ATR, Leverage - all parsed from AI signals automatically._'))
-                lines.append("")
-                lines.append("• Entry Price")
-                lines.append("• Stop-Loss %")
-                lines.append("• Take-Profit %")  
-                lines.append("• ATR Periods, Multiplier, Trigger")
-                lines.append("• Leverage & Timeframe")
-            else:
-                sl = strat_settings.get("sl_percent")
-                tp = strat_settings.get("tp_percent")
-                atr_per = strat_settings.get("atr_periods")
-                atr_mult = strat_settings.get("atr_multiplier_sl")
-                atr_trig = strat_settings.get("atr_trigger_pct")
-                
-                lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-                lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-                lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-                lines.append("")
-                lines.append(f"ATR Periods: {atr_per if atr_per is not None else global_lbl}")
-                lines.append(f"ATR Mult (SL step): {atr_mult if atr_mult is not None else global_lbl}")
-                lines.append(f"ATR Trigger %: {atr_trig if atr_trig is not None else global_lbl}")
-            
-            # Show Scryptomera-specific settings
-            if strategy == "scryptomera":
-                lines.append("")
-                direction = strat_settings.get("direction", "all")
-                dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-                dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-                lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-                
-                # LONG settings
-                l_pct = strat_settings.get("long_percent")
-                l_sl = strat_settings.get("long_sl_percent")
-                l_tp = strat_settings.get("long_tp_percent")
-                if any(v is not None for v in [l_pct, l_sl, l_tp]):
-                    lines.append(f"📈 LONG: Entry={l_pct or global_lbl}, SL={l_sl or global_lbl}, TP={l_tp or global_lbl}")
-                
-                # SHORT settings
-                s_pct = strat_settings.get("short_percent")
-                s_sl = strat_settings.get("short_sl_percent")
-                s_tp = strat_settings.get("short_tp_percent")
-                if any(v is not None for v in [s_pct, s_sl, s_tp]):
-                    lines.append(f"📉 SHORT: Entry={s_pct or global_lbl}, SL={s_sl or global_lbl}, TP={s_tp or global_lbl}")
+                if strategy == "elcaro":
+                    lines.append(t.get('elcaro_ai_info', '🤖 *AI-Powered Trading*'))
+                    lines.append("")
+                    lines.append(t.get('elcaro_ai_desc', '_Entry, SL, TP, ATR, Leverage - all parsed from AI signals automatically._'))
+                else:
+                    lines.append(t.get('fibonacci_info', '📐 *Fibonacci Extension*'))
+                    lines.append("")
+                    lines.append(t.get('fibonacci_desc', '_Entry, SL, TP - from Fibonacci levels in signal._'))
             
             await query.message.edit_text(
                 "\n".join(lines),
@@ -5720,14 +5675,21 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "atr_multiplier_sl": t.get('prompt_atr_mult', 'Enter ATR Multiplier for SL step (e.g., 1.0):'),
             "atr_trigger_pct": t.get('prompt_atr_trigger', 'Enter ATR Trigger % (e.g., 2.0):'),
             "leverage": t.get('prompt_leverage', 'Enter Leverage (1-100):'),
-            # Scryptomera LONG settings
+            "min_quality": t.get('prompt_min_quality', 'Enter Min Quality % (0-100):'),
+            # LONG settings
             "long_percent": t.get('prompt_long_entry_pct', '📈 LONG Entry % (risk per trade):'),
             "long_sl_percent": t.get('prompt_long_sl_pct', '📈 LONG Stop-Loss %:'),
             "long_tp_percent": t.get('prompt_long_tp_pct', '📈 LONG Take-Profit %:'),
-            # Scryptomera SHORT settings
+            "long_atr_periods": t.get('prompt_long_atr_periods', '📈 LONG ATR Periods (e.g., 7):'),
+            "long_atr_multiplier_sl": t.get('prompt_long_atr_mult', '📈 LONG ATR Multiplier (e.g., 1.0):'),
+            "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG ATR Trigger % (e.g., 2.0):'),
+            # SHORT settings
             "short_percent": t.get('prompt_short_entry_pct', '📉 SHORT Entry % (risk per trade):'),
             "short_sl_percent": t.get('prompt_short_sl_pct', '📉 SHORT Stop-Loss %:'),
             "short_tp_percent": t.get('prompt_short_tp_pct', '📉 SHORT Take-Profit %:'),
+            "short_atr_periods": t.get('prompt_short_atr_periods', '📉 SHORT ATR Periods (e.g., 7):'),
+            "short_atr_multiplier_sl": t.get('prompt_short_atr_mult', '📉 SHORT ATR Multiplier (e.g., 1.0):'),
+            "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT ATR Trigger % (e.g., 2.0):'),
         }
         
         await query.message.edit_text(
@@ -9336,16 +9298,16 @@ def is_elcaro_signal(text: str) -> bool:
         return True
     # Detect by structure: has 🔔 SYMBOL, Entry, SL with %, TP with %
     # ATR Exit marker is optional now (more flexible detection)
-    has_main = ELCARO_RE_MAIN.search(text)
-    has_entry = ELCARO_RE_ENTRY.search(text)
-    has_sl = ELCARO_RE_SL.search(text)
-    has_tp = ELCARO_RE_TP.search(text)
-    has_atr = ELCARO_RE_ATR.search(text)
-    has_atr_exit = ELCARO_RE_ATR_EXIT.search(text)
-    has_tf_lev = ELCARO_RE_TF_LEV.search(text)
+    has_main = bool(ELCARO_RE_MAIN.search(text))
+    has_entry = bool(ELCARO_RE_ENTRY.search(text))
+    has_sl = bool(ELCARO_RE_SL.search(text))
+    has_tp = bool(ELCARO_RE_TP.search(text))
+    has_atr = bool(ELCARO_RE_ATR.search(text))
+    has_atr_exit = bool(ELCARO_RE_ATR_EXIT.search(text))
+    has_tf_lev = bool(ELCARO_RE_TF_LEV.search(text))
     
     # Core detection: 🔔 SYMBOL + Entry + SL% + TP%
-    core_match = bool(has_main and has_entry and has_sl and has_tp)
+    core_match = has_main and has_entry and has_sl and has_tp
     
     # Additional indicators that strengthen the match
     has_additional = has_atr_exit or has_atr or has_tf_lev
@@ -13642,6 +13604,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                          "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_trigger_pct"):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
+            elif param == "min_quality":
+                if value < 0 or value > 100:
+                    raise ValueError("Min quality must be between 0 and 100")
+                value = int(value)
             elif param in ("atr_periods", "long_atr_periods", "short_atr_periods"):
                 if value < 1 or value > 50 or int(value) != value:
                     raise ValueError("ATR periods must be integer between 1 and 50")
@@ -13672,13 +13638,15 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "atr_multiplier_sl": "ATR Multiplier",
                 "atr_trigger_pct": "ATR Trigger %",
                 "leverage": "Leverage",
-                # Scryptomera LONG/SHORT
+                "min_quality": "Min Quality %",
+                # LONG
                 "long_percent": "LONG Entry %",
                 "long_sl_percent": "LONG SL %",
                 "long_tp_percent": "LONG TP %",
                 "long_atr_periods": "LONG ATR Periods",
                 "long_atr_multiplier_sl": "LONG ATR Multiplier",
                 "long_atr_trigger_pct": "LONG ATR Trigger %",
+                # SHORT
                 "short_percent": "SHORT Entry %",
                 "short_sl_percent": "SHORT SL %",
                 "short_tp_percent": "SHORT TP %",
@@ -13687,19 +13655,15 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "short_atr_trigger_pct": "SHORT ATR Trigger %",
             }.get(param, param)
             
-            # Determine which keyboard to return to based on strategy and param
+            # Determine which keyboard to return to based on param
             if param.startswith("long_"):
-                if strategy == "scalper":
-                    reply_kb = get_scalper_side_keyboard("long", ctx.t)
-                else:
-                    reply_kb = get_scryptomera_side_keyboard("long", ctx.t)
+                strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+                reply_kb = get_strategy_side_keyboard(strategy, "long", ctx.t, strat_settings)
             elif param.startswith("short_"):
-                if strategy == "scalper":
-                    reply_kb = get_scalper_side_keyboard("short", ctx.t)
-                else:
-                    reply_kb = get_scryptomera_side_keyboard("short", ctx.t)
+                strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+                reply_kb = get_strategy_side_keyboard(strategy, "short", ctx.t, strat_settings)
             else:
-                strat_settings = db.get_strategy_settings(uid, strategy)
+                strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
                 reply_kb = get_strategy_param_keyboard(strategy, ctx.t, strat_settings)
             
             # Show confirmation and return to appropriate settings menu
