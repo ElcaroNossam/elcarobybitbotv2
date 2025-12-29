@@ -4342,9 +4342,9 @@ STRATEGY_FEATURES = {
         "use_atr": True,         # ATR trailing toggle
         "direction": True,       # LONG/SHORT/ALL filter
         "side_settings": True,   # Separate LONG/SHORT settings
-        "percent": False,        # Uses side-specific instead
-        "sl_tp": False,          # Uses side-specific instead
-        "atr_params": False,     # Uses side-specific instead  
+        "percent": True,         # Global percent
+        "sl_tp": True,           # SL/TP on main screen
+        "atr_params": True,      # ATR params on main screen  
         "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
     },
@@ -4355,9 +4355,9 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,
-        "percent": False,
-        "sl_tp": False,
-        "atr_params": False,
+        "percent": True,
+        "sl_tp": True,
+        "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
     },
@@ -4375,15 +4375,15 @@ STRATEGY_FEATURES = {
         "min_quality": False,
     },
     "fibonacci": {
-        "order_type": False,     # Uses market orders
+        "order_type": True,      # Market/Limit toggle
         "coins_group": True,
         "leverage": True,
-        "use_atr": False,        # Fib has its own logic
+        "use_atr": True,         # ATR trailing option
         "direction": True,
         "side_settings": True,
         "percent": True,
-        "sl_tp": False,          # From Fib levels
-        "atr_params": False,
+        "sl_tp": True,           # Manual SL/TP override
+        "atr_params": True,      # ATR params
         "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
     },
@@ -4393,7 +4393,7 @@ STRATEGY_FEATURES = {
         "leverage": True,
         "use_atr": True,
         "direction": True,
-        "side_settings": False,  # Simple strategy, no side-specific
+        "side_settings": True,   # LONG/SHORT separate settings
         "percent": True,
         "sl_tp": True,           # Manual SL/TP
         "atr_params": True,      # Full ATR control
@@ -4406,7 +4406,7 @@ STRATEGY_FEATURES = {
         "leverage": True,
         "use_atr": True,
         "direction": True,
-        "side_settings": False,  # Simple strategy
+        "side_settings": True,   # LONG/SHORT separate settings
         "percent": True,
         "sl_tp": True,
         "atr_params": True,

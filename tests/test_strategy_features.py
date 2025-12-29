@@ -68,9 +68,12 @@ class TestStrategyFeaturesLogic:
         assert strat["direction"], "Scryptomera should show direction"
         assert strat["side_settings"], "Scryptomera should have side settings"
         assert strat["hl_settings"], "Scryptomera should show HL settings"
+        assert strat["percent"], "Scryptomera should show percent"
+        assert strat["sl_tp"], "Scryptomera should show SL/TP"
+        assert strat["atr_params"], "Scryptomera should show ATR params"
     
     def test_fibonacci_quality_filter(self):
-        """Fibonacci should have min_quality filter."""
+        """Fibonacci should have min_quality filter and full features."""
         import bot
         fib = bot.STRATEGY_FEATURES["fibonacci"]
         
@@ -78,22 +81,30 @@ class TestStrategyFeaturesLogic:
         assert fib["percent"], "Fibonacci should show percent"
         assert fib["leverage"], "Fibonacci should show leverage"
         assert fib["direction"], "Fibonacci should show direction"
-        assert not fib["use_atr"], "Fibonacci shouldn't show ATR"
+        assert fib["use_atr"], "Fibonacci should show ATR (full features)"
+        assert fib["sl_tp"], "Fibonacci should show SL/TP"
+        assert fib["order_type"], "Fibonacci should show order_type"
     
-    def test_oi_rsi_bb_no_side_settings(self):
-        """OI and RSI_BB use global settings, no side-specific."""
+    def test_oi_rsi_bb_full_features(self):
+        """OI and RSI_BB should have full features including side settings."""
         import bot
         
         oi = bot.STRATEGY_FEATURES["oi"]
         rsi_bb = bot.STRATEGY_FEATURES["rsi_bb"]
         
-        # OI and RSI_BB don't need side-specific settings
-        assert not oi["side_settings"], "OI shouldn't have side settings"
-        assert not rsi_bb["side_settings"], "RSI_BB shouldn't have side settings"
+        # OI and RSI_BB now have full features
+        assert oi["side_settings"], "OI should have side settings"
+        assert rsi_bb["side_settings"], "RSI_BB should have side settings"
         
-        # But they should have SL/TP on main screen
+        # They should have SL/TP on main screen
         assert oi["sl_tp"], "OI should show SL/TP on main"
         assert rsi_bb["sl_tp"], "RSI_BB should show SL/TP on main"
+        
+        # Full ATR support
+        assert oi["use_atr"], "OI should show ATR"
+        assert rsi_bb["use_atr"], "RSI_BB should show ATR"
+        assert oi["atr_params"], "OI should show ATR params"
+        assert rsi_bb["atr_params"], "RSI_BB should show ATR params"
 
 
 class TestGetStrategyParamKeyboard:
