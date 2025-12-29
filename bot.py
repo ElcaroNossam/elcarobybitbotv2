@@ -9274,8 +9274,10 @@ def parse_elcaro_signal(text: str) -> dict | None:
 # --- Fibonacci Extension Strategy Parser ---
 # Header: 📊 FIBONACCI EXTENSION STRATEGY
 FIBO_RE_HDR = re.compile(r'📊\s*FIBONACCI\s+EXTENSION\s+STRATEGY', re.I)
-# Symbol and price: 🪙 BTCUSDT | $97,500.00
-FIBO_RE_SYMBOL = re.compile(r'🪙\s*([A-Z0-9]+USDT)\s*\|\s*\$?([\d,]+(?:\.\d+)?)', re.I)
+# Symbol: 🪙 BTCUSDT | ... (price is optional, can be '—' or empty)
+FIBO_RE_SYMBOL = re.compile(r'🪙\s*([A-Z0-9]+USDT)', re.I)
+# Optional price after symbol: | $97,500.00 or | 97500.00
+FIBO_RE_SYMBOL_PRICE = re.compile(r'🪙\s*[A-Z0-9]+USDT\s*\|\s*[$]?([\d,]+(?:\.\d+)?)', re.I)
 # Direction: 📈 LONG or 📉 SHORT
 FIBO_RE_SIDE = re.compile(r'[📈📉]\s*(LONG|SHORT)', re.I)
 # Entry Zone: 🎯 Entry Zone: 96,800.0000 – 97,200.0000
@@ -9302,14 +9304,14 @@ def parse_fibonacci_signal(text: str) -> dict | None:
     Format:
         📊 FIBONACCI EXTENSION STRATEGY
 
-        🪙 BTCUSDT | $97,500.00
+        🪙 BTCUSDT | $97,500.00 (price can be '—' or missing)
         📈 LONG
 
         🎯 Entry Zone: 96,800.0000 – 97,200.0000
         🛑 Stop Loss: 95,500.0000
         ✅ Target 1: 99,000.0000
 
-        ⚡ Trigger: Spring detected + Price in 141.4%-161.8% zone
+        ⚡ Trigger: Price in 141.4%-161.8% zone
         🟢 Quality: A (85/100)
     
     Returns dict with all trading parameters.
@@ -9324,13 +9326,17 @@ def parse_fibonacci_signal(text: str) -> dict | None:
         return None
     
     symbol = m_symbol.group(1).upper()
-    current_price = _tof(m_symbol.group(2).replace(",", ""))
     side = "Buy" if m_side.group(1).upper() == "LONG" else "Sell"
+    
+    # Try to get price from header (optional)
+    m_price = FIBO_RE_SYMBOL_PRICE.search(text)
+    current_price = None
+    if m_price:
+        current_price = _tof(m_price.group(1).replace(",", ""))
     
     result = {
         "symbol": symbol,
         "side": side,
-        "price": current_price,
         "fibonacci_mode": True,  # Flag for special Fibonacci handling
     }
     
@@ -9342,6 +9348,11 @@ def parse_fibonacci_signal(text: str) -> dict | None:
         result["entry_low"] = entry_low
         result["entry_high"] = entry_high
         result["entry"] = (entry_low + entry_high) / 2  # Mid point for entry
+        # If no price in header, use entry mid point
+        if current_price is None:
+            current_price = result["entry"]
+    
+    result["price"] = current_price
     
     # Stop Loss
     m_sl = FIBO_RE_SL.search(text)
