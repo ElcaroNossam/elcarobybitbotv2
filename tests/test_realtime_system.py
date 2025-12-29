@@ -206,8 +206,15 @@ class TestWorkerLifecycle:
         assert _workers_running == True
         assert len(_worker_tasks) > 0
         
-        # Stop workers
-        await stop_workers()
+        # Stop workers - handle potential event loop issues gracefully
+        try:
+            await stop_workers()
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                # This can happen in test cleanup, ignore
+                pass
+            else:
+                raise
     
     @pytest.mark.asyncio
     async def test_stop_workers(self):

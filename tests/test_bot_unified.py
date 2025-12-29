@@ -90,9 +90,13 @@ class TestBotUnified(unittest.TestCase):
         self.assertEqual(result[0].symbol, "BTCUSDT")
         self.assertEqual(result[0].side, PositionSide.LONG)
     
+    @patch('bot_unified.db')
     @patch('core.exchange_client.get_exchange_client')
-    def test_place_order_bybit(self, mock_get_client):
+    def test_place_order_bybit(self, mock_get_client, mock_db):
         """Test place_order_unified for Bybit"""
+        # Mock database
+        mock_db.add_active_position.return_value = None
+        
         # Mock exchange client
         mock_client = AsyncMock()
         mock_client.place_order.return_value = OrderResult(

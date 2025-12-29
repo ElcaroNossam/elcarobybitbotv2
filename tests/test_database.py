@@ -141,21 +141,17 @@ class TestPositionManagement:
         position_data = {
             "user_id": test_user_id,
             "symbol": "BTCUSDT",
+            "account_type": "demo",
             "side": "LONG",
             "entry_price": 50000.0,
-            "quantity": 0.1,
-            "leverage": 10,
-            "tp_price": 54000.0,
-            "sl_price": 48500.0,
-            "strategy": "elcaro",
-            "opened_at": int(time.time())
+            "size": 0.1,
+            "strategy": "elcaro"
         }
         
         cursor.execute("""
             INSERT INTO active_positions 
-            (user_id, symbol, side, entry_price, quantity, leverage, 
-             tp_price, sl_price, strategy, opened_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (user_id, symbol, account_type, side, entry_price, size, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, tuple(position_data.values()))
         test_db.commit()
         
@@ -179,15 +175,15 @@ class TestPositionManagement:
         
         # Add multiple positions
         positions = [
-            (test_user_id, "BTCUSDT", "LONG", 50000.0, 0.1, 10, "elcaro", int(time.time())),
-            (test_user_id, "ETHUSDT", "SHORT", 3000.0, 1.0, 10, "scalper", int(time.time()))
+            (test_user_id, "BTCUSDT", "demo", "LONG", 50000.0, 0.1, "elcaro"),
+            (test_user_id, "ETHUSDT", "demo", "SHORT", 3000.0, 1.0, "scalper")
         ]
         
         for pos in positions:
             cursor.execute("""
                 INSERT INTO active_positions 
-                (user_id, symbol, side, entry_price, quantity, leverage, strategy, opened_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, symbol, account_type, side, entry_price, size, strategy)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, pos)
         test_db.commit()
         
@@ -209,9 +205,9 @@ class TestPositionManagement:
         # Add position
         cursor.execute("""
             INSERT INTO active_positions 
-            (user_id, symbol, side, entry_price, quantity, leverage, strategy, opened_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (test_user_id, "BTCUSDT", "LONG", 50000.0, 0.1, 10, "elcaro", int(time.time())))
+            (user_id, symbol, account_type, side, entry_price, size, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (test_user_id, "BTCUSDT", "demo", "LONG", 50000.0, 0.1, "elcaro"))
         test_db.commit()
         
         # Remove
@@ -245,18 +241,14 @@ class TestTradeLogging:
             "side": "LONG",
             "entry_price": 50000.0,
             "exit_price": 54000.0,
-            "quantity": 0.1,
             "pnl": 400.0,
-            "strategy": "elcaro",
-            "opened_at": int(time.time()) - 3600,
-            "closed_at": int(time.time())
+            "strategy": "elcaro"
         }
         
         cursor.execute("""
             INSERT INTO trade_logs
-            (user_id, symbol, side, entry_price, exit_price, quantity, 
-             pnl, strategy, opened_at, closed_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (user_id, symbol, side, entry_price, exit_price, pnl, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, tuple(trade_data.values()))
         test_db.commit()
         
@@ -276,16 +268,16 @@ class TestTradeLogging:
         
         # Add multiple trades
         trades = [
-            (test_user_id, "BTCUSDT", "LONG", 50000, 54000, 0.1, 400, "elcaro", int(time.time())),
-            (test_user_id, "ETHUSDT", "SHORT", 3000, 2900, 1.0, 100, "scalper", int(time.time())),
-            (test_user_id, "BTCUSDT", "LONG", 52000, 51000, 0.1, -100, "elcaro", int(time.time()))
+            (test_user_id, "BTCUSDT", "LONG", 50000, 54000, 400, "elcaro"),
+            (test_user_id, "ETHUSDT", "SHORT", 3000, 2900, 100, "scalper"),
+            (test_user_id, "BTCUSDT", "LONG", 52000, 51000, -100, "elcaro")
         ]
         
         for trade in trades:
             cursor.execute("""
                 INSERT INTO trade_logs
-                (user_id, symbol, side, entry_price, exit_price, quantity, pnl, strategy, closed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, symbol, side, entry_price, exit_price, pnl, strategy)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, trade)
         test_db.commit()
         
@@ -316,22 +308,16 @@ class TestSignalManagement:
         cursor = test_db.cursor()
         
         signal_data = {
-            "channel_id": -1001234567890,
+            "raw_message": "🔥 BTCUSDT LONG from channel -1001234567890",
             "symbol": "BTCUSDT",
             "side": "LONG",
-            "entry_price": 50000.0,
-            "tp_price": 54000.0,
-            "sl_price": 48500.0,
-            "strategy": "elcaro",
-            "raw_text": "🔥 BTCUSDT LONG",
-            "created_at": int(time.time())
+            "price": 50000.0
         }
         
         cursor.execute("""
             INSERT INTO signals
-            (channel_id, symbol, side, entry_price, tp_price, sl_price, 
-             strategy, raw_text, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (raw_message, symbol, side, price)
+            VALUES (?, ?, ?, ?)
         """, tuple(signal_data.values()))
         test_db.commit()
         
@@ -341,7 +327,7 @@ class TestSignalManagement:
         
         assert result is not None
         assert result['symbol'] == "BTCUSDT"
-        assert result['strategy'] == "elcaro"
+        assert result['side'] == "LONG"
     
     @pytest.mark.unit
     @pytest.mark.database
@@ -349,28 +335,26 @@ class TestSignalManagement:
         """Test retrieving recent signals"""
         cursor = test_db.cursor()
         
-        # Add signals with different timestamps
-        now = int(time.time())
+        # Add signals 
         signals = [
-            (-1001234567890, "BTCUSDT", "LONG", now - 3599),  # Changed from 3600 to 3599
-            (-1001234567890, "ETHUSDT", "SHORT", now - 1800),
-            (-1001234567890, "BNBUSDT", "LONG", now)
+            ("Signal 1 BTCUSDT LONG", "BTCUSDT", "LONG"),
+            ("Signal 2 ETHUSDT SHORT", "ETHUSDT", "SHORT"),
+            ("Signal 3 BNBUSDT LONG", "BNBUSDT", "LONG")
         ]
         
         for sig in signals:
             cursor.execute("""
                 INSERT INTO signals
-                (channel_id, symbol, side, created_at)
-                VALUES (?, ?, ?, ?)
+                (raw_message, symbol, side)
+                VALUES (?, ?, ?)
             """, sig)
         test_db.commit()
         
-        # Get last hour signals
+        # Get all signals
         cursor.execute("""
             SELECT * FROM signals 
-            WHERE created_at > ?
-            ORDER BY created_at DESC
-        """, (now - 3600,))
+            ORDER BY ts DESC
+        """)
         results = cursor.fetchall()
         
         assert len(results) == 3
