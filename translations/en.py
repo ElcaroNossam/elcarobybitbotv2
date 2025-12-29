@@ -26,7 +26,7 @@ TEXTS = {
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '🎯 Scalper',
     'button_elcaro':               '🔥 Elcaro',
-    'button_wyckoff':              '📐 Wyckoff',
+    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '📋 My Config',
     'button_indicators':           '💡 Indicators',
     'button_support':              '🆘 Support',
@@ -35,7 +35,7 @@ TEXTS = {
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
     'config_trade_elcaro':         '🔥 Elcaro: {state}',
-    'config_trade_wyckoff':        '📐 Wyckoff: {state}',
+    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # API Settings
     'api_settings_title':          '🔑 <b>API Settings</b>',
@@ -390,14 +390,15 @@ TEXTS = {
     'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 *Wyckoff Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_limit_error':         '❌ Wyckoff Limit error: {msg}',
-    'wyckoff_market_entry':        '📐 *Wyckoff Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_error':        '❌ Wyckoff Market error: {msg}',
-    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
-    'feature_wyckoff':             'Wyckoff',
+    # Fibonacci Extension Strategy
+    'fibonacci_limit_entry':       '📐 *Fibonacci Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_limit_error':       '❌ Fibonacci Limit error: {msg}',
+    'fibonacci_market_entry':      '📐 *Fibonacci Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_error':      '❌ Fibonacci error: {msg}',
+    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
+    'feature_fibonacci':           'Fibonacci',
+    'stats_fibonacci':             '📐 Fibonacci',
 
     # Admin panel
     'admin_panel':                 '👑 Admin Panel:',
@@ -572,7 +573,7 @@ TEXTS = {
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
     'strat_elcaro':                  '🔥 Elcaro',
-    'strat_wyckoff':                 '📐 Wyckoff',
+    'strat_fibonacci':               '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA Settings',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
     'dca_toggle':                    'DCA Enabled',
@@ -647,7 +648,7 @@ TEXTS = {
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
     'stats_elcaro':                  '🔥 Elcaro',
-    'stats_wyckoff':                 '📐 Wyckoff',
+    'stats_fibonacci':               '📐 Fibonacci',
     'stats_spot':                    '💹 Spot',
     'stats_spot_title':              'Spot DCA Statistics',
     'stats_spot_config':             'Configuration',
@@ -748,7 +749,7 @@ TEXTS = {
     'basic_title': '🥈 *BASIC PLAN*',
     'basic_desc': '''✅ Full demo account access
 ✅ Real account: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Wyckoff, Spot — Premium only
+❌ Elcaro, Fibonacci, Spot — Premium only
 ✅ Standard support
 ✅ ATR-based dynamic SL/TP''',
     'basic_1m': '🥈 1 Month — {price}⭐',

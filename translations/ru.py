@@ -24,7 +24,7 @@ TEXTS = {
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '🎯 Scalper',
     'button_elcaro':               '🔥 Elcaro',
-    'button_wyckoff':              '📐 Вайкоф',
+    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '📋 Мой конфиг',
     'button_indicators':           '💡 Индикаторы',
     'button_support':              '🆘 Поддержка',
@@ -33,7 +33,7 @@ TEXTS = {
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
     'config_trade_elcaro':         '🔥 Elcaro: {state}',
-    'config_trade_wyckoff':        '📐 Вайкоф: {state}',
+    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # API настройки
     'api_settings_title':          '🔑 <b>Настройки API</b>',
@@ -388,14 +388,14 @@ TEXTS = {
     'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 *Wyckoff Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_limit_error':         '❌ Wyckoff Limit ошибка: {msg}',
-    'wyckoff_market_entry':        '📐 *Wyckoff Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_error':        '❌ Wyckoff Market ошибка: {msg}',
-    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
-    'feature_wyckoff':             'Wyckoff',
+    # Fibonacci Extension Strategy
+    'fibonacci_limit_entry':       '📐 *Fibonacci Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_limit_error':       '❌ Fibonacci Limit ошибка: {msg}',
+    'fibonacci_market_entry':      '📐 *Fibonacci Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_error':      '❌ Fibonacci Market ошибка: {msg}',
+    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
+    'feature_fibonacci':           'Fibonacci',
 
     # Админ-панель
     'admin_panel':                 '👑 Админ-панель:',
@@ -570,7 +570,7 @@ TEXTS = {
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
     'strat_elcaro':                  '🔥 Elcaro',
-    'strat_wyckoff':                 '📐 Wyckoff',
+    'strat_fibonacci':               '📐 Fibonacci',
     'dca_settings':                  '⚙️ Настройки DCA',
     'dca_settings_header':           '⚙️ *Настройки DCA (Фьючерсы)*\n\n',
     'dca_toggle':                    'DCA включён',
@@ -645,7 +645,7 @@ TEXTS = {
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
     'stats_elcaro':                  '🔥 Elcaro',
-    'stats_wyckoff':                 '📐 Wyckoff',
+    'stats_fibonacci':               '📐 Fibonacci',
     'stats_spot':                    '💹 Спот',
     'stats_spot_title':              'Статистика Спот DCA',
     'stats_spot_config':             'Конфигурация',

@@ -72,7 +72,7 @@ USER_FIELDS_WHITELIST = {
     "trade_scryptomera",
     "trade_scalper",
     "trade_elcaro",
-    "trade_wyckoff",
+    "trade_fibonacci",
     # настройки по стратегиям (JSON)
     "strategy_settings",
     # DCA настройки
@@ -198,7 +198,7 @@ def init_db():
             trade_scryptomera  INTEGER NOT NULL DEFAULT 0,
             trade_scalper      INTEGER NOT NULL DEFAULT 0,
             trade_elcaro       INTEGER NOT NULL DEFAULT 0,
-            trade_wyckoff      INTEGER NOT NULL DEFAULT 0,
+            trade_fibonacci    INTEGER NOT NULL DEFAULT 0,
 
             -- настройки по стратегиям (JSON: {"oi": {"percent": 1, "sl": 3, "tp": 8}, ...})
             strategy_settings  TEXT,
@@ -237,7 +237,7 @@ def init_db():
             ("trade_scryptomera",  "ALTER TABLE users ADD COLUMN trade_scryptomera  INTEGER NOT NULL DEFAULT 0"),
             ("trade_scalper",      "ALTER TABLE users ADD COLUMN trade_scalper      INTEGER NOT NULL DEFAULT 0"),
             ("trade_elcaro",       "ALTER TABLE users ADD COLUMN trade_elcaro       INTEGER NOT NULL DEFAULT 0"),
-            ("trade_wyckoff",      "ALTER TABLE users ADD COLUMN trade_wyckoff      INTEGER NOT NULL DEFAULT 0"),
+            ("trade_fibonacci",    "ALTER TABLE users ADD COLUMN trade_fibonacci    INTEGER NOT NULL DEFAULT 0"),
             ("strategy_settings",  "ALTER TABLE users ADD COLUMN strategy_settings  TEXT"),
             ("dca_enabled",        "ALTER TABLE users ADD COLUMN dca_enabled        INTEGER NOT NULL DEFAULT 0"),
             ("dca_pct_1",          "ALTER TABLE users ADD COLUMN dca_pct_1          REAL NOT NULL DEFAULT 10.0"),
@@ -1186,7 +1186,10 @@ def get_user_config(user_id: int) -> dict:
             cols.append("trade_scalper")
         if _col_exists(conn, "users", "trade_elcaro"):
             cols.append("trade_elcaro")
-        if _col_exists(conn, "users", "trade_wyckoff"):
+        if _col_exists(conn, "users", "trade_fibonacci"):
+            cols.append("trade_fibonacci")
+        # Also check for old column name for backward compatibility
+        elif _col_exists(conn, "users", "trade_wyckoff"):
             cols.append("trade_wyckoff")
         if _col_exists(conn, "users", "strategy_settings"):
             cols.append("strategy_settings")
@@ -1249,7 +1252,7 @@ def get_user_config(user_id: int) -> dict:
             "trade_scryptomera": 0,
             "trade_scalper": 0,
             "trade_elcaro": 0,
-            "trade_wyckoff": 0,
+            "trade_fibonacci": 0,
             "strategy_settings": {},
             "dca_enabled": 0,
             "dca_pct_1": 10.0,
@@ -1301,8 +1304,8 @@ def get_user_config(user_id: int) -> dict:
         "trade_elcaro": int(data.get("trade_elcaro") or 0)
         if "trade_elcaro" in data
         else 0,
-        "trade_wyckoff": int(data.get("trade_wyckoff") or 0)
-        if "trade_wyckoff" in data
+        "trade_fibonacci": int(data.get("trade_fibonacci") or data.get("trade_wyckoff") or 0)
+        if "trade_fibonacci" in data or "trade_wyckoff" in data
         else 0,
         "strategy_settings": json.loads(data.get("strategy_settings") or "{}")
         if data.get("strategy_settings")
@@ -3817,7 +3820,7 @@ def get_active_trading_strategies(user_id: int) -> list:
     # System strategies
     system_strats = [
         ("elcaro", "trade_elcaro"),
-        ("wyckoff", "trade_wyckoff"),
+        ("fibonacci", "trade_fibonacci"),
         ("scryptomera", "trade_scryptomera"),
         ("scalper", "trade_scalper"),
         ("oi", "trade_oi"),

@@ -4192,15 +4192,15 @@ async def cmd_toggle_elcaro(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @require_access
 @with_texts
 @log_calls
-async def cmd_toggle_wyckoff(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def cmd_toggle_fibonacci(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     cfg = get_user_config(uid)
-    new = 0 if cfg.get("trade_wyckoff", 0) else 1
-    set_user_field(uid, "trade_wyckoff", new)
+    new = 0 if cfg.get("trade_fibonacci", 0) else 1
+    set_user_field(uid, "trade_fibonacci", new)
 
     emoji = ctx.t["emoji_long"] if new else ctx.t["emoji_short"]
     status = ctx.t['status_enabled'] if new else ctx.t['status_disabled']
-    feature_name = ctx.t.get('feature_wyckoff', 'Wyckoff')
+    feature_name = ctx.t.get('feature_fibonacci', 'Fibonacci')
 
     await update.message.reply_text(
         f"{emoji} {feature_name}: {status}",
@@ -4217,7 +4217,7 @@ STRATEGY_NAMES_MAP = {
     "scryptomera": "Scryptomera",
     "scalper": "Scalper",
     "elcaro": "Elcaro",
-    "wyckoff": "Wyckoff",
+    "fibonacci": "Fibonacci",
 }
 
 def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -> InlineKeyboardMarkup:
@@ -4265,9 +4265,9 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
         [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro", callback_data="strat_toggle:elcaro"),
          InlineKeyboardButton(get_mode_emoji("elcaro"), callback_data="strat_mode:elcaro"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:elcaro")],
-        [InlineKeyboardButton(f"{status('trade_wyckoff')} 📊 Wyckoff", callback_data="strat_toggle:wyckoff"),
-         InlineKeyboardButton(get_mode_emoji("wyckoff"), callback_data="strat_mode:wyckoff"),
-         InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:wyckoff")],
+        [InlineKeyboardButton(f"{status('trade_fibonacci')} 📐 Fibonacci", callback_data="strat_toggle:fibonacci"),
+         InlineKeyboardButton(get_mode_emoji("fibonacci"), callback_data="strat_mode:fibonacci"),
+         InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:fibonacci")],
         # Spot as a strategy
         [InlineKeyboardButton(f"{spot_status} 💹 Spot", callback_data="strat_toggle:spot"),
          InlineKeyboardButton(spot_mode_emoji, callback_data="strat_mode:spot"),
@@ -4395,8 +4395,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         ]
         return InlineKeyboardMarkup(buttons)
     
-    # Wyckoff special layout - position size, leverage, min quality, direction, coins
-    if strategy == "wyckoff":
+    # Fibonacci special layout - position size, leverage, min quality, direction, coins
+    if strategy == "fibonacci":
         leverage = strat_settings.get("leverage", 10)
         lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
         
@@ -4422,7 +4422,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             )],
             [InlineKeyboardButton(
                 t.get('param_direction', '🎯 Direction') + f": {dir_emoji} {dir_label}",
-                callback_data=f"wyckoff_dir:{current_dir}"
+                callback_data=f"fibonacci_dir:{current_dir}"
             )],
             [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid Settings'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
@@ -5129,7 +5129,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "scryptomera": "trade_scryptomera",
             "scalper": "trade_scalper",
             "elcaro": "trade_elcaro",
-            "wyckoff": "trade_wyckoff",
+            "fibonacci": "trade_fibonacci",
         }
         field = field_map.get(strategy)
         if field:
@@ -5745,6 +5745,51 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         )
         return
     
+    # Fibonacci direction toggle: all -> long -> short -> all
+    if data.startswith("fibonacci_dir:"):
+        current = data.split(":")[1]
+        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
+        
+        # Save new direction
+        db.set_strategy_setting(uid, "fibonacci", "direction", next_dir)
+        
+        dir_labels = {
+            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
+            "long": t.get('dir_long_only', '📈 LONG only'),
+            "short": t.get('dir_short_only', '📉 SHORT only'),
+        }
+        await query.answer(dir_labels.get(next_dir, next_dir))
+        
+        # Refresh the settings view
+        strat_settings = db.get_strategy_settings(uid, "fibonacci")
+        display_name = STRATEGY_NAMES_MAP.get("fibonacci", "Fibonacci")
+        
+        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+        lines.append("")
+        
+        global_lbl = t.get('global_default', 'Global')
+        
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
+        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
+        
+        leverage = strat_settings.get("leverage", 10)
+        lines.append(f"⚡ Leverage: {leverage}x")
+        
+        min_quality = strat_settings.get("min_quality", 50)
+        lines.append(f"🎯 Min Quality: {min_quality}")
+        
+        pct = strat_settings.get("percent")
+        lines.append(f"📊 Position Size: {pct if pct is not None else global_lbl}%")
+        
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_param_keyboard("fibonacci", t, strat_settings)
+        )
+        return
+    
     # ATR toggle for strategies
     if data.startswith("strat_atr_toggle:"):
         strategy = data.split(":")[1]
@@ -5945,7 +5990,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "trade_scryptomera": "🔮 Scryptomera",
         "trade_scalper": "🎯 Scalper",
         "trade_elcaro": "🔥 Elcaro",
-        "trade_wyckoff": "📐 Wyckoff",
+        "trade_fibonacci": "📐 Fibonacci",
     }
     active_strategies = [name for key, name in strategy_map.items() if cfg.get(key, 0)]
     strategies_text = ", ".join(active_strategies) if active_strategies else ctx.t.get('no_strategies', '❌ None')
@@ -7891,7 +7936,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "rsi_bb": "RSI+BB",
                 "oi": "OI",
                 "elcaro": "Elcaro",
-                "wyckoff": "Wyckoff",
+                "fibonacci": "Fibonacci",
                 "manual": "Manual",
             }.get(strategy, "Manual" if not strategy else strategy.title())
             
@@ -8002,7 +8047,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         set_user_field(uid, "trade_scryptomera", 0)
         set_user_field(uid, "trade_scalper", 0)
         set_user_field(uid, "trade_elcaro", 0)
-        set_user_field(uid, "trade_wyckoff", 0)
+        set_user_field(uid, "trade_fibonacci", 0)
         
         saved_page = ctx.user_data.get('positions_page', 0)
         await query.edit_message_text(
@@ -8146,7 +8191,7 @@ STRATEGY_DISPLAY_NAMES = {
     "scryptomera": "🐱 Scryptomera",
     "scalper": "⚡ Scalper",
     "elcaro": "🔥 Elcaro",
-    "wyckoff": "📐 Wyckoff",
+    "fibonacci": "📐 Fibonacci",
     "manual": "✋ Manual",
     "all": "📈 All",
 }
@@ -8278,7 +8323,7 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         ("scryptomera", t.get('stats_scryptomera', '🐱 Scryptomera')),
         ("scalper", t.get('stats_scalper', '⚡ Scalper')),
         ("elcaro", t.get('stats_elcaro', '🔥 Elcaro')),
-        ("wyckoff", t.get('stats_wyckoff', '📐 Wyckoff')),
+        ("fibonacci", t.get('stats_fibonacci', '📐 Fibonacci')),
         ("manual", t.get('stats_manual', '✋ Manual')),
         ("spot", t.get('stats_spot', '💹 Spot')),
     ]
@@ -9226,33 +9271,33 @@ def parse_elcaro_signal(text: str) -> dict | None:
     return result
 
 
-# --- Wyckoff/Fibonacci Extension Strategy Parser ---
+# --- Fibonacci Extension Strategy Parser ---
 # Header: 📊 FIBONACCI EXTENSION STRATEGY
-WYCKOFF_RE_HDR = re.compile(r'📊\s*FIBONACCI\s+EXTENSION\s+STRATEGY', re.I)
+FIBO_RE_HDR = re.compile(r'📊\s*FIBONACCI\s+EXTENSION\s+STRATEGY', re.I)
 # Symbol and price: 🪙 BTCUSDT | $97,500.00
-WYCKOFF_RE_SYMBOL = re.compile(r'🪙\s*([A-Z0-9]+USDT)\s*\|\s*\$?([\d,]+(?:\.\d+)?)', re.I)
+FIBO_RE_SYMBOL = re.compile(r'🪙\s*([A-Z0-9]+USDT)\s*\|\s*\$?([\d,]+(?:\.\d+)?)', re.I)
 # Direction: 📈 LONG or 📉 SHORT
-WYCKOFF_RE_SIDE = re.compile(r'[📈📉]\s*(LONG|SHORT)', re.I)
+FIBO_RE_SIDE = re.compile(r'[📈📉]\s*(LONG|SHORT)', re.I)
 # Entry Zone: 🎯 Entry Zone: 96,800.0000 – 97,200.0000
-WYCKOFF_RE_ENTRY = re.compile(r'🎯\s*Entry\s+Zone\s*[:：]\s*([\d,]+(?:\.\d+)?)\s*[–-]\s*([\d,]+(?:\.\d+)?)', re.I)
+FIBO_RE_ENTRY = re.compile(r'🎯\s*Entry\s+Zone\s*[:：]\s*([\d,]+(?:\.\d+)?)\s*[–-]\s*([\d,]+(?:\.\d+)?)', re.I)
 # Stop Loss: 🛑 Stop Loss: 95,500.0000
-WYCKOFF_RE_SL = re.compile(r'🛑\s*Stop\s+Loss\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.I)
+FIBO_RE_SL = re.compile(r'🛑\s*Stop\s+Loss\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.I)
 # Target: ✅ Target 1: 99,000.0000
-WYCKOFF_RE_TP = re.compile(r'✅\s*Target\s*\d*\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.I)
+FIBO_RE_TP = re.compile(r'✅\s*Target\s*\d*\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.I)
 # Trigger info: ⚡ Trigger: Spring detected + Price in 141.4%-161.8% zone
-WYCKOFF_RE_TRIGGER = re.compile(r'⚡\s*Trigger\s*[:：]\s*(.+)', re.I)
-# Quality: 🟢 Quality: A (85/100)
-WYCKOFF_RE_QUALITY = re.compile(r'🟢\s*Quality\s*[:：]\s*([A-Z])\s*\((\d+)/\d+\)', re.I)
+FIBO_RE_TRIGGER = re.compile(r'⚡\s*Trigger\s*[:：]\s*(.+)', re.I)
+# Quality: 🟢 Quality: A (85/100) or 🟡 Quality: B (64/100)
+FIBO_RE_QUALITY = re.compile(r'[🟢🟡🟠]\s*Quality\s*[:：]\s*([A-Z])\s*\((\d+)/\d+\)', re.I)
 
 
-def is_wyckoff_signal(text: str) -> bool:
-    """Check if message is Wyckoff/Fibonacci Extension signal."""
-    return bool(WYCKOFF_RE_HDR.search(text))
+def is_fibonacci_signal(text: str) -> bool:
+    """Check if message is Fibonacci Extension signal."""
+    return bool(FIBO_RE_HDR.search(text))
 
 
-def parse_wyckoff_signal(text: str) -> dict | None:
+def parse_fibonacci_signal(text: str) -> dict | None:
     """
-    Parse Wyckoff/Fibonacci Extension strategy signal.
+    Parse Fibonacci Extension strategy signal.
     
     Format:
         📊 FIBONACCI EXTENSION STRATEGY
@@ -9269,11 +9314,11 @@ def parse_wyckoff_signal(text: str) -> dict | None:
     
     Returns dict with all trading parameters.
     """
-    if not is_wyckoff_signal(text):
+    if not is_fibonacci_signal(text):
         return None
     
-    m_symbol = WYCKOFF_RE_SYMBOL.search(text)
-    m_side = WYCKOFF_RE_SIDE.search(text)
+    m_symbol = FIBO_RE_SYMBOL.search(text)
+    m_side = FIBO_RE_SIDE.search(text)
     
     if not (m_symbol and m_side):
         return None
@@ -9286,11 +9331,11 @@ def parse_wyckoff_signal(text: str) -> dict | None:
         "symbol": symbol,
         "side": side,
         "price": current_price,
-        "wyckoff_mode": True,  # Flag for special Wyckoff handling
+        "fibonacci_mode": True,  # Flag for special Fibonacci handling
     }
     
     # Entry zone (for limit order range)
-    m_entry = WYCKOFF_RE_ENTRY.search(text)
+    m_entry = FIBO_RE_ENTRY.search(text)
     if m_entry:
         entry_low = _tof(m_entry.group(1).replace(",", ""))
         entry_high = _tof(m_entry.group(2).replace(",", ""))
@@ -9299,7 +9344,7 @@ def parse_wyckoff_signal(text: str) -> dict | None:
         result["entry"] = (entry_low + entry_high) / 2  # Mid point for entry
     
     # Stop Loss
-    m_sl = WYCKOFF_RE_SL.search(text)
+    m_sl = FIBO_RE_SL.search(text)
     if m_sl:
         sl_price = _tof(m_sl.group(1).replace(",", ""))
         result["sl"] = sl_price
@@ -9309,7 +9354,7 @@ def parse_wyckoff_signal(text: str) -> dict | None:
             result["sl_pct"] = round(sl_pct, 2)
     
     # Target (TP)
-    m_tp = WYCKOFF_RE_TP.search(text)
+    m_tp = FIBO_RE_TP.search(text)
     if m_tp:
         tp_price = _tof(m_tp.group(1).replace(",", ""))
         result["tp"] = tp_price
@@ -9319,12 +9364,12 @@ def parse_wyckoff_signal(text: str) -> dict | None:
             result["tp_pct"] = round(tp_pct, 2)
     
     # Trigger info
-    m_trigger = WYCKOFF_RE_TRIGGER.search(text)
+    m_trigger = FIBO_RE_TRIGGER.search(text)
     if m_trigger:
         result["trigger_info"] = m_trigger.group(1).strip()
     
     # Quality score
-    m_quality = WYCKOFF_RE_QUALITY.search(text)
+    m_quality = FIBO_RE_QUALITY.search(text)
     if m_quality:
         result["quality_grade"] = m_quality.group(1)
         result["quality_score"] = int(m_quality.group(2))
@@ -9445,10 +9490,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     parsed_elcaro = parse_elcaro_signal(txt)
     is_elcaro = parsed_elcaro is not None
     
-    parsed_wyckoff = parse_wyckoff_signal(txt)
-    is_wyckoff = parsed_wyckoff is not None
+    parsed_fibonacci = parse_fibonacci_signal(txt)
+    is_fibonacci = parsed_fibonacci is not None
     
-    logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, wyckoff={is_wyckoff}): {txt!r}")
+    logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, fibonacci={is_fibonacci}): {txt!r}")
 
     parsed = parse_signal(txt)
     
@@ -9465,10 +9510,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parsed["symbol"] = parsed_elcaro.get("symbol")
         parsed["side"] = parsed_elcaro.get("side")
         parsed["price"] = parsed_elcaro.get("price")
-    elif is_wyckoff and parsed_wyckoff:
-        parsed["symbol"] = parsed_wyckoff.get("symbol")
-        parsed["side"] = parsed_wyckoff.get("side")
-        parsed["price"] = parsed_wyckoff.get("price")
+    elif is_fibonacci and parsed_fibonacci:
+        parsed["symbol"] = parsed_fibonacci.get("symbol")
+        parsed["side"] = parsed_fibonacci.get("side")
+        parsed["price"] = parsed_fibonacci.get("price")
     
     try:
         signal_id = db.add_signal(
@@ -9503,10 +9548,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             symbol     = parsed_scalper["symbol"]
             side       = parsed_scalper["side"]
             spot_price = float(parsed_scalper["price"])
-        elif is_wyckoff:
-            symbol     = parsed_wyckoff["symbol"]
-            side       = parsed_wyckoff["side"]
-            spot_price = float(parsed_wyckoff["price"])
+        elif is_fibonacci:
+            symbol     = parsed_fibonacci["symbol"]
+            side       = parsed_fibonacci["side"]
+            spot_price = float(parsed_fibonacci["price"])
         else:
             side_txt = (parsed.get("side") or "").upper()
             if side_txt in ("LONG", "UP"):
@@ -9610,7 +9655,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             bitk_trigger    = (cfg.get("trade_scryptomera", 0) and is_bitk)
             scalper_trigger = (cfg.get("trade_scalper", 0) and is_scalper)
             elcaro_trigger  = (cfg.get("trade_elcaro", 0) and is_elcaro)
-            wyckoff_trigger = (cfg.get("trade_wyckoff", 0) and is_wyckoff)
+            fibonacci_trigger = (cfg.get("trade_fibonacci", 0) and is_fibonacci)
             oi_trigger      = (cfg.get("trade_oi", 0) and oi_prev is not None and oi_now is not None)
             
             # Log strategy triggers for debugging
@@ -9618,8 +9663,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] Scryptomera signal detected: trade_scryptomera={cfg.get('trade_scryptomera', 0)}, bitk_trigger={bitk_trigger}, symbol={symbol}")
             if is_scalper:
                 logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}, symbol={symbol}")
-            if is_wyckoff:
-                logger.info(f"[{uid}] Wyckoff signal detected: trade_wyckoff={cfg.get('trade_wyckoff', 0)}, wyckoff_trigger={wyckoff_trigger}")
+            if is_fibonacci:
+                logger.info(f"[{uid}] Fibonacci signal detected: trade_fibonacci={cfg.get('trade_fibonacci', 0)}, fibonacci_trigger={fibonacci_trigger}")
 
             # Helper to check coins filter for a strategy
             def check_coins_filter(strat_name: str) -> bool:
@@ -9640,8 +9685,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 scalper_trigger = False
             if elcaro_trigger and not check_coins_filter("elcaro"):
                 elcaro_trigger = False
-            if wyckoff_trigger and not check_coins_filter("wyckoff"):
-                wyckoff_trigger = False
+            if fibonacci_trigger and not check_coins_filter("fibonacci"):
+                fibonacci_trigger = False
             if oi_trigger and not check_coins_filter("oi"):
                 oi_trigger = False
 
@@ -9671,7 +9716,20 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 else:
                     logger.info(f"[{uid}] Scalper direction OK, proceeding with {symbol}")
 
-            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or wyckoff_trigger or oi_trigger):
+            # Check Fibonacci direction filter
+            if fibonacci_trigger:
+                fibo_settings = db.get_strategy_settings(uid, "fibonacci")
+                fibo_direction = fibo_settings.get("direction", "all")
+                signal_direction = "long" if side == "Buy" else "short"
+                logger.info(f"[{uid}] Fibonacci direction check: signal={signal_direction}, allowed={fibo_direction}")
+                
+                if fibo_direction != "all" and fibo_direction != signal_direction:
+                    logger.info(f"[{uid}] {symbol}: Fibonacci direction filter - signal={signal_direction}, allowed={fibo_direction} → skip")
+                    fibonacci_trigger = False
+                else:
+                    logger.info(f"[{uid}] Fibonacci direction OK, proceeding with {symbol}")
+
+            if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger):
                 continue
 
             # =====================================================
@@ -9704,8 +9762,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 active_strategy = "scalper"
             elif elcaro_trigger:
                 active_strategy = "elcaro"
-            elif wyckoff_trigger:
-                active_strategy = "wyckoff"
+            elif fibonacci_trigger:
+                active_strategy = "fibonacci"
             elif oi_trigger:
                 active_strategy = "oi"
             
@@ -10129,57 +10187,57 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     )
                 continue
 
-            if wyckoff_trigger:
-                # Wyckoff/Fibonacci Extension Strategy
+            if fibonacci_trigger:
+                # Fibonacci Extension Strategy
                 # All parameters come from the signal
-                wyckoff_entry = parsed_wyckoff.get("entry", spot_price)
-                wyckoff_entry_low = parsed_wyckoff.get("entry_low")
-                wyckoff_entry_high = parsed_wyckoff.get("entry_high")
-                wyckoff_sl = parsed_wyckoff.get("sl")
-                wyckoff_tp = parsed_wyckoff.get("tp")
-                wyckoff_sl_pct = parsed_wyckoff.get("sl_pct", 3.0)
-                wyckoff_tp_pct = parsed_wyckoff.get("tp_pct", 6.0)
-                quality_grade = parsed_wyckoff.get("quality_grade", "B")
-                quality_score = parsed_wyckoff.get("quality_score", 50)
-                trigger_info = parsed_wyckoff.get("trigger_info", "")
+                fibo_entry = parsed_fibonacci.get("entry", spot_price)
+                fibo_entry_low = parsed_fibonacci.get("entry_low")
+                fibo_entry_high = parsed_fibonacci.get("entry_high")
+                fibo_sl = parsed_fibonacci.get("sl")
+                fibo_tp = parsed_fibonacci.get("tp")
+                fibo_sl_pct = parsed_fibonacci.get("sl_pct", 3.0)
+                fibo_tp_pct = parsed_fibonacci.get("tp_pct", 6.0)
+                quality_grade = parsed_fibonacci.get("quality_grade", "B")
+                quality_score = parsed_fibonacci.get("quality_score", 50)
+                trigger_info = parsed_fibonacci.get("trigger_info", "")
                 
                 # Get user settings (percent, leverage)
-                strat_settings = db.get_strategy_settings(uid, "wyckoff")
-                params = get_strategy_trade_params(uid, cfg, symbol, "wyckoff")
+                strat_settings = db.get_strategy_settings(uid, "fibonacci")
+                params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci")
                 risk_pct = params["percent"]
                 user_leverage = strat_settings.get("leverage", 10)
                 
                 # Quality filter - skip if quality score too low
                 min_quality = strat_settings.get("min_quality", 50)
                 if quality_score < min_quality:
-                    logger.debug(f"[{uid}] Wyckoff {symbol}: quality {quality_score} < min {min_quality} → skip")
+                    logger.debug(f"[{uid}] Fibonacci {symbol}: quality {quality_score} < min {min_quality} → skip")
                     continue
                 
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=wyckoff_sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=fibo_sl_pct)
                     
                     # Set leverage
                     if user_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=user_leverage)
                         except Exception as e:
-                            logger.warning(f"[{uid}] Wyckoff: failed to set leverage: {e}")
+                            logger.warning(f"[{uid}] Fibonacci: failed to set leverage: {e}")
                     
                     # Decide Market vs Limit based on entry zone
                     # If current price is within entry zone → Market
                     # If current price is outside entry zone → Limit at best boundary
                     use_limit_entry = False
-                    limit_entry_price = wyckoff_entry  # Default to mid-point
+                    limit_entry_price = fibo_entry  # Default to mid-point
                     
-                    if wyckoff_entry_low and wyckoff_entry_high:
+                    if fibo_entry_low and fibo_entry_high:
                         # For LONG: use lower boundary (buy cheaper)
                         # For SHORT: use upper boundary (sell higher)
                         if side == "Buy":
-                            limit_entry_price = wyckoff_entry_low
+                            limit_entry_price = fibo_entry_low
                         else:  # Sell
-                            limit_entry_price = wyckoff_entry_high
+                            limit_entry_price = fibo_entry_high
                         
-                        if not (wyckoff_entry_low <= spot_price <= wyckoff_entry_high):
+                        if not (fibo_entry_low <= spot_price <= fibo_entry_high):
                             use_limit_entry = True
                     
                     if use_limit_entry:
@@ -10187,39 +10245,39 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         try:
                             await place_limit_order_with_strategy(
                                 uid, symbol, side, price=limit_entry_price, qty=qty,
-                                signal_id=(signal_id or 0), strategy="wyckoff"
+                                signal_id=(signal_id or 0), strategy="fibonacci"
                             )
                             inc_pyramid(uid, symbol, side)
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
-                            entry_zone_display = f"{wyckoff_entry_low:.6f} – {wyckoff_entry_high:.6f}"
+                            entry_zone_display = f"{fibo_entry_low:.6f} – {fibo_entry_high:.6f}"
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('wyckoff_limit_entry', "📐 *Wyckoff Limit Entry*\n• {symbol} {side}\n• Limit: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%")
-                                .format(symbol=symbol, side=side_display, price=limit_entry_price, entry_zone=entry_zone_display, qty=qty, sl_pct=wyckoff_sl_pct),
+                                t.get('fibonacci_limit_entry', "📐 *Fibonacci Limit Entry*\n• {symbol} {side}\n• Limit: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%")
+                                .format(symbol=symbol, side=side_display, price=limit_entry_price, entry_zone=entry_zone_display, qty=qty, sl_pct=fibo_sl_pct),
                                 parse_mode="Markdown"
                             )
                         except Exception as e:
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('wyckoff_limit_error', "❌ Wyckoff limit error: {msg}").format(msg=str(e))
+                                t.get('fibonacci_limit_error', "❌ Fibonacci limit error: {msg}").format(msg=str(e))
                             )
                     else:
                         # Market order - price is in entry zone
                         try:
                             await place_order_all_accounts(
                                 uid, symbol, side, orderType="Market", qty=qty, 
-                                strategy="wyckoff", leverage=user_leverage,
+                                strategy="fibonacci", leverage=user_leverage,
                                 signal_id=signal_id, timeframe="1h"
                             )
                             
                             # Also place on HyperLiquid if enabled
-                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="wyckoff", leverage=user_leverage, sl_percent=wyckoff_sl_pct, tp_percent=wyckoff_tp_pct)
+                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct)
                             if hl_result and hl_result.get("success"):
                                 await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
                             
                             # Use exact SL/TP from signal
-                            actual_sl = wyckoff_sl if wyckoff_sl else (spot_price * (1 - wyckoff_sl_pct / 100) if side == "Buy" else spot_price * (1 + wyckoff_sl_pct / 100))
-                            actual_tp = wyckoff_tp if wyckoff_tp else (spot_price * (1 + wyckoff_tp_pct / 100) if side == "Buy" else spot_price * (1 - wyckoff_tp_pct / 100))
+                            actual_sl = fibo_sl if fibo_sl else (spot_price * (1 - fibo_sl_pct / 100) if side == "Buy" else spot_price * (1 + fibo_sl_pct / 100))
+                            actual_tp = fibo_tp if fibo_tp else (spot_price * (1 + fibo_tp_pct / 100) if side == "Buy" else spot_price * (1 - fibo_tp_pct / 100))
                             
                             # Set TP/SL
                             await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side)
@@ -10229,12 +10287,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             
                             # Format signal message
                             signal_info = (
-                                f"📊 *Wyckoff* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
+                                f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"🪙 {symbol}\n"
                                 f"💰 Entry: {spot_price:.6g}\n"
-                                f"🎯 Zone: {wyckoff_entry_low:.6g} – {wyckoff_entry_high:.6g}\n"
-                                f"🛑 SL: {actual_sl:.6g} ({wyckoff_sl_pct:.2f}%)\n"
-                                f"✅ TP: {actual_tp:.6g} ({wyckoff_tp_pct:.2f}%)\n"
+                                f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
+                                f"🛑 SL: {actual_sl:.6g} ({fibo_sl_pct:.2f}%)\n"
+                                f"✅ TP: {actual_tp:.6g} ({fibo_tp_pct:.2f}%)\n"
                                 f"🟢 Quality: {quality_grade} ({quality_score}/100)"
                             )
                             if trigger_info:
@@ -10245,12 +10303,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as e:
                             await ctx.bot.send_message(
                                 uid,
-                                t.get('wyckoff_market_error', "Wyckoff error: {msg}").format(msg=str(e))
+                                t.get('fibonacci_market_error', "Fibonacci error: {msg}").format(msg=str(e))
                             )
                 except Exception as e:
                     await ctx.bot.send_message(
                         uid,
-                        t.get('wyckoff_market_error', "Wyckoff error: {msg}").format(msg=str(e))
+                        t.get('fibonacci_market_error', "Fibonacci error: {msg}").format(msg=str(e))
                     )
                 continue
 
@@ -10567,8 +10625,8 @@ async def monitor_positions_loop(app: Application):
                                     detected_strategy = "scalper"
                                 elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
                                     detected_strategy = "elcaro"
-                                elif "WYCKOFF" in raw_upper:
-                                    detected_strategy = "wyckoff"
+                                elif "FIBONACCI" in raw_upper or "FIBONACCI EXTENSION" in raw_upper:
+                                    detected_strategy = "fibonacci"
                             
                             # Use current trading mode for account_type
                             current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
@@ -10819,8 +10877,8 @@ async def monitor_positions_loop(app: Application):
                                         position_strategy = "scalper"
                                     elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
                                         position_strategy = "elcaro"
-                                    elif "Wyckoff" in raw_msg:
-                                        position_strategy = "wyckoff"
+                                    elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_msg.upper():
+                                        position_strategy = "fibonacci"
                                 
                                 log_exit_and_remove_position(
                                     user_id=uid,
@@ -10870,7 +10928,6 @@ async def monitor_positions_loop(app: Application):
                                     "rsi_bb": "RSI+BB",
                                     "oi": "OI",
                                     "elcaro": "Elcaro",
-                                    "wyckoff": "Wyckoff",
                                     "fibonacci": "Fibonacci",
                                     "manual": "Manual",
                                 }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
@@ -13128,8 +13185,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_elcaro"):
         return await cmd_toggle_elcaro(update, ctx)
 
-    if text == ctx.t.get("button_wyckoff"):
-        return await cmd_toggle_wyckoff(update, ctx)
+    if text == ctx.t.get("button_fibonacci"):
+        return await cmd_toggle_fibonacci(update, ctx)
 
     if text == ctx.t.get("button_strategy_settings", "⚙️ Strategy Settings"):
         return await cmd_strategy_settings(update, ctx)
@@ -15989,7 +16046,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|fibonacci_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

@@ -279,14 +279,14 @@ TEXTS = {
     'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 *دخول Wyckoff Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_limit_error':         '❌ خطأ Wyckoff Limit: {msg}',
-    'wyckoff_market_entry':        '📐 *دخول Wyckoff Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_error':        '❌ خطأ Wyckoff Market: {msg}',
-    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
-    'feature_wyckoff':             'Wyckoff',
+    # Fibonacci (Fibonacci Extension)
+    'fibonacci_limit_entry':         '📐 *دخول Fibonacci Limit*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_limit_error':         '❌ خطأ Fibonacci Limit: {msg}',
+    'fibonacci_market_entry':        '📐 *دخول Fibonacci Market*\n• {symbol} {side}\n• السعر: {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':           '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• الكمية: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_error':        '❌ خطأ Fibonacci Market: {msg}',
+    'fibonacci_analysis':            '📐 Fibonacci: {side} @ {price}',
+    'feature_fibonacci':             'Fibonacci',
 
     # Admin panel
     'admin_panel':                 '👑 لوحة الإدارة:',
@@ -450,10 +450,10 @@ TEXTS = {
     # Scalper Strategy
     'button_scalper':                '🎯 Scalper',
     'button_elcaro':                 '🔥 Elcaro',
-    'button_wyckoff':                '📐 Wyckoff',
+    'button_fibonacci':                '📐 Fibonacci',
     'config_trade_scalper':          '🎯 Scalper: {state}',
     'config_trade_elcaro':           '🔥 Elcaro: {state}',
-    'config_trade_wyckoff':          '📐 Wyckoff: {state}',
+    'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
     'api_settings_title':          '🔑 <b>API Settings</b>',
@@ -559,14 +559,14 @@ TEXTS = {
     'elcaro_analysis':               'Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':                'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':           '📐 Wyckoff limit-entry {symbol} @ {price:.6f}',
-    'wyckoff_limit_error':           '❌ Wyckoff limit-entry error: {msg}',
-    'wyckoff_market_entry':          '🚀 Wyckoff market {symbol} @ {price:.6f}',
-    'wyckoff_market_error':          '❌ Wyckoff market error: {msg}',
-    'wyckoff_market_ok':             '📐 Wyckoff: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'wyckoff_analysis':              'Wyckoff: {side} @ {price}',
-    'feature_wyckoff':               'Wyckoff',
+    # Fibonacci (Fibonacci Extension)
+    'fibonacci_limit_entry':           '📐 Fibonacci limit-entry {symbol} @ {price:.6f}',
+    'fibonacci_limit_error':           '❌ Fibonacci limit-entry error: {msg}',
+    'fibonacci_market_entry':          '🚀 Fibonacci market {symbol} @ {price:.6f}',
+    'fibonacci_market_error':          '❌ Fibonacci market error: {msg}',
+    'fibonacci_market_ok':             '📐 Fibonacci: MARKET {symbol} qty={q} (SL={sl_risk}%)',
+    'fibonacci_analysis':              'Fibonacci: {side} @ {price}',
+    'feature_fibonacci':               'Fibonacci',
 
     'scalper_limit_entry':           'Scalper: أمر محدود {symbol} @ {price}',
     'scalper_limit_error':           'Scalper خطأ محدود: {msg}',
@@ -584,7 +584,7 @@ TEXTS = {
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
     'strat_elcaro':                  '🔥 Elcaro',
-    'strat_wyckoff':                 '📐 Wyckoff',
+    'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ إعدادات DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
     'dca_toggle':                    'DCA Enabled',
@@ -770,7 +770,7 @@ TEXTS = {
     'basic_title': '🥈 *خطة BASIC*',
     'basic_desc': '''✅ وصول كامل للحساب التجريبي
 ✅ الحساب الحقيقي: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Wyckoff, Spot — Premium فقط
+❌ Elcaro, Fibonacci, Spot — Premium فقط
 ✅ دعم عادي
 ✅ SL/TP ديناميكي مبني على ATR''',
     'basic_1m': '🥈 1 شهر — {price}⭐',
@@ -947,7 +947,7 @@ Try again after payment is confirmed on blockchain.''',
     'payment_verifying': '⏳ Verifying payment...',
     'position': 'Position',
     'size': 'Size',
-    'stats_wyckoff': '📐 Wyckoff',
+    'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 WebApp",

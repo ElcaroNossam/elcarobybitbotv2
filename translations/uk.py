@@ -280,14 +280,14 @@ TEXTS = {
     'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 *Wyckoff Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_limit_error':         '❌ Wyckoff Limit помилка: {msg}',
-    'wyckoff_market_entry':        '📐 *Wyckoff Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_ok':           '📐 *Wyckoff: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'wyckoff_market_error':        '❌ Wyckoff Market помилка: {msg}',
-    'wyckoff_analysis':            '📐 Wyckoff: {side} @ {price}',
-    'feature_wyckoff':             'Wyckoff',
+    # Fibonacci (Fibonacci Extension)
+    'fibonacci_limit_entry':         '📐 *Fibonacci Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_limit_error':         '❌ Fibonacci Limit помилка: {msg}',
+    'fibonacci_market_entry':        '📐 *Fibonacci Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':           '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_error':        '❌ Fibonacci Market помилка: {msg}',
+    'fibonacci_analysis':            '📐 Fibonacci: {side} @ {price}',
+    'feature_fibonacci':             'Fibonacci',
 
     # Admin panel
     'admin_panel':                 '👑 Адмін-панель:',
@@ -445,10 +445,10 @@ TEXTS = {
     # Scalper Strategy
     'button_scalper':                '🎯 Scalper',
     'button_elcaro':                 '🔥 Elcaro',
-    'button_wyckoff':                '📐 Вайкоф',
+    'button_fibonacci':                '📐 Вайкоф',
     'config_trade_scalper':          '🎯 Scalper: {state}',
     'config_trade_elcaro':           '🔥 Elcaro: {state}',
-    'config_trade_wyckoff':          '📐 Вайкоф: {state}',
+    'config_trade_fibonacci':          '📐 Вайкоф: {state}',
 
     # API Settings
     'api_settings_title':          '🔑 <b>Налаштування API</b>',
@@ -552,14 +552,14 @@ TEXTS = {
     'elcaro_analysis':               'Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':                'Elcaro',
 
-    # Wyckoff (Fibonacci Extension)
-    'wyckoff_limit_entry':         '📐 Wyckoff лімітний вхід {symbol} @ {price:.6f}',
-    'wyckoff_limit_error':         '❌ Wyckoff помилка лімітного входу: {msg}',
-    'wyckoff_market_entry':        '🚀 Wyckoff ринковий {symbol} @ {price:.6f}',
-    'wyckoff_market_error':        '❌ Wyckoff помилка ринкового входу: {msg}',
-    'wyckoff_market_ok':           '📐 Wyckoff: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'wyckoff_analysis':            'Wyckoff: {side} @ {price}',
-    'feature_wyckoff':             'Wyckoff',
+    # Fibonacci (Fibonacci Extension)
+    'fibonacci_limit_entry':         '📐 Fibonacci лімітний вхід {symbol} @ {price:.6f}',
+    'fibonacci_limit_error':         '❌ Fibonacci помилка лімітного входу: {msg}',
+    'fibonacci_market_entry':        '🚀 Fibonacci ринковий {symbol} @ {price:.6f}',
+    'fibonacci_market_error':        '❌ Fibonacci помилка ринкового входу: {msg}',
+    'fibonacci_market_ok':           '📐 Fibonacci: MARKET {symbol} qty={q} (SL={sl_risk}%)',
+    'fibonacci_analysis':            'Fibonacci: {side} @ {price}',
+    'feature_fibonacci':             'Fibonacci',
 
     'scalper_limit_entry':           'Scalper: ліміт {symbol} @ {price}',
     'scalper_limit_error':           'Scalper ліміт помилка: {msg}',
@@ -580,7 +580,7 @@ TEXTS = {
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
     'strat_elcaro':                  '🔥 Elcaro',
-    'strat_wyckoff':                 '📐 Wyckoff',
+    'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Налаштування DCA',
     'dca_settings_header':           '⚙️ *Налаштування DCA (Фʼючерси)*\n\n',
     'dca_toggle':                    'DCA увімкнено',
@@ -762,7 +762,7 @@ TEXTS = {
     'basic_title': '🥈 *БАЗОВИЙ ПЛАН*',
     'basic_desc': '''✅ Повний доступ до демо-акаунту
 ✅ Реальний акаунт: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Wyckoff, Spot — лише Premium
+❌ Elcaro, Fibonacci, Spot — лише Premium
 ✅ Стандартна підтримка
 ✅ Динамічний SL/TP на основі ATR''',
     'basic_1m': '🥈 1 Місяць — {price}⭐',
@@ -945,7 +945,7 @@ TEXTS = {
     'payment_verifying': '⏳ Перевіряємо платіж...',
     'position': 'Позиція',
     'size': 'Розмір',
-    'stats_wyckoff': '📐 Wyckoff',
+    'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 Веб-панель",
