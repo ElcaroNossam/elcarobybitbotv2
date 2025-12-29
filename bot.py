@@ -11055,10 +11055,31 @@ async def monitor_positions_loop(app: Application):
                         # Get ATR params: priority is strategy settings > timeframe defaults
                         if pos_strategy:
                             strat_settings = db.get_strategy_settings(uid, pos_strategy)
-                            # Use strategy-specific ATR settings if explicitly set (not None), otherwise use timeframe defaults
-                            atr_periods = strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
-                            atr_mult_sl = strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
-                            trigger_pct = strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                            
+                            # For scryptomera/scalper, check for side-specific ATR settings first
+                            if pos_strategy in ("scryptomera", "scalper"):
+                                side_prefix = "long" if side == "Buy" else "short"
+                                
+                                # Get side-specific ATR settings, fallback to general, then timeframe defaults
+                                side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
+                                side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
+                                side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
+                                
+                                atr_periods = side_atr_periods if side_atr_periods is not None else (
+                                    strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
+                                )
+                                atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
+                                    strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
+                                )
+                                trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
+                                    strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                                )
+                            else:
+                                # Use strategy-specific ATR settings if explicitly set (not None), otherwise use timeframe defaults
+                                atr_periods = strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
+                                atr_mult_sl = strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
+                                trigger_pct = strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                            
                             # Strategy-specific use_atr: if set in strategy (not None), use it; otherwise fall back to global
                             strat_use_atr = strat_settings.get("use_atr")
                             position_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
@@ -11067,6 +11088,10 @@ async def monitor_positions_loop(app: Application):
                             atr_mult_sl = tf_cfg["atr_multiplier_sl"]
                             trigger_pct = tf_cfg["atr_trigger_pct"]
                             position_use_atr = use_atr  # Use global setting
+
+                        # Log ATR params being used for debugging
+                        logger.debug(f"[{uid}] {sym}: ATR params - strategy={pos_strategy}, side={side}, "
+                                    f"atr_periods={atr_periods}, atr_mult={atr_mult_sl}, trigger_pct={trigger_pct}, use_atr={position_use_atr}")
 
                         mark     = float(pos["markPrice"])
                         move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
