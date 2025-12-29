@@ -11052,9 +11052,12 @@ async def monitor_positions_loop(app: Application):
                         tf          = tf_map.get(sym, "24h")
                         tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])
                         
+                        # Get account_type for this position from map (moved up for strategy settings)
+                        pos_account_type = account_type_map.get(sym, "demo")
+                        
                         # Get ATR params: priority is strategy settings > timeframe defaults
                         if pos_strategy:
-                            strat_settings = db.get_strategy_settings(uid, pos_strategy)
+                            strat_settings = db.get_strategy_settings(uid, pos_strategy, account_type=pos_account_type)
                             
                             # For scryptomera/scalper, check for side-specific ATR settings first
                             if pos_strategy in ("scryptomera", "scalper"):
@@ -11102,8 +11105,7 @@ async def monitor_positions_loop(app: Application):
                         dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
                         dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
 
-                        # Get account_type for this position from map
-                        pos_account_type = account_type_map.get(sym, "demo")
+                        # pos_account_type already defined above for strategy settings
 
                         # --- DCA при -dca_pct_1% против нас (только если DCA включён) ---
                         if dca_enabled and move_pct <= -dca_pct_1:

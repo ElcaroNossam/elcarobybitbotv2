@@ -364,6 +364,66 @@ def init_db():
         )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_pyramids_user ON pyramids(user_id)")
 
+        # USER STRATEGY SETTINGS - per-user, per-strategy, per-exchange, per-account settings
+        # Replaces JSON-based strategy_settings field
+        cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS user_strategy_settings (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            strategy        TEXT NOT NULL,  -- oi, rsi_bb, scryptomera, scalper, elcaro, fibonacci, manual
+            exchange        TEXT NOT NULL DEFAULT 'bybit',  -- bybit, hyperliquid
+            account_type    TEXT NOT NULL DEFAULT 'demo',   -- demo, real, testnet, mainnet
+            
+            -- Trading parameters
+            enabled         INTEGER DEFAULT 1,
+            percent         REAL,  -- Position size % of balance
+            sl_percent      REAL,  -- Stop loss %
+            tp_percent      REAL,  -- Take profit %
+            leverage        INTEGER,  -- 1-100 or NULL for default
+            
+            -- ATR parameters
+            use_atr         INTEGER,  -- 0=Fixed SL/TP, 1=ATR Trailing, NULL=use global
+            atr_periods     INTEGER,
+            atr_multiplier_sl REAL,
+            atr_trigger_pct REAL,
+            
+            -- Order settings
+            order_type      TEXT DEFAULT 'market',  -- market, limit
+            coins_group     TEXT,  -- ALL, TOP100, VOLATILE, or NULL for global
+            direction       TEXT DEFAULT 'all',  -- all, long, short
+            
+            -- Side-specific settings (for scryptomera/scalper)
+            long_percent    REAL,
+            long_sl_percent REAL,
+            long_tp_percent REAL,
+            long_atr_periods INTEGER,
+            long_atr_multiplier_sl REAL,
+            long_atr_trigger_pct REAL,
+            
+            short_percent   REAL,
+            short_sl_percent REAL,
+            short_tp_percent REAL,
+            short_atr_periods INTEGER,
+            short_atr_multiplier_sl REAL,
+            short_atr_trigger_pct REAL,
+            
+            -- Fibonacci-specific
+            min_quality     INTEGER DEFAULT 50,
+            
+            -- Timestamps
+            created_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            updated_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            
+            UNIQUE(user_id, strategy, exchange, account_type),
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+        """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
+
         # ELC PURCHASES - track USDT → ELC purchases on TON
         cur.execute(
             """
@@ -1459,112 +1519,287 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 }
 
 
+# ------------------------------------------------------------------------------------
+# NEW: Database-based Strategy Settings Functions
+# ------------------------------------------------------------------------------------
+
+# Columns in user_strategy_settings table that can be read/written
+_STRATEGY_DB_COLUMNS = [
+    "enabled", "percent", "sl_percent", "tp_percent", "leverage",
+    "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
+    "order_type", "coins_group", "direction",
+    "long_percent", "long_sl_percent", "long_tp_percent",
+    "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
+    "short_percent", "short_sl_percent", "short_tp_percent",
+    "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct",
+    "min_quality"
+]
+
+
+def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
+    """
+    Get strategy settings from user_strategy_settings table.
+    Returns dict with all strategy parameters. NULL values are returned as None.
+    """
+    if strategy not in STRATEGY_NAMES:
+        return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
+    
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT enabled, percent, sl_percent, tp_percent, leverage,
+                   use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
+                   order_type, coins_group, direction,
+                   long_percent, long_sl_percent, long_tp_percent,
+                   long_atr_periods, long_atr_multiplier_sl, long_atr_trigger_pct,
+                   short_percent, short_sl_percent, short_tp_percent,
+                   short_atr_periods, short_atr_multiplier_sl, short_atr_trigger_pct,
+                   min_quality
+            FROM user_strategy_settings
+            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+        """, (user_id, strategy, exchange, account_type))
+        row = cur.fetchone()
+        
+        if not row:
+            # Return defaults for this strategy
+            return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
+        
+        # Map row to dict
+        result = {
+            "enabled": row[0],
+            "percent": row[1],
+            "sl_percent": row[2],
+            "tp_percent": row[3],
+            "leverage": row[4],
+            "use_atr": row[5],
+            "atr_periods": row[6],
+            "atr_multiplier_sl": row[7],
+            "atr_trigger_pct": row[8],
+            "order_type": row[9] or "market",
+            "coins_group": row[10],
+            "direction": row[11] or "all",
+            "long_percent": row[12],
+            "long_sl_percent": row[13],
+            "long_tp_percent": row[14],
+            "long_atr_periods": row[15],
+            "long_atr_multiplier_sl": row[16],
+            "long_atr_trigger_pct": row[17],
+            "short_percent": row[18],
+            "short_sl_percent": row[19],
+            "short_tp_percent": row[20],
+            "short_atr_periods": row[21],
+            "short_atr_multiplier_sl": row[22],
+            "short_atr_trigger_pct": row[23],
+            "min_quality": row[24] if row[24] is not None else 50,
+        }
+        return result
+    finally:
+        release_conn(conn)
+
+
+def set_strategy_setting_db(user_id: int, strategy: str, field: str, value, 
+                            exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """
+    Set a single field for a strategy in user_strategy_settings table.
+    Creates row if not exists (UPSERT).
+    """
+    if strategy not in STRATEGY_NAMES:
+        return False
+    if field not in _STRATEGY_DB_COLUMNS:
+        return False
+    
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        # Check if row exists
+        cur.execute("""
+            SELECT id FROM user_strategy_settings
+            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+        """, (user_id, strategy, exchange, account_type))
+        exists = cur.fetchone()
+        
+        if exists:
+            # Update existing row
+            cur.execute(f"""
+                UPDATE user_strategy_settings 
+                SET {field} = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+            """, (value, user_id, strategy, exchange, account_type))
+        else:
+            # Insert new row
+            cur.execute(f"""
+                INSERT INTO user_strategy_settings (user_id, strategy, exchange, account_type, {field})
+                VALUES (?, ?, ?, ?, ?)
+            """, (user_id, strategy, exchange, account_type, value))
+        
+        conn.commit()
+        invalidate_user_cache(user_id)
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] set_strategy_setting_db: {e}")
+        return False
+    finally:
+        release_conn(conn)
+
+
+def set_strategy_settings_db(user_id: int, strategy: str, settings: dict,
+                             exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """
+    Set multiple fields for a strategy at once (UPSERT).
+    """
+    if strategy not in STRATEGY_NAMES:
+        return False
+    
+    # Filter only valid columns
+    valid_settings = {k: v for k, v in settings.items() if k in _STRATEGY_DB_COLUMNS}
+    if not valid_settings:
+        return False
+    
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        # Check if row exists
+        cur.execute("""
+            SELECT id FROM user_strategy_settings
+            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+        """, (user_id, strategy, exchange, account_type))
+        exists = cur.fetchone()
+        
+        if exists:
+            # Build UPDATE query
+            set_parts = [f"{k} = ?" for k in valid_settings.keys()]
+            set_parts.append("updated_at = CURRENT_TIMESTAMP")
+            values = list(valid_settings.values())
+            values.extend([user_id, strategy, exchange, account_type])
+            
+            cur.execute(f"""
+                UPDATE user_strategy_settings 
+                SET {', '.join(set_parts)}
+                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+            """, values)
+        else:
+            # Build INSERT query
+            columns = ["user_id", "strategy", "exchange", "account_type"] + list(valid_settings.keys())
+            placeholders = ["?"] * len(columns)
+            values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
+            
+            cur.execute(f"""
+                INSERT INTO user_strategy_settings ({', '.join(columns)})
+                VALUES ({', '.join(placeholders)})
+            """, values)
+        
+        conn.commit()
+        invalidate_user_cache(user_id)
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] set_strategy_settings_db: {e}")
+        return False
+    finally:
+        release_conn(conn)
+
+
+def get_all_strategy_settings_db(user_id: int, exchange: str = "bybit", account_type: str = "demo") -> dict:
+    """
+    Get all strategy settings for a user/exchange/account_type combination.
+    Returns dict: { "scryptomera": {...}, "scalper": {...}, ... }
+    """
+    result = {}
+    for strategy in STRATEGY_NAMES:
+        result[strategy] = get_strategy_settings_db(user_id, strategy, exchange, account_type)
+    return result
+
+
+def migrate_json_to_db_settings(user_id: int) -> bool:
+    """
+    Migrate user's JSON strategy_settings to new database table.
+    Call this once per user to migrate existing settings.
+    """
+    cfg = get_user_config(user_id)
+    json_settings = cfg.get("strategy_settings", {})
+    
+    if not json_settings:
+        return True  # Nothing to migrate
+    
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        
+        # Check for new format (with exchange keys) or legacy format
+        if any(k in json_settings for k in ["bybit", "hyperliquid"]):
+            # New format: { "bybit": { "demo": { "scryptomera": {...} } } }
+            for exchange, exchange_data in json_settings.items():
+                if not isinstance(exchange_data, dict):
+                    continue
+                for account_type, account_data in exchange_data.items():
+                    if not isinstance(account_data, dict):
+                        continue
+                    for strategy, strat_settings in account_data.items():
+                        if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
+                            set_strategy_settings_db(user_id, strategy, strat_settings, exchange, account_type)
+        else:
+            # Legacy format: { "scryptomera": {...}, "scalper": {...} }
+            # Migrate to bybit/demo by default
+            for strategy, strat_settings in json_settings.items():
+                if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
+                    set_strategy_settings_db(user_id, strategy, strat_settings, "bybit", "demo")
+        
+        # Clear the JSON field after migration
+        cur.execute("UPDATE users SET strategy_settings = NULL WHERE user_id = ?", (user_id,))
+        conn.commit()
+        invalidate_user_cache(user_id)
+        return True
+    except Exception as e:
+        print(f"[DB ERROR] migrate_json_to_db_settings for user {user_id}: {e}")
+        return False
+    finally:
+        release_conn(conn)
+
+
 def get_strategy_settings_v2(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
     """
     Get settings for a specific strategy, exchange, and account type.
-    New unified format: { "bybit": { "demo": {...}, "real": {...} }, "hyperliquid": { "testnet": {...}, "mainnet": {...} } }
+    NOW USES DATABASE TABLE instead of JSON.
     Returns dict with keys: enabled, percent, sl_percent, tp_percent, leverage, etc.
     """
-    cfg = get_user_config(user_id)
-    all_settings = cfg.get("strategy_settings", {})
-    
-    # Check if using new format (has exchange keys) or legacy format
-    if exchange in all_settings and isinstance(all_settings.get(exchange), dict):
-        # New format
-        exchange_settings = all_settings.get(exchange, {})
-        account_settings = exchange_settings.get(account_type, {})
-        strat_settings = account_settings.get(strategy, {})
-    else:
-        # Legacy format - strategy directly under settings
-        strat_settings = all_settings.get(strategy, {})
-    
-    # Merge with defaults
-    result = DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
-    result.update(strat_settings)
-    
-    # Add enabled flag from legacy fields if not in settings
-    if "enabled" not in result:
-        trade_field = f"trade_{strategy}" if strategy in ["scryptomera", "scalper", "elcaro", "fibonacci"] else f"trade_{strategy}"
-        result["enabled"] = bool(cfg.get(trade_field, 0))
-    
-    return result
+    return get_strategy_settings_db(user_id, strategy, exchange, account_type)
 
 
 def set_strategy_settings_v2(user_id: int, strategy: str, settings: dict, exchange: str = "bybit", account_type: str = "demo") -> bool:
     """
     Set settings for a specific strategy, exchange, and account type.
+    NOW USES DATABASE TABLE instead of JSON.
     """
-    if strategy not in STRATEGY_NAMES:
-        return False
-    
-    cfg = get_user_config(user_id)
-    all_settings = cfg.get("strategy_settings", {})
-    
-    # Ensure structure exists
-    if exchange not in all_settings:
-        all_settings[exchange] = {}
-    if account_type not in all_settings[exchange]:
-        all_settings[exchange][account_type] = {}
-    
-    # Update settings
-    all_settings[exchange][account_type][strategy] = settings
-    
-    set_user_field(user_id, "strategy_settings", json.dumps(all_settings))
-    return True
+    return set_strategy_settings_db(user_id, strategy, settings, exchange, account_type)
 
 
 def is_strategy_enabled_v2(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> bool:
     """
     Check if a strategy is enabled for specific exchange and account type.
     """
-    settings = get_strategy_settings_v2(user_id, strategy, exchange, account_type)
+    settings = get_strategy_settings_db(user_id, strategy, exchange, account_type)
     return bool(settings.get("enabled", False))
 
 
-def get_strategy_settings(user_id: int, strategy: str) -> dict:
+def get_strategy_settings(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
     """
     Get settings for a specific strategy.
+    NOW USES DATABASE TABLE instead of JSON.
     Returns dict with keys: percent, sl_percent, tp_percent, atr_periods, atr_multiplier_sl, atr_trigger_pct
     Values are None if not customized (use global defaults)
     """
-    cfg = get_user_config(user_id)
-    all_settings = cfg.get("strategy_settings", {})
-    strat_settings = all_settings.get(strategy, {})
-    # Merge with defaults (None values)
-    result = DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
-    result.update(strat_settings)
-    return result
+    return get_strategy_settings_db(user_id, strategy, exchange, account_type)
 
 
-def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None) -> bool:
+def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None,
+                         exchange: str = "bybit", account_type: str = "demo") -> bool:
     """
     Set a specific field for a strategy.
-    field must be one of: percent, sl_percent, tp_percent, atr_mult
+    NOW USES DATABASE TABLE instead of JSON.
+    field must be one of: percent, sl_percent, tp_percent, atr_mult, etc.
     value can be None to reset to global default
     """
-    if strategy not in STRATEGY_NAMES:
-        return False
-    if field not in STRATEGY_SETTING_FIELDS:
-        return False
-    
-    cfg = get_user_config(user_id)
-    all_settings = cfg.get("strategy_settings", {})
-    
-    if strategy not in all_settings:
-        all_settings[strategy] = {}
-    
-    if value is None:
-        # Remove the field to use global default
-        all_settings[strategy].pop(field, None)
-    else:
-        all_settings[strategy][field] = value
-    
-    # Clean up empty strategy dicts
-    if not all_settings[strategy]:
-        del all_settings[strategy]
-    
-    set_user_field(user_id, "strategy_settings", json.dumps(all_settings))
-    return True
+    return set_strategy_setting_db(user_id, strategy, field, value, exchange, account_type)
 
 
 def get_effective_settings(user_id: int, strategy: str, global_cfg: dict | None = None, timeframe: str = "24h") -> dict:
