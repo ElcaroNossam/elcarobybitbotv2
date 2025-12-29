@@ -10496,21 +10496,26 @@ async def monitor_positions_loop(app: Application):
                                 if sig:
                                     # Check signal source/strategy
                                     raw_msg = sig.get("raw_message", "")
-                                    if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
+                                    raw_upper = raw_msg.upper()
+                                    if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
                                         detected_strategy = "scryptomera"
-                                    elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
+                                    elif "SCALPER" in raw_upper and "⚡" in raw_msg:
                                         detected_strategy = "scalper"
-                                    elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
+                                    elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
                                         detected_strategy = "elcaro"
+                                    elif "WYCKOFF" in raw_upper:
+                                        detected_strategy = "wyckoff"
                                     elif sig.get("source"):
                                         # Use source as strategy hint
                                         source = sig.get("source", "").lower()
-                                        if "scryptomera" in source or "bitk" in source:
+                                        if "scryptomera" in source or "bitk" in source or "drops" in source:
                                             detected_strategy = "scryptomera"
                                         elif "scalper" in source:
                                             detected_strategy = "scalper"
                                         elif "elcaro" in source:
                                             detected_strategy = "elcaro"
+                                        elif "wyckoff" in source:
+                                            detected_strategy = "wyckoff"
                             
                             # Use current trading mode for account_type
                             current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
