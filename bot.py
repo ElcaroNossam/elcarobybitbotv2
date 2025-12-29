@@ -2384,9 +2384,18 @@ def _calc_pnl(entry: float, exit_: float, side: str, size: float) -> tuple[float
 
 
 @log_calls
-async def detect_exit_reason(user_id: int, symbol: str) -> tuple[str, str]:
+async def detect_exit_reason(
+    user_id: int, 
+    symbol: str, 
+    entry_price: float = None, 
+    exit_price: float = None, 
+    side: str = None,
+    sl_pct: float = None,
+    tp_pct: float = None
+) -> tuple[str, str]:
     """
     Detect exit reason by checking execution list and order history.
+    If Bybit API doesn't provide clear reason, uses price comparison as fallback.
     Returns tuple of (reason, order_type) where reason is one of:
     - "TP" - Take Profit triggered
     - "SL" - Stop Loss triggered  
@@ -2521,9 +2530,34 @@ async def detect_exit_reason(user_id: int, symbol: str) -> tuple[str, str]:
                     # Check orderType for hints
                     ot = (latest.get("orderType") or "").lower()
                     if ot == "market":
-                        return "MANUAL", "Market"
+                        # Market order could still be TP/SL - check by PnL
+                        pass  # Will use price-based detection below
         except Exception as e:
             logger.debug(f"Could not fetch closed-pnl for detect_exit_reason: {e}")
+    
+    # Step 5: Fallback - determine by comparing exit_price with entry_price and expected TP/SL levels
+    if reason == "UNKNOWN" and entry_price and exit_price and side:
+        pnl_pct = ((exit_price / entry_price) - 1.0) * 100 if side == "Buy" else ((entry_price / exit_price) - 1.0) * 100
+        
+        # Use provided SL/TP or defaults
+        sl_threshold = sl_pct or 3.0  # Default SL ~3%
+        tp_threshold = tp_pct or 8.0  # Default TP ~8%
+        
+        if side == "Buy":
+            # For LONG: profit if exit > entry
+            if pnl_pct >= tp_threshold * 0.8:  # At least 80% of TP target
+                return "TP", order_type or "Market"
+            elif pnl_pct <= -sl_threshold * 0.8:  # At least 80% of SL target
+                return "SL", order_type or "Market"
+        else:
+            # For SHORT: profit if exit < entry
+            if pnl_pct >= tp_threshold * 0.8:
+                return "TP", order_type or "Market"
+            elif pnl_pct <= -sl_threshold * 0.8:
+                return "SL", order_type or "Market"
+        
+        # If small profit/loss, likely manual
+        return "MANUAL", order_type or "Market"
     
     return reason, order_type
 
@@ -10750,8 +10784,24 @@ async def monitor_positions_loop(app: Application):
 
                             entry_price = float(rec["avgEntryPrice"])
                             exit_price  = float(rec["avgExitPrice"])
-
-                            exit_reason, exit_order_type = await detect_exit_reason(uid, sym)
+                            pos_side = ap.get("side", "Buy")
+                            
+                            # Get strategy-specific SL/TP percentages for better detection
+                            position_strategy = ap.get("strategy")
+                            if position_strategy:
+                                strat_sl, strat_tp = resolve_sl_tp_pct(cfg, sym, strategy=position_strategy, user_id=uid, side=pos_side)
+                            else:
+                                strat_sl = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
+                                strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
+                            
+                            exit_reason, exit_order_type = await detect_exit_reason(
+                                uid, sym, 
+                                entry_price=entry_price, 
+                                exit_price=exit_price, 
+                                side=pos_side,
+                                sl_pct=strat_sl,
+                                tp_pct=strat_tp
+                            )
                             logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type})")
                             reason_text = exit_reason  
 
@@ -10759,7 +10809,6 @@ async def monitor_positions_loop(app: Application):
                                 sig = fetch_signal_by_id(ap["signal_id"]) or {}
                                 
                                 # Determine strategy: from position or fallback to signal detection
-                                position_strategy = ap.get("strategy")
                                 if not position_strategy and sig:
                                     raw_msg = sig.get("raw_message") or ""
                                     if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
