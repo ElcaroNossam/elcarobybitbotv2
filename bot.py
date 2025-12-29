@@ -9740,6 +9740,36 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 else:
                     logger.info(f"[{uid}] Fibonacci direction OK, proceeding with {symbol}")
 
+            # Check RSI_BB direction filter
+            if rsi_bb_trigger:
+                rsi_bb_settings = db.get_strategy_settings(uid, "rsi_bb")
+                rsi_bb_direction = rsi_bb_settings.get("direction", "all")
+                signal_direction = "long" if side == "Buy" else "short"
+                
+                if rsi_bb_direction != "all" and rsi_bb_direction != signal_direction:
+                    logger.info(f"[{uid}] {symbol}: RSI_BB direction filter - signal={signal_direction}, allowed={rsi_bb_direction} → skip")
+                    rsi_bb_trigger = False
+
+            # Check Elcaro direction filter
+            if elcaro_trigger:
+                elcaro_settings = db.get_strategy_settings(uid, "elcaro")
+                elcaro_direction = elcaro_settings.get("direction", "all")
+                signal_direction = "long" if side == "Buy" else "short"
+                
+                if elcaro_direction != "all" and elcaro_direction != signal_direction:
+                    logger.info(f"[{uid}] {symbol}: Elcaro direction filter - signal={signal_direction}, allowed={elcaro_direction} → skip")
+                    elcaro_trigger = False
+
+            # Check OI direction filter
+            if oi_trigger:
+                oi_settings = db.get_strategy_settings(uid, "oi")
+                oi_direction = oi_settings.get("direction", "all")
+                signal_direction = "long" if side == "Buy" else "short"
+                
+                if oi_direction != "all" and oi_direction != signal_direction:
+                    logger.info(f"[{uid}] {symbol}: OI direction filter - signal={signal_direction}, allowed={oi_direction} → skip")
+                    oi_trigger = False
+
             if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger):
                 continue
 
@@ -10073,6 +10103,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 f"leverage={elcaro_leverage}")
                 else:
                     # Legacy формат - используем настройки пользователя
+                    elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro")
                     params = get_strategy_trade_params(uid, cfg, symbol, "elcaro")
                     sl_pct = params["sl_pct"]
                     tp_pct = params["tp_pct"]
@@ -10080,7 +10111,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     elcaro_entry = parsed_elcaro.get("price", spot_price)
                     elcaro_sl = parsed_elcaro.get("sl")
                     elcaro_tp = parsed_elcaro.get("tp")
-                    elcaro_leverage = None
+                    elcaro_leverage = elcaro_strat_settings.get("leverage")  # Use user's strategy settings
                     elcaro_timeframe = parsed_elcaro.get("interval", "60m")
                     elcaro_atr_periods = None
                     elcaro_atr_mult = None
