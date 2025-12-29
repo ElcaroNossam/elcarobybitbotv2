@@ -257,5 +257,153 @@ class TestStrategyNamesMap:
             assert name and len(name) > 0, f"{strategy} has empty name"
 
 
+class TestBuildStrategySettingsText:
+    """Test build_strategy_settings_text function."""
+    
+    def get_text(self, strategy: str, settings: dict = None):
+        """Helper to build settings text."""
+        import bot
+        t = {
+            "global_default": "Global",
+            "strategy_param_header": "⚙️ *{name} Settings*",
+        }
+        settings = settings or {}
+        return bot.build_strategy_settings_text(strategy, settings, t)
+    
+    def test_elcaro_shows_direction_and_percent(self):
+        """Elcaro should show direction and percent."""
+        text = self.get_text("elcaro", {"direction": "long", "percent": 2.0})
+        assert "Direction" in text
+        assert "LONG" in text
+        assert "Position Size" in text
+        assert "2.0%" in text
+    
+    def test_elcaro_no_leverage(self):
+        """Elcaro should NOT show leverage."""
+        text = self.get_text("elcaro", {"leverage": 10})
+        assert "Leverage" not in text
+    
+    def test_scryptomera_shows_order_type(self):
+        """Scryptomera should show order type."""
+        text = self.get_text("scryptomera", {"order_type": "limit"})
+        assert "Order Type" in text
+        assert "Limit" in text
+    
+    def test_fibonacci_shows_min_quality(self):
+        """Fibonacci should show min_quality."""
+        text = self.get_text("fibonacci", {"min_quality": 75})
+        assert "Min Quality" in text
+        assert "75%" in text
+    
+    def test_oi_shows_sl_tp(self):
+        """OI should show SL/TP on main screen."""
+        text = self.get_text("oi", {"sl_percent": 2.0, "tp_percent": 5.0})
+        assert "SL:" in text
+        assert "2.0%" in text
+        assert "TP:" in text
+        assert "5.0%" in text
+    
+    def test_side_settings_summary(self):
+        """Strategies with side_settings should show LONG/SHORT summary."""
+        text = self.get_text("scryptomera", {
+            "long_percent": 1.0,
+            "long_sl_percent": 2.0,
+            "short_percent": 1.5
+        })
+        assert "📈 LONG:" in text
+        assert "📉 SHORT:" in text
+
+
+class TestStrategyTradeParamsIntegration:
+    """Test that strategy settings are properly used in trading flow."""
+    
+    @pytest.fixture(autouse=True)
+    def setup_db(self, tmp_path):
+        """Setup temp database for tests."""
+        import db
+        # Use the existing test database from conftest
+        db.init_db()
+    
+    def test_get_strategy_settings_returns_all_fields(self):
+        """get_strategy_settings should return all defined fields."""
+        import db
+        # Create temp user
+        uid = 999888777
+        db.ensure_user(uid)
+        
+        try:
+            # Set various settings
+            db.set_strategy_setting(uid, "scryptomera", "percent", 2.5, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "sl_percent", 3.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "tp_percent", 6.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "use_atr", 1, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "direction", "long", "bybit", "demo")
+            
+            # Get settings
+            settings = db.get_strategy_settings(uid, "scryptomera", "bybit", "demo")
+            
+            assert settings.get("percent") == 2.5
+            assert settings.get("sl_percent") == 3.0
+            assert settings.get("tp_percent") == 6.0
+            assert settings.get("use_atr") == 1
+            assert settings.get("direction") == "long"
+        finally:
+            # Cleanup
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_side_specific_settings_saved_correctly(self):
+        """Side-specific settings should be saved separately."""
+        import db
+        uid = 999888776
+        db.ensure_user(uid)
+        
+        try:
+            # Set LONG and SHORT settings
+            db.set_strategy_setting(uid, "scryptomera", "long_percent", 1.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_percent", 1.5, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "long_sl_percent", 2.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_sl_percent", 2.5, "bybit", "demo")
+            
+            # Get settings
+            settings = db.get_strategy_settings(uid, "scryptomera", "bybit", "demo")
+            
+            assert settings.get("long_percent") == 1.0
+            assert settings.get("short_percent") == 1.5
+            assert settings.get("long_sl_percent") == 2.0
+            assert settings.get("short_sl_percent") == 2.5
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_atr_params_saved_per_side(self):
+        """ATR params should be saved per side."""
+        import db
+        uid = 999888775
+        db.ensure_user(uid)
+        
+        try:
+            db.set_strategy_setting(uid, "scryptomera", "long_atr_periods", 7, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_atr_periods", 14, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "long_atr_multiplier_sl", 1.5, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "long_atr_trigger_pct", 2.0, "bybit", "demo")
+            
+            settings = db.get_strategy_settings(uid, "scryptomera", "bybit", "demo")
+            
+            assert settings.get("long_atr_periods") == 7
+            assert settings.get("short_atr_periods") == 14
+            assert settings.get("long_atr_multiplier_sl") == 1.5
+            assert settings.get("long_atr_trigger_pct") == 2.0
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

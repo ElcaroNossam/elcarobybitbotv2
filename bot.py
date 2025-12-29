@@ -4246,6 +4246,92 @@ STRATEGY_NAMES_MAP = {
     "fibonacci": "Fibonacci",
 }
 
+
+def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -> str:
+    """Build strategy settings display text based on STRATEGY_FEATURES.
+    
+    Returns formatted markdown text showing only relevant settings for the strategy.
+    """
+    features = STRATEGY_FEATURES.get(strategy, {})
+    display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+    global_lbl = t.get('global_default', 'Global')
+    
+    lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+    lines.append("")
+    
+    # Order type
+    if features.get("order_type"):
+        order_type = strat_settings.get("order_type", "market")
+        order_emoji = "🎯" if order_type == "limit" else "⚡"
+        order_label = "Limit" if order_type == "limit" else "Market"
+        lines.append(f"*Order Type*: {order_emoji} {order_label}")
+    
+    # Direction
+    if features.get("direction"):
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
+        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
+    
+    # Position size (for strategies that show it on main screen)
+    if features.get("percent"):
+        pct = strat_settings.get("percent")
+        lines.append(f"📊 Position Size: {pct if pct is not None else global_lbl}%")
+    
+    # Leverage
+    if features.get("leverage"):
+        leverage = strat_settings.get("leverage")
+        lines.append(f"⚡ Leverage: {leverage if leverage else 'Auto'}x")
+    
+    # ATR toggle
+    if features.get("use_atr"):
+        use_atr = strat_settings.get("use_atr") or 0
+        atr_status = "✅ Enabled" if use_atr else "❌ Disabled"
+        lines.append(f"📊 ATR Trailing: {atr_status}")
+    
+    # SL/TP on main screen (for simple strategies)
+    if features.get("sl_tp"):
+        sl = strat_settings.get("sl_percent")
+        tp = strat_settings.get("tp_percent")
+        lines.append(f"🔻 SL: {sl if sl is not None else global_lbl}%")
+        lines.append(f"🔺 TP: {tp if tp is not None else global_lbl}%")
+    
+    # Coins group
+    if features.get("coins_group"):
+        coins_group = strat_settings.get("coins_group")
+        coins_label = coins_group if coins_group else "All"
+        lines.append(f"🪙 Coins Filter: {coins_label}")
+    
+    # Min quality (Fibonacci)
+    if features.get("min_quality"):
+        min_quality = strat_settings.get("min_quality", 50)
+        lines.append(f"⭐ Min Quality: {min_quality}%")
+    
+    # Side-specific summary
+    if features.get("side_settings"):
+        lines.append("")
+        l_pct = strat_settings.get("long_percent")
+        l_sl = strat_settings.get("long_sl_percent")
+        l_tp = strat_settings.get("long_tp_percent")
+        s_pct = strat_settings.get("short_percent")
+        s_sl = strat_settings.get("short_sl_percent")
+        s_tp = strat_settings.get("short_tp_percent")
+        
+        if strategy in ("elcaro", "fibonacci"):
+            # Only show percent for these strategies
+            if l_pct is not None:
+                lines.append(f"📈 LONG: Entry={l_pct}%")
+            if s_pct is not None:
+                lines.append(f"📉 SHORT: Entry={s_pct}%")
+        else:
+            if any(v is not None for v in [l_pct, l_sl, l_tp]):
+                lines.append(f"📈 LONG: Entry={l_pct or global_lbl}, SL={l_sl or global_lbl}, TP={l_tp or global_lbl}")
+            if any(v is not None for v in [s_pct, s_sl, s_tp]):
+                lines.append(f"📉 SHORT: Entry={s_pct or global_lbl}, SL={s_sl or global_lbl}, TP={s_tp or global_lbl}")
+    
+    return "\n".join(lines)
+
+
 # Define which features each strategy supports for cleaner UI
 # This controls which settings are shown in the strategy settings menu
 STRATEGY_FEATURES = {
@@ -5783,96 +5869,48 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         )
         return
     
-    # Scryptomera direction toggle: all -> long -> short -> all
-    if data.startswith("scrypto_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "scryptomera", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "scryptomera", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP["scryptomera"]
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        pct = strat_settings.get("percent")
-        sl = strat_settings.get("sl_percent")
-        tp = strat_settings.get("tp_percent")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-        lines.append("")
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        l_pct = strat_settings.get("long_percent")
-        l_sl = strat_settings.get("long_sl_percent")
-        l_tp = strat_settings.get("long_tp_percent")
-        if any(v is not None for v in [l_pct, l_sl, l_tp]):
-            lines.append(f"📈 LONG: Entry={l_pct or global_lbl}, SL={l_sl or global_lbl}, TP={l_tp or global_lbl}")
-        
-        s_pct = strat_settings.get("short_percent")
-        s_sl = strat_settings.get("short_sl_percent")
-        s_tp = strat_settings.get("short_tp_percent")
-        if any(v is not None for v in [s_pct, s_sl, s_tp]):
-            lines.append(f"📉 SHORT: Entry={s_pct or global_lbl}, SL={s_sl or global_lbl}, TP={s_tp or global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("scryptomera", t, strat_settings)
-        )
-        return
+    # Universal direction toggle handler for ALL strategies
+    for strat_name in STRATEGY_NAMES_MAP.keys():
+        if data.startswith(f"{strat_name}_dir:"):
+            current = data.split(":")[1]
+            next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
+            
+            # Get context
+            context = get_user_trading_context(uid)
+            
+            # Save new direction
+            db.set_strategy_setting(uid, strat_name, "direction", next_dir,
+                                   context["exchange"], context["account_type"])
+            
+            dir_labels = {
+                "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
+                "long": t.get('dir_long_only', '📈 LONG only'),
+                "short": t.get('dir_short_only', '📉 SHORT only'),
+            }
+            await query.answer(dir_labels.get(next_dir, next_dir))
+            
+            # Refresh the settings view with updated settings
+            strat_settings = db.get_strategy_settings(uid, strat_name, context["exchange"], context["account_type"])
+            
+            await query.message.edit_text(
+                build_strategy_settings_text(strat_name, strat_settings, t),
+                parse_mode="Markdown",
+                reply_markup=get_strategy_param_keyboard(strat_name, t, strat_settings)
+            )
+            return
     
-    # Scryptomera LONG/SHORT side settings
-    if data.startswith("scrypto_side:"):
-        side = data.split(":")[1]  # "long" or "short"
-        strat_settings = db.get_strategy_settings(uid, "scryptomera")
-        
-        side_upper = side.upper()
-        emoji = "📈" if side == "long" else "📉"
-        global_lbl = t.get('global_default', 'Global')
-        
-        pct = strat_settings.get(f"{side}_percent")
-        sl = strat_settings.get(f"{side}_sl_percent")
-        tp = strat_settings.get(f"{side}_tp_percent")
-        
-        lines = [t.get('scrypto_side_header', '{emoji} *Scryptomera {side} Settings*').format(emoji=emoji, side=side_upper)]
-        lines.append("")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_scryptomera_side_keyboard(side, t)
-        )
-        return
-    
-    # Universal LONG/SHORT side settings for any strategy (rsi_bb, elcaro, fibonacci, oi)
-    for strat_name in ("rsi_bb", "elcaro", "fibonacci", "oi"):
+    # Universal LONG/SHORT side settings for ALL strategies with side_settings feature
+    for strat_name in STRATEGY_NAMES_MAP.keys():
+        features = STRATEGY_FEATURES.get(strat_name, {})
+        if not features.get("side_settings"):
+            continue
+            
         if data.startswith(f"{strat_name}_side:"):
             side = data.split(":")[1]  # "long" or "short"
-            strat_settings = db.get_strategy_settings(uid, strat_name)
+            
+            # Get context for proper settings
+            context = get_user_trading_context(uid)
+            strat_settings = db.get_strategy_settings(uid, strat_name, context["exchange"], context["account_type"])
             
             side_upper = side.upper()
             emoji = "📈" if side == "long" else "📉"
@@ -5883,22 +5921,23 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             sl = strat_settings.get(f"{side}_sl_percent")
             tp = strat_settings.get(f"{side}_tp_percent")
             atr_trigger = strat_settings.get(f"{side}_atr_trigger_pct")
-            
-            # Adjust display based on strategy features
-            features = STRATEGY_FEATURES.get(strat_name, {})
             use_atr = strat_settings.get("use_atr", 0)
             
             lines = [f"{emoji} *{display_name} {side_upper} Settings*"]
             lines.append("")
             lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
             
-            # SL/TP only for non-Elcaro strategies
+            # SL/TP only for strategies that support it (not elcaro/fibonacci)
             if strat_name not in ("elcaro", "fibonacci"):
                 lines.append(f"SL %: {sl if sl is not None else global_lbl}")
                 lines.append(f"TP %: {tp if tp is not None else global_lbl}")
             
-            # ATR trigger only if ATR is enabled
+            # ATR params only if ATR is enabled for this strategy
             if features.get("use_atr") and use_atr:
+                atr_periods = strat_settings.get(f"{side}_atr_periods")
+                atr_mult = strat_settings.get(f"{side}_atr_multiplier_sl")
+                lines.append(f"ATR Periods: {atr_periods if atr_periods is not None else global_lbl}")
+                lines.append(f"ATR Multiplier: {atr_mult if atr_mult is not None else global_lbl}")
                 lines.append(f"ATR Trigger %: {atr_trigger if atr_trigger is not None else global_lbl}")
             
             await query.message.edit_text(
@@ -5907,270 +5946,6 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 reply_markup=get_strategy_side_keyboard(strat_name, side, t, strat_settings)
             )
             return
-    
-    # Scalper direction toggle: all -> long -> short -> all
-    if data.startswith("scalper_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "scalper", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "scalper", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP["scalper"]
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        l_pct = strat_settings.get("long_percent")
-        l_sl = strat_settings.get("long_sl_percent")
-        l_tp = strat_settings.get("long_tp_percent")
-        if any(v is not None for v in [l_pct, l_sl, l_tp]):
-            lines.append(f"📈 LONG: Entry={l_pct or global_lbl}, SL={l_sl or global_lbl}, TP={l_tp or global_lbl}")
-        
-        s_pct = strat_settings.get("short_percent")
-        s_sl = strat_settings.get("short_sl_percent")
-        s_tp = strat_settings.get("short_tp_percent")
-        if any(v is not None for v in [s_pct, s_sl, s_tp]):
-            lines.append(f"📉 SHORT: Entry={s_pct or global_lbl}, SL={s_sl or global_lbl}, TP={s_tp or global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("scalper", t, strat_settings)
-        )
-        return
-    
-    # Scalper LONG/SHORT side settings
-    if data.startswith("scalper_side:"):
-        side = data.split(":")[1]  # "long" or "short"
-        strat_settings = db.get_strategy_settings(uid, "scalper")
-        
-        side_upper = side.upper()
-        emoji = "📈" if side == "long" else "📉"
-        global_lbl = t.get('global_default', 'Global')
-        
-        pct = strat_settings.get(f"{side}_percent")
-        sl = strat_settings.get(f"{side}_sl_percent")
-        tp = strat_settings.get(f"{side}_tp_percent")
-        
-        lines = [t.get('scalper_side_header', '{emoji} *Scalper {side} Settings*').format(emoji=emoji, side=side_upper)]
-        lines.append("")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_scalper_side_keyboard(side, t)
-        )
-        return
-    
-    # Fibonacci direction toggle: all -> long -> short -> all
-    if data.startswith("fibonacci_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "fibonacci", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "fibonacci", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP.get("fibonacci", "Fibonacci")
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        leverage = strat_settings.get("leverage", 10)
-        lines.append(f"⚡ Leverage: {leverage}x")
-        
-        min_quality = strat_settings.get("min_quality", 50)
-        lines.append(f"🎯 Min Quality: {min_quality}")
-        
-        pct = strat_settings.get("percent")
-        lines.append(f"📊 Position Size: {pct if pct is not None else global_lbl}%")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("fibonacci", t, strat_settings)
-        )
-        return
-    
-    # Elcaro direction toggle: all -> long -> short -> all
-    if data.startswith("elcaro_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "elcaro", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "elcaro", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP.get("elcaro", "Elcaro")
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        pct = strat_settings.get("percent")
-        lines.append(f"📊 Position Size: {pct if pct is not None else global_lbl}%")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("elcaro", t, strat_settings)
-        )
-        return
-    
-    # OI direction toggle: all -> long -> short -> all
-    if data.startswith("oi_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "oi", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "oi", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP.get("oi", "OI")
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        pct = strat_settings.get("percent")
-        sl = strat_settings.get("sl_percent")
-        tp = strat_settings.get("tp_percent")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("oi", t, strat_settings)
-        )
-        return
-    
-    # RSI_BB direction toggle: all -> long -> short -> all
-    if data.startswith("rsi_bb_dir:"):
-        current = data.split(":")[1]
-        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
-        
-        # Get context
-        context = get_user_trading_context(uid)
-        
-        # Save new direction
-        db.set_strategy_setting(uid, "rsi_bb", "direction", next_dir,
-                               context["exchange"], context["account_type"])
-        
-        dir_labels = {
-            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
-            "long": t.get('dir_long_only', '📈 LONG only'),
-            "short": t.get('dir_short_only', '📉 SHORT only'),
-        }
-        await query.answer(dir_labels.get(next_dir, next_dir))
-        
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "rsi_bb", context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP.get("rsi_bb", "RSI/BB")
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        
-        global_lbl = t.get('global_default', 'Global')
-        
-        direction = strat_settings.get("direction", "all")
-        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
-        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
-        
-        pct = strat_settings.get("percent")
-        sl = strat_settings.get("sl_percent")
-        tp = strat_settings.get("tp_percent")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
-        
-        await query.message.edit_text(
-            "\n".join(lines),
-            parse_mode="Markdown",
-            reply_markup=get_strategy_param_keyboard("rsi_bb", t, strat_settings)
-        )
-        return
     
     # ATR toggle for strategies
     if data.startswith("strat_atr_toggle:"):
@@ -6191,22 +5966,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
         
-        # Refresh settings
+        # Refresh settings using unified text builder
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
-        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
-        
-        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
-        lines.append("")
-        global_lbl = t.get('global_default', 'Global')
-        pct = strat_settings.get("percent")
-        sl = strat_settings.get("sl_percent")
-        tp = strat_settings.get("tp_percent")
-        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
-        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
-        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
         
         await query.message.edit_text(
-            "\n".join(lines),
+            build_strategy_settings_text(strategy, strat_settings, t),
             parse_mode="Markdown",
             reply_markup=get_strategy_param_keyboard(strategy, t, strat_settings)
         )
