@@ -1536,10 +1536,36 @@ _STRATEGY_DB_COLUMNS = [
 ]
 
 
+def _migrate_single_strategy(user_id: int, strategy: str, strat_json: dict, 
+                              exchange: str, account_type: str, cur) -> bool:
+    """
+    Helper to migrate a single strategy's settings from JSON dict to DB.
+    Uses provided cursor for transaction.
+    """
+    # Filter only valid columns
+    valid_settings = {k: v for k, v in strat_json.items() if k in _STRATEGY_DB_COLUMNS and v is not None}
+    if not valid_settings:
+        return False
+    
+    columns = ["user_id", "strategy", "exchange", "account_type"] + list(valid_settings.keys())
+    placeholders = ["?"] * len(columns)
+    values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
+    
+    try:
+        cur.execute(f"""
+            INSERT OR REPLACE INTO user_strategy_settings ({', '.join(columns)})
+            VALUES ({', '.join(placeholders)})
+        """, values)
+        return True
+    except Exception:
+        return False
+
+
 def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
     """
     Get strategy settings from user_strategy_settings table.
     Returns dict with all strategy parameters. NULL values are returned as None.
+    Auto-migrates from JSON if DB is empty but JSON exists.
     """
     if strategy not in STRATEGY_NAMES:
         return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
@@ -1560,6 +1586,37 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
             WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
         """, (user_id, strategy, exchange, account_type))
         row = cur.fetchone()
+        
+        if not row:
+            # Check if user has JSON settings to migrate
+            cur.execute("SELECT strategy_settings FROM users WHERE user_id = ?", (user_id,))
+            json_row = cur.fetchone()
+            if json_row and json_row[0]:
+                try:
+                    json_settings = json.loads(json_row[0])
+                    if json_settings and strategy in json_settings:
+                        # Migrate this strategy's settings from JSON to DB
+                        strat_json = json_settings.get(strategy, {})
+                        if isinstance(strat_json, dict) and strat_json:
+                            # Insert into DB
+                            _migrate_single_strategy(user_id, strategy, strat_json, exchange, account_type, cur)
+                            conn.commit()
+                            # Re-fetch from DB
+                            cur.execute("""
+                                SELECT enabled, percent, sl_percent, tp_percent, leverage,
+                                       use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
+                                       order_type, coins_group, direction,
+                                       long_percent, long_sl_percent, long_tp_percent,
+                                       long_atr_periods, long_atr_multiplier_sl, long_atr_trigger_pct,
+                                       short_percent, short_sl_percent, short_tp_percent,
+                                       short_atr_periods, short_atr_multiplier_sl, short_atr_trigger_pct,
+                                       min_quality
+                                FROM user_strategy_settings
+                                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+                            """, (user_id, strategy, exchange, account_type))
+                            row = cur.fetchone()
+                except (json.JSONDecodeError, Exception):
+                    pass
         
         if not row:
             # Return defaults for this strategy
