@@ -95,6 +95,9 @@ USER_FIELDS_WHITELIST = {
     # HyperLiquid settings
     "hl_testnet",  # 0/1 - testnet or mainnet
     "hl_enabled",  # 0/1 - HL trading enabled
+    "hl_private_key",  # HyperLiquid private key
+    "hl_wallet_address",  # HyperLiquid wallet address
+    "hl_vault_address",  # HyperLiquid vault address
 }
 
 # ------------------------------------------------------------------------------------
@@ -1955,24 +1958,42 @@ def is_strategy_enabled_v2(user_id: int, strategy: str, exchange: str = "bybit",
     return bool(settings.get("enabled", False))
 
 
-def get_strategy_settings(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
+def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> dict:
     """
     Get settings for a specific strategy.
     NOW USES DATABASE TABLE instead of JSON.
+    
+    If exchange and account_type are not provided, automatically detects from user's current context.
+    
     Returns dict with keys: percent, sl_percent, tp_percent, atr_periods, atr_multiplier_sl, atr_trigger_pct
     Values are None if not customized (use global defaults)
     """
+    # Auto-detect context if not provided
+    if exchange is None or account_type is None:
+        context = get_user_trading_context(user_id)
+        exchange = exchange or context["exchange"]
+        account_type = account_type or context["account_type"]
+    
     return get_strategy_settings_db(user_id, strategy, exchange, account_type)
 
 
 def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None,
-                         exchange: str = "bybit", account_type: str = "demo") -> bool:
+                         exchange: str = None, account_type: str = None) -> bool:
     """
     Set a specific field for a strategy.
     NOW USES DATABASE TABLE instead of JSON.
+    
+    If exchange and account_type are not provided, automatically detects from user's current context.
+    
     field must be one of: percent, sl_percent, tp_percent, atr_mult, etc.
     value can be None to reset to global default
     """
+    # Auto-detect context if not provided
+    if exchange is None or account_type is None:
+        context = get_user_trading_context(user_id)
+        exchange = exchange or context["exchange"]
+        account_type = account_type or context["account_type"]
+    
     return set_strategy_setting_db(user_id, strategy, field, value, exchange, account_type)
 
 

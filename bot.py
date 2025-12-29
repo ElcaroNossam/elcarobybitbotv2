@@ -2003,6 +2003,8 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     If strategy is provided and user has per-strategy settings, use those.
     For ALL strategies, side-specific settings (long_sl_percent, short_sl_percent) take priority if side is provided.
     Otherwise fallback to global user settings, then coin-specific defaults.
+    
+    Uses user's current exchange/account context for strategy settings lookup.
     """
     coin_cfg = COIN_PARAMS.get(symbol, COIN_PARAMS["DEFAULT"])
 
@@ -2010,7 +2012,13 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     strat_sl = None
     strat_tp = None
     if strategy and user_id:
-        strat_settings = db.get_strategy_settings(user_id, strategy)
+        # Get user's current exchange/account context
+        context = get_user_trading_context(user_id)
+        strat_settings = db.get_strategy_settings(
+            user_id, strategy, 
+            context["exchange"], 
+            context["account_type"]
+        )
         
         # For ALL strategies, check side-specific settings first if side is provided
         if side:

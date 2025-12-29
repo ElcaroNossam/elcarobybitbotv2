@@ -474,36 +474,53 @@ class TestExchangeSwitching:
     """Test exchange switching scenarios"""
     
     def test_switch_exchange_preserves_settings(self, test_db, multi_user_ids, cleanup_test_users):
-        """Switching exchange should preserve user settings"""
+        """Switching exchange should preserve user settings.
+        
+        NOTE: Strategy settings are ISOLATED per exchange/account_type.
+        Global user settings (leverage, lang) are preserved across exchanges.
+        Strategy-specific settings stay with their exchange context.
+        """
         uid = multi_user_ids['all_enabled']
         db.ensure_user(uid)
         
-        # Set some user settings
+        # Set exchange to Bybit first
+        db.set_exchange_type(uid, 'bybit')
+        db.set_trading_mode(uid, 'demo')
+        
+        # Set some global user settings
         db.set_user_field(uid, 'leverage', 15)
         db.set_user_field(uid, 'lang', 'ru')
-        db.set_strategy_setting(uid, 'elcaro', 'percent', 5.0)
         
-        # Set to Bybit
-        db.set_exchange_type(uid, 'bybit')
-        assert db.get_exchange_type(uid) == 'bybit'
+        # Set strategy settings for Bybit demo context
+        db.set_strategy_setting(uid, 'elcaro', 'percent', 5.0, 'bybit', 'demo')
         
-        # Verify settings preserved
+        # Verify settings preserved for Bybit
         cfg = db.get_user_config(uid)
         assert cfg.get('leverage') == 15
         assert cfg.get('lang') == 'ru'
+        
+        # Verify strategy settings for Bybit context
+        elcaro_bybit = db.get_strategy_settings(uid, 'elcaro', 'bybit', 'demo')
+        assert elcaro_bybit.get('percent') == 5.0, f"Bybit percent should be 5.0, got {elcaro_bybit.get('percent')}"
         
         # Switch to HyperLiquid
         db.set_exchange_type(uid, 'hyperliquid')
-        assert db.get_exchange_type(uid) == 'hyperliquid'
+        # Note: trading_mode is 'demo'/'real'/'both', HyperLiquid uses 'demo' -> 'testnet', 'real' -> 'mainnet'
+        db.set_trading_mode(uid, 'demo')  # Will normalize to 'testnet' for HyperLiquid
         
-        # Settings should still be preserved
+        # Global settings should still be preserved
         cfg = db.get_user_config(uid)
         assert cfg.get('leverage') == 15
         assert cfg.get('lang') == 'ru'
         
-        # Strategy settings should be preserved
-        elcaro = db.get_strategy_settings(uid, 'elcaro')
-        assert elcaro.get('percent') == 5.0, f"percent should be 5.0, got {elcaro.get('percent')}"
+        # For HyperLiquid, 'demo' trading_mode means 'testnet'
+        # Strategy settings for HyperLiquid testnet should be empty (not set yet)
+        elcaro_hl = db.get_strategy_settings(uid, 'elcaro', 'hyperliquid', 'testnet')
+        assert elcaro_hl.get('percent') is None, f"HyperLiquid percent should be None (not set), got {elcaro_hl.get('percent')}"
+        
+        # Original Bybit settings should still be preserved
+        elcaro_bybit_after = db.get_strategy_settings(uid, 'elcaro', 'bybit', 'demo')
+        assert elcaro_bybit_after.get('percent') == 5.0, f"Bybit percent should still be 5.0, got {elcaro_bybit_after.get('percent')}"
     
     def test_trading_mode_switch(self, test_db, multi_user_ids, cleanup_test_users):
         """Switching trading mode should work correctly"""
