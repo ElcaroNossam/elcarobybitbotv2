@@ -10733,6 +10733,20 @@ async def monitor_positions_loop(app: Application):
 
                             try:
                                 sig = fetch_signal_by_id(ap["signal_id"]) or {}
+                                
+                                # Determine strategy: from position or fallback to signal detection
+                                position_strategy = ap.get("strategy")
+                                if not position_strategy and sig:
+                                    raw_msg = sig.get("raw_message") or ""
+                                    if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
+                                        position_strategy = "scryptomera"
+                                    elif "⚡" in raw_msg and "Scalper" in raw_msg:
+                                        position_strategy = "scalper"
+                                    elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
+                                        position_strategy = "elcaro"
+                                    elif "Wyckoff" in raw_msg:
+                                        position_strategy = "wyckoff"
+                                
                                 log_exit_and_remove_position(
                                     user_id=uid,
                                     signal_id=ap["signal_id"],
@@ -10752,7 +10766,7 @@ async def monitor_positions_loop(app: Application):
                                     timeframe=ap.get("timeframe"),
                                     entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap["open_ts"]) * 1000),
                                     exit_order_type=exit_order_type,
-                                    strategy=ap.get("strategy"),
+                                    strategy=position_strategy,
                                     account_type=ap_account_type,
                                 )
 
@@ -10772,8 +10786,9 @@ async def monitor_positions_loop(app: Application):
                                 except Exception:
                                     pct_value = pct_calc
                                 
-                                # Get strategy name for display
-                                strategy_name = ap.get("strategy") or "unknown"
+                                # Get strategy name for display (use already determined position_strategy)
+                                strategy_name = position_strategy or "unknown"
+                                    
                                 strategy_display = {
                                     "scryptomera": "Scryptomera",
                                     "scalper": "Scalper", 
