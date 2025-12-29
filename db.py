@@ -1107,40 +1107,132 @@ def get_trading_mode(user_id: int) -> str:
         row = conn.execute("SELECT trading_mode FROM users WHERE user_id=?", (user_id,)).fetchone()
     return row[0] if row and row[0] else "demo"
 
-def get_active_account_types(user_id: int) -> list[str]:
-    """Get list of account types to trade on based on trading_mode.
+
+def get_user_trading_context(user_id: int) -> dict:
+    """
+    Get current trading context for user: exchange and primary account_type.
+    
+    For Bybit: account_type is demo/real based on trading_mode
+    For HyperLiquid: account_type is testnet/mainnet based on hl_testnet setting
     
     Returns:
-        List of account types: ['demo'], ['real'], or ['demo', 'real']
+        {
+            "exchange": "bybit" | "hyperliquid",
+            "account_type": "demo" | "real" | "testnet" | "mainnet",
+            "trading_mode": "demo" | "real" | "both"
+        }
     """
     with get_conn() as conn:
-        row = conn.execute(
-            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode FROM users WHERE user_id=?",
-            (user_id,),
-        ).fetchone()
+        row = conn.execute("""
+            SELECT exchange_type, trading_mode, hl_testnet
+            FROM users WHERE user_id = ?
+        """, (user_id,)).fetchone()
     
     if not row:
-        return []
+        return {"exchange": "bybit", "account_type": "demo", "trading_mode": "demo"}
     
-    demo_key, demo_secret, real_key, real_secret, trading_mode = row
-    trading_mode = trading_mode or "demo"
+    exchange = row[0] or "bybit"
+    trading_mode = row[1] or "demo"
+    hl_testnet = bool(row[2]) if row[2] is not None else False
     
-    result = []
+    if exchange == "hyperliquid":
+        # For HL: testnet/mainnet based on hl_testnet setting
+        account_type = "testnet" if hl_testnet else "mainnet"
+    else:
+        # For Bybit: demo/real based on trading_mode
+        # If "both", prefer "real" as primary for settings display
+        if trading_mode == "both":
+            account_type = "real"  # Primary account when both enabled
+        else:
+            account_type = trading_mode
     
-    if trading_mode == "both":
-        # Return only accounts that have credentials
-        if demo_key and demo_secret:
-            result.append("demo")
-        if real_key and real_secret:
-            result.append("real")
-    elif trading_mode == "real":
-        if real_key and real_secret:
-            result.append("real")
-    else:  # demo
-        if demo_key and demo_secret:
-            result.append("demo")
+    return {
+        "exchange": exchange,
+        "account_type": account_type,
+        "trading_mode": trading_mode
+    }
+
+
+def normalize_account_type(account_type: str, exchange: str = "bybit") -> str:
+    """
+    Normalize account type between exchanges.
+    demo <-> testnet, real <-> mainnet
+    """
+    if exchange == "hyperliquid":
+        # Normalize bybit modes to HL modes
+        if account_type == "demo":
+            return "testnet"
+        elif account_type == "real":
+            return "mainnet"
+    else:
+        # Normalize HL modes to Bybit modes
+        if account_type == "testnet":
+            return "demo"
+        elif account_type == "mainnet":
+            return "real"
+    return account_type
+
+
+def get_active_account_types(user_id: int) -> list[str]:
+    """Get list of account types to trade on based on trading_mode and active exchange.
     
-    return result
+    Returns for Bybit: ['demo'], ['real'], or ['demo', 'real']
+    Returns for HyperLiquid: ['testnet'] or ['mainnet'] (HL uses one key for both)
+    """
+    exchange = get_exchange_type(user_id)
+    
+    if exchange == "hyperliquid":
+        # For HyperLiquid, check if credentials exist and return based on hl_testnet
+        hl_creds = get_hl_credentials(user_id)
+        if not hl_creds.get("hl_private_key"):
+            return []
+        
+        # HL has one key for all - determine testnet/mainnet from settings
+        with get_conn() as conn:
+            row = conn.execute("SELECT hl_testnet, trading_mode FROM users WHERE user_id=?", (user_id,)).fetchone()
+        
+        if not row:
+            return ["mainnet"]
+        
+        hl_testnet = bool(row[0]) if row[0] is not None else False
+        trading_mode = row[1] or "demo"
+        
+        # Map trading_mode to HL account types
+        if trading_mode == "both":
+            return ["testnet", "mainnet"]
+        elif hl_testnet or trading_mode in ("demo", "testnet"):
+            return ["testnet"]
+        else:
+            return ["mainnet"]
+    else:
+        # For Bybit
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode FROM users WHERE user_id=?",
+                (user_id,),
+            ).fetchone()
+        
+        if not row:
+            return []
+        
+        demo_key, demo_secret, real_key, real_secret, trading_mode = row
+        trading_mode = trading_mode or "demo"
+        
+        result = []
+        
+        if trading_mode == "both":
+            if demo_key and demo_secret:
+                result.append("demo")
+            if real_key and real_secret:
+                result.append("real")
+        elif trading_mode == "real":
+            if real_key and real_secret:
+                result.append("real")
+        else:  # demo
+            if demo_key and demo_secret:
+                result.append("demo")
+        
+        return result
 
 
 def get_strategy_account_types(user_id: int, strategy: str) -> list[str]:
@@ -1148,46 +1240,71 @@ def get_strategy_account_types(user_id: int, strategy: str) -> list[str]:
     
     Strategy can have its own trading_mode setting:
     - 'global': use user's global trading_mode
-    - 'demo': trade only on demo account
-    - 'real': trade only on real account  
+    - 'demo'/'testnet': trade only on demo/testnet account
+    - 'real'/'mainnet': trade only on real/mainnet account  
     - 'both': trade on both accounts
     
-    Returns:
-        List of account types: ['demo'], ['real'], or ['demo', 'real']
+    Returns for Bybit: ['demo'], ['real'], or ['demo', 'real']
+    Returns for HyperLiquid: ['testnet'], ['mainnet'], or ['testnet', 'mainnet']
     """
-    strat_settings = get_strategy_settings(user_id, strategy)
+    # Get user's active exchange
+    exchange = get_exchange_type(user_id)
+    
+    # Get strategy settings for current exchange context
+    context = get_user_trading_context(user_id)
+    strat_settings = get_strategy_settings(user_id, strategy, exchange, context["account_type"])
     strat_mode = strat_settings.get("trading_mode", "global")
     
     # If strategy uses global mode, delegate to global function
     if strat_mode == "global":
         return get_active_account_types(user_id)
     
-    # Otherwise use strategy-specific mode
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret FROM users WHERE user_id=?",
-            (user_id,),
-        ).fetchone()
+    # Normalize mode for the active exchange
+    strat_mode = normalize_account_type(strat_mode, exchange)
     
-    if not row:
-        return []
-    
-    demo_key, demo_secret, real_key, real_secret = row
-    result = []
-    
-    if strat_mode == "both":
-        if demo_key and demo_secret:
-            result.append("demo")
-        if real_key and real_secret:
-            result.append("real")
-    elif strat_mode == "real":
-        if real_key and real_secret:
-            result.append("real")
-    elif strat_mode == "demo":
-        if demo_key and demo_secret:
-            result.append("demo")
-    
-    return result
+    if exchange == "hyperliquid":
+        # For HyperLiquid, check hl_private_key
+        hl_creds = get_hl_credentials(user_id)
+        has_key = bool(hl_creds.get("hl_private_key"))
+        
+        if not has_key:
+            return []
+        
+        if strat_mode == "both":
+            # Both testnet and mainnet - user has one key for both
+            return ["testnet", "mainnet"]
+        elif strat_mode in ("mainnet", "real"):
+            return ["mainnet"]
+        elif strat_mode in ("testnet", "demo"):
+            return ["testnet"]
+        return ["mainnet"]  # Default
+    else:
+        # For Bybit
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret FROM users WHERE user_id=?",
+                (user_id,),
+            ).fetchone()
+        
+        if not row:
+            return []
+        
+        demo_key, demo_secret, real_key, real_secret = row
+        result = []
+        
+        if strat_mode == "both":
+            if demo_key and demo_secret:
+                result.append("demo")
+            if real_key and real_secret:
+                result.append("real")
+        elif strat_mode in ("real", "mainnet"):
+            if real_key and real_secret:
+                result.append("real")
+        elif strat_mode in ("demo", "testnet"):
+            if demo_key and demo_secret:
+                result.append("demo")
+        
+        return result
 
 
 def delete_user_credentials(user_id: int, account_type: str):

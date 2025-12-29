@@ -71,6 +71,8 @@ from db import (
     get_trading_mode,
     get_active_account_types,
     get_strategy_account_types,
+    get_user_trading_context,
+    normalize_account_type,
     delete_user_credentials,
     get_active_positions,
     add_trade_log,
@@ -2053,15 +2055,31 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     return sl_pct, tp_pct
 
 
-def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, side: str = None) -> dict:
+def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, side: str = None,
+                              exchange: str = None, account_type: str = None) -> dict:
     """
     Get trading parameters for a specific strategy.
     Returns dict with: percent (risk%), sl_pct, tp_pct, use_atr
     Falls back to global user settings if per-strategy not set.
     
     For ALL strategies, if side is provided, uses side-specific settings (long_percent, short_sl_percent, etc.)
+    
+    Args:
+        uid: User ID
+        cfg: User config dict
+        symbol: Trading symbol
+        strategy: Strategy name
+        side: 'Buy' or 'Sell' for side-specific settings
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
+        account_type: 'demo', 'real', 'testnet', 'mainnet' (auto-detected if None)
     """
-    strat_settings = db.get_strategy_settings(uid, strategy)
+    # Auto-detect context if not provided
+    if exchange is None or account_type is None:
+        context = get_user_trading_context(uid)
+        exchange = exchange or context["exchange"]
+        account_type = account_type or context["account_type"]
+    
+    strat_settings = db.get_strategy_settings(uid, strategy, exchange, account_type)
     
     # Determine use_atr: strategy-specific takes priority over global
     strat_use_atr = strat_settings.get("use_atr")
@@ -4224,8 +4242,14 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     """Build inline keyboard for strategy selection with enable/disable status and trading mode."""
     cfg = cfg or {}
     
-    # Get user's active exchange to show correct mode labels
-    active_exchange = db.get_exchange_type(uid) if uid else "bybit"
+    # Get user's trading context (exchange + account_type)
+    if uid:
+        context = get_user_trading_context(uid)
+        active_exchange = context["exchange"]
+        account_type = context["account_type"]
+    else:
+        active_exchange = "bybit"
+        account_type = "demo"
     
     # Helper to get status emoji
     def status(key):
@@ -4234,7 +4258,7 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     # Helper to get trading mode for strategy - now exchange-aware
     def get_mode_emoji(strategy: str) -> str:
         if uid:
-            strat_settings = db.get_strategy_settings(uid, strategy)
+            strat_settings = db.get_strategy_settings(uid, strategy, active_exchange, account_type)
             mode = strat_settings.get("trading_mode", "global")
         else:
             mode = "global"
@@ -5337,8 +5361,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             current_idx = mode_cycle.index(current_mode) if current_mode in mode_cycle else 0
             new_mode = mode_cycle[(current_idx + 1) % len(mode_cycle)]
             
-            # Save new mode
-            db.set_strategy_setting(uid, strategy, "trading_mode", new_mode)
+            # Get current context for saving
+            context = get_user_trading_context(uid)
+            
+            # Save new mode to current exchange/account context
+            db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
+                                   context["exchange"], context["account_type"])
             
             # Check credentials
             warning = ""
@@ -5426,10 +5454,19 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             return
         
         if strategy in STRATEGY_NAMES_MAP:
-            strat_settings = db.get_strategy_settings(uid, strategy)
+            # Get settings for current exchange/account_type context
+            context = get_user_trading_context(uid)
+            strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
             display_name = STRATEGY_NAMES_MAP[strategy]
             
+            # Show which context we're viewing
+            if context["exchange"] == "hyperliquid":
+                ctx_label = "Testnet" if context["account_type"] == "testnet" else "Mainnet"
+            else:
+                ctx_label = "Demo" if context["account_type"] == "demo" else "Real"
+            
             lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+            lines.append(f"_{context['exchange'].title()} / {ctx_label}_")
             lines.append("")
             
             # Order type
@@ -5619,9 +5656,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         strategy = parts[1]
         current_type = parts[2]
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Toggle order type
         new_type = "limit" if current_type == "market" else "market"
-        db.set_strategy_setting(uid, strategy, "order_type", new_type)
+        db.set_strategy_setting(uid, strategy, "order_type", new_type,
+                               context["exchange"], context["account_type"])
         
         type_labels = {
             "market": t.get('order_type_market', '⚡ Market orders'),
@@ -5630,7 +5671,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(type_labels.get(new_type, new_type))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -5690,8 +5731,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "scryptomera", "direction", next_dir)
+        db.set_strategy_setting(uid, "scryptomera", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -5701,7 +5746,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "scryptomera")
+        strat_settings = db.get_strategy_settings(uid, "scryptomera", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP["scryptomera"]
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -5801,8 +5846,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "scalper", "direction", next_dir)
+        db.set_strategy_setting(uid, "scalper", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -5812,7 +5861,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "scalper")
+        strat_settings = db.get_strategy_settings(uid, "scalper", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP["scalper"]
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -5875,8 +5924,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "fibonacci", "direction", next_dir)
+        db.set_strategy_setting(uid, "fibonacci", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -5886,7 +5939,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "fibonacci")
+        strat_settings = db.get_strategy_settings(uid, "fibonacci", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get("fibonacci", "Fibonacci")
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -5920,8 +5973,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "elcaro", "direction", next_dir)
+        db.set_strategy_setting(uid, "elcaro", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -5931,7 +5988,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "elcaro")
+        strat_settings = db.get_strategy_settings(uid, "elcaro", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get("elcaro", "Elcaro")
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -5959,8 +6016,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "oi", "direction", next_dir)
+        db.set_strategy_setting(uid, "oi", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -5970,7 +6031,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "oi")
+        strat_settings = db.get_strategy_settings(uid, "oi", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get("oi", "OI")
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -6002,8 +6063,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = data.split(":")[1]
         next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Save new direction
-        db.set_strategy_setting(uid, "rsi_bb", "direction", next_dir)
+        db.set_strategy_setting(uid, "rsi_bb", "direction", next_dir,
+                               context["exchange"], context["account_type"])
         
         dir_labels = {
             "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -6013,7 +6078,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(dir_labels.get(next_dir, next_dir))
         
         # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, "rsi_bb")
+        strat_settings = db.get_strategy_settings(uid, "rsi_bb", context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get("rsi_bb", "RSI/BB")
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -6043,21 +6108,24 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     # ATR toggle for strategies
     if data.startswith("strat_atr_toggle:"):
         strategy = data.split(":")[1]
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        # Get context
+        context = get_user_trading_context(uid)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         # Use 'or 0' because get() returns None if key exists with None value
         current = strat_settings.get("use_atr") or 0
         new_value = 0 if current else 1
         
         logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
         
-        result = db.set_strategy_setting(uid, strategy, "use_atr", new_value)
+        result = db.set_strategy_setting(uid, strategy, "use_atr", new_value,
+                                        context["exchange"], context["account_type"])
         logger.info(f"[{uid}] ATR toggle result: {result}")
         
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
         
         # Refresh settings
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -6118,9 +6186,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         strategy = parts[1]
         group = parts[2]  # "GLOBAL", "ALL", "TOP100", "VOLATILE"
         
+        # Get context
+        context = get_user_trading_context(uid)
+        
         # Set coins_group (None for global)
         new_value = None if group == "GLOBAL" else group
-        db.set_strategy_setting(uid, strategy, "coins_group", new_value)
+        db.set_strategy_setting(uid, strategy, "coins_group", new_value,
+                               context["exchange"], context["account_type"])
         
         group_labels = {
             "GLOBAL": t.get('group_global', '📊 Global'),
@@ -6131,7 +6203,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(group_labels.get(group, group))
         
         # Go back to strategy settings
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -9927,9 +9999,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if is_fibonacci:
                 logger.info(f"[{uid}] Fibonacci signal detected: trade_fibonacci={cfg.get('trade_fibonacci', 0)}, fibonacci_trigger={fibonacci_trigger}")
 
+            # Get user's trading context for settings lookup
+            user_context = get_user_trading_context(uid)
+            ctx_exchange = user_context["exchange"]
+            ctx_account_type = user_context["account_type"]
+
             # Helper to check coins filter for a strategy
             def check_coins_filter(strat_name: str) -> bool:
-                strat_settings = db.get_strategy_settings(uid, strat_name)
+                strat_settings = db.get_strategy_settings(uid, strat_name, ctx_exchange, ctx_account_type)
                 coins_group = strat_settings.get("coins_group") or global_coins_mode
                 filter_fn = SYMBOL_FILTER.get(coins_group, SYMBOL_FILTER["ALL"])
                 if not filter_fn(symbol):
@@ -9953,7 +10030,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check Scryptomera direction filter
             if bitk_trigger:
-                scrypto_settings = db.get_strategy_settings(uid, "scryptomera")
+                scrypto_settings = db.get_strategy_settings(uid, "scryptomera", ctx_exchange, ctx_account_type)
                 scrypto_direction = scrypto_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 logger.info(f"[{uid}] Scryptomera direction check: signal={signal_direction}, allowed={scrypto_direction}")
@@ -9966,7 +10043,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check Scalper direction filter
             if scalper_trigger:
-                scalper_settings = db.get_strategy_settings(uid, "scalper")
+                scalper_settings = db.get_strategy_settings(uid, "scalper", ctx_exchange, ctx_account_type)
                 scalper_direction = scalper_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 logger.info(f"[{uid}] Scalper direction check: signal={signal_direction}, allowed={scalper_direction}")
@@ -9979,7 +10056,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check Fibonacci direction filter
             if fibonacci_trigger:
-                fibo_settings = db.get_strategy_settings(uid, "fibonacci")
+                fibo_settings = db.get_strategy_settings(uid, "fibonacci", ctx_exchange, ctx_account_type)
                 fibo_direction = fibo_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 logger.info(f"[{uid}] Fibonacci direction check: signal={signal_direction}, allowed={fibo_direction}")
@@ -9992,7 +10069,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check RSI_BB direction filter
             if rsi_bb_trigger:
-                rsi_bb_settings = db.get_strategy_settings(uid, "rsi_bb")
+                rsi_bb_settings = db.get_strategy_settings(uid, "rsi_bb", ctx_exchange, ctx_account_type)
                 rsi_bb_direction = rsi_bb_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
@@ -10002,7 +10079,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check Elcaro direction filter
             if elcaro_trigger:
-                elcaro_settings = db.get_strategy_settings(uid, "elcaro")
+                elcaro_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
                 elcaro_direction = elcaro_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
@@ -10012,7 +10089,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             # Check OI direction filter
             if oi_trigger:
-                oi_settings = db.get_strategy_settings(uid, "oi")
+                oi_settings = db.get_strategy_settings(uid, "oi", ctx_exchange, ctx_account_type)
                 oi_direction = oi_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
@@ -10085,9 +10162,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         continue
 
             if rsi_bb_trigger:
-                strat_settings = db.get_strategy_settings(uid, "rsi_bb")
+                strat_settings = db.get_strategy_settings(uid, "rsi_bb", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb", side=side)
+                params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
@@ -10167,9 +10245,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             if bitk_trigger:
                 logger.info(f"[{uid}] 🔮 Processing Scryptomera trade for {symbol}")
-                strat_settings = db.get_strategy_settings(uid, "scryptomera")
+                strat_settings = db.get_strategy_settings(uid, "scryptomera", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side)
+                params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -10246,9 +10325,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if scalper_trigger:
-                strat_settings = db.get_strategy_settings(uid, "scalper")
+                strat_settings = db.get_strategy_settings(uid, "scalper", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "scalper", side=side)
+                params = get_strategy_trade_params(uid, cfg, symbol, "scalper", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -10341,7 +10421,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     elcaro_tp = parsed_elcaro.get("tp")
                     
                     # Используем percent из настроек пользователя (риск на сделку)
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side)
+                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
+                                                      exchange=ctx_exchange, account_type=ctx_account_type)
                     risk_pct = params["percent"]
                     
                     # SL/TP из сигнала имеют приоритет
@@ -10353,8 +10434,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 f"leverage={elcaro_leverage}")
                 else:
                     # Legacy формат - используем настройки пользователя
-                    elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro")
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side)
+                    elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
+                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
+                                                      exchange=ctx_exchange, account_type=ctx_account_type)
                     sl_pct = params["sl_pct"]
                     tp_pct = params["tp_pct"]
                     risk_pct = params["percent"]
@@ -10494,8 +10576,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 trigger_info = parsed_fibonacci.get("trigger_info", "")
                 
                 # Get user settings (percent, leverage)
-                strat_settings = db.get_strategy_settings(uid, "fibonacci")
-                params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci", side=side)
+                strat_settings = db.get_strategy_settings(uid, "fibonacci", ctx_exchange, ctx_account_type)
+                params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 risk_pct = params["percent"]
                 user_leverage = strat_settings.get("leverage", 10)
                 
@@ -10605,9 +10688,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if oi_trigger:
-                strat_settings = db.get_strategy_settings(uid, "oi")
+                strat_settings = db.get_strategy_settings(uid, "oi", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "oi", side=side)
+                params = get_strategy_trade_params(uid, cfg, symbol, "oi", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -11313,7 +11397,11 @@ async def monitor_positions_loop(app: Application):
                         
                         # Get SL/TP from strategy settings if available, otherwise use global
                         if pos_strategy:
-                            strat_params = get_strategy_trade_params(uid, cfg, sym, pos_strategy, side=side)
+                            # Get context for this position
+                            pos_context = get_user_trading_context(uid)
+                            pos_acct = account_type_map.get(sym, pos_context["account_type"])
+                            strat_params = get_strategy_trade_params(uid, cfg, sym, pos_strategy, side=side,
+                                                                     exchange=pos_context["exchange"], account_type=pos_acct)
                             sl_pct = strat_params["sl_pct"]
                             tp_pct = strat_params["tp_pct"]
                             risk_pct_for_dca = strat_params["percent"]
@@ -13738,7 +13826,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
             
-            db.set_strategy_setting(uid, strategy, param, value)
+            # Get context for saving
+            context = get_user_trading_context(uid)
+            db.set_strategy_setting(uid, strategy, param, value,
+                                   context["exchange"], context["account_type"])
             ctx.user_data.pop("strat_setting_mode", None)
             
             display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
