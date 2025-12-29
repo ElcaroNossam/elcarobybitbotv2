@@ -1671,7 +1671,7 @@ def set_strategy_setting_db(user_id: int, strategy: str, field: str, value,
         cur = conn.cursor()
         # Check if row exists
         cur.execute("""
-            SELECT id FROM user_strategy_settings
+            SELECT 1 FROM user_strategy_settings
             WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
         """, (user_id, strategy, exchange, account_type))
         exists = cur.fetchone()
@@ -1680,7 +1680,7 @@ def set_strategy_setting_db(user_id: int, strategy: str, field: str, value,
             # Update existing row
             cur.execute(f"""
                 UPDATE user_strategy_settings 
-                SET {field} = ?, updated_at = CURRENT_TIMESTAMP
+                SET {field} = ?
                 WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
             """, (value, user_id, strategy, exchange, account_type))
         else:

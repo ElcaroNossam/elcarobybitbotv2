@@ -1999,7 +1999,7 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     """
     Resolve SL/TP percentages for a trade.
     If strategy is provided and user has per-strategy settings, use those.
-    For Scryptomera/Scalper, side-specific settings (long_sl_percent, short_sl_percent) take priority.
+    For ALL strategies, side-specific settings (long_sl_percent, short_sl_percent) take priority if side is provided.
     Otherwise fallback to global user settings, then coin-specific defaults.
     """
     coin_cfg = COIN_PARAMS.get(symbol, COIN_PARAMS["DEFAULT"])
@@ -2010,8 +2010,8 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
     if strategy and user_id:
         strat_settings = db.get_strategy_settings(user_id, strategy)
         
-        # For Scryptomera and Scalper, check side-specific settings first
-        if strategy in ("scryptomera", "scalper") and side:
+        # For ALL strategies, check side-specific settings first if side is provided
+        if side:
             side_prefix = "long" if side in ("Buy", "LONG", "long") else "short"
             side_sl = strat_settings.get(f"{side_prefix}_sl_percent")
             side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
@@ -2059,7 +2059,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     Returns dict with: percent (risk%), sl_pct, tp_pct, use_atr
     Falls back to global user settings if per-strategy not set.
     
-    For Scryptomera and Scalper, if side is provided, uses side-specific settings (long_percent, short_sl_percent, etc.)
+    For ALL strategies, if side is provided, uses side-specific settings (long_percent, short_sl_percent, etc.)
     """
     strat_settings = db.get_strategy_settings(uid, strategy)
     
@@ -2070,8 +2070,8 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     else:
         use_atr = bool(cfg.get("use_atr", 1))  # Default to ATR enabled
     
-    # For Scryptomera or Scalper, check for side-specific settings first
-    if strategy in ("scryptomera", "scalper") and side:
+    # For ALL strategies, check for side-specific settings first if side is provided
+    if side:
         side_prefix = "long" if side == "Buy" else "short"
         
         # Get side-specific percent
@@ -2091,14 +2091,14 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         if side_sl is not None and side_sl > 0:
             sl_pct = float(side_sl)
         else:
-            sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid)
+            sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
         
         # Get side-specific TP
         side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
         if side_tp is not None and side_tp > 0:
             tp_pct = float(side_tp)
         else:
-            _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid)
+            _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
         
         return {
             "percent": percent,
@@ -2107,7 +2107,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
             "use_atr": use_atr,
         }
     
-    # Default behavior for other strategies
+    # Default behavior when side is not provided
     # Get percent (risk)
     strat_percent = strat_settings.get("percent")
     if strat_percent is not None and strat_percent > 0:
@@ -4383,12 +4383,22 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     # Elcaro special layout - only position size and coins, everything else from signal
     # No ATR toggle, no order type selection - fully automatic from signal
     if strategy == "elcaro":
+        current_dir = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(current_dir, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG", "short": "SHORT"}.get(current_dir, "ALL")
+        
         buttons = [
             [InlineKeyboardButton(
                 t.get('param_coins_group', '🪙 Coins') + f": {coins_emoji} {coins_label}",
                 callback_data=f"strat_coins:{strategy}"
             )],
             [InlineKeyboardButton(t.get('param_percent', '📊 Position Size %'), callback_data=f"strat_param:{strategy}:percent")],
+            [InlineKeyboardButton(
+                t.get('param_direction', '🎯 Direction') + f": {dir_emoji} {dir_label}",
+                callback_data=f"elcaro_dir:{current_dir}"
+            )],
+            [InlineKeyboardButton(t.get('param_long_settings', '📈 LONG Settings'), callback_data="elcaro_side:long")],
+            [InlineKeyboardButton(t.get('param_short_settings', '📉 SHORT Settings'), callback_data="elcaro_side:short")],
             [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid Settings'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
@@ -4424,6 +4434,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
                 t.get('param_direction', '🎯 Direction') + f": {dir_emoji} {dir_label}",
                 callback_data=f"fibonacci_dir:{current_dir}"
             )],
+            [InlineKeyboardButton(t.get('param_long_settings', '📈 LONG Settings'), callback_data="fibonacci_side:long")],
+            [InlineKeyboardButton(t.get('param_short_settings', '📉 SHORT Settings'), callback_data="fibonacci_side:short")],
             [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid Settings'), callback_data=f"strat_hl:{strategy}")],
             [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
             [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
@@ -4437,6 +4449,11 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     # ATR toggle for standard strategies - use 'or 0' because get() returns None if key exists with None value
     use_atr = strat_settings.get("use_atr") or 0
     atr_status = "✅" if use_atr else "❌"
+    
+    # Direction for standard strategies (rsi_bb, oi)
+    current_dir = strat_settings.get("direction", "all")
+    dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(current_dir, "🔄")
+    dir_label = {"all": "ALL", "long": "LONG", "short": "SHORT"}.get(current_dir, "ALL")
     
     # Standard layout for other strategies
     buttons = [
@@ -4456,49 +4473,50 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             t.get('param_use_atr', '📊 ATR Trailing') + f": {atr_status}",
             callback_data=f"strat_atr_toggle:{strategy}"
         )],
+        [InlineKeyboardButton(
+            t.get('param_direction', '🎯 Direction') + f": {dir_emoji} {dir_label}",
+            callback_data=f"{strategy}_dir:{current_dir}"
+        )],
         [InlineKeyboardButton(t.get('param_percent', '📊 Entry %'), callback_data=f"strat_param:{strategy}:percent")],
         [InlineKeyboardButton(t.get('param_sl', '🔻 Stop-Loss %'), callback_data=f"strat_param:{strategy}:sl_percent")],
         [InlineKeyboardButton(t.get('param_tp', '🔺 Take-Profit %'), callback_data=f"strat_param:{strategy}:tp_percent")],
         [InlineKeyboardButton(t.get('param_atr_periods', '📈 ATR Periods'), callback_data=f"strat_param:{strategy}:atr_periods")],
         [InlineKeyboardButton(t.get('param_atr_mult', '📉 ATR Multiplier (SL step)'), callback_data=f"strat_param:{strategy}:atr_multiplier_sl")],
         [InlineKeyboardButton(t.get('param_atr_trigger', '🎯 ATR Trigger %'), callback_data=f"strat_param:{strategy}:atr_trigger_pct")],
+        # Side-specific settings submenu for ALL strategies
+        [
+            InlineKeyboardButton("📈 LONG Settings", callback_data=f"{strategy}_side:long"),
+            InlineKeyboardButton("📉 SHORT Settings", callback_data=f"{strategy}_side:short"),
+        ],
         [InlineKeyboardButton(t.get('param_reset', '🔄 Reset to Global'), callback_data=f"strat_reset:{strategy}")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
     ]
     return InlineKeyboardMarkup(buttons)
 
 
-def get_scryptomera_side_keyboard(side: str, t: dict) -> InlineKeyboardMarkup:
-    """Build inline keyboard for Scryptomera LONG or SHORT settings."""
-    side_upper = side.upper()
+def get_strategy_side_keyboard(strategy: str, side: str, t: dict) -> InlineKeyboardMarkup:
+    """Build inline keyboard for ANY strategy's LONG or SHORT settings."""
     emoji = "📈" if side == "long" else "📉"
     buttons = [
-        [InlineKeyboardButton(f"{emoji} {t.get('param_percent', 'Entry %')}", callback_data=f"strat_param:scryptomera:{side}_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_sl', 'Stop-Loss %')}", callback_data=f"strat_param:scryptomera:{side}_sl_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_tp', 'Take-Profit %')}", callback_data=f"strat_param:scryptomera:{side}_tp_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", callback_data=f"strat_param:scryptomera:{side}_atr_periods")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", callback_data=f"strat_param:scryptomera:{side}_atr_multiplier_sl")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", callback_data=f"strat_param:scryptomera:{side}_atr_trigger_pct")],
-        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:scryptomera")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_percent', 'Entry %')}", callback_data=f"strat_param:{strategy}:{side}_percent")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_sl', 'Stop-Loss %')}", callback_data=f"strat_param:{strategy}:{side}_sl_percent")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_tp', 'Take-Profit %')}", callback_data=f"strat_param:{strategy}:{side}_tp_percent")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", callback_data=f"strat_param:{strategy}:{side}_atr_periods")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", callback_data=f"strat_param:{strategy}:{side}_atr_multiplier_sl")],
+        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct")],
+        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"strat_set:{strategy}")],
     ]
     return InlineKeyboardMarkup(buttons)
+
+
+def get_scryptomera_side_keyboard(side: str, t: dict) -> InlineKeyboardMarkup:
+    """Build inline keyboard for Scryptomera LONG or SHORT settings (legacy wrapper)."""
+    return get_strategy_side_keyboard("scryptomera", side, t)
 
 
 def get_scalper_side_keyboard(side: str, t: dict) -> InlineKeyboardMarkup:
-    """Build inline keyboard for Scalper LONG or SHORT settings."""
-    side_upper = side.upper()
-    emoji = "📈" if side == "long" else "📉"
-    buttons = [
-        [InlineKeyboardButton(f"{emoji} {t.get('param_percent', 'Entry %')}", callback_data=f"strat_param:scalper:{side}_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_sl', 'Stop-Loss %')}", callback_data=f"strat_param:scalper:{side}_sl_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_tp', 'Take-Profit %')}", callback_data=f"strat_param:scalper:{side}_tp_percent")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", callback_data=f"strat_param:scalper:{side}_atr_periods")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", callback_data=f"strat_param:scalper:{side}_atr_multiplier_sl")],
-        [InlineKeyboardButton(f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", callback_data=f"strat_param:scalper:{side}_atr_trigger_pct")],
-        [InlineKeyboardButton("🔷 " + t.get('hl_settings', 'HyperLiquid'), callback_data="strat_hl:scalper")],
-        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:scalper")],
-    ]
-    return InlineKeyboardMarkup(buttons)
+    """Build inline keyboard for Scalper LONG or SHORT settings (legacy wrapper)."""
+    return get_strategy_side_keyboard("scalper", side, t)
 
 
 def get_dca_settings_keyboard(t: dict, cfg: dict = None) -> InlineKeyboardMarkup:
@@ -5671,6 +5689,36 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         )
         return
     
+    # Universal LONG/SHORT side settings for any strategy (rsi_bb, elcaro, fibonacci, oi)
+    for strat_name in ("rsi_bb", "elcaro", "fibonacci", "oi"):
+        if data.startswith(f"{strat_name}_side:"):
+            side = data.split(":")[1]  # "long" or "short"
+            strat_settings = db.get_strategy_settings(uid, strat_name)
+            
+            side_upper = side.upper()
+            emoji = "📈" if side == "long" else "📉"
+            global_lbl = t.get('global_default', 'Global')
+            display_name = STRATEGY_NAMES_MAP.get(strat_name, strat_name.upper())
+            
+            pct = strat_settings.get(f"{side}_percent")
+            sl = strat_settings.get(f"{side}_sl_percent")
+            tp = strat_settings.get(f"{side}_tp_percent")
+            atr_trigger = strat_settings.get(f"{side}_atr_trigger_pct")
+            
+            lines = [f"{emoji} *{display_name} {side_upper} Settings*"]
+            lines.append("")
+            lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
+            lines.append(f"SL %: {sl if sl is not None else global_lbl}")
+            lines.append(f"TP %: {tp if tp is not None else global_lbl}")
+            lines.append(f"ATR Trigger %: {atr_trigger if atr_trigger is not None else global_lbl}")
+            
+            await query.message.edit_text(
+                "\n".join(lines),
+                parse_mode="Markdown",
+                reply_markup=get_strategy_side_keyboard(strat_name, side, t)
+            )
+            return
+    
     # Scalper direction toggle: all -> long -> short -> all
     if data.startswith("scalper_dir:"):
         current = data.split(":")[1]
@@ -5787,6 +5835,131 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "\n".join(lines),
             parse_mode="Markdown",
             reply_markup=get_strategy_param_keyboard("fibonacci", t, strat_settings)
+        )
+        return
+    
+    # Elcaro direction toggle: all -> long -> short -> all
+    if data.startswith("elcaro_dir:"):
+        current = data.split(":")[1]
+        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
+        
+        # Save new direction
+        db.set_strategy_setting(uid, "elcaro", "direction", next_dir)
+        
+        dir_labels = {
+            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
+            "long": t.get('dir_long_only', '📈 LONG only'),
+            "short": t.get('dir_short_only', '📉 SHORT only'),
+        }
+        await query.answer(dir_labels.get(next_dir, next_dir))
+        
+        # Refresh the settings view
+        strat_settings = db.get_strategy_settings(uid, "elcaro")
+        display_name = STRATEGY_NAMES_MAP.get("elcaro", "Elcaro")
+        
+        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+        lines.append("")
+        
+        global_lbl = t.get('global_default', 'Global')
+        
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
+        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
+        
+        pct = strat_settings.get("percent")
+        lines.append(f"📊 Position Size: {pct if pct is not None else global_lbl}%")
+        
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_param_keyboard("elcaro", t, strat_settings)
+        )
+        return
+    
+    # OI direction toggle: all -> long -> short -> all
+    if data.startswith("oi_dir:"):
+        current = data.split(":")[1]
+        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
+        
+        # Save new direction
+        db.set_strategy_setting(uid, "oi", "direction", next_dir)
+        
+        dir_labels = {
+            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
+            "long": t.get('dir_long_only', '📈 LONG only'),
+            "short": t.get('dir_short_only', '📉 SHORT only'),
+        }
+        await query.answer(dir_labels.get(next_dir, next_dir))
+        
+        # Refresh the settings view
+        strat_settings = db.get_strategy_settings(uid, "oi")
+        display_name = STRATEGY_NAMES_MAP.get("oi", "OI")
+        
+        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+        lines.append("")
+        
+        global_lbl = t.get('global_default', 'Global')
+        
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
+        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
+        
+        pct = strat_settings.get("percent")
+        sl = strat_settings.get("sl_percent")
+        tp = strat_settings.get("tp_percent")
+        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
+        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
+        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
+        
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_param_keyboard("oi", t, strat_settings)
+        )
+        return
+    
+    # RSI_BB direction toggle: all -> long -> short -> all
+    if data.startswith("rsi_bb_dir:"):
+        current = data.split(":")[1]
+        next_dir = {"all": "long", "long": "short", "short": "all"}.get(current, "all")
+        
+        # Save new direction
+        db.set_strategy_setting(uid, "rsi_bb", "direction", next_dir)
+        
+        dir_labels = {
+            "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
+            "long": t.get('dir_long_only', '📈 LONG only'),
+            "short": t.get('dir_short_only', '📉 SHORT only'),
+        }
+        await query.answer(dir_labels.get(next_dir, next_dir))
+        
+        # Refresh the settings view
+        strat_settings = db.get_strategy_settings(uid, "rsi_bb")
+        display_name = STRATEGY_NAMES_MAP.get("rsi_bb", "RSI/BB")
+        
+        lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
+        lines.append("")
+        
+        global_lbl = t.get('global_default', 'Global')
+        
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        dir_label = {"all": "ALL", "long": "LONG only", "short": "SHORT only"}.get(direction, "ALL")
+        lines.append(f"*Direction*: {dir_emoji} {dir_label}")
+        
+        pct = strat_settings.get("percent")
+        sl = strat_settings.get("sl_percent")
+        tp = strat_settings.get("tp_percent")
+        lines.append(f"Entry %: {pct if pct is not None else global_lbl}")
+        lines.append(f"SL %: {sl if sl is not None else global_lbl}")
+        lines.append(f"TP %: {tp if tp is not None else global_lbl}")
+        
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_param_keyboard("rsi_bb", t, strat_settings)
         )
         return
     
@@ -9837,7 +10010,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if rsi_bb_trigger:
                 strat_settings = db.get_strategy_settings(uid, "rsi_bb")
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb")
+                params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb", side=side)
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
@@ -10091,7 +10264,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     elcaro_tp = parsed_elcaro.get("tp")
                     
                     # Используем percent из настроек пользователя (риск на сделку)
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro")
+                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side)
                     risk_pct = params["percent"]
                     
                     # SL/TP из сигнала имеют приоритет
@@ -10104,7 +10277,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 else:
                     # Legacy формат - используем настройки пользователя
                     elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro")
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro")
+                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side)
                     sl_pct = params["sl_pct"]
                     tp_pct = params["tp_pct"]
                     risk_pct = params["percent"]
@@ -10245,7 +10418,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 
                 # Get user settings (percent, leverage)
                 strat_settings = db.get_strategy_settings(uid, "fibonacci")
-                params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci")
+                params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci", side=side)
                 risk_pct = params["percent"]
                 user_leverage = strat_settings.get("leverage", 10)
                 
@@ -10357,7 +10530,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if oi_trigger:
                 strat_settings = db.get_strategy_settings(uid, "oi")
                 use_limit = strat_settings.get("order_type", "market") == "limit"
-                params = get_strategy_trade_params(uid, cfg, symbol, "oi")
+                params = get_strategy_trade_params(uid, cfg, symbol, "oi", side=side)
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
@@ -11086,33 +11259,25 @@ async def monitor_positions_loop(app: Application):
                         # Get account_type for this position from map (moved up for strategy settings)
                         pos_account_type = account_type_map.get(sym, "demo")
                         
-                        # Get ATR params: priority is strategy settings > timeframe defaults
+                        # Get ATR params: priority is side-specific > strategy settings > timeframe defaults
                         if pos_strategy:
                             strat_settings = db.get_strategy_settings(uid, pos_strategy, account_type=pos_account_type)
+                            side_prefix = "long" if side == "Buy" else "short"
                             
-                            # For scryptomera/scalper, check for side-specific ATR settings first
-                            if pos_strategy in ("scryptomera", "scalper"):
-                                side_prefix = "long" if side == "Buy" else "short"
-                                
-                                # Get side-specific ATR settings, fallback to general, then timeframe defaults
-                                side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
-                                side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
-                                side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
-                                
-                                atr_periods = side_atr_periods if side_atr_periods is not None else (
-                                    strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
-                                )
-                                atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
-                                    strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
-                                )
-                                trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
-                                    strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
-                                )
-                            else:
-                                # Use strategy-specific ATR settings if explicitly set (not None), otherwise use timeframe defaults
-                                atr_periods = strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
-                                atr_mult_sl = strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
-                                trigger_pct = strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                            # Get side-specific ATR settings, fallback to general, then timeframe defaults
+                            side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
+                            side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
+                            side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
+                            
+                            atr_periods = side_atr_periods if side_atr_periods is not None else (
+                                strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
+                            )
+                            atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
+                                strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
+                            )
+                            trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
+                                strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                            )
                             
                             # Strategy-specific use_atr: if set in strategy (not None), use it; otherwise fall back to global
                             strat_use_atr = strat_settings.get("use_atr")
@@ -16116,7 +16281,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|fibonacci_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

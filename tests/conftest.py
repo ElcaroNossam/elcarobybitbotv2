@@ -204,6 +204,56 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
         )
     """)
     
+    # Create user_strategy_settings table for strategy-specific settings
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_strategy_settings (
+            user_id INTEGER NOT NULL,
+            strategy TEXT NOT NULL,
+            exchange TEXT NOT NULL DEFAULT 'bybit',
+            account_type TEXT NOT NULL DEFAULT 'demo',
+            
+            -- General settings
+            enabled INTEGER DEFAULT 1,
+            percent REAL,
+            sl_percent REAL,
+            tp_percent REAL,
+            leverage INTEGER,
+            
+            -- ATR settings
+            use_atr INTEGER,
+            atr_periods INTEGER,
+            atr_multiplier_sl REAL,
+            atr_trigger_pct REAL,
+            
+            -- Other settings
+            order_type TEXT DEFAULT 'market',
+            coins_group TEXT,
+            direction TEXT DEFAULT 'all',
+            
+            -- Side-specific settings for LONG
+            long_percent REAL,
+            long_sl_percent REAL,
+            long_tp_percent REAL,
+            long_atr_periods INTEGER,
+            long_atr_multiplier_sl REAL,
+            long_atr_trigger_pct REAL,
+            
+            -- Side-specific settings for SHORT
+            short_percent REAL,
+            short_sl_percent REAL,
+            short_tp_percent REAL,
+            short_atr_periods INTEGER,
+            short_atr_multiplier_sl REAL,
+            short_atr_trigger_pct REAL,
+            
+            -- Fibonacci-specific
+            min_quality INTEGER DEFAULT 50,
+            
+            PRIMARY KEY (user_id, strategy, exchange, account_type),
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    
     # Create indexes like production
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)")
