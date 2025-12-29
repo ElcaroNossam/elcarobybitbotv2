@@ -11044,10 +11044,11 @@ async def monitor_positions_loop(app: Application):
                         # Get ATR params: priority is strategy settings > timeframe defaults
                         if pos_strategy:
                             strat_settings = db.get_strategy_settings(uid, pos_strategy)
-                            atr_periods = strat_settings.get("atr_periods") or tf_cfg["atr_periods"]
-                            atr_mult_sl = strat_settings.get("atr_multiplier_sl") or tf_cfg["atr_multiplier_sl"]
-                            trigger_pct = strat_settings.get("atr_trigger_pct") or tf_cfg["atr_trigger_pct"]
-                            # Strategy-specific use_atr: if set in strategy, use it; otherwise fall back to global
+                            # Use strategy-specific ATR settings if explicitly set (not None), otherwise use timeframe defaults
+                            atr_periods = strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
+                            atr_mult_sl = strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
+                            trigger_pct = strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                            # Strategy-specific use_atr: if set in strategy (not None), use it; otherwise fall back to global
                             strat_use_atr = strat_settings.get("use_atr")
                             position_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
                         else:

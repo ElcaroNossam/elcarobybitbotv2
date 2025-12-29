@@ -1413,7 +1413,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "coins_group": None,
         # leverage for elcaro comes from signal, not settings
     },
-    "wyckoff": {
+    "fibonacci": {
         "percent": None, "sl_percent": None, "tp_percent": None,
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
         "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
@@ -1425,7 +1425,7 @@ DEFAULT_STRATEGY_SETTINGS = {
     },
 }
 
-STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "manual"]
+STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "manual"]
 STRATEGY_SETTING_FIELDS = [
     "percent", "sl_percent", "tp_percent",
     "tp_pct", "sl_pct",  # Aliases for compatibility
@@ -1455,7 +1455,7 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
     "scryptomera": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
     "scalper": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
     "elcaro": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
-    "wyckoff": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "fibonacci": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
 }
 
 
