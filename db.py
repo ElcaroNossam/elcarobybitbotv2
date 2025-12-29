@@ -1920,14 +1920,48 @@ def fetch_signal_by_id(signal_id: int) -> dict | None:
 def get_last_signal_id(user_id: int, symbol: str, timeframe: str) -> int | None:
     # Сигналы — глобальные; user_id здесь для совместимости с интерфейсом
     with get_conn() as conn:
+        # First try exact match by symbol column
         row = conn.execute(
             """
-          SELECT id FROM signals WHERE symbol=? AND tf=?
+          SELECT id FROM signals WHERE symbol=? AND (tf=? OR tf IS NULL)
           ORDER BY ts DESC LIMIT 1
         """,
             (symbol, timeframe),
         ).fetchone()
-    return int(row[0]) if row else None
+        if row:
+            return int(row[0])
+        
+        # Fallback: search by symbol in raw_message (for signals with symbol=NULL)
+        # Look for patterns like [SYMBOL] or "SYMBOL" or "🔔 SYMBOL"
+        row = conn.execute(
+            """
+          SELECT id FROM signals 
+          WHERE (raw_message LIKE ? OR raw_message LIKE ? OR raw_message LIKE ?)
+          ORDER BY ts DESC LIMIT 1
+        """,
+            (f'%[{symbol}]%', f'%🔔 {symbol}%', f'%🔔{symbol}%'),
+        ).fetchone()
+        return int(row[0]) if row else None
+
+
+def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
+    """
+    Search for most recent signal containing symbol in raw_message.
+    Useful when signal was saved without proper symbol parsing.
+    """
+    cols = ["id", "raw_message", "ts", "tf", "side", "symbol", "price"]
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT id, raw_message, ts, tf, side, symbol, price 
+            FROM signals 
+            WHERE raw_message LIKE ? OR raw_message LIKE ? OR raw_message LIKE ?
+            ORDER BY ts DESC LIMIT 1
+            """,
+            (f'%[{symbol}]%', f'%🔔 {symbol}%', f'%🔔{symbol}%'),
+        ).fetchone()
+    return dict(zip(cols, row)) if row else None
+
 
 # ------------------------------------------------------------------------------------
 # Active positions

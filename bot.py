@@ -83,6 +83,7 @@ from db import (
     get_all_users,
     get_active_trading_users,
     get_last_signal_id,
+    get_last_signal_by_symbol_in_raw,
     fetch_signal_by_id,
     add_pending_limit_order,
     get_pending_limit_orders,
@@ -9416,6 +9417,25 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, wyckoff={is_wyckoff}): {txt!r}")
 
     parsed = parse_signal(txt)
+    
+    # Override parsed with specific parser data to ensure symbol is saved correctly
+    if is_bitk and parsed_bitk:
+        parsed["symbol"] = parsed_bitk.get("symbol")
+        parsed["side"] = parsed_bitk.get("side")
+        parsed["price"] = parsed_bitk.get("price")
+    elif is_scalper and parsed_scalper:
+        parsed["symbol"] = parsed_scalper.get("symbol")
+        parsed["side"] = parsed_scalper.get("side")
+        parsed["price"] = parsed_scalper.get("price")
+    elif is_elcaro and parsed_elcaro:
+        parsed["symbol"] = parsed_elcaro.get("symbol")
+        parsed["side"] = parsed_elcaro.get("side")
+        parsed["price"] = parsed_elcaro.get("price")
+    elif is_wyckoff and parsed_wyckoff:
+        parsed["symbol"] = parsed_wyckoff.get("symbol")
+        parsed["side"] = parsed_wyckoff.get("side")
+        parsed["price"] = parsed_wyckoff.get("price")
+    
     try:
         signal_id = db.add_signal(
             raw_message = txt,
@@ -10491,31 +10511,30 @@ async def monitor_positions_loop(app: Application):
                             
                             # Try to determine strategy from signal if available
                             detected_strategy = None
+                            sig = None
+                            
                             if signal_id:
                                 sig = fetch_signal_by_id(signal_id)
+                            
+                            # Fallback: search by raw_message if signal not found
+                            if not sig:
+                                sig = get_last_signal_by_symbol_in_raw(sym)
                                 if sig:
-                                    # Check signal source/strategy
-                                    raw_msg = sig.get("raw_message", "")
-                                    raw_upper = raw_msg.upper()
-                                    if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
-                                        detected_strategy = "scryptomera"
-                                    elif "SCALPER" in raw_upper and "⚡" in raw_msg:
-                                        detected_strategy = "scalper"
-                                    elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
-                                        detected_strategy = "elcaro"
-                                    elif "WYCKOFF" in raw_upper:
-                                        detected_strategy = "wyckoff"
-                                    elif sig.get("source"):
-                                        # Use source as strategy hint
-                                        source = sig.get("source", "").lower()
-                                        if "scryptomera" in source or "bitk" in source or "drops" in source:
-                                            detected_strategy = "scryptomera"
-                                        elif "scalper" in source:
-                                            detected_strategy = "scalper"
-                                        elif "elcaro" in source:
-                                            detected_strategy = "elcaro"
-                                        elif "wyckoff" in source:
-                                            detected_strategy = "wyckoff"
+                                    signal_id = sig.get("id")
+                                    logger.debug(f"[{uid}] Found signal for {sym} via raw_message search: id={signal_id}")
+                            
+                            if sig:
+                                # Check signal source/strategy
+                                raw_msg = sig.get("raw_message", "")
+                                raw_upper = raw_msg.upper()
+                                if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
+                                    detected_strategy = "scryptomera"
+                                elif "SCALPER" in raw_upper and "⚡" in raw_msg:
+                                    detected_strategy = "scalper"
+                                elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
+                                    detected_strategy = "elcaro"
+                                elif "WYCKOFF" in raw_upper:
+                                    detected_strategy = "wyckoff"
                             
                             # Use current trading mode for account_type
                             current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
