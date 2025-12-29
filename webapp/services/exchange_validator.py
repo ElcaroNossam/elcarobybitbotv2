@@ -49,7 +49,7 @@ class BybitValidator:
     def _sign_request(self, params: dict) -> Tuple[str, str]:
         """Generate HMAC signature for Bybit API v5"""
         timestamp = str(int(time.time() * 1000))
-        recv_window = "5000"
+        recv_window = "60000"
         
         param_str = timestamp + self.api_key + recv_window
         if params:

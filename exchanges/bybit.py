@@ -59,7 +59,7 @@ class BybitExchange(BaseExchange):
         api_secret: str,
         testnet: bool = False,
         demo: bool = True,
-        recv_window: int = 5000
+        recv_window: int = 60000
     ):
         self.api_key = api_key
         self.api_secret = api_secret

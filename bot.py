@@ -2362,10 +2362,16 @@ async def set_leverage(
         logger.info(f"[{user_id}] Leverage for {symbol} set to {leverage}x [{account_type or 'auto'}]")
         return True
     except Exception as e:
+        err_str = str(e).lower()
         # If error contains "leverage not modified" - it's already set
-        if "not modified" in str(e).lower() or "110043" in str(e):
+        if "not modified" in err_str or "110043" in str(e):
             _leverage_cache[cache_key] = leverage
             logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x (from API)")
+            return False
+        # If error is "leverage invalid" (10001) - symbol doesn't support this leverage
+        # Order will proceed with current/default leverage
+        if "10001" in str(e) or "leverage invalid" in err_str:
+            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, using default")
             return False
         raise
 
