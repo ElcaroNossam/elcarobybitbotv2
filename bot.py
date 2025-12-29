@@ -4224,23 +4224,44 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     """Build inline keyboard for strategy selection with enable/disable status and trading mode."""
     cfg = cfg or {}
     
+    # Get user's active exchange to show correct mode labels
+    active_exchange = db.get_exchange_type(uid) if uid else "bybit"
+    
     # Helper to get status emoji
     def status(key):
         return "✅" if cfg.get(key, 0) else "❌"
     
-    # Helper to get trading mode for strategy
+    # Helper to get trading mode for strategy - now exchange-aware
     def get_mode_emoji(strategy: str) -> str:
         if uid:
             strat_settings = db.get_strategy_settings(uid, strategy)
             mode = strat_settings.get("trading_mode", "global")
         else:
             mode = "global"
-        return {
-            "demo": "D",
-            "real": "R", 
-            "both": "B",
-            "global": "G"
-        }.get(mode, "G")
+        
+        # Different labels for different exchanges
+        if active_exchange == "hyperliquid":
+            # HyperLiquid: testnet/mainnet
+            return {
+                "testnet": "T",   # Testnet
+                "mainnet": "M",   # Mainnet (real)
+                "both": "B",      # Both
+                "global": "G",    # Global
+                # Handle bybit modes if user switches exchange
+                "demo": "T",      # Treat demo as testnet
+                "real": "M",      # Treat real as mainnet
+            }.get(mode, "G")
+        else:
+            # Bybit: demo/real
+            return {
+                "demo": "D",      # Demo
+                "real": "R",      # Real
+                "both": "B",      # Both
+                "global": "G",    # Global
+                # Handle HL modes if user switches exchange
+                "testnet": "D",   # Treat testnet as demo
+                "mainnet": "R",   # Treat mainnet as real
+            }.get(mode, "G")
     
     # Get spot status
     spot_enabled = cfg.get("spot_enabled", 0)
@@ -5190,33 +5211,54 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             )
         return
     
-    # Handle strategy trading mode toggle (demo/real/both/global)
+    # Handle strategy trading mode toggle - EXCHANGE AWARE
+    # Bybit: global -> demo -> real -> both -> global
+    # HyperLiquid: global -> testnet -> mainnet -> both -> global
     if data.startswith("strat_mode:"):
         strategy = data.split(":")[1]
         
-        # Handle Spot mode separately (only demo/real)
+        # Get user's active exchange
+        active_exchange = db.get_exchange_type(uid) or "bybit"
+        
+        # Handle Spot mode separately (only demo/real for Bybit, testnet/mainnet for HL)
         if strategy == "spot":
             spot_settings = cfg.get("spot_settings", {}) or {}
             current_mode = spot_settings.get("trading_mode", "demo")
             
-            # Cycle through modes: demo -> real -> demo
-            new_mode = "real" if current_mode == "demo" else "demo"
+            if active_exchange == "hyperliquid":
+                # HL: testnet -> mainnet -> testnet
+                if current_mode in ("demo", "testnet"):
+                    new_mode = "mainnet"
+                else:
+                    new_mode = "testnet"
+                mode_labels = {"testnet": "Testnet", "mainnet": "Mainnet"}
+            else:
+                # Bybit: demo -> real -> demo
+                if current_mode in ("testnet", "demo"):
+                    new_mode = "real"
+                else:
+                    new_mode = "demo"
+                mode_labels = {"demo": "Demo", "real": "Real"}
             
             spot_settings["trading_mode"] = new_mode
             db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
             
-            # Check if API keys are available for the selected mode
-            creds = db.get_all_user_credentials(uid)
-            has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
-            has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
-            
+            # Check credentials
             warning = ""
-            if new_mode == "real" and not has_real:
-                warning = " ⚠️ No Real API keys!"
-            elif new_mode == "demo" and not has_demo:
-                warning = " ⚠️ No Demo API keys!"
+            if active_exchange == "hyperliquid":
+                hl_creds = db.get_hl_credentials(uid)
+                has_key = bool(hl_creds.get("hl_private_key"))
+                if not has_key:
+                    warning = " ⚠️ No HL private key!"
+            else:
+                creds = db.get_all_user_credentials(uid)
+                has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
+                has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
+                if new_mode == "real" and not has_real:
+                    warning = " ⚠️ No Real API keys!"
+                elif new_mode == "demo" and not has_demo:
+                    warning = " ⚠️ No Demo API keys!"
             
-            mode_labels = {"demo": "Demo", "real": "Real"}
             await query.answer(f"Spot: {mode_labels.get(new_mode, new_mode)}{warning}", show_alert=bool(warning))
             
             # Refresh the strategies menu
@@ -5230,7 +5272,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 sl = strat_set.get("sl_percent")
                 tp = strat_set.get("tp_percent")
                 mode = strat_set.get("trading_mode", "global")
-                mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
+                # Exchange-aware mode text
+                if active_exchange == "hyperliquid":
+                    mode_text = {"testnet": "Testnet", "mainnet": "Mainnet", "both": "Both", "global": "Global", "demo": "Testnet", "real": "Mainnet"}.get(mode, "Global")
+                else:
+                    mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global", "testnet": "Demo", "mainnet": "Real"}.get(mode, "Global")
                 if pct is not None:
                     status_parts.append(f"Entry: {pct}%")
                 if sl is not None:
@@ -5258,38 +5304,65 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             strat_settings = db.get_strategy_settings(uid, strategy)
             current_mode = strat_settings.get("trading_mode", "global")
             
-            # Cycle through modes: global -> demo -> real -> both -> global
-            mode_cycle = ["global", "demo", "real", "both"]
+            # Exchange-aware mode cycling
+            if active_exchange == "hyperliquid":
+                # HyperLiquid: global -> testnet -> mainnet -> both -> global
+                mode_cycle = ["global", "testnet", "mainnet", "both"]
+                # Normalize bybit modes to HL modes
+                if current_mode == "demo":
+                    current_mode = "testnet"
+                elif current_mode == "real":
+                    current_mode = "mainnet"
+                mode_labels = {
+                    "global": "Global",
+                    "testnet": "Testnet",
+                    "mainnet": "Mainnet",
+                    "both": "Both"
+                }
+            else:
+                # Bybit: global -> demo -> real -> both -> global
+                mode_cycle = ["global", "demo", "real", "both"]
+                # Normalize HL modes to Bybit modes
+                if current_mode == "testnet":
+                    current_mode = "demo"
+                elif current_mode == "mainnet":
+                    current_mode = "real"
+                mode_labels = {
+                    "global": "Global",
+                    "demo": "Demo",
+                    "real": "Real",
+                    "both": "Both"
+                }
+            
             current_idx = mode_cycle.index(current_mode) if current_mode in mode_cycle else 0
             new_mode = mode_cycle[(current_idx + 1) % len(mode_cycle)]
             
             # Save new mode
             db.set_strategy_setting(uid, strategy, "trading_mode", new_mode)
             
-            mode_labels = {
-                "global": "Global",
-                "demo": "Demo",
-                "real": "Real",
-                "both": "Both"
-            }
-            
-            # Check if API keys are available for the selected mode
-            creds = db.get_all_user_credentials(uid)
-            has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
-            has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
-            
+            # Check credentials
             warning = ""
-            if new_mode == "real" and not has_real:
-                warning = " ⚠️ No Real API keys!"
-            elif new_mode == "demo" and not has_demo:
-                warning = " ⚠️ No Demo API keys!"
-            elif new_mode == "both":
-                if not has_real and not has_demo:
-                    warning = " ⚠️ No API keys!"
-                elif not has_real:
+            if active_exchange == "hyperliquid":
+                hl_creds = db.get_hl_credentials(uid)
+                has_key = bool(hl_creds.get("hl_private_key"))
+                if not has_key and new_mode != "global":
+                    warning = " ⚠️ No HL private key!"
+            else:
+                creds = db.get_all_user_credentials(uid)
+                has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
+                has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
+                
+                if new_mode == "real" and not has_real:
                     warning = " ⚠️ No Real API keys!"
-                elif not has_demo:
+                elif new_mode == "demo" and not has_demo:
                     warning = " ⚠️ No Demo API keys!"
+                elif new_mode == "both":
+                    if not has_real and not has_demo:
+                        warning = " ⚠️ No API keys!"
+                    elif not has_real:
+                        warning = " ⚠️ No Real API keys!"
+                    elif not has_demo:
+                        warning = " ⚠️ No Demo API keys!"
             
             await query.answer(f"{STRATEGY_NAMES_MAP[strategy]}: {mode_labels.get(new_mode, new_mode)}{warning}", show_alert=bool(warning))
             
@@ -5304,7 +5377,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 sl = strat_set.get("sl_percent")
                 tp = strat_set.get("tp_percent")
                 mode = strat_set.get("trading_mode", "global")
-                mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
+                # Exchange-aware mode text
+                if active_exchange == "hyperliquid":
+                    mode_text = {"testnet": "Testnet", "mainnet": "Mainnet", "both": "Both", "global": "Global", "demo": "Testnet", "real": "Mainnet"}.get(mode, "Global")
+                else:
+                    mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global", "testnet": "Demo", "mainnet": "Real"}.get(mode, "Global")
                 if pct is not None:
                     status_parts.append(f"Entry: {pct}%")
                 if sl is not None:
