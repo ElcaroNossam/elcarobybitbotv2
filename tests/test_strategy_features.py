@@ -405,5 +405,163 @@ class TestStrategyTradeParamsIntegration:
                 conn.commit()
 
 
+class TestGetStrategyTradeParams:
+    """Test get_strategy_trade_params function properly applies settings."""
+    
+    @pytest.fixture(autouse=True)
+    def setup_db(self, tmp_path):
+        """Setup temp database for tests."""
+        import db
+        db.init_db()
+    
+    def test_side_specific_percent_applied(self):
+        """Should use side-specific percent when available."""
+        import db
+        import bot
+        uid = 999888774
+        db.ensure_user(uid)
+        
+        try:
+            # Set side-specific percents
+            db.set_strategy_setting(uid, "scryptomera", "long_percent", 1.5, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_percent", 2.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "percent", 1.0, "bybit", "demo")  # fallback
+            
+            cfg = db.get_user_config(uid)
+            
+            # LONG should use long_percent
+            params_long = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Buy",
+                exchange="bybit", account_type="demo"
+            )
+            assert params_long["percent"] == 1.5
+            
+            # SHORT should use short_percent
+            params_short = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Sell",
+                exchange="bybit", account_type="demo"
+            )
+            assert params_short["percent"] == 2.0
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_fallback_to_general_percent(self):
+        """Should fall back to general percent if side-specific not set."""
+        import db
+        import bot
+        uid = 999888773
+        db.ensure_user(uid)
+        
+        try:
+            # Only set general percent, no side-specific
+            db.set_strategy_setting(uid, "scryptomera", "percent", 3.0, "bybit", "demo")
+            
+            cfg = db.get_user_config(uid)
+            
+            params = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Buy",
+                exchange="bybit", account_type="demo"
+            )
+            assert params["percent"] == 3.0
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_side_specific_sl_tp_applied(self):
+        """Should use side-specific SL/TP when available."""
+        import db
+        import bot
+        uid = 999888772
+        db.ensure_user(uid)
+        
+        try:
+            db.set_strategy_setting(uid, "scryptomera", "long_sl_percent", 2.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "long_tp_percent", 5.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_sl_percent", 3.0, "bybit", "demo")
+            db.set_strategy_setting(uid, "scryptomera", "short_tp_percent", 8.0, "bybit", "demo")
+            
+            cfg = db.get_user_config(uid)
+            
+            params_long = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Buy",
+                exchange="bybit", account_type="demo"
+            )
+            assert params_long["sl_pct"] == 2.0
+            assert params_long["tp_pct"] == 5.0
+            
+            params_short = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Sell",
+                exchange="bybit", account_type="demo"
+            )
+            assert params_short["sl_pct"] == 3.0
+            assert params_short["tp_pct"] == 8.0
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_use_atr_from_strategy_settings(self):
+        """Should use use_atr from strategy settings."""
+        import db
+        import bot
+        uid = 999888771
+        db.ensure_user(uid)
+        
+        try:
+            # Disable ATR for strategy
+            db.set_strategy_setting(uid, "scryptomera", "use_atr", 0, "bybit", "demo")
+            
+            cfg = db.get_user_config(uid)
+            # Even if global has ATR enabled
+            cfg["use_atr"] = 1
+            
+            params = bot.get_strategy_trade_params(
+                uid, cfg, "BTCUSDT", "scryptomera", side="Buy",
+                exchange="bybit", account_type="demo"
+            )
+            # Strategy setting should override global
+            assert params["use_atr"] == False
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+    
+    def test_all_strategies_return_valid_params(self):
+        """All strategies should return valid params structure."""
+        import db
+        import bot
+        uid = 999888770
+        db.ensure_user(uid)
+        
+        try:
+            cfg = db.get_user_config(uid)
+            
+            for strategy in bot.STRATEGY_FEATURES.keys():
+                params = bot.get_strategy_trade_params(
+                    uid, cfg, "BTCUSDT", strategy, side="Buy",
+                    exchange="bybit", account_type="demo"
+                )
+                
+                assert "percent" in params, f"{strategy}: missing percent"
+                assert "sl_pct" in params, f"{strategy}: missing sl_pct"
+                assert "tp_pct" in params, f"{strategy}: missing tp_pct"
+                assert "use_atr" in params, f"{strategy}: missing use_atr"
+                
+                # Values should be valid
+                assert params["percent"] > 0, f"{strategy}: percent should be > 0"
+        finally:
+            with db.get_conn() as conn:
+                conn.execute("DELETE FROM users WHERE user_id=?", (uid,))
+                conn.execute("DELETE FROM user_strategy_settings WHERE user_id=?", (uid,))
+                conn.commit()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

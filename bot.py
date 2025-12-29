@@ -16280,7 +16280,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scrypto_dir:|scrypto_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}
