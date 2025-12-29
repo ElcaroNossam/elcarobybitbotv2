@@ -756,7 +756,7 @@ def init_db():
                 user_id         INTEGER NOT NULL,
                 name            TEXT NOT NULL,
                 description     TEXT,
-                base_strategy   TEXT DEFAULT 'custom',   -- 'elcaro', 'rsibboi', 'wyckoff', etc.
+                base_strategy   TEXT DEFAULT 'custom',   -- 'elcaro', 'rsibboi', 'fibonacci', etc.
                 config_json     TEXT NOT NULL,           -- Full strategy config as JSON
                 is_public       INTEGER DEFAULT 0,       -- Listed on marketplace
                 is_active       INTEGER DEFAULT 1,
@@ -1484,7 +1484,7 @@ def get_strategy_settings_v2(user_id: int, strategy: str, exchange: str = "bybit
     
     # Add enabled flag from legacy fields if not in settings
     if "enabled" not in result:
-        trade_field = f"trade_{strategy}" if strategy in ["scryptomera", "scalper", "elcaro", "wyckoff"] else f"trade_{strategy}"
+        trade_field = f"trade_{strategy}" if strategy in ["scryptomera", "scalper", "elcaro", "fibonacci"] else f"trade_{strategy}"
         result["enabled"] = bool(cfg.get(trade_field, 0))
     
     return result
@@ -2494,7 +2494,7 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
 
 def get_stats_by_strategy(user_id: int, period: str = "all", account_type: str | None = None) -> dict[str, dict]:
     """Возвращает статистику по каждой стратегии отдельно."""
-    strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"]
+    strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
     result = {}
     for strat in strategies:
         stats = get_trade_stats(user_id, strategy=strat, period=period, account_type=account_type)
@@ -2522,21 +2522,21 @@ LICENSE_TYPES = {
         "demo_access": True,
         "real_access": True,
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "spot"],
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
     },
     "basic": {
         "name": "Basic", 
         "demo_access": True,
         "real_access": True,
         "all_strategies": False,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper"],  # No elcaro, wyckoff, spot
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper"],  # No elcaro, fibonacci, spot
     },
     "trial": {
         "name": "Trial",
         "demo_access": True,
         "real_access": False,  # Demo only
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff", "spot"],
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
     },
     "none": {
         "name": "No License",
@@ -3382,7 +3382,7 @@ def get_global_trade_stats(strategy: str | None = None, period: str = "all", acc
 
 def get_global_stats_by_strategy(period: str = "all", account_type: str | None = None) -> dict[str, dict]:
     """Get global stats broken down by strategy."""
-    strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"]
+    strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
     result = {}
     for strat in strategies:
         stats = get_global_trade_stats(strategy=strat, period=period, account_type=account_type)
@@ -3517,7 +3517,7 @@ def get_user_usage_report(user_id: int) -> dict:
         real_stats = get_trade_stats(user_id, account_type="real")
         
         # Strategy breakdown
-        strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "wyckoff"]
+        strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
         strategy_stats = {}
         for strat in strategies:
             stats = get_trade_stats(user_id, strategy=strat)
@@ -3809,7 +3809,7 @@ def get_user_strategies(user_id: int) -> list:
 def get_active_trading_strategies(user_id: int) -> list:
     """
     Get all active strategies for live trading.
-    Includes: system strategies (elcaro, wyckoff, etc.) and custom/purchased strategies.
+    Includes: system strategies (elcaro, fibonacci, etc.) and custom/purchased strategies.
     Used by bot to determine which strategies to process signals for.
     """
     import json
