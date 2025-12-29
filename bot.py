@@ -10635,10 +10635,12 @@ async def monitor_positions_loop(app: Application):
                                 # 1. Skip if position existed in previous iteration (not new)
                                 # 2. Skip if we're in cooldown period (positions being closed)
                                 # 3. Skip if we already notified for this position
+                                # 4. Skip if position already exists in DB (to avoid spam after bot restart)
                                 cooldown_end = _close_all_cooldown.get(uid, 0)
                                 sl_notify_key = (uid, sym)
                                 already_notified = sl_notify_key in _sl_notified
-                                should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified
+                                position_existed_in_db = sym in existing_syms
+                                should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified and not position_existed_in_db
                                 
                                 # Helper to handle deep loss notification
                                 async def notify_deep_loss(symbol, side, entry, mark, move_pct):
