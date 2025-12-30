@@ -238,7 +238,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• エントリー: `{entry:.8f}`\n'
         '• エグジット : `{exit:.8f}`\n'
-        '• PnL        : `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL        : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - 統一フォーマット（詳細情報付き）

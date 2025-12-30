@@ -238,7 +238,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• 开仓价：`{entry:.8f}`\n'
         '• 平仓价：`{exit:.8f}`\n'
-        '• PnL  ：`{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL  ：`{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - 统一格式（完整信息）

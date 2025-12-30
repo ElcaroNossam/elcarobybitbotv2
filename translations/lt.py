@@ -239,7 +239,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• Įėjimas: `{entry:.8f}`\n'
         '• Išėjimas: `{exit:.8f}`\n'
-        '• PnL    : `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL    : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - vieningas formatas su pilna informacija

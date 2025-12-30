@@ -239,7 +239,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• Вхід : `{entry:.8f}`\n'
         '• Вихід: `{exit:.8f}`\n'
-        '• PnL  : `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL  : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - уніфікований формат з повною інформацією
