@@ -11122,6 +11122,10 @@ async def monitor_positions_loop(app: Application):
                             else:
                                 pos_use_atr = use_atr
                             
+                            # Debug
+                            if uid == 511692487:
+                                logger.info(f"[ATR-CHECK] uid={uid} acc={current_account_type} sym={sym} strategy={strategy} pos_use_atr={pos_use_atr} use_atr={use_atr}")
+                            
                             # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
                             sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
                             sl_price = round(
