@@ -126,6 +126,37 @@ cat /home/ubuntu/cleanup.log
 
 ## 🔧 Recent Fixes (December 2024-2025)
 
+### ✅ WebApp API Enrichment Fix (Dec 30, 2025)
+- **Problem:** API returning `strategy: null`, `pnl: null` for positions
+- **File:** `webapp/services_integration.py`
+- **Fix:** `get_positions_service()` now enriches exchange data with DB data
+- **Added Fields:**
+  - `strategy` - from `db.get_active_positions()`
+  - `account_type`, `env` - from request params
+  - `tp_price`, `sl_price` - from DB or exchange
+  - `use_atr`, `atr_activated` - ATR trailing stop state
+- **Balance Fix:** Mapped `total_equity`→`equity`, `available_balance`→`available`
+
+### ✅ Monitor Loop Multi-Exchange Fix (Dec 30, 2025)
+- **Problem:** Stale positions not cleaned for demo accounts (only testnet)
+- **File:** `bot.py` lines 10893-11799
+- **Fix:** Critical indentation bug - cleanup code was OUTSIDE the account_type loop
+- **Added:** `current_exchange` tracking alongside `current_account_type`
+- **Notifications:** Now include exchange and market_type in open/close messages
+
+### ✅ Position Notifications Enhanced (Dec 30, 2025)
+- **Feature:** Exchange + market type in position notifications
+- **Files:** `bot.py`, all 15 `translations/*.py`
+- **Format:**
+  ```
+  🚀 New position BTCUSDT @ 94000, size=0.001
+  📍 BYBIT • Demo
+  
+  🔔 Position BTCUSDT closed by *TP*:
+  ...
+  📍 BYBIT • Demo
+  ```
+
 ### ✅ Screener Full Refactoring (Dec 23, 2025)
 - **Feature:** Complete screener redesign with WebSocket real-time updates
 - **Files:** `webapp/templates/screener.html`, `webapp/api/screener_ws.py`
@@ -288,11 +319,72 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 ### WebApp Development
 - API routers in `webapp/api/` → mounted at `/api/{router_name}` (see `webapp/app.py:37-44`)
 - Available routers: `auth`, `users`, `trading`, `admin`, `stats`, `backtest`, `ai`, `websocket`, `screener_ws`
+- **Services Integration Layer:** `webapp/services_integration.py` - bridges WebApp API to bot_unified.py
 - Screener WebSocket: `/ws/screener` - real-time market data updates every 3s
 - Screener REST API: `/api/screener/overview`, `/api/screener/symbols`, `/api/screener/symbol/{symbol}`
 - Templates in `webapp/templates/`, static in `webapp/static/`
 - WebSockets in `webapp/api/websocket.py` → `/ws/*`
 - Docs at `/api/docs` (Swagger), `/api/redoc`
+
+### WebApp Services Integration (Updated Dec 30, 2025)
+The `webapp/services_integration.py` bridges WebApp API to unified trading functions:
+
+```python
+from webapp.services_integration import (
+    get_positions_service,   # Returns enriched positions with DB data (strategy, env)
+    get_balance_service,     # Returns balance with mapped field names (equity, available)
+    place_order_service,     # Places orders via bot_unified
+    close_position_service   # Closes positions via bot_unified
+)
+
+# Example usage in webapp/api/trading.py:
+result = await get_positions_service(user_id, exchange='bybit', account_type='demo')
+if result.get("success"):
+    positions = result["data"]  # List of enriched position dicts
+```
+
+**Key Data Flow:**
+1. `webapp/api/trading.py` receives API request
+2. Calls `get_positions_service()` from services_integration.py
+3. services_integration.py calls `bot_unified.get_positions_unified()`
+4. bot_unified.py uses `core/exchange_client.py` to fetch from Bybit/HL
+5. services_integration.py enriches with DB data (`db.get_active_positions()`)
+6. Returns JSON response with fields: `strategy`, `account_type`, `env`, `tp_price`, `sl_price`
+
+## WebApp API Endpoints (Updated Dec 30, 2025)
+
+**Trading API (`/api/trading/`):**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/positions?exchange=bybit&account_type=demo` | GET | Get open positions with DB enrichment |
+| `/balance?exchange=bybit&account_type=demo` | GET | Get account balance |
+| `/orders?exchange=bybit&account_type=demo` | GET | Get open orders |
+| `/trades?exchange=bybit&limit=20` | GET | Get trade history from DB |
+| `/execution-history` | GET | Get executions from exchange API |
+| `/strategy-settings` | GET/POST | Get/update strategy settings |
+| `/close-position` | POST | Close specific position |
+| `/close-all` | POST | Close all positions |
+| `/price/{symbol}` | GET | Get current price |
+
+**Position API Response Fields (Dec 30, 2025):**
+```json
+{
+  "symbol": "BTCUSDT",
+  "side": "long",
+  "size": 0.001,
+  "entry_price": 94000.0,
+  "mark_price": 95000.0,
+  "unrealized_pnl": 10.0,
+  "leverage": 10,
+  "strategy": "scryptomera",
+  "account_type": "demo",
+  "env": "paper",
+  "tp_price": 100000.0,
+  "sl_price": 90000.0,
+  "use_atr": true,
+  "atr_activated": true
+}
+```
 
 ## Key Files Reference
 
@@ -307,6 +399,9 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 | `services/exchange_service.py` | `ExchangeAdapter`, `BybitAdapter`, `HyperLiquidAdapter`, `OrderType`, `OrderSide` |
 | `core/__init__.py` | All infrastructure exports: caching, rate limiting, metrics, exceptions |
 | `core/exchange_client.py` | `UnifiedExchangeClient`, `ExchangeCredentials`, `ExchangeType`, `AccountMode` |
+| `webapp/services_integration.py` | `get_positions_service`, `get_balance_service`, `place_order_service`, `close_position_service` - bridges WebApp to bot_unified |
+| `bot_unified.py` | `get_positions_unified`, `get_balance_unified`, `place_order_unified`, `close_position_unified`, `set_leverage_unified` |
+| `models/unified.py` | `Position`, `Balance`, `Order`, `OrderResult` dataclasses with `.to_dict()` and `.from_bybit()/.from_hyperliquid()` |
 
 ## Target Model (Dec 30, 2025)
 
