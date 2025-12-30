@@ -2440,22 +2440,19 @@ async def set_leverage(
             _leverage_cache[cache_key] = leverage
             logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x (from API)")
             return False
-        # If error is "leverage invalid" (10001) - try lower leverage values
+        # If error is "leverage invalid" (10001) - fallback to standard 10x
         if "10001" in str(e) or "leverage invalid" in err_str:
-            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, trying lower values")
-            # Try fallback leverage values down to 1x
-            for fallback_lev in [50, 25, 10, 5, 3, 2, 1]:
-                if fallback_lev < leverage:
-                    try:
-                        body["buyLeverage"] = str(fallback_lev)
-                        body["sellLeverage"] = str(fallback_lev)
-                        await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
-                        _leverage_cache[cache_key] = fallback_lev
-                        logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
-                        return True
-                    except Exception:
-                        continue
-            logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
+            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, using standard 10x")
+            if leverage != 10:
+                try:
+                    body["buyLeverage"] = "10"
+                    body["sellLeverage"] = "10"
+                    await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
+                    _leverage_cache[cache_key] = 10
+                    logger.info(f"[{user_id}] Leverage for {symbol} set to standard 10x [{account_type or 'auto'}]")
+                    return True
+                except Exception as e2:
+                    logger.warning(f"[{user_id}] Could not set 10x leverage for {symbol}: {e2}")
             return False
         # 110013: leverage exceeds maxLeverage by risk limit - try to extract and use max
         if "110013" in str(e) or "cannot set leverage" in err_str or "maxleverage" in err_str:
