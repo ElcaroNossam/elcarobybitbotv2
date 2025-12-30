@@ -29,11 +29,16 @@ try:
         get_balance_unified, get_positions_unified, 
         place_order_unified, close_position_unified, set_leverage_unified
     )
+    from exchange_router import get_user_targets, Target, normalize_env
     UNIFIED_AVAILABLE = True
 except ImportError as e:
     # logger not available yet at import time
     print(f"[WARNING] Unified models not available: {e}")
     UNIFIED_AVAILABLE = False
+    # Fallback empty implementations
+    def get_user_targets(uid): return []
+    Target = None
+    normalize_env = lambda x: x
 
 from telegram.error import TimedOut as TgTimedOut, NetworkError, BadRequest
 from telegram.request import HTTPXRequest
@@ -54,6 +59,7 @@ from db import (
     get_hl_credentials,
     set_hl_credentials,
     clear_hl_credentials,
+    set_hl_enabled,
     get_exchange_mode,
     set_exchange_mode,
     get_exchange_type,
@@ -75,6 +81,12 @@ from db import (
     normalize_account_type,
     delete_user_credentials,
     get_active_positions,
+    get_execution_targets,
+    get_live_enabled,
+    set_live_enabled,
+    get_routing_policy,
+    set_routing_policy,
+    RoutingPolicy,
     add_trade_log,
     inc_pyramid,
     get_pyramid,
@@ -3949,18 +3961,91 @@ async def place_order_all_accounts(
     add_position: bool = True,  # Whether to add position to DB
 ) -> dict:
     """
+    DEPRECATED: Use place_order_for_targets() for multi-exchange support.
+    
     Place order on all active accounts based on strategy's trading_mode or global trading_mode.
     If trading_mode is 'both', places order on both demo and real accounts.
     Also adds active positions to DB with correct account_type for each successful order.
     Returns dict with results per account type.
     """
-    if strategy:
-        account_types = get_strategy_account_types(user_id, strategy)
-    else:
-        account_types = get_active_account_types(user_id)
+    # Forward to new function using legacy mode
+    return await place_order_for_targets(
+        user_id=user_id,
+        symbol=symbol,
+        side=side,
+        orderType=orderType,
+        qty=qty,
+        price=price,
+        timeInForce=timeInForce,
+        strategy=strategy,
+        leverage=leverage,
+        signal_id=signal_id,
+        timeframe=timeframe,
+        add_position=add_position,
+        use_legacy_routing=True  # Use old account_types logic
+    )
+
+
+@log_calls
+async def place_order_for_targets(
+    user_id: int,
+    symbol: str,
+    side: str,
+    orderType: str,
+    qty: float,
+    price: float | None = None,
+    timeInForce: str = "GTC",
+    strategy: str = None,
+    leverage: int = None,
+    signal_id: int | None = None,
+    timeframe: str = "24h",
+    add_position: bool = True,
+    targets: list[dict] = None,  # Explicit targets list
+    use_legacy_routing: bool = False,  # Use old account_types logic
+) -> dict:
+    """
+    Place order on specified targets (supports Bybit + HyperLiquid).
     
-    if not account_types:
-        raise ValueError("No API credentials configured")
+    Target format: {"exchange": "bybit", "env": "paper", "account_type": "demo"}
+    
+    Features:
+    - Multi-exchange support (Bybit + HyperLiquid)
+    - Per-target qty calculation (future: can be different per target)
+    - Per-target leverage/SL/TP
+    - Unique client_order_id per target: {signal_id}-{exchange}-{env}
+    
+    Returns dict with results per target key (e.g., "bybit:paper": {...})
+    """
+    from db import get_execution_targets, get_live_enabled
+    
+    # Determine targets
+    if targets is None:
+        if use_legacy_routing:
+            # Use old account_types logic for backward compatibility
+            if strategy:
+                account_types = get_strategy_account_types(user_id, strategy)
+            else:
+                account_types = get_active_account_types(user_id)
+            
+            if not account_types:
+                raise ValueError("No API credentials configured")
+            
+            # Convert to targets format
+            exchange = db.get_exchange_type(user_id)
+            targets = []
+            for acc_type in account_types:
+                env = "paper" if acc_type in ("demo", "testnet") else "live"
+                targets.append({
+                    "exchange": exchange,
+                    "env": env,
+                    "account_type": acc_type
+                })
+        else:
+            # Use new routing policy system
+            targets = get_execution_targets(user_id, strategy)
+    
+    if not targets:
+        raise ValueError("No execution targets configured")
     
     # Get default leverage from user config if not specified
     if leverage is None:
@@ -3970,28 +4055,93 @@ async def place_order_all_accounts(
     results = {}
     errors = []
     
-    for acc_type in account_types:
+    for target in targets:
+        target_exchange = target.get("exchange", "bybit")
+        target_env = target.get("env", "paper")
+        target_account_type = target.get("account_type")
+        target_key = f"{target_exchange}:{target_env}"
+        
+        # Generate unique client_order_id for this target
+        client_order_id = f"{signal_id or 'manual'}-{target_exchange[:2]}-{target_env[:1]}-{int(time.time())}"
+        
         try:
-            # Always set leverage before placing order to avoid using account's default (can be very high)
-            try:
-                await set_leverage(user_id, symbol, leverage=leverage, account_type=acc_type)
-            except Exception as lev_err:
-                logger.warning(f"[{user_id}] Failed to set leverage for {symbol}: {lev_err}")
+            if target_exchange == "hyperliquid":
+                # ═══════════════════════════════════════════════════════════
+                # HyperLiquid order
+                # ═══════════════════════════════════════════════════════════
+                is_testnet = (target_env == "paper" or target_account_type == "testnet")
+                
+                # Set leverage first
+                try:
+                    hl_creds = db.get_hl_credentials(user_id)
+                    if hl_creds.get("hl_private_key"):
+                        adapter = HLAdapter(
+                            private_key=hl_creds["hl_private_key"],
+                            testnet=is_testnet,
+                            vault_address=hl_creds.get("hl_vault_address")
+                        )
+                        await adapter.set_leverage(hl_symbol_to_coin(symbol), leverage)
+                        await adapter.close()
+                except Exception as lev_err:
+                    logger.warning(f"[{user_id}] Failed to set HL leverage for {symbol}: {lev_err}")
+                
+                # Place order
+                res = await place_order_hyperliquid(
+                    user_id=user_id,
+                    symbol=symbol,
+                    side=side,
+                    orderType=orderType,
+                    qty=qty,
+                    price=price,
+                    account_type=target_account_type or ("testnet" if is_testnet else "mainnet")
+                )
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange}
+                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side}")
+                
+            else:
+                # ═══════════════════════════════════════════════════════════
+                # Bybit order
+                # ═══════════════════════════════════════════════════════════
+                acc_type = target_account_type or ("demo" if target_env == "paper" else "real")
+                
+                # Set leverage first
+                try:
+                    await set_leverage(user_id, symbol, leverage=leverage, account_type=acc_type)
+                except Exception as lev_err:
+                    logger.warning(f"[{user_id}] Failed to set Bybit leverage for {symbol}: {lev_err}")
+                
+                # Place order
+                res = await place_order(user_id, symbol, side, orderType, qty, price, timeInForce, account_type=acc_type)
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange}
+                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side}")
             
-            res = await place_order(user_id, symbol, side, orderType, qty, price, timeInForce, account_type=acc_type)
-            results[acc_type] = {"success": True, "result": res}
-            logger.info(f"✅ [{acc_type.upper()}] {orderType} order placed: {symbol} {side}")
-            
-            # Store position in DB with correct account_type
+            # Store position in DB with correct target info
             if add_position and orderType == "Market":
                 # Get current price for entry_price
                 entry_price = price if price else 0
                 if not entry_price:
                     try:
-                        ticker_data = await _bybit_request(user_id, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": symbol}, account_type=acc_type)
-                        ticker_list = ticker_data.get("list", [])
-                        if ticker_list:
-                            entry_price = float(ticker_list[0].get("lastPrice", 0))
+                        if target_exchange == "hyperliquid":
+                            # Get price from HL
+                            hl_creds = db.get_hl_credentials(user_id)
+                            if hl_creds.get("hl_private_key"):
+                                adapter = HLAdapter(
+                                    private_key=hl_creds["hl_private_key"],
+                                    testnet=(target_env == "paper")
+                                )
+                                price_data = await adapter.get_price(hl_symbol_to_coin(symbol))
+                                entry_price = float(price_data) if price_data else 0
+                                await adapter.close()
+                        else:
+                            # Get price from Bybit
+                            ticker_data = await _bybit_request(
+                                user_id, "GET", "/v5/market/tickers",
+                                params={"category": "linear", "symbol": symbol},
+                                account_type=target_account_type or "demo"
+                            )
+                            ticker_list = ticker_data.get("list", [])
+                            if ticker_list:
+                                entry_price = float(ticker_list[0].get("lastPrice", 0))
                     except Exception:
                         pass  # Will be updated by monitoring
                 
@@ -4004,13 +4154,17 @@ async def place_order_all_accounts(
                     entry_price=entry_price,
                     timeframe=timeframe,
                     strategy=strategy,
-                    account_type=acc_type,
+                    account_type=target_account_type or ("demo" if target_env == "paper" else "real"),
+                    exchange=target_exchange,
+                    env=target_env,
+                    client_order_id=client_order_id,
                 )
-                logger.info(f"📊 [{acc_type.upper()}] Position saved to DB: {symbol} {side} @ {entry_price}")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price}")
+                
         except Exception as e:
-            results[acc_type] = {"success": False, "error": str(e)}
-            errors.append(f"[{acc_type.upper()}] {str(e)}")
-            logger.error(f"❌ [{acc_type.upper()}] {orderType} order failed for {symbol}: {e}")
+            results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
+            errors.append(f"[{target_key.upper()}] {str(e)}")
+            logger.error(f"❌ [{target_key.upper()}] {orderType} order failed for {symbol}: {e}")
     
     if errors and not any(r["success"] for r in results.values()):
         raise RuntimeError(f"All orders failed: {'; '.join(errors)}")
@@ -6756,16 +6910,39 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
                 account_type=account_type
             )
             
+            # Get active positions from DB to enrich with stored TP/SL
+            db_positions = db.get_active_positions(uid, account_type=account_type)
+            db_by_symbol = {p['symbol']: p for p in db_positions}
+            
             # Convert to dicts for backward compatibility
             result = []
             for pos in positions:
                 pos_dict = pos.to_dict()
+                symbol = pos_dict.get('symbol', '')
+                
                 # Map unified fields to Bybit format for compatibility
                 pos_dict['avgPrice'] = pos_dict['entry_price']
                 pos_dict['markPrice'] = pos_dict['mark_price']
                 pos_dict['unrealisedPnl'] = pos_dict['unrealized_pnl']
                 pos_dict['positionIM'] = pos_dict['margin_used']
                 pos_dict['liqPrice'] = pos_dict.get('liquidation_price')
+                
+                # Map TP/SL to Bybit format
+                pos_dict['takeProfit'] = pos_dict.get('take_profit')
+                pos_dict['stopLoss'] = pos_dict.get('stop_loss')
+                
+                # If exchange didn't return TP/SL, try to get from DB
+                db_pos = db_by_symbol.get(symbol)
+                if db_pos:
+                    if not pos_dict.get('takeProfit') and db_pos.get('tp_price'):
+                        pos_dict['takeProfit'] = db_pos['tp_price']
+                    if not pos_dict.get('stopLoss') and db_pos.get('sl_price'):
+                        pos_dict['stopLoss'] = db_pos['sl_price']
+                    # Also copy strategy and other DB metadata
+                    pos_dict['strategy'] = db_pos.get('strategy')
+                    pos_dict['source'] = db_pos.get('source')
+                    pos_dict['opened_by'] = db_pos.get('opened_by')
+                
                 result.append(pos_dict)
             
             # Only log if positions changed or every 5 minutes
@@ -6818,6 +6995,29 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
             cursor = res.get("nextPageCursor")
             if not cursor:
                 break
+        
+        # Enrich with data from DB (TP/SL, strategy, etc.)
+        account_type = kwargs.get('account_type')
+        if not account_type:
+            trading_mode = db.get_trading_mode(uid)
+            account_type = 'real' if trading_mode == 'real' else 'demo'
+        
+        db_positions = db.get_active_positions(uid, account_type=account_type)
+        db_by_symbol = {p['symbol']: p for p in db_positions}
+        
+        for pos in all_positions:
+            symbol = pos.get('symbol', '')
+            db_pos = db_by_symbol.get(symbol)
+            if db_pos:
+                # If exchange didn't return TP/SL, get from DB
+                if not pos.get('takeProfit') and db_pos.get('tp_price'):
+                    pos['takeProfit'] = str(db_pos['tp_price'])
+                if not pos.get('stopLoss') and db_pos.get('sl_price'):
+                    pos['stopLoss'] = str(db_pos['sl_price'])
+                # Copy strategy and other DB metadata
+                pos['strategy'] = db_pos.get('strategy')
+                pos['source'] = db_pos.get('source')
+                pos['opened_by'] = db_pos.get('opened_by')
         
         return all_positions
     except MissingAPICredentials:
@@ -10678,9 +10878,6 @@ async def monitor_positions_loop(app: Application):
             # Use cached list of active trading users (with API keys)
             for uid in get_active_trading_users():
                 try:
-                    # Get previous symbols to avoid duplicate notifications
-                    open_syms_prev = _open_syms_prev.get(uid, set())
-                    
                     if GLOBAL_PAUSED:
                         continue
                     
@@ -10693,157 +10890,182 @@ async def monitor_positions_loop(app: Application):
                     lang = cfg.get("lang", DEFAULT_LANG)
                     t    = LANGS.get(lang, LANGS[DEFAULT_LANG])
                     use_atr = bool(cfg.get("use_atr", 0))
-                    user_trading_mode = get_trading_mode(uid) or "demo"
-
-                    k, s = get_user_credentials(uid)
-                    if not k or not s:
-                        continue  # Already filtered by get_active_trading_users
-
-                    open_positions = await fetch_open_positions(uid)
-                    open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
-                    active        = get_active_positions(uid)
-                    existing_syms = {ap["symbol"] for ap in active}
-                    tf_map = { ap['symbol']: ap.get('timeframe', '24h') for ap in active }
-                    now = int(time.time())
-                    open_syms = {p["symbol"] for p in open_positions}
-                    pending = get_pending_limit_orders(uid)
-                    if pending:
-                        try:
-                            open_orders = await fetch_open_orders(uid)
-                            open_ids = {o["orderId"] for o in open_orders}
-                        except Exception as e:
-                            logger.warning(f"fetch_open_orders failed, skip pending check this tick: {e}")
-                            open_ids = None  
-
-                        if open_ids is not None:
-                            for po in pending:
-                                order_id = po["order_id"]
-                                sym      = po["symbol"]
-                                sig = fetch_signal_by_id(po["signal_id"]) or {}
-                                tf_for_sym = sig.get("tf") or "24h"
-
-                                if order_id not in open_ids:
-                                    pos = next((p for p in open_positions if p["symbol"] == sym), None)
-                                    if pos:
-                                        # Use current trading mode for account_type
-                                        current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
-                                        add_active_position(
-                                            user_id     = uid,
-                                            symbol      = sym,
-                                            side        = po["side"],
-                                            entry_price = float(pos["avgPrice"]),
-                                            size        = float(pos["size"]),
-                                            timeframe   = tf_for_sym,
-                                            signal_id   = po["signal_id"],
-                                            strategy    = po.get("strategy"),
-                                            account_type = current_account_type
-                                        )
-                                        await bot.send_message(
-                                            uid,
-                                            t['limit_order_filled'].format(
-                                                symbol = sym,
-                                                price  = pos["avgPrice"]
-                                            )
-                                        )
-                                    else:
-                                        await bot.send_message(
-                                            uid,
-                                            t['limit_order_cancelled'].format(symbol=sym, order_id=order_id)
-                                        )                                
-                                    remove_pending_limit_order(uid, order_id)
-
-                    active        = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
-                    existing_syms = {ap["symbol"] for ap in active}
-                    tf_map        = {ap["symbol"]: ap.get("timeframe", "24h") for ap in active}
-                    for ap in active:
-                        entry_ts = _parse_sqlite_ts_to_utc(ap["open_ts"])
-                        elapsed = now - entry_ts 
-                        tf = ap.get("timeframe", "24h")
-                        secs = THRESHOLD_MAP.get(tf, THRESHOLD_MAP['24h'])
-                        pos = next((p for p in open_positions if p["symbol"] == ap["symbol"]), None)
-                        raw_tp = pos.get("takeProfit") if pos else None
-                        sym = ap["symbol"]
-                        ap_account_type = ap.get("account_type", "demo")
-                        if pos and elapsed >= secs and float(pos.get("unrealisedPnl", 0)) < 0:
-                            close_side = "Sell" if pos["side"] == "Buy" else "Buy"
-                            size       = float(pos["size"])
-                            try:
-                                await place_order(
-                                    user_id=uid,
-                                    symbol=pos["symbol"],
-                                    side=close_side,
-                                    orderType="Market",
-                                    qty=size
-                                )
-                                await bot.send_message(
-                                    uid,
-                                    t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
-                                )
-                                remove_active_position(uid, pos["symbol"], account_type=ap_account_type)
-                                reset_pyramid(uid, pos["symbol"])
-                                _atr_triggered.pop((uid, pos["symbol"]), None)
-                                _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
-                                _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
-                            except Exception as e:
-                                logger.error(f"Auto-close {pos['symbol']} failed: {e}")
-                                
-                    for p in open_positions:
-                        sym     = p["symbol"]
-                        entry   = float(p["avgPrice"])
-                        raw_sl  = p.get("stopLoss")
-                        size    = float(p["size"])
-                        side    = p["side"]
+                    
+                    # Get ALL user targets (for multi-account monitoring)
+                    user_targets = get_user_targets(uid) if UNIFIED_AVAILABLE else []
+                    
+                    # Fallback to legacy if no targets from unified
+                    if not user_targets:
+                        user_trading_mode = get_trading_mode(uid) or "demo"
+                        k, s = get_user_credentials(uid)
+                        if not k or not s:
+                            continue
+                        # Create account_types list for legacy mode
+                        if user_trading_mode == "both":
+                            account_types_to_check = ["demo", "real"]
+                        else:
+                            account_types_to_check = [user_trading_mode]
+                    else:
+                        # Use targets from unified architecture
+                        account_types_to_check = [tgt.account_type for tgt in user_targets]
+                        user_trading_mode = account_types_to_check[0] if account_types_to_check else "demo"
+                    
+                    # Process EACH account type for this user (supports trading_mode="both")
+                    for current_account_type in account_types_to_check:
+                        # Get previous symbols to avoid duplicate notifications
+                        cache_key = f"{uid}:{current_account_type}"
+                        open_syms_prev = _open_syms_prev.get(cache_key, set())
                         
-                        # Reset detected_strategy for each position
-                        detected_strategy = None
+                        open_positions = await fetch_open_positions(uid, account_type=current_account_type)
+                        open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
+                        active = get_active_positions(uid, account_type=current_account_type)
+                        existing_syms = {ap["symbol"] for ap in active}
+                        tf_map = {ap['symbol']: ap.get('timeframe', '24h') for ap in active}
+                        now = int(time.time())
+                        open_syms = {p["symbol"] for p in open_positions}
+                        
+                        # Update previous symbols cache at end of processing
+                        _open_syms_prev[cache_key] = open_syms.copy()
+                        
+                        pending = get_pending_limit_orders(uid)
+                        if pending:
+                            try:
+                                open_orders = await fetch_open_orders(uid, account_type=current_account_type)
+                                open_ids = {o["orderId"] for o in open_orders}
+                            except Exception as e:
+                                logger.warning(f"fetch_open_orders failed, skip pending check this tick: {e}")
+                                open_ids = None  
 
-                        if sym not in existing_syms:
-                            # Check if we're in cooldown period after close_all
-                            cooldown_end = _close_all_cooldown.get(uid, 0)
-                            if now < cooldown_end:
-                                # Skip adding new positions during cooldown
-                                logger.info(f"[{uid}] Skipping {sym} - in close_all cooldown ({int(cooldown_end - now)}s left)")
-                                continue
+                            if open_ids is not None:
+                                for po in pending:
+                                    order_id = po["order_id"]
+                                    sym      = po["symbol"]
+                                    sig = fetch_signal_by_id(po["signal_id"]) or {}
+                                    tf_for_sym = sig.get("tf") or "24h"
+
+                                    if order_id not in open_ids:
+                                        pos = next((p for p in open_positions if p["symbol"] == sym), None)
+                                        if pos:
+                                            # Use current_account_type from the loop
+                                            add_active_position(
+                                                user_id     = uid,
+                                                symbol      = sym,
+                                                side        = po["side"],
+                                                entry_price = float(pos["avgPrice"]),
+                                                size        = float(pos["size"]),
+                                                timeframe   = tf_for_sym,
+                                                signal_id   = po["signal_id"],
+                                                strategy    = po.get("strategy"),
+                                                account_type = current_account_type
+                                            )
+                                            await bot.send_message(
+                                                uid,
+                                                t['limit_order_filled'].format(
+                                                    symbol = sym,
+                                                    price  = pos["avgPrice"]
+                                                )
+                                            )
+                                        else:
+                                            await bot.send_message(
+                                                uid,
+                                                t['limit_order_cancelled'].format(symbol=sym, order_id=order_id)
+                                            )                                
+                                        remove_pending_limit_order(uid, order_id)
+
+                        # Refresh active positions for this account type
+                        active = get_active_positions(uid, account_type=current_account_type)
+                        existing_syms = {ap["symbol"] for ap in active}
+                        tf_map = {ap["symbol"]: ap.get("timeframe", "24h") for ap in active}
+                        
+                        for ap in active:
+                            entry_ts = _parse_sqlite_ts_to_utc(ap["open_ts"])
+                            elapsed = now - entry_ts 
+                            tf = ap.get("timeframe", "24h")
+                            secs = THRESHOLD_MAP.get(tf, THRESHOLD_MAP['24h'])
+                            pos = next((p for p in open_positions if p["symbol"] == ap["symbol"]), None)
+                            raw_tp = pos.get("takeProfit") if pos else None
+                            sym = ap["symbol"]
+                            ap_account_type = ap.get("account_type", current_account_type)
+                            if pos and elapsed >= secs and float(pos.get("unrealisedPnl", 0)) < 0:
+                                close_side = "Sell" if pos["side"] == "Buy" else "Buy"
+                                size       = float(pos["size"])
+                                try:
+                                    await place_order(
+                                        user_id=uid,
+                                        symbol=pos["symbol"],
+                                        side=close_side,
+                                        orderType="Market",
+                                        qty=size,
+                                        account_type=current_account_type
+                                    )
+                                    await bot.send_message(
+                                        uid,
+                                        t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
+                                    )
+                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type)
+                                    reset_pyramid(uid, pos["symbol"])
+                                    _atr_triggered.pop((uid, pos["symbol"]), None)
+                                    _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
+                                    _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
+                                except Exception as e:
+                                    logger.error(f"Auto-close {pos['symbol']} failed: {e}")
+                                    
+                        for p in open_positions:
+                            sym     = p["symbol"]
+                            entry   = float(p["avgPrice"])
+                            raw_sl  = p.get("stopLoss")
+                            size    = float(p["size"])
+                            side    = p["side"]
                             
-                            tf_for_sym = tf_map.get(sym, "24h") 
-                            signal_id = get_last_signal_id(uid, sym, tf_for_sym)
-                            
-                            # Try to determine strategy from signal if available
+                            # Reset detected_strategy for each position
                             detected_strategy = None
-                            sig = None
-                            
-                            if signal_id:
-                                sig = fetch_signal_by_id(signal_id)
-                            
-                            # Fallback: search by raw_message if signal not found
-                            if not sig:
-                                sig = get_last_signal_by_symbol_in_raw(sym)
+
+                            if sym not in existing_syms:
+                                # Check if we're in cooldown period after close_all
+                                cooldown_end = _close_all_cooldown.get(uid, 0)
+                                if now < cooldown_end:
+                                    # Skip adding new positions during cooldown
+                                    logger.info(f"[{uid}] Skipping {sym} - in close_all cooldown ({int(cooldown_end - now)}s left)")
+                                    continue
+                                
+                                tf_for_sym = tf_map.get(sym, "24h") 
+                                signal_id = get_last_signal_id(uid, sym, tf_for_sym)
+                                
+                                # Try to determine strategy from signal if available
+                                detected_strategy = None
+                                sig = None
+                                
+                                if signal_id:
+                                    sig = fetch_signal_by_id(signal_id)
+                                
+                                # Fallback: search by raw_message if signal not found
+                                if not sig:
+                                    sig = get_last_signal_by_symbol_in_raw(sym)
+                                    if sig:
+                                        signal_id = sig.get("id")
+                                        logger.debug(f"[{uid}] Found signal for {sym} via raw_message search: id={signal_id}")
+                                
                                 if sig:
-                                    signal_id = sig.get("id")
-                                    logger.debug(f"[{uid}] Found signal for {sym} via raw_message search: id={signal_id}")
-                            
-                            if sig:
-                                # Check signal source/strategy
-                                raw_msg = sig.get("raw_message", "")
-                                raw_upper = raw_msg.upper()
-                                if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
-                                    detected_strategy = "scryptomera"
-                                elif "SCALPER" in raw_upper and "⚡" in raw_msg:
-                                    detected_strategy = "scalper"
-                                elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
-                                    detected_strategy = "elcaro"
-                                elif "FIBONACCI" in raw_upper or "FIBONACCI EXTENSION" in raw_upper:
-                                    detected_strategy = "fibonacci"
-                            
-                            # Use current trading mode for account_type
-                            current_account_type = user_trading_mode if user_trading_mode in ("demo", "real") else "demo"
-                            add_active_position(
-                                user_id    = uid,
-                                symbol     = sym,
-                                side       = side,
-                                entry_price= entry,
-                                size       = size,
-                                timeframe  = tf_for_sym,
+                                    # Check signal source/strategy
+                                    raw_msg = sig.get("raw_message", "")
+                                    raw_upper = raw_msg.upper()
+                                    if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
+                                        detected_strategy = "scryptomera"
+                                    elif "SCALPER" in raw_upper and "⚡" in raw_msg:
+                                        detected_strategy = "scalper"
+                                    elif "ELCARO" in raw_upper or "🔥 ELCARO" in raw_msg or "🚀 ELCARO" in raw_msg:
+                                        detected_strategy = "elcaro"
+                                    elif "FIBONACCI" in raw_upper or "FIBONACCI EXTENSION" in raw_upper:
+                                        detected_strategy = "fibonacci"
+                                
+                                # Use current_account_type from the loop
+                                add_active_position(
+                                    user_id    = uid,
+                                    symbol     = sym,
+                                    side       = side,
+                                    entry_price= entry,
+                                    size       = size,
+                                    timeframe  = tf_for_sym,
                                 signal_id  = signal_id,
                                 strategy   = detected_strategy,  # Try to detect from signal, else None
                                 account_type = current_account_type
@@ -11023,7 +11245,7 @@ async def monitor_positions_loop(app: Application):
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
 
-                    active = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
+                    active = get_active_positions(uid, account_type=current_account_type)
                     for ap in active:
                         sym = ap["symbol"]
                         ap_account_type = ap.get("account_type", "demo")
@@ -11189,7 +11411,7 @@ async def monitor_positions_loop(app: Application):
                                     _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                     _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
 
-                    active = get_active_positions(uid, account_type=user_trading_mode if user_trading_mode in ("demo", "real") else None)
+                    active = get_active_positions(uid, account_type=current_account_type)
                     tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
                     strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
                     account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
@@ -15168,46 +15390,76 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     t = ctx.t
     
     hl_creds = get_hl_credentials(uid)
-    has_key = bool(hl_creds.get("hl_private_key"))
-    has_wallet = bool(hl_creds.get("hl_wallet_address"))
-    is_testnet = hl_creds.get("hl_testnet", False)
+    
+    # Check separate testnet and mainnet keys
+    has_testnet_key = bool(hl_creds.get("hl_testnet_private_key"))
+    has_mainnet_key = bool(hl_creds.get("hl_mainnet_private_key"))
+    testnet_wallet = hl_creds.get("hl_testnet_wallet_address", "")
+    mainnet_wallet = hl_creds.get("hl_mainnet_wallet_address", "")
+    
+    # Fallback to legacy key
+    if not has_testnet_key and not has_mainnet_key:
+        legacy_key = hl_creds.get("hl_private_key")
+        legacy_wallet = hl_creds.get("hl_wallet_address", "")
+        if legacy_key:
+            if hl_creds.get("hl_testnet"):
+                has_testnet_key = True
+                testnet_wallet = legacy_wallet
+            else:
+                has_mainnet_key = True
+                mainnet_wallet = legacy_wallet
     
     # Build status message
     msg = "🔷 <b>HyperLiquid API Settings</b>\n\n"
     
-    if has_key or has_wallet:
-        network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
-        msg += f"<b>Network:</b> {network}\n"
-        
-        if has_wallet:
-            wallet = hl_creds.get("hl_wallet_address", "")
-            msg += f"<b>Wallet:</b> <code>{wallet[:10]}...{wallet[-6:]}</code>\n"
-        
-        if has_key:
-            msg += "<b>Private Key:</b> ✅ Set\n"
-        else:
-            msg += "<b>Private Key:</b> ❌ Not set (read-only mode)\n"
-        
-        msg += "\n✅ <b>Status:</b> Configured"
+    # Show testnet status
+    if has_testnet_key:
+        wallet_short = f"{testnet_wallet[:8]}...{testnet_wallet[-6:]}" if len(testnet_wallet) > 14 else testnet_wallet
+        msg += f"🧪 <b>Testnet:</b> ✅ Configured\n"
+        msg += f"   Wallet: <code>{wallet_short}</code>\n\n"
     else:
-        msg += "❌ <b>Status:</b> Not configured\n\n"
-        msg += "Setup HyperLiquid to trade on DEX."
+        msg += f"🧪 <b>Testnet:</b> ❌ Not configured\n\n"
+    
+    # Show mainnet status
+    if has_mainnet_key:
+        wallet_short = f"{mainnet_wallet[:8]}...{mainnet_wallet[-6:]}" if len(mainnet_wallet) > 14 else mainnet_wallet
+        msg += f"🌐 <b>Mainnet:</b> ✅ Configured\n"
+        msg += f"   Wallet: <code>{wallet_short}</code>\n\n"
+    else:
+        msg += f"🌐 <b>Mainnet:</b> ❌ Not configured\n\n"
+    
+    if has_testnet_key or has_mainnet_key:
+        msg += "✅ <b>Status:</b> Ready to trade"
+    else:
+        msg += "❌ <b>Status:</b> Setup required\n\n"
+        msg += "Choose network to configure:"
     
     # Build keyboard
     keyboard = []
     
-    if has_key or has_wallet:
+    # Always show setup buttons for unconfigured networks
+    setup_row = []
+    if not has_mainnet_key:
+        setup_row.append(InlineKeyboardButton("🌐 Setup Mainnet", callback_data="hl_api:setup_mainnet"))
+    if not has_testnet_key:
+        setup_row.append(InlineKeyboardButton("🧪 Setup Testnet", callback_data="hl_api:setup_testnet"))
+    if setup_row:
+        keyboard.append(setup_row)
+    
+    # Show management buttons if any key is configured
+    if has_testnet_key or has_mainnet_key:
         keyboard.append([
             InlineKeyboardButton("🧪 Test Connection", callback_data="hl_api:test")
         ])
-        keyboard.append([
-            InlineKeyboardButton("🗑 Clear Credentials", callback_data="hl_api:clear")
-        ])
-    else:
-        keyboard.append([
-            InlineKeyboardButton("🌐 Setup Mainnet", callback_data="hl_api:setup_mainnet"),
-            InlineKeyboardButton("🧪 Setup Testnet", callback_data="hl_api:setup_testnet")
-        ])
+        
+        # Clear buttons for each configured network
+        clear_row = []
+        if has_testnet_key:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Testnet", callback_data="hl_api:clear_testnet"))
+        if has_mainnet_key:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Mainnet", callback_data="hl_api:clear_mainnet"))
+        if clear_row:
+            keyboard.append(clear_row)
     
     keyboard.append([
         InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="hl_api:back")
@@ -15502,7 +15754,27 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "hl_api:clear":
         clear_hl_credentials(uid)
         await q.edit_message_text(
-            "✅ HyperLiquid credentials cleared.\n\n"
+            "✅ All HyperLiquid credentials cleared.\n\n"
+            "Use 🔷 HL API to setup again.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+            ])
+        )
+    
+    elif data == "hl_api:clear_testnet":
+        clear_hl_credentials(uid, account_type="testnet")
+        await q.edit_message_text(
+            "✅ HyperLiquid Testnet credentials cleared.\n\n"
+            "Use 🔷 HL API to setup again.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+            ])
+        )
+    
+    elif data == "hl_api:clear_mainnet":
+        clear_hl_credentials(uid, account_type="mainnet")
+        await q.edit_message_text(
+            "✅ HyperLiquid Mainnet credentials cleared.\n\n"
             "Use 🔷 HL API to setup again.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
@@ -16166,12 +16438,17 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
         account = Account.from_key("0x" + key)
         address = account.address
         
-        # Save credentials with dict format
+        # Save credentials - use account_type for proper column placement
+        account_type = "testnet" if testnet else "mainnet"
         set_hl_credentials(uid, creds={
             "hl_private_key": "0x" + key,
             "hl_wallet_address": address,
-            "hl_testnet": testnet
+            "hl_testnet": testnet,
+            "account_type": account_type
         })
+        
+        # Enable HL for user
+        set_hl_enabled(uid, True)
         
         # Delete the message containing the private key for security
         try:

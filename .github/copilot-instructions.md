@@ -299,14 +299,38 @@ from services import TradingService, TradeRequest, TradeResult          # classe
 | File | Key Exports |
 |------|-------------|
 | `coin_params.py` | `ADMIN_ID`, `COIN_PARAMS`, `BLACKLIST`, `DEFAULT_TP_PCT`, `DEFAULT_SL_PCT` |
-| `db.py` | `get_user_config`, `set_user_value`, `USER_FIELDS_WHITELIST`, `invalidate_user_cache` |
-| `exchange_router.py` | `place_order_universal`, `fetch_positions_universal`, `set_leverage_universal`, `close_position_universal`, `get_balance_universal` |
+| `db.py` | `get_user_config`, `set_user_value`, `USER_FIELDS_WHITELIST`, `invalidate_user_cache`, `get_positions_by_target`, `add_active_position` |
+| `exchange_router.py` | `Target`, `Env`, `Exchange`, `normalize_env`, `denormalize_env`, `get_user_targets`, `place_order_universal`, `ExchangeRouter` |
 | `hl_adapter.py` | `HLAdapter` (41 methods) - HyperLiquid async client wrapper |
 | `exchanges/bybit.py` | `BybitExchange` (34 methods) - Bybit async client |
 | `exchanges/base.py` | `BaseExchange`, `Balance`, `Position`, `Order`, `OrderResult`, `OrderSide`, `OrderType`, `PositionSide` |
 | `services/exchange_service.py` | `ExchangeAdapter`, `BybitAdapter`, `HyperLiquidAdapter`, `OrderType`, `OrderSide` |
 | `core/__init__.py` | All infrastructure exports: caching, rate limiting, metrics, exceptions |
 | `core/exchange_client.py` | `UnifiedExchangeClient`, `ExchangeCredentials`, `ExchangeType`, `AccountMode` |
+
+## Target Model (Dec 30, 2025)
+
+**Unified environment model** для multi-exchange архитектуры:
+
+```python
+from exchange_router import Target, Env, normalize_env, get_user_targets
+
+# Target = (exchange, env) где env = paper|live
+target = Target(exchange="bybit", env="paper")
+print(target.key)           # "bybit:paper"
+print(target.account_type)  # "demo" (backward compat)
+
+# Mapping
+# demo/testnet  → paper
+# real/mainnet  → live
+
+# Получить все target'ы пользователя для мониторинга
+targets = get_user_targets(user_id=123)
+for t in targets:
+    positions = db.get_positions_by_target(user_id, t.exchange, t.env)
+```
+
+**Файл:** `TARGET_MODEL_ARCHITECTURE.md` - полная документация
 
 ## After Code Changes
 ```bash

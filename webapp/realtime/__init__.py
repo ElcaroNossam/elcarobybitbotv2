@@ -19,6 +19,17 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
+
+def safe_float(value, default: float = 0.0) -> float:
+    """Safely convert value to float, handling empty strings and None."""
+    if value is None or value == '':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 # In-memory storage for real-time data
 _bybit_data: Dict[str, Dict] = {}
 _hyperliquid_data: Dict[str, Dict] = {}
@@ -128,7 +139,7 @@ class BybitWorker:
                     tickers = data.get('result', {}).get('list', [])
                     
                     # Sort by 24h turnover and take top 200
-                    tickers.sort(key=lambda x: float(x.get('turnover24h', 0)), reverse=True)
+                    tickers.sort(key=lambda x: safe_float(x.get('turnover24h')), reverse=True)
                     self.symbols = [t['symbol'] for t in tickers[:200] if 'USDT' in t['symbol']]
                     
                     logger.info(f"✅ Fetched top {len(self.symbols)} Bybit symbols by volume")
@@ -150,21 +161,21 @@ class BybitWorker:
                 # Update in-memory storage with all metrics
                 _bybit_data[symbol] = {
                     'symbol': symbol,
-                    'price': float(ticker_data.get('lastPrice', 0)),
-                    'mark_price': float(ticker_data.get('markPrice', 0)),
-                    'index_price': float(ticker_data.get('indexPrice', 0)),
-                    'volume_24h': float(ticker_data.get('volume24h', 0)),
-                    'turnover_24h': float(ticker_data.get('turnover24h', 0)),
-                    'change_24h': float(ticker_data.get('price24hPcnt', 0)) * 100,
-                    'high_24h': float(ticker_data.get('highPrice24h', 0)),
-                    'low_24h': float(ticker_data.get('lowPrice24h', 0)),
-                    'bid': float(ticker_data.get('bid1Price', 0)),
-                    'ask': float(ticker_data.get('ask1Price', 0)),
-                    'open_interest': float(ticker_data.get('openInterest', 0)),
-                    'open_interest_value': float(ticker_data.get('openInterestValue', 0)),
-                    'funding_rate': float(ticker_data.get('fundingRate', 0)),
+                    'price': safe_float(ticker_data.get('lastPrice')),
+                    'mark_price': safe_float(ticker_data.get('markPrice')),
+                    'index_price': safe_float(ticker_data.get('indexPrice')),
+                    'volume_24h': safe_float(ticker_data.get('volume24h')),
+                    'turnover_24h': safe_float(ticker_data.get('turnover24h')),
+                    'change_24h': safe_float(ticker_data.get('price24hPcnt')) * 100,
+                    'high_24h': safe_float(ticker_data.get('highPrice24h')),
+                    'low_24h': safe_float(ticker_data.get('lowPrice24h')),
+                    'bid': safe_float(ticker_data.get('bid1Price')),
+                    'ask': safe_float(ticker_data.get('ask1Price')),
+                    'open_interest': safe_float(ticker_data.get('openInterest')),
+                    'open_interest_value': safe_float(ticker_data.get('openInterestValue')),
+                    'funding_rate': safe_float(ticker_data.get('fundingRate')),
                     'next_funding_time': ticker_data.get('nextFundingTime', ''),
-                    'predicted_funding': float(ticker_data.get('predictedDeliveryPrice', 0)),
+                    'predicted_funding': safe_float(ticker_data.get('predictedDeliveryPrice')),
                     'timestamp': time.time()
                 }
         
@@ -174,10 +185,10 @@ class BybitWorker:
             for trade in trades:
                 symbol = trade.get('s')
                 if symbol:
-                    price = float(trade.get('p', 0))
-                    volume = float(trade.get('v', 0))
+                    price = safe_float(trade.get('p'))
+                    volume = safe_float(trade.get('v'))
                     side = trade.get('S')  # 'Buy' or 'Sell'
-                    timestamp = int(trade.get('T', 0))
+                    timestamp = int(trade.get('T', 0) or 0)
                     
                     # Calculate vdelta (buy volume - sell volume)
                     quote_volume = price * volume
@@ -346,10 +357,10 @@ class HyperLiquidWorker:
             for trade in trades:
                 coin = trade.get('coin')
                 if coin and coin in self.symbols:
-                    price = float(trade.get('px', 0))
-                    size = float(trade.get('sz', 0))
+                    price = safe_float(trade.get('px'))
+                    size = safe_float(trade.get('sz'))
                     side = trade.get('side')  # 'A' (ask/sell) or 'B' (bid/buy)
-                    timestamp = int(trade.get('time', 0))
+                    timestamp = int(trade.get('time', 0) or 0)
                     
                     # Calculate vdelta
                     quote_volume = price * size
@@ -391,10 +402,10 @@ class HyperLiquidWorker:
                     for ctx in data[1]:
                         if ctx.get('coin') == symbol:
                             stats = {
-                                'volume_24h': float(ctx.get('dayNtlVlm', 0)),
-                                'change_24h': (float(ctx.get('premium', 0)) * 100),
-                                'open_interest': float(ctx.get('openInterest', 0)),
-                                'funding_rate': float(ctx.get('funding', 0)),
+                                'volume_24h': safe_float(ctx.get('dayNtlVlm')),
+                                'change_24h': (safe_float(ctx.get('premium')) * 100),
+                                'open_interest': safe_float(ctx.get('openInterest')),
+                                'funding_rate': safe_float(ctx.get('funding')),
                                 'high_24h': 0,
                                 'low_24h': 0
                             }

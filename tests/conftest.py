@@ -144,6 +144,16 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             dca_10_done  INTEGER NOT NULL DEFAULT 0,
             dca_25_done  INTEGER NOT NULL DEFAULT 0,
             strategy     TEXT,
+            source       TEXT DEFAULT 'bot',
+            opened_by    TEXT,
+            exchange     TEXT DEFAULT 'bybit',
+            sl_price     REAL,
+            tp_price     REAL,
+            leverage     INTEGER,
+            client_order_id TEXT,
+            exchange_order_id TEXT,
+            env          TEXT DEFAULT 'paper',
+            manual_sltp_override INTEGER DEFAULT 0,
             PRIMARY KEY(user_id, symbol, account_type),
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
@@ -399,8 +409,9 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
         except:
             pass
     
-    # Don't call init_db() - we already created the schema above
-    # This avoids conflicts between test schema and production schema
+    # Run init_db() to apply all migrations and get production-like schema
+    # This ensures test schema matches production exactly
+    db_module.init_db()
     
     yield conn
     

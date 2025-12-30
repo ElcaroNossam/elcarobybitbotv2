@@ -93,11 +93,16 @@ USER_FIELDS_WHITELIST = {
     # для совместимости с текущим кодом бота
     "first_seen_ts", "last_seen_ts",
     # HyperLiquid settings
-    "hl_testnet",  # 0/1 - testnet or mainnet
+    "hl_testnet",  # 0/1 - testnet or mainnet (legacy, for active context)
     "hl_enabled",  # 0/1 - HL trading enabled
-    "hl_private_key",  # HyperLiquid private key
-    "hl_wallet_address",  # HyperLiquid wallet address
+    "hl_private_key",  # HyperLiquid private key (legacy, will migrate to testnet/mainnet)
+    "hl_wallet_address",  # HyperLiquid wallet address (legacy)
     "hl_vault_address",  # HyperLiquid vault address
+    # Separate HL testnet/mainnet credentials
+    "hl_testnet_private_key",  # HL testnet private key
+    "hl_testnet_wallet_address",  # HL testnet wallet address
+    "hl_mainnet_private_key",  # HL mainnet private key
+    "hl_mainnet_wallet_address",  # HL mainnet wallet address
 }
 
 # ------------------------------------------------------------------------------------
@@ -138,7 +143,9 @@ def _col_exists(conn: sqlite3.Connection, table: str, col: str) -> bool:
     if table not in {'users', 'signals', 'active_positions', 'pending_limit_orders',
                       'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies',
                       'market_snapshots', 'payment_history', 'user_achievements',
-                      'user_strategy_settings'}:
+                      'user_strategy_settings', 'exchange_accounts', 'strategy_ratings',
+                      'strategy_marketplace', 'strategy_purchases', 'seller_payouts',
+                      'top_strategies', 'elc_purchases', 'elc_transactions', 'elc_stats'}:
         raise ValueError(f"Invalid table name: {table}")
     
     if not col.replace('_', '').isalnum():
@@ -276,6 +283,11 @@ def init_db():
             ("hl_vault_address",   "ALTER TABLE users ADD COLUMN hl_vault_address   TEXT"),
             ("hl_testnet",         "ALTER TABLE users ADD COLUMN hl_testnet         INTEGER NOT NULL DEFAULT 0"),
             ("hl_enabled",         "ALTER TABLE users ADD COLUMN hl_enabled         INTEGER NOT NULL DEFAULT 0"),
+            # Separate HL testnet/mainnet credentials
+            ("hl_testnet_private_key",     "ALTER TABLE users ADD COLUMN hl_testnet_private_key     TEXT"),
+            ("hl_testnet_wallet_address",  "ALTER TABLE users ADD COLUMN hl_testnet_wallet_address  TEXT"),
+            ("hl_mainnet_private_key",     "ALTER TABLE users ADD COLUMN hl_mainnet_private_key     TEXT"),
+            ("hl_mainnet_wallet_address",  "ALTER TABLE users ADD COLUMN hl_mainnet_wallet_address  TEXT"),
             ("exchange_mode",      "ALTER TABLE users ADD COLUMN exchange_mode      TEXT NOT NULL DEFAULT 'bybit'"),
             ("exchange_type",      "ALTER TABLE users ADD COLUMN exchange_type      TEXT NOT NULL DEFAULT 'bybit'"),
             # ELCARO Token balances
@@ -909,7 +921,9 @@ def init_db():
                 UNIQUE(marketplace_id, user_id)         -- One rating per user per strategy
             )
         """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_ratings_marketplace ON strategy_ratings(marketplace_id)")
+        # Only create index if marketplace_id column exists
+        if _col_exists(conn, "strategy_ratings", "marketplace_id"):
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_ratings_marketplace ON strategy_ratings(marketplace_id)")
         
         # Seller payouts tracking
         cur.execute("""
@@ -947,6 +961,149 @@ def init_db():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_top_rank ON top_strategies(rank)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_top_type ON top_strategies(strategy_type)")
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # P0.1: EXCHANGE ACCOUNTS TABLE - Multi-exchange support with execution_targets
+        # ═══════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS exchange_accounts (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id         INTEGER NOT NULL,
+                exchange        TEXT NOT NULL,           -- 'bybit', 'hyperliquid'
+                account_type    TEXT NOT NULL,           -- 'demo', 'real', 'testnet', 'mainnet'
+                label           TEXT,                    -- User-friendly label
+                is_enabled      INTEGER DEFAULT 1,       -- Is this account active for trading?
+                is_default      INTEGER DEFAULT 0,       -- Default account for this exchange
+                
+                -- API credentials (encrypted or plain for now)
+                api_key         TEXT,
+                api_secret      TEXT,
+                extra_json      TEXT,                    -- JSON for HL private_key, wallet, vault, etc.
+                
+                -- Account-specific settings
+                max_positions   INTEGER DEFAULT 10,      -- Max concurrent positions
+                max_leverage    INTEGER DEFAULT 100,     -- Max allowed leverage
+                risk_limit_pct  REAL DEFAULT 30.0,       -- Max effective_risk (sl_pct * leverage)
+                
+                -- Execution targeting
+                priority        INTEGER DEFAULT 0,       -- Order of execution (lower = first)
+                
+                -- Metadata
+                created_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
+                updated_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
+                last_sync_at    DATETIME,
+                
+                UNIQUE(user_id, exchange, account_type),
+                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_user ON exchange_accounts(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_enabled ON exchange_accounts(user_id, is_enabled)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_exchange ON exchange_accounts(user_id, exchange)")
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # P0.3: ACTIVE POSITIONS EXTENSIONS - source, manual_sltp_override, ATR state
+        # ═══════════════════════════════════════════════════════════════════════════════
+        
+        # Миграция: добавляем source (откуда создана позиция)
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "source"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN source TEXT DEFAULT 'bot'")
+        
+        # Миграция: добавляем opened_by (для WebApp интеграции)
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "opened_by"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN opened_by TEXT DEFAULT 'bot'")
+        
+        # Миграция: добавляем exchange (поддержка мульти-биржи)
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "exchange"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN exchange TEXT DEFAULT 'bybit'")
+        
+        # Миграция: SL/TP цены
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "sl_price"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN sl_price REAL")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "tp_price"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN tp_price REAL")
+        
+        # Миграция: manual_sltp_override - бот не будет перезаписывать ручные изменения
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "manual_sltp_override"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN manual_sltp_override INTEGER DEFAULT 0")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "manual_sltp_ts"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN manual_sltp_ts INTEGER")
+        
+        # P0.4: ATR trailing state - переживает рестарт бота
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_activated"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_activated INTEGER DEFAULT 0")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_activation_price"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_activation_price REAL")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_last_stop_price"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_stop_price REAL")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_last_update_ts"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_update_ts INTEGER")
+        
+        # Миграция: leverage для позиции
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "leverage"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN leverage INTEGER")
+        
+        # Миграция: client_order_id для идемпотентности
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "client_order_id"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN client_order_id TEXT")
+        
+        # Миграция: exchange_order_id (ID ордера на бирже)
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "exchange_order_id"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN exchange_order_id TEXT")
+        
+        # Миграция: env (unified paper/live) для новой Target модели
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "env"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN env TEXT")
+            # Заполняем env на основе account_type
+            cur.execute("""
+                UPDATE active_positions 
+                SET env = CASE 
+                    WHEN account_type IN ('demo', 'testnet') THEN 'paper'
+                    WHEN account_type IN ('real', 'mainnet') THEN 'live'
+                    ELSE 'paper'
+                END
+                WHERE env IS NULL
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_active_env ON active_positions(user_id, exchange, env)")
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # ROUTING POLICY & MULTI-TARGET SUPPORT
+        # ═══════════════════════════════════════════════════════════════════════════════
+        
+        # Миграция: routing_policy для users - определяет как маршрутизировать сигналы
+        # Значения:
+        #   - 'active_only': только на выбранном таргете (UI)
+        #   - 'same_exchange_all_envs': текущая биржа, все включенные env (demo+real или testnet+mainnet)
+        #   - 'all_enabled': все включенные таргеты (до 4)
+        if not _col_exists(conn, "users", "routing_policy"):
+            cur.execute("ALTER TABLE users ADD COLUMN routing_policy TEXT DEFAULT 'same_exchange_all_envs'")
+        
+        # Миграция: live_enabled - отдельное подтверждение для live/mainnet трейдинга
+        # Пользователь должен явно подтвердить, что хочет торговать на реальные деньги
+        if not _col_exists(conn, "users", "live_enabled"):
+            cur.execute("ALTER TABLE users ADD COLUMN live_enabled INTEGER DEFAULT 0")
+        
+        # Миграция: добавляем env поле в user_strategy_settings для fallback логики
+        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "env"):
+            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN env TEXT")
+            # Заполняем env на основе account_type
+            cur.execute("""
+                UPDATE user_strategy_settings 
+                SET env = CASE 
+                    WHEN account_type IN ('demo', 'testnet') THEN 'paper'
+                    WHEN account_type IN ('real', 'mainnet') THEN 'live'
+                    ELSE NULL
+                END
+                WHERE env IS NULL
+            """)
+        
+        # Миграция: добавляем routing_policy в user_strategy_settings (per-strategy override)
+        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "routing_policy"):
+            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN routing_policy TEXT")
+        
+        # Миграция: добавляем explicit targets list (JSON) для CUSTOM_TARGET_LIST policy
+        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "targets_json"):
+            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN targets_json TEXT")
 
         conn.commit()
 
@@ -1185,36 +1342,56 @@ def normalize_account_type(account_type: str, exchange: str = "bybit") -> str:
 
 
 def get_active_account_types(user_id: int) -> list[str]:
-    """Get list of account types to trade on based on trading_mode and active exchange.
+    """
+    Get list of account types to trade on based on trading_mode and active exchange.
     
     Returns for Bybit: ['demo'], ['real'], or ['demo', 'real']
-    Returns for HyperLiquid: ['testnet'] or ['mainnet'] (HL uses one key for both)
+    Returns for HyperLiquid: ['testnet'], ['mainnet'], or ['testnet', 'mainnet']
+    
+    For HL: checks separate testnet/mainnet credentials.
     """
     exchange = get_exchange_type(user_id)
     
     if exchange == "hyperliquid":
-        # For HyperLiquid, check if credentials exist and return based on hl_testnet
+        # For HyperLiquid, check separate testnet/mainnet credentials
         hl_creds = get_hl_credentials(user_id)
-        if not hl_creds.get("hl_private_key"):
+        
+        # Check each credential separately
+        has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+        has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+        
+        # Fallback to legacy key
+        if not has_testnet and not has_mainnet and hl_creds.get("hl_private_key"):
+            if hl_creds.get("hl_testnet"):
+                has_testnet = True
+            else:
+                has_mainnet = True
+        
+        if not has_testnet and not has_mainnet:
             return []
         
-        # HL has one key for all - determine testnet/mainnet from settings
+        # Get trading_mode preference
         with get_conn() as conn:
-            row = conn.execute("SELECT hl_testnet, trading_mode FROM users WHERE user_id=?", (user_id,)).fetchone()
+            row = conn.execute("SELECT trading_mode FROM users WHERE user_id=?", (user_id,)).fetchone()
         
-        if not row:
-            return ["mainnet"]
+        trading_mode = row[0] if row else "demo"
+        trading_mode = trading_mode or "demo"
         
-        hl_testnet = bool(row[0]) if row[0] is not None else False
-        trading_mode = row[1] or "demo"
-        
+        result = []
         # Map trading_mode to HL account types
         if trading_mode == "both":
-            return ["testnet", "mainnet"]
-        elif hl_testnet or trading_mode in ("demo", "testnet"):
-            return ["testnet"]
-        else:
-            return ["mainnet"]
+            if has_testnet:
+                result.append("testnet")
+            if has_mainnet:
+                result.append("mainnet")
+        elif trading_mode in ("demo", "testnet"):
+            if has_testnet:
+                result.append("testnet")
+        else:  # real, mainnet
+            if has_mainnet:
+                result.append("mainnet")
+        
+        return result
     else:
         # For Bybit
         with get_conn() as conn:
@@ -1274,21 +1451,35 @@ def get_strategy_account_types(user_id: int, strategy: str) -> list[str]:
     strat_mode = normalize_account_type(strat_mode, exchange)
     
     if exchange == "hyperliquid":
-        # For HyperLiquid, check hl_private_key
+        # For HyperLiquid, check separate testnet/mainnet credentials
         hl_creds = get_hl_credentials(user_id)
-        has_key = bool(hl_creds.get("hl_private_key"))
+        has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+        has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
         
-        if not has_key:
+        # Fallback to legacy key
+        if not has_testnet and not has_mainnet and hl_creds.get("hl_private_key"):
+            if hl_creds.get("hl_testnet"):
+                has_testnet = True
+            else:
+                has_mainnet = True
+        
+        if not has_testnet and not has_mainnet:
             return []
         
+        result = []
         if strat_mode == "both":
-            # Both testnet and mainnet - user has one key for both
-            return ["testnet", "mainnet"]
+            if has_testnet:
+                result.append("testnet")
+            if has_mainnet:
+                result.append("mainnet")
         elif strat_mode in ("mainnet", "real"):
-            return ["mainnet"]
+            if has_mainnet:
+                result.append("mainnet")
         elif strat_mode in ("testnet", "demo"):
-            return ["testnet"]
-        return ["mainnet"]  # Default
+            if has_testnet:
+                result.append("testnet")
+        
+        return result if result else (["mainnet"] if has_mainnet else ["testnet"])
     else:
         # For Bybit
         with get_conn() as conn:
@@ -1316,6 +1507,266 @@ def get_strategy_account_types(user_id: int, strategy: str) -> list[str]:
                 result.append("demo")
         
         return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTING POLICY & EXECUTION TARGETS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class RoutingPolicy:
+    """Routing policy values for signal execution"""
+    ACTIVE_ONLY = "active_only"                    # Only the currently selected target (UI)
+    SAME_EXCHANGE_ALL_ENVS = "same_exchange_all_envs"  # Current exchange, all enabled envs
+    ALL_ENABLED = "all_enabled"                    # All enabled targets (up to 4)
+    CUSTOM = "custom"                              # Explicit target list from strategy
+
+
+def get_routing_policy(user_id: int) -> str:
+    """Get user's global routing policy."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT routing_policy FROM users WHERE user_id=?", 
+            (user_id,)
+        ).fetchone()
+    return row[0] if row and row[0] else RoutingPolicy.SAME_EXCHANGE_ALL_ENVS
+
+
+def set_routing_policy(user_id: int, policy: str):
+    """Set user's global routing policy."""
+    valid_policies = [
+        RoutingPolicy.ACTIVE_ONLY,
+        RoutingPolicy.SAME_EXCHANGE_ALL_ENVS,
+        RoutingPolicy.ALL_ENABLED,
+        RoutingPolicy.CUSTOM,
+    ]
+    if policy not in valid_policies:
+        raise ValueError(f"Invalid routing policy: {policy}")
+    
+    ensure_user(user_id)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET routing_policy=? WHERE user_id=?",
+            (policy, user_id)
+        )
+        conn.commit()
+    invalidate_user_cache(user_id)
+
+
+def get_live_enabled(user_id: int) -> bool:
+    """Check if user has explicitly enabled live/mainnet trading."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT live_enabled FROM users WHERE user_id=?",
+            (user_id,)
+        ).fetchone()
+    return bool(row[0]) if row else False
+
+
+def set_live_enabled(user_id: int, enabled: bool):
+    """Set live/mainnet trading permission."""
+    ensure_user(user_id)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET live_enabled=? WHERE user_id=?",
+            (1 if enabled else 0, user_id)
+        )
+        conn.commit()
+    invalidate_user_cache(user_id)
+
+
+def get_execution_targets(
+    user_id: int,
+    strategy: str = None,
+    override_policy: str = None
+) -> list[dict]:
+    """
+    Get list of execution targets based on routing policy.
+    
+    Returns list of dicts with keys: exchange, env, account_type
+    
+    Priority:
+    1. Strategy's custom targets (if strategy has routing_policy='custom' and targets_json)
+    2. Strategy's routing_policy (if set and != 'global')
+    3. User's global routing_policy
+    4. Default: SAME_EXCHANGE_ALL_ENVS
+    
+    Safety: Filters out live targets if live_enabled=False
+    """
+    # Determine effective routing policy
+    policy = override_policy
+    strategy_targets = None
+    
+    if not policy and strategy:
+        # Check if strategy has explicit targets or routing_policy
+        context = get_user_trading_context(user_id)
+        strat_settings = get_strategy_settings(user_id, strategy, context["exchange"], context["account_type"])
+        
+        if strat_settings.get("routing_policy") == RoutingPolicy.CUSTOM:
+            # Use explicit target list from strategy
+            import json
+            targets_json = strat_settings.get("targets_json")
+            if targets_json:
+                try:
+                    strategy_targets = json.loads(targets_json)
+                except:
+                    pass
+        elif strat_settings.get("routing_policy") and strat_settings.get("routing_policy") != "global":
+            policy = strat_settings.get("routing_policy")
+    
+    if not policy:
+        policy = get_routing_policy(user_id)
+    
+    # Get user context
+    context = get_user_trading_context(user_id)
+    live_enabled = get_live_enabled(user_id)
+    
+    targets = []
+    
+    # If strategy has explicit targets, use them
+    if strategy_targets:
+        for t in strategy_targets:
+            env = t.get("env", "paper")
+            # Safety check: skip live if not enabled
+            if env == "live" and not live_enabled:
+                continue
+            targets.append({
+                "exchange": t.get("exchange", "bybit"),
+                "env": env,
+                "account_type": _env_to_account_type(t.get("exchange", "bybit"), env)
+            })
+        return targets
+    
+    # Apply routing policy
+    if policy == RoutingPolicy.ACTIVE_ONLY:
+        # Only the currently selected target (from UI)
+        env = "paper" if context["account_type"] in ("demo", "testnet") else "live"
+        if env == "live" and not live_enabled:
+            return []  # User hasn't enabled live trading
+        return [{
+            "exchange": context["exchange"],
+            "env": env,
+            "account_type": context["account_type"]
+        }]
+    
+    elif policy == RoutingPolicy.SAME_EXCHANGE_ALL_ENVS:
+        # Current exchange, all enabled envs (demo+real or testnet+mainnet)
+        exchange = context["exchange"]
+        account_types = get_active_account_types(user_id)
+        
+        for acc_type in account_types:
+            env = "paper" if acc_type in ("demo", "testnet") else "live"
+            # Safety check: skip live if not enabled
+            if env == "live" and not live_enabled:
+                continue
+            targets.append({
+                "exchange": exchange,
+                "env": env,
+                "account_type": acc_type
+            })
+        return targets
+    
+    elif policy == RoutingPolicy.ALL_ENABLED:
+        # All enabled targets across all exchanges (up to 4)
+        # Check Bybit
+        bybit_types = _get_bybit_account_types(user_id)
+        for acc_type in bybit_types:
+            env = "paper" if acc_type == "demo" else "live"
+            if env == "live" and not live_enabled:
+                continue
+            targets.append({
+                "exchange": "bybit",
+                "env": env,
+                "account_type": acc_type
+            })
+        
+        # Check HyperLiquid
+        hl_types = _get_hl_account_types(user_id)
+        for acc_type in hl_types:
+            env = "paper" if acc_type == "testnet" else "live"
+            if env == "live" and not live_enabled:
+                continue
+            targets.append({
+                "exchange": "hyperliquid",
+                "env": env,
+                "account_type": acc_type
+            })
+        
+        return targets
+    
+    # Default fallback: same as SAME_EXCHANGE_ALL_ENVS
+    exchange = context["exchange"]
+    account_types = get_active_account_types(user_id)
+    for acc_type in account_types:
+        env = "paper" if acc_type in ("demo", "testnet") else "live"
+        if env == "live" and not live_enabled:
+            continue
+        targets.append({
+            "exchange": exchange,
+            "env": env,
+            "account_type": acc_type
+        })
+    return targets
+
+
+def _env_to_account_type(exchange: str, env: str) -> str:
+    """Convert env (paper/live) to account_type for specific exchange."""
+    if exchange == "hyperliquid":
+        return "testnet" if env == "paper" else "mainnet"
+    else:
+        return "demo" if env == "paper" else "real"
+
+
+def _get_bybit_account_types(user_id: int) -> list[str]:
+    """Get all configured Bybit account types."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode FROM users WHERE user_id=?",
+            (user_id,)
+        ).fetchone()
+    
+    if not row:
+        return []
+    
+    demo_key, demo_secret, real_key, real_secret, trading_mode = row
+    result = []
+    
+    if demo_key and demo_secret:
+        result.append("demo")
+    if real_key and real_secret:
+        result.append("real")
+    
+    return result
+
+
+def _get_hl_account_types(user_id: int) -> list[str]:
+    """
+    Get all configured HyperLiquid account types.
+    
+    New architecture: checks for separate testnet/mainnet credentials.
+    Returns list of account types that have valid credentials configured.
+    """
+    hl_creds = get_hl_credentials(user_id)
+    
+    result = []
+    
+    # Check testnet credentials
+    has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+    # Fallback to legacy key if hl_testnet flag is set
+    if not has_testnet and hl_creds.get("hl_private_key") and hl_creds.get("hl_testnet"):
+        has_testnet = True
+    
+    # Check mainnet credentials
+    has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+    # Fallback to legacy key if hl_testnet flag is NOT set
+    if not has_mainnet and hl_creds.get("hl_private_key") and not hl_creds.get("hl_testnet"):
+        has_mainnet = True
+    
+    if has_testnet:
+        result.append("testnet")
+    if has_mainnet:
+        result.append("mainnet")
+    
+    return result
 
 
 def delete_user_credentials(user_id: int, account_type: str):
@@ -1975,12 +2426,16 @@ def is_strategy_enabled_v2(user_id: int, strategy: str, exchange: str = "bybit",
 
 def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> dict:
     """
-    Get settings for a specific strategy.
-    NOW USES DATABASE TABLE instead of JSON.
+    Get settings for a specific strategy with FALLBACK logic.
+    
+    Fallback priority (most specific → least specific):
+    1. (exchange + account_type) - exact match
+    2. (exchange + None) - exchange-level defaults  
+    3. (None + None) - global strategy defaults
     
     If exchange and account_type are not provided, automatically detects from user's current context.
     
-    Returns dict with keys: percent, sl_percent, tp_percent, atr_periods, atr_multiplier_sl, atr_trigger_pct
+    Returns dict with keys: percent, sl_percent, tp_percent, atr_periods, atr_multiplier_sl, atr_trigger_pct, routing_policy, targets_json
     Values are None if not customized (use global defaults)
     """
     # Auto-detect context if not provided
@@ -1989,7 +2444,67 @@ def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, acc
         exchange = exchange or context["exchange"]
         account_type = account_type or context["account_type"]
     
-    return get_strategy_settings_db(user_id, strategy, exchange, account_type)
+    # 1. Try exact match (exchange + account_type)
+    settings = get_strategy_settings_db(user_id, strategy, exchange, account_type)
+    
+    # 2. If settings are all None (no customization), try exchange-level fallback
+    if _is_empty_settings(settings):
+        # Try exchange + 'default' account_type (which we interpret as exchange-level)
+        exchange_settings = get_strategy_settings_db(user_id, strategy, exchange, "default")
+        if not _is_empty_settings(exchange_settings):
+            settings = _merge_settings(settings, exchange_settings)
+    
+    # 3. Try global strategy defaults (exchange='global', account_type='default')
+    if _is_empty_settings(settings):
+        global_settings = get_strategy_settings_db(user_id, strategy, "global", "default")
+        if not _is_empty_settings(global_settings):
+            settings = _merge_settings(settings, global_settings)
+    
+    # 4. Merge with routing_policy and targets_json from extended query
+    settings = _enrich_with_routing(user_id, strategy, exchange, account_type, settings)
+    
+    return settings
+
+
+def _is_empty_settings(settings: dict) -> bool:
+    """Check if all relevant settings are None/empty (no customization)."""
+    key_fields = ["percent", "sl_percent", "tp_percent", "leverage"]
+    return all(settings.get(k) is None for k in key_fields)
+
+
+def _merge_settings(target: dict, source: dict) -> dict:
+    """Merge source settings into target, only filling None values."""
+    result = target.copy()
+    for key, value in source.items():
+        if result.get(key) is None and value is not None:
+            result[key] = value
+    return result
+
+
+def _enrich_with_routing(user_id: int, strategy: str, exchange: str, account_type: str, settings: dict) -> dict:
+    """Enrich settings with routing_policy and targets_json if available."""
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT routing_policy, targets_json
+            FROM user_strategy_settings
+            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+        """, (user_id, strategy, exchange, account_type))
+        row = cur.fetchone()
+        if row:
+            settings["routing_policy"] = row[0]
+            settings["targets_json"] = row[1]
+        else:
+            settings["routing_policy"] = None
+            settings["targets_json"] = None
+        return settings
+    except:
+        settings["routing_policy"] = None
+        settings["targets_json"] = None
+        return settings
+    finally:
+        release_conn(conn)
 
 
 def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None,
@@ -2167,7 +2682,11 @@ def get_all_users() -> list[int]:
     return users
 
 def get_active_trading_users() -> list[int]:
-    """Get users with API keys configured - optimized for monitoring loop."""
+    """
+    Get users with API keys configured - optimized for monitoring loop.
+    
+    P0.10: Now includes users with HyperLiquid credentials too.
+    """
     global _active_users_cache
     now = time.time()
     ts, users = _active_users_cache
@@ -2175,10 +2694,15 @@ def get_active_trading_users() -> list[int]:
         return users.copy()
     
     with get_conn() as conn:
+        # P0.10: Include HL users in the query
         rows = conn.execute("""
             SELECT user_id FROM users 
             WHERE is_banned = 0 
-            AND (demo_api_key IS NOT NULL OR real_api_key IS NOT NULL)
+            AND (
+                demo_api_key IS NOT NULL 
+                OR real_api_key IS NOT NULL
+                OR (hl_private_key IS NOT NULL AND hl_enabled = 1)
+            )
         """).fetchall()
     users = [r[0] for r in rows]
     _active_users_cache = (now, users)
@@ -2414,6 +2938,20 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
 # ------------------------------------------------------------------------------------
 # Active positions
 # ------------------------------------------------------------------------------------
+
+def _normalize_env(account_type: str) -> str:
+    """Convert account_type to unified env (paper/live)."""
+    mapping = {
+        "demo": "paper",
+        "testnet": "paper",
+        "real": "live",
+        "mainnet": "live",
+        "paper": "paper",
+        "live": "live",
+    }
+    return mapping.get(account_type.lower() if account_type else "demo", "paper")
+
+
 def add_active_position(
     user_id: int,
     symbol: str,
@@ -2424,56 +2962,110 @@ def add_active_position(
     signal_id: int | None = None,
     strategy: str | None = None,
     account_type: str = "demo",
+    # P0.3: New fields for proper tracking
+    source: str = "bot",  # 'bot', 'webapp', 'monitor'
+    opened_by: str = "bot",
+    exchange: str = "bybit",
+    sl_price: float | None = None,
+    tp_price: float | None = None,
+    leverage: int | None = None,
+    client_order_id: str | None = None,
+    exchange_order_id: str | None = None,
+    env: str | None = None,  # Unified env (paper/live)
 ):
     """
     UPSERT с обновлением ключевых полей.
     PRIMARY KEY включает account_type - позволяет иметь одновременно Demo и Real позиции.
+    
+    P0.3 ВАЖНО: 
+    - НЕ перезаписываем strategy на NULL (COALESCE)
+    - НЕ перезаписываем sl_price/tp_price если уже есть и manual_sltp_override=1
+    - source указывает откуда создана позиция
+    
+    env автоматически вычисляется из account_type если не указан.
     """
     ensure_user(user_id)
+    
+    # Auto-calculate env from account_type if not provided
+    if env is None:
+        env = _normalize_env(account_type)
+    
     with get_conn() as conn:
         conn.execute(
             """
           INSERT INTO active_positions
-            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, dca_10_done, dca_25_done, strategy)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
+             dca_10_done, dca_25_done, strategy, source, opened_by, exchange,
+             sl_price, tp_price, leverage, client_order_id, exchange_order_id, env)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id, symbol, account_type) DO UPDATE SET
-            side        = excluded.side,
-            entry_price = excluded.entry_price,
-            size        = excluded.size,
-            timeframe   = COALESCE(excluded.timeframe, active_positions.timeframe),
-            signal_id   = COALESCE(excluded.signal_id,   active_positions.signal_id),
-            strategy    = COALESCE(excluded.strategy,    active_positions.strategy)
+            side             = excluded.side,
+            entry_price      = excluded.entry_price,
+            size             = excluded.size,
+            timeframe        = COALESCE(excluded.timeframe, active_positions.timeframe),
+            signal_id        = COALESCE(excluded.signal_id, active_positions.signal_id),
+            -- P0.3: НЕ перезаписываем strategy на NULL
+            strategy         = COALESCE(excluded.strategy, active_positions.strategy),
+            -- P0.3: Обновляем source/exchange только если они пустые
+            source           = COALESCE(active_positions.source, excluded.source),
+            exchange         = COALESCE(excluded.exchange, active_positions.exchange),
+            -- P0.8: Не перезаписываем SL/TP если manual_sltp_override=1
+            sl_price         = CASE 
+                                 WHEN active_positions.manual_sltp_override = 1 THEN active_positions.sl_price 
+                                 ELSE COALESCE(excluded.sl_price, active_positions.sl_price) 
+                               END,
+            tp_price         = CASE 
+                                 WHEN active_positions.manual_sltp_override = 1 THEN active_positions.tp_price 
+                                 ELSE COALESCE(excluded.tp_price, active_positions.tp_price) 
+                               END,
+            leverage         = COALESCE(excluded.leverage, active_positions.leverage),
+            client_order_id  = COALESCE(excluded.client_order_id, active_positions.client_order_id),
+            exchange_order_id = COALESCE(excluded.exchange_order_id, active_positions.exchange_order_id),
+            env              = COALESCE(excluded.env, active_positions.env)
         """,
-            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, strategy),
+            (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
+             strategy, source, opened_by, exchange, sl_price, tp_price, leverage, 
+             client_order_id, exchange_order_id, env),
         )
         conn.commit()
 
-def get_active_positions(user_id: int, account_type: str | None = None) -> list[dict]:
+
+def get_active_positions(user_id: int, account_type: str | None = None, exchange: str | None = None, env: str | None = None) -> list[dict]:
     """
     Получает активные позиции пользователя.
-    Если account_type указан - фильтрует по нему.
+    Фильтры:
+    - account_type: 'demo', 'real', 'testnet', 'mainnet'
+    - exchange: 'bybit', 'hyperliquid'  
+    - env: 'paper', 'live' (unified env)
     """
     with get_conn() as conn:
+        # Build query based on filters
+        base_query = """
+            SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
+                   COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy, account_type,
+                   source, opened_by, exchange, sl_price, tp_price, 
+                   manual_sltp_override, manual_sltp_ts,
+                   atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts,
+                   leverage, client_order_id, exchange_order_id, env
+            FROM active_positions
+            WHERE user_id=?
+        """
+        params = [user_id]
+        
         if account_type:
-            rows = conn.execute(
-                """
-              SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
-                     COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy, account_type
-                FROM active_positions
-               WHERE user_id=? AND account_type=?
-            """,
-                (user_id, account_type),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                """
-              SELECT symbol, side, entry_price, size, open_ts, timeframe, signal_id, 
-                     COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy, account_type
-                FROM active_positions
-               WHERE user_id=?
-            """,
-                (user_id,),
-            ).fetchall()
+            base_query += " AND account_type=?"
+            params.append(account_type)
+        
+        if exchange:
+            base_query += " AND exchange=?"
+            params.append(exchange)
+        
+        if env:
+            base_query += " AND env=?"
+            params.append(env)
+        
+        rows = conn.execute(base_query, params).fetchall()
+        
         return [
             {
                 "symbol": r[0],
@@ -2487,6 +3079,25 @@ def get_active_positions(user_id: int, account_type: str | None = None) -> list[
                 "dca_25_done": bool(r[8]),
                 "strategy": r[9],
                 "account_type": r[10] or "demo",
+                # New fields
+                "source": r[11] or "bot",
+                "opened_by": r[12] or "bot",
+                "exchange": r[13] or "bybit",
+                "sl_price": r[14],
+                "tp_price": r[15],
+                "manual_sltp_override": bool(r[16]) if r[16] else False,
+                "manual_sltp_ts": r[17],
+                # ATR state (P0.4)
+                "atr_activated": bool(r[18]) if r[18] else False,
+                "atr_activation_price": r[19],
+                "atr_last_stop_price": r[20],
+                "atr_last_update_ts": r[21],
+                # Other
+                "leverage": r[22],
+                "client_order_id": r[23],
+                "exchange_order_id": r[24],
+                # Unified env
+                "env": r[25] or _normalize_env(r[10] or "demo"),
             }
             for r in rows
         ]
@@ -2544,6 +3155,44 @@ def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "dem
     return bool(row[0]) if row else False
 
 
+def get_positions_by_target(user_id: int, exchange: str, env: str) -> list[dict]:
+    """
+    Получает позиции по target (exchange + env).
+    
+    Это основная функция для мониторинга - итерирует по всем target'ам пользователя.
+    
+    Args:
+        user_id: ID пользователя
+        exchange: 'bybit' или 'hyperliquid'
+        env: 'paper' или 'live'
+    
+    Returns:
+        Список позиций для данного target
+    """
+    return get_active_positions(user_id, exchange=exchange, env=env)
+
+
+def get_all_positions_by_targets(user_id: int, targets: list[dict]) -> dict[str, list[dict]]:
+    """
+    Получает позиции для всех target'ов пользователя.
+    
+    Args:
+        user_id: ID пользователя
+        targets: Список target'ов [{exchange, env}, ...]
+    
+    Returns:
+        Dict: {target_key: [positions]}
+        где target_key = "exchange:env" (например "bybit:paper")
+    """
+    result = {}
+    for target in targets:
+        exchange = target.get("exchange") or target.exchange if hasattr(target, 'exchange') else "bybit"
+        env = target.get("env") or target.env if hasattr(target, 'env') else "paper"
+        key = f"{exchange}:{env}"
+        result[key] = get_positions_by_target(user_id, exchange, env)
+    return result
+
+
 def update_position_strategy(user_id: int, symbol: str, strategy: str, account_type: str = "demo") -> bool:
     """
     Обновляет strategy для существующей позиции.
@@ -2553,6 +3202,398 @@ def update_position_strategy(user_id: int, symbol: str, strategy: str, account_t
         cursor = conn.execute(
             "UPDATE active_positions SET strategy=? WHERE user_id=? AND symbol=? AND account_type=?",
             (strategy, user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+# ------------------------------------------------------------------------------------
+# P0.4: ATR trailing stop state persistence
+# ------------------------------------------------------------------------------------
+def update_atr_state(
+    user_id: int, 
+    symbol: str, 
+    account_type: str = "demo",
+    atr_activated: bool = False,
+    atr_activation_price: float | None = None,
+    atr_last_stop_price: float | None = None,
+) -> bool:
+    """
+    Обновляет ATR trailing stop state для позиции.
+    Возвращает True если позиция была обновлена.
+    """
+    import time
+    with get_conn() as conn:
+        cursor = conn.execute(
+            """UPDATE active_positions SET 
+                atr_activated = ?,
+                atr_activation_price = ?,
+                atr_last_stop_price = ?,
+                atr_last_update_ts = ?
+            WHERE user_id=? AND symbol=? AND account_type=?""",
+            (1 if atr_activated else 0, atr_activation_price, atr_last_stop_price,
+             int(time.time()), user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def get_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> dict | None:
+    """
+    Получает ATR trailing stop state для позиции.
+    Возвращает dict с полями: atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts
+    или None если позиция не найдена.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts
+            FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?""",
+            (user_id, symbol, account_type),
+        ).fetchone()
+        
+        if row:
+            return {
+                "atr_activated": bool(row[0]) if row[0] else False,
+                "atr_activation_price": row[1],
+                "atr_last_stop_price": row[2],
+                "atr_last_update_ts": row[3],
+            }
+        return None
+
+
+def clear_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+    """
+    Сбрасывает ATR state для позиции.
+    Вызывается при закрытии позиции.
+    """
+    with get_conn() as conn:
+        cursor = conn.execute(
+            """UPDATE active_positions SET 
+                atr_activated = 0,
+                atr_activation_price = NULL,
+                atr_last_stop_price = NULL,
+                atr_last_update_ts = NULL
+            WHERE user_id=? AND symbol=? AND account_type=?""",
+            (user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+# ------------------------------------------------------------------------------------
+# P0.8: Manual SL/TP override - prevents bot from overwriting manual changes
+# ------------------------------------------------------------------------------------
+def set_manual_sltp_override(
+    user_id: int, 
+    symbol: str, 
+    account_type: str = "demo",
+    sl_price: float | None = None,
+    tp_price: float | None = None,
+) -> bool:
+    """
+    Устанавливает manual_sltp_override=1 и обновляет SL/TP цены.
+    После этого бот не будет перезаписывать SL/TP в мониторинге.
+    """
+    import time
+    with get_conn() as conn:
+        cursor = conn.execute(
+            """UPDATE active_positions SET 
+                manual_sltp_override = 1,
+                manual_sltp_ts = ?,
+                sl_price = COALESCE(?, sl_price),
+                tp_price = COALESCE(?, tp_price)
+            WHERE user_id=? AND symbol=? AND account_type=?""",
+            (int(time.time()), sl_price, tp_price, user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def clear_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+    """
+    Сбрасывает manual_sltp_override - бот снова может управлять SL/TP.
+    """
+    with get_conn() as conn:
+        cursor = conn.execute(
+            """UPDATE active_positions SET 
+                manual_sltp_override = 0,
+                manual_sltp_ts = NULL
+            WHERE user_id=? AND symbol=? AND account_type=?""",
+            (user_id, symbol, account_type),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def is_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+    """
+    Проверяет, установлен ли manual_sltp_override для позиции.
+    Возвращает True если бот не должен трогать SL/TP.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT manual_sltp_override FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
+            (user_id, symbol, account_type),
+        ).fetchone()
+        return bool(row[0]) if row and row[0] else False
+
+
+def update_position_sltp(
+    user_id: int,
+    symbol: str,
+    account_type: str = "demo",
+    sl_price: float | None = None,
+    tp_price: float | None = None,
+    respect_manual_override: bool = True,
+) -> bool:
+    """
+    Обновляет SL/TP цены для позиции.
+    Если respect_manual_override=True и manual_sltp_override=1, ничего не делает.
+    """
+    if respect_manual_override and is_manual_sltp_override(user_id, symbol, account_type):
+        return False
+    
+    with get_conn() as conn:
+        updates = []
+        params = []
+        
+        if sl_price is not None:
+            updates.append("sl_price = ?")
+            params.append(sl_price)
+        if tp_price is not None:
+            updates.append("tp_price = ?")
+            params.append(tp_price)
+        
+        if not updates:
+            return False
+        
+        params.extend([user_id, symbol, account_type])
+        cursor = conn.execute(
+            f"UPDATE active_positions SET {', '.join(updates)} WHERE user_id=? AND symbol=? AND account_type=?",
+            params,
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+# ------------------------------------------------------------------------------------
+# P0.1: Exchange Accounts (execution_targets support) - LEGACY
+# NOTE: Main get_execution_targets is defined earlier in file (~line 1533) with routing_policy
+# This function is kept for backward compatibility with exchange_accounts table
+# ------------------------------------------------------------------------------------
+def _get_execution_targets_from_exchange_accounts(user_id: int, strategy: str | None = None) -> list[dict]:
+    """
+    LEGACY: Получает targets из таблицы exchange_accounts.
+    Используется как fallback когда нет routing_policy настроек.
+    
+    Returns list of dicts with env field for compatibility with new system.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT id, exchange, account_type, label, is_enabled, is_default,
+                      max_positions, max_leverage, risk_limit_pct, priority
+               FROM exchange_accounts
+               WHERE user_id=? AND is_enabled=1
+               ORDER BY priority, exchange, account_type""",
+            (user_id,),
+        ).fetchall()
+        
+        targets = []
+        for r in rows:
+            exchange = r[1]
+            account_type = r[2]
+            # Map account_type to env
+            if account_type in ("demo", "testnet"):
+                env = "paper"
+            else:
+                env = "live"
+            
+            targets.append({
+                "id": r[0],
+                "exchange": exchange,
+                "account_type": account_type,
+                "env": env,  # Added for compatibility
+                "label": r[3],
+                "is_enabled": bool(r[4]),
+                "is_default": bool(r[5]),
+                "max_positions": r[6] or 10,
+                "max_leverage": r[7] or 100,
+                "risk_limit_pct": r[8] or 30.0,
+                "priority": r[9] or 0,
+            })
+        
+        # Fallback: если нет записей в exchange_accounts, используем старую логику
+        if not targets:
+            targets = _get_legacy_execution_targets_from_users(user_id)
+        
+        return targets
+
+
+def _get_legacy_execution_targets_from_users(user_id: int) -> list[dict]:
+    """
+    Fallback для старых пользователей без exchange_accounts записей.
+    Использует trading_mode и hl_enabled из users.
+    Returns targets with env field for compatibility with new system.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT trading_mode, demo_api_key, real_api_key, 
+                      hl_private_key, hl_enabled, exchange_type
+               FROM users WHERE user_id=?""",
+            (user_id,),
+        ).fetchone()
+        
+        if not row:
+            return []
+        
+        trading_mode = row[0] or "demo"
+        has_demo = bool(row[1])
+        has_real = bool(row[2])
+        has_hl = bool(row[3])
+        hl_enabled = bool(row[4])
+        exchange_type = row[5] or "bybit"
+        
+        targets = []
+        
+        # Bybit targets based on trading_mode
+        if exchange_type == "bybit" or exchange_type == "both":
+            if trading_mode in ("demo", "both") and has_demo:
+                targets.append({
+                    "exchange": "bybit",
+                    "account_type": "demo",
+                    "env": "paper",  # Added for compatibility
+                    "is_enabled": True,
+                    "is_default": trading_mode == "demo",
+                    "max_positions": 10,
+                    "max_leverage": 100,
+                    "risk_limit_pct": 30.0,
+                    "priority": 0,
+                })
+            if trading_mode in ("real", "both") and has_real:
+                targets.append({
+                    "exchange": "bybit",
+                    "account_type": "real",
+                    "env": "live",  # Added for compatibility
+                    "is_enabled": True,
+                    "is_default": trading_mode == "real",
+                    "max_positions": 10,
+                    "max_leverage": 100,
+                    "risk_limit_pct": 30.0,
+                    "priority": 1,
+                })
+        
+        # HyperLiquid target
+        if (exchange_type == "hyperliquid" or exchange_type == "both") and has_hl and hl_enabled:
+            targets.append({
+                "exchange": "hyperliquid",
+                "account_type": "mainnet",  # or testnet based on hl_testnet
+                "env": "live",  # Added for compatibility
+                "is_enabled": True,
+                "is_default": exchange_type == "hyperliquid",
+                "max_positions": 10,
+                "max_leverage": 50,
+                "risk_limit_pct": 30.0,
+                "priority": 2,
+            })
+        
+        return targets
+
+
+def add_exchange_account(
+    user_id: int,
+    exchange: str,
+    account_type: str,
+    api_key: str | None = None,
+    api_secret: str | None = None,
+    extra_json: str | None = None,
+    label: str | None = None,
+    is_enabled: bool = True,
+    is_default: bool = False,
+    max_positions: int = 10,
+    max_leverage: int = 100,
+    risk_limit_pct: float = 30.0,
+    priority: int = 0,
+) -> int | None:
+    """
+    Добавляет exchange account. Возвращает ID или None при ошибке.
+    """
+    ensure_user(user_id)
+    import time
+    with get_conn() as conn:
+        try:
+            cur = conn.execute(
+                """INSERT INTO exchange_accounts
+                    (user_id, exchange, account_type, api_key, api_secret, extra_json,
+                     label, is_enabled, is_default, max_positions, max_leverage,
+                     risk_limit_pct, priority, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(user_id, exchange, account_type) DO UPDATE SET
+                     api_key = excluded.api_key,
+                     api_secret = excluded.api_secret,
+                     extra_json = COALESCE(excluded.extra_json, exchange_accounts.extra_json),
+                     label = COALESCE(excluded.label, exchange_accounts.label),
+                     is_enabled = excluded.is_enabled,
+                     is_default = excluded.is_default,
+                     max_positions = excluded.max_positions,
+                     max_leverage = excluded.max_leverage,
+                     risk_limit_pct = excluded.risk_limit_pct,
+                     priority = excluded.priority,
+                     updated_at = excluded.updated_at
+                """,
+                (user_id, exchange, account_type, api_key, api_secret, extra_json,
+                 label, 1 if is_enabled else 0, 1 if is_default else 0,
+                 max_positions, max_leverage, risk_limit_pct, priority,
+                 int(time.time()), int(time.time())),
+            )
+            conn.commit()
+            return cur.lastrowid
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"add_exchange_account error: {e}")
+            return None
+
+
+def get_exchange_account(user_id: int, exchange: str, account_type: str) -> dict | None:
+    """
+    Получает конкретный exchange account.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT id, exchange, account_type, api_key, api_secret, extra_json,
+                      label, is_enabled, is_default, max_positions, max_leverage,
+                      risk_limit_pct, priority
+               FROM exchange_accounts
+               WHERE user_id=? AND exchange=? AND account_type=?""",
+            (user_id, exchange, account_type),
+        ).fetchone()
+        
+        if row:
+            return {
+                "id": row[0],
+                "exchange": row[1],
+                "account_type": row[2],
+                "api_key": row[3],
+                "api_secret": row[4],
+                "extra_json": row[5],
+                "label": row[6],
+                "is_enabled": bool(row[7]),
+                "is_default": bool(row[8]),
+                "max_positions": row[9] or 10,
+                "max_leverage": row[10] or 100,
+                "risk_limit_pct": row[11] or 30.0,
+                "priority": row[12] or 0,
+            }
+        return None
+
+
+def set_exchange_account_enabled(user_id: int, exchange: str, account_type: str, enabled: bool) -> bool:
+    """
+    Включает/выключает exchange account.
+    """
+    with get_conn() as conn:
+        cursor = conn.execute(
+            "UPDATE exchange_accounts SET is_enabled=? WHERE user_id=? AND exchange=? AND account_type=?",
+            (1 if enabled else 0, user_id, exchange, account_type),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -4006,8 +5047,19 @@ def get_user_usage_report(user_id: int) -> dict:
 # HyperLiquid DEX Functions
 # =====================================
 
-def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None, vault_address: str = None, testnet: bool = False):
-    """Save HyperLiquid credentials for user."""
+def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None, 
+                       vault_address: str = None, testnet: bool = False,
+                       account_type: str = None):
+    """
+    Save HyperLiquid credentials for user.
+    
+    New architecture: separate credentials for testnet and mainnet.
+    - account_type='testnet' -> saves to hl_testnet_private_key
+    - account_type='mainnet' -> saves to hl_mainnet_private_key
+    - If account_type is None, uses testnet param for backward compatibility
+    
+    Also updates legacy hl_private_key for backward compatibility.
+    """
     ensure_user(user_id)
     
     # Support dict or individual params
@@ -4016,8 +5068,13 @@ def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None
         vault_address = creds.get("hl_vault_address", vault_address)
         testnet = creds.get("hl_testnet", testnet)
         wallet_address = creds.get("hl_wallet_address")
+        account_type = creds.get("account_type", account_type)
     else:
         wallet_address = None
+    
+    # Determine target account type
+    if account_type is None:
+        account_type = "testnet" if testnet else "mainnet"
     
     # Derive address from private key if not provided
     if private_key and not wallet_address:
@@ -4029,39 +5086,98 @@ def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None
             pass
     
     with get_conn() as conn:
-        conn.execute("""
-            UPDATE users SET
-                hl_private_key = ?,
-                hl_wallet_address = ?,
-                hl_vault_address = ?,
-                hl_testnet = ?
-            WHERE user_id = ?
-        """, (private_key, wallet_address, vault_address, 1 if testnet else 0, user_id))
+        if account_type == "testnet":
+            # Save to testnet columns
+            conn.execute("""
+                UPDATE users SET
+                    hl_testnet_private_key = ?,
+                    hl_testnet_wallet_address = ?,
+                    hl_vault_address = ?,
+                    hl_testnet = 1,
+                    hl_private_key = ?,
+                    hl_wallet_address = ?
+                WHERE user_id = ?
+            """, (private_key, wallet_address, vault_address, private_key, wallet_address, user_id))
+        else:
+            # Save to mainnet columns
+            conn.execute("""
+                UPDATE users SET
+                    hl_mainnet_private_key = ?,
+                    hl_mainnet_wallet_address = ?,
+                    hl_vault_address = ?,
+                    hl_testnet = 0,
+                    hl_private_key = ?,
+                    hl_wallet_address = ?
+                WHERE user_id = ?
+            """, (private_key, wallet_address, vault_address, private_key, wallet_address, user_id))
         conn.commit()
+    invalidate_user_cache(user_id)
 
 
-def get_hl_credentials(user_id: int) -> dict:
-    """Get HyperLiquid credentials for user."""
+def get_hl_credentials(user_id: int, account_type: str = None) -> dict:
+    """
+    Get HyperLiquid credentials for user.
+    
+    Args:
+        user_id: User ID
+        account_type: 'testnet' or 'mainnet'. If None, returns based on hl_testnet flag.
+    
+    Returns:
+        Dict with hl_private_key, hl_wallet_address, hl_vault_address, hl_testnet, hl_enabled
+    """
     with get_conn() as conn:
         row = conn.execute("""
-            SELECT hl_private_key, hl_wallet_address, hl_vault_address, hl_testnet, hl_enabled
+            SELECT hl_private_key, hl_wallet_address, hl_vault_address, hl_testnet, hl_enabled,
+                   hl_testnet_private_key, hl_testnet_wallet_address,
+                   hl_mainnet_private_key, hl_mainnet_wallet_address
             FROM users WHERE user_id = ?
         """, (user_id,)).fetchone()
         
-        if row:
+        if not row:
             return {
-                "hl_private_key": row[0],
-                "hl_wallet_address": row[1],
-                "hl_vault_address": row[2],
-                "hl_testnet": bool(row[3]),
-                "hl_enabled": bool(row[4]) if row[4] is not None else False,
+                "hl_private_key": None,
+                "hl_wallet_address": None,
+                "hl_vault_address": None,
+                "hl_testnet": False,
+                "hl_enabled": False,
+                "hl_testnet_private_key": None,
+                "hl_testnet_wallet_address": None,
+                "hl_mainnet_private_key": None,
+                "hl_mainnet_wallet_address": None,
             }
+        
+        # Unpack all columns
+        (legacy_key, legacy_addr, vault_addr, is_testnet, is_enabled,
+         testnet_key, testnet_addr, mainnet_key, mainnet_addr) = row
+        
+        is_testnet = bool(is_testnet) if is_testnet is not None else False
+        is_enabled = bool(is_enabled) if is_enabled is not None else False
+        
+        # Determine which key to return as primary
+        if account_type == "testnet":
+            primary_key = testnet_key or legacy_key
+            primary_addr = testnet_addr or legacy_addr
+        elif account_type == "mainnet":
+            primary_key = mainnet_key or legacy_key
+            primary_addr = mainnet_addr or legacy_addr
+        elif is_testnet:
+            primary_key = testnet_key or legacy_key
+            primary_addr = testnet_addr or legacy_addr
+        else:
+            primary_key = mainnet_key or legacy_key
+            primary_addr = mainnet_addr or legacy_addr
+        
         return {
-            "hl_private_key": None,
-            "hl_wallet_address": None,
-            "hl_vault_address": None,
-            "hl_testnet": False,
-            "hl_enabled": False,
+            "hl_private_key": primary_key,
+            "hl_wallet_address": primary_addr,
+            "hl_vault_address": vault_addr,
+            "hl_testnet": is_testnet,
+            "hl_enabled": is_enabled,
+            # New fields for explicit access
+            "hl_testnet_private_key": testnet_key,
+            "hl_testnet_wallet_address": testnet_addr,
+            "hl_mainnet_private_key": mainnet_key,
+            "hl_mainnet_wallet_address": mainnet_addr,
         }
 
 
@@ -4092,8 +5208,13 @@ def set_exchange_type(user_id: int, exchange_type: str):
 def is_hl_enabled(user_id: int) -> bool:
     """Check if HyperLiquid is enabled and configured for user."""
     creds = get_hl_credentials(user_id)
-    # HL is enabled if user has private key AND hl_enabled flag is set
-    return bool(creds.get("hl_enabled") and creds.get("hl_private_key"))
+    # HL is enabled if user has ANY private key AND hl_enabled flag is set
+    has_any_key = (
+        creds.get("hl_testnet_private_key") or 
+        creds.get("hl_mainnet_private_key") or 
+        creds.get("hl_private_key")
+    )
+    return bool(creds.get("hl_enabled") and has_any_key)
 
 
 def set_hl_enabled(user_id: int, enabled: bool):
@@ -4105,21 +5226,49 @@ def set_hl_enabled(user_id: int, enabled: bool):
             (1 if enabled else 0, user_id)
         )
         conn.commit()
+    invalidate_user_cache(user_id)
 
 
-def clear_hl_credentials(user_id: int):
-    """Clear HyperLiquid credentials for user."""
+def clear_hl_credentials(user_id: int, account_type: str = None):
+    """
+    Clear HyperLiquid credentials for user.
+    
+    Args:
+        user_id: User ID
+        account_type: 'testnet', 'mainnet', or None (clear all)
+    """
     with get_conn() as conn:
-        conn.execute("""
-            UPDATE users SET
-                hl_private_key = NULL,
-                hl_wallet_address = NULL,
-                hl_vault_address = NULL,
-                hl_testnet = 0,
-                exchange_type = 'bybit'
-            WHERE user_id = ?
-        """, (user_id,))
+        if account_type == "testnet":
+            conn.execute("""
+                UPDATE users SET
+                    hl_testnet_private_key = NULL,
+                    hl_testnet_wallet_address = NULL
+                WHERE user_id = ?
+            """, (user_id,))
+        elif account_type == "mainnet":
+            conn.execute("""
+                UPDATE users SET
+                    hl_mainnet_private_key = NULL,
+                    hl_mainnet_wallet_address = NULL
+                WHERE user_id = ?
+            """, (user_id,))
+        else:
+            # Clear all HL credentials
+            conn.execute("""
+                UPDATE users SET
+                    hl_private_key = NULL,
+                    hl_wallet_address = NULL,
+                    hl_vault_address = NULL,
+                    hl_testnet = 0,
+                    hl_testnet_private_key = NULL,
+                    hl_testnet_wallet_address = NULL,
+                    hl_mainnet_private_key = NULL,
+                    hl_mainnet_wallet_address = NULL,
+                    exchange_type = 'bybit'
+                WHERE user_id = ?
+            """, (user_id,))
         conn.commit()
+    invalidate_user_cache(user_id)
 
 
 # =====================================

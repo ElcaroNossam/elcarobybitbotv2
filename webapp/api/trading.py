@@ -294,10 +294,24 @@ async def get_balance(
 async def get_positions(
     exchange: str = Query("bybit"),
     account_type: str = Query("demo"),
+    env: Optional[str] = Query(None, description="Unified env: 'paper' or 'live'. If provided, takes precedence over account_type"),
     user: dict = Depends(get_current_user)
 ) -> List[dict]:
-    """Get open positions for specified exchange."""
+    """Get open positions for specified exchange.
+    
+    Args:
+        exchange: 'bybit' or 'hyperliquid'
+        account_type: 'demo', 'real', 'testnet', 'mainnet' (legacy)
+        env: 'paper' or 'live' (unified Target model, takes precedence)
+    """
     user_id = user["user_id"]
+    
+    # Normalize env to account_type for backward compatibility
+    if env:
+        if env == "paper":
+            account_type = "demo" if exchange == "bybit" else "testnet"
+        elif env == "live":
+            account_type = "real" if exchange == "bybit" else "mainnet"
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -325,6 +339,12 @@ async def get_positions(
             await adapter.close()
             
             positions = result.get("result", {}).get("list", [])
+            
+            # Determine env based on hl_testnet
+            is_testnet = hl_creds.get("hl_testnet", False)
+            hl_env = "paper" if is_testnet else "live"
+            hl_account_type = "testnet" if is_testnet else "mainnet"
+            
             return [
                 {
                     "symbol": p.get("symbol"),
@@ -334,7 +354,9 @@ async def get_positions(
                     "mark_price": float(p.get("markPrice", 0)),
                     "pnl": float(p.get("unrealisedPnl", 0)),
                     "leverage": p.get("leverage"),
-                    "exchange": "hyperliquid"
+                    "exchange": "hyperliquid",
+                    "account_type": hl_account_type,
+                    "env": hl_env
                 }
                 for p in positions if float(p.get("size", 0)) != 0
             ]
@@ -354,9 +376,15 @@ async def get_positions(
             positions = data.get("result", {}).get("list", [])
             
             # Get active positions from our DB for strategy info
+            # Filter by account_type and exchange for accurate matching
             db_positions = {}
             try:
-                active_pos = db.get_active_positions(user_id)
+                active_pos = db.get_active_positions(
+                    user_id, 
+                    account_type=account_type, 
+                    exchange=exchange,
+                    env=env
+                )
                 for ap in active_pos:
                     sym = ap.get("symbol", "")
                     db_positions[sym] = ap
@@ -399,6 +427,7 @@ async def get_positions(
                     "margin": float(p.get("positionIM", 0)),
                     "exchange": "bybit",
                     "account_type": account_type,
+                    "env": env or ("paper" if account_type in ("demo", "testnet") else "live"),
                     # Additional info from our DB
                     "strategy": db_pos.get("strategy"),
                     "tp_price": tp_price,
@@ -505,10 +534,55 @@ async def close_position(
                 private_key=hl_creds["hl_private_key"],
                 testnet=hl_creds.get("hl_testnet", False)
             )
+            # Get position info before closing
+            pos_result = await adapter.fetch_positions()
+            positions = pos_result.get("result", {}).get("list", [])
+            pos_info = next((p for p in positions if p.get("symbol") == req.symbol), None)
+            
             result = await adapter.close_position(req.symbol)
             await adapter.close()
             
             if result.get("retCode") == 0:
+                # Sync: Log trade and remove position from DB
+                account_type = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+                
+                if pos_info:
+                    import time
+                    entry_price = float(pos_info.get("avgPrice", 0))
+                    exit_price = float(pos_info.get("markPrice", entry_price))
+                    size = float(pos_info.get("size", 0))
+                    side = pos_info.get("side", "Buy")
+                    
+                    pnl_abs = (exit_price - entry_price) * size * (1 if side == "Buy" else -1)
+                    pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side == "Buy" else -1) if entry_price > 0 else 0
+                    
+                    try:
+                        db.add_trade_log(
+                            user_id=user_id,
+                            signal_id=None,
+                            symbol=req.symbol,
+                            side=side,
+                            entry_price=entry_price,
+                            exit_price=exit_price,
+                            exit_reason="webapp_close",
+                            pnl=pnl_abs,
+                            pnl_pct=pnl_pct,
+                            signal_source="webapp",
+                            strategy="manual",
+                            account_type=account_type,
+                            exit_order_type="Market",
+                            exit_ts=int(time.time() * 1000),
+                        )
+                        logger.info(f"[{user_id}] WebApp HL: Trade logged for {req.symbol}")
+                    except Exception as log_err:
+                        logger.warning(f"[{user_id}] WebApp HL: Failed to log trade: {log_err}")
+                
+                try:
+                    db.remove_active_position(user_id, req.symbol, account_type=account_type)
+                    logger.info(f"[{user_id}] WebApp HL: Position removed from DB for {req.symbol}")
+                except Exception as rm_err:
+                    logger.warning(f"[{user_id}] WebApp HL: Failed to remove position: {rm_err}")
+                
                 return {"success": True, "message": f"Closed {req.symbol}"}
             return {"success": False, "error": result.get("retMsg")}
         except Exception as e:
@@ -537,6 +611,7 @@ async def close_position(
             close_side = "Sell" if pos.get("side") == "Buy" else "Buy"
             
             import uuid
+            import time
             result = await bybit_request(
                 user_id, "POST", "/v5/order/create",
                 body={
@@ -552,10 +627,57 @@ async def close_position(
                 account_type=req.account_type
             )
             
+            # Sync: Get position info from DB for trade logging
+            entry_price = float(pos.get("avgPrice", 0))
+            exit_price = float(pos.get("markPrice", entry_price))
+            side_for_log = pos.get("side", "Buy")
+            
+            # Get DB position for strategy info
+            db_pos = None
+            try:
+                db_positions = db.get_active_positions(user_id, account_type=req.account_type)
+                db_pos = next((p for p in db_positions if p.get("symbol") == req.symbol), None)
+            except Exception:
+                pass
+            
+            # Calculate PnL
+            pnl_abs = (exit_price - entry_price) * size * (1 if side_for_log == "Buy" else -1)
+            pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side_for_log == "Buy" else -1) if entry_price > 0 else 0
+            
+            # Log trade
+            try:
+                db.add_trade_log(
+                    user_id=user_id,
+                    signal_id=db_pos.get("signal_id") if db_pos else None,
+                    symbol=req.symbol,
+                    side=side_for_log,
+                    entry_price=entry_price,
+                    exit_price=exit_price,
+                    exit_reason="webapp_close",
+                    pnl=pnl_abs,
+                    pnl_pct=pnl_pct,
+                    signal_source="webapp",
+                    strategy=db_pos.get("strategy") if db_pos else "manual",
+                    account_type=req.account_type,
+                    exit_order_type="Market",
+                    exit_ts=int(time.time() * 1000),
+                )
+                logger.info(f"[{user_id}] WebApp: Trade logged for {req.symbol} close")
+            except Exception as log_err:
+                logger.warning(f"[{user_id}] WebApp: Failed to log trade: {log_err}")
+            
+            # Remove position from DB
+            try:
+                db.remove_active_position(user_id, req.symbol, account_type=req.account_type)
+                logger.info(f"[{user_id}] WebApp: Position removed from DB for {req.symbol}")
+            except Exception as rm_err:
+                logger.warning(f"[{user_id}] WebApp: Failed to remove position: {rm_err}")
+            
             return {
                 "success": True,
                 "message": f"Closed {req.symbol} position",
-                "order_id": result.get("result", {}).get("orderId")
+                "order_id": result.get("result", {}).get("orderId"),
+                "pnl": pnl_abs
             }
         except HTTPException:
             raise
@@ -570,6 +692,7 @@ async def close_all_positions(
 ):
     """Close all positions."""
     user_id = user["user_id"]
+    import time
     
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -582,6 +705,8 @@ async def close_all_positions(
                 testnet=hl_creds.get("hl_testnet", False)
             )
             
+            account_type = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+            
             # Get all positions
             positions_result = await adapter.fetch_positions()
             positions = positions_result.get("result", {}).get("list", [])
@@ -590,11 +715,48 @@ async def close_all_positions(
             for pos in positions:
                 symbol = pos.get("symbol")
                 if symbol:
+                    # Get position info before closing
+                    entry_price = float(pos.get("avgPrice", 0))
+                    exit_price = float(pos.get("markPrice", entry_price))
+                    size = float(pos.get("size", 0))
+                    side = pos.get("side", "Buy")
+                    
                     result = await adapter.close_position(symbol)
                     if result.get("retCode") == 0:
                         closed += 1
+                        
+                        # Log trade
+                        pnl_abs = (exit_price - entry_price) * size * (1 if side == "Buy" else -1)
+                        pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side == "Buy" else -1) if entry_price > 0 else 0
+                        
+                        try:
+                            db.add_trade_log(
+                                user_id=user_id,
+                                signal_id=None,
+                                symbol=symbol,
+                                side=side,
+                                entry_price=entry_price,
+                                exit_price=exit_price,
+                                exit_reason="webapp_close_all",
+                                pnl=pnl_abs,
+                                pnl_pct=pnl_pct,
+                                signal_source="webapp",
+                                strategy="manual",
+                                account_type=account_type,
+                                exit_order_type="Market",
+                                exit_ts=int(time.time() * 1000),
+                            )
+                        except Exception:
+                            pass
+                        
+                        # Remove from DB
+                        try:
+                            db.remove_active_position(user_id, symbol, account_type=account_type)
+                        except Exception:
+                            pass
             
             await adapter.close()
+            logger.info(f"[{user_id}] WebApp HL: Closed {closed} positions via close-all")
             return {"success": True, "closed": closed}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -610,9 +772,19 @@ async def close_all_positions(
                 account_type=req.account_type
             )
             
+            # Get DB positions for strategy info
+            db_positions = {}
+            try:
+                active_pos = db.get_active_positions(user_id, account_type=req.account_type)
+                for ap in active_pos:
+                    db_positions[ap.get("symbol", "")] = ap
+            except Exception:
+                pass
+            
             positions = pos_data.get("result", {}).get("list", [])
             closed = 0
             errors = []
+            total_pnl = 0
             
             for pos in positions:
                 size = float(pos.get("size", 0))
@@ -620,7 +792,10 @@ async def close_all_positions(
                     continue
                     
                 symbol = pos.get("symbol")
-                close_side = "Sell" if pos.get("side") == "Buy" else "Buy"
+                side = pos.get("side", "Buy")
+                close_side = "Sell" if side == "Buy" else "Buy"
+                entry_price = float(pos.get("avgPrice", 0))
+                exit_price = float(pos.get("markPrice", entry_price))
                 
                 try:
                     await bybit_request(
@@ -638,13 +813,50 @@ async def close_all_positions(
                         account_type=req.account_type
                     )
                     closed += 1
+                    
+                    # Calculate PnL
+                    pnl_abs = (exit_price - entry_price) * size * (1 if side == "Buy" else -1)
+                    pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side == "Buy" else -1) if entry_price > 0 else 0
+                    total_pnl += pnl_abs
+                    
+                    db_pos = db_positions.get(symbol, {})
+                    
+                    # Log trade
+                    try:
+                        db.add_trade_log(
+                            user_id=user_id,
+                            signal_id=db_pos.get("signal_id"),
+                            symbol=symbol,
+                            side=side,
+                            entry_price=entry_price,
+                            exit_price=exit_price,
+                            exit_reason="webapp_close_all",
+                            pnl=pnl_abs,
+                            pnl_pct=pnl_pct,
+                            signal_source="webapp",
+                            strategy=db_pos.get("strategy", "manual"),
+                            account_type=req.account_type,
+                            exit_order_type="Market",
+                            exit_ts=int(time.time() * 1000),
+                        )
+                    except Exception:
+                        pass
+                    
+                    # Remove from DB
+                    try:
+                        db.remove_active_position(user_id, symbol, account_type=req.account_type)
+                    except Exception:
+                        pass
+                        
                 except Exception as e:
                     errors.append(f"{symbol}: {str(e)}")
             
+            logger.info(f"[{user_id}] WebApp: Closed {closed} positions via close-all, PnL: {total_pnl:.2f}")
             return {
                 "success": closed > 0 or len(positions) == 0,
                 "closed": closed,
                 "total": len([p for p in positions if float(p.get("size", 0)) > 0]),
+                "total_pnl": total_pnl,
                 "errors": errors if errors else None
             }
         except Exception as e:
@@ -724,7 +936,7 @@ async def get_trades(
     limit: int = Query(20, ge=1, le=100),
     user: dict = Depends(get_current_user)
 ) -> dict:
-    """Get recent trades history."""
+    """Get recent trades history from trade_logs table."""
     user_id = user["user_id"]
     import sqlite3
     
@@ -733,39 +945,23 @@ async def get_trades(
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         
-        # Get trades from trades table if exists
+        # P0.9: Use trade_logs table (the correct one)
         cur.execute("""
-            SELECT name FROM sqlite_master WHERE type='table' AND name='trades'
+            SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'
         """)
         if not cur.fetchone():
-            # Create trades table if not exists
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS trades (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    symbol TEXT,
-                    side TEXT,
-                    entry_price REAL,
-                    exit_price REAL,
-                    size REAL,
-                    pnl REAL,
-                    pnl_percent REAL,
-                    exchange TEXT DEFAULT 'bybit',
-                    strategy TEXT,
-                    created_at INTEGER,
-                    closed_at INTEGER
-                )
-            """)
-            conn.commit()
             conn.close()
             return {"trades": [], "total": 0}
         
+        # Query trade_logs with exchange filter (account_type as proxy for exchange)
         cur.execute("""
-            SELECT * FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all')
-            ORDER BY created_at DESC 
+            SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                   ts, strategy, account_type, exit_reason
+            FROM trade_logs 
+            WHERE user_id = ?
+            ORDER BY ts DESC 
             LIMIT ?
-        """, (user_id, exchange, exchange, limit))
+        """, (user_id, limit))
         
         trades = []
         for row in cur.fetchall():
@@ -775,20 +971,21 @@ async def get_trades(
                 "side": row["side"],
                 "entry_price": row["entry_price"],
                 "exit_price": row["exit_price"],
-                "size": row["size"],
                 "pnl": row["pnl"],
-                "pnl_percent": row["pnl_percent"],
-                "exchange": row["exchange"],
+                "pnl_percent": row["pnl_pct"],
+                "exchange": exchange,
                 "strategy": row["strategy"],
-                "created_at": row["created_at"],
-                "closed_at": row["closed_at"]
+                "created_at": row["ts"],
+                "closed_at": row["ts"],
+                "account_type": row["account_type"],
+                "exit_reason": row["exit_reason"],
             })
         
         # Get total count
         cur.execute("""
-            SELECT COUNT(*) FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all')
-        """, (user_id, exchange, exchange))
+            SELECT COUNT(*) FROM trade_logs 
+            WHERE user_id = ?
+        """, (user_id,))
         total = cur.fetchone()[0]
         
         conn.close()
@@ -805,7 +1002,7 @@ async def get_trading_stats(
     period: str = Query("all"),  # all, day, week, month
     user: dict = Depends(get_current_user)
 ) -> dict:
-    """Get trading statistics."""
+    """Get trading statistics from trade_logs table."""
     user_id = user["user_id"]
     import sqlite3
     import time
@@ -814,18 +1011,18 @@ async def get_trading_stats(
         conn = sqlite3.connect(db.DB_FILE)
         cur = conn.cursor()
         
-        # Period filter
+        # Period filter - trade_logs uses ts as DATETIME, convert to timestamp comparison
         now = int(time.time())
         period_filter = ""
         if period == "day":
-            period_filter = f" AND created_at >= {now - 86400}"
+            period_filter = f" AND strftime('%s', ts) >= {now - 86400}"
         elif period == "week":
-            period_filter = f" AND created_at >= {now - 604800}"
+            period_filter = f" AND strftime('%s', ts) >= {now - 604800}"
         elif period == "month":
-            period_filter = f" AND created_at >= {now - 2592000}"
+            period_filter = f" AND strftime('%s', ts) >= {now - 2592000}"
         
-        # Check if trades table exists
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='trades'")
+        # P0.9: Use trade_logs table (the correct one)
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'")
         if not cur.fetchone():
             conn.close()
             return {
@@ -841,9 +1038,9 @@ async def get_trading_stats(
         
         # Total trades
         cur.execute(f"""
-            SELECT COUNT(*) FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all') {period_filter}
-        """, (user_id, exchange, exchange))
+            SELECT COUNT(*) FROM trade_logs 
+            WHERE user_id = ? {period_filter}
+        """, (user_id,))
         total_trades = cur.fetchone()[0]
         
         if total_trades == 0:
@@ -861,22 +1058,22 @@ async def get_trading_stats(
         
         # Win/loss counts
         cur.execute(f"""
-            SELECT COUNT(*) FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all') AND pnl > 0 {period_filter}
-        """, (user_id, exchange, exchange))
+            SELECT COUNT(*) FROM trade_logs 
+            WHERE user_id = ? AND pnl > 0 {period_filter}
+        """, (user_id,))
         winning = cur.fetchone()[0]
         
         cur.execute(f"""
-            SELECT COUNT(*) FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all') AND pnl < 0 {period_filter}
-        """, (user_id, exchange, exchange))
+            SELECT COUNT(*) FROM trade_logs 
+            WHERE user_id = ? AND pnl < 0 {period_filter}
+        """, (user_id,))
         losing = cur.fetchone()[0]
         
         # PnL stats
         cur.execute(f"""
-            SELECT SUM(pnl), AVG(pnl), MAX(pnl), MIN(pnl) FROM trades 
-            WHERE user_id = ? AND (exchange = ? OR ? = 'all') {period_filter}
-        """, (user_id, exchange, exchange))
+            SELECT SUM(pnl), AVG(pnl), MAX(pnl), MIN(pnl) FROM trade_logs 
+            WHERE user_id = ? {period_filter}
+        """, (user_id,))
         row = cur.fetchone()
         total_pnl = row[0] or 0
         avg_pnl = row[1] or 0
@@ -982,6 +1179,47 @@ async def _place_order_bybit(user_id: int, req: PlaceOrderRequest, side: str, or
         )
         
         order_id = result.get("result", {}).get("orderId", "")
+        
+        # P0.5: Save position to database after successful order
+        try:
+            # Calculate SL/TP prices if percentages provided
+            sl_price = None
+            tp_price = None
+            if req.stop_loss:
+                sl_price = req.stop_loss
+            if req.take_profit:
+                tp_price = req.take_profit
+            
+            # Get current price for entry estimation (for market orders)
+            entry_price = req.price
+            if not entry_price:
+                # Try to get from a quick price check (if available in result)
+                entry_price = 0  # Will be updated by monitor
+            
+            db.add_active_position(
+                user_id=user_id,
+                symbol=req.symbol,
+                side=side,
+                entry_price=entry_price,
+                size=req.size,
+                timeframe="24h",
+                signal_id=None,
+                strategy=req.strategy or "manual",
+                account_type=req.account_type,
+                # P0.3: New fields
+                source="webapp",
+                opened_by="webapp",
+                exchange="bybit",
+                sl_price=sl_price,
+                tp_price=tp_price,
+                leverage=req.leverage,
+                client_order_id=order_link_id,
+                exchange_order_id=order_id,
+            )
+            logger.info(f"[{user_id}] WebApp: Position saved for {req.symbol} {side}")
+        except Exception as pos_err:
+            logger.warning(f"[{user_id}] WebApp: Failed to save position: {pos_err}")
+        
         return {
             "success": True,
             "order_id": order_id,
@@ -1028,15 +1266,43 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
         await adapter.close()
         
         if result.get("retCode") == 0:
+            order_id = result.get("result", {}).get("orderId", "")
+            account_type = "testnet" if testnet else "mainnet"
+            
+            # P0.5: Save position to database after successful order
+            try:
+                db.add_active_position(
+                    user_id=user_id,
+                    symbol=req.symbol,
+                    side=side,
+                    entry_price=req.price or 0,  # Will be updated by monitor
+                    size=req.size,
+                    timeframe="24h",
+                    signal_id=None,
+                    strategy=req.strategy or "manual",
+                    account_type=account_type,
+                    # P0.3: New fields
+                    source="webapp",
+                    opened_by="webapp",
+                    exchange="hyperliquid",
+                    sl_price=req.stop_loss,
+                    tp_price=req.take_profit,
+                    leverage=req.leverage,
+                    exchange_order_id=order_id,
+                )
+                logger.info(f"[{user_id}] WebApp HL: Position saved for {req.symbol} {side}")
+            except Exception as pos_err:
+                logger.warning(f"[{user_id}] WebApp HL: Failed to save position: {pos_err}")
+            
             return {
                 "success": True,
-                "order_id": result.get("result", {}).get("orderId", ""),
+                "order_id": order_id,
                 "exchange": "hyperliquid",
-                "account_type": "testnet" if testnet else "mainnet",
+                "account_type": account_type,
                 "symbol": req.symbol,
                 "side": side,
                 "size": req.size,
-                "message": f"Order placed on HyperLiquid ({'testnet' if testnet else 'mainnet'})"
+                "message": f"Order placed on HyperLiquid ({account_type})"
             }
         else:
             return {"success": False, "error": result.get("retMsg"), "exchange": "hyperliquid"}
@@ -1202,6 +1468,17 @@ async def modify_position_tpsl(
             )
             await adapter.close()
             
+            # P0.8: Set manual_sltp_override in DB so bot won't overwrite
+            try:
+                account_type = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+                db.set_manual_sltp_override(
+                    user_id, req.symbol, account_type, 
+                    sl_price=req.stop_loss, tp_price=req.take_profit
+                )
+                logger.info(f"[{user_id}] WebApp: Set manual_sltp_override for {req.symbol}")
+            except Exception as e:
+                logger.warning(f"[{user_id}] WebApp: Failed to set manual override: {e}")
+            
             return {"success": True, "message": "TP/SL updated", "result": result}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -1228,6 +1505,16 @@ async def modify_position_tpsl(
                 body=body,
                 account_type=req.account_type
             )
+            
+            # P0.8: Set manual_sltp_override in DB so bot won't overwrite
+            try:
+                db.set_manual_sltp_override(
+                    user_id, req.symbol, req.account_type, 
+                    sl_price=req.stop_loss, tp_price=req.take_profit
+                )
+                logger.info(f"[{user_id}] WebApp: Set manual_sltp_override for {req.symbol}")
+            except Exception as e:
+                logger.warning(f"[{user_id}] WebApp: Failed to set manual override: {e}")
             
             return {
                 "success": True,
