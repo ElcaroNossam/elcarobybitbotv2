@@ -11254,12 +11254,19 @@ async def monitor_positions_loop(app: Application):
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
 
+                    # Debug: ALWAYS log cleanup point for user 511692487
+                    if uid == 511692487:
+                        logger.info(f"[PRE-CLEANUP] uid={uid} acc={current_account_type} reached cleanup block")
+
                     active = get_active_positions(uid, account_type=current_account_type)
                     
                     # Debug log for position cleanup
-                    if active and uid == 511692487:
+                    if uid == 511692487:
                         db_syms = {ap["symbol"] for ap in active}
-                        logger.info(f"[CLEANUP-DEBUG] uid={uid} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
+                        logger.info(f"[CLEANUP-DEBUG] uid={uid} acc={current_account_type} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
+                    
+                    for ap in active:
+                        sym = ap["symbol"]
                     
                     for ap in active:
                         sym = ap["symbol"]
