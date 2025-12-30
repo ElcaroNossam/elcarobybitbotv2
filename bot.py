@@ -10910,6 +10910,10 @@ async def monitor_positions_loop(app: Application):
                         account_types_to_check = [tgt.account_type for tgt in user_targets]
                         user_trading_mode = account_types_to_check[0] if account_types_to_check else "demo"
                     
+                    # Debug: log for specific user
+                    if uid == 511692487:
+                        logger.info(f"[MONITOR-DEBUG] uid={uid} account_types_to_check={account_types_to_check}")
+                    
                     # Process EACH account type for this user (supports trading_mode="both")
                     for current_account_type in account_types_to_check:
                         # Get previous symbols to avoid duplicate notifications
