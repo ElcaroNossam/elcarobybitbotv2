@@ -11246,6 +11246,12 @@ async def monitor_positions_loop(app: Application):
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
 
                     active = get_active_positions(uid, account_type=current_account_type)
+                    
+                    # Debug log for position cleanup
+                    if active and uid == 511692487:
+                        db_syms = {ap["symbol"] for ap in active}
+                        logger.info(f"[CLEANUP-DEBUG] uid={uid} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
+                    
                     for ap in active:
                         sym = ap["symbol"]
                         ap_account_type = ap.get("account_type", "demo")
