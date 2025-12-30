@@ -2250,17 +2250,14 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         net_emoji = "🧪" if is_testnet else "🌐"
         
         keyboard = [
-            # ─── Header: Current Exchange + Quick Switch ───
-            [ f"🔷 HL {net_emoji}", "🔄 Bybit" ],
-            # ─── Core Trading ───
-            [ "💰 Balance", "📊 Positions" ],
-            [ "📈 Orders", "📋 History" ],
-            # ─── Quick Actions ───
-            [ "🎯 Trade", "❌ Close All" ],
-            # ─── Settings Row ───
-            [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
-            # ─── Premium ───
-            [ t.get('button_subscribe', '💎 Premium') ],
+            # ─── Row 1: Core Trading Actions (most important) ───
+            [ "💰 Balance", "📊 Positions", "🎯 Trade" ],
+            # ─── Row 2: Orders & History ───
+            [ "📈 Orders", "📋 History", "❌ Close All" ],
+            # ─── Row 3: Settings & Premium ───
+            [ "⚙️ Settings", t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
+            # ─── Row 4: Exchange Switch & API Keys (bottom) ───
+            [ f"🔷 HL {net_emoji}", "🔄 Bybit", "🔑 API Keys" ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
@@ -2271,19 +2268,16 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         mode_emoji = "🎮" if trading_mode == "demo" else ("💵" if trading_mode == "real" else "🔀")
         
         keyboard = [
-            # ─── Header: Current Exchange + Quick Switch ───
-            [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid" ],
-            # ─── Core Trading ───
-            [ "💰 Balance", "📊 Positions" ],
-            [ "📈 Orders", "📋 History" ],
-            # ─── Quick Actions ───  
-            [ "🎯 Trade", "📉 Market" ],
-            # ─── Strategies & Coins (Bybit-specific) ───
-            [ "🤖 Strategies", t['button_coins'] ],
-            # ─── Settings Row ───
-            [ "⚙️ Settings", "🔑 API Keys", t['button_lang'] ],
-            # ─── Premium ───
-            [ t.get('button_subscribe', '💎 Premium') ],
+            # ─── Row 1: Core Trading Actions (most important) ───
+            [ "💰 Balance", "📊 Positions", "🎯 Trade" ],
+            # ─── Row 2: Orders, History & Market ───
+            [ "📈 Orders", "📋 History", "📉 Market" ],
+            # ─── Row 3: Strategies & Settings ───
+            [ "🤖 Strategies", t['button_coins'], "⚙️ Settings" ],
+            # ─── Row 4: Premium & Language ───
+            [ t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
+            # ─── Row 5: Exchange Switch & API Keys (bottom) ───
+            [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid", "🔑 API Keys" ],
         ]
     
     # Add admin row if user is admin
