@@ -11416,7 +11416,7 @@ async def monitor_positions_loop(app: Application):
                                 if kwargs:
                                     try:
                                         await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                        logger.info(f"{sym}: Fixed init → {kwargs}")
+                                        logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position already closed, skipping SL/TP update")
@@ -11463,7 +11463,7 @@ async def monitor_positions_loop(app: Application):
                                 if should_update:
                                     try:
                                         await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
-                                        logger.info(f"{sym}: ATR-initial SL set/updated to {sl0}")
+                                        logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
                                             logger.debug(f"{sym}: Position already closed")
