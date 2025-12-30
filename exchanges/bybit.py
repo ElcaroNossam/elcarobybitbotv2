@@ -177,6 +177,14 @@ class BybitExchange(BaseExchange):
                     async with self._session.post(url, data=body, headers=headers) as resp:
                         data = await resp.json()
                 
+                # Handle None response
+                if data is None:
+                    logger.warning(f"Bybit API returned None for {endpoint}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(1)
+                        continue
+                    return {}
+                
                 # Check for API errors
                 ret_code = data.get("retCode", 0)
                 if ret_code != 0:
