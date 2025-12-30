@@ -11254,6 +11254,9 @@ async def monitor_positions_loop(app: Application):
                                                 t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
                                             )
                                 else:
+                                    # Debug
+                                    if uid == 511692487:
+                                        logger.info(f"[ATR-ELSE] uid={uid} acc={current_account_type} entering ATR else block for sym={sym}")
                                     try:
                                         result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
                                         if result == "deep_loss":
