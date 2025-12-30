@@ -11277,6 +11277,10 @@ async def monitor_positions_loop(app: Application):
                                     if should_notify:
                                         _sl_notified[sl_notify_key] = now
                                         await bot.send_message(uid, t['sl_auto_set'].format(price=sl_price))
+                                    
+                                    # Debug
+                                    if uid == 511692487:
+                                        logger.info(f"[ATR-DONE] uid={uid} acc={current_account_type} ATR block completed")
                             except Exception as e:
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
