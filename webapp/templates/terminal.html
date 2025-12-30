@@ -284,6 +284,53 @@
         .tp-sl-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .tp-sl-inputs .form-input { padding: 10px 12px; font-size: 0.85rem; }
         
+        /* Strategy & TP/SL Preset Buttons */
+        .strategy-btn { 
+            padding: 6px 10px; 
+            font-size: 0.7rem; 
+            font-weight: 500; 
+            background: var(--bg-primary); 
+            border: 1px solid var(--border); 
+            border-radius: 6px; 
+            color: var(--text-secondary); 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .strategy-btn:hover { 
+            border-color: var(--accent); 
+            color: var(--accent); 
+            background: rgba(99, 102, 241, 0.1); 
+        }
+        .strategy-btn.active { 
+            border-color: var(--accent); 
+            color: white; 
+            background: var(--accent); 
+        }
+        
+        .tpsl-preset-btn { 
+            flex: 1;
+            padding: 8px; 
+            font-size: 0.7rem; 
+            font-weight: 500; 
+            background: var(--bg-primary); 
+            border: 1px solid var(--border); 
+            border-radius: 6px; 
+            color: var(--text-secondary); 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .tpsl-preset-btn:hover { 
+            border-color: var(--accent); 
+            color: var(--text-primary); 
+        }
+        .tpsl-preset-btn.conservative:hover { border-color: var(--green); color: var(--green); }
+        .tpsl-preset-btn.normal:hover { border-color: var(--accent); color: var(--accent); }
+        .tpsl-preset-btn.aggressive:hover { border-color: var(--red); color: var(--red); }
+        
+        .tpsl-preset-btn.active.conservative { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+        .tpsl-preset-btn.active.normal { background: rgba(99, 102, 241, 0.2); border-color: var(--accent); color: var(--accent); }
+        .tpsl-preset-btn.active.aggressive { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+
         .order-summary { background: var(--bg-card); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
         .summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.8rem; }
         .summary-row .label { color: var(--text-muted); }
@@ -332,6 +379,37 @@
         .action-btn.close:hover { background: var(--red); color: white; }
         .action-btn.edit { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
         .action-btn.edit:hover { border-color: var(--accent); color: var(--accent); }
+        
+        /* Strategy & ATR badges in positions */
+        .strategy-badge { 
+            font-size: 0.8rem; 
+            margin-left: 4px; 
+            vertical-align: middle;
+        }
+        .atr-badge { 
+            font-size: 0.75rem; 
+            margin-left: 2px;
+            opacity: 0.7;
+        }
+        .atr-badge.active { 
+            opacity: 1;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* TP/SL mini display in positions */
+        .tpsl-mini {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .tpsl-mini .tp { color: var(--green); }
+        .tpsl-mini .sl { color: var(--red); }
         
         .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
         .empty-state i { font-size: 2rem; margin-bottom: 10px; opacity: 0.5; }
@@ -900,6 +978,74 @@
                                 <span class="form-suffix" id="slSuffix">USDT</span>
                             </div>
                         </div>
+                        
+                        <!-- Strategy Selector & Presets -->
+                        <div class="strategy-tpsl-section" style="grid-column: 1/-1; margin-top: 8px;">
+                            <div class="form-label" style="font-size: 0.7rem; margin-bottom: 4px;">
+                                <i class="fas fa-robot" style="color: var(--accent);"></i> Apply from Strategy
+                            </div>
+                            <div class="strategy-selector-row" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                <button class="strategy-btn" data-strategy="global" onclick="applyStrategySettings('global')" title="Global Settings">
+                                    <i class="fas fa-globe"></i> Global
+                                </button>
+                                <button class="strategy-btn" data-strategy="scryptomera" onclick="applyStrategySettings('scryptomera')" title="Scryptomera">
+                                    📰 Scrypto
+                                </button>
+                                <button class="strategy-btn" data-strategy="scalper" onclick="applyStrategySettings('scalper')" title="Scalper">
+                                    ⚡ Scalper
+                                </button>
+                                <button class="strategy-btn" data-strategy="elcaro" onclick="applyStrategySettings('elcaro')" title="ElCaro">
+                                    🤖 ElCaro
+                                </button>
+                                <button class="strategy-btn" data-strategy="wyckoff" onclick="applyStrategySettings('wyckoff')" title="Wyckoff">
+                                    📊 Wyckoff
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick TP/SL Presets -->
+                        <div style="grid-column: 1/-1; margin-top: 8px;">
+                            <div class="form-label" style="font-size: 0.7rem; margin-bottom: 4px;">Quick Presets</div>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="tpsl-preset-btn conservative" onclick="setTPSLPreset(5, 2)" title="TP 5%, SL 2%">
+                                    🛡️ Safe
+                                </button>
+                                <button class="tpsl-preset-btn normal" onclick="setTPSLPreset(8, 3)" title="TP 8%, SL 3%">
+                                    ⚖️ Normal
+                                </button>
+                                <button class="tpsl-preset-btn aggressive" onclick="setTPSLPreset(15, 5)" title="TP 15%, SL 5%">
+                                    🔥 Agro
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- ATR Toggle -->
+                        <div style="grid-column: 1/-1; margin-top: 8px;">
+                            <label class="order-option" style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" id="useAtrToggle" onchange="toggleATRMode()">
+                                <span style="font-size: 0.75rem;">
+                                    <i class="fas fa-chart-line" style="color: var(--accent);"></i>
+                                    Use ATR-based trailing SL (dynamic)
+                                </span>
+                            </label>
+                            <div id="atrSettings" style="display: none; margin-top: 6px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <div class="form-label" style="font-size: 0.65rem;">ATR Periods</div>
+                                        <input type="number" class="form-input" id="atrPeriods" value="14" min="5" max="50" style="font-size: 0.75rem; padding: 4px 6px;">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <div class="form-label" style="font-size: 0.65rem;">ATR Mult</div>
+                                        <input type="number" class="form-input" id="atrMultiplier" value="1.5" min="0.5" max="5" step="0.1" style="font-size: 0.75rem; padding: 4px 6px;">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <div class="form-label" style="font-size: 0.65rem;">Trigger %</div>
+                                        <input type="number" class="form-input" id="atrTrigger" value="2" min="0.5" max="10" step="0.5" style="font-size: 0.75rem; padding: 4px 6px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div style="grid-column: 1/-1; display: flex; gap: 4px; margin-top: 4px;">
                             <button class="percent-btn" style="flex:1; font-size: 0.65rem;" onclick="setTPPercent(2)">2%</button>
                             <button class="percent-btn" style="flex:1; font-size: 0.65rem;" onclick="setTPPercent(5)">5%</button>
@@ -1089,13 +1235,14 @@
                                 <th>Entry Price</th>
                                 <th>Mark Price</th>
                                 <th>Liq. Price</th>
+                                <th>TP/SL</th>
                                 <th>Margin</th>
                                 <th>PnL (ROE%)</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="positionsBody">
-                            <tr><td colspan="9" class="empty-state"><i class="fas fa-inbox"></i><p>No open positions</p></td></tr>
+                            <tr><td colspan="10" class="empty-state"><i class="fas fa-inbox"></i><p>No open positions</p></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1516,6 +1663,222 @@
             calcTPSLRoe();
         }
         
+        // ============================================================
+        // STRATEGY SETTINGS & TP/SL PRESETS (NEW)
+        // ============================================================
+        
+        // Cache for loaded strategy settings
+        let strategySettings = null;
+        let currentStrategy = 'global';
+        
+        // Load strategy settings from API
+        async function loadStrategySettings() {
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) return;
+                
+                const params = new URLSearchParams({
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                });
+                
+                const res = await fetch(`/api/trading/strategy-settings?${params}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (res.ok) {
+                    strategySettings = await res.json();
+                    console.log('Loaded strategy settings:', strategySettings);
+                    
+                    // Update ATR toggle state from global settings
+                    const useAtr = strategySettings.global?.use_atr || false;
+                    document.getElementById('useAtrToggle').checked = useAtr;
+                    if (useAtr) {
+                        document.getElementById('atrSettings').style.display = 'block';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load strategy settings:', e);
+            }
+        }
+        
+        // Apply settings from a specific strategy
+        function applyStrategySettings(strategy) {
+            if (!strategySettings) {
+                showNotification('Settings not loaded yet', 'warning');
+                loadStrategySettings();
+                return;
+            }
+            
+            currentStrategy = strategy;
+            
+            // Update active button
+            document.querySelectorAll('.strategy-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.strategy === strategy);
+            });
+            
+            let settings;
+            if (strategy === 'global') {
+                settings = strategySettings.global;
+            } else {
+                settings = strategySettings.strategies?.[strategy];
+            }
+            
+            if (!settings) {
+                showNotification(`No settings found for ${strategy}`, 'warning');
+                return;
+            }
+            
+            // Enable TP/SL if not already enabled
+            if (!state.tpslEnabled) {
+                toggleTPSL();
+            }
+            
+            // Set mode to percent for strategy-based TP/SL
+            setTPSLMode('percent');
+            
+            // Apply TP/SL from strategy
+            const tpPct = settings.tp_percent || 8;
+            const slPct = settings.sl_percent || 3;
+            
+            document.getElementById('tpInput').value = tpPct;
+            document.getElementById('slInput').value = slPct;
+            
+            // Apply leverage if available
+            if (settings.leverage) {
+                setLeverage(settings.leverage);
+            }
+            
+            // Apply ATR settings if use_atr is enabled
+            const useAtr = settings.use_atr || false;
+            document.getElementById('useAtrToggle').checked = useAtr;
+            toggleATRMode(false); // Don't notify
+            
+            if (useAtr) {
+                document.getElementById('atrPeriods').value = settings.atr_periods || 14;
+                document.getElementById('atrMultiplier').value = settings.atr_multiplier_sl || 1.5;
+                document.getElementById('atrTrigger').value = settings.atr_trigger_pct || 2;
+            }
+            
+            calcTPSLRoe();
+            updateOrderSummary();
+            
+            const strategyLabel = strategy === 'global' ? 'Global' : strategy.charAt(0).toUpperCase() + strategy.slice(1);
+            showNotification(`Applied ${strategyLabel}: TP ${tpPct}%, SL ${slPct}%`, 'success');
+        }
+        
+        // Set TP/SL from preset
+        function setTPSLPreset(tpPct, slPct) {
+            // Enable TP/SL if not already enabled
+            if (!state.tpslEnabled) {
+                toggleTPSL();
+            }
+            
+            // Set mode to percent
+            setTPSLMode('percent');
+            
+            document.getElementById('tpInput').value = tpPct;
+            document.getElementById('slInput').value = slPct;
+            
+            // Update active preset button
+            document.querySelectorAll('.tpsl-preset-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mark active based on values
+            if (tpPct === 5 && slPct === 2) {
+                document.querySelector('.tpsl-preset-btn.conservative')?.classList.add('active');
+            } else if (tpPct === 8 && slPct === 3) {
+                document.querySelector('.tpsl-preset-btn.normal')?.classList.add('active');
+            } else if (tpPct === 15 && slPct === 5) {
+                document.querySelector('.tpsl-preset-btn.aggressive')?.classList.add('active');
+            }
+            
+            // Clear strategy selection
+            document.querySelectorAll('.strategy-btn').forEach(btn => btn.classList.remove('active'));
+            
+            calcTPSLRoe();
+            updateOrderSummary();
+        }
+        
+        // Toggle ATR mode
+        function toggleATRMode(notify = true) {
+            const useAtr = document.getElementById('useAtrToggle').checked;
+            document.getElementById('atrSettings').style.display = useAtr ? 'block' : 'none';
+            
+            state.useAtr = useAtr;
+            
+            if (useAtr && notify) {
+                showNotification('ATR-based trailing SL enabled. SL will be dynamic.', 'info');
+            }
+        }
+        
+        // Save strategy settings to server
+        async function saveCurrentStrategySettings() {
+            if (currentStrategy === 'global') {
+                showNotification('Cannot save global settings from terminal', 'warning');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('elcaro_token');
+                if (!token) return;
+                
+                const tpPct = parseFloat(document.getElementById('tpInput').value) || 8;
+                const slPct = parseFloat(document.getElementById('slInput').value) || 3;
+                const useAtr = document.getElementById('useAtrToggle').checked;
+                
+                const body = {
+                    strategy: currentStrategy,
+                    tp_percent: tpPct,
+                    sl_percent: slPct,
+                    leverage: state.leverage,
+                    use_atr: useAtr,
+                    exchange: state.exchange || 'bybit',
+                    account_type: state.accountType || 'demo'
+                };
+                
+                if (useAtr) {
+                    body.atr_periods = parseInt(document.getElementById('atrPeriods').value) || 14;
+                    body.atr_multiplier_sl = parseFloat(document.getElementById('atrMultiplier').value) || 1.5;
+                    body.atr_trigger_pct = parseFloat(document.getElementById('atrTrigger').value) || 2;
+                }
+                
+                const res = await fetch('/api/trading/strategy-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(`Saved ${currentStrategy} settings`, 'success');
+                    // Reload settings
+                    loadStrategySettings();
+                } else {
+                    showNotification(data.error || 'Failed to save', 'error');
+                }
+            } catch (e) {
+                showNotification('Error saving settings', 'error');
+            }
+        }
+        
+        // Get ATR settings for order placement
+        function getATRSettingsForOrder() {
+            const useAtr = document.getElementById('useAtrToggle')?.checked || false;
+            if (!useAtr) return null;
+            
+            return {
+                use_atr: true,
+                atr_periods: parseInt(document.getElementById('atrPeriods')?.value) || 14,
+                atr_multiplier_sl: parseFloat(document.getElementById('atrMultiplier')?.value) || 1.5,
+                atr_trigger_pct: parseFloat(document.getElementById('atrTrigger')?.value) || 2.0
+            };
+        }
+        
+        // ============================================================
+        
         function setSide(side) {
             state.side = side;
             document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
@@ -1721,7 +2084,7 @@
                 
                 const token = localStorage.getItem('elcaro_token');
                 if (!token) {
-                    showTableError('positionsBody', 9, 'Please log in to view positions');
+                    showTableError('positionsBody', 10, 'Please log in to view positions');
                     return;
                 }
                 
@@ -1745,7 +2108,7 @@
             } catch (e) {
                 console.error('loadPositions error:', e);
                 state.errors.positions = e.message;
-                showTableError('positionsBody', 9, e.message);
+                showTableError('positionsBody', 10, e.message);
             } finally {
                 state.loading.positions = false;
                 setLoading(posTable, false);
@@ -1836,19 +2199,51 @@
             document.getElementById('positionsCount').textContent = positions.length;
             
             if (!positions.length) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><i class="fas fa-inbox"></i><p>No open positions</p></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><i class="fas fa-inbox"></i><p>No open positions</p></td></tr>';
                 return;
             }
             
             tbody.innerHTML = positions.map(p => {
                 const pnlClass = p.pnl >= 0 ? 'positive' : 'negative';
+                
+                // Strategy badge
+                let strategyBadge = '';
+                if (p.strategy) {
+                    const strategyIcons = {
+                        'scryptomera': '📰',
+                        'scalper': '⚡',
+                        'elcaro': '🤖',
+                        'wyckoff': '📊',
+                        'manual': '👤'
+                    };
+                    const icon = strategyIcons[p.strategy] || '📌';
+                    strategyBadge = `<span class="strategy-badge" title="${p.strategy}">${icon}</span>`;
+                }
+                
+                // TP/SL info
+                let tpslInfo = '--';
+                if (p.tp_price || p.sl_price) {
+                    const tpStr = p.tp_price ? `TP: $${p.tp_price.toLocaleString()}` : '';
+                    const slStr = p.sl_price ? `SL: $${p.sl_price.toLocaleString()}` : '';
+                    tpslInfo = `<div class="tpsl-mini">${tpStr ? `<span class="tp">${tpStr}</span>` : ''}${slStr ? `<span class="sl">${slStr}</span>` : ''}</div>`;
+                }
+                
+                // ATR indicator
+                let atrIndicator = '';
+                if (p.use_atr) {
+                    atrIndicator = p.atr_activated 
+                        ? `<span class="atr-badge active" title="ATR Trailing Active">📈</span>` 
+                        : `<span class="atr-badge" title="ATR Trailing (pending activation)">📉</span>`;
+                }
+                
                 return `<tr>
-                    <td><strong>${p.symbol}</strong></td>
+                    <td><strong>${p.symbol}</strong> ${strategyBadge} ${atrIndicator}</td>
                     <td><span class="position-side ${p.side}">${p.side.toUpperCase()}</span></td>
                     <td style="font-family: var(--font-mono);">${p.size}</td>
                     <td style="font-family: var(--font-mono);">$${p.entry_price.toLocaleString()}</td>
                     <td style="font-family: var(--font-mono);">$${p.mark_price.toLocaleString()}</td>
                     <td style="font-family: var(--font-mono); color: var(--red);">$${p.liq_price?.toLocaleString() || '--'}</td>
+                    <td>${tpslInfo}</td>
                     <td style="font-family: var(--font-mono);">$${p.margin?.toLocaleString() || '--'}</td>
                     <td class="pnl ${pnlClass}" style="font-family: var(--font-mono);">${p.pnl >= 0 ? '+' : ''}$${p.pnl.toFixed(2)} (${p.roe >= 0 ? '+' : ''}${p.roe?.toFixed(2) || 0}%)</td>
                     <td>
@@ -2016,7 +2411,13 @@
                 account_type: state.accountType || 'demo',
                 reduceOnly: document.getElementById('reduceOnly')?.checked || false,
                 postOnly: document.getElementById('postOnly')?.checked || false,
-                timeInForce: document.getElementById('tifSelect')?.value || 'GTC'
+                timeInForce: document.getElementById('tifSelect')?.value || 'GTC',
+                // NEW: Strategy and ATR settings
+                strategy: currentStrategy !== 'global' ? currentStrategy : null,
+                use_atr: document.getElementById('useAtrToggle')?.checked || false,
+                atr_periods: parseInt(document.getElementById('atrPeriods')?.value) || 14,
+                atr_multiplier_sl: parseFloat(document.getElementById('atrMultiplier')?.value) || 1.5,
+                atr_trigger_pct: parseFloat(document.getElementById('atrTrigger')?.value) || 2.0
             };
             
             try {
@@ -2837,6 +3238,9 @@
             // Load user settings from server
             loadUserSettings();
             
+            // Load strategy settings for TP/SL presets
+            loadStrategySettings();
+            
             // Connect to Settings Sync WebSocket
             connectSettingsSyncWebSocket();
             
@@ -3060,6 +3464,9 @@
                     
                     // Reload positions for new account type
                     loadPositions();
+                    
+                    // Reload strategy settings for new account type
+                    loadStrategySettings();
                     
                     // Update balance
                     if (data.balance) {

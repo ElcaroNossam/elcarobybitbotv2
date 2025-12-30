@@ -352,9 +352,42 @@ async def get_positions(
             )
             
             positions = data.get("result", {}).get("list", [])
-            return [
-                {
-                    "symbol": p.get("symbol"),
+            
+            # Get active positions from our DB for strategy info
+            db_positions = {}
+            try:
+                active_pos = db.get_active_positions(user_id)
+                for ap in active_pos:
+                    sym = ap.get("symbol", "")
+                    db_positions[sym] = ap
+            except Exception:
+                pass
+            
+            result_positions = []
+            for p in positions:
+                if float(p.get("size", 0)) == 0:
+                    continue
+                    
+                symbol = p.get("symbol")
+                db_pos = db_positions.get(symbol, {})
+                
+                # Get TP/SL from Bybit position if set
+                tp_price = None
+                sl_price = None
+                try:
+                    tp_price = float(p.get("takeProfit")) if p.get("takeProfit") else None
+                    sl_price = float(p.get("stopLoss")) if p.get("stopLoss") else None
+                except (TypeError, ValueError):
+                    pass
+                
+                # Fallback to DB values
+                if not tp_price:
+                    tp_price = db_pos.get("tp_price")
+                if not sl_price:
+                    sl_price = db_pos.get("sl_price")
+                
+                result_positions.append({
+                    "symbol": symbol,
                     "side": "long" if p.get("side") == "Buy" else "short",
                     "size": float(p.get("size", 0)),
                     "entry_price": float(p.get("avgPrice", 0)),
@@ -365,10 +398,16 @@ async def get_positions(
                     "leverage": p.get("leverage"),
                     "margin": float(p.get("positionIM", 0)),
                     "exchange": "bybit",
-                    "account_type": account_type
-                }
-                for p in positions if float(p.get("size", 0)) != 0
-            ]
+                    "account_type": account_type,
+                    # Additional info from our DB
+                    "strategy": db_pos.get("strategy"),
+                    "tp_price": tp_price,
+                    "sl_price": sl_price,
+                    "use_atr": bool(db_pos.get("use_atr", 0)),
+                    "atr_activated": bool(db_pos.get("atr_activated", 0)),
+                })
+            
+            return result_positions
         except Exception as e:
             logger.error(f"Bybit positions error: {e}")
             return []
@@ -1202,6 +1241,66 @@ async def modify_position_tpsl(
             return {"success": False, "error": str(e)}
 
 
+@router.post("/cancel")
+async def cancel_order(
+    req: CancelOrderRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Cancel a single order by ID."""
+    user_id = user["user_id"]
+    
+    if req.exchange == "hyperliquid":
+        hl_creds = db.get_hl_credentials(user_id)
+        if not hl_creds.get("hl_private_key"):
+            return {"success": False, "error": "HyperLiquid not configured"}
+        
+        try:
+            adapter = HLAdapter(
+                private_key=hl_creds["hl_private_key"],
+                testnet=hl_creds.get("hl_testnet", False)
+            )
+            result = await adapter.cancel_order(req.symbol, req.order_id)
+            await adapter.close()
+            
+            if result.get("success"):
+                return {"success": True, "message": f"Cancelled order {req.order_id}"}
+            else:
+                return {"success": False, "error": result.get("error", "Failed to cancel")}
+        except Exception as e:
+            logger.error(f"HL cancel order error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    else:
+        # Bybit cancel
+        try:
+            result = await bybit_request(
+                user_id, "POST", "/v5/order/cancel",
+                body={
+                    "category": "linear",
+                    "symbol": req.symbol,
+                    "orderId": req.order_id
+                },
+                account_type=req.account_type
+            )
+            
+            if result.get("retCode") == 0:
+                return {
+                    "success": True,
+                    "message": f"Cancelled order {req.order_id}",
+                    "order_id": req.order_id
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": result.get("retMsg", "Cancel failed")
+                }
+        except HTTPException as e:
+            return {"success": False, "error": e.detail}
+        except Exception as e:
+            logger.error(f"Bybit cancel order error: {e}")
+            return {"success": False, "error": str(e)}
+
+
 @router.post("/cancel-all-orders")
 async def cancel_all_orders(
     exchange: str = Query("bybit"),
@@ -1754,6 +1853,272 @@ async def get_funding_rates(limit: int = Query(30, ge=1, le=100)):
                 
     except Exception as e:
         return {"rates": [], "error": str(e)}
+
+
+@router.get("/price/{symbol}")
+async def get_symbol_price(
+    symbol: str,
+    user: dict = Depends(get_current_user)
+):
+    """Get current price for a symbol."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = f"https://api.bybit.com/v5/market/tickers?category=linear&symbol={symbol}"
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+                if data.get("retCode") != 0:
+                    raise HTTPException(status_code=400, detail=data.get("retMsg"))
+                
+                tickers = data.get("result", {}).get("list", [])
+                if not tickers:
+                    raise HTTPException(status_code=404, detail=f"Symbol {symbol} not found")
+                
+                t = tickers[0]
+                return {
+                    "symbol": t.get("symbol"),
+                    "price": float(t.get("lastPrice", 0)),
+                    "bid": float(t.get("bid1Price", 0)),
+                    "ask": float(t.get("ask1Price", 0)),
+                    "high_24h": float(t.get("highPrice24h", 0)),
+                    "low_24h": float(t.get("lowPrice24h", 0)),
+                    "change_24h": float(t.get("price24hPcnt", 0)) * 100,
+                    "volume_24h": float(t.get("turnover24h", 0)),
+                    "funding_rate": float(t.get("fundingRate", 0)) * 100 if t.get("fundingRate") else 0
+                }
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting price for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===================== STRATEGY SETTINGS ENDPOINTS =====================
+
+# Strategy names list (keep in sync with bot)
+STRATEGY_NAMES = ["scryptomera", "scalper", "elcaro", "wyckoff"]
+
+# Default strategy settings
+DEFAULT_STRATEGY_SETTINGS = {
+    "scryptomera": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
+    "scalper": {"enabled": False, "percent": 1.0, "sl_percent": 2.0, "tp_percent": 5.0, "leverage": 10, "use_atr": 0},
+    "elcaro": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
+    "wyckoff": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
+}
+
+
+@router.get("/strategy-settings")
+async def get_all_strategy_settings(
+    exchange: str = Query("bybit"),
+    account_type: str = Query("demo"),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Get all strategy settings for the user's current exchange and account type.
+    Returns dict with all strategies and their settings.
+    Used by terminal to show strategy-specific TP/SL values.
+    """
+    user_id = user["user_id"]
+    
+    try:
+        # Get global user config for defaults
+        user_cfg = db.get_user_config(user_id)
+        global_sl = user_cfg.get("sl_percent", 3.0)
+        global_tp = user_cfg.get("tp_percent", 8.0)
+        global_leverage = user_cfg.get("leverage", 10)
+        global_percent = user_cfg.get("percent", 1.0)
+        global_use_atr = user_cfg.get("position_use_atr", 0)
+        
+        result = {
+            "global": {
+                "sl_percent": global_sl,
+                "tp_percent": global_tp,
+                "leverage": global_leverage,
+                "percent": global_percent,
+                "use_atr": bool(global_use_atr)
+            },
+            "strategies": {}
+        }
+        
+        # Get each strategy's settings
+        for strategy in STRATEGY_NAMES:
+            try:
+                settings = db.get_strategy_settings(user_id, strategy, exchange, account_type)
+                defaults = DEFAULT_STRATEGY_SETTINGS.get(strategy, {})
+                
+                result["strategies"][strategy] = {
+                    "enabled": bool(settings.get("enabled", defaults.get("enabled", False))),
+                    "percent": settings.get("percent") if settings.get("percent") is not None else defaults.get("percent", global_percent),
+                    "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", global_sl),
+                    "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", global_tp),
+                    "leverage": settings.get("leverage") if settings.get("leverage") is not None else defaults.get("leverage", global_leverage),
+                    "use_atr": bool(settings.get("use_atr", 0)),
+                    "atr_periods": settings.get("atr_periods") or 14,
+                    "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 1.5,
+                    "atr_trigger_pct": settings.get("atr_trigger_pct") or 2.0,
+                    "direction": settings.get("direction", "all"),
+                    "order_type": settings.get("order_type", "market"),
+                }
+            except Exception as e:
+                logger.warning(f"Failed to get settings for {strategy}: {e}")
+                result["strategies"][strategy] = DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to get strategy settings: {e}")
+        return {
+            "global": {"sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "percent": 1.0, "use_atr": False},
+            "strategies": {s: DEFAULT_STRATEGY_SETTINGS.get(s, {}).copy() for s in STRATEGY_NAMES}
+        }
+
+
+@router.get("/strategy-settings/{strategy}")
+async def get_single_strategy_settings(
+    strategy: str,
+    exchange: str = Query("bybit"),
+    account_type: str = Query("demo"),
+    user: dict = Depends(get_current_user)
+):
+    """Get settings for a specific strategy."""
+    user_id = user["user_id"]
+    
+    if strategy not in STRATEGY_NAMES:
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy}")
+    
+    try:
+        settings = db.get_strategy_settings(user_id, strategy, exchange, account_type)
+        defaults = DEFAULT_STRATEGY_SETTINGS.get(strategy, {})
+        user_cfg = db.get_user_config(user_id)
+        
+        return {
+            "strategy": strategy,
+            "enabled": bool(settings.get("enabled", defaults.get("enabled", False))),
+            "percent": settings.get("percent") if settings.get("percent") is not None else defaults.get("percent", user_cfg.get("percent", 1.0)),
+            "sl_percent": settings.get("sl_percent") if settings.get("sl_percent") is not None else defaults.get("sl_percent", user_cfg.get("sl_percent", 3.0)),
+            "tp_percent": settings.get("tp_percent") if settings.get("tp_percent") is not None else defaults.get("tp_percent", user_cfg.get("tp_percent", 8.0)),
+            "leverage": settings.get("leverage") if settings.get("leverage") is not None else defaults.get("leverage", user_cfg.get("leverage", 10)),
+            "use_atr": bool(settings.get("use_atr", 0)),
+            "atr_periods": settings.get("atr_periods") or 14,
+            "atr_multiplier_sl": settings.get("atr_multiplier_sl") or 1.5,
+            "atr_trigger_pct": settings.get("atr_trigger_pct") or 2.0,
+            "direction": settings.get("direction", "all"),
+            "order_type": settings.get("order_type", "market"),
+        }
+    except Exception as e:
+        logger.error(f"Failed to get {strategy} settings: {e}")
+        return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
+
+
+class UpdateStrategySettingsRequest(BaseModel):
+    """Request to update strategy settings"""
+    strategy: str
+    enabled: Optional[bool] = None
+    percent: Optional[float] = None
+    sl_percent: Optional[float] = None
+    tp_percent: Optional[float] = None
+    leverage: Optional[int] = None
+    use_atr: Optional[bool] = None
+    atr_periods: Optional[int] = None
+    atr_multiplier_sl: Optional[float] = None
+    atr_trigger_pct: Optional[float] = None
+    direction: Optional[str] = None
+    order_type: Optional[str] = None
+    exchange: str = "bybit"
+    account_type: str = "demo"
+
+
+@router.post("/strategy-settings")
+async def update_strategy_settings(
+    req: UpdateStrategySettingsRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Update settings for a specific strategy or global settings."""
+    user_id = user["user_id"]
+    
+    # Handle global settings update
+    if req.strategy == "global":
+        try:
+            updated = False
+            if req.sl_percent is not None:
+                db.set_user_field(user_id, "sl_percent", req.sl_percent)
+                updated = True
+            if req.tp_percent is not None:
+                db.set_user_field(user_id, "tp_percent", req.tp_percent)
+                updated = True
+            if req.leverage is not None:
+                db.set_user_field(user_id, "leverage", req.leverage)
+                updated = True
+            if req.percent is not None:
+                db.set_user_field(user_id, "percent", req.percent)
+                updated = True
+            if req.use_atr is not None:
+                db.set_user_field(user_id, "position_use_atr", 1 if req.use_atr else 0)
+                updated = True
+            if req.atr_periods is not None:
+                db.set_user_field(user_id, "atr_periods", req.atr_periods)
+                updated = True
+            if req.atr_multiplier_sl is not None:
+                db.set_user_field(user_id, "atr_multiplier_sl", req.atr_multiplier_sl)
+                updated = True
+            if req.atr_trigger_pct is not None:
+                db.set_user_field(user_id, "atr_trigger_pct", req.atr_trigger_pct)
+                updated = True
+            
+            if updated:
+                db.invalidate_user_cache(user_id)
+                return {"success": True, "message": "Updated global settings"}
+            else:
+                return {"success": False, "error": "No settings to update"}
+        except Exception as e:
+            logger.error(f"Failed to update global settings: {e}")
+            return {"success": False, "error": str(e)}
+    
+    if req.strategy not in STRATEGY_NAMES:
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {req.strategy}")
+    
+    try:
+        # Build settings dict from non-None fields
+        settings = {}
+        if req.enabled is not None:
+            settings["enabled"] = 1 if req.enabled else 0
+        if req.percent is not None:
+            settings["percent"] = req.percent
+        if req.sl_percent is not None:
+            settings["sl_percent"] = req.sl_percent
+        if req.tp_percent is not None:
+            settings["tp_percent"] = req.tp_percent
+        if req.leverage is not None:
+            settings["leverage"] = req.leverage
+        if req.use_atr is not None:
+            settings["use_atr"] = 1 if req.use_atr else 0
+        if req.atr_periods is not None:
+            settings["atr_periods"] = req.atr_periods
+        if req.atr_multiplier_sl is not None:
+            settings["atr_multiplier_sl"] = req.atr_multiplier_sl
+        if req.atr_trigger_pct is not None:
+            settings["atr_trigger_pct"] = req.atr_trigger_pct
+        if req.direction is not None:
+            settings["direction"] = req.direction
+        if req.order_type is not None:
+            settings["order_type"] = req.order_type
+        
+        if not settings:
+            return {"success": False, "error": "No settings to update"}
+        
+        # Use db function to update
+        success = db.set_strategy_settings_db(user_id, req.strategy, settings, req.exchange, req.account_type)
+        
+        if success:
+            # Notify via WebSocket if available
+            return {"success": True, "message": f"Updated {req.strategy} settings"}
+        else:
+            return {"success": False, "error": "Failed to save settings"}
+            
+    except Exception as e:
+        logger.error(f"Failed to update {req.strategy} settings: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @router.get("/market-overview")
