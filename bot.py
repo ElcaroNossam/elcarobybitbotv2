@@ -2302,6 +2302,34 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str], bool] = {}
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
+_notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
+
+
+async def safe_send_notification(bot, uid: int, text: str, **kwargs) -> bool:
+    """
+    Send message with Telegram rate limit handling.
+    Returns True if sent, False if rate limited.
+    """
+    from telegram.error import RetryAfter
+    
+    # Check if user is rate limited
+    retry_until = _notification_retry_after.get(uid, 0)
+    if time.time() < retry_until:
+        logger.debug(f"[{uid}] Skipping notification - rate limited until {retry_until}")
+        return False
+    
+    try:
+        await bot.send_message(uid, text, **kwargs)
+        return True
+    except RetryAfter as e:
+        # Store retry_after time and skip this notification
+        _notification_retry_after[uid] = time.time() + e.retry_after
+        logger.warning(f"[{uid}] Telegram rate limit hit, retry after {e.retry_after}s")
+        return False
+    except Exception as e:
+        logger.error(f"[{uid}] Failed to send notification: {e}")
+        return False
+
 
 @log_calls
 async def get_position_mode(user_id: int, symbol: str, account_type: str = None) -> str:
@@ -11104,8 +11132,8 @@ async def monitor_positions_loop(app: Application):
                                     "live": "Live"
                                 }.get(current_account_type, current_account_type.title())
                                 
-                                await bot.send_message(
-                                    uid,
+                                await safe_send_notification(
+                                    bot, uid,
                                     t['new_position'].format(
                                         symbol=sym, 
                                         entry=entry, 
@@ -11214,8 +11242,8 @@ async def monitor_positions_loop(app: Application):
                                     )
                                     
                                     try:
-                                        await bot.send_message(
-                                            uid,
+                                        await safe_send_notification(
+                                            bot, uid,
                                             msg_text,
                                             parse_mode="HTML",
                                             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -11246,13 +11274,13 @@ async def monitor_positions_loop(app: Application):
                                     if should_notify:
                                         _sl_notified[sl_notify_key] = now
                                         if "tp_price" in kwargs:
-                                            await bot.send_message(
-                                                uid,
+                                            await safe_send_notification(
+                                                bot, uid,
                                                 t['fixed_sl_tp'].format(symbol=sym, sl=sl_price, tp=tp_price)
                                             )
                                         else:
-                                            await bot.send_message(
-                                                uid,
+                                            await safe_send_notification(
+                                                bot, uid,
                                                 t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
                                             )
                                 else:
@@ -11272,7 +11300,7 @@ async def monitor_positions_loop(app: Application):
                                     # Only notify if truly new position AND not in cooldown AND not already notified
                                     if should_notify:
                                         _sl_notified[sl_notify_key] = now
-                                        await bot.send_message(uid, t['sl_auto_set'].format(price=sl_price))
+                                        await safe_send_notification(bot, uid, t['sl_auto_set'].format(price=sl_price))
                             except Exception as e:
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
@@ -11419,8 +11447,8 @@ async def monitor_positions_loop(app: Application):
                                     }.get(current_account_type, current_account_type.title())
                                 
                                     logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
-                                    await bot.send_message(
-                                        uid,
+                                    await safe_send_notification(
+                                        bot, uid,
                                         t['position_closed'].format(
                                             symbol=sym,
                                             reason=reason_text,
@@ -11440,14 +11468,14 @@ async def monitor_positions_loop(app: Application):
                                 except Exception as e:
                                     if is_db_full_error(e):
                                         if once_per((uid, "db_full", sym), NOTICE_WINDOW):
-                                            await bot.send_message(
-                                                uid,
+                                            await safe_send_notification(
+                                                bot, uid,
                                                 f"Logs are temporarily not written (there is not enough space). On {sym}, I switch to silent mode for 1 hour."
                                             )
                                         _skip_until[(uid, sym)] = int(time.time()) + MUTE_TTL
                                     else:
                                         if once_per((uid, "position_closed_error", sym), 300):
-                                            await bot.send_message(uid, t['position_closed_error'].format(symbol=sym, error=str(e)))
+                                            await safe_send_notification(bot, uid, t['position_closed_error'].format(symbol=sym, error=str(e)))
                                 finally:
                                
                                     try:
@@ -11603,8 +11631,8 @@ async def monitor_positions_loop(app: Application):
                                                 )
                                                 set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
                                                 try:
-                                                    await bot.send_message(
-                                                        uid,
+                                                    await safe_send_notification(
+                                                        bot, uid,
                                                         t.get(
                                                             'dca_10pct',
                                                             "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
@@ -11643,8 +11671,8 @@ async def monitor_positions_loop(app: Application):
                                                 )
                                                 set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
                                                 try:
-                                                    await bot.send_message(
-                                                        uid,
+                                                    await safe_send_notification(
+                                                        bot, uid,
                                                         t.get(
                                                             'dca_25pct',
                                                             "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
@@ -11904,7 +11932,7 @@ async def spot_tp_rebalance_loop(app: Application):
                                                 f"📊 TP Level {i+1}/{len(tp_levels)}"
                                             )
                                             
-                                            await bot.send_message(uid, msg, parse_mode="HTML")
+                                            await safe_send_notification(bot, uid, msg, parse_mode="HTML")
                                             logger.info(f"TP executed for {uid}: {coin} +{gain_pct:.1f}%, sold {sell_qty}")
                                             
                                         except Exception as e:
@@ -11982,8 +12010,8 @@ async def spot_tp_rebalance_loop(app: Application):
                                     rebalance_msg_lines.append("<i>Use Buy Now to rebalance manually.</i>")
                                     
                                     try:
-                                        await bot.send_message(
-                                            uid,
+                                        await safe_send_notification(
+                                            bot, uid,
                                             "\n".join(rebalance_msg_lines),
                                             parse_mode="HTML"
                                         )
@@ -12138,7 +12166,7 @@ async def spot_auto_dca_loop(app: Application):
                             msg_lines.append(f"⏭️ Skipped: {', '.join(skipped)}")
                         
                         try:
-                            await bot.send_message(uid, "\n".join(msg_lines), parse_mode="HTML")
+                            await safe_send_notification(bot, uid, "\n".join(msg_lines), parse_mode="HTML")
                         except Exception as e:
                             logger.warning(f"Failed to notify user {uid} about auto DCA: {e}")
                     
