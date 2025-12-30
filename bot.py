@@ -2440,10 +2440,22 @@ async def set_leverage(
             _leverage_cache[cache_key] = leverage
             logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x (from API)")
             return False
-        # If error is "leverage invalid" (10001) - symbol doesn't support this leverage
-        # Order will proceed with current/default leverage
+        # If error is "leverage invalid" (10001) - try lower leverage values
         if "10001" in str(e) or "leverage invalid" in err_str:
-            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, using default")
+            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, trying lower values")
+            # Try fallback leverage values down to 1x
+            for fallback_lev in [50, 25, 10, 5, 3, 2, 1]:
+                if fallback_lev < leverage:
+                    try:
+                        body["buyLeverage"] = str(fallback_lev)
+                        body["sellLeverage"] = str(fallback_lev)
+                        await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
+                        _leverage_cache[cache_key] = fallback_lev
+                        logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
+                        return True
+                    except Exception:
+                        continue
+            logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
             return False
         # 110013: leverage exceeds maxLeverage by risk limit - try to extract and use max
         if "110013" in str(e) or "cannot set leverage" in err_str or "maxleverage" in err_str:
@@ -2467,7 +2479,7 @@ async def set_leverage(
                         return False
             else:
                 # Can't extract max, try common values: 100, 50, 25, 10
-                for fallback_lev in [100, 50, 25, 10]:
+                for fallback_lev in [100, 50, 25, 10, 5, 3, 2, 1]:
                     if fallback_lev < leverage:
                         try:
                             body["buyLeverage"] = str(fallback_lev)
@@ -10839,7 +10851,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
         except Exception as e:
-            logger.error(f"User loop error for uid={uid}: {e}", exc_info=True)
+            # Handle Telegram rate limits gracefully
+            from telegram.error import RetryAfter
+            if isinstance(e, RetryAfter):
+                _notification_retry_after[uid] = time.time() + e.retry_after
+                logger.warning(f"[{uid}] Rate limited in channel handler, retry after {e.retry_after}s")
+            else:
+                logger.error(f"User loop error for uid={uid}: {e}", exc_info=True)
             continue
 
 def log_exit_and_remove_position(
