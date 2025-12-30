@@ -2254,8 +2254,8 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
             # ─── Row 2: Actions ───
             [ "🎯 Trade", "📋 History", "❌ Close All" ],
-            # ─── Row 3: Settings & Premium ───
-            [ "⚙️ Settings", t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
+            # ─── Row 3: Coins & Premium ───
+            [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
             [ f"🔷 HL {net_emoji}", "🔄 Bybit", "🔑 API Keys" ],
         ]
@@ -2270,10 +2270,10 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         keyboard = [
             # ─── Row 1: Trading Info ───
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
-            # ─── Row 2: Actions & History ───
+            # ─── Row 2: Actions & Strategies ───
             [ "🎯 Trade", "📋 History", "🤖 Strategies" ],
-            # ─── Row 3: Settings & Premium ───
-            [ "⚙️ Settings", t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
+            # ─── Row 3: Coins & Premium ───
+            [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
             [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid", "🔑 API Keys" ],
         ]
@@ -2744,14 +2744,36 @@ async def check_trading_limits_user(user_id: int, t: dict) -> tuple[bool, str]:
 @with_texts
 @log_calls
 async def cmd_select_coin_group(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton(ctx.t['group_all'],      callback_data="coins:ALL")],
-        [InlineKeyboardButton(ctx.t['group_top100'],   callback_data="coins:TOP100")],
-        [InlineKeyboardButton(ctx.t['group_volatile'], callback_data="coins:VOLATILE")],
-    ]
+    """Show coin filter selection with current filter highlighted."""
+    uid = update.effective_user.id
+    cfg = get_user_config(uid) or {}
+    current_filter = (cfg.get("coins") or "ALL").upper()
+    
+    # Emojis for current selection
+    filters = {
+        "ALL": ("🌐", ctx.t.get('group_all', '🌐 All Coins')),
+        "TOP100": ("🏆", ctx.t.get('group_top100', '🏆 Top Coins')),
+        "VOLATILE": ("🔥", ctx.t.get('group_volatile', '🔥 Volatile Coins')),
+    }
+    
+    # Build keyboard with check mark on current
+    keyboard = []
+    for key, (emoji, label) in filters.items():
+        mark = " ✅" if key == current_filter else ""
+        keyboard.append([InlineKeyboardButton(f"{emoji} {label}{mark}", callback_data=f"coins:{key}")])
+    
+    # Info text
+    current_label = filters.get(current_filter, ("🌐", "All"))[1]
+    text = f"🪙 *{ctx.t.get('select_coin_group', 'Select Coin Filter')}*\n\n"
+    text += f"📍 Current: *{current_label}*\n\n"
+    text += f"🌐 *All* — trade any coin\n"
+    text += f"🏆 *Top* — only major coins (BTC, ETH, SOL, etc.)\n"
+    text += f"🔥 *Volatile* — altcoins with high volatility"
+    
     await update.message.reply_text(
-        ctx.t['select_coin_group'],
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
     )
 
 def get_user_tz(user_id: int) -> str:
