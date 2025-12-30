@@ -11093,6 +11093,10 @@ async def monitor_positions_loop(app: Application):
                                     t['new_position'].format(symbol=sym, entry=entry, size=size)
                                 )
 
+                        # Debug: log position processing completion
+                        if uid == 511692487:
+                            logger.info(f"[POSITIONS-LOOP-DONE] uid={uid} acc={current_account_type} open_positions processed, raw_sl={raw_sl if 'raw_sl' in dir() else 'NOT_SET'}")
+
                         if raw_sl in (None, "", "0", 0):
                             # Get strategy: for new positions use detected_strategy,
                             # for existing positions get from active_positions table
