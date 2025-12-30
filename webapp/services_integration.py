@@ -26,14 +26,46 @@ async def get_positions_service(user_id: int, exchange: str = 'bybit', account_t
         Dict with {"success": bool, "data": List[dict]}
     """
     try:
+        import db
         from bot_unified import get_positions_unified
         
+        # Get positions from exchange API
         positions = await get_positions_unified(user_id, symbol=symbol, exchange=exchange, account_type=account_type)
         
-        # Convert to dict for JSON response
+        # Get DB positions for enrichment (strategy, etc.)
+        db_positions = {}
+        try:
+            active_pos = db.get_active_positions(
+                user_id,
+                account_type=account_type,
+                exchange=exchange
+            )
+            for ap in active_pos:
+                db_positions[ap.get("symbol", "")] = ap
+        except Exception as db_err:
+            logger.warning(f"Could not get DB positions for enrichment: {db_err}")
+        
+        # Convert to dict and enrich with DB data
+        result_data = []
+        for pos in positions:
+            pos_dict = pos.to_dict()
+            sym = pos_dict.get("symbol", "")
+            db_pos = db_positions.get(sym, {})
+            
+            # Enrich with DB data
+            pos_dict["strategy"] = db_pos.get("strategy")
+            pos_dict["account_type"] = account_type
+            pos_dict["env"] = db_pos.get("env") or ("paper" if account_type in ("demo", "testnet") else "live")
+            pos_dict["tp_price"] = db_pos.get("tp_price") or pos_dict.get("take_profit")
+            pos_dict["sl_price"] = db_pos.get("sl_price") or pos_dict.get("stop_loss")
+            pos_dict["use_atr"] = bool(db_pos.get("atr_activated", 0))
+            pos_dict["atr_activated"] = bool(db_pos.get("atr_activated", 0))
+            
+            result_data.append(pos_dict)
+        
         return {
             "success": True,
-            "data": [pos.to_dict() for pos in positions]
+            "data": result_data
         }
     except Exception as e:
         logger.error(f"get_positions_service error: {e}")
@@ -67,17 +99,29 @@ async def get_balance_service(user_id: int, exchange: str = 'bybit', account_typ
                 "success": False,
                 "error": "Failed to fetch balance",
                 "data": {
-                    "total_equity": 0,
-                    "available_balance": 0,
-                    "margin_used": 0,
+                    "equity": 0,
+                    "available": 0,
                     "unrealized_pnl": 0,
-                    "currency": "USDT"
+                    "account_type": account_type
                 }
             }
         
+        # Map to API-expected field names
+        balance_dict = balance.to_dict()
         return {
             "success": True,
-            "data": balance.to_dict()
+            "data": {
+                "equity": balance_dict.get("total_equity", 0),
+                "available": balance_dict.get("available_balance", 0),
+                "unrealized_pnl": balance_dict.get("unrealized_pnl", 0),
+                "margin_balance": balance_dict.get("margin_used", 0),
+                "wallet_balance": balance_dict.get("wallet_balance"),
+                "account_type": account_type,
+                "currency": balance_dict.get("currency", "USDT"),
+                # Also include original fields for backward compatibility
+                "total_equity": balance_dict.get("total_equity", 0),
+                "available_balance": balance_dict.get("available_balance", 0),
+            }
         }
     except Exception as e:
         logger.error(f"get_balance_service error: {e}")
@@ -85,11 +129,10 @@ async def get_balance_service(user_id: int, exchange: str = 'bybit', account_typ
             "success": False,
             "error": str(e),
             "data": {
-                "total_equity": 0,
-                "available_balance": 0,
-                "margin_used": 0,
+                "equity": 0,
+                "available": 0,
                 "unrealized_pnl": 0,
-                "currency": "USDT"
+                "account_type": account_type
             }
         }
 
