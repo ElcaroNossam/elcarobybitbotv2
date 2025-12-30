@@ -11123,202 +11123,202 @@ async def monitor_positions_loop(app: Application):
                                     entry_price= entry,
                                     size       = size,
                                     timeframe  = tf_for_sym,
-                                signal_id  = signal_id,
-                                strategy   = detected_strategy,  # Try to detect from signal, else None
-                                account_type = current_account_type
-                            )
-                            
-                            if detected_strategy:
-                                logger.info(f"[{uid}] Position {sym} detected with strategy={detected_strategy} from signal")
-                            else:
-                                logger.debug(f"[{uid}] Position {sym} added without strategy (external/manual)")
-
-                            # Only send notification if not in cooldown
-                            cooldown_end = _close_all_cooldown.get(uid, 0)
-                            if now >= cooldown_end:
-                                # Format exchange and market type for display
-                                exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
-                                market_type_display = {
-                                    "demo": "Demo",
-                                    "real": "Real",
-                                    "testnet": "Testnet",
-                                    "mainnet": "Mainnet",
-                                    "paper": "Paper",
-                                    "live": "Live"
-                                }.get(current_account_type, current_account_type.title())
-                                
-                                await safe_send_notification(
-                                    bot, uid,
-                                    t['new_position'].format(
-                                        symbol=sym, 
-                                        entry=entry, 
-                                        size=size,
-                                        exchange=exchange_display,
-                                        market_type=market_type_display
-                                    )
+                                    signal_id  = signal_id,
+                                    strategy   = detected_strategy,  # Try to detect from signal, else None
+                                    account_type = current_account_type
                                 )
-
-                        if raw_sl in (None, "", "0", 0):
-                            # Get strategy: for new positions use detected_strategy,
-                            # for existing positions get from active_positions table
-                            if detected_strategy:
-                                # New position - use what we just detected
-                                strategy = detected_strategy
-                            else:
-                                # Existing or unknown position - get from DB
-                                ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
-                                strategy = ap_for_sym.get("strategy") if ap_for_sym else None
                             
-                            logger.debug(f"[{uid}] {sym}: SL/TP resolution with strategy={strategy}, side={side}")
-                            
-                            # Determine use_atr: strategy-specific takes priority over global
-                            if strategy:
-                                strat_settings = db.get_strategy_settings(uid, strategy)
-                                strat_use_atr = strat_settings.get("use_atr")
-                                pos_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
-                            else:
-                                pos_use_atr = use_atr
-                            
-                            # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
-                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
-                            sl_price = round(
-                                entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6
-                            )
-                            tp_price = round(
-                                entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6
-                            )
-                            mark = float(p["markPrice"])
-                            raw_tp = p.get("takeProfit")
-                            current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
-
-                            try:
-                                # Check if we should notify about SL/TP changes
-                                # 1. Skip if position existed in previous iteration (not new)
-                                # 2. Skip if we're in cooldown period (positions being closed)
-                                # 3. Skip if we already notified for this position
-                                # 4. Skip if position already exists in DB (to avoid spam after bot restart)
-                                cooldown_end = _close_all_cooldown.get(uid, 0)
-                                sl_notify_key = (uid, sym)
-                                already_notified = sl_notify_key in _sl_notified
-                                position_existed_in_db = sym in existing_syms
-                                should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified and not position_existed_in_db
-                                
-                                # Helper to handle deep loss notification
-                                async def notify_deep_loss(symbol, side, entry, mark, move_pct):
-                                    deep_loss_key = (uid, symbol)
-                                    logger.info(f"[{uid}] {symbol}: Sending deep loss notification (loss: {move_pct:.2f}%)")
-                                    if deep_loss_key in _deep_loss_notified:
-                                        logger.debug(f"[{uid}] {symbol}: Already notified about deep loss, skipping")
-                                        return  # Already notified
-                                    _deep_loss_notified[deep_loss_key] = now
-                                    
-                                    # Calculate loss percentage
-                                    loss_pct = abs(move_pct)
-                                    
-                                    # Create inline keyboard with options
-                                    keyboard = [
-                                        [
-                                            InlineKeyboardButton(
-                                                t.get('btn_close_position', '❌ Закрыть позицию'),
-                                                callback_data=f"deep_loss:close:{symbol}"
-                                            )
-                                        ],
-                                        [
-                                            InlineKeyboardButton(
-                                                t.get('btn_enable_dca', '📈 Включить DCA добор'),
-                                                callback_data=f"deep_loss:dca:{symbol}"
-                                            )
-                                        ],
-                                        [
-                                            InlineKeyboardButton(
-                                                t.get('btn_ignore', '🔇 Игнорировать'),
-                                                callback_data=f"deep_loss:ignore:{symbol}"
-                                            )
-                                        ]
-                                    ]
-                                    
-                                    msg_text = t.get('deep_loss_alert', 
-                                        "⚠️ <b>Позиция в глубоком минусе!</b>\n\n"
-                                        "📊 <b>{symbol}</b> ({side})\n"
-                                        "📉 Убыток: <code>{loss_pct:.2f}%</code>\n"
-                                        "💰 Вход: <code>{entry}</code>\n"
-                                        "📍 Текущая: <code>{mark}</code>\n\n"
-                                        "❌ Стоп-лосс невозможно установить выше цены входа.\n\n"
-                                        "<b>Что делать?</b>\n"
-                                        "• <b>Закрыть</b> - зафиксировать убыток\n"
-                                        "• <b>DCA добор</b> - усреднить позицию доборами\n"
-                                        "• <b>Игнорировать</b> - оставить как есть"
-                                    ).format(
-                                        symbol=symbol,
-                                        side="LONG" if side == "Buy" else "SHORT",
-                                        loss_pct=loss_pct,
-                                        entry=entry,
-                                        mark=mark
-                                    )
-                                    
-                                    try:
-                                        await safe_send_notification(
-                                            bot, uid,
-                                            msg_text,
-                                            parse_mode="HTML",
-                                            reply_markup=InlineKeyboardMarkup(keyboard)
-                                        )
-                                    except Exception as e:
-                                        logger.warning(f"Failed to send deep loss notification to {uid}: {e}")
-                                
-                                if not pos_use_atr:
-                                    kwargs = {"sl_price": sl_price}
-                                    if current_tp is None:
-                                        if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
-                                            kwargs["tp_price"] = tp_price
-                                    try:
-                                        result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                        
-                                        if result == "deep_loss":
-                                            # Calculate move_pct for deep loss notification
-                                            move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
-                                            logger.debug(f"[{uid}] {sym} deep_loss: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
-                                            await notify_deep_loss(sym, side, entry, mark, move_pct_local)
-                                            continue
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position closed before SL/TP could be set")
-                                            continue
-                                        raise
-                                    # Only notify if truly new position AND not in cooldown AND not already notified
-                                    if should_notify:
-                                        _sl_notified[sl_notify_key] = now
-                                        if "tp_price" in kwargs:
-                                            await safe_send_notification(
-                                                bot, uid,
-                                                t['fixed_sl_tp'].format(symbol=sym, sl=sl_price, tp=tp_price)
-                                            )
-                                        else:
-                                            await safe_send_notification(
-                                                bot, uid,
-                                                t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
-                                            )
+                                if detected_strategy:
+                                    logger.info(f"[{uid}] Position {sym} detected with strategy={detected_strategy} from signal")
                                 else:
-                                    try:
-                                        result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
-                                        if result == "deep_loss":
-                                            # Calculate move_pct for deep loss notification
-                                            move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
-                                            logger.debug(f"[{uid}] {sym} deep_loss ATR: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
-                                            await notify_deep_loss(sym, side, entry, mark, move_pct_local)
-                                            continue
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position closed before SL could be set")
-                                            continue
-                                        raise
-                                    # Only notify if truly new position AND not in cooldown AND not already notified
-                                    if should_notify:
-                                        _sl_notified[sl_notify_key] = now
-                                        await safe_send_notification(bot, uid, t['sl_auto_set'].format(price=sl_price))
-                            except Exception as e:
-                                if "no open positions" not in str(e).lower():
-                                    logger.error(f"Errors with SL/TP for {sym}: {e}")
+                                    logger.debug(f"[{uid}] Position {sym} added without strategy (external/manual)")
+
+                                # Only send notification if not in cooldown
+                                cooldown_end = _close_all_cooldown.get(uid, 0)
+                                if now >= cooldown_end:
+                                    # Format exchange and market type for display
+                                    exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
+                                    market_type_display = {
+                                        "demo": "Demo",
+                                        "real": "Real",
+                                        "testnet": "Testnet",
+                                        "mainnet": "Mainnet",
+                                        "paper": "Paper",
+                                        "live": "Live"
+                                    }.get(current_account_type, current_account_type.title())
+                                
+                                    await safe_send_notification(
+                                        bot, uid,
+                                        t['new_position'].format(
+                                            symbol=sym, 
+                                            entry=entry, 
+                                            size=size,
+                                            exchange=exchange_display,
+                                            market_type=market_type_display
+                                        )
+                                    )
+
+                            if raw_sl in (None, "", "0", 0):
+                                # Get strategy: for new positions use detected_strategy,
+                                # for existing positions get from active_positions table
+                                if detected_strategy:
+                                    # New position - use what we just detected
+                                    strategy = detected_strategy
+                                else:
+                                    # Existing or unknown position - get from DB
+                                    ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                                    strategy = ap_for_sym.get("strategy") if ap_for_sym else None
+                            
+                                logger.debug(f"[{uid}] {sym}: SL/TP resolution with strategy={strategy}, side={side}")
+                            
+                                # Determine use_atr: strategy-specific takes priority over global
+                                if strategy:
+                                    strat_settings = db.get_strategy_settings(uid, strategy)
+                                    strat_use_atr = strat_settings.get("use_atr")
+                                    pos_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
+                                else:
+                                    pos_use_atr = use_atr
+                            
+                                # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
+                                sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
+                                sl_price = round(
+                                    entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6
+                                )
+                                tp_price = round(
+                                    entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6
+                                )
+                                mark = float(p["markPrice"])
+                                raw_tp = p.get("takeProfit")
+                                current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
+
+                                try:
+                                    # Check if we should notify about SL/TP changes
+                                    # 1. Skip if position existed in previous iteration (not new)
+                                    # 2. Skip if we're in cooldown period (positions being closed)
+                                    # 3. Skip if we already notified for this position
+                                    # 4. Skip if position already exists in DB (to avoid spam after bot restart)
+                                    cooldown_end = _close_all_cooldown.get(uid, 0)
+                                    sl_notify_key = (uid, sym)
+                                    already_notified = sl_notify_key in _sl_notified
+                                    position_existed_in_db = sym in existing_syms
+                                    should_notify = (sym not in open_syms_prev) and (now >= cooldown_end) and not already_notified and not position_existed_in_db
+                                
+                                    # Helper to handle deep loss notification
+                                    async def notify_deep_loss(symbol, side, entry, mark, move_pct):
+                                        deep_loss_key = (uid, symbol)
+                                        logger.info(f"[{uid}] {symbol}: Sending deep loss notification (loss: {move_pct:.2f}%)")
+                                        if deep_loss_key in _deep_loss_notified:
+                                            logger.debug(f"[{uid}] {symbol}: Already notified about deep loss, skipping")
+                                            return  # Already notified
+                                        _deep_loss_notified[deep_loss_key] = now
+                                    
+                                        # Calculate loss percentage
+                                        loss_pct = abs(move_pct)
+                                    
+                                        # Create inline keyboard with options
+                                        keyboard = [
+                                            [
+                                                InlineKeyboardButton(
+                                                    t.get('btn_close_position', '❌ Закрыть позицию'),
+                                                    callback_data=f"deep_loss:close:{symbol}"
+                                                )
+                                            ],
+                                            [
+                                                InlineKeyboardButton(
+                                                    t.get('btn_enable_dca', '📈 Включить DCA добор'),
+                                                    callback_data=f"deep_loss:dca:{symbol}"
+                                                )
+                                            ],
+                                            [
+                                                InlineKeyboardButton(
+                                                    t.get('btn_ignore', '🔇 Игнорировать'),
+                                                    callback_data=f"deep_loss:ignore:{symbol}"
+                                                )
+                                            ]
+                                        ]
+                                    
+                                        msg_text = t.get('deep_loss_alert', 
+                                            "⚠️ <b>Позиция в глубоком минусе!</b>\n\n"
+                                            "📊 <b>{symbol}</b> ({side})\n"
+                                            "📉 Убыток: <code>{loss_pct:.2f}%</code>\n"
+                                            "💰 Вход: <code>{entry}</code>\n"
+                                            "📍 Текущая: <code>{mark}</code>\n\n"
+                                            "❌ Стоп-лосс невозможно установить выше цены входа.\n\n"
+                                            "<b>Что делать?</b>\n"
+                                            "• <b>Закрыть</b> - зафиксировать убыток\n"
+                                            "• <b>DCA добор</b> - усреднить позицию доборами\n"
+                                            "• <b>Игнорировать</b> - оставить как есть"
+                                        ).format(
+                                            symbol=symbol,
+                                            side="LONG" if side == "Buy" else "SHORT",
+                                            loss_pct=loss_pct,
+                                            entry=entry,
+                                            mark=mark
+                                        )
+                                    
+                                        try:
+                                            await safe_send_notification(
+                                                bot, uid,
+                                                msg_text,
+                                                parse_mode="HTML",
+                                                reply_markup=InlineKeyboardMarkup(keyboard)
+                                            )
+                                        except Exception as e:
+                                            logger.warning(f"Failed to send deep loss notification to {uid}: {e}")
+                                
+                                    if not pos_use_atr:
+                                        kwargs = {"sl_price": sl_price}
+                                        if current_tp is None:
+                                            if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
+                                                kwargs["tp_price"] = tp_price
+                                        try:
+                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                        
+                                            if result == "deep_loss":
+                                                # Calculate move_pct for deep loss notification
+                                                move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                                logger.debug(f"[{uid}] {sym} deep_loss: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
+                                                await notify_deep_loss(sym, side, entry, mark, move_pct_local)
+                                                continue
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position closed before SL/TP could be set")
+                                                continue
+                                            raise
+                                        # Only notify if truly new position AND not in cooldown AND not already notified
+                                        if should_notify:
+                                            _sl_notified[sl_notify_key] = now
+                                            if "tp_price" in kwargs:
+                                                await safe_send_notification(
+                                                    bot, uid,
+                                                    t['fixed_sl_tp'].format(symbol=sym, sl=sl_price, tp=tp_price)
+                                                )
+                                            else:
+                                                await safe_send_notification(
+                                                    bot, uid,
+                                                    t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
+                                                )
+                                    else:
+                                        try:
+                                            result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                            if result == "deep_loss":
+                                                # Calculate move_pct for deep loss notification
+                                                move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                                logger.debug(f"[{uid}] {sym} deep_loss ATR: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
+                                                await notify_deep_loss(sym, side, entry, mark, move_pct_local)
+                                                continue
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position closed before SL could be set")
+                                                continue
+                                            raise
+                                        # Only notify if truly new position AND not in cooldown AND not already notified
+                                        if should_notify:
+                                            _sl_notified[sl_notify_key] = now
+                                            await safe_send_notification(bot, uid, t['sl_auto_set'].format(price=sl_price))
+                                except Exception as e:
+                                    if "no open positions" not in str(e).lower():
+                                        logger.error(f"Errors with SL/TP for {sym}: {e}")
 
                         active = get_active_positions(uid, account_type=current_account_type)
 
