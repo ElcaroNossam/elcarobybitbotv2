@@ -622,6 +622,92 @@ async def test_hl_api(user: dict = Depends(get_current_user)):
 
 # ========== STRATEGY SETTINGS ==========
 
+# Strategy features - defines which settings are available for each strategy
+# Synced with bot.py STRATEGY_FEATURES
+STRATEGY_FEATURES = {
+    "scryptomera": {
+        "order_type": True,      # Market/Limit toggle
+        "coins_group": True,     # Coins filter (ALL/TOP100/VOLATILE)
+        "leverage": True,        # Leverage setting
+        "use_atr": True,         # ATR trailing toggle
+        "direction": True,       # LONG/SHORT/ALL filter
+        "side_settings": True,   # Separate LONG/SHORT settings
+        "percent": True,         # Global percent
+        "sl_tp": True,           # SL/TP on main screen
+        "atr_params": True,      # ATR params on main screen  
+        "hl_settings": True,     # HyperLiquid support
+        "min_quality": False,    # Scryptomera doesn't have quality filter
+    },
+    "scalper": {
+        "order_type": True,
+        "coins_group": True,
+        "leverage": True,
+        "use_atr": True,
+        "direction": True,
+        "side_settings": True,
+        "percent": True,
+        "sl_tp": True,
+        "atr_params": True,
+        "hl_settings": True,
+        "min_quality": False,
+    },
+    "elcaro": {
+        "order_type": False,     # Elcaro signals have their own order logic
+        "coins_group": True,
+        "leverage": False,       # From signal
+        "use_atr": False,        # ATR managed by signal
+        "direction": True,
+        "side_settings": True,   # Only percent per side
+        "percent": True,         # Global percent for this strategy
+        "sl_tp": False,          # From signal
+        "atr_params": False,     # From signal
+        "hl_settings": True,
+        "min_quality": False,
+    },
+    "fibonacci": {
+        "order_type": True,      # Market/Limit toggle
+        "coins_group": True,
+        "leverage": True,
+        "use_atr": True,         # ATR trailing option
+        "direction": True,
+        "side_settings": True,
+        "percent": True,
+        "sl_tp": True,           # Manual SL/TP override
+        "atr_params": True,      # ATR params
+        "hl_settings": True,
+        "min_quality": True,     # Fibonacci-specific quality filter
+    },
+    "oi": {
+        "order_type": True,
+        "coins_group": True,
+        "leverage": True,
+        "use_atr": True,
+        "direction": True,
+        "side_settings": True,   # LONG/SHORT separate settings
+        "percent": True,
+        "sl_tp": True,           # Manual SL/TP
+        "atr_params": True,      # Full ATR control
+        "hl_settings": True,
+        "min_quality": False,
+    },
+    "rsi_bb": {
+        "order_type": True,
+        "coins_group": True,
+        "leverage": True,
+        "use_atr": True,
+        "direction": True,
+        "side_settings": True,   # LONG/SHORT separate settings
+        "percent": True,
+        "sl_tp": True,
+        "atr_params": True,
+        "hl_settings": True,
+        "min_quality": False,
+    },
+}
+
+VALID_STRATEGIES = ["elcaro", "scryptomera", "scalper", "fibonacci", "rsi_bb", "oi"]
+
+
 class StrategySettings(BaseModel):
     strategy_name: str
     enabled: bool = True
@@ -630,115 +716,105 @@ class StrategySettings(BaseModel):
     account_type: str = "demo"  # "demo"/"real" for bybit, "testnet"/"mainnet" for hyperliquid
 
 
+def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> dict:
+    """Build params dict for a strategy based on its features and DB settings."""
+    params = {}
+    
+    # Basic params (always included)
+    params["percent"] = db_settings.get("percent") if db_settings.get("percent") is not None else 5.0
+    params["direction"] = db_settings.get("direction") or "all"
+    
+    # Enabled flag
+    params["enabled"] = bool(db_settings.get("enabled", False))
+    
+    # Leverage (if strategy supports it)
+    if features.get("leverage"):
+        params["leverage"] = db_settings.get("leverage") if db_settings.get("leverage") is not None else 10
+    
+    # Order type (if strategy supports it)
+    if features.get("order_type"):
+        params["order_type"] = db_settings.get("order_type") or "market"
+    
+    # SL/TP (if strategy supports it)
+    if features.get("sl_tp"):
+        params["sl_percent"] = db_settings.get("sl_percent") if db_settings.get("sl_percent") is not None else 3.0
+        params["tp_percent"] = db_settings.get("tp_percent") if db_settings.get("tp_percent") is not None else 8.0
+    
+    # ATR settings (if strategy supports it)
+    if features.get("use_atr"):
+        params["use_atr"] = bool(db_settings.get("use_atr", False))
+    
+    if features.get("atr_params"):
+        params["atr_periods"] = db_settings.get("atr_periods") if db_settings.get("atr_periods") is not None else 7
+        params["atr_multiplier_sl"] = db_settings.get("atr_multiplier_sl") if db_settings.get("atr_multiplier_sl") is not None else 1.0
+        params["atr_trigger_pct"] = db_settings.get("atr_trigger_pct") if db_settings.get("atr_trigger_pct") is not None else 2.0
+    
+    # Min quality (Fibonacci only)
+    if features.get("min_quality"):
+        params["min_quality"] = db_settings.get("min_quality") if db_settings.get("min_quality") is not None else 50
+    
+    # Side-specific settings (LONG/SHORT)
+    if features.get("side_settings"):
+        # LONG side
+        params["long_percent"] = db_settings.get("long_percent")
+        if features.get("sl_tp"):
+            params["long_sl_percent"] = db_settings.get("long_sl_percent")
+            params["long_tp_percent"] = db_settings.get("long_tp_percent")
+        if features.get("atr_params"):
+            params["long_atr_periods"] = db_settings.get("long_atr_periods")
+            params["long_atr_multiplier_sl"] = db_settings.get("long_atr_multiplier_sl")
+            params["long_atr_trigger_pct"] = db_settings.get("long_atr_trigger_pct")
+        
+        # SHORT side
+        params["short_percent"] = db_settings.get("short_percent")
+        if features.get("sl_tp"):
+            params["short_sl_percent"] = db_settings.get("short_sl_percent")
+            params["short_tp_percent"] = db_settings.get("short_tp_percent")
+        if features.get("atr_params"):
+            params["short_atr_periods"] = db_settings.get("short_atr_periods")
+            params["short_atr_multiplier_sl"] = db_settings.get("short_atr_multiplier_sl")
+            params["short_atr_trigger_pct"] = db_settings.get("short_atr_trigger_pct")
+    
+    # Coins group
+    if features.get("coins_group"):
+        params["coins_group"] = db_settings.get("coins_group") or "all"
+    
+    return params
+
+
 @router.get("/strategy-settings")
 async def get_strategy_settings(
     exchange: str = Query("bybit"),
     account_type: str = Query("demo"),
     user: dict = Depends(get_current_user)
 ):
-    """Get all strategy settings for user per exchange and account type."""
+    """Get all strategy settings for user per exchange and account type.
+    
+    Uses db.get_strategy_settings_db() to get settings from user_strategy_settings table.
+    Returns settings with features based on STRATEGY_FEATURES config.
+    """
     user_id = user["user_id"]
-    creds = db.get_all_user_credentials(user_id)
     
-    # Parse unified strategy_settings JSON with new structure
-    import json
-    strategy_settings_raw = creds.get("strategy_settings", "{}")
-    try:
-        all_strategy_settings = json.loads(strategy_settings_raw) if strategy_settings_raw else {}
-    except:
-        all_strategy_settings = {}
-    
-    # Get settings for specific exchange/account_type
-    # Structure: { "bybit": { "demo": {...}, "real": {...} }, "hyperliquid": { "testnet": {...}, "mainnet": {...} } }
-    exchange_settings = all_strategy_settings.get(exchange, {})
-    account_settings = exchange_settings.get(account_type, {})
-    
-    # Get global enabled flags (legacy compatibility)
-    global_enabled = {
-        "elcaro": bool(creds.get("trade_elcaro")),
-        "wyckoff": bool(creds.get("trade_wyckoff")),
-        "scryptomera": bool(creds.get("trade_scryptomera")),
-        "scalper": bool(creds.get("trade_scalper")),
-        "rsi_bb": bool(creds.get("trade_rsi_bb")),
-        "oi": bool(creds.get("trade_oi")),
-    }
-    
-    # Default settings for each strategy
-    default_settings = {
-        "elcaro": {
-            "enabled": account_settings.get("elcaro", {}).get("enabled", global_enabled.get("elcaro", False)),
-            "params": {
-                "tp_percent": account_settings.get("elcaro", {}).get("tp_percent", creds.get("tp_percent", 2)),
-                "sl_percent": account_settings.get("elcaro", {}).get("sl_percent", creds.get("sl_percent", 1)),
-                "percent": account_settings.get("elcaro", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("elcaro", {}).get("leverage", creds.get("leverage", 10)),
-                "min_confidence": account_settings.get("elcaro", {}).get("min_confidence", 0.7),
-                "timeframes": account_settings.get("elcaro", {}).get("timeframes", ["15m", "1h"]),
-            }
-        },
-        "wyckoff": {
-            "enabled": account_settings.get("wyckoff", {}).get("enabled", global_enabled.get("wyckoff", False)),
-            "params": {
-                "tp_percent": account_settings.get("wyckoff", {}).get("tp_percent", creds.get("tp_percent", 2)),
-                "sl_percent": account_settings.get("wyckoff", {}).get("sl_percent", creds.get("sl_percent", 1)),
-                "percent": account_settings.get("wyckoff", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("wyckoff", {}).get("leverage", creds.get("leverage", 10)),
-                "min_quality": account_settings.get("wyckoff", {}).get("min_quality", 50),
-                "direction": account_settings.get("wyckoff", {}).get("direction", "all"),
-            }
-        },
-        "scryptomera": {
-            "enabled": account_settings.get("scryptomera", {}).get("enabled", global_enabled.get("scryptomera", False)),
-            "params": {
-                "tp_percent": account_settings.get("scryptomera", {}).get("tp_percent", creds.get("tp_percent", 2)),
-                "sl_percent": account_settings.get("scryptomera", {}).get("sl_percent", creds.get("sl_percent", 1)),
-                "percent": account_settings.get("scryptomera", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("scryptomera", {}).get("leverage", creds.get("leverage", 10)),
-                "min_vdelta": account_settings.get("scryptomera", {}).get("min_vdelta", 100),
-                "timeframe": account_settings.get("scryptomera", {}).get("timeframe", "15m"),
-                "direction": account_settings.get("scryptomera", {}).get("direction", "all"),
-            }
-        },
-        "scalper": {
-            "enabled": account_settings.get("scalper", {}).get("enabled", global_enabled.get("scalper", False)),
-            "params": {
-                "tp_percent": account_settings.get("scalper", {}).get("tp_percent", 0.5),
-                "sl_percent": account_settings.get("scalper", {}).get("sl_percent", 0.3),
-                "percent": account_settings.get("scalper", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("scalper", {}).get("leverage", creds.get("leverage", 10)),
-                "momentum_threshold": account_settings.get("scalper", {}).get("momentum_threshold", 1.5),
-                "max_trades_per_hour": account_settings.get("scalper", {}).get("max_trades_per_hour", 10),
-            }
-        },
-        "rsi_bb": {
-            "enabled": account_settings.get("rsi_bb", {}).get("enabled", global_enabled.get("rsi_bb", False)),
-            "params": {
-                "tp_percent": account_settings.get("rsi_bb", {}).get("tp_percent", creds.get("tp_percent", 2)),
-                "sl_percent": account_settings.get("rsi_bb", {}).get("sl_percent", creds.get("sl_percent", 1)),
-                "percent": account_settings.get("rsi_bb", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("rsi_bb", {}).get("leverage", creds.get("leverage", 10)),
-                "rsi_oversold": account_settings.get("rsi_bb", {}).get("rsi_oversold", creds.get("rsi_lo", 30)),
-                "rsi_overbought": account_settings.get("rsi_bb", {}).get("rsi_overbought", creds.get("rsi_hi", 70)),
-                "bb_touch_k": account_settings.get("rsi_bb", {}).get("bb_touch_k", creds.get("bb_touch_k", 2.0)),
-            }
-        },
-        "oi": {
-            "enabled": account_settings.get("oi", {}).get("enabled", global_enabled.get("oi", False)),
-            "params": {
-                "tp_percent": account_settings.get("oi", {}).get("tp_percent", creds.get("tp_percent", 2)),
-                "sl_percent": account_settings.get("oi", {}).get("sl_percent", creds.get("sl_percent", 1)),
-                "percent": account_settings.get("oi", {}).get("percent", creds.get("percent", 5)),
-                "leverage": account_settings.get("oi", {}).get("leverage", creds.get("leverage", 10)),
-                "min_oi_change": account_settings.get("oi", {}).get("min_oi_change", creds.get("oi_min_pct", 5)),
-                "min_price_change": account_settings.get("oi", {}).get("min_price_change", creds.get("price_min_pct", 1)),
-            }
+    result = {}
+    for strategy in VALID_STRATEGIES:
+        features = STRATEGY_FEATURES.get(strategy, {})
+        
+        # Get settings from database (uses user_strategy_settings table)
+        db_settings = db.get_strategy_settings_db(user_id, strategy, exchange, account_type)
+        
+        # Build params based on features
+        params = _build_strategy_params(strategy, db_settings, features)
+        
+        result[strategy] = {
+            "enabled": params.pop("enabled", False),
+            "params": params,
+            "features": features,  # Include features so frontend knows what to display
         }
-    }
     
     return {
         "exchange": exchange,
         "account_type": account_type,
-        "strategies": default_settings
+        "strategies": result
     }
 
 
@@ -748,12 +824,15 @@ async def update_strategy_settings(
     data: StrategySettings,
     user: dict = Depends(get_current_user)
 ):
-    """Update settings for a specific strategy per exchange and account type."""
+    """Update settings for a specific strategy per exchange and account type.
+    
+    Uses db.set_strategy_setting_db() to save to user_strategy_settings table.
+    Only updates fields that are included in the request.
+    """
     user_id = user["user_id"]
     
-    valid_strategies = ["elcaro", "wyckoff", "scryptomera", "scalper", "rsi_bb", "oi"]
-    if strategy_name not in valid_strategies:
-        raise HTTPException(status_code=400, detail="Invalid strategy name")
+    if strategy_name not in VALID_STRATEGIES:
+        raise HTTPException(status_code=400, detail=f"Invalid strategy name. Valid: {VALID_STRATEGIES}")
     
     valid_exchanges = ["bybit", "hyperliquid"]
     if data.exchange not in valid_exchanges:
@@ -766,30 +845,58 @@ async def update_strategy_settings(
     if data.account_type not in valid_account_types.get(data.exchange, []):
         raise HTTPException(status_code=400, detail="Invalid account type for exchange")
     
-    import json
+    # Get strategy features to validate which fields can be updated
+    features = STRATEGY_FEATURES.get(strategy_name, {})
     
-    # Get current settings
-    creds = db.get_all_user_credentials(user_id)
-    strategy_settings_raw = creds.get("strategy_settings", "{}")
-    try:
-        all_strategy_settings = json.loads(strategy_settings_raw) if strategy_settings_raw else {}
-    except:
-        all_strategy_settings = {}
+    # Valid fields that can be updated
+    valid_fields = {
+        "enabled", "percent", "direction", "coins_group",
+        # Leverage (if supported)
+        "leverage",
+        # Order type (if supported)
+        "order_type",
+        # SL/TP (if supported)
+        "sl_percent", "tp_percent",
+        # ATR settings (if supported)
+        "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
+        # Min quality (Fibonacci only)
+        "min_quality",
+        # Side-specific settings
+        "long_percent", "long_sl_percent", "long_tp_percent",
+        "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
+        "short_percent", "short_sl_percent", "short_tp_percent",
+        "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct",
+    }
     
-    # Initialize structure if needed
-    if data.exchange not in all_strategy_settings:
-        all_strategy_settings[data.exchange] = {}
-    if data.account_type not in all_strategy_settings[data.exchange]:
-        all_strategy_settings[data.exchange][data.account_type] = {}
+    # Update enabled flag
+    db.set_strategy_setting_db(user_id, strategy_name, "enabled", data.enabled, data.exchange, data.account_type)
     
-    # Update strategy settings
-    strategy_data = data.settings.copy()
-    strategy_data["enabled"] = data.enabled
-    all_strategy_settings[data.exchange][data.account_type][strategy_name] = strategy_data
+    # Update each setting from the request
+    updated_fields = ["enabled"]
+    for field, value in data.settings.items():
+        if field not in valid_fields:
+            logger.warning(f"Invalid field {field} for strategy {strategy_name}")
+            continue
+        
+        # Convert value type if needed
+        if field in ("enabled", "use_atr"):
+            value = bool(value)
+        elif field in ("leverage", "atr_periods", "long_atr_periods", "short_atr_periods", "min_quality"):
+            value = int(value) if value is not None else None
+        elif field in ("percent", "sl_percent", "tp_percent", "atr_multiplier_sl", "atr_trigger_pct",
+                       "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_multiplier_sl", "long_atr_trigger_pct",
+                       "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_multiplier_sl", "short_atr_trigger_pct"):
+            value = float(value) if value is not None else None
+        
+        db.set_strategy_setting_db(user_id, strategy_name, field, value, data.exchange, data.account_type)
+        updated_fields.append(field)
     
-    # Save to database
-    db.set_user_field(user_id, "strategy_settings", json.dumps(all_strategy_settings))
+    logger.info(f"User {user_id} updated {strategy_name} settings for {data.exchange}/{data.account_type}: {updated_fields}")
     
-    logger.info(f"User {user_id} updated {strategy_name} settings for {data.exchange}/{data.account_type}")
-    
-    return {"success": True, "strategy": strategy_name, "exchange": data.exchange, "account_type": data.account_type}
+    return {
+        "success": True, 
+        "strategy": strategy_name, 
+        "exchange": data.exchange, 
+        "account_type": data.account_type,
+        "updated_fields": updated_fields
+    }

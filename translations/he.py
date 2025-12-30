@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>יתרה לא מספקת!</b>\n\n💰 אין מספיק כספים בחשבון {account_type} שלך כדי לפתוח פוזיציה זו.\n\n<b>פתרונות:</b>\n• טען מחדש את היתרה\n• הקטן את גודל הפוזיציה (% לעסקה)\n• הורד את המינוף\n• סגור חלק מהפוזיציות הפתוחות',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>מינוף גבוה מדי!</b>\n\n⚙️ המינוף שהוגדר חורג מהמקסימום המותר עבור סמל זה.\n\n<b>מקסימום מותר:</b> {max_leverage}x\n\n<b>פתרון:</b> עבור להגדרות האסטרטגיה והפחת את המינוף.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ שגיאת Scalper Limit: {msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 סולם לימיט',

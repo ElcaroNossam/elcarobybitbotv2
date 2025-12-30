@@ -19,8 +19,8 @@ import db
 
 
 @pytest.fixture
-def client():
-    """FastAPI test client."""
+def client(test_db):
+    """FastAPI test client. Depends on test_db to ensure proper DB setup."""
     return TestClient(app)
 
 
@@ -357,6 +357,36 @@ class TestStatsAPI:
     def test_get_pnl_history(self, client, auth_headers):
         """Test GET /api/stats/pnl-history."""
         response = client.get("/api/stats/pnl-history", headers=auth_headers)
+        assert response.status_code in [200, 400]
+    
+    def test_get_strategy_report(self, client, auth_headers):
+        """Test GET /api/stats/strategy-report."""
+        response = client.get("/api/stats/strategy-report", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        # Should have success, strategies, totals fields
+        assert "success" in data
+        assert "strategies" in data
+        assert isinstance(data["strategies"], list)
+    
+    def test_get_strategy_report_with_params(self, client, auth_headers):
+        """Test GET /api/stats/strategy-report with exchange and period params."""
+        response = client.get("/api/stats/strategy-report?exchange=bybit&period=30d", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert "success" in data
+        assert "strategies" in data
+        assert data.get("exchange") == "bybit"
+        assert data.get("period") == "30d"
+    
+    def test_get_positions_summary(self, client, auth_headers):
+        """Test GET /api/stats/positions-summary."""
+        response = client.get("/api/stats/positions-summary", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert "success" in data
+        assert "positions" in data
+        assert "summary" in data
         assert response.status_code in [200, 400]
 
 

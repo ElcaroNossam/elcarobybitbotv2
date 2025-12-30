@@ -2803,7 +2803,10 @@ async def fetch_last_closed_pnl(user_id: int, symbol: str) -> dict | None:
         if not recs:
             logger.debug(f"[{user_id}] No closed PnL records for {symbol}")
             return None
-        return recs[0]
+        rec = recs[0]
+        # Log all fields for debugging
+        logger.debug(f"[{user_id}] Bybit closed-pnl raw: {rec}")
+        return rec
     except Exception as e:
         logger.debug(f"[{user_id}] fetch_last_closed_pnl error: {e}")
         return None
@@ -11108,20 +11111,33 @@ async def monitor_positions_loop(app: Application):
                                 )
 
                                 pnl_from_exch = rec.get("closedPnl")
-                                rate_from_exch = rec.get("closedPnlRate")  
+                                rate_from_exch = rec.get("closedPnlRate")  # ROE as decimal (0.05 = 5%)
+                                leverage = float(rec.get("leverage") or ap.get("leverage") or 10)
                                 
                                 size_for_calc = float(rec.get("closedSize") or ap.get("size") or 0.0)
                                 pnl_calc, pct_calc = _calc_pnl(entry_price, exit_price, ap["side"], size_for_calc)
                                 
+                                # PnL value (prefer Bybit API)
                                 try:
                                     pnl_value = float(pnl_from_exch)
                                 except Exception:
                                     pnl_value = pnl_calc
                                 
-                                try:
-                                    pct_value = float(rate_from_exch) * 100.0
-                                except Exception:
-                                    pct_value = pct_calc
+                                # Percent value (ROE with leverage)
+                                # Bybit closedPnlRate is ROE as decimal (already includes leverage)
+                                pct_value = None
+                                if rate_from_exch is not None:
+                                    try:
+                                        pct_value = float(rate_from_exch) * 100.0  # Convert to %
+                                    except Exception:
+                                        pass
+                                
+                                # Fallback: calculate ROE from price change * leverage
+                                if pct_value is None:
+                                    price_change_pct = pct_calc  # This is just price change %
+                                    pct_value = price_change_pct * leverage  # Apply leverage for ROE
+                                
+                                logger.info(f"[{uid}] PnL details for {sym}: pnl={pnl_value:.2f}, rate_from_api={rate_from_exch}, pct={pct_value:.2f}%, leverage={leverage}")
                                 
                                 # Get strategy name for display (use already determined position_strategy)
                                 strategy_name = position_strategy or "unknown"

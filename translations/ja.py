@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>残高不足！</b>\n\n💰 {account_type}アカウントにこのポジションを開くのに十分な資金がありません。\n\n<b>解決策:</b>\n• 残高をチャージする\n• ポジションサイズを縮小する (取引あたりの%)\n• レバレッジを下げる\n• 一部のオープンポジションを閉じる',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>レバレッジが高すぎます！</b>\n\n⚙️ 設定されたレバレッジがこのシンボルの最大許容値を超えています。\n\n<b>最大許容:</b> {max_leverage}x\n\n<b>解決策:</b> ストラテジー設定に移動し、レバレッジを減らしてください。',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper 指値エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper 指値エラー: {msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 指値ラダー',

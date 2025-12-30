@@ -294,3 +294,235 @@ async def get_pnl_history(
     except Exception as e:
         print(f"PnL history error: {e}")
         return {"labels": [], "values": [], "error": str(e)}
+
+
+@router.get("/strategy-report")
+async def get_strategy_report(
+    user = Depends(get_current_user),
+    exchange: str = Query("all"),
+    period: str = Query("30d")
+):
+    """Get detailed strategy performance report."""
+    try:
+        import db
+        uid = user["user_id"]
+        
+        # Parse period
+        days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
+        start_date = datetime.now() - timedelta(days=days)
+        
+        # Get trades
+        trades = db.get_trade_history(uid, limit=1000) or []
+        
+        # Filter by period and exchange
+        filtered_trades = []
+        for t in trades:
+            try:
+                trade_time = datetime.fromisoformat(t.get("time", "2024-01-01").replace("Z", ""))
+            except:
+                continue
+            if trade_time >= start_date:
+                if exchange != "all" and t.get("exchange", "bybit") != exchange:
+                    continue
+                filtered_trades.append(t)
+        
+        # Build strategy report
+        strategies = {}
+        for t in filtered_trades:
+            strat = t.get("strategy") or "manual"
+            if strat not in strategies:
+                strategies[strat] = {
+                    "name": strat,
+                    "trades": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "pnl": 0,
+                    "total_volume": 0,
+                    "best_trade": None,
+                    "worst_trade": None,
+                    "avg_duration": 0,
+                    "symbols": {},
+                    "daily_pnl": {},
+                    "current_streak": 0,
+                    "max_win_streak": 0,
+                    "max_loss_streak": 0
+                }
+            
+            pnl = float(t.get("pnl", 0))
+            size = float(t.get("size", 0))
+            entry = float(t.get("entry_price", 0))
+            
+            strategies[strat]["trades"] += 1
+            strategies[strat]["pnl"] += pnl
+            strategies[strat]["total_volume"] += size * entry
+            
+            if pnl > 0:
+                strategies[strat]["wins"] += 1
+            elif pnl < 0:
+                strategies[strat]["losses"] += 1
+            
+            # Best/worst trade
+            if strategies[strat]["best_trade"] is None or pnl > strategies[strat]["best_trade"]["pnl"]:
+                strategies[strat]["best_trade"] = {
+                    "symbol": t.get("symbol"),
+                    "pnl": pnl,
+                    "time": t.get("time")
+                }
+            if strategies[strat]["worst_trade"] is None or pnl < strategies[strat]["worst_trade"]["pnl"]:
+                strategies[strat]["worst_trade"] = {
+                    "symbol": t.get("symbol"),
+                    "pnl": pnl,
+                    "time": t.get("time")
+                }
+            
+            # Symbols
+            symbol = t.get("symbol", "UNKNOWN")
+            if symbol not in strategies[strat]["symbols"]:
+                strategies[strat]["symbols"][symbol] = {"trades": 0, "pnl": 0}
+            strategies[strat]["symbols"][symbol]["trades"] += 1
+            strategies[strat]["symbols"][symbol]["pnl"] += pnl
+            
+            # Daily PnL
+            date = t.get("time", "")[:10]
+            if date not in strategies[strat]["daily_pnl"]:
+                strategies[strat]["daily_pnl"][date] = 0
+            strategies[strat]["daily_pnl"][date] += pnl
+        
+        # Calculate derived metrics
+        result = []
+        for strat_name, data in strategies.items():
+            total = data["trades"]
+            wins = data["wins"]
+            losses = data["losses"]
+            pnl = data["pnl"]
+            
+            win_rate = (wins / total * 100) if total > 0 else 0
+            avg_pnl = pnl / total if total > 0 else 0
+            
+            # Calculate profit factor
+            win_pnl = sum(t.get("pnl", 0) for t in filtered_trades 
+                         if t.get("strategy") == strat_name and t.get("pnl", 0) > 0)
+            loss_pnl = abs(sum(t.get("pnl", 0) for t in filtered_trades 
+                              if t.get("strategy") == strat_name and t.get("pnl", 0) < 0))
+            profit_factor = win_pnl / loss_pnl if loss_pnl > 0 else win_pnl
+            
+            # Top 3 symbols
+            top_symbols = sorted(data["symbols"].items(), key=lambda x: x[1]["pnl"], reverse=True)[:3]
+            
+            result.append({
+                "name": strat_name,
+                "display_name": strat_name.replace("_", " ").title(),
+                "trades": total,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": round(win_rate, 1),
+                "pnl": round(pnl, 2),
+                "avg_pnl": round(avg_pnl, 2),
+                "profit_factor": round(profit_factor, 2),
+                "total_volume": round(data["total_volume"], 2),
+                "best_trade": data["best_trade"],
+                "worst_trade": data["worst_trade"],
+                "top_symbols": [{"symbol": s[0], "trades": s[1]["trades"], "pnl": round(s[1]["pnl"], 2)} for s in top_symbols],
+                "daily_pnl": data["daily_pnl"]
+            })
+        
+        # Sort by PnL
+        result.sort(key=lambda x: x["pnl"], reverse=True)
+        
+        # Calculate totals
+        totals = {
+            "total_trades": sum(s["trades"] for s in result),
+            "total_wins": sum(s["wins"] for s in result),
+            "total_losses": sum(s["losses"] for s in result),
+            "total_pnl": round(sum(s["pnl"] for s in result), 2),
+            "overall_win_rate": 0,
+            "best_strategy": result[0]["name"] if result else None,
+            "worst_strategy": result[-1]["name"] if result else None
+        }
+        if totals["total_trades"] > 0:
+            totals["overall_win_rate"] = round(totals["total_wins"] / totals["total_trades"] * 100, 1)
+        
+        return {
+            "success": True,
+            "strategies": result,
+            "totals": totals,
+            "period": period,
+            "exchange": exchange
+        }
+    except Exception as e:
+        print(f"Strategy report error: {e}")
+        return {"success": False, "error": str(e), "strategies": []}
+
+
+@router.get("/positions-summary")
+async def get_positions_summary(
+    user = Depends(get_current_user),
+    exchange: str = Query("all")
+):
+    """Get summary of current positions across exchanges."""
+    try:
+        import db
+        uid = user["user_id"]
+        
+        # Get active positions from database
+        positions = db.get_active_positions(uid)
+        
+        if not positions:
+            return {
+                "success": True,
+                "positions": [],
+                "summary": {
+                    "total_positions": 0,
+                    "total_pnl": 0,
+                    "long_count": 0,
+                    "short_count": 0,
+                    "by_exchange": {},
+                    "by_account_type": {}
+                }
+            }
+        
+        # Filter by exchange if needed
+        if exchange != "all":
+            positions = [p for p in positions if p.get("exchange", "bybit") == exchange]
+        
+        # Calculate summary
+        summary = {
+            "total_positions": len(positions),
+            "total_pnl": sum(float(p.get("pnl", 0)) for p in positions),
+            "long_count": sum(1 for p in positions if p.get("side") == "long"),
+            "short_count": sum(1 for p in positions if p.get("side") == "short"),
+            "by_exchange": {},
+            "by_account_type": {},
+            "by_symbol": {}
+        }
+        
+        for p in positions:
+            ex = p.get("exchange", "bybit")
+            acc = p.get("account_type", "demo")
+            sym = p.get("symbol", "")
+            pnl = float(p.get("pnl", 0))
+            
+            if ex not in summary["by_exchange"]:
+                summary["by_exchange"][ex] = {"count": 0, "pnl": 0}
+            summary["by_exchange"][ex]["count"] += 1
+            summary["by_exchange"][ex]["pnl"] += pnl
+            
+            if acc not in summary["by_account_type"]:
+                summary["by_account_type"][acc] = {"count": 0, "pnl": 0}
+            summary["by_account_type"][acc]["count"] += 1
+            summary["by_account_type"][acc]["pnl"] += pnl
+            
+            if sym not in summary["by_symbol"]:
+                summary["by_symbol"][sym] = {"count": 0, "pnl": 0}
+            summary["by_symbol"][sym]["count"] += 1
+            summary["by_symbol"][sym]["pnl"] += pnl
+        
+        return {
+            "success": True,
+            "positions": positions,
+            "summary": summary
+        }
+    except Exception as e:
+        print(f"Positions summary error: {e}")
+        return {"success": False, "error": str(e), "positions": [], "summary": {}}
+

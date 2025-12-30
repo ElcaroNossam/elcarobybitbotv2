@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Saldo insufficiente!</b>\n\n💰 Non ci sono fondi sufficienti sul tuo account {account_type} per aprire questa posizione.\n\n<b>Soluzioni:</b>\n• Ricarica il saldo\n• Riduci la dimensione della posizione (% per trade)\n• Riduci la leva\n• Chiudi alcune posizioni aperte',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Leva troppo alta!</b>\n\n⚙️ La tua leva configurata supera il massimo consentito per questo simbolo.\n\n<b>Massimo consentito:</b> {max_leverage}x\n\n<b>Soluzione:</b> Vai alle impostazioni della strategia e riduci la leva.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Ingresso Limit*\n• {symbol} {side}\n• Prezzo: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit errore: {msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 Scala limite',

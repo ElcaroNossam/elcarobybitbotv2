@@ -262,6 +262,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Недостатньо коштів!</b>\n\n💰 На вашому {account_type} акаунті недостатньо коштів для відкриття позиції.\n\n<b>Рішення:</b>\n• Поповніть баланс\n• Зменшіть розмір позиції (% від депозиту)\n• Зменшіть плече\n• Закрийте частину відкритих позицій',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Занадто високе плече!</b>\n\n⚙️ Встановлене плече перевищує максимум для цього символу.\n\n<b>Максимально дозволено:</b> {max_leverage}x\n\n<b>Рішення:</b> Перейдіть до налаштувань стратегії та зменшіть плече.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit помилка: {msg}',
@@ -568,6 +576,8 @@ TEXTS = {
     'scalper_market_error':          'Scalper помилка: {msg}',
     'scalper_analysis':              'Scalper: {side} @ {price}',
     'feature_scryptomera':           'Scryptomera',
+    
+
 
     # Strategy Settings
     'button_strategy_settings':      '🎯 Стратегії',

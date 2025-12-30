@@ -174,10 +174,11 @@ class TestElcaroTradingLogic:
     """Test that Elcaro settings are used correctly in trading."""
     
     @pytest.fixture(autouse=True)
-    def setup_db(self):
-        """Setup temp database."""
+    def setup_db(self, test_db):
+        """Setup temp database. Uses test_db fixture from conftest.py."""
         import db
-        db.init_db()
+        # test_db fixture already sets up the database schema
+        pass
     
     def test_elcaro_mode_uses_signal_params(self):
         """In elcaro_mode, signal params should be used, not user settings."""

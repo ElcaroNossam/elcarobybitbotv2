@@ -485,6 +485,42 @@
             border: 1px solid var(--border-color);
         }
         
+        .strategy-atr-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .strategy-atr-section .strategy-enable {
+            margin-bottom: 12px;
+        }
+        
+        .atr-params {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .atr-params.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .strategy-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            margin-top: 16px;
+            color: var(--primary-color);
+            font-size: 0.875rem;
+        }
+        
+        .strategy-note i {
+            font-size: 1rem;
+        }
+        
         /* Strategy Exchange Selector */
         .strategy-exchange-selector {
             display: flex;
@@ -789,9 +825,9 @@
             <!-- Strategy Tabs -->
             <div class="strategy-tabs">
                 <div class="strategy-tab active" data-strategy="elcaro" onclick="selectStrategyTab('elcaro')">ElCaro AI</div>
-                <div class="strategy-tab" data-strategy="wyckoff" onclick="selectStrategyTab('wyckoff')">Wyckoff</div>
                 <div class="strategy-tab" data-strategy="scryptomera" onclick="selectStrategyTab('scryptomera')">Scryptomera</div>
                 <div class="strategy-tab" data-strategy="scalper" onclick="selectStrategyTab('scalper')">Scalper</div>
+                <div class="strategy-tab" data-strategy="fibonacci" onclick="selectStrategyTab('fibonacci')">Fibonacci</div>
                 <div class="strategy-tab" data-strategy="rsi_bb" onclick="selectStrategyTab('rsi_bb')">RSI+BB</div>
                 <div class="strategy-tab" data-strategy="oi" onclick="selectStrategyTab('oi')">OI</div>
             </div>
@@ -801,53 +837,27 @@
                 <div class="strategy-enable">
                     <div class="toggle-label">
                         <span>Enable ElCaro AI</span>
-                        <small>AI-powered market analysis with GPT-4</small>
+                        <small>AI-powered signals with ATR trailing - Settings from signals</small>
                     </div>
                     <div class="toggle" id="toggle_elcaro" onclick="toggleStrategyEnabled('elcaro')"></div>
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
-                        <label class="form-label">Take Profit %</label>
-                        <input type="number" id="elcaro_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="elcaro_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="elcaro_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Min Confidence</label>
-                        <input type="number" id="elcaro_min_confidence" class="form-input" value="0.7" min="0.5" max="1" step="0.05">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Timeframes</label>
-                        <select id="elcaro_timeframes" class="form-select" multiple>
-                            <option value="5m">5m</option>
-                            <option value="15m" selected>15m</option>
-                            <option value="1h" selected>1h</option>
-                            <option value="4h">4h</option>
+                        <label class="form-label">Direction</label>
+                        <select id="elcaro_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
                         </select>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Wyckoff Settings -->
-            <div id="strategy-wyckoff" class="strategy-panel">
-                <div class="strategy-enable">
-                    <div class="toggle-label">
-                        <span>Enable Wyckoff</span>
-                        <small>Classic Wyckoff accumulation/distribution patterns</small>
-                    </div>
-                    <div class="toggle" id="toggle_wyckoff" onclick="toggleStrategyEnabled('wyckoff')"></div>
-                </div>
-                <div class="form-grid strategy-params">
-                    <div class="form-group">
-                        <label class="form-label">Take Profit %</label>
-                        <input type="number" id="wyckoff_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="wyckoff_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
-                    </div>
+                <div class="strategy-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>TP/SL, Leverage, and ATR settings are managed by AI signals</span>
                 </div>
             </div>
             
@@ -862,24 +872,58 @@
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="scryptomera_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="scryptomera_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="scryptomera_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                        <input type="number" id="scryptomera_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="scryptomera_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                        <input type="number" id="scryptomera_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Min Volume Delta</label>
-                        <input type="number" id="scryptomera_min_vdelta" class="form-input" value="100" min="10" max="1000">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Timeframe</label>
-                        <select id="scryptomera_timeframe" class="form-select">
-                            <option value="5m">5m</option>
-                            <option value="15m" selected>15m</option>
-                            <option value="1h">1h</option>
+                        <label class="form-label">Order Type</label>
+                        <select id="scryptomera_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Direction</label>
+                        <select id="scryptomera_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_scryptomera_use_atr" onclick="toggleStrategyATR('scryptomera')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="scryptomera_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="scryptomera_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="scryptomera_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -895,20 +939,129 @@
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="scalper_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="scalper_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="scalper_tp_percent" class="form-input" value="0.5" min="0.1" max="10" step="0.1">
+                        <input type="number" id="scalper_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="scalper_sl_percent" class="form-input" value="0.3" min="0.1" max="5" step="0.1">
+                        <input type="number" id="scalper_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Momentum Threshold</label>
-                        <input type="number" id="scalper_momentum_threshold" class="form-input" value="1.5" min="0.5" max="5" step="0.1">
+                        <label class="form-label">Order Type</label>
+                        <select id="scalper_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Max Trades/Hour</label>
-                        <input type="number" id="scalper_max_trades_per_hour" class="form-input" value="10" min="1" max="50">
+                        <label class="form-label">Direction</label>
+                        <select id="scalper_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_scalper_use_atr" onclick="toggleStrategyATR('scalper')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="scalper_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="scalper_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="scalper_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fibonacci Settings -->
+            <div id="strategy-fibonacci" class="strategy-panel">
+                <div class="strategy-enable">
+                    <div class="toggle-label">
+                        <span>Enable Fibonacci</span>
+                        <small>Fibonacci retracement levels trading</small>
+                    </div>
+                    <div class="toggle" id="toggle_fibonacci" onclick="toggleStrategyEnabled('fibonacci')"></div>
+                </div>
+                <div class="form-grid strategy-params">
+                    <div class="form-group">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="fibonacci_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="fibonacci_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Take Profit %</label>
+                        <input type="number" id="fibonacci_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stop Loss %</label>
+                        <input type="number" id="fibonacci_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Order Type</label>
+                        <select id="fibonacci_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Direction</label>
+                        <select id="fibonacci_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Min Quality</label>
+                        <input type="number" id="fibonacci_min_quality" class="form-input" value="50" min="0" max="100">
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_fibonacci_use_atr" onclick="toggleStrategyATR('fibonacci')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="fibonacci_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="fibonacci_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="fibonacci_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -924,24 +1077,58 @@
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="rsi_bb_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="rsi_bb_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="rsi_bb_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                        <input type="number" id="rsi_bb_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="rsi_bb_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                        <input type="number" id="rsi_bb_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">RSI Oversold</label>
-                        <input type="number" id="rsi_bb_rsi_oversold" class="form-input" value="30" min="10" max="40">
+                        <label class="form-label">Order Type</label>
+                        <select id="rsi_bb_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">RSI Overbought</label>
-                        <input type="number" id="rsi_bb_rsi_overbought" class="form-input" value="70" min="60" max="90">
+                        <label class="form-label">Direction</label>
+                        <select id="rsi_bb_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
+                        </select>
                     </div>
-                    <div class="form-group full">
-                        <label class="form-label">BB Touch K</label>
-                        <input type="number" id="rsi_bb_bb_touch_k" class="form-input" value="2.0" min="1" max="3" step="0.1">
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_rsi_bb_use_atr" onclick="toggleStrategyATR('rsi_bb')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="rsi_bb_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="rsi_bb_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="rsi_bb_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -957,20 +1144,58 @@
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
+                        <label class="form-label">Position Size %</label>
+                        <input type="number" id="oi_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leverage</label>
+                        <input type="number" id="oi_leverage" class="form-input" value="10" min="1" max="125">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Take Profit %</label>
-                        <input type="number" id="oi_tp_percent" class="form-input" value="2" min="0.1" max="50" step="0.1">
+                        <input type="number" id="oi_tp_percent" class="form-input" value="8" min="0.1" max="50" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Stop Loss %</label>
-                        <input type="number" id="oi_sl_percent" class="form-input" value="1" min="0.1" max="25" step="0.1">
+                        <input type="number" id="oi_sl_percent" class="form-input" value="3" min="0.1" max="25" step="0.1">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Min OI Change %</label>
-                        <input type="number" id="oi_min_oi_change" class="form-input" value="5" min="1" max="50">
+                        <label class="form-label">Order Type</label>
+                        <select id="oi_order_type" class="form-select">
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Min Price Change %</label>
-                        <input type="number" id="oi_min_price_change" class="form-input" value="1" min="0.1" max="10" step="0.1">
+                        <label class="form-label">Direction</label>
+                        <select id="oi_direction" class="form-select">
+                            <option value="all">ALL</option>
+                            <option value="long">LONG Only</option>
+                            <option value="short">SHORT Only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="strategy-atr-section">
+                    <div class="strategy-enable">
+                        <div class="toggle-label">
+                            <span>ATR Trailing Stop</span>
+                            <small>Dynamic stop-loss based on volatility</small>
+                        </div>
+                        <div class="toggle" id="toggle_oi_use_atr" onclick="toggleStrategyATR('oi')"></div>
+                    </div>
+                    <div class="form-grid strategy-params atr-params">
+                        <div class="form-group">
+                            <label class="form-label">ATR Periods</label>
+                            <input type="number" id="oi_atr_periods" class="form-input" value="7" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Multiplier SL</label>
+                            <input type="number" id="oi_atr_multiplier_sl" class="form-input" value="1.0" min="0.1" max="5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ATR Trigger %</label>
+                            <input type="number" id="oi_atr_trigger_pct" class="form-input" value="2.0" min="0.1" max="10" step="0.1">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1433,6 +1658,16 @@
                 
                 // Update params
                 for (const [key, value] of Object.entries(data.params || {})) {
+                    // Handle ATR toggle specially
+                    if (key === 'use_atr') {
+                        const atrToggle = document.getElementById(`toggle_${strategy}_use_atr`);
+                        if (atrToggle) {
+                            updateToggle(`toggle_${strategy}_use_atr`, value);
+                            updateATRParamsState(strategy, value);
+                        }
+                        continue;
+                    }
+                    
                     const input = document.getElementById(`${strategy}_${key}`);
                     if (input) {
                         if (input.tagName === 'SELECT' && input.multiple) {
@@ -1440,11 +1675,27 @@
                             Array.from(input.options).forEach(opt => {
                                 opt.selected = Array.isArray(value) && value.includes(opt.value);
                             });
+                        } else if (input.tagName === 'SELECT') {
+                            input.value = value || input.options[0]?.value;
                         } else {
-                            input.value = value;
+                            input.value = value !== null && value !== undefined ? value : input.defaultValue;
                         }
                     }
                 }
+            }
+        }
+        
+        function toggleStrategyATR(strategy) {
+            const toggle = document.getElementById(`toggle_${strategy}_use_atr`);
+            toggle.classList.toggle('active');
+            const isActive = toggle.classList.contains('active');
+            updateATRParamsState(strategy, isActive);
+        }
+        
+        function updateATRParamsState(strategy, active) {
+            const atrParams = document.querySelector(`#strategy-${strategy} .atr-params`);
+            if (atrParams) {
+                atrParams.classList.toggle('active', active);
             }
         }
         
@@ -1465,6 +1716,7 @@
             const params = {};
             const prefix = `${strategy}_`;
             
+            // Collect from input fields
             document.querySelectorAll(`#strategy-${strategy} .form-input, #strategy-${strategy} .form-select`).forEach(input => {
                 if (input.id.startsWith(prefix)) {
                     const key = input.id.replace(prefix, '');
@@ -1477,6 +1729,12 @@
                     }
                 }
             });
+            
+            // Check for ATR toggle
+            const atrToggle = document.getElementById(`toggle_${strategy}_use_atr`);
+            if (atrToggle) {
+                params.use_atr = atrToggle.classList.contains('active');
+            }
             
             try {
                 const res = await fetch(`/api/users/strategy-settings/${strategy}`, {
@@ -1532,6 +1790,12 @@
                     }
                 }
             });
+            
+            // Check for ATR toggle
+            const atrToggle = document.getElementById(`toggle_${strategy}_use_atr`);
+            if (atrToggle) {
+                params.use_atr = atrToggle.classList.contains('active');
+            }
             
             const targets = [
                 { exchange: 'bybit', account_type: 'demo' },

@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Nedostatečný zůstatek!</b>\n\n💰 Na vašem {account_type} účtu není dostatek prostředků k otevření této pozice.\n\n<b>Řešení:</b>\n• Dobijte zůstatek\n• Zmenšete velikost pozice (% na obchod)\n• Snižte páku\n• Zavřete některé otevřené pozice',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Příliš vysoká páka!</b>\n\n⚙️ Vaše nakonfigurovaná páka překračuje maximum povolené pro tento symbol.\n\n<b>Maximálně povoleno:</b> {max_leverage}x\n\n<b>Řešení:</b> Přejděte do nastavení strategie a snižte páku.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit chyba: {msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 Limitní žebřík',

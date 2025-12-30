@@ -329,11 +329,10 @@ class TestStrategyTradeParamsIntegration:
     """Test that strategy settings are properly used in trading flow."""
     
     @pytest.fixture(autouse=True)
-    def setup_db(self, tmp_path):
-        """Setup temp database for tests."""
-        import db
-        # Use the existing test database from conftest
-        db.init_db()
+    def setup_db(self, test_db):
+        """Setup temp database for tests. Uses test_db fixture from conftest.py."""
+        # test_db fixture already sets up the database schema
+        pass
     
     def test_get_strategy_settings_returns_all_fields(self):
         """get_strategy_settings should return all defined fields."""
@@ -420,10 +419,10 @@ class TestGetStrategyTradeParams:
     """Test get_strategy_trade_params function properly applies settings."""
     
     @pytest.fixture(autouse=True)
-    def setup_db(self, tmp_path):
-        """Setup temp database for tests."""
-        import db
-        db.init_db()
+    def setup_db(self, test_db):
+        """Setup temp database for tests. Uses test_db fixture from conftest.py."""
+        # test_db fixture already sets up the database schema
+        pass
     
     def test_side_specific_percent_applied(self):
         """Should use side-specific percent when available."""

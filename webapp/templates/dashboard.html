@@ -516,6 +516,93 @@
             position: relative;
         }
         
+        /* Strategy Performance Styles */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        
+        .strategy-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .strategy-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+        
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .strategy-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .strategy-name .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .strategy-pnl {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .strategy-metric {
+            text-align: center;
+        }
+        
+        .strategy-metric .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .strategy-metric .value {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .strategy-top-symbols {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .top-symbol {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 4px 0;
+        }
+        
         /* Positions Table */
         .positions-section {
             margin-bottom: 32px;
@@ -1362,6 +1449,56 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Strategy Performance Section -->
+            <div class="strategy-section" style="margin-top: 24px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-chart-line" style="margin-right: 8px;"></i>Strategy Performance</h3>
+                        <div class="card-actions">
+                            <select id="strategyPeriod" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-size: 0.875rem;">
+                                <option value="7d">7 Days</option>
+                                <option value="30d" selected>30 Days</option>
+                                <option value="90d">90 Days</option>
+                                <option value="all">All Time</option>
+                            </select>
+                            <button class="card-btn" onclick="loadStrategyReport()"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="strategyReportContainer">
+                            <div class="strategy-grid" id="strategyGrid">
+                                <!-- Strategy cards will be loaded here -->
+                                <div class="loading-placeholder" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                                    <p>Loading strategy performance...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="strategy-summary" id="strategySummary" style="margin-top: 20px; display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                                    <div class="summary-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 12px; text-align: center;">
+                                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px;">Total Trades</div>
+                                        <div id="totalTradesCount" style="font-size: 1.5rem; font-weight: 700;">-</div>
+                                    </div>
+                                    <div class="summary-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 12px; text-align: center;">
+                                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px;">Win Rate</div>
+                                        <div id="overallWinRate" style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);">-</div>
+                                    </div>
+                                    <div class="summary-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 12px; text-align: center;">
+                                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px;">Total PnL</div>
+                                        <div id="totalPnL" style="font-size: 1.5rem; font-weight: 700;">-</div>
+                                    </div>
+                                    <div class="summary-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 12px; text-align: center;">
+                                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px;">Best Strategy</div>
+                                        <div id="bestStrategy" style="font-size: 1rem; font-weight: 600; color: var(--accent-primary);">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
     
@@ -1745,10 +1882,129 @@
             return Math.floor(diff / 86400) + ' days ago';
         }
         
+        // Strategy Report Functions
+        async function loadStrategyReport() {
+            const period = document.getElementById('strategyPeriod')?.value || '30d';
+            const container = document.getElementById('strategyGrid');
+            const summary = document.getElementById('strategySummary');
+            
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="loading-placeholder" style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px;"></i>
+                    <p>Loading strategy performance...</p>
+                </div>
+            `;
+            
+            try {
+                const params = new URLSearchParams({
+                    exchange: currentExchange,
+                    period: period
+                });
+                
+                const res = await fetch(`/api/stats/strategy-report?${params}`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                
+                if (!data.success || !data.strategies?.length) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+                            <i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                            <p>No strategy data available for this period</p>
+                            <p style="font-size: 0.8rem; margin-top: 8px;">Start trading to see your strategy performance</p>
+                        </div>
+                    `;
+                    if (summary) summary.style.display = 'none';
+                    return;
+                }
+                
+                // Strategy color mapping
+                const strategyColors = {
+                    'elcaro': { bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', icon: '🚀' },
+                    'scryptomera': { bg: 'linear-gradient(135deg, #22c55e, #16a34a)', icon: '📰' },
+                    'scalper': { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', icon: '⚡' },
+                    'wyckoff': { bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', icon: '📊' },
+                    'manual': { bg: 'linear-gradient(135deg, #64748b, #475569)', icon: '🎯' }
+                };
+                
+                // Render strategy cards
+                container.innerHTML = data.strategies.map(strat => {
+                    const colors = strategyColors[strat.name.toLowerCase()] || strategyColors['manual'];
+                    const pnlClass = strat.pnl >= 0 ? 'positive' : 'negative';
+                    const pnlSign = strat.pnl >= 0 ? '+' : '';
+                    
+                    return `
+                        <div class="strategy-card">
+                            <div class="strategy-header">
+                                <div class="strategy-name">
+                                    <div class="icon" style="background: ${colors.bg};">${colors.icon}</div>
+                                    <span>${strat.display_name}</span>
+                                </div>
+                                <div class="strategy-pnl pnl ${pnlClass}">${pnlSign}$${strat.pnl.toLocaleString()}</div>
+                            </div>
+                            <div class="strategy-metrics">
+                                <div class="strategy-metric">
+                                    <div class="label">Trades</div>
+                                    <div class="value">${strat.trades}</div>
+                                </div>
+                                <div class="strategy-metric">
+                                    <div class="label">Win Rate</div>
+                                    <div class="value" style="color: ${strat.win_rate >= 50 ? 'var(--accent-green)' : 'var(--accent-red)'}">${strat.win_rate}%</div>
+                                </div>
+                                <div class="strategy-metric">
+                                    <div class="label">Profit Factor</div>
+                                    <div class="value" style="color: ${strat.profit_factor >= 1 ? 'var(--accent-green)' : 'var(--accent-red)'}">${strat.profit_factor}</div>
+                                </div>
+                            </div>
+                            ${strat.top_symbols?.length ? `
+                                <div class="strategy-top-symbols">
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px;">TOP SYMBOLS</div>
+                                    ${strat.top_symbols.slice(0, 3).map(s => `
+                                        <div class="top-symbol">
+                                            <span>${s.symbol}</span>
+                                            <span class="pnl ${s.pnl >= 0 ? 'positive' : 'negative'}">${s.pnl >= 0 ? '+' : ''}$${s.pnl}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+                // Update summary
+                if (summary && data.totals) {
+                    summary.style.display = 'block';
+                    document.getElementById('totalTradesCount').textContent = data.totals.total_trades;
+                    document.getElementById('overallWinRate').textContent = data.totals.overall_win_rate + '%';
+                    const pnlEl = document.getElementById('totalPnL');
+                    pnlEl.textContent = (data.totals.total_pnl >= 0 ? '+' : '') + '$' + data.totals.total_pnl.toLocaleString();
+                    pnlEl.style.color = data.totals.total_pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                    document.getElementById('bestStrategy').textContent = (data.totals.best_strategy || 'N/A').replace('_', ' ').toUpperCase();
+                }
+                
+                console.log('✅ Strategy report loaded:', data);
+            } catch (e) {
+                console.error('❌ Strategy report error:', e);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; color: var(--accent-red);"></i>
+                        <p>Failed to load strategy report</p>
+                        <button onclick="loadStrategyReport()" style="margin-top: 12px; padding: 8px 16px; background: var(--accent-primary); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
         // Initialize on load
         document.addEventListener('DOMContentLoaded', async () => {
             await initAuth();
             await loadDashboardData();
+            await loadStrategyReport();
+            
+            // Period change handler
+            document.getElementById('strategyPeriod')?.addEventListener('change', loadStrategyReport);
         });
         
         // Portfolio Chart

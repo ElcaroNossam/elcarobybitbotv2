@@ -112,9 +112,12 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             hl_wallet_address TEXT,
             hl_testnet INTEGER DEFAULT 0,
             hl_enabled INTEGER DEFAULT 0,
+            -- Exchange mode
+            exchange_mode TEXT DEFAULT 'bybit',
             -- License
             license_type TEXT DEFAULT 'free',
             license_expires INTEGER,
+            is_lifetime INTEGER DEFAULT 0,
             -- Access control
             is_banned INTEGER DEFAULT 0,
             is_allowed INTEGER DEFAULT 0,
@@ -122,7 +125,8 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             guide_sent INTEGER DEFAULT 0,
             -- Timestamps
             first_seen_ts INTEGER,
-            last_seen_ts INTEGER
+            last_seen_ts INTEGER,
+            created_at DATETIME DEFAULT (CURRENT_TIMESTAMP)
         )
     """)
     
@@ -229,6 +233,7 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             order_type TEXT DEFAULT 'market',
             coins_group TEXT,
             direction TEXT DEFAULT 'all',
+            trading_mode TEXT DEFAULT 'all',
             
             -- Side-specific settings for LONG
             long_percent REAL,
@@ -254,10 +259,130 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
         )
     """)
     
+    # Custom strategies table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custom_strategies (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id         INTEGER NOT NULL,
+            name            TEXT NOT NULL,
+            description     TEXT,
+            strategy_type   TEXT DEFAULT 'custom',
+            config          TEXT,
+            is_active       INTEGER DEFAULT 1,
+            is_public       INTEGER DEFAULT 0,
+            marketplace_id  INTEGER,
+            performance_stats TEXT,
+            win_rate        REAL DEFAULT 0,
+            total_pnl       REAL DEFAULT 0,
+            total_trades    INTEGER DEFAULT 0,
+            backtest_score  REAL DEFAULT 0,
+            created_at      INTEGER,
+            updated_at      INTEGER,
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Strategy marketplace
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS strategy_marketplace (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            strategy_id     INTEGER NOT NULL,
+            seller_id       INTEGER NOT NULL,
+            name            TEXT NOT NULL,
+            description     TEXT,
+            price_stars     INTEGER NOT NULL DEFAULT 100,
+            price_ton       REAL NOT NULL DEFAULT 1.0,
+            preview_config  TEXT,
+            category        TEXT DEFAULT 'general',
+            tags            TEXT,
+            rating          REAL DEFAULT 0,
+            rating_count    INTEGER DEFAULT 0,
+            total_sales     INTEGER DEFAULT 0,
+            total_revenue   REAL DEFAULT 0,
+            is_active       INTEGER DEFAULT 1,
+            featured        INTEGER DEFAULT 0,
+            created_at      INTEGER NOT NULL,
+            FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+            FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Strategy purchases
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS strategy_purchases (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            buyer_id        INTEGER NOT NULL,
+            marketplace_id  INTEGER NOT NULL,
+            strategy_id     INTEGER NOT NULL,
+            seller_id       INTEGER NOT NULL,
+            amount_paid     REAL NOT NULL,
+            currency        TEXT NOT NULL,
+            seller_share    REAL NOT NULL,
+            platform_share  REAL NOT NULL,
+            is_active       INTEGER DEFAULT 1,
+            purchased_at    INTEGER NOT NULL,
+            FOREIGN KEY(buyer_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
+            FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+            FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Strategy ratings
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS strategy_ratings (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            marketplace_id  INTEGER NOT NULL,
+            user_id         INTEGER NOT NULL,
+            rating          INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            review          TEXT,
+            created_at      INTEGER NOT NULL,
+            FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            UNIQUE(marketplace_id, user_id)
+        )
+    """)
+    
+    # Seller payouts
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS seller_payouts (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            seller_id       INTEGER NOT NULL,
+            amount          REAL NOT NULL,
+            currency        TEXT NOT NULL,
+            status          TEXT DEFAULT 'pending',
+            tx_hash         TEXT,
+            requested_at    INTEGER NOT NULL,
+            processed_at    INTEGER,
+            FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Top strategies
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS top_strategies (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            strategy_type   TEXT NOT NULL,
+            strategy_id     INTEGER,
+            strategy_name   TEXT NOT NULL,
+            win_rate        REAL DEFAULT 0,
+            total_pnl       REAL DEFAULT 0,
+            total_trades    INTEGER DEFAULT 0,
+            sharpe_ratio    REAL DEFAULT 0,
+            max_drawdown    REAL DEFAULT 0,
+            rank            INTEGER,
+            config_json     TEXT,
+            updated_at      INTEGER NOT NULL
+        )
+    """)
+    
     # Create indexes like production
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_flags ON users(is_banned, is_allowed)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_custom_strategies_user ON custom_strategies(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON strategy_marketplace(seller_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_payouts_seller ON seller_payouts(seller_id)")
     
     conn.commit()
     

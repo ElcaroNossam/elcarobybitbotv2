@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Unzureichendes Guthaben!</b>\n\n💰 Nicht genügend Guthaben auf Ihrem {account_type}-Konto, um diese Position zu eröffnen.\n\n<b>Lösungen:</b>\n• Guthaben aufladen\n• Positionsgröße reduzieren (% pro Trade)\n• Hebel verringern\n• Einige offene Positionen schließen',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Hebel zu hoch!</b>\n\n⚙️ Ihr konfigurierter Hebel überschreitet das Maximum für dieses Symbol.\n\n<b>Maximal erlaubt:</b> {max_leverage}x\n\n<b>Lösung:</b> Gehen Sie zu den Strategieeinstellungen und reduzieren Sie den Hebel.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Limit Einstieg*\n• {symbol} {side}\n• Preis: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit Fehler: {msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 Limit-Leiter',

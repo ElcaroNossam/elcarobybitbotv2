@@ -261,6 +261,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>余额不足！</b>\n\n💰 您的{account_type}账户余额不足以开设此仓位。\n\n<b>解决方案：</b>\n• 充值余额\n• 减少仓位大小（每笔交易的%）\n• 降低杠杆\n• 关闭部分持仓',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>杠杆过高！</b>\n\n⚙️ 您配置的杠杆超过了该品种允许的最大值。\n\n<b>最大允许:</b> {max_leverage}x\n\n<b>解决方案:</b> 前往策略设置并降低杠杆。',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper 限价错误：{msg}',
@@ -703,6 +711,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 限价梯子',

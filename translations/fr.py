@@ -261,6 +261,12 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Solde insuffisant!</b>\n\n💰 Le solde de votre compte {account_type} est insuffisant pour ouvrir cette position.\n\n<b>Solutions:</b>\n• Recharger votre solde\n• Réduire la taille de position (% par trade)\n• Réduire l\'effet de levier\n• Fermer certaines positions ouvertes',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Effet de levier trop élevé!</b>\n\n⚙️ Votre effet de levier dépasse le maximum autorisé pour ce symbole.\n\n<b>Maximum autorisé:</b> {max_leverage}x\n\n<b>Solution:</b> Allez dans les paramètres de stratégie et réduisez l\'effet de levier.',
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit erreur: {msg}',
@@ -703,6 +709,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 Échelle limite',

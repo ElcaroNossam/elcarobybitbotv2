@@ -262,6 +262,14 @@ TEXTS = {
     'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
+    # Insufficient balance error
+    'insufficient_balance_error':  '❌ <b>Nepakankamas balansas!</b>\n\n💰 Jūsų {account_type} paskyroje nepakanka lėšų šiai pozicijai atidaryti.\n\n<b>Sprendimai:</b>\n• Papildykite balansą\n• Sumažinkite pozicijos dydį (% per sandorį)\n• Sumažinkite svertą\n• Uždarykite kai kurias atidarytas pozicijas',
+
+    # Leverage too high error
+    'leverage_too_high_error':     '❌ <b>Svertas per didelis!</b>\n\n⚙️ Jūsų nustatytas svertas viršija maksimalų leidžiamą šiam simboliui.\n\n<b>Maksimalus leidžiamas:</b> {max_leverage}x\n\n<b>Sprendimas:</b> Eikite į strategijos nustatymus ir sumažinkite svertą.',
+    
+
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit klaida: {msg}',
@@ -704,6 +712,8 @@ TEXTS = {
 
     # Scryptomera feature
     'feature_scryptomera': 'Scryptomera',
+    
+
 
     # Limit Ladder
     'limit_ladder': '📉 Limitų kopetlės',
