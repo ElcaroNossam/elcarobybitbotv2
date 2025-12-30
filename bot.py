@@ -10923,6 +10923,11 @@ async def monitor_positions_loop(app: Application):
                         open_positions = await fetch_open_positions(uid, account_type=current_account_type)
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
                         active = get_active_positions(uid, account_type=current_account_type)
+                        
+                        # Debug for specific user
+                        if uid == 511692487:
+                            logger.info(f"[FETCH-DEBUG] uid={uid} acc={current_account_type} open_positions={len(open_positions)} active={len(active)}")
+                        
                         existing_syms = {ap["symbol"] for ap in active}
                         tf_map = {ap['symbol']: ap.get('timeframe', '24h') for ap in active}
                         now = int(time.time())
