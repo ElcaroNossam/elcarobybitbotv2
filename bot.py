@@ -10910,10 +10910,6 @@ async def monitor_positions_loop(app: Application):
                         account_types_to_check = [tgt.account_type for tgt in user_targets]
                         user_trading_mode = account_types_to_check[0] if account_types_to_check else "demo"
                     
-                    # Debug: log for specific user
-                    if uid == 511692487:
-                        logger.info(f"[MONITOR-DEBUG] uid={uid} account_types_to_check={account_types_to_check}")
-                    
                     # Process EACH account type for this user (supports trading_mode="both")
                     for current_account_type in account_types_to_check:
                         # Get previous symbols to avoid duplicate notifications
@@ -10923,10 +10919,6 @@ async def monitor_positions_loop(app: Application):
                         open_positions = await fetch_open_positions(uid, account_type=current_account_type)
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
                         active = get_active_positions(uid, account_type=current_account_type)
-                        
-                        # Debug for specific user
-                        if uid == 511692487:
-                            logger.info(f"[FETCH-DEBUG] uid={uid} acc={current_account_type} open_positions={len(open_positions)} active={len(active)}")
                         
                         existing_syms = {ap["symbol"] for ap in active}
                         tf_map = {ap['symbol']: ap.get('timeframe', '24h') for ap in active}
@@ -11093,15 +11085,7 @@ async def monitor_positions_loop(app: Application):
                                     t['new_position'].format(symbol=sym, entry=entry, size=size)
                                 )
 
-                        # Debug: log position processing completion
-                        if uid == 511692487:
-                            logger.info(f"[POSITIONS-LOOP-DONE] uid={uid} acc={current_account_type} open_positions processed, raw_sl={raw_sl if 'raw_sl' in dir() else 'NOT_SET'}")
-
                         if raw_sl in (None, "", "0", 0):
-                            # Debug
-                            if uid == 511692487:
-                                logger.info(f"[SL-BLOCK] uid={uid} acc={current_account_type} entered raw_sl block for sym={sym}")
-                            
                             # Get strategy: for new positions use detected_strategy,
                             # for existing positions get from active_positions table
                             if detected_strategy:
@@ -11121,10 +11105,6 @@ async def monitor_positions_loop(app: Application):
                                 pos_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
                             else:
                                 pos_use_atr = use_atr
-                            
-                            # Debug
-                            if uid == 511692487:
-                                logger.info(f"[ATR-CHECK] uid={uid} acc={current_account_type} sym={sym} strategy={strategy} pos_use_atr={pos_use_atr} use_atr={use_atr}")
                             
                             # Use strategy-aware SL/TP resolution WITH side for Scryptomera/Scalper
                             sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=strategy, user_id=uid, side=side)
@@ -11219,15 +11199,7 @@ async def monitor_positions_loop(app: Application):
                                         if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                             kwargs["tp_price"] = tp_price
                                     try:
-                                        # Debug
-                                        if uid == 511692487:
-                                            logger.info(f"[SET-STOP] uid={uid} calling set_trading_stop for sym={sym} kwargs={kwargs}")
-                                        
                                         result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                        
-                                        # Debug
-                                        if uid == 511692487:
-                                            logger.info(f"[SET-STOP-RESULT] uid={uid} result={result}")
                                         
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
@@ -11254,14 +11226,8 @@ async def monitor_positions_loop(app: Application):
                                                 t['sl_set_only'].format(symbol=sym, sl_price=sl_price)
                                             )
                                 else:
-                                    # Debug
-                                    if uid == 511692487:
-                                        logger.info(f"[ATR-ELSE] uid={uid} acc={current_account_type} entering ATR else block for sym={sym}")
                                     try:
                                         result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
-                                        # Debug
-                                        if uid == 511692487:
-                                            logger.info(f"[ATR-ELSE-RESULT] uid={uid} result={result}")
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
                                             move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
@@ -11277,24 +11243,11 @@ async def monitor_positions_loop(app: Application):
                                     if should_notify:
                                         _sl_notified[sl_notify_key] = now
                                         await bot.send_message(uid, t['sl_auto_set'].format(price=sl_price))
-                                    
-                                    # Debug
-                                    if uid == 511692487:
-                                        logger.info(f"[ATR-DONE] uid={uid} acc={current_account_type} ATR block completed")
                             except Exception as e:
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
 
-                        # Debug: ALWAYS log cleanup point for user 511692487
-                        if uid == 511692487:
-                            logger.info(f"[PRE-CLEANUP] uid={uid} acc={current_account_type} reached cleanup block")
-
                         active = get_active_positions(uid, account_type=current_account_type)
-                    
-                        # Debug log for position cleanup
-                        if uid == 511692487:
-                            db_syms = {ap["symbol"] for ap in active}
-                            logger.info(f"[CLEANUP-DEBUG] uid={uid} acc={current_account_type} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
 
                         for ap in active:
                             sym = ap["symbol"]
