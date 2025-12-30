@@ -1587,20 +1587,12 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if action == "back_to_strategies":
         # Return to strategies menu
         cfg = get_user_config(uid)
+        active_exchange = db.get_exchange_type(uid) or "bybit"
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
             strat_settings_data = db.get_strategy_settings(uid, strat_key)
-            status_parts = []
-            pct = strat_settings_data.get("percent")
-            sl = strat_settings_data.get("sl_percent")
-            tp = strat_settings_data.get("tp_percent")
-            if pct is not None:
-                status_parts.append(f"Entry: {pct}%")
-            if sl is not None:
-                status_parts.append(f"SL: {sl}%")
-            if tp is not None:
-                status_parts.append(f"TP: {tp}%")
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange)
             if status_parts:
                 lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
             else:
@@ -2400,6 +2392,41 @@ async def set_leverage(
         if "10001" in str(e) or "leverage invalid" in err_str:
             logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, using default")
             return False
+        # 110013: leverage exceeds maxLeverage by risk limit - try to extract and use max
+        if "110013" in str(e) or "cannot set leverage" in err_str or "maxleverage" in err_str:
+            # Try to extract maxLeverage from error message: "gt maxLeverage [500]"
+            import re
+            match = re.search(r'maxLeverage\s*\[(\d+)\]', str(e))
+            if match:
+                max_lev = int(match.group(1))
+                logger.warning(f"[{user_id}] Leverage {leverage}x exceeds max {max_lev}x for {symbol}, using max")
+                if max_lev != leverage:
+                    # Retry with max leverage
+                    body["buyLeverage"] = str(max_lev)
+                    body["sellLeverage"] = str(max_lev)
+                    try:
+                        await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
+                        _leverage_cache[cache_key] = max_lev
+                        logger.info(f"[{user_id}] Leverage for {symbol} set to max {max_lev}x [{account_type or 'auto'}]")
+                        return True
+                    except Exception as e2:
+                        logger.warning(f"[{user_id}] Failed to set max leverage for {symbol}: {e2}")
+                        return False
+            else:
+                # Can't extract max, try common values: 100, 50, 25, 10
+                for fallback_lev in [100, 50, 25, 10]:
+                    if fallback_lev < leverage:
+                        try:
+                            body["buyLeverage"] = str(fallback_lev)
+                            body["sellLeverage"] = str(fallback_lev)
+                            await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
+                            _leverage_cache[cache_key] = fallback_lev
+                            logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
+                            return True
+                        except Exception:
+                            continue
+                logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
+                return False
         raise
 
 def _calc_pnl(entry: float, exit_: float, side: str, size: float) -> tuple[float, float]:
@@ -3847,9 +3874,9 @@ async def place_order(
     except RuntimeError as e:
         msg = str(e).lower()
 
-        # Денег нет — сразу human-readable ошибка
-        if "insufficient" in msg or "balance" in msg:
-            raise ValueError("Insufficient funds to place the order.")
+        # Денег нет — сразу human-readable ошибка (110007: ab not enough, insufficient balance)
+        if "insufficient" in msg or "balance" in msg or "110007" in msg or "ab not enough" in msg:
+            raise ValueError("INSUFFICIENT_BALANCE")
 
         # Неправильный position mode — меняем и ретраим
         if "position idx not match position mode" in msg:
@@ -3859,10 +3886,18 @@ async def place_order(
             logger.info(f"{symbol}: retry with alt position mode {alt_mode}")
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
-        # Ошибка кредитного плеча — выставим 10x и ретраим
+        # Ошибка кредитного плеча — пытаемся извлечь maxLeverage из ошибки или используем 10x
         elif "110013" in msg or "cannot set leverage" in msg:
-            logger.info(f"{symbol}: leverage error → set 10x and retry")
-            await set_leverage(user_id, symbol, leverage=10, account_type=account_type)
+            # Try to extract maxLeverage from error message: "gt maxLeverage [500]"
+            import re
+            match = re.search(r'maxLeverage\s*\[(\d+)\]', str(e))
+            if match:
+                max_lev = int(match.group(1))
+                logger.info(f"{symbol}: leverage error → set max {max_lev}x and retry")
+                await set_leverage(user_id, symbol, leverage=max_lev, account_type=account_type)
+            else:
+                logger.info(f"{symbol}: leverage error → set 10x and retry")
+                await set_leverage(user_id, symbol, leverage=10, account_type=account_type)
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
         # Ошибка 110090 - позиция превышает лимит, нужно снизить плечо до 45 или ниже
@@ -4237,6 +4272,73 @@ async def cmd_toggle_fibonacci(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ------------------------------------------------------------------------------------
 # Strategy Settings with Inline Keyboard
 # ------------------------------------------------------------------------------------
+
+def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_exchange: str = "bybit") -> list:
+    """
+    Build status parts list for a strategy based on its settings.
+    Used consistently across all menus to show strategy customizations.
+    """
+    status_parts = []
+    
+    pct = strat_settings.get("percent")
+    sl = strat_settings.get("sl_percent")
+    tp = strat_settings.get("tp_percent")
+    atr_per = strat_settings.get("atr_periods")
+    atr_mult = strat_settings.get("atr_multiplier_sl")
+    atr_trig = strat_settings.get("atr_trigger_pct")
+    use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
+    mode = strat_settings.get("trading_mode", "global")
+    if mode == "all":
+        mode = "global"  # Normalize legacy value
+    
+    # Exchange-aware mode text
+    if active_exchange == "hyperliquid":
+        mode_text = {"testnet": "Testnet", "mainnet": "Mainnet", "both": "Both", "global": "Global", "demo": "Testnet", "real": "Mainnet"}.get(mode, "Global")
+    else:
+        mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global", "testnet": "Demo", "mainnet": "Real"}.get(mode, "Global")
+    
+    # For scryptomera and scalper, show side-specific or direction info
+    if strat_key in ("scryptomera", "scalper"):
+        direction = strat_settings.get("direction", "all")
+        dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
+        status_parts.append(f"{dir_emoji}")
+        
+        # Check for side-specific settings
+        l_pct = strat_settings.get("long_percent")
+        l_sl = strat_settings.get("long_sl_percent")
+        s_pct = strat_settings.get("short_percent")
+        s_sl = strat_settings.get("short_sl_percent")
+        
+        if l_pct is not None or l_sl is not None:
+            status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
+        if s_pct is not None or s_sl is not None:
+            status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
+    else:
+        # General settings for other strategies
+        if pct is not None:
+            status_parts.append(f"Entry: {pct}%")
+        if sl is not None:
+            status_parts.append(f"SL: {sl}%")
+        if tp is not None:
+            status_parts.append(f"TP: {tp}%")
+    
+    # ATR status (show if customized per strategy)
+    if use_atr is not None:
+        atr_emoji = "📊" if use_atr else "📉"
+        status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
+    
+    if atr_per is not None:
+        status_parts.append(f"ATR: {atr_per}p")
+    if atr_mult is not None:
+        status_parts.append(f"Mult: {atr_mult}")
+    if atr_trig is not None:
+        status_parts.append(f"Trig: {atr_trig}%")
+    if mode != "global":
+        status_parts.append(f"Mode: {mode_text}")
+    
+    return status_parts
+
+
 STRATEGY_NAMES_MAP = {
     "oi": "OI",
     "rsi_bb": "RSI+BB",
@@ -4437,6 +4539,9 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
         if uid:
             strat_settings = db.get_strategy_settings(uid, strategy, active_exchange, account_type)
             mode = strat_settings.get("trading_mode", "global")
+            # Normalize "all" to "global" for backwards compatibility
+            if mode == "all":
+                mode = "global"
         else:
             mode = "global"
         
@@ -4781,6 +4886,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show strategy settings menu."""
     uid = update.effective_user.id
     cfg = get_user_config(uid)
+    active_exchange = db.get_exchange_type(uid) or "bybit"
     
     # Build status message
     lines = [ctx.t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
@@ -4788,57 +4894,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
         strat_settings = db.get_strategy_settings(uid, strat_key)
-        pct = strat_settings.get("percent")
-        sl = strat_settings.get("sl_percent")
-        tp = strat_settings.get("tp_percent")
-        atr_per = strat_settings.get("atr_periods")
-        atr_mult = strat_settings.get("atr_multiplier_sl")
-        atr_trig = strat_settings.get("atr_trigger_pct")
-        use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
-        mode = strat_settings.get("trading_mode", "global")
-        mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
-        
-        status_parts = []
-        
-        # For scryptomera and scalper, show side-specific or direction info
-        if strat_key in ("scryptomera", "scalper"):
-            direction = strat_settings.get("direction", "all")
-            dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-            status_parts.append(f"{dir_emoji}")
-            
-            # Check for side-specific settings
-            l_pct = strat_settings.get("long_percent")
-            l_sl = strat_settings.get("long_sl_percent")
-            s_pct = strat_settings.get("short_percent")
-            s_sl = strat_settings.get("short_sl_percent")
-            
-            if l_pct is not None or l_sl is not None:
-                status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
-            if s_pct is not None or s_sl is not None:
-                status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
-        else:
-            # General settings for other strategies
-            if pct is not None:
-                status_parts.append(f"Entry: {pct}%")
-            if sl is not None:
-                status_parts.append(f"SL: {sl}%")
-            if tp is not None:
-                status_parts.append(f"TP: {tp}%")
-        
-        # ATR status (show if customized per strategy)
-        if use_atr is not None:
-            atr_emoji = "📊" if use_atr else "📉"
-            status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
-        
-        if atr_per is not None:
-            status_parts.append(f"ATR: {atr_per}p")
-        if atr_mult is not None:
-            status_parts.append(f"Mult: {atr_mult}")
-        if atr_trig is not None:
-            status_parts.append(f"Trig: {atr_trig}%")
-        if mode != "global":
-            status_parts.append(f"Mode: {mode_text}")
-        
+        status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
         if status_parts:
             lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
         else:
@@ -4978,7 +5034,7 @@ async def _show_ladder_settings_menu(query, uid: int, t: dict):
 async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle strategy settings inline button callbacks."""
     query = update.callback_query
-    await query.answer()
+    # Note: Don't call query.answer() here - each handler will answer with appropriate message
     
     uid = query.from_user.id
     data = query.data
@@ -4987,67 +5043,19 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     t = LANGS.get(lang, LANGS[DEFAULT_LANG])
     
     if data == "strat_set:close":
+        await query.answer()
         await query.message.delete()
         return
     
     if data == "strat_set:back":
         # Rebuild main strategy menu
+        active_exchange = db.get_exchange_type(uid) or "bybit"
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         
         for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
             strat_settings = db.get_strategy_settings(uid, strat_key)
-            pct = strat_settings.get("percent")
-            sl = strat_settings.get("sl_percent")
-            tp = strat_settings.get("tp_percent")
-            atr_per = strat_settings.get("atr_periods")
-            atr_mult = strat_settings.get("atr_multiplier_sl")
-            atr_trig = strat_settings.get("atr_trigger_pct")
-            use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
-            mode = strat_settings.get("trading_mode", "global")
-            mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global"}.get(mode, "Global")
-            
-            status_parts = []
-            
-            # For scryptomera and scalper, show side-specific or direction info
-            if strat_key in ("scryptomera", "scalper"):
-                direction = strat_settings.get("direction", "all")
-                dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
-                status_parts.append(f"{dir_emoji}")
-                
-                # Check for side-specific settings
-                l_pct = strat_settings.get("long_percent")
-                l_sl = strat_settings.get("long_sl_percent")
-                s_pct = strat_settings.get("short_percent")
-                s_sl = strat_settings.get("short_sl_percent")
-                
-                if l_pct is not None or l_sl is not None:
-                    status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
-                if s_pct is not None or s_sl is not None:
-                    status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
-            else:
-                # General settings for other strategies
-                if pct is not None:
-                    status_parts.append(f"Entry: {pct}%")
-                if sl is not None:
-                    status_parts.append(f"SL: {sl}%")
-                if tp is not None:
-                    status_parts.append(f"TP: {tp}%")
-            
-            # ATR status (show if customized per strategy)
-            if use_atr is not None:
-                atr_emoji = "📊" if use_atr else "📉"
-                status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
-            
-            if atr_per is not None:
-                status_parts.append(f"ATR: {atr_per}p")
-            if atr_mult is not None:
-                status_parts.append(f"Mult: {atr_mult}")
-            if atr_trig is not None:
-                status_parts.append(f"Trig: {atr_trig}%")
-            if mode != "global":
-                status_parts.append(f"Mode: {mode_text}")
-            
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
             if status_parts:
                 lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
             else:
@@ -5062,6 +5070,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             parse_mode="Markdown",
             reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
         )
+        await query.answer()
         return
     
     if data == "strat_set:global":
@@ -5300,20 +5309,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             await query.answer(f"💹 Spot: {status}")
             
             # Refresh the strategies menu
+            active_exchange = db.get_exchange_type(uid) or "bybit"
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key)
-                status_parts = []
-                pct = strat_settings.get("percent")
-                sl = strat_settings.get("sl_percent")
-                tp = strat_settings.get("tp_percent")
-                if pct is not None:
-                    status_parts.append(f"Entry: {pct}%")
-                if sl is not None:
-                    status_parts.append(f"SL: {sl}%")
-                if tp is not None:
-                    status_parts.append(f"TP: {tp}%")
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5349,20 +5350,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             await query.answer(f"{strat_name}: {status}")
             
             # Refresh the strategies menu
+            active_exchange = db.get_exchange_type(uid) or "bybit"
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key)
-                status_parts = []
-                pct = strat_settings.get("percent")
-                sl = strat_settings.get("sl_percent")
-                tp = strat_settings.get("tp_percent")
-                if pct is not None:
-                    status_parts.append(f"Entry: {pct}%")
-                if sl is not None:
-                    status_parts.append(f"SL: {sl}%")
-                if tp is not None:
-                    status_parts.append(f"TP: {tp}%")
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5383,6 +5376,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     # HyperLiquid: global -> testnet -> mainnet -> both -> global
     if data.startswith("strat_mode:"):
         strategy = data.split(":")[1]
+        logger.info(f"[STRAT_MODE] User {uid} clicked mode button for strategy: {strategy}")
         
         # Get user's active exchange
         active_exchange = db.get_exchange_type(uid) or "bybit"
@@ -5434,24 +5428,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_set = db.get_strategy_settings(uid, strat_key)
-                status_parts = []
-                pct = strat_set.get("percent")
-                sl = strat_set.get("sl_percent")
-                tp = strat_set.get("tp_percent")
-                mode = strat_set.get("trading_mode", "global")
-                # Exchange-aware mode text
-                if active_exchange == "hyperliquid":
-                    mode_text = {"testnet": "Testnet", "mainnet": "Mainnet", "both": "Both", "global": "Global", "demo": "Testnet", "real": "Mainnet"}.get(mode, "Global")
-                else:
-                    mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global", "testnet": "Demo", "mainnet": "Real"}.get(mode, "Global")
-                if pct is not None:
-                    status_parts.append(f"Entry: {pct}%")
-                if sl is not None:
-                    status_parts.append(f"SL: {sl}%")
-                if tp is not None:
-                    status_parts.append(f"TP: {tp}%")
-                if mode != "global":
-                    status_parts.append(f"Mode: {mode_text}")
+                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5470,6 +5447,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         if strategy in STRATEGY_NAMES_MAP:
             strat_settings = db.get_strategy_settings(uid, strategy)
             current_mode = strat_settings.get("trading_mode", "global")
+            # Normalize legacy "all" value to "global"
+            if current_mode == "all":
+                current_mode = "global"
             
             # Exchange-aware mode cycling
             if active_exchange == "hyperliquid":
@@ -5508,8 +5488,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             context = get_user_trading_context(uid)
             
             # Save new mode to current exchange/account context
-            db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
+            save_result = db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
                                    context["exchange"], context["account_type"])
+            logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}, saved: {save_result}")
             
             # Check credentials
             warning = ""
@@ -5543,24 +5524,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_set = db.get_strategy_settings(uid, strat_key)
-                status_parts = []
-                pct = strat_set.get("percent")
-                sl = strat_set.get("sl_percent")
-                tp = strat_set.get("tp_percent")
-                mode = strat_set.get("trading_mode", "global")
-                # Exchange-aware mode text
-                if active_exchange == "hyperliquid":
-                    mode_text = {"testnet": "Testnet", "mainnet": "Mainnet", "both": "Both", "global": "Global", "demo": "Testnet", "real": "Mainnet"}.get(mode, "Global")
-                else:
-                    mode_text = {"demo": "Demo", "real": "Real", "both": "Both", "global": "Global", "testnet": "Demo", "mainnet": "Real"}.get(mode, "Global")
-                if pct is not None:
-                    status_parts.append(f"Entry: {pct}%")
-                if sl is not None:
-                    status_parts.append(f"SL: {sl}%")
-                if tp is not None:
-                    status_parts.append(f"TP: {tp}%")
-                if mode != "global":
-                    status_parts.append(f"Mode: {mode_text}")
+                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -6651,8 +6615,8 @@ async def place_spot_order(
         return res
     except RuntimeError as e:
         msg = str(e).lower()
-        if "insufficient" in msg or "balance" in msg:
-            raise ValueError("Insufficient funds for spot order")
+        if "insufficient" in msg or "balance" in msg or "110007" in msg or "ab not enough" in msg:
+            raise ValueError("INSUFFICIENT_BALANCE")
         raise
 
 
@@ -8920,8 +8884,8 @@ async def place_limit_order(
     except RuntimeError as e:
         msg = str(e)
 
-        if "insufficient" in msg.lower() or "balance" in msg.lower():
-            raise ValueError("Don't have money.")
+        if "insufficient" in msg.lower() or "balance" in msg.lower() or "110007" in msg or "ab not enough" in msg.lower():
+            raise ValueError("INSUFFICIENT_BALANCE")
 
         if "position idx not match position mode" in msg.lower():
             alt_mode = "one_way" if mode == "hedge" else "hedge"
@@ -10111,10 +10075,29 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] scryptomera ladder error: {ladder_err}")
 
                 except Exception as e:
-                    await ctx.bot.send_message(
-                        uid,
-                        t.get('bitk_market_error', "Market error: {msg}").format(msg=str(e))
-                    )
+                    error_msg = str(e)
+                    # Проверка на недостаток баланса - показываем понятное сообщение
+                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
+                            parse_mode="HTML"
+                        )
+                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+                        # Extract max leverage from error if possible
+                        import re
+                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
+                        max_lev = match.group(1) if match else "50-100"
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('bitk_market_error', "Market error: {msg}").format(msg=error_msg)
+                        )
                 continue
 
             if scalper_trigger:
@@ -10190,10 +10173,28 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] scalper ladder error: {ladder_err}")
 
                 except Exception as e:
-                    await ctx.bot.send_message(
-                        uid,
-                        t.get('scalper_market_error', "Scalper error: {msg}").format(msg=str(e))
-                    )
+                    error_msg = str(e)
+                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
+                            parse_mode="HTML"
+                        )
+                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+                        # Extract max leverage from error if possible
+                        import re
+                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
+                        max_lev = match.group(1) if match else "50-100"
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('scalper_market_error', "Scalper error: {msg}").format(msg=error_msg)
+                        )
                 continue
 
             if elcaro_trigger:
@@ -10343,15 +10344,49 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 logger.warning(f"[{uid}] elcaro ladder error: {ladder_err}")
                             
                         except Exception as e:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=str(e))
-                            )
+                            error_msg = str(e)
+                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
+                                    parse_mode="HTML"
+                                )
+                            elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+                                import re
+                                match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
+                                max_lev = match.group(1) if match else "50-100"
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                                    parse_mode="HTML"
+                                )
+                            else:
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=error_msg)
+                                )
                 except Exception as e:
-                    await ctx.bot.send_message(
-                        uid,
-                        t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=str(e))
-                    )
+                    error_msg = str(e)
+                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
+                            parse_mode="HTML"
+                        )
+                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+                        import re
+                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
+                        max_lev = match.group(1) if match else "50-100"
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=error_msg)
+                        )
                 continue
 
             if fibonacci_trigger:

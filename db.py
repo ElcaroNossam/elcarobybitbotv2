@@ -137,7 +137,8 @@ def _col_exists(conn: sqlite3.Connection, table: str, col: str) -> bool:
     # Security: Validate table and column names against whitelists
     if table not in {'users', 'signals', 'active_positions', 'pending_limit_orders',
                       'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies',
-                      'market_snapshots', 'payment_history', 'user_achievements'}:
+                      'market_snapshots', 'payment_history', 'user_achievements',
+                      'user_strategy_settings'}:
         raise ValueError(f"Invalid table name: {table}")
     
     if not col.replace('_', '').isalnum():
@@ -414,6 +415,9 @@ def init_db():
             -- Fibonacci-specific
             min_quality     INTEGER DEFAULT 50,
             
+            -- Trading mode (per-strategy setting for this exchange/account)
+            trading_mode    TEXT DEFAULT 'global',  -- global, demo, real, both, testnet, mainnet
+            
             -- Timestamps
             created_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
             updated_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
@@ -426,6 +430,10 @@ def init_db():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
+        
+        # Migration: add trading_mode column if not exists
+        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "trading_mode"):
+            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN trading_mode TEXT DEFAULT 'global'")
 
         # ELC PURCHASES - track USDT → ELC purchases on TON
         cur.execute(
@@ -1544,6 +1552,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "order_type": "market",  # "market" or "limit"
         "coins_group": None,  # "ALL", "TOP100", "VOLATILE" or None for global
         "leverage": None,  # None = use current, or 1-100
+        "trading_mode": "global",  # "global", "demo", "real", "both"
     },
     "rsi_bb": {
         "percent": None, "sl_percent": None, "tp_percent": None,
@@ -1552,6 +1561,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
+        "trading_mode": "global",  # "global", "demo", "real", "both"
     },
     "scryptomera": {
         "percent": None, "sl_percent": None, "tp_percent": None,
@@ -1560,6 +1570,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
+        "trading_mode": "global",  # "global", "demo", "real", "both"
         # Direction filter: "all", "long", "short"
         "direction": "all",
         # Separate settings for LONG
@@ -1576,6 +1587,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "order_type": "market",
         "coins_group": None,
         "leverage": None,
+        "trading_mode": "global",  # "global", "demo", "real", "both"
         # Direction filter: "all", "long", "short"
         "direction": "all",
         # Separate settings for LONG
@@ -1591,6 +1603,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",
         "coins_group": None,
+        "trading_mode": "global",  # "global", "demo", "real", "both"
         # leverage for elcaro comes from signal, not settings
     },
     "fibonacci": {
@@ -1602,10 +1615,11 @@ DEFAULT_STRATEGY_SETTINGS = {
         "leverage": 10,  # Default leverage
         "min_quality": 50,  # Minimum quality score (0-100) to trade
         "direction": "all",  # "all", "long", "short"
+        "trading_mode": "global",  # "global", "demo", "real", "both"
     },
 }
 
-STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "manual"]
+STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "manual", "wyckoff"]
 STRATEGY_SETTING_FIELDS = [
     "percent", "sl_percent", "tp_percent",
     "tp_pct", "sl_pct",  # Aliases for compatibility
@@ -1647,7 +1661,7 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 _STRATEGY_DB_COLUMNS = [
     "enabled", "percent", "sl_percent", "tp_percent", "leverage",
     "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
-    "order_type", "coins_group", "direction",
+    "order_type", "coins_group", "direction", "trading_mode",
     "long_percent", "long_sl_percent", "long_tp_percent",
     "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct",
     "short_percent", "short_sl_percent", "short_tp_percent",
@@ -1696,7 +1710,7 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
         cur.execute("""
             SELECT enabled, percent, sl_percent, tp_percent, leverage,
                    use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
-                   order_type, coins_group, direction,
+                   order_type, coins_group, direction, trading_mode,
                    long_percent, long_sl_percent, long_tp_percent,
                    long_atr_periods, long_atr_multiplier_sl, long_atr_trigger_pct,
                    short_percent, short_sl_percent, short_tp_percent,
@@ -1725,7 +1739,7 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
                             cur.execute("""
                                 SELECT enabled, percent, sl_percent, tp_percent, leverage,
                                        use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
-                                       order_type, coins_group, direction,
+                                       order_type, coins_group, direction, trading_mode,
                                        long_percent, long_sl_percent, long_tp_percent,
                                        long_atr_periods, long_atr_multiplier_sl, long_atr_trigger_pct,
                                        short_percent, short_sl_percent, short_tp_percent,
@@ -1756,19 +1770,20 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
             "order_type": row[9] or "market",
             "coins_group": row[10],
             "direction": row[11] or "all",
-            "long_percent": row[12],
-            "long_sl_percent": row[13],
-            "long_tp_percent": row[14],
-            "long_atr_periods": row[15],
-            "long_atr_multiplier_sl": row[16],
-            "long_atr_trigger_pct": row[17],
-            "short_percent": row[18],
-            "short_sl_percent": row[19],
-            "short_tp_percent": row[20],
-            "short_atr_periods": row[21],
-            "short_atr_multiplier_sl": row[22],
-            "short_atr_trigger_pct": row[23],
-            "min_quality": row[24] if row[24] is not None else 50,
+            "trading_mode": row[12] or "global",
+            "long_percent": row[13],
+            "long_sl_percent": row[14],
+            "long_tp_percent": row[15],
+            "long_atr_periods": row[16],
+            "long_atr_multiplier_sl": row[17],
+            "long_atr_trigger_pct": row[18],
+            "short_percent": row[19],
+            "short_sl_percent": row[20],
+            "short_tp_percent": row[21],
+            "short_atr_periods": row[22],
+            "short_atr_multiplier_sl": row[23],
+            "short_atr_trigger_pct": row[24],
+            "min_quality": row[25] if row[25] is not None else 50,
         }
         return result
     finally:
