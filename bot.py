@@ -11285,517 +11285,514 @@ async def monitor_positions_loop(app: Application):
                                 if "no open positions" not in str(e).lower():
                                     logger.error(f"Errors with SL/TP for {sym}: {e}")
 
-                    # Debug: ALWAYS log cleanup point for user 511692487
-                    if uid == 511692487:
-                        logger.info(f"[PRE-CLEANUP] uid={uid} acc={current_account_type} reached cleanup block")
+                        # Debug: ALWAYS log cleanup point for user 511692487
+                        if uid == 511692487:
+                            logger.info(f"[PRE-CLEANUP] uid={uid} acc={current_account_type} reached cleanup block")
 
-                    active = get_active_positions(uid, account_type=current_account_type)
+                        active = get_active_positions(uid, account_type=current_account_type)
                     
-                    # Debug log for position cleanup
-                    if uid == 511692487:
-                        db_syms = {ap["symbol"] for ap in active}
-                        logger.info(f"[CLEANUP-DEBUG] uid={uid} acc={current_account_type} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
-                    
-                    for ap in active:
-                        sym = ap["symbol"]
-                    
-                    for ap in active:
-                        sym = ap["symbol"]
-                        ap_account_type = ap.get("account_type", "demo")
+                        # Debug log for position cleanup
+                        if uid == 511692487:
+                            db_syms = {ap["symbol"] for ap in active}
+                            logger.info(f"[CLEANUP-DEBUG] uid={uid} acc={current_account_type} DB positions: {db_syms}, Bybit positions: {open_syms}, Stale: {db_syms - open_syms}")
 
-                        if _skip_until.get((uid, sym), 0) > now:
-                            continue
+                        for ap in active:
+                            sym = ap["symbol"]
+                            ap_account_type = ap.get("account_type", "demo")
 
-                        if sym not in open_syms:
-                            logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
-                            rec = await fetch_last_closed_pnl(uid, sym)
-                            
-                            if rec is None:
-                                # No closed PnL record - clean up silently
-                                logger.debug(f"[{uid}] No closed PnL for {sym}, cleaning up")
-                                try:
-                                    remove_active_position(uid, sym, account_type=ap_account_type)
-                                    reset_pyramid(uid, sym)
-                                finally:
-                                    _atr_triggered.pop((uid, sym), None)
-                                    _sl_notified.pop((uid, sym), None)
-                                    _deep_loss_notified.pop((uid, sym), None)
+                            if _skip_until.get((uid, sym), 0) > now:
                                 continue
-                            
-                            logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
 
-                            entry_price = float(rec["avgEntryPrice"])
-                            exit_price  = float(rec["avgExitPrice"])
-                            pos_side = ap.get("side", "Buy")
+                            if sym not in open_syms:
+                                logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
+                                rec = await fetch_last_closed_pnl(uid, sym)
                             
-                            # Get strategy-specific SL/TP percentages for better detection
-                            position_strategy = ap.get("strategy")
-                            if position_strategy:
-                                strat_sl, strat_tp = resolve_sl_tp_pct(cfg, sym, strategy=position_strategy, user_id=uid, side=pos_side)
-                            else:
-                                strat_sl = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
-                                strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
-                            
-                            exit_reason, exit_order_type = await detect_exit_reason(
-                                uid, sym, 
-                                entry_price=entry_price, 
-                                exit_price=exit_price, 
-                                side=pos_side,
-                                sl_pct=strat_sl,
-                                tp_pct=strat_tp
-                            )
-                            logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type})")
-                            reason_text = exit_reason  
-
-                            try:
-                                sig = fetch_signal_by_id(ap["signal_id"]) or {}
-                                
-                                # Determine strategy: from position or fallback to signal detection
-                                if not position_strategy and sig:
-                                    raw_msg = sig.get("raw_message") or ""
-                                    if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
-                                        position_strategy = "scryptomera"
-                                    elif "⚡" in raw_msg and "Scalper" in raw_msg:
-                                        position_strategy = "scalper"
-                                    elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
-                                        position_strategy = "elcaro"
-                                    elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_msg.upper():
-                                        position_strategy = "fibonacci"
-                                
-                                log_exit_and_remove_position(
-                                    user_id=uid,
-                                    signal_id=ap["signal_id"],
-                                    symbol=sym,
-                                    side=ap["side"],
-                                    entry_price=entry_price,
-                                    exit_price=exit_price,
-                                    exit_reason=exit_reason,
-                                    size=float(rec.get("closedSize") or ap.get("size") or 0.0),
-                                    signal_source=("bitk" if (sig.get("raw_message") and ("DROP CATCH" in sig["raw_message"] or "TIGHTBTC" in sig["raw_message"])) else None),
-                                    rsi=sig.get("rsi"), bb_hi=sig.get("bb_hi"), bb_lo=sig.get("bb_lo"),
-                                    oi_prev=sig.get("oi_prev"), oi_now=sig.get("oi_now"), oi_chg=sig.get("oi_chg"),
-                                    vol_from=sig.get("vol_from"), vol_to=sig.get("vol_to"),
-                                    price_chg=sig.get("price_chg"), vol_delta=sig.get("vol_delta"),
-                                    sl_price=exit_price if exit_reason=="SL" else None,
-                                    tp_price=exit_price if exit_reason=="TP" else None,
-                                    timeframe=ap.get("timeframe"),
-                                    entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap["open_ts"]) * 1000),
-                                    exit_order_type=exit_order_type,
-                                    strategy=position_strategy,
-                                    account_type=ap_account_type,
-                                )
-
-                                pnl_from_exch = rec.get("closedPnl")
-                                rate_from_exch = rec.get("closedPnlRate")  # ROE as decimal (0.05 = 5%)
-                                leverage = float(rec.get("leverage") or ap.get("leverage") or 10)
-                                
-                                size_for_calc = float(rec.get("closedSize") or ap.get("size") or 0.0)
-                                pnl_calc, pct_calc = _calc_pnl(entry_price, exit_price, ap["side"], size_for_calc)
-                                
-                                # PnL value (prefer Bybit API)
-                                try:
-                                    pnl_value = float(pnl_from_exch)
-                                except Exception:
-                                    pnl_value = pnl_calc
-                                
-                                # Percent value (ROE with leverage)
-                                # Bybit closedPnlRate is ROE as decimal (already includes leverage)
-                                pct_value = None
-                                if rate_from_exch is not None:
+                                if rec is None:
+                                    # No closed PnL record - clean up silently
+                                    logger.debug(f"[{uid}] No closed PnL for {sym}, cleaning up")
                                     try:
-                                        pct_value = float(rate_from_exch) * 100.0  # Convert to %
-                                    except Exception:
-                                        pass
-                                
-                                # Fallback: calculate ROE from price change * leverage
-                                if pct_value is None:
-                                    price_change_pct = pct_calc  # This is just price change %
-                                    pct_value = price_change_pct * leverage  # Apply leverage for ROE
-                                
-                                logger.info(f"[{uid}] PnL details for {sym}: pnl={pnl_value:.2f}, rate_from_api={rate_from_exch}, pct={pct_value:.2f}%, leverage={leverage}")
-                                
-                                # Get strategy name for display (use already determined position_strategy)
-                                strategy_name = position_strategy or "unknown"
-                                    
-                                strategy_display = {
-                                    "scryptomera": "Scryptomera",
-                                    "scalper": "Scalper", 
-                                    "rsi_bb": "RSI+BB",
-                                    "oi": "OI",
-                                    "elcaro": "Elcaro",
-                                    "fibonacci": "Fibonacci",
-                                    "manual": "Manual",
-                                }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
-                                
-                                logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
-                                await bot.send_message(
-                                    uid,
-                                    t['position_closed'].format(
-                                        symbol=sym,
-                                        reason=reason_text,
-                                        strategy=strategy_display,
-                                        entry=float(entry_price),
-                                        exit=float(exit_price),
-                                        pnl=pnl_value,
-                                        pct=pct_value,
-                                    ),
-                                    parse_mode="Markdown"
-                                )
+                                        remove_active_position(uid, sym, account_type=ap_account_type)
+                                        reset_pyramid(uid, sym)
+                                    finally:
+                                        _atr_triggered.pop((uid, sym), None)
+                                        _sl_notified.pop((uid, sym), None)
+                                        _deep_loss_notified.pop((uid, sym), None)
+                                    continue
+                            
+                                logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
 
-
-
-                            except Exception as e:
-                                if is_db_full_error(e):
-                                    if once_per((uid, "db_full", sym), NOTICE_WINDOW):
-                                        await bot.send_message(
-                                            uid,
-                                            f"Logs are temporarily not written (there is not enough space). On {sym}, I switch to silent mode for 1 hour."
-                                        )
-                                    _skip_until[(uid, sym)] = int(time.time()) + MUTE_TTL
+                                entry_price = float(rec["avgEntryPrice"])
+                                exit_price  = float(rec["avgExitPrice"])
+                                pos_side = ap.get("side", "Buy")
+                            
+                                # Get strategy-specific SL/TP percentages for better detection
+                                position_strategy = ap.get("strategy")
+                                if position_strategy:
+                                    strat_sl, strat_tp = resolve_sl_tp_pct(cfg, sym, strategy=position_strategy, user_id=uid, side=pos_side)
                                 else:
-                                    if once_per((uid, "position_closed_error", sym), 300):
-                                        await bot.send_message(uid, t['position_closed_error'].format(symbol=sym, error=str(e)))
-                            finally:
-                               
-                                try:
-                                    reset_pyramid(uid, sym)
-                                finally:
-                                    _atr_triggered.pop((uid, sym), None)
-                                    _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
-                                    _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
-
-                    active = get_active_positions(uid, account_type=current_account_type)
-                    tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
-                    strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
-                    account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
-
-                    for pos in open_positions:
-                        sym        = pos["symbol"]
-                        side       = pos["side"]
-                        entry      = float(pos["avgPrice"])
-                        raw_sl     = pos.get("stopLoss")
-                        raw_tp     = pos.get("takeProfit")
-                        current_sl = float(raw_sl) if raw_sl not in (None, "", 0, "0", 0.0) else None
-                        current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
-
-                        coin_cfg    = COIN_PARAMS.get(sym, COIN_PARAMS["DEFAULT"])
-                        
-                        # Get strategy for this position
-                        pos_strategy = strategy_map.get(sym)
-                        
-                        # Fallback: try to determine strategy from signal if not in DB
-                        if not pos_strategy:
-                            ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
-                            if ap_for_sym and ap_for_sym.get("signal_id"):
-                                sig = fetch_signal_by_id(ap_for_sym["signal_id"])
-                                if sig:
-                                    raw_msg = sig.get("raw_message", "")
-                                    if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
-                                        pos_strategy = "scryptomera"
-                                    elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
-                                        pos_strategy = "scalper"
-                                    elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
-                                        pos_strategy = "elcaro"
-                                    elif sig.get("source"):
-                                        source = sig.get("source", "").lower()
-                                        if "scryptomera" in source or "bitk" in source:
-                                            pos_strategy = "scryptomera"
-                                        elif "scalper" in source:
-                                            pos_strategy = "scalper"
-                                        elif "elcaro" in source:
-                                            pos_strategy = "elcaro"
-                                    
-                                    # Update DB with detected strategy for future iterations
-                                    if pos_strategy:
-                                        logger.info(f"[{uid}] {sym}: Detected strategy={pos_strategy} from signal, updating DB")
-                                        try:
-                                            pos_account_type = account_type_map.get(sym, "demo")
-                                            update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type)
-                                        except Exception as e:
-                                            logger.warning(f"[{uid}] Failed to update position strategy: {e}")
-                        
-                        # Get SL/TP from strategy settings if available, otherwise use global
-                        if pos_strategy:
-                            # Get context for this position
-                            pos_context = get_user_trading_context(uid)
-                            pos_acct = account_type_map.get(sym, pos_context["account_type"])
-                            strat_params = get_strategy_trade_params(uid, cfg, sym, pos_strategy, side=side,
-                                                                     exchange=pos_context["exchange"], account_type=pos_acct)
-                            sl_pct = strat_params["sl_pct"]
-                            tp_pct = strat_params["tp_pct"]
-                            risk_pct_for_dca = strat_params["percent"]
-                        else:
-                            raw_user_sl = cfg.get("sl_percent", 0)
-                            if 0 < raw_user_sl <= 50:
-                                sl_pct = raw_user_sl
-                            else:
-                                sl_pct = coin_cfg.get("sl_pct", DEFAULT_SL_PCT)
-                            raw_user_tp = cfg.get("tp_percent", 0)
-                            if raw_user_tp > sl_pct:
-                                tp_pct = raw_user_tp
-                            else:
-                                tp_pct = coin_cfg.get("tp_pct", DEFAULT_TP_PCT)
-                            risk_pct_for_dca = float(cfg.get("percent", 1) or 0)
-
-                        tf          = tf_map.get(sym, "24h")
-                        tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])
-                        
-                        # Get account_type for this position from map (moved up for strategy settings)
-                        pos_account_type = account_type_map.get(sym, "demo")
-                        
-                        # Get ATR params: priority is side-specific > strategy settings > timeframe defaults
-                        if pos_strategy:
-                            strat_settings = db.get_strategy_settings(uid, pos_strategy, account_type=pos_account_type)
-                            side_prefix = "long" if side == "Buy" else "short"
+                                    strat_sl = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
+                                    strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
                             
-                            # Get side-specific ATR settings, fallback to general, then timeframe defaults
-                            side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
-                            side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
-                            side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
-                            
-                            atr_periods = side_atr_periods if side_atr_periods is not None else (
-                                strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
-                            )
-                            atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
-                                strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
-                            )
-                            trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
-                                strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
-                            )
-                            
-                            # Strategy-specific use_atr: if set in strategy (not None), use it; otherwise fall back to global
-                            strat_use_atr = strat_settings.get("use_atr")
-                            position_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
-                        else:
-                            atr_periods = tf_cfg["atr_periods"]
-                            atr_mult_sl = tf_cfg["atr_multiplier_sl"]
-                            trigger_pct = tf_cfg["atr_trigger_pct"]
-                            position_use_atr = use_atr  # Use global setting
-
-                        # Log ATR params being used for debugging
-                        logger.debug(f"[{uid}] {sym}: ATR params - strategy={pos_strategy}, side={side}, "
-                                    f"atr_periods={atr_periods}, atr_mult={atr_mult_sl}, trigger_pct={trigger_pct}, use_atr={position_use_atr}")
-
-                        mark     = float(pos["markPrice"])
-                        move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
-                        key = (uid, sym)
-
-                        # User-configurable DCA settings
-                        dca_enabled = bool(cfg.get("dca_enabled", 0))
-                        dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
-                        dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
-
-                        # pos_account_type already defined above for strategy settings
-
-                        # --- DCA при -dca_pct_1% против нас (только если DCA включён) ---
-                        if dca_enabled and move_pct <= -dca_pct_1:
-                            if not get_dca_flag(uid, sym, 10, account_type=pos_account_type):
-                                try:
-                                    # Use strategy-specific percent if available
-                                    if risk_pct_for_dca > 0:
-                                        add_qty = await calc_qty(
-                                            uid,
-                                            sym,
-                                            price=mark,
-                                            risk_pct=risk_pct_for_dca,
-                                            sl_pct=sl_pct
-                                        )
-                                        if add_qty > 0:
-                                            await place_order(
-                                                user_id=uid,
-                                                symbol=sym,
-                                                side=side,
-                                                orderType="Market",
-                                                qty=add_qty
-                                            )
-                                            set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
-                                            try:
-                                                await bot.send_message(
-                                                    uid,
-                                                    t.get(
-                                                        'dca_10pct',
-                                                        "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
-                                                    ).format(
-                                                        pct=dca_pct_1,
-                                                        symbol=sym,
-                                                        qty=add_qty,
-                                                        price=mark
-                                                    )
-                                                )
-                                            except Exception:
-                                                pass
-                                except Exception as e:
-                                    logger.error(f"{sym}: DCA −{dca_pct_1}% failed for {uid}: {e}", exc_info=True)
-
-                        # --- DCA при -dca_pct_2% против нас (только если DCA включён) ---
-                        if dca_enabled and move_pct <= -dca_pct_2:
-                            if not get_dca_flag(uid, sym, 25, account_type=pos_account_type):
-                                try:
-                                    # Use strategy-specific percent if available
-                                    if risk_pct_for_dca > 0:
-                                        add_qty = await calc_qty(
-                                            uid,
-                                            sym,
-                                            price=mark,
-                                            risk_pct=risk_pct_for_dca,
-                                            sl_pct=sl_pct
-                                        )
-                                        if add_qty > 0:
-                                            await place_order(
-                                                user_id=uid,
-                                                symbol=sym,
-                                                side=side,
-                                                orderType="Market",
-                                                qty=add_qty
-                                            )
-                                            set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
-                                            try:
-                                                await bot.send_message(
-                                                    uid,
-                                                    t.get(
-                                                        'dca_25pct',
-                                                        "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
-                                                    ).format(
-                                                        pct=dca_pct_2,
-                                                        symbol=sym,
-                                                        qty=add_qty,
-                                                        price=mark
-                                                    )
-                                                )
-                                            except Exception:
-                                                pass
-                                except Exception as e:
-                                    logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
-
-                        if not position_use_atr:
-                            # Use side-specific SL/TP for Scryptomera/Scalper strategies
-                            sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
-                            sl0 = round(
-                                entry * (1 - sl_pct/100) if side == "Buy"
-                                else entry * (1 + sl_pct/100),
-                                6
-                            )
-                            tp0 = round(
-                                entry * (1 + tp_pct/100) if side == "Buy"
-                                else entry * (1 - tp_pct/100),
-                                6
-                            )
-
-                            if current_sl is None or current_tp is None:
-                                kwargs = {}
-                                if current_sl is None:
-                                    kwargs["sl_price"] = sl0
-                                if current_tp is None:
-                                    if (side == "Buy" and tp0 > mark) or (side == "Sell" and tp0 < mark):
-                                        kwargs["tp_price"] = tp0
-                                if kwargs:
-                                    try:
-                                        await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                        logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position already closed, skipping SL/TP update")
-                                        else:
-                                            raise
-                                continue
-                           
-                            # if move_pct >= trigger_pct:
-                            #     be = entry
-                            #     cand = _stricter_sl(side, be, current_sl)
-                            #     if cand is not None:
-                            #         await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
-                            #         logger.info(f"{sym}: SL moved to breakeven {cand}")
-                            #     continue
-                           
-                            cand = _stricter_sl(side, sl0, current_sl)
-                            if cand is not None:
-                                try:
-                                    await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
-                                    logger.info(f"{sym}: Fixed SL tightened to {cand}")
-                                except RuntimeError as e:
-                                    if "no open positions" in str(e).lower():
-                                        logger.debug(f"{sym}: Position already closed, skipping SL update")
-                                    else:
-                                        raise
-                            continue
-                        
-                        if position_use_atr:
-                            if move_pct < trigger_pct and not _atr_triggered.get(key, False):
-                                # Log ATR status for debugging
-                                logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
-                                
-                                # Use strategy-specific SL% if available (already calculated above)
-                                base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
-
-                                tick = (await get_symbol_filters(uid, sym))["tickSize"]
-
-                                sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
-                                should_update = (
-                                    current_sl is None
-                                    or (side == "Buy"  and sl0 > current_sl)
-                                    or (side == "Sell" and sl0 < current_sl)  
+                                exit_reason, exit_order_type = await detect_exit_reason(
+                                    uid, sym, 
+                                    entry_price=entry_price, 
+                                    exit_price=exit_price, 
+                                    side=pos_side,
+                                    sl_pct=strat_sl,
+                                    tp_pct=strat_tp
                                 )
-                                if should_update:
+                                logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type})")
+                                reason_text = exit_reason  
+
+                                try:
+                                    sig = fetch_signal_by_id(ap["signal_id"]) or {}
+                                
+                                    # Determine strategy: from position or fallback to signal detection
+                                    if not position_strategy and sig:
+                                        raw_msg = sig.get("raw_message") or ""
+                                        if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
+                                            position_strategy = "scryptomera"
+                                        elif "⚡" in raw_msg and "Scalper" in raw_msg:
+                                            position_strategy = "scalper"
+                                        elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
+                                            position_strategy = "elcaro"
+                                        elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_msg.upper():
+                                            position_strategy = "fibonacci"
+                                
+                                    log_exit_and_remove_position(
+                                        user_id=uid,
+                                        signal_id=ap["signal_id"],
+                                        symbol=sym,
+                                        side=ap["side"],
+                                        entry_price=entry_price,
+                                        exit_price=exit_price,
+                                        exit_reason=exit_reason,
+                                        size=float(rec.get("closedSize") or ap.get("size") or 0.0),
+                                        signal_source=("bitk" if (sig.get("raw_message") and ("DROP CATCH" in sig["raw_message"] or "TIGHTBTC" in sig["raw_message"])) else None),
+                                        rsi=sig.get("rsi"), bb_hi=sig.get("bb_hi"), bb_lo=sig.get("bb_lo"),
+                                        oi_prev=sig.get("oi_prev"), oi_now=sig.get("oi_now"), oi_chg=sig.get("oi_chg"),
+                                        vol_from=sig.get("vol_from"), vol_to=sig.get("vol_to"),
+                                        price_chg=sig.get("price_chg"), vol_delta=sig.get("vol_delta"),
+                                        sl_price=exit_price if exit_reason=="SL" else None,
+                                        tp_price=exit_price if exit_reason=="TP" else None,
+                                        timeframe=ap.get("timeframe"),
+                                        entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap["open_ts"]) * 1000),
+                                        exit_order_type=exit_order_type,
+                                        strategy=position_strategy,
+                                        account_type=ap_account_type,
+                                    )
+
+                                    pnl_from_exch = rec.get("closedPnl")
+                                    rate_from_exch = rec.get("closedPnlRate")  # ROE as decimal (0.05 = 5%)
+                                    leverage = float(rec.get("leverage") or ap.get("leverage") or 10)
+                                
+                                    size_for_calc = float(rec.get("closedSize") or ap.get("size") or 0.0)
+                                    pnl_calc, pct_calc = _calc_pnl(entry_price, exit_price, ap["side"], size_for_calc)
+                                
+                                    # PnL value (prefer Bybit API)
                                     try:
-                                        await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
-                                        logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
+                                        pnl_value = float(pnl_from_exch)
+                                    except Exception:
+                                        pnl_value = pnl_calc
+                                
+                                    # Percent value (ROE with leverage)
+                                    # Bybit closedPnlRate is ROE as decimal (already includes leverage)
+                                    pct_value = None
+                                    if rate_from_exch is not None:
+                                        try:
+                                            pct_value = float(rate_from_exch) * 100.0  # Convert to %
+                                        except Exception:
+                                            pass
+                                
+                                    # Fallback: calculate ROE from price change * leverage
+                                    if pct_value is None:
+                                        price_change_pct = pct_calc  # This is just price change %
+                                        pct_value = price_change_pct * leverage  # Apply leverage for ROE
+                                
+                                    logger.info(f"[{uid}] PnL details for {sym}: pnl={pnl_value:.2f}, rate_from_api={rate_from_exch}, pct={pct_value:.2f}%, leverage={leverage}")
+                                
+                                    # Get strategy name for display (use already determined position_strategy)
+                                    strategy_name = position_strategy or "unknown"
+                                    
+                                    strategy_display = {
+                                        "scryptomera": "Scryptomera",
+                                        "scalper": "Scalper", 
+                                        "rsi_bb": "RSI+BB",
+                                        "oi": "OI",
+                                        "elcaro": "Elcaro",
+                                        "fibonacci": "Fibonacci",
+                                        "manual": "Manual",
+                                    }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
+                                
+                                    logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
+                                    await bot.send_message(
+                                        uid,
+                                        t['position_closed'].format(
+                                            symbol=sym,
+                                            reason=reason_text,
+                                            strategy=strategy_display,
+                                            entry=float(entry_price),
+                                            exit=float(exit_price),
+                                            pnl=pnl_value,
+                                            pct=pct_value,
+                                        ),
+                                        parse_mode="Markdown"
+                                    )
+
+
+
+                                except Exception as e:
+                                    if is_db_full_error(e):
+                                        if once_per((uid, "db_full", sym), NOTICE_WINDOW):
+                                            await bot.send_message(
+                                                uid,
+                                                f"Logs are temporarily not written (there is not enough space). On {sym}, I switch to silent mode for 1 hour."
+                                            )
+                                        _skip_until[(uid, sym)] = int(time.time()) + MUTE_TTL
+                                    else:
+                                        if once_per((uid, "position_closed_error", sym), 300):
+                                            await bot.send_message(uid, t['position_closed_error'].format(symbol=sym, error=str(e)))
+                                finally:
+                               
+                                    try:
+                                        reset_pyramid(uid, sym)
+                                    finally:
+                                        _atr_triggered.pop((uid, sym), None)
+                                        _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
+                                        _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
+
+                        active = get_active_positions(uid, account_type=current_account_type)
+                        tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
+                        strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
+                        account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
+
+                        for pos in open_positions:
+                            sym        = pos["symbol"]
+                            side       = pos["side"]
+                            entry      = float(pos["avgPrice"])
+                            raw_sl     = pos.get("stopLoss")
+                            raw_tp     = pos.get("takeProfit")
+                            current_sl = float(raw_sl) if raw_sl not in (None, "", 0, "0", 0.0) else None
+                            current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
+
+                            coin_cfg    = COIN_PARAMS.get(sym, COIN_PARAMS["DEFAULT"])
+                        
+                            # Get strategy for this position
+                            pos_strategy = strategy_map.get(sym)
+                        
+                            # Fallback: try to determine strategy from signal if not in DB
+                            if not pos_strategy:
+                                ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                                if ap_for_sym and ap_for_sym.get("signal_id"):
+                                    sig = fetch_signal_by_id(ap_for_sym["signal_id"])
+                                    if sig:
+                                        raw_msg = sig.get("raw_message", "")
+                                        if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
+                                            pos_strategy = "scryptomera"
+                                        elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
+                                            pos_strategy = "scalper"
+                                        elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
+                                            pos_strategy = "elcaro"
+                                        elif sig.get("source"):
+                                            source = sig.get("source", "").lower()
+                                            if "scryptomera" in source or "bitk" in source:
+                                                pos_strategy = "scryptomera"
+                                            elif "scalper" in source:
+                                                pos_strategy = "scalper"
+                                            elif "elcaro" in source:
+                                                pos_strategy = "elcaro"
+                                    
+                                        # Update DB with detected strategy for future iterations
+                                        if pos_strategy:
+                                            logger.info(f"[{uid}] {sym}: Detected strategy={pos_strategy} from signal, updating DB")
+                                            try:
+                                                pos_account_type = account_type_map.get(sym, "demo")
+                                                update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type)
+                                            except Exception as e:
+                                                logger.warning(f"[{uid}] Failed to update position strategy: {e}")
+                        
+                            # Get SL/TP from strategy settings if available, otherwise use global
+                            if pos_strategy:
+                                # Get context for this position
+                                pos_context = get_user_trading_context(uid)
+                                pos_acct = account_type_map.get(sym, pos_context["account_type"])
+                                strat_params = get_strategy_trade_params(uid, cfg, sym, pos_strategy, side=side,
+                                                                         exchange=pos_context["exchange"], account_type=pos_acct)
+                                sl_pct = strat_params["sl_pct"]
+                                tp_pct = strat_params["tp_pct"]
+                                risk_pct_for_dca = strat_params["percent"]
+                            else:
+                                raw_user_sl = cfg.get("sl_percent", 0)
+                                if 0 < raw_user_sl <= 50:
+                                    sl_pct = raw_user_sl
+                                else:
+                                    sl_pct = coin_cfg.get("sl_pct", DEFAULT_SL_PCT)
+                                raw_user_tp = cfg.get("tp_percent", 0)
+                                if raw_user_tp > sl_pct:
+                                    tp_pct = raw_user_tp
+                                else:
+                                    tp_pct = coin_cfg.get("tp_pct", DEFAULT_TP_PCT)
+                                risk_pct_for_dca = float(cfg.get("percent", 1) or 0)
+
+                            tf          = tf_map.get(sym, "24h")
+                            tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])
+                        
+                            # Get account_type for this position from map (moved up for strategy settings)
+                            pos_account_type = account_type_map.get(sym, "demo")
+                        
+                            # Get ATR params: priority is side-specific > strategy settings > timeframe defaults
+                            if pos_strategy:
+                                strat_settings = db.get_strategy_settings(uid, pos_strategy, account_type=pos_account_type)
+                                side_prefix = "long" if side == "Buy" else "short"
+                            
+                                # Get side-specific ATR settings, fallback to general, then timeframe defaults
+                                side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
+                                side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
+                                side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
+                            
+                                atr_periods = side_atr_periods if side_atr_periods is not None else (
+                                    strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
+                                )
+                                atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
+                                    strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
+                                )
+                                trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
+                                    strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                                )
+                            
+                                # Strategy-specific use_atr: if set in strategy (not None), use it; otherwise fall back to global
+                                strat_use_atr = strat_settings.get("use_atr")
+                                position_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
+                            else:
+                                atr_periods = tf_cfg["atr_periods"]
+                                atr_mult_sl = tf_cfg["atr_multiplier_sl"]
+                                trigger_pct = tf_cfg["atr_trigger_pct"]
+                                position_use_atr = use_atr  # Use global setting
+
+                            # Log ATR params being used for debugging
+                            logger.debug(f"[{uid}] {sym}: ATR params - strategy={pos_strategy}, side={side}, "
+                                        f"atr_periods={atr_periods}, atr_mult={atr_mult_sl}, trigger_pct={trigger_pct}, use_atr={position_use_atr}")
+
+                            mark     = float(pos["markPrice"])
+                            move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                            key = (uid, sym)
+
+                            # User-configurable DCA settings
+                            dca_enabled = bool(cfg.get("dca_enabled", 0))
+                            dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
+                            dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
+
+                            # pos_account_type already defined above for strategy settings
+
+                            # --- DCA при -dca_pct_1% против нас (только если DCA включён) ---
+                            if dca_enabled and move_pct <= -dca_pct_1:
+                                if not get_dca_flag(uid, sym, 10, account_type=pos_account_type):
+                                    try:
+                                        # Use strategy-specific percent if available
+                                        if risk_pct_for_dca > 0:
+                                            add_qty = await calc_qty(
+                                                uid,
+                                                sym,
+                                                price=mark,
+                                                risk_pct=risk_pct_for_dca,
+                                                sl_pct=sl_pct
+                                            )
+                                            if add_qty > 0:
+                                                await place_order(
+                                                    user_id=uid,
+                                                    symbol=sym,
+                                                    side=side,
+                                                    orderType="Market",
+                                                    qty=add_qty
+                                                )
+                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
+                                                try:
+                                                    await bot.send_message(
+                                                        uid,
+                                                        t.get(
+                                                            'dca_10pct',
+                                                            "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
+                                                        ).format(
+                                                            pct=dca_pct_1,
+                                                            symbol=sym,
+                                                            qty=add_qty,
+                                                            price=mark
+                                                        )
+                                                    )
+                                                except Exception:
+                                                    pass
+                                    except Exception as e:
+                                        logger.error(f"{sym}: DCA −{dca_pct_1}% failed for {uid}: {e}", exc_info=True)
+
+                            # --- DCA при -dca_pct_2% против нас (только если DCA включён) ---
+                            if dca_enabled and move_pct <= -dca_pct_2:
+                                if not get_dca_flag(uid, sym, 25, account_type=pos_account_type):
+                                    try:
+                                        # Use strategy-specific percent if available
+                                        if risk_pct_for_dca > 0:
+                                            add_qty = await calc_qty(
+                                                uid,
+                                                sym,
+                                                price=mark,
+                                                risk_pct=risk_pct_for_dca,
+                                                sl_pct=sl_pct
+                                            )
+                                            if add_qty > 0:
+                                                await place_order(
+                                                    user_id=uid,
+                                                    symbol=sym,
+                                                    side=side,
+                                                    orderType="Market",
+                                                    qty=add_qty
+                                                )
+                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
+                                                try:
+                                                    await bot.send_message(
+                                                        uid,
+                                                        t.get(
+                                                            'dca_25pct',
+                                                            "DCA −{pct}%: добор по {symbol} qty={qty} @ {price}"
+                                                        ).format(
+                                                            pct=dca_pct_2,
+                                                            symbol=sym,
+                                                            qty=add_qty,
+                                                            price=mark
+                                                        )
+                                                    )
+                                                except Exception:
+                                                    pass
+                                    except Exception as e:
+                                        logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
+
+                            if not position_use_atr:
+                                # Use side-specific SL/TP for Scryptomera/Scalper strategies
+                                sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                sl0 = round(
+                                    entry * (1 - sl_pct/100) if side == "Buy"
+                                    else entry * (1 + sl_pct/100),
+                                    6
+                                )
+                                tp0 = round(
+                                    entry * (1 + tp_pct/100) if side == "Buy"
+                                    else entry * (1 - tp_pct/100),
+                                    6
+                                )
+
+                                if current_sl is None or current_tp is None:
+                                    kwargs = {}
+                                    if current_sl is None:
+                                        kwargs["sl_price"] = sl0
+                                    if current_tp is None:
+                                        if (side == "Buy" and tp0 > mark) or (side == "Sell" and tp0 < mark):
+                                            kwargs["tp_price"] = tp0
+                                    if kwargs:
+                                        try:
+                                            await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                            logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position already closed, skipping SL/TP update")
+                                            else:
+                                                raise
+                                    continue
+                           
+                                # if move_pct >= trigger_pct:
+                                #     be = entry
+                                #     cand = _stricter_sl(side, be, current_sl)
+                                #     if cand is not None:
+                                #         await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                #         logger.info(f"{sym}: SL moved to breakeven {cand}")
+                                #     continue
+                           
+                                cand = _stricter_sl(side, sl0, current_sl)
+                                if cand is not None:
+                                    try:
+                                        await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                        logger.info(f"{sym}: Fixed SL tightened to {cand}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position already closed")
+                                            logger.debug(f"{sym}: Position already closed, skipping SL update")
                                         else:
                                             raise
                                 continue
+                        
+                            if position_use_atr:
+                                if move_pct < trigger_pct and not _atr_triggered.get(key, False):
+                                    # Log ATR status for debugging
+                                    logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
+                                
+                                    # Use strategy-specific SL% if available (already calculated above)
+                                    base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
 
-                            _atr_triggered[key] = True
+                                    tick = (await get_symbol_filters(uid, sym))["tickSize"]
 
-                            filt = await get_symbol_filters(uid, sym)
-                            tick = filt["tickSize"]
-                            try:
-                                atr_val = await calc_atr(sym, interval=ATR_INTERVAL, periods=atr_periods)
-                            except Exception as e:
-                                logger.warning(f"{sym}: failed to count ATR: {e}")
-                                continue
+                                    sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
+                                    should_update = (
+                                        current_sl is None
+                                        or (side == "Buy"  and sl0 > current_sl)
+                                        or (side == "Sell" and sl0 < current_sl)  
+                                    )
+                                    if should_update:
+                                        try:
+                                            await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
+                                            logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position already closed")
+                                            else:
+                                                raise
+                                    continue
 
-                            logger.info(f"[ATR-TRAIL] {sym} side={side} mark={mark:.6f} entry={entry:.6f} move_pct={move_pct:.2f}% atr_val={atr_val:.6f} atr_mult={atr_mult_sl} current_sl={current_sl}")
+                                _atr_triggered[key] = True
 
-                            if side == "Buy":
-                                cand_raw   = mark - atr_val * atr_mult_sl
-                                cand_ceil  = quantize_up(cand_raw, tick)
-                                max_allowed = quantize(mark - tick, tick)    
-                                atr_cand    = min(cand_ceil, max_allowed)
+                                filt = await get_symbol_filters(uid, sym)
+                                tick = filt["tickSize"]
+                                try:
+                                    atr_val = await calc_atr(sym, interval=ATR_INTERVAL, periods=atr_periods)
+                                except Exception as e:
+                                    logger.warning(f"{sym}: failed to count ATR: {e}")
+                                    continue
 
-                                new_sl = max(current_sl or -float("inf"), atr_cand) 
-                                logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
-                                if current_sl is None or new_sl > current_sl:
-                                    try:
-                                        result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
-                                        logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position closed, skipping ATR SL")
-                                        else:
-                                            raise
+                                logger.info(f"[ATR-TRAIL] {sym} side={side} mark={mark:.6f} entry={entry:.6f} move_pct={move_pct:.2f}% atr_val={atr_val:.6f} atr_mult={atr_mult_sl} current_sl={current_sl}")
 
-                            else:  
-                                cand_raw    = mark + atr_val * atr_mult_sl
-                                cand_floor  = quantize(cand_raw, tick)
-                                min_allowed = quantize_up(mark + tick, tick)        
-                                atr_cand     = max(cand_floor, min_allowed)
+                                if side == "Buy":
+                                    cand_raw   = mark - atr_val * atr_mult_sl
+                                    cand_ceil  = quantize_up(cand_raw, tick)
+                                    max_allowed = quantize(mark - tick, tick)    
+                                    atr_cand    = min(cand_ceil, max_allowed)
 
-                                new_sl = min(current_sl or float("inf"), atr_cand)  
-                                logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
-                                if current_sl is None or new_sl < current_sl:
-                                    try:
-                                        result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
-                                        logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position closed, skipping ATR SL")
-                                        else:
-                                            raise
+                                    new_sl = max(current_sl or -float("inf"), atr_cand) 
+                                    logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
+                                    if current_sl is None or new_sl > current_sl:
+                                        try:
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                            logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position closed, skipping ATR SL")
+                                            else:
+                                                raise
+
+                                else:  
+                                    cand_raw    = mark + atr_val * atr_mult_sl
+                                    cand_floor  = quantize(cand_raw, tick)
+                                    min_allowed = quantize_up(mark + tick, tick)        
+                                    atr_cand     = max(cand_floor, min_allowed)
+
+                                    new_sl = min(current_sl or float("inf"), atr_cand)  
+                                    logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
+                                    if current_sl is None or new_sl < current_sl:
+                                        try:
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                            logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position closed, skipping ATR SL")
+                                            else:
+                                                raise
                     
-                    # Save current symbols for next iteration to prevent duplicate notifications
-                    _open_syms_prev[uid] = open_syms
+                        # Save current symbols for next iteration to prevent duplicate notifications
+                        _open_syms_prev[cache_key] = open_syms
 
                 except Exception as e:
                     logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
