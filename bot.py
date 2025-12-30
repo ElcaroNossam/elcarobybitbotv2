@@ -11215,7 +11215,16 @@ async def monitor_positions_loop(app: Application):
                                         if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                             kwargs["tp_price"] = tp_price
                                     try:
+                                        # Debug
+                                        if uid == 511692487:
+                                            logger.info(f"[SET-STOP] uid={uid} calling set_trading_stop for sym={sym} kwargs={kwargs}")
+                                        
                                         result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                        
+                                        # Debug
+                                        if uid == 511692487:
+                                            logger.info(f"[SET-STOP-RESULT] uid={uid} result={result}")
+                                        
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
                                             move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
