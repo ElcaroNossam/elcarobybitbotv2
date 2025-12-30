@@ -2243,40 +2243,38 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     
     if active_exchange == "hyperliquid":
         # ═══════════════════════════════════════════════════════════════
-        # ██  HYPERLIQUID - CLEAN MENU  ██
+        # ██  HYPERLIQUID - COMPACT MENU  ██
         # ═══════════════════════════════════════════════════════════════
         hl_creds = get_hl_credentials(user_id) if user_id else {}
         is_testnet = hl_creds.get("hl_testnet", False)
         net_emoji = "🧪" if is_testnet else "🌐"
         
         keyboard = [
-            # ─── Row 1: Core Trading Actions (most important) ───
-            [ "💰 Balance", "📊 Positions", "🎯 Trade" ],
-            # ─── Row 2: Orders & History ───
-            [ "📈 Orders", "📋 History", "❌ Close All" ],
+            # ─── Row 1: Trading Info ───
+            [ "💰 Balance", "📊 Positions", "📈 Orders" ],
+            # ─── Row 2: Actions ───
+            [ "🎯 Trade", "📋 History", "❌ Close All" ],
             # ─── Row 3: Settings & Premium ───
             [ "⚙️ Settings", t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
-            # ─── Row 4: Exchange Switch & API Keys (bottom) ───
+            # ─── Row 4: Exchange & API (bottom) ───
             [ f"🔷 HL {net_emoji}", "🔄 Bybit", "🔑 API Keys" ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
-        # ██  BYBIT - CLEAN MENU  ██
+        # ██  BYBIT - COMPACT MENU  ██
         # ═══════════════════════════════════════════════════════════════
         creds = get_all_user_credentials(user_id) if user_id else {}
         trading_mode = creds.get("trading_mode", "demo")
         mode_emoji = "🎮" if trading_mode == "demo" else ("💵" if trading_mode == "real" else "🔀")
         
         keyboard = [
-            # ─── Row 1: Core Trading Actions (most important) ───
-            [ "💰 Balance", "📊 Positions", "🎯 Trade" ],
-            # ─── Row 2: Orders, History & Market ───
-            [ "📈 Orders", "📋 History", "📉 Market" ],
-            # ─── Row 3: Strategies & Settings ───
-            [ "🤖 Strategies", t['button_coins'], "⚙️ Settings" ],
-            # ─── Row 4: Premium & Language ───
-            [ t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
-            # ─── Row 5: Exchange Switch & API Keys (bottom) ───
+            # ─── Row 1: Trading Info ───
+            [ "💰 Balance", "📊 Positions", "📈 Orders" ],
+            # ─── Row 2: Actions & History ───
+            [ "🎯 Trade", "📋 History", "🤖 Strategies" ],
+            # ─── Row 3: Settings & Premium ───
+            [ "⚙️ Settings", t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
+            # ─── Row 4: Exchange & API (bottom) ───
             [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid", "🔑 API Keys" ],
         ]
     
