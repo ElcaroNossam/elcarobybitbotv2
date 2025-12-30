@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ 最大金额为100,000 USDT',
     'min_amount_error': '❌ 最小金额为1 USDT',
     'sl_tp_range_error': '❌ SL/TP百分比必须在0.1到500之间。',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 启用DCA平均',
+    'btn_ignore': '🔇 忽略',
+    'dca_already_enabled': '✅ DCA平均已启用！\n\n📊 <b>{symbol}</b>\n机器人将在回撤时自动加仓:\n• -10% → 加仓\n• -25% → 加仓\n\n这有助于平均入场价格。',
+    'dca_enable_error': '❌ 错误: {error}',
+    'dca_enabled_for_symbol': '✅ DCA平均已启用！\n\n📊 <b>{symbol}</b>\n机器人将在回撤时自动加仓:\n• -10% → 加仓(平均)\n• -25% → 加仓(平均)\n\n⚠️ DCA需要足够的余额来进行额外订单。',
+    'deep_loss_alert': '⚠️ <b>仓位深度亏损！</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 亏损: <code>{loss_pct:.2f}%</code>\n💰 入场: <code>{entry}</code>\n📍 当前: <code>{mark}</code>\n\n❌ 止损无法设置在入场价格之上。\n\n<b>怎么办？</b>\n• <b>平仓</b> - 锁定亏损\n• <b>DCA</b> - 平均仓位\n• <b>忽略</b> - 保持原样',
+    'deep_loss_close_error': '❌ 平仓错误: {error}',
+    'deep_loss_closed': '✅ 仓位 {symbol} 已平仓。\n\n亏损已锁定。有时候接受小亏损比期待反转更好。',
+    'deep_loss_ignored': '🔇 明白了，仓位 {symbol} 保持不变。\n\n⚠️ 记住：没有止损，亏损风险是无限的。\n您可以通过 /positions 手动平仓',
+    'fibonacci_desc': '_入场、止损、止盈 - 来自信号中的斐波那契水平_',
+    'fibonacci_info': '📐 *斐波那契扩展策略*',
+    'prompt_min_quality': '输入最低质量 % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *硬核模式*: 无怜悯，无遗憾。只有盈利或死亡！ 🔥',
 }

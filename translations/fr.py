@@ -993,4 +993,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Montant maximum est 100 000 USDT',
     'min_amount_error': '❌ Montant minimum est 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % doit être entre 0.1 et 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Activer le DCA',
+    'btn_ignore': '🔇 Ignorer',
+    'dca_already_enabled': '✅ Le DCA est déjà activé!\n\n📊 <b>{symbol}</b>\nLe bot achètera automatiquement en cas de baisse:\n• -10% → ajout\n• -25% → ajout\n\nCela aide à moyenner le prix dentrée.',
+    'dca_enable_error': '❌ Erreur: {error}',
+    'dca_enabled_for_symbol': '✅ DCA activé!\n\n📊 <b>{symbol}</b>\nLe bot achètera automatiquement en cas de baisse:\n• -10% → ajout (moyennage)\n• -25% → ajout (moyennage)\n\n⚠️ Le DCA nécessite un solde suffisant pour les ordres supplémentaires.',
+    'deep_loss_alert': '⚠️ <b>Position en perte profonde!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Perte: <code>{loss_pct:.2f}%</code>\n💰 Entrée: <code>{entry}</code>\n📍 Actuel: <code>{mark}</code>\n\n❌ Le stop-loss ne peut pas être défini au-dessus du prix dentrée.\n\n<b>Que faire?</b>\n• <b>Fermer</b> - verrouiller la perte\n• <b>DCA</b> - moyenner la position\n• <b>Ignorer</b> - laisser tel quel',
+    'deep_loss_close_error': '❌ Erreur lors de la fermeture de la position: {error}',
+    'deep_loss_closed': '✅ Position {symbol} fermée.\n\nPerte verrouillée. Parfois il vaut mieux accepter une petite perte que despérer un retournement.',
+    'deep_loss_ignored': '�� Compris, position {symbol} laissée inchangée.\n\n⚠️ Rappel: sans stop-loss, le risque de pertes est illimité.\nVous pouvez fermer la position manuellement via /positions',
+    'fibonacci_desc': '_Entrée, SL, TP - selon les niveaux Fibonacci du signal._',
+    'fibonacci_info': '📐 *Stratégie Fibonacci Extension*',
+    'prompt_min_quality': 'Entrez la qualité minimale % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *MODE HARDCORE*: Pas de pitié, pas de regrets. Seulement le profit ou la mort! 🔥',
 }

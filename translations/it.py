@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': "❌ L'importo massimo è 100.000 USDT",
     'min_amount_error': "❌ L'importo minimo è 1 USDT",
     'sl_tp_range_error': '❌ SL/TP % deve essere tra 0.1 e 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Attiva DCA',
+    'btn_ignore': '🔇 Ignora',
+    'dca_already_enabled': '✅ DCA già attivato!\n\n📊 <b>{symbol}</b>\nIl bot acquisterà automaticamente in drawdown:\n• -10% → aggiungi\n• -25% → aggiungi\n\nQuesto aiuta a mediare il prezzo di ingresso.',
+    'dca_enable_error': '❌ Errore: {error}',
+    'dca_enabled_for_symbol': '✅ DCA attivato!\n\n📊 <b>{symbol}</b>\nIl bot acquisterà automaticamente in drawdown:\n• -10% → aggiungi (averaging)\n• -25% → aggiungi (averaging)\n\n⚠️ DCA richiede saldo sufficiente per ordini aggiuntivi.',
+    'deep_loss_alert': '⚠️ <b>Posizione in perdita profonda!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Perdita: <code>{loss_pct:.2f}%</code>\n💰 Ingresso: <code>{entry}</code>\n📍 Attuale: <code>{mark}</code>\n\n❌ Lo stop-loss non può essere impostato sopra il prezzo di ingresso.\n\n<b>Cosa fare?</b>\n• <b>Chiudi</b> - blocca la perdita\n• <b>DCA</b> - media la posizione\n• <b>Ignora</b> - lascia così',
+    'deep_loss_close_error': '❌ Errore nella chiusura della posizione: {error}',
+    'deep_loss_closed': '✅ Posizione {symbol} chiusa.\n\nPerdita bloccata. A volte è meglio accettare una piccola perdita che sperare in un inversione.',
+    'deep_loss_ignored': '🔇 Capito, posizione {symbol} lasciata invariata.\n\n⚠️ Ricorda: senza stop-loss, il rischio di perdite è illimitato.\nPuoi chiudere la posizione manualmente tramite /positions',
+    'fibonacci_desc': '_Ingresso, SL, TP - dai livelli Fibonacci nel segnale._',
+    'fibonacci_info': '📐 *Strategia Fibonacci Extension*',
+    'prompt_min_quality': 'Inserisci qualità minima % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *MODALITÀ HARDCORE*: Nessuna pietà, nessun rimpianto. Solo profitto o morte! 🔥',
 }

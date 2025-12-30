@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Maksymalna kwota to 100 000 USDT',
     'min_amount_error': '❌ Minimalna kwota to 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % musi być między 0.1 a 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Włącz DCA',
+    'btn_ignore': '🔇 Ignoruj',
+    'dca_already_enabled': '✅ DCA jest już włączone!\n\n📊 <b>{symbol}</b>\nBot automatycznie dokupuje przy spadku:\n• -10% → dokup\n• -25% → dokup\n\nTo pomaga uśrednić cenę wejścia.',
+    'dca_enable_error': '❌ Błąd: {error}',
+    'dca_enabled_for_symbol': '✅ DCA włączone!\n\n📊 <b>{symbol}</b>\nBot automatycznie dokupuje przy spadku:\n• -10% → dokup (uśrednianie)\n• -25% → dokup (uśrednianie)\n\n⚠️ DCA wymaga wystarczającego salda na dodatkowe zlecenia.',
+    'deep_loss_alert': '⚠️ <b>Pozycja w głębokiej stracie!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Strata: <code>{loss_pct:.2f}%</code>\n💰 Wejście: <code>{entry}</code>\n📍 Obecna: <code>{mark}</code>\n\n❌ Stop-loss nie może być ustawiony powyżej ceny wejścia.\n\n<b>Co robić?</b>\n• <b>Zamknij</b> - zablokuj stratę\n• <b>DCA</b> - uśrednij pozycję\n• <b>Ignoruj</b> - zostaw jak jest',
+    'deep_loss_close_error': '❌ Błąd zamykania pozycji: {error}',
+    'deep_loss_closed': '✅ Pozycja {symbol} zamknięta.\n\nStrata zablokowana. Czasami lepiej zaakceptować małą stratę niż liczyć na odwrócenie.',
+    'deep_loss_ignored': '🔇 Rozumiem, pozycja {symbol} pozostawiona bez zmian.\n\n⚠️ Pamiętaj: bez stop-lossa ryzyko strat jest nieograniczone.\nMożesz zamknąć pozycję ręcznie przez /positions',
+    'fibonacci_desc': '_Wejście, SL, TP - z poziomów Fibonacci w sygnale._',
+    'fibonacci_info': '📐 *Strategia Fibonacci Extension*',
+    'prompt_min_quality': 'Wprowadź minimalną jakość % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *TRYB HARDCORE*: Bez litości, bez żalu. Tylko zysk albo śmierć! 🔥',
 }

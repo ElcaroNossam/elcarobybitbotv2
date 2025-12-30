@@ -982,4 +982,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Maximální částka je 100 000 USDT',
     'min_amount_error': '❌ Minimální částka je 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % musí být mezi 0.1 a 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Aktivovat DCA',
+    'btn_ignore': '🔇 Ignorovat',
+    'dca_already_enabled': '✅ DCA averaging je již aktivní!\n\n📊 <b>{symbol}</b>\nBot automaticky přikoupí při poklesu:\n• -10% → dokup\n• -25% → dokup\n\nToto pomáhá průměrovat vstupní cenu.',
+    'dca_enable_error': '❌ Chyba: {error}',
+    'dca_enabled_for_symbol': '✅ DCA aktivováno!\n\n📊 <b>{symbol}</b>\nBot automaticky přikoupí při poklesu:\n• -10% → dokup (průměrování)\n• -25% → dokup (průměrování)\n\n⚠️ DCA vyžaduje dostatečný zůstatek pro další příkazy.',
+    'deep_loss_alert': '⚠️ <b>Pozice v hluboké ztrátě!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Ztráta: <code>{loss_pct:.2f}%</code>\n💰 Vstup: <code>{entry}</code>\n📍 Aktuální: <code>{mark}</code>\n\n❌ Stop-loss nelze nastavit nad vstupní cenou.\n\n<b>Co dělat?</b>\n• <b>Zavřít</b> - uzamknout ztrátu\n• <b>DCA</b> - zprůměrovat pozici\n• <b>Ignorovat</b> - nechat tak',
+    'deep_loss_close_error': '❌ Chyba při zavírání pozice: {error}',
+    'deep_loss_closed': '✅ Pozice {symbol} uzavřena.\n\nZtráta uzamčena. Někdy je lepší přijmout malou ztrátu než doufat v obrat.',
+    'deep_loss_ignored': '🔇 Rozumím, pozice {symbol} ponechána beze změny.\n\n⚠️ Pamatujte: bez stop-lossu je riziko ztrát neomezené.\nPozici můžete zavřít ručně přes /positions',
+    'fibonacci_desc': '_Vstup, SL, TP - z Fibonacci úrovní v signálu._',
+    'fibonacci_info': '📐 *Strategie Fibonacci Extension*',
+    'prompt_min_quality': 'Zadejte minimální kvalitu % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *HARDCORE REŽIM*: Žádná milost, žádná lítost. Pouze zisk nebo smrt! 🔥',
 }

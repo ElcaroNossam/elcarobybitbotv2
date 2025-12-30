@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ סכום מקסימלי 100,000 USDT',
     'min_amount_error': '❌ סכום מינימלי 1 USDT',
     'sl_tp_range_error': '❌ אחוז SL/TP חייב להיות בין 0.1 ל-500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 הפעל DCA',
+    'btn_ignore': '🔇 התעלם',
+    'dca_already_enabled': '✅ ממוצע DCA כבר מופעל!\n\n📊 <b>{symbol}</b>\nהבוט יוסיף אוטומטית בירידה:\n• -10% → הוספה\n• -25% → הוספה\n\nזה עוזר לממוצע את מחיר הכניסה.',
+    'dca_enable_error': '❌ שגיאה: {error}',
+    'dca_enabled_for_symbol': '✅ ממוצע DCA הופעל!\n\n📊 <b>{symbol}</b>\nהבוט יוסיף אוטומטית בירידה:\n• -10% → הוספה (ממוצע)\n• -25% → הוספה (ממוצע)\n\n⚠️ DCA דורש יתרה מספקת לפקודות נוספות.',
+    'deep_loss_alert': '⚠️ <b>פוזיציה בהפסד עמוק!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 הפסד: <code>{loss_pct:.2f}%</code>\n💰 כניסה: <code>{entry}</code>\n📍 נוכחי: <code>{mark}</code>\n\n❌ לא ניתן להגדיר סטופ-לוס מעל מחיר הכניסה.\n\n<b>מה לעשות?</b>\n• <b>סגור</b> - נעל את ההפסד\n• <b>DCA</b> - ממוצע הפוזיציה\n• <b>התעלם</b> - השאר כמו שזה',
+    'deep_loss_close_error': '❌ שגיאה בסגירת הפוזיציה: {error}',
+    'deep_loss_closed': '✅ פוזיציה {symbol} נסגרה.\n\nההפסד ננעל. לפעמים עדיף לקבל הפסד קטן מאשר לקוות להיפוך.',
+    'deep_loss_ignored': '🔇 הבנתי, פוזיציה {symbol} נשארה ללא שינוי.\n\n⚠️ זכור: בלי סטופ-לוס, הסיכון להפסדים הוא בלתי מוגבל.\nאתה יכול לסגור את הפוזיציה ידנית דרך /positions',
+    'fibonacci_desc': '_כניסה, SL, TP - מרמות פיבונאצ\'י באות_',
+    'fibonacci_info': '📐 *אסטרטגיית הרחבת פיבונאצ\'י*',
+    'prompt_min_quality': 'הזן איכות מינימלית % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *מצב הארדקור*: ללא רחמים, ללא חרטות. רק רווח או מוות! 🔥',
 }

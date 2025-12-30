@@ -986,4 +986,8 @@ Try again after payment is confirmed on blockchain.''',
     "dca_enable_error": "❌ Error: {error}",
     "deep_loss_ignored": "🔇 Got it, position {symbol} left unchanged.\n\n⚠️ Remember: without stop-loss, risk of losses is unlimited.\nYou can close the position manually via /positions",
 
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *HARDCORE MODE*: No mercy, no regrets. Only profit or death! 🔥',
 }

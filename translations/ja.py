@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ 最大金額は100,000 USDTです',
     'min_amount_error': '❌ 最小金額は1 USDTです',
     'sl_tp_range_error': '❌ SL/TP%は0.1から500の間でなければなりません。',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 DCA平均化を有効にする',
+    'btn_ignore': '🔇 無視する',
+    'dca_already_enabled': '✅ DCA平均化は既に有効です！\n\n📊 <b>{symbol}</b>\nボットはドローダウン時に自動的に追加します:\n• -10% → 追加\n• -25% → 追加\n\nこれはエントリー価格を平均化するのに役立ちます。',
+    'dca_enable_error': '❌ エラー: {error}',
+    'dca_enabled_for_symbol': '✅ DCA平均化が有効になりました！\n\n📊 <b>{symbol}</b>\nボットはドローダウン時に自動的に追加します:\n• -10% → 追加(平均化)\n• -25% → 追加(平均化)\n\n⚠️ DCAには追加注文のための十分な残高が必要です。',
+    'deep_loss_alert': '⚠️ <b>ポジションが大きな損失中！</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 損失: <code>{loss_pct:.2f}%</code>\n💰 エントリー: <code>{entry}</code>\n📍 現在: <code>{mark}</code>\n\n❌ ストップロスはエントリー価格より上に設定できません。\n\n<b>どうする？</b>\n• <b>クローズ</b> - 損失を確定\n• <b>DCA</b> - ポジションを平均化\n• <b>無視</b> - そのまま',
+    'deep_loss_close_error': '❌ ポジションクローズエラー: {error}',
+    'deep_loss_closed': '✅ ポジション {symbol} クローズしました。\n\n損失確定。時には反転を期待するよりも小さな損失を受け入れる方が良いこともあります。',
+    'deep_loss_ignored': '🔇 了解、ポジション {symbol} は変更なしで残しました。\n\n⚠️ 注意: ストップロスなしでは損失リスクは無制限です。\n/positions から手動でポジションをクローズできます',
+    'fibonacci_desc': '_エントリー、SL、TP - シグナルのフィボナッチレベルから_',
+    'fibonacci_info': '📐 *フィボナッチ拡張戦略*',
+    'prompt_min_quality': '最小品質 % を入力 (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *ハードコアモード*: 容赦なし、後悔なし。利益か死か！ 🔥',
 }

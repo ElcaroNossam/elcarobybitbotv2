@@ -981,4 +981,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Shuma maksimale është 100,000 USDT',
     'min_amount_error': '❌ Shuma minimale është 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % duhet të jetë midis 0.1 dhe 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Aktivizo DCA',
+    'btn_ignore': '🔇 Injoro',
+    'dca_already_enabled': '✅ DCA tashmë i aktivizuar!\n\n📊 <b>{symbol}</b>\nBoti do të blejë automatikisht në rënie:\n• -10% → shtim\n• -25% → shtim\n\nKjo ndihmon për të mesatarizuar çmimin e hyrjes.',
+    'dca_enable_error': '❌ Gabim: {error}',
+    'dca_enabled_for_symbol': '✅ DCA i aktivizuar!\n\n📊 <b>{symbol}</b>\nBoti do të blejë automatikisht në rënie:\n• -10% → shtim (mesatare)\n• -25% → shtim (mesatare)\n\n⚠️ DCA kërkon bilanc të mjaftueshëm për porosi shtesë.',
+    'deep_loss_alert': '⚠️ <b>Pozicioni në humbje të thellë!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Humbja: <code>{loss_pct:.2f}%</code>\n💰 Hyrja: <code>{entry}</code>\n📍 Aktuale: <code>{mark}</code>\n\n❌ Stop-loss nuk mund të vendoset mbi çmimin e hyrjes.\n\n<b>Çfarë të bësh?</b>\n• <b>Mbyll</b> - blloko humbjen\n• <b>DCA</b> - mesatarizo pozicionin\n• <b>Injoro</b> - lërë ashtu',
+    'deep_loss_close_error': '❌ Gabim në mbylljen e pozicionit: {error}',
+    'deep_loss_closed': '✅ Pozicioni {symbol} u mbyll.\n\nHumbja u bllokua. Ndonjëherë është më mirë të pranosh një humbje të vogël sesa të shpresosh për kthim.',
+    'deep_loss_ignored': '🔇 Kuptova, pozicioni {symbol} u la pa ndryshuar.\n\n⚠️ Kujto: pa stop-loss, rreziku i humbjeve është i pakufizuar.\nMund ta mbyllësh pozicionin manualisht përmes /positions',
+    'fibonacci_desc': '_Hyrja, SL, TP - nga nivelet Fibonacci në sinjal._',
+    'fibonacci_info': '📐 *Strategjia Fibonacci Extension*',
+    'prompt_min_quality': 'Vendosni cilësinë minimale % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *MËNYRA HARDCORE*: Pa mëshirë, pa pendim. Vetëm fitim ose vdekje! 🔥',
 }

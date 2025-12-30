@@ -982,4 +982,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Maksimali suma 100 000 USDT',
     'min_amount_error': '❌ Minimali suma 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % turi būti nuo 0.1 iki 500.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 Įjungti DCA',
+    'btn_ignore': '🔇 Ignoruoti',
+    'dca_already_enabled': '✅ DCA jau įjungtas!\n\n📊 <b>{symbol}</b>\nBotas automatiškai pirks kritimo metu:\n• -10% → papildymas\n• -25% → papildymas\n\nTai padeda vidurkinti įėjimo kainą.',
+    'dca_enable_error': '❌ Klaida: {error}',
+    'dca_enabled_for_symbol': '✅ DCA įjungtas!\n\n📊 <b>{symbol}</b>\nBotas automatiškai pirks kritimo metu:\n• -10% → papildymas (vidurkis)\n• -25% → papildymas (vidurkis)\n\n⚠️ DCA reikia pakankamo balanso papildomiems užsakymams.',
+    'deep_loss_alert': '⚠️ <b>Pozicija giliame nuostolyje!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Nuostolis: <code>{loss_pct:.2f}%</code>\n💰 Įėjimas: <code>{entry}</code>\n📍 Dabartinė: <code>{mark}</code>\n\n❌ Stop-loss negali būti nustatytas virš įėjimo kainos.\n\n<b>Ką daryti?</b>\n• <b>Uždaryti</b> - užfiksuoti nuostolį\n• <b>DCA</b> - vidurkinti poziciją\n• <b>Ignoruoti</b> - palikti kaip yra',
+    'deep_loss_close_error': '❌ Klaida uždarant poziciją: {error}',
+    'deep_loss_closed': '✅ Pozicija {symbol} uždaryta.\n\nNuostolis užfiksuotas. Kartais geriau priimti mažą nuostolį nei tikėtis apsisukimo.',
+    'deep_loss_ignored': '🔇 Supratau, pozicija {symbol} palikta nepakeista.\n\n⚠️ Atminkite: be stop-loss, nuostolių rizika yra neribota.\nGalite uždaryti poziciją rankiniu būdu per /positions',
+    'fibonacci_desc': '_Įėjimas, SL, TP - iš Fibonacci lygių signale._',
+    'fibonacci_info': '📐 *Fibonacci Extension Strategija*',
+    'prompt_min_quality': 'Įveskite minimalią kokybę % (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *HARDCORE REŽIMAS*: Jokios gailesčio, jokių apgailestavimų. Tik pelnas arba mirtis! 🔥',
 }

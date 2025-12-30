@@ -995,4 +995,23 @@ Try again after payment is confirmed on blockchain.''',
     'max_amount_error': '❌ Maximalbetrag ist 100.000 USDT',
     'min_amount_error': '❌ Mindestbetrag ist 1 USDT',
     'sl_tp_range_error': '❌ SL/TP % muss zwischen 0.1 und 500 liegen.',
+
+
+    # DCA and Deep Loss notifications
+    'btn_enable_dca': '📈 DCA-Averaging aktivieren',
+    'btn_ignore': '🔇 Ignorieren',
+    'dca_already_enabled': '✅ DCA-Averaging ist bereits aktiviert!\n\n📊 <b>{symbol}</b>\nBot kauft automatisch bei Drawdown:\n• -10% → Nachkauf\n• -25% → Nachkauf\n\nDies hilft, den Einstiegspreis zu mitteln.',
+    'dca_enable_error': '❌ Fehler: {error}',
+    'dca_enabled_for_symbol': '✅ DCA-Averaging aktiviert!\n\n📊 <b>{symbol}</b>\nBot kauft automatisch bei Drawdown:\n• -10% → Nachkauf (Averaging)\n• -25% → Nachkauf (Averaging)\n\n⚠️ DCA benötigt ausreichend Guthaben für zusätzliche Orders.',
+    'deep_loss_alert': '⚠️ <b>Position im tiefen Verlust!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Verlust: <code>{loss_pct:.2f}%</code>\n💰 Einstieg: <code>{entry}</code>\n📍 Aktuell: <code>{mark}</code>\n\n❌ Stop-Loss kann nicht über dem Einstiegspreis gesetzt werden.\n\n<b>Was tun?</b>\n• <b>Schließen</b> - Verlust realisieren\n• <b>DCA</b> - Position mitteln\n• <b>Ignorieren</b> - so lassen',
+    'deep_loss_close_error': '❌ Fehler beim Schließen der Position: {error}',
+    'deep_loss_closed': '✅ Position {symbol} geschlossen.\n\nVerlust realisiert. Manchmal ist es besser, einen kleinen Verlust zu akzeptieren, als auf eine Umkehr zu hoffen.',
+    'deep_loss_ignored': '🔇 Verstanden, Position {symbol} unverändert gelassen.\n\n⚠️ Denken Sie daran: Ohne Stop-Loss ist das Verlustrisiko unbegrenzt.\nSie können die Position manuell über /positions schließen',
+    'fibonacci_desc': '_Einstieg, SL, TP - aus Fibonacci-Levels im Signal._',
+    'fibonacci_info': '📐 *Fibonacci Extension Strategie*',
+    'prompt_min_quality': 'Mindestqualität % eingeben (0-100):',
+
+
+    # Hardcore trading phrase
+    'hardcore_mode': '💀 *HARDCORE-MODUS*: Keine Gnade, keine Reue. Nur Profit oder Tod! 🔥',
 }
