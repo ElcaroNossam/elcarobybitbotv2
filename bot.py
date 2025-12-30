@@ -172,14 +172,27 @@ from coin_params import (
     CHECK_INTERVAL
 )
 
+# Configure root logger to catch all module logs (exchanges, core, etc.)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[]  # We'll add handlers below
+)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Also configure exchanges module logger
+exchanges_logger = logging.getLogger("exchanges")
+exchanges_logger.setLevel(logging.INFO)
 
 if not logger.handlers: 
     console_h = logging.StreamHandler()
     console_h.setLevel(logging.INFO)
     console_h.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
     logger.addHandler(console_h)
+    # Add same handler to exchanges logger for proper formatting
+    exchanges_logger.addHandler(console_h)
 
 # ═══════════════════════════════════════════════════════════════
 # UNIFIED ARCHITECTURE - Feature Flag
