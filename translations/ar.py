@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ خطأ Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 مركز جديد {symbol} @ {entry:.6f}، الحجم={size}',
+    'new_position': (
+        '🚀 مركز جديد {symbol} @ {entry:.6f}، الحجم={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 تم تعيين SL تلقائياً: {price:.6f}',
     'auto_close_position':         '⏱ المركز {symbol} (TF={tf}) مفتوح لأكثر من {tf} ويخسر، تم إغلاقه تلقائياً.',
     'position_closed': (

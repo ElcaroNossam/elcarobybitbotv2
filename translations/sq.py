@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ Gabim Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 Pozicion i ri {symbol} @ {entry:.6f}, madhësia={size}',
+    'new_position': (
+        '🚀 Pozicion i ri {symbol} @ {entry:.6f}, madhësia={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL u vendos automatikisht: {price:.6f}',
     'auto_close_position':         '⏱ Pozicioni {symbol} (TF={tf}) i hapur > {tf} dhe në humbje, u mbyll automatikisht.',
     'position_closed': (

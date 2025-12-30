@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ Errore Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 Nuova posizione {symbol} @ {entry:.6f}, size={size}',
+    'new_position': (
+        '🚀 Nuova posizione {symbol} @ {entry:.6f}, size={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL impostato automaticamente: {price:.6f}',
     'auto_close_position':         '⏱ Posizione {symbol} (TF={tf}) aperta > {tf} e in perdita, chiusa automaticamente.',
     'position_closed': (

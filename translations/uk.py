@@ -228,7 +228,10 @@ TEXTS = {
     'bybit_error':                 '❌ Помилка Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 Нова позиція {symbol} @ {entry:.6f}, розмір={size}',
+    'new_position': (
+        '🚀 Нова позиція {symbol} @ {entry:.6f}, розмір={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL виставлено автоматично: {price:.6f}',
     'auto_close_position':         '⏱ Позицію {symbol} (TF={tf}) відкрито > {tf} та вона збиткова — закрито автоматично.',
     'position_closed': (

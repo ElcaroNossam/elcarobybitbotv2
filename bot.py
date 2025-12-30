@@ -10900,20 +10900,20 @@ async def monitor_positions_loop(app: Application):
                         k, s = get_user_credentials(uid)
                         if not k or not s:
                             continue
-                        # Create account_types list for legacy mode
+                        # Create targets_to_check list for legacy mode (Bybit only)
                         if user_trading_mode == "both":
-                            account_types_to_check = ["demo", "real"]
+                            targets_to_check = [("bybit", "demo"), ("bybit", "real")]
                         else:
-                            account_types_to_check = [user_trading_mode]
+                            targets_to_check = [("bybit", user_trading_mode)]
                     else:
                         # Use targets from unified architecture
-                        account_types_to_check = [tgt.account_type for tgt in user_targets]
-                        user_trading_mode = account_types_to_check[0] if account_types_to_check else "demo"
+                        targets_to_check = [(tgt.exchange, tgt.account_type) for tgt in user_targets]
+                        user_trading_mode = targets_to_check[0][1] if targets_to_check else "demo"
                     
-                    # Process EACH account type for this user (supports trading_mode="both")
-                    for current_account_type in account_types_to_check:
+                    # Process EACH target for this user (supports multi-exchange and multi-account)
+                    for current_exchange, current_account_type in targets_to_check:
                         # Get previous symbols to avoid duplicate notifications
-                        cache_key = f"{uid}:{current_account_type}"
+                        cache_key = f"{uid}:{current_exchange}:{current_account_type}"
                         open_syms_prev = _open_syms_prev.get(cache_key, set())
                         
                         open_positions = await fetch_open_positions(uid, account_type=current_account_type)
@@ -11080,9 +11080,26 @@ async def monitor_positions_loop(app: Application):
                             # Only send notification if not in cooldown
                             cooldown_end = _close_all_cooldown.get(uid, 0)
                             if now >= cooldown_end:
+                                # Format exchange and market type for display
+                                exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
+                                market_type_display = {
+                                    "demo": "Demo",
+                                    "real": "Real",
+                                    "testnet": "Testnet",
+                                    "mainnet": "Mainnet",
+                                    "paper": "Paper",
+                                    "live": "Live"
+                                }.get(current_account_type, current_account_type.title())
+                                
                                 await bot.send_message(
                                     uid,
-                                    t['new_position'].format(symbol=sym, entry=entry, size=size)
+                                    t['new_position'].format(
+                                        symbol=sym, 
+                                        entry=entry, 
+                                        size=size,
+                                        exchange=exchange_display,
+                                        market_type=market_type_display
+                                    )
                                 )
 
                         if raw_sl in (None, "", "0", 0):
@@ -11376,6 +11393,17 @@ async def monitor_positions_loop(app: Application):
                                         "fibonacci": "Fibonacci",
                                         "manual": "Manual",
                                     }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
+                                    
+                                    # Format exchange and market type for display
+                                    exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
+                                    market_type_display = {
+                                        "demo": "Demo",
+                                        "real": "Real",
+                                        "testnet": "Testnet",
+                                        "mainnet": "Mainnet",
+                                        "paper": "Paper",
+                                        "live": "Live"
+                                    }.get(current_account_type, current_account_type.title())
                                 
                                     logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
                                     await bot.send_message(
@@ -11388,6 +11416,8 @@ async def monitor_positions_loop(app: Application):
                                             exit=float(exit_price),
                                             pnl=pnl_value,
                                             pct=pct_value,
+                                            exchange=exchange_display,
+                                            market_type=market_type_display,
                                         ),
                                         parse_mode="Markdown"
                                     )

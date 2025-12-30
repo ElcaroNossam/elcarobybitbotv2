@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ Bybit エラー {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 新規建玉 {symbol} @ {entry:.6f}, サイズ={size}',
+    'new_position': (
+        '🚀 新規建玉 {symbol} @ {entry:.6f}, サイズ={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL を自動設定: {price:.6f}',
     'auto_close_position':         '⏱ 建玉 {symbol} (TF={tf}) が {tf}超かつ損失のため自動クローズ。',
     'position_closed': (

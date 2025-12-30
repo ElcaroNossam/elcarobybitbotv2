@@ -338,7 +338,10 @@ TEXTS = {
     'bybit_error':                 '❌ Bybit error {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 New position {symbol} @ {entry:.6f}, size={size}',
+    'new_position': (
+        '🚀 New position {symbol} @ {entry:.6f}, size={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL set automatically: {price:.6f}',
     'auto_close_position':         '⏱ Position {symbol} (TF={tf}) open > {tf} and losing, closed automatically.',
     'position_closed': (
@@ -346,7 +349,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• Entry: `{entry:.8f}`\n'
         '• Exit: `{exit:.8f}`\n'
-        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - unified format with full info

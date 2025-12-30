@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ Bybit 错误 {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 新持仓 {symbol} @ {entry:.6f}，大小={size}',
+    'new_position': (
+        '🚀 新持仓 {symbol} @ {entry:.6f}，大小={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 已自动设置 SL：{price:.6f}',
     'auto_close_position':         '⏱ 持仓 {symbol} (TF={tf}) 已开仓超过 {tf} 且亏损，已自动平仓。',
     'position_closed': (

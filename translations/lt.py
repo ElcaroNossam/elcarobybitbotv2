@@ -228,7 +228,10 @@ TEXTS = {
     'bybit_error':                 '❌ Bybit klaida {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 Nauja pozicija {symbol} @ {entry:.6f}, dydis={size}',
+    'new_position': (
+        '🚀 Nauja pozicija {symbol} @ {entry:.6f}, dydis={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL nustatytas automatiškai: {price:.6f}',
     'auto_close_position':         '⏱ Pozicija {symbol} (TF={tf}) atvira > {tf} ir nuostolinga — uždaryta automatiškai.',
     'position_closed': (

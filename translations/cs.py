@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ Chyba Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 Nová pozice {symbol} @ {entry:.6f}, velikost={size}',
+    'new_position': (
+        '🚀 Nová pozice {symbol} @ {entry:.6f}, velikost={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL nastaven automaticky: {price:.6f}',
     'auto_close_position':         '⏱ Pozice {symbol} (TF={tf}) otevřená > {tf} a ve ztrátě, uzavřena automaticky.',
     'position_closed': (
@@ -235,7 +238,8 @@ TEXTS = {
         '• Strategy: `{strategy}`\n'
         '• Vstup: `{entry:.8f}`\n'
         '• Výstup: `{exit:.8f}`\n'
-        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`'
+        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}'
     ),
 
     # Entries & errors - jednotný formát s kompletními informacemi

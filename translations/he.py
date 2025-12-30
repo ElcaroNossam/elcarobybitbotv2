@@ -227,7 +227,10 @@ TEXTS = {
     'bybit_error':                 '❌ שגיאת Bybit {path}: {data}',
 
     # Auto notifications
-    'new_position':                '🚀 פוזיציה חדשה {symbol} @ {entry:.6f}, גודל={size}',
+    'new_position': (
+        '🚀 פוזיציה חדשה {symbol} @ {entry:.6f}, גודל={size}\n'
+        '📍 {exchange} • {market_type}'
+    ),
     'sl_auto_set':                 '🛑 SL הוגדר אוטומטית: {price:.6f}',
     'auto_close_position':         '⏱ פוזיציה {symbol} (TF={tf}) פתוחה > {tf} ומפסידה, נסגרה אוטומטית.',
     'position_closed': (
