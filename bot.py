@@ -11259,6 +11259,9 @@ async def monitor_positions_loop(app: Application):
                                         logger.info(f"[ATR-ELSE] uid={uid} acc={current_account_type} entering ATR else block for sym={sym}")
                                     try:
                                         result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                        # Debug
+                                        if uid == 511692487:
+                                            logger.info(f"[ATR-ELSE-RESULT] uid={uid} result={result}")
                                         if result == "deep_loss":
                                             # Calculate move_pct for deep loss notification
                                             move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
