@@ -11856,9 +11856,12 @@ async def monitor_positions_loop(app: Application):
                                 continue
                         
                             if position_use_atr:
+                                # Log current ATR state for debugging
+                                logger.info(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
+                                
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
                                     # Log ATR status for debugging
-                                    logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
+                                    logger.info(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
                                 
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
@@ -11883,6 +11886,7 @@ async def monitor_positions_loop(app: Application):
                                     continue
 
                                 _atr_triggered[key] = True
+                                logger.info(f"[ATR-ACTIVATED] {sym} uid={uid} - ATR trailing now active!")
 
                                 filt = await get_symbol_filters(uid, sym)
                                 tick = filt["tickSize"]
