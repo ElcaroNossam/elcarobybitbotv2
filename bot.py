@@ -9424,8 +9424,9 @@ async def calc_qty(
     account_type: str = None
 ) -> float:
     balance = await fetch_usdt_balance(user_id, account_type=account_type)
+    logger.info(f"[calc_qty] uid={user_id} symbol={symbol} account_type={account_type} balance={balance:.2f}")
     if balance <= 0:
-        raise ValueError("Don't have USDT")
+        raise ValueError(f"Don't have USDT (balance={balance}, account_type={account_type})")
     risk_usdt = balance * (risk_pct / 100)
     price_move = price * (sl_pct / 100)
     if price_move <= 0:
