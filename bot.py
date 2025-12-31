@@ -11155,7 +11155,7 @@ async def monitor_positions_loop(app: Application):
                                                 size        = float(pos["size"]),
                                                 timeframe   = tf_for_sym,
                                                 signal_id   = po["signal_id"],
-                                                strategy    = po.get("strategy"),
+                                                strategy    = po.get("strategy") or "manual",
                                                 account_type = current_account_type
                                             )
                                             await bot.send_message(
@@ -11259,6 +11259,9 @@ async def monitor_positions_loop(app: Application):
                                         detected_strategy = "fibonacci"
                                 
                                 # Use current_account_type from the loop
+                                # If strategy not detected, use "manual" (position opened externally)
+                                final_strategy = detected_strategy or "manual"
+                                
                                 add_active_position(
                                     user_id    = uid,
                                     symbol     = sym,
@@ -11267,14 +11270,14 @@ async def monitor_positions_loop(app: Application):
                                     size       = size,
                                     timeframe  = tf_for_sym,
                                     signal_id  = signal_id,
-                                    strategy   = detected_strategy,  # Try to detect from signal, else None
+                                    strategy   = final_strategy,
                                     account_type = current_account_type
                                 )
                             
                                 if detected_strategy:
                                     logger.info(f"[{uid}] Position {sym} detected with strategy={detected_strategy} from signal")
                                 else:
-                                    logger.debug(f"[{uid}] Position {sym} added without strategy (external/manual)")
+                                    logger.info(f"[{uid}] Position {sym} added with strategy=manual (external/webapp)")
 
                                 # Only send notification if not in cooldown
                                 cooldown_end = _close_all_cooldown.get(uid, 0)
