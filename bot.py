@@ -6598,6 +6598,11 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         return 0.0
 
     for acct in res.get("list", []) or []:
+        # Log ALL account-level fields for debugging Demo API response
+        acct_keys = [k for k in acct.keys() if k != 'coin']
+        acct_values = {k: acct.get(k) for k in acct_keys}
+        logger.info(f"[{user_id}] Account fields: {acct_values} [{account_type or 'auto'}]")
+        
         # First try account-level totalAvailableBalance (works for Demo accounts!)
         total_available = acct.get("totalAvailableBalance")
         if total_available and total_available != "":
