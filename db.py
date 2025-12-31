@@ -3170,13 +3170,56 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
         ]
 
 
-def remove_active_position(user_id: int, symbol: str, account_type: str | None = None):
+def remove_active_position(user_id: int, symbol: str, account_type: str | None = None, entry_price: float | None = None, entry_price_tolerance: float = 0.001):
     """
     Удаляет активную позицию.
     Если account_type указан - удаляет только для этого типа.
     Если не указан - удаляет все позиции по символу (для обратной совместимости).
+    
+    IMPORTANT: If entry_price is provided, only deletes if the position's entry_price matches
+    (within tolerance). This prevents race condition where a NEW position opened by signal handler
+    gets deleted by monitor loop closing the OLD position.
+    
+    Args:
+        user_id: User ID
+        symbol: Trading symbol
+        account_type: demo/real/testnet (optional)
+        entry_price: Expected entry price to match (optional, for race condition protection)
+        entry_price_tolerance: Relative tolerance for price matching (default 0.1% = 0.001)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     with get_conn() as conn:
+        # If entry_price is provided, verify it matches before deleting
+        if entry_price is not None:
+            # First check current entry_price in DB
+            if account_type:
+                cur = conn.execute(
+                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
+                    (user_id, symbol, account_type),
+                )
+            else:
+                cur = conn.execute(
+                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=?",
+                    (user_id, symbol),
+                )
+            row = cur.fetchone()
+            
+            if row:
+                db_entry_price = row[0]
+                if db_entry_price and entry_price:
+                    # Check if prices match within tolerance
+                    price_diff = abs(db_entry_price - entry_price) / entry_price
+                    if price_diff > entry_price_tolerance:
+                        logger.warning(
+                            f"[{user_id}] {symbol}: Skipping position removal - entry_price mismatch! "
+                            f"Expected={entry_price:.6f}, DB has={db_entry_price:.6f}, diff={price_diff*100:.2f}%. "
+                            f"This may indicate a new position was opened while closing old one."
+                        )
+                        return  # Don't delete - this is a different position!
+        
+        # Proceed with deletion
         if account_type:
             conn.execute(
                 "DELETE FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",

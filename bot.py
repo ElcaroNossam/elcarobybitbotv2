@@ -10103,6 +10103,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}, symbol={symbol}")
             if is_fibonacci:
                 logger.info(f"[{uid}] Fibonacci signal detected: trade_fibonacci={cfg.get('trade_fibonacci', 0)}, fibonacci_trigger={fibonacci_trigger}")
+            if oi_prev is not None and oi_now is not None:
+                logger.info(f"[{uid}] OI signal detected: trade_oi={cfg.get('trade_oi', 0)}, oi_trigger={oi_trigger}, symbol={symbol}, oi_prev={oi_prev:.2f}M, oi_now={oi_now:.2f}M")
 
             # Get user's trading context for settings lookup
             user_context = get_user_trading_context(uid)
@@ -11045,7 +11047,9 @@ def log_exit_and_remove_position(
         exit_ts=int(time.time()*1000), exit_order_type=exit_order_type,
         strategy=strategy, account_type=account_type,
     )
-    remove_active_position(user_id, symbol, account_type=account_type)
+    # Pass entry_price to prevent race condition where a NEW position (opened by signal)
+    # gets deleted when closing OLD position (detected by monitor)
+    remove_active_position(user_id, symbol, account_type=account_type, entry_price=entry_price)
 
 def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str) -> None:
     status = (status or "").upper()
@@ -11202,7 +11206,8 @@ async def monitor_positions_loop(app: Application):
                                         uid,
                                         t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
                                     )
-                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type)
+                                    # Use ap entry_price to prevent race condition
+                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"))
                                     reset_pyramid(uid, pos["symbol"])
                                     _atr_triggered.pop((uid, pos["symbol"]), None)
                                     _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
@@ -11483,7 +11488,8 @@ async def monitor_positions_loop(app: Application):
                                     # No closed PnL record - clean up silently
                                     logger.debug(f"[{uid}] No closed PnL for {sym}, cleaning up")
                                     try:
-                                        remove_active_position(uid, sym, account_type=ap_account_type)
+                                        # Pass entry_price to avoid race condition
+                                        remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"))
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
