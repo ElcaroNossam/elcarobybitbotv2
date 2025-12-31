@@ -272,6 +272,7 @@ class UnifiedExchangeClient:
                         "side": "Long" if pos.is_long else "Short",
                         "size": pos.size,
                         "entry_price": pos.entry_price,
+                        "mark_price": pos.mark_price or pos.entry_price,  # Fallback to entry if no mark
                         "unrealized_pnl": pos.unrealized_pnl,
                         "leverage": pos.leverage,
                         "liquidation_price": pos.liquidation_price

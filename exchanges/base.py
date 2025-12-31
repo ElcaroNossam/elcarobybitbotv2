@@ -34,6 +34,7 @@ class Position:
     margin_mode: str
     liquidation_price: Optional[float] = None
     margin_used: Optional[float] = None
+    mark_price: Optional[float] = None  # Current market price for PNL calculation
 
     @property
     def is_long(self) -> bool:
