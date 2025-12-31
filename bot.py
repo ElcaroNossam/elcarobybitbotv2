@@ -6604,10 +6604,22 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
                     available2 = float(c.get("availableBalance") or 0)
                     logger.info(f"[{user_id}] USDT balances: wallet={wallet:.2f} availableToWithdraw={available:.2f} availableBalance={available2:.2f} [{account_type or 'auto'}]")
                     
-                    # Use availableToWithdraw (free balance) instead of walletBalance (total)
-                    # Fallback chain: availableToWithdraw -> availableBalance -> walletBalance
-                    result = c.get("availableToWithdraw") or c.get("availableBalance") or c.get("walletBalance") or 0.0
-                    return float(result)
+                    # CRITICAL: Use availableToWithdraw (NOT walletBalance!)
+                    # If availableToWithdraw is 0 or empty, that means NO FREE MARGIN
+                    # We should NOT fallback to walletBalance as that would be misleading
+                    available_raw = c.get("availableToWithdraw")
+                    if available_raw is not None and available_raw != "":
+                        return float(available_raw)
+                    
+                    # Fallback to availableBalance (some API versions use this)
+                    available_raw2 = c.get("availableBalance")
+                    if available_raw2 is not None and available_raw2 != "":
+                        return float(available_raw2)
+                    
+                    # Only fallback to walletBalance if other fields are missing
+                    # This is a last resort and may cause INSUFFICIENT_BALANCE errors
+                    logger.warning(f"[{user_id}] availableToWithdraw not available, using walletBalance")
+                    return float(c.get("walletBalance") or 0.0)
                 except (TypeError, ValueError):
                     return 0.0
     return 0.0
