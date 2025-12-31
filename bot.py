@@ -6302,6 +6302,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             web_app=WebAppInfo(url=webapp_url_with_user)
         )
         await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
+        logger.info(f"[{uid}] Personalized menu button set: {webapp_url_with_user}")
     except Exception as e:
         logger.warning(f"Failed to set menu button for {uid}: {e}")
 
