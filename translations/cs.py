@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Nedostatečný zůstatek!</b>\n\n💰 Na vašem {account_type} účtu není dostatek prostředků k otevření této pozice.\n\n<b>Řešení:</b>\n• Dobijte zůstatek\n• Zmenšete velikost pozice (% na obchod)\n• Snižte páku\n• Zavřete některé otevřené pozice',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Příliš vysoká páka!</b>\n\n⚙️ Vaše nakonfigurovaná páka překračuje maximum povolené pro tento symbol.\n\n<b>Maximálně povoleno:</b> {max_leverage}x\n\n<b>Řešení:</b> Přejděte do nastavení strategie a snižte páku.',

@@ -768,22 +768,31 @@ class RealBacktestEngine:
         return None
     
     def _calculate_pnl(self, position: Dict, exit_price: float) -> float:
-        """Calculate PnL for a position with realistic costs (commissions + slippage)"""
-        entry_value = position["size"]
-        exit_value = position["size"]
+        """Calculate PnL for a position with realistic costs (commissions + slippage)
         
-        # Calculate gross P&L (absolute, not percentage)
-        # Formula: P&L = (Exit Price - Entry Price) × Position Size (in contracts/coins)
-        # Leverage is already applied in position size calculation during entry
+        IMPORTANT: position["size"] is position VALUE in USDT (not quantity in coins).
+        This is the notional value of the position.
+        
+        Formula: 
+        - P&L % = (exit_price - entry_price) / entry_price * 100  (for LONG)
+        - P&L $ = position_value * (P&L % / 100)
+        """
+        position_value = position["size"]  # This is USDT value, not coin quantity
+        entry_price = position["entry_price"]
+        
+        # Calculate price change percentage
         if position["direction"] == "LONG":
-            gross_pnl = position["size"] * (exit_price - position["entry_price"])
+            pnl_percent = (exit_price - entry_price) / entry_price * 100
         else:
-            gross_pnl = position["size"] * (position["entry_price"] - exit_price)
+            pnl_percent = (entry_price - exit_price) / entry_price * 100
+        
+        # Calculate gross PnL based on position value
+        gross_pnl = position_value * (pnl_percent / 100)
         
         # Deduct trading costs
         costs = TradingCosts.calculate(
-            entry_value=entry_value,
-            exit_value=exit_value,
+            entry_value=position_value,
+            exit_value=position_value * (1 + pnl_percent / 100),
             is_maker=False  # Conservative: assume taker fees
         )
         
@@ -1668,19 +1677,301 @@ class VolatilityBreakoutAnalyzer:
 
 
 class CustomStrategyAnalyzer:
-    """Analyzer for user-created custom strategies"""
+    """
+    Analyzer for user-created custom strategies using unified StrategySpec format.
+    
+    Supports both:
+    - New StrategySpec format (from models/strategy_spec.py)
+    - Legacy format (indicators list, entry_conditions dict)
+    """
     
     def __init__(self, config: Dict, base_strategy: str = "custom"):
         self.config = config
         self.base_strategy = base_strategy
-        self.indicators = config.get("indicators", [])
-        self.entry_conditions = config.get("entry_conditions", {})
-        self.exit_conditions = config.get("exit_conditions", {})
-        self.risk_management = config.get("risk_management", {})
+        self._is_strategy_spec = self._detect_format()
+        
+        if self._is_strategy_spec:
+            # New StrategySpec format
+            self.long_entry = config.get("long_entry")
+            self.short_entry = config.get("short_entry")
+            self.exit_rules = config.get("exit_rules", [])
+            self.filters = config.get("filters", {})
+        else:
+            # Legacy format
+            self.indicators = config.get("indicators", [])
+            self.entry_conditions = config.get("entry_conditions", {})
+            self.exit_conditions = config.get("exit_conditions", {})
+            self.risk_management = config.get("risk_management", {})
+    
+    def _detect_format(self) -> bool:
+        """Detect if config uses new StrategySpec format"""
+        return "long_entry" in self.config or "short_entry" in self.config
     
     @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:
         """Generate signals based on custom strategy configuration"""
+        if self._is_strategy_spec:
+            return self._analyze_strategy_spec(candles)
+        else:
+            return self._analyze_legacy(candles)
+    
+    def _analyze_strategy_spec(self, candles: List[Dict]) -> Dict[int, Dict]:
+        """Analyze using new StrategySpec format with condition groups"""
+        signals = {}
+        
+        closes = [c["close"] for c in candles]
+        highs = [c["high"] for c in candles]
+        lows = [c["low"] for c in candles]
+        volumes = [c["volume"] for c in candles]
+        
+        # Pre-calculate all indicators that might be used
+        indicator_cache = self._precalculate_indicators(candles)
+        
+        # Process each candle
+        for i in range(50, len(candles)):
+            # Check long entry
+            if self.long_entry and self.long_entry.get("enabled", True):
+                if self._evaluate_entry_rule(self.long_entry, i, candles, indicator_cache):
+                    signals[i] = {"direction": "LONG", "rule": "long_entry"}
+                    continue
+            
+            # Check short entry
+            if self.short_entry and self.short_entry.get("enabled", True):
+                if self._evaluate_entry_rule(self.short_entry, i, candles, indicator_cache):
+                    signals[i] = {"direction": "SHORT", "rule": "short_entry"}
+        
+        return signals
+    
+    def _precalculate_indicators(self, candles: List[Dict]) -> Dict[str, List[float]]:
+        """Pre-calculate all indicators that might be needed"""
+        cache = {}
+        closes = [c["close"] for c in candles]
+        highs = [c["high"] for c in candles]
+        lows = [c["low"] for c in candles]
+        volumes = [c["volume"] for c in candles]
+        
+        cache["price_close"] = closes
+        cache["price_high"] = highs
+        cache["price_low"] = lows
+        cache["price_open"] = [c["open"] for c in candles]
+        cache["volume"] = volumes
+        
+        # Calculate common indicators
+        # RSI
+        for period in [7, 14, 21]:
+            cache[f"rsi_{period}"] = self._calc_rsi_series(closes, period)
+        
+        # EMAs
+        for period in [9, 20, 21, 50, 100, 200]:
+            cache[f"ema_{period}"] = self._calc_ema_series(closes, period)
+        
+        # SMAs
+        for period in [20, 50, 100, 200]:
+            cache[f"sma_{period}"] = self._calc_sma_series(closes, period)
+        
+        # Bollinger Bands
+        for period, std in [(20, 2.0), (20, 2.5), (21, 2.0)]:
+            upper, lower, mid = self._calc_bb_series(closes, period, std)
+            cache[f"bb_{period}_{std}_upper"] = upper
+            cache[f"bb_{period}_{std}_lower"] = lower
+            cache[f"bb_{period}_{std}_middle"] = mid
+        
+        # MACD
+        macd_line, signal_line = self._calc_macd_series(closes)
+        cache["macd_macd"] = macd_line
+        cache["macd_signal"] = signal_line
+        cache["macd_histogram"] = [m - s for m, s in zip(macd_line, signal_line)]
+        
+        # ATR
+        for period in [14, 21]:
+            cache[f"atr_{period}"] = self._calc_atr_series(highs, lows, closes, period)
+        
+        # Volume SMA
+        cache["volume_sma_20"] = self._calc_sma_series(volumes, 20)
+        
+        # SuperTrend
+        st_values, st_direction = self._calc_supertrend_series(highs, lows, closes, 10, 3.0)
+        cache["supertrend_10_3.0_value"] = st_values
+        cache["supertrend_10_3.0_direction"] = st_direction
+        
+        # VWAP
+        cache["vwap"] = self._calc_vwap_series(highs, lows, closes, volumes)
+        
+        # OBV
+        cache["obv"] = self._calc_obv_series(closes, volumes)
+        
+        return cache
+    
+    def _get_indicator_value(self, indicator_config: Dict, index: int, cache: Dict) -> Optional[float]:
+        """Get indicator value at index from cache"""
+        ind_type = indicator_config.get("type", "")
+        params = indicator_config.get("params", {})
+        field = indicator_config.get("field")
+        
+        # Build cache key
+        if ind_type.startswith("price_"):
+            key = ind_type
+        elif ind_type == "rsi":
+            period = params.get("period", 14)
+            key = f"rsi_{period}"
+        elif ind_type == "ema":
+            period = params.get("period", 20)
+            key = f"ema_{period}"
+        elif ind_type == "sma":
+            period = params.get("period", 20)
+            key = f"sma_{period}"
+        elif ind_type == "bb":
+            period = params.get("period", 20)
+            std = params.get("std_dev", 2.0)
+            field = field or "middle"
+            key = f"bb_{period}_{std}_{field}"
+        elif ind_type == "macd":
+            field = field or "macd"
+            key = f"macd_{field}"
+        elif ind_type == "atr":
+            period = params.get("period", 14)
+            key = f"atr_{period}"
+        elif ind_type == "supertrend":
+            period = params.get("period", 10)
+            mult = params.get("multiplier", 3.0)
+            field = field or "direction"
+            key = f"supertrend_{period}_{mult}_{field}"
+        elif ind_type == "vwap":
+            key = "vwap"
+        elif ind_type == "obv":
+            key = "obv"
+        elif ind_type == "volume":
+            key = "volume"
+        else:
+            return None
+        
+        if key in cache and index < len(cache[key]):
+            return cache[key][index]
+        return None
+    
+    def _evaluate_condition(self, condition: Dict, index: int, candles: List[Dict], cache: Dict) -> bool:
+        """Evaluate a single condition at index"""
+        if not condition.get("enabled", True):
+            return True  # Disabled conditions pass
+        
+        left = condition.get("left", {})
+        operator = condition.get("operator", ">")
+        right = condition.get("right")
+        value = condition.get("value")
+        value2 = condition.get("value2")
+        
+        left_val = self._get_indicator_value(left, index, cache)
+        if left_val is None:
+            return False
+        
+        # Get right value (indicator or constant)
+        if right:
+            right_val = self._get_indicator_value(right, index, cache)
+            if right_val is None:
+                return False
+        else:
+            right_val = value
+        
+        if right_val is None:
+            return False
+        
+        # Evaluate operator
+        if operator == ">":
+            return left_val > right_val
+        elif operator == "<":
+            return left_val < right_val
+        elif operator == ">=":
+            return left_val >= right_val
+        elif operator == "<=":
+            return left_val <= right_val
+        elif operator == "==":
+            return abs(left_val - right_val) < 0.0001
+        elif operator == "!=":
+            return abs(left_val - right_val) >= 0.0001
+        elif operator == "between":
+            upper = value2 if value2 is not None else right_val * 1.1
+            return right_val <= left_val <= upper
+        elif operator == "crosses_above":
+            if index < 1:
+                return False
+            prev_left = self._get_indicator_value(left, index - 1, cache)
+            if right:
+                prev_right = self._get_indicator_value(right, index - 1, cache)
+            else:
+                prev_right = right_val
+            if prev_left is None or prev_right is None:
+                return False
+            return prev_left <= prev_right and left_val > right_val
+        elif operator == "crosses_below":
+            if index < 1:
+                return False
+            prev_left = self._get_indicator_value(left, index - 1, cache)
+            if right:
+                prev_right = self._get_indicator_value(right, index - 1, cache)
+            else:
+                prev_right = right_val
+            if prev_left is None or prev_right is None:
+                return False
+            return prev_left >= prev_right and left_val < right_val
+        elif operator == "is_rising":
+            if index < 3:
+                return False
+            return all(
+                self._get_indicator_value(left, index - i, cache) < self._get_indicator_value(left, index - i + 1, cache)
+                for i in range(1, 4)
+            )
+        elif operator == "is_falling":
+            if index < 3:
+                return False
+            return all(
+                self._get_indicator_value(left, index - i, cache) > self._get_indicator_value(left, index - i + 1, cache)
+                for i in range(1, 4)
+            )
+        
+        return False
+    
+    def _evaluate_condition_group(self, group: Dict, index: int, candles: List[Dict], cache: Dict) -> bool:
+        """Evaluate a condition group (AND/OR logic)"""
+        if not group.get("enabled", True):
+            return True  # Disabled groups pass
+        
+        conditions = group.get("conditions", [])
+        if not conditions:
+            return True  # Empty groups pass
+        
+        operator = group.get("operator", "AND")
+        
+        results = [self._evaluate_condition(c, index, candles, cache) for c in conditions]
+        
+        if operator == "AND":
+            return all(results)
+        elif operator == "OR":
+            return any(results)
+        
+        return False
+    
+    def _evaluate_entry_rule(self, entry_rule: Dict, index: int, candles: List[Dict], cache: Dict) -> bool:
+        """Evaluate an entry rule (multiple groups)"""
+        if not entry_rule.get("enabled", True):
+            return False
+        
+        groups = entry_rule.get("groups", [])
+        if not groups:
+            return False
+        
+        group_operator = entry_rule.get("group_operator", "AND")
+        
+        results = [self._evaluate_condition_group(g, index, candles, cache) for g in groups]
+        
+        if group_operator == "AND":
+            return all(results)
+        elif group_operator == "OR":
+            return any(results)
+        
+        return False
+    
+    def _analyze_legacy(self, candles: List[Dict]) -> Dict[int, Dict]:
+        """Analyze using legacy format (backward compatibility)"""
         signals = {}
         closes = [c["close"] for c in candles]
         highs = [c["high"] for c in candles]
@@ -1730,18 +2021,17 @@ class CustomStrategyAnalyzer:
         
         # Generate signals based on entry conditions
         for i in range(50, len(candles)):
-            signal = self._evaluate_conditions(i, candles, indicator_values, closes, volumes)
+            signal = self._evaluate_legacy_conditions(i, candles, indicator_values, closes, volumes)
             if signal:
                 signals[i] = signal
         
         return signals
     
-    def _evaluate_conditions(self, i: int, candles: List[Dict], indicators: Dict, closes: List[float], volumes: List[float]) -> Optional[Dict]:
-        """Evaluate entry conditions at index i"""
+    def _evaluate_legacy_conditions(self, i: int, candles: List[Dict], indicators: Dict, closes: List[float], volumes: List[float]) -> Optional[Dict]:
+        """Evaluate legacy entry conditions at index i"""
         long_score = 0
         short_score = 0
         
-        # Check each condition type
         conditions = self.entry_conditions
         
         # RSI conditions
@@ -1773,7 +2063,6 @@ class CustomStrategyAnalyzer:
             prev_macd = indicators["macd"][i-1] if i > 0 and i-1 < len(indicators["macd"]) else 0
             prev_signal = indicators["macd_signal"][i-1] if i > 0 and i-1 < len(indicators["macd_signal"]) else 0
             
-            # MACD crossover
             if prev_macd < prev_signal and macd > signal:
                 long_score += 35
             elif prev_macd > prev_signal and macd < signal:
@@ -1792,7 +2081,6 @@ class CustomStrategyAnalyzer:
         if "volume_sma" in indicators:
             vol_sma = indicators["volume_sma"][i] if i < len(indicators["volume_sma"]) else volumes[i]
             if volumes[i] > vol_sma * 2:
-                # High volume confirms the move
                 long_score += 10
                 short_score += 10
         
@@ -1801,14 +2089,13 @@ class CustomStrategyAnalyzer:
             st_dir = indicators["supertrend_dir"][i] if i < len(indicators["supertrend_dir"]) else 0
             prev_st_dir = indicators["supertrend_dir"][i-1] if i > 0 and i-1 < len(indicators["supertrend_dir"]) else 0
             
-            # SuperTrend flip signals
-            if st_dir == 1 and prev_st_dir == -1:  # Bullish flip
+            if st_dir == 1 and prev_st_dir == -1:
                 long_score += 40
-            elif st_dir == -1 and prev_st_dir == 1:  # Bearish flip
+            elif st_dir == -1 and prev_st_dir == 1:
                 short_score += 40
-            elif st_dir == 1:  # In bullish trend
+            elif st_dir == 1:
                 long_score += 15
-            elif st_dir == -1:  # In bearish trend
+            elif st_dir == -1:
                 short_score += 15
         
         # VWAP conditions
@@ -1817,30 +2104,26 @@ class CustomStrategyAnalyzer:
             close = closes[i]
             prev_close = closes[i-1] if i > 0 else close
             
-            # Price crossing VWAP
             if close > vwap and prev_close <= vwap:
                 long_score += 25
             elif close < vwap and prev_close >= vwap:
                 short_score += 25
-            # Price significantly above/below VWAP
             elif close > vwap * 1.01:
                 long_score += 10
             elif close < vwap * 0.99:
                 short_score += 10
         
-        # OBV conditions (On-Balance Volume)
+        # OBV conditions
         if "obv" in indicators and "obv_sma" in indicators:
             obv = indicators["obv"][i] if i < len(indicators["obv"]) else 0
             obv_sma = indicators["obv_sma"][i] if i < len(indicators["obv_sma"]) else 0
             prev_obv = indicators["obv"][i-1] if i > 0 and i-1 < len(indicators["obv"]) else 0
             
-            # OBV crossing its SMA (volume confirmation)
             if obv > obv_sma and prev_obv <= obv_sma:
                 long_score += 20
             elif obv < obv_sma and prev_obv >= obv_sma:
                 short_score += 20
         
-        # Determine signal based on score threshold
         min_score = conditions.get("min_score", 50)
         
         if long_score >= min_score and long_score > short_score:

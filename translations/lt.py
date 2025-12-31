@@ -268,6 +268,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Nepakankamas balansas!</b>\n\n💰 Jūsų {account_type} paskyroje nepakanka lėšų šiai pozicijai atidaryti.\n\n<b>Sprendimai:</b>\n• Papildykite balansą\n• Sumažinkite pozicijos dydį (% per sandorį)\n• Sumažinkite svertą\n• Uždarykite kai kurias atidarytas pozicijas',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Svertas per didelis!</b>\n\n⚙️ Jūsų nustatytas svertas viršija maksimalų leidžiamą šiam simboliui.\n\n<b>Maksimalus leidžiamas:</b> {max_leverage}x\n\n<b>Sprendimas:</b> Eikite į strategijos nustatymus ir sumažinkite svertą.',

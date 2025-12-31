@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>余额不足！</b>\n\n💰 您的{account_type}账户余额不足以开设此仓位。\n\n<b>解决方案：</b>\n• 充值余额\n• 减少仓位大小（每笔交易的%）\n• 降低杠杆\n• 关闭部分持仓',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>杠杆过高！</b>\n\n⚙️ 您配置的杠杆超过了该品种允许的最大值。\n\n<b>最大允许:</b> {max_leverage}x\n\n<b>解决方案:</b> 前往策略设置并降低杠杆。',

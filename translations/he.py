@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>יתרה לא מספקת!</b>\n\n💰 אין מספיק כספים בחשבון {account_type} שלך כדי לפתוח פוזיציה זו.\n\n<b>פתרונות:</b>\n• טען מחדש את היתרה\n• הקטן את גודל הפוזיציה (% לעסקה)\n• הורד את המינוף\n• סגור חלק מהפוזיציות הפתוחות',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>מינוף גבוה מדי!</b>\n\n⚙️ המינוף שהוגדר חורג מהמקסימום המותר עבור סמל זה.\n\n<b>מקסימום מותר:</b> {max_leverage}x\n\n<b>פתרון:</b> עבור להגדרות האסטרטגיה והפחת את המינוף.',

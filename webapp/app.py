@@ -107,6 +107,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"strategy_marketplace router not available: {e}")
     
+    # Strategy Builder API (CRUD, Backtest, Live Trading)
+    try:
+        from webapp.api import strategy_builder_api
+        app.include_router(strategy_builder_api.router, prefix="/api/builder", tags=["strategy-builder"])
+        logger.info("✅ Strategy Builder API loaded at /api/builder/strategies")
+    except ImportError as e:
+        logger.warning(f"strategy_builder_api router not available: {e}")
+    
     # ELCARO Token Payment System (USDT → ELC, Cold Wallet Trading)
     try:
         from webapp.api import elcaro_payments

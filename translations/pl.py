@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Niewystarczające saldo!</b>\n\n💰 Na Twoim koncie {account_type} brakuje środków do otwarcia tej pozycji.\n\n<b>Rozwiązania:</b>\n• Doładuj saldo\n• Zmniejsz rozmiar pozycji (% na transakcję)\n• Zmniejsz dźwignię\n• Zamknij niektóre otwarte pozycje',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Zbyt wysoka dźwignia!</b>\n\n⚙️ Skonfigurowana dźwignia przekracza maksimum dozwolone dla tego symbolu.\n\n<b>Maksymalna dozwolona:</b> {max_leverage}x\n\n<b>Rozwiązanie:</b> Przejdź do ustawień strategii i zmniejsz dźwignię.',

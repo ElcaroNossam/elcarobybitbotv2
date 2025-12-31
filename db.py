@@ -22,6 +22,7 @@ _pool_lock = threading.Lock()
 def _create_connection() -> sqlite3.Connection:
     """Create a new connection with optimal settings."""
     conn = sqlite3.connect(DB_FILE, timeout=30.0, isolation_level=None, check_same_thread=False)
+    conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -961,6 +962,72 @@ def init_db():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_top_rank ON top_strategies(rank)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_top_type ON top_strategies(strategy_type)")
+
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # STRATEGY VERSIONING - Track all versions of custom strategies
+        # ═══════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS strategy_versions (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                strategy_id     INTEGER NOT NULL,
+                version         TEXT NOT NULL,           -- Semver: "1.0.0", "1.1.0", etc.
+                config_json     TEXT NOT NULL,           -- Full strategy config snapshot
+                change_log      TEXT,                    -- Description of changes
+                backtest_result TEXT,                    -- Backtest stats at this version
+                created_by      INTEGER NOT NULL,        -- User who created this version
+                created_at      INTEGER NOT NULL,
+                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+                FOREIGN KEY(created_by) REFERENCES users(user_id) ON DELETE SET NULL
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_versions_strategy ON strategy_versions(strategy_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_versions_version ON strategy_versions(strategy_id, version)")
+        
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # STRATEGY LIVE STATE - Runtime state for strategies in live trading
+        # ═══════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS strategy_live_state (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id         INTEGER NOT NULL,
+                strategy_id     INTEGER NOT NULL,
+                exchange        TEXT NOT NULL DEFAULT 'bybit',  -- 'bybit', 'hyperliquid'
+                account_type    TEXT NOT NULL DEFAULT 'demo',   -- 'demo', 'real'
+                
+                -- State
+                is_running      INTEGER DEFAULT 0,       -- Is strategy actively running?
+                is_paused       INTEGER DEFAULT 0,       -- Temporarily paused
+                
+                -- Current positions for this strategy
+                open_positions  TEXT,                    -- JSON: [{symbol, side, entry, size}]
+                pending_orders  TEXT,                    -- JSON: [{symbol, side, price, size}]
+                
+                -- Runtime stats
+                session_pnl     REAL DEFAULT 0,          -- PnL since last start
+                session_trades  INTEGER DEFAULT 0,       -- Trades since last start
+                total_pnl       REAL DEFAULT 0,          -- Lifetime PnL
+                total_trades    INTEGER DEFAULT 0,       -- Lifetime trades
+                win_rate        REAL DEFAULT 0,
+                
+                -- Daily limits tracking
+                daily_trades    INTEGER DEFAULT 0,
+                daily_pnl       REAL DEFAULT 0,
+                daily_reset_at  INTEGER,                 -- Unix timestamp of last daily reset
+                
+                -- Timestamps
+                started_at      INTEGER,                 -- When strategy was last started
+                stopped_at      INTEGER,                 -- When strategy was last stopped
+                last_signal_at  INTEGER,                 -- Last signal processed
+                updated_at      INTEGER,
+                
+                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
+                UNIQUE(user_id, strategy_id, exchange, account_type)
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_user ON strategy_live_state(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_running ON strategy_live_state(is_running)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_strategy ON strategy_live_state(strategy_id)")
 
         # ═══════════════════════════════════════════════════════════════════════════════
         # P0.1: EXCHANGE ACCOUNTS TABLE - Multi-exchange support with execution_targets
@@ -5390,7 +5457,7 @@ def get_user_strategies(user_id: int) -> list:
     """Get all custom strategies for a user."""
     with get_conn() as conn:
         cur = conn.execute(
-            """SELECT id, name, description, config, is_active, is_public, 
+            """SELECT id, user_id, name, description, config_json, is_active, is_public, 
                       performance_stats, created_at, updated_at
                FROM custom_strategies WHERE user_id = ?
                ORDER BY created_at DESC""",
@@ -5474,7 +5541,7 @@ def get_strategy_by_id(strategy_id: int) -> dict | None:
     """Get a custom strategy by ID."""
     with get_conn() as conn:
         cur = conn.execute(
-            """SELECT id, user_id, name, description, config, is_active, 
+            """SELECT id, user_id, name, description, config_json, is_active, 
                       is_public, performance_stats, created_at, updated_at
                FROM custom_strategies WHERE id = ?""",
             (strategy_id,)
@@ -5492,7 +5559,7 @@ def create_custom_strategy(user_id: int, name: str, description: str, config: di
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO custom_strategies 
-               (user_id, name, description, config, is_active, is_public, created_at, updated_at)
+               (user_id, name, description, config_json, is_active, is_public, created_at, updated_at)
                VALUES (?, ?, ?, ?, 0, 0, ?, ?)""",
             (user_id, name, description, json.dumps(config), now, now)
         )
@@ -5505,14 +5572,14 @@ def update_custom_strategy(strategy_id: int, user_id: int, **updates) -> bool:
     import json
     import time
     
-    allowed_fields = {'name', 'description', 'config', 'is_active', 'is_public', 'performance_stats'}
+    allowed_fields = {'name', 'description', 'config_json', 'is_active', 'is_public', 'performance_stats'}
     filtered = {k: v for k, v in updates.items() if k in allowed_fields}
     
     if not filtered:
         return False
     
     # JSON encode dict fields
-    for k in ['config', 'performance_stats']:
+    for k in ['config_json', 'performance_stats']:
         if k in filtered and isinstance(filtered[k], dict):
             filtered[k] = json.dumps(filtered[k])
     
@@ -5541,6 +5608,317 @@ def delete_custom_strategy(strategy_id: int, user_id: int) -> bool:
         return cur.rowcount > 0
 
 
+# ============ STRATEGY VERSIONING FUNCTIONS ============
+
+def create_strategy_version(
+    strategy_id: int, 
+    version: str, 
+    config_json: str, 
+    created_by: int,
+    change_log: str = None,
+    backtest_result: str = None
+) -> int:
+    """Create a new version of a strategy. Returns version id."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO strategy_versions 
+               (strategy_id, version, config_json, change_log, backtest_result, created_by, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (strategy_id, version, config_json, change_log, backtest_result, created_by, now)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def get_strategy_versions(strategy_id: int) -> list:
+    """Get all versions of a strategy, ordered by creation date."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, strategy_id, version, config_json, change_log, 
+                      backtest_result, created_by, created_at
+               FROM strategy_versions 
+               WHERE strategy_id = ?
+               ORDER BY created_at DESC""",
+            (strategy_id,)
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def get_strategy_version(version_id: int) -> dict | None:
+    """Get a specific strategy version by ID."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, strategy_id, version, config_json, change_log, 
+                      backtest_result, created_by, created_at
+               FROM strategy_versions WHERE id = ?""",
+            (version_id,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def get_latest_strategy_version(strategy_id: int) -> dict | None:
+    """Get the latest version of a strategy."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT id, strategy_id, version, config_json, change_log, 
+                      backtest_result, created_by, created_at
+               FROM strategy_versions 
+               WHERE strategy_id = ?
+               ORDER BY created_at DESC LIMIT 1""",
+            (strategy_id,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def rollback_to_version(strategy_id: int, version_id: int, user_id: int) -> bool:
+    """Rollback strategy to a specific version. Returns True if successful."""
+    import json
+    import time
+    
+    version = get_strategy_version(version_id)
+    if not version or version["strategy_id"] != strategy_id:
+        return False
+    
+    # Update main strategy with version config
+    now = int(time.time())
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE custom_strategies 
+               SET config_json = ?, updated_at = ?
+               WHERE id = ? AND user_id = ?""",
+            (version["config_json"], now, strategy_id, user_id)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+# ============ STRATEGY LIVE STATE FUNCTIONS ============
+
+def get_strategy_live_state(user_id: int, strategy_id: int, exchange: str = "bybit", account_type: str = "demo") -> dict | None:
+    """Get live trading state for a strategy."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            """SELECT * FROM strategy_live_state 
+               WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            (user_id, strategy_id, exchange, account_type)
+        )
+        row = cur.fetchone()
+        if row:
+            result = dict(row)
+            # Parse JSON fields
+            import json
+            for field in ['open_positions', 'pending_orders']:
+                if result.get(field):
+                    try:
+                        result[field] = json.loads(result[field])
+                    except:
+                        result[field] = []
+            return result
+        return None
+
+
+def get_all_running_strategies(user_id: int = None) -> list:
+    """Get all currently running strategies, optionally filtered by user."""
+    with get_conn() as conn:
+        if user_id:
+            cur = conn.execute(
+                """SELECT ls.*, s.name as strategy_name, s.config_json
+                   FROM strategy_live_state ls
+                   JOIN custom_strategies s ON ls.strategy_id = s.id
+                   WHERE ls.user_id = ? AND ls.is_running = 1""",
+                (user_id,)
+            )
+        else:
+            cur = conn.execute(
+                """SELECT ls.*, s.name as strategy_name, s.config_json
+                   FROM strategy_live_state ls
+                   JOIN custom_strategies s ON ls.strategy_id = s.id
+                   WHERE ls.is_running = 1"""
+            )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+
+
+def start_strategy_live(
+    user_id: int, 
+    strategy_id: int, 
+    exchange: str = "bybit", 
+    account_type: str = "demo"
+) -> int:
+    """Start a strategy in live trading mode. Returns state id."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        # Check if state exists
+        cur = conn.execute(
+            """SELECT id FROM strategy_live_state 
+               WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            (user_id, strategy_id, exchange, account_type)
+        )
+        existing = cur.fetchone()
+        
+        if existing:
+            # Update existing state
+            conn.execute(
+                """UPDATE strategy_live_state 
+                   SET is_running = 1, is_paused = 0, started_at = ?, updated_at = ?,
+                       session_pnl = 0, session_trades = 0
+                   WHERE id = ?""",
+                (now, now, existing[0])
+            )
+            conn.commit()
+            return existing[0]
+        else:
+            # Create new state
+            cur = conn.execute(
+                """INSERT INTO strategy_live_state 
+                   (user_id, strategy_id, exchange, account_type, is_running, started_at, updated_at)
+                   VALUES (?, ?, ?, ?, 1, ?, ?)""",
+                (user_id, strategy_id, exchange, account_type, now, now)
+            )
+            conn.commit()
+            return cur.lastrowid
+
+
+def stop_strategy_live(user_id: int, strategy_id: int, exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """Stop a running strategy. Returns True if stopped."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE strategy_live_state 
+               SET is_running = 0, stopped_at = ?, updated_at = ?
+               WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            (now, now, user_id, strategy_id, exchange, account_type)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def pause_strategy_live(user_id: int, strategy_id: int, exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """Pause a running strategy (keeps state but stops processing). Returns True if paused."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE strategy_live_state 
+               SET is_paused = 1, updated_at = ?
+               WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            (now, user_id, strategy_id, exchange, account_type)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def resume_strategy_live(user_id: int, strategy_id: int, exchange: str = "bybit", account_type: str = "demo") -> bool:
+    """Resume a paused strategy. Returns True if resumed."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE strategy_live_state 
+               SET is_paused = 0, updated_at = ?
+               WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            (now, user_id, strategy_id, exchange, account_type)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def update_strategy_live_state(
+    user_id: int, 
+    strategy_id: int, 
+    exchange: str = "bybit", 
+    account_type: str = "demo",
+    **updates
+) -> bool:
+    """Update live state fields (positions, pnl, trades, etc.)."""
+    import json
+    import time
+    
+    allowed_fields = {
+        'open_positions', 'pending_orders', 'session_pnl', 'session_trades',
+        'total_pnl', 'total_trades', 'win_rate', 'daily_trades', 'daily_pnl',
+        'daily_reset_at', 'last_signal_at'
+    }
+    filtered = {k: v for k, v in updates.items() if k in allowed_fields}
+    
+    if not filtered:
+        return False
+    
+    # JSON encode list/dict fields
+    for k in ['open_positions', 'pending_orders']:
+        if k in filtered and isinstance(filtered[k], (list, dict)):
+            filtered[k] = json.dumps(filtered[k])
+    
+    filtered['updated_at'] = int(time.time())
+    
+    set_clause = ', '.join(f"{k} = ?" for k in filtered.keys())
+    values = list(filtered.values()) + [user_id, strategy_id, exchange, account_type]
+    
+    with get_conn() as conn:
+        cur = conn.execute(
+            f"""UPDATE strategy_live_state SET {set_clause} 
+                WHERE user_id = ? AND strategy_id = ? AND exchange = ? AND account_type = ?""",
+            values
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def record_strategy_trade(
+    user_id: int,
+    strategy_id: int,
+    pnl: float,
+    is_win: bool,
+    exchange: str = "bybit",
+    account_type: str = "demo"
+) -> bool:
+    """Record a completed trade for a strategy (updates stats)."""
+    import time
+    now = int(time.time())
+    
+    state = get_strategy_live_state(user_id, strategy_id, exchange, account_type)
+    if not state:
+        return False
+    
+    # Update counters
+    session_trades = (state.get('session_trades') or 0) + 1
+    session_pnl = (state.get('session_pnl') or 0) + pnl
+    total_trades = (state.get('total_trades') or 0) + 1
+    total_pnl = (state.get('total_pnl') or 0) + pnl
+    daily_trades = (state.get('daily_trades') or 0) + 1
+    daily_pnl = (state.get('daily_pnl') or 0) + pnl
+    
+    # Calculate win rate
+    # Approximate: if win, increment wins count (stored in total trades - losses)
+    # For simplicity, recalculate based on session for now
+    wins = (state.get('win_rate', 0) / 100 * (total_trades - 1)) + (1 if is_win else 0)
+    win_rate = (wins / total_trades) * 100 if total_trades > 0 else 0
+    
+    return update_strategy_live_state(
+        user_id, strategy_id, exchange, account_type,
+        session_trades=session_trades,
+        session_pnl=session_pnl,
+        total_trades=total_trades,
+        total_pnl=total_pnl,
+        daily_trades=daily_trades,
+        daily_pnl=daily_pnl,
+        win_rate=win_rate,
+        last_signal_at=now
+    )
+
+
 def get_public_strategies(limit: int = 50, offset: int = 0) -> list:
     """Get public strategies for marketplace."""
     with get_conn() as conn:
@@ -5564,7 +5942,7 @@ def get_user_purchases(user_id: int) -> list:
     with get_conn() as conn:
         cur = conn.execute(
             """SELECT p.id, p.marketplace_id, p.strategy_id, p.amount_paid as price_paid, 
-                      p.purchased_at, s.name, s.description, s.config
+                      p.purchased_at, s.name, s.description, s.config_json
                FROM strategy_purchases p
                JOIN custom_strategies s ON p.strategy_id = s.id
                WHERE p.buyer_id = ?

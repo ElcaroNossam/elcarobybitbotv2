@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>رصيد غير كافٍ!</b>\n\n💰 لا توجد أموال كافية في حساب {account_type} الخاص بك لفتح هذا المركز.\n\n<b>الحلول:</b>\n• إعادة شحن الرصيد\n• تقليل حجم المركز (% لكل صفقة)\n• تخفيض الرافعة المالية\n• إغلاق بعض المراكز المفتوحة',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>الرافعة المالية عالية جداً!</b>\n\n⚙️ الرافعة المالية المُعدّة تتجاوز الحد الأقصى المسموح به لهذا الرمز.\n\n<b>الحد الأقصى المسموح:</b> {max_leverage}x\n\n<b>الحل:</b> انتقل إلى إعدادات الاستراتيجية وقم بتخفيض الرافعة المالية.',

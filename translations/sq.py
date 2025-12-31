@@ -267,6 +267,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Bilanci i pamjaftueshëm!</b>\n\n💰 Nuk ka fonde të mjaftueshme në llogarinë tuaj {account_type} për të hapur këtë pozicion.\n\n<b>Zgjidhjet:</b>\n• Rimbushni bilancin\n• Zvogëloni madhësinë e pozicionit (% për tregti)\n• Ulni levën\n• Mbyllni disa pozicione të hapura',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leva shumë e lartë!</b>\n\n⚙️ Leva juaj e konfiguruar tejkalon maksimumin e lejuar për këtë simbol.\n\n<b>Maksimumi i lejuar:</b> {max_leverage}x\n\n<b>Zgjidhja:</b> Shkoni te cilësimet e strategjisë dhe ulni levën.',

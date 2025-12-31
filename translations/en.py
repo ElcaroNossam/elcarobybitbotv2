@@ -357,13 +357,13 @@ TEXTS = {
     'oi_limit_entry':              '📉 *OI Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'oi_limit_error':              '❌ OI Limit error: {msg}',
     'oi_market_entry':             '📉 *OI Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'oi_market_error':             '❌ OI Market error: {msg}',
+    'oi_market_error':             '❌ OI error\n🪙 {symbol} {side}\n\n{msg}',
     'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
 
     'rsi_bb_limit_entry':          '📊 *RSI+BB Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'rsi_bb_market_entry':         '📊 *RSI+BB Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
-    'rsi_bb_market_error':         '❌ RSI+BB Market error: {msg}',
+    'rsi_bb_market_error':         '❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}',
 
     'oi_analysis':                 '📊 *OI {symbol} analysis* {side}',
 
@@ -378,6 +378,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.',
@@ -405,7 +406,7 @@ TEXTS = {
     'fibonacci_limit_error':       '❌ Fibonacci Limit error: {msg}',
     'fibonacci_market_entry':      '📐 *Fibonacci Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_error':      '❌ Fibonacci error: {msg}',
+    'fibonacci_market_error':      '❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}',
     'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
     'feature_fibonacci':           'Fibonacci',
     'stats_fibonacci':             '📐 Fibonacci',

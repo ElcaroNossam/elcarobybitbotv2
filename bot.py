@@ -10245,7 +10245,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             parse_mode="Markdown"
                         )
                     except Exception as e:
-                        await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "RSI+BB error: {msg}").format(msg=str(e)))
+                        error_msg = str(e)
+                        if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                            await ctx.bot.send_message(
+                                uid,
+                                t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="RSI+BB", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                                parse_mode="HTML"
+                            )
+                        else:
+                            await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 else:
                     try:
                         rv = float(rsi_val)
@@ -10288,7 +10296,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as ladder_err:
                             logger.warning(f"[{uid}] rsi_bb ladder error: {ladder_err}")
                     except Exception as e:
-                        await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "Market error: {msg}").format(msg=str(e)))
+                        error_msg = str(e)
+                        if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                            await ctx.bot.send_message(
+                                uid,
+                                t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="RSI+BB", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                                parse_mode="HTML"
+                            )
+                        else:
+                            await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 continue
 
             if bitk_trigger:
@@ -10751,10 +10767,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 parse_mode="Markdown"
                             )
                         except Exception as e:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('fibonacci_limit_error', "❌ Fibonacci limit error: {msg}").format(msg=str(e))
-                            )
+                            error_msg = str(e)
+                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                                    parse_mode="HTML"
+                                )
+                            else:
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('fibonacci_limit_error', "❌ Fibonacci limit error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                                )
                     else:
                         # Market order - price is in entry zone
                         try:
@@ -10795,15 +10819,31 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                             
                         except Exception as e:
-                            await ctx.bot.send_message(
-                                uid,
-                                t.get('fibonacci_market_error', "Fibonacci error: {msg}").format(msg=str(e))
-                            )
+                            error_msg = str(e)
+                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                                    parse_mode="HTML"
+                                )
+                            else:
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('fibonacci_market_error', "❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                                )
                 except Exception as e:
-                    await ctx.bot.send_message(
-                        uid,
-                        t.get('fibonacci_market_error', "Fibonacci error: {msg}").format(msg=str(e))
-                    )
+                    error_msg = str(e)
+                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('fibonacci_market_error', "❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                        )
                 continue
 
             if oi_trigger:
@@ -10882,7 +10922,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] oi ladder error: {ladder_err}")
 
                 except Exception as e:
-                    await ctx.bot.send_message(uid, t.get('oi_market_error', "Market/Limit error: {msg}").format(msg=str(e)))
+                    error_msg = str(e)
+                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="OI", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await ctx.bot.send_message(uid, t.get('oi_market_error', "❌ OI error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 continue
 
         except Exception as e:

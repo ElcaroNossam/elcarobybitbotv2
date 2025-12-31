@@ -355,13 +355,13 @@ TEXTS = {
     'oi_limit_entry':              '📉 *OI Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'oi_limit_error':              '❌ OI Limit ошибка: {msg}',
     'oi_market_entry':             '📉 *OI Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'oi_market_error':             '❌ OI Market ошибка: {msg}',
+    'oi_market_error':             '❌ OI ошибка\n🪙 {symbol} {side}\n\n{msg}',
     'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
 
     'rsi_bb_limit_entry':          '📊 *RSI+BB Лимит Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'rsi_bb_market_entry':         '📊 *RSI+BB Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
-    'rsi_bb_market_error':         '❌ RSI+BB Market ошибка: {msg}',
+    'rsi_bb_market_error':         '❌ RSI+BB ошибка\n🪙 {symbol} {side}\n\n{msg}',
 
     'oi_analysis':                 '📊 *Аналитика OI {symbol}* {side}',
 
@@ -376,6 +376,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Недостаточно средств!</b>\n\n💰 На вашем {account_type} аккаунте недостаточно средств для открытия позиции.\n\n<b>Решения:</b>\n• Пополните баланс\n• Уменьшите размер позиции (% от депозита)\n• Уменьшите плечо\n• Закройте часть открытых позиций',
+    'insufficient_balance_error_extended': '❌ <b>Недостаточно средств!</b>\n\n📊 Стратегия: <b>{strategy}</b>\n🪙 Символ: <b>{symbol}</b> {side}\n\n💰 На вашем {account_type} аккаунте недостаточно средств.\n\n<b>Решения:</b>\n• Пополните баланс\n• Уменьшите размер позиции (% от депозита)\n• Уменьшите плечо\n• Закройте часть открытых позиций',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Слишком высокое плечо!</b>\n\n⚙️ Установленное плечо превышает максимум для этого символа.\n\n<b>Максимально допустимо:</b> {max_leverage}x\n\n<b>Решение:</b> Перейдите в настройки стратегии и уменьшите плечо.',
@@ -405,7 +406,7 @@ TEXTS = {
     'fibonacci_limit_error':       '❌ Fibonacci Limit ошибка: {msg}',
     'fibonacci_market_entry':      '📐 *Fibonacci Маркет Вход*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_error':      '❌ Fibonacci Market ошибка: {msg}',
+    'fibonacci_market_error':      '❌ Fibonacci ошибка\n🪙 {symbol} {side}\n\n{msg}',
     'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
     'feature_fibonacci':           'Fibonacci',
 
