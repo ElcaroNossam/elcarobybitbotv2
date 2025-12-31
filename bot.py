@@ -211,6 +211,7 @@ else:
     logger.addHandler(file_h)
 
 BOT_TOKEN   = os.getenv("TELEGRAM_TOKEN")
+WEBAPP_URL  = os.getenv("WEBAPP_URL", "http://localhost:8765")  # WebApp URL from env or fallback
 BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
 BYBIT_BASE  = BYBIT_DEMO_URL  # Default for backward compatibility
@@ -6287,10 +6288,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Setup personalized Menu Button with user_id for auto-login
     try:
-        webapp_url = "https://elcaro.bot"
-        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-        if ngrok_file.exists():
-            webapp_url = ngrok_file.read_text().strip()
+        # Get webapp URL from env, fallback to ngrok file, then default
+        webapp_url = WEBAPP_URL
+        if webapp_url == "http://localhost:8765":
+            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+            if ngrok_file.exists():
+                webapp_url = ngrok_file.read_text().strip()
         
         # Add user_id as start param for auto-login and go directly to dashboard
         webapp_url_with_user = f"{webapp_url}/dashboard?start={uid}"
@@ -12380,11 +12383,12 @@ async def start_monitoring(app: Application):
     
     # Setup Menu Button (Dashboard) with WebApp
     try:
-        # Get webapp URL from ngrok or use default
-        webapp_url = "https://elcaro.bot"  # Default production URL
-        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-        if ngrok_file.exists():
-            webapp_url = ngrok_file.read_text().strip()
+        # Get webapp URL from env, fallback to ngrok file, then default
+        webapp_url = WEBAPP_URL
+        if webapp_url == "http://localhost:8765":
+            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+            if ngrok_file.exists():
+                webapp_url = ngrok_file.read_text().strip()
         
         # Check if menu button URL needs update
         last_url_file = Path(__file__).parent / "run" / "last_menu_url.txt"
@@ -15890,12 +15894,13 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     t = ctx.t
     uid = update.effective_user.id
     
-    # Get ngrok URL from file or use localhost
-    webapp_url = "http://localhost:8765"
+    # Get webapp URL from env, fallback to ngrok file, then localhost
+    webapp_url = WEBAPP_URL
     try:
-        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-        if ngrok_file.exists():
-            webapp_url = ngrok_file.read_text().strip()
+        if webapp_url == "http://localhost:8765":
+            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+            if ngrok_file.exists():
+                webapp_url = ngrok_file.read_text().strip()
     except:
         pass
     
