@@ -1613,11 +1613,12 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Return to strategies menu
         cfg = get_user_config(uid)
         active_exchange = db.get_exchange_type(uid) or "bybit"
+        global_use_atr = bool(cfg.get("use_atr", 1))
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
             strat_settings_data = db.get_strategy_settings(uid, strat_key)
-            status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange)
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange, global_use_atr)
             if status_parts:
                 lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
             else:
@@ -2253,7 +2254,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             # ─── Row 1: Trading Info ───
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
             # ─── Row 2: Actions ───
-            [ "🎯 Trade", "📋 History", "❌ Close All" ],
+            [ "📋 History", "❌ Close All", "🤖 Strategies" ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
@@ -2271,7 +2272,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             # ─── Row 1: Trading Info ───
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
             # ─── Row 2: Actions & Strategies ───
-            [ "🎯 Trade", "📋 History", "🤖 Strategies" ],
+            [ "📋 History", "❌ Close All", "🤖 Strategies" ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
@@ -3483,7 +3484,16 @@ async def split_market_plus_one_limit(
 
     async def strict_set_sl_tp(_side: str, _entry: float, hint_tp_pct: float, hint_sl_pct: float):
         cfg = get_user_config(uid) or {}
-        use_atr = bool(cfg.get("use_atr") or 0)
+        global_use_atr = bool(cfg.get("use_atr", 1))  # Default to ATR enabled
+        
+        # Get strategy-specific use_atr if strategy is set
+        if strategy:
+            strat_settings = db.get_strategy_settings(uid, strategy, exchange="bybit", account_type=account_type)
+            strat_use_atr = strat_settings.get("use_atr")
+            use_atr = bool(strat_use_atr) if strat_use_atr is not None else global_use_atr
+        else:
+            use_atr = global_use_atr
+        
         # Use strategy-specific SL/TP if available
         sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=_side)
         sl_pct = hint_sl_pct or sl_pct
@@ -4494,10 +4504,16 @@ async def cmd_toggle_fibonacci(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # Strategy Settings with Inline Keyboard
 # ------------------------------------------------------------------------------------
 
-def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_exchange: str = "bybit") -> list:
+def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_exchange: str = "bybit", global_use_atr: bool = True) -> list:
     """
     Build status parts list for a strategy based on its settings.
     Used consistently across all menus to show strategy customizations.
+    
+    Args:
+        strat_key: Strategy name
+        strat_settings: Strategy-specific settings dict
+        active_exchange: Current exchange (bybit/hyperliquid)
+        global_use_atr: User's global ATR setting (fallback when strategy doesn't override)
     """
     status_parts = []
     
@@ -4507,10 +4523,13 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
     atr_per = strat_settings.get("atr_periods")
     atr_mult = strat_settings.get("atr_multiplier_sl")
     atr_trig = strat_settings.get("atr_trigger_pct")
-    use_atr = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
+    use_atr_strat = strat_settings.get("use_atr")  # None = global, 0 = Fixed, 1 = ATR
     mode = strat_settings.get("trading_mode", "global")
     if mode == "all":
         mode = "global"  # Normalize legacy value
+    
+    # Determine effective use_atr: strategy-specific overrides global
+    use_atr = use_atr_strat if use_atr_strat is not None else (1 if global_use_atr else 0)
     
     # Exchange-aware mode text
     if active_exchange == "hyperliquid":
@@ -4543,10 +4562,9 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
         if tp is not None:
             status_parts.append(f"TP: {tp}%")
     
-    # ATR status (show if customized per strategy)
-    if use_atr is not None:
-        atr_emoji = "📊" if use_atr else "📉"
-        status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
+    # ATR status - ALWAYS show (with effective value: strategy or global fallback)
+    atr_emoji = "⚡" if use_atr else "📉"
+    status_parts.append(f"{atr_emoji}ATR:{'ON' if use_atr else 'OFF'}")
     
     if atr_per is not None:
         status_parts.append(f"ATR: {atr_per}p")
@@ -5108,6 +5126,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     cfg = get_user_config(uid)
     active_exchange = db.get_exchange_type(uid) or "bybit"
+    global_use_atr = bool(cfg.get("use_atr", 1))
     
     # Build status message
     lines = [ctx.t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
@@ -5115,7 +5134,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
         strat_settings = db.get_strategy_settings(uid, strat_key)
-        status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
+        status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
         if status_parts:
             lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
         else:
@@ -5271,12 +5290,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data == "strat_set:back":
         # Rebuild main strategy menu
         active_exchange = db.get_exchange_type(uid) or "bybit"
+        global_use_atr = bool(cfg.get("use_atr", 1))
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         
         for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
             strat_settings = db.get_strategy_settings(uid, strat_key)
-            status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
             if status_parts:
                 lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
             else:
@@ -5531,11 +5551,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             active_exchange = db.get_exchange_type(uid) or "bybit"
+            global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key)
-                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5572,11 +5593,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             active_exchange = db.get_exchange_type(uid) or "bybit"
+            global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key)
-                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange)
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5645,11 +5667,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             cfg = get_user_config(uid)
+            global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_set = db.get_strategy_settings(uid, strat_key)
-                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange)
+                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -5741,11 +5764,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             cfg = get_user_config(uid)
+            global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_set = db.get_strategy_settings(uid, strat_key)
-                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange)
+                status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -10959,7 +10983,7 @@ async def monitor_positions_loop(app: Application):
                     
                     lang = cfg.get("lang", DEFAULT_LANG)
                     t    = LANGS.get(lang, LANGS[DEFAULT_LANG])
-                    use_atr = bool(cfg.get("use_atr", 0))
+                    use_atr = bool(cfg.get("use_atr", 1))  # Default to ATR enabled
                     
                     # Get ALL user targets (for multi-account monitoring)
                     user_targets = get_user_targets(uid) if UNIFIED_AVAILABLE else []
@@ -11187,7 +11211,7 @@ async def monitor_positions_loop(app: Application):
                             
                                 # Determine use_atr: strategy-specific takes priority over global
                                 if strategy:
-                                    strat_settings = db.get_strategy_settings(uid, strategy)
+                                    strat_settings = db.get_strategy_settings(uid, strategy, exchange=current_exchange, account_type=current_account_type)
                                     strat_use_atr = strat_settings.get("use_atr")
                                     pos_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
                                 else:
@@ -11448,6 +11472,15 @@ async def monitor_positions_loop(app: Application):
                                     if pct_value is None:
                                         price_change_pct = pct_calc  # This is just price change %
                                         pct_value = price_change_pct * leverage  # Apply leverage for ROE
+                                    
+                                    # CRITICAL: Ensure pct_value sign matches pnl_value sign
+                                    # Sometimes Bybit API returns wrong sign for closedPnlRate
+                                    if pnl_value > 0 and pct_value < 0:
+                                        pct_value = abs(pct_value)
+                                        logger.warning(f"[{uid}] {sym}: Fixed pct sign mismatch (pnl={pnl_value}, pct was negative)")
+                                    elif pnl_value < 0 and pct_value > 0:
+                                        pct_value = -abs(pct_value)
+                                        logger.warning(f"[{uid}] {sym}: Fixed pct sign mismatch (pnl={pnl_value}, pct was positive)")
                                 
                                     logger.info(f"[{uid}] PnL details for {sym}: pnl={pnl_value:.2f}, rate_from_api={rate_from_exch}, pct={pct_value:.2f}%, leverage={leverage}")
                                 
@@ -11515,9 +11548,10 @@ async def monitor_positions_loop(app: Application):
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
 
                         active = get_active_positions(uid, account_type=current_account_type)
-                        tf_map = { ap['symbol']: ap.get('timeframe','24h') for ap in active }
+                        tf_map = { ap['symbol']: ap.get('timeframe','15m') for ap in active }  # Default 15m
                         strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
                         account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
+                        db_syms = set(tf_map.keys())
 
                         for pos in open_positions:
                             sym        = pos["symbol"]
@@ -11527,6 +11561,10 @@ async def monitor_positions_loop(app: Application):
                             raw_tp     = pos.get("takeProfit")
                             current_sl = float(raw_sl) if raw_sl not in (None, "", 0, "0", 0.0) else None
                             current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
+                            
+                            # Log if position is not tracked in DB
+                            if sym not in db_syms:
+                                logger.debug(f"[{uid}] {sym}: Position not in active_positions DB, using default tf=15m")
 
                             coin_cfg    = COIN_PARAMS.get(sym, COIN_PARAMS["DEFAULT"])
                         
@@ -11587,15 +11625,15 @@ async def monitor_positions_loop(app: Application):
                                     tp_pct = coin_cfg.get("tp_pct", DEFAULT_TP_PCT)
                                 risk_pct_for_dca = float(cfg.get("percent", 1) or 0)
 
-                            tf          = tf_map.get(sym, "24h")
-                            tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])
+                            tf          = tf_map.get(sym, "15m")  # Default to 15m if not in DB for more responsive ATR
+                            tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["15m"])
                         
                             # Get account_type for this position from map (moved up for strategy settings)
                             pos_account_type = account_type_map.get(sym, "demo")
                         
                             # Get ATR params: priority is side-specific > strategy settings > timeframe defaults
                             if pos_strategy:
-                                strat_settings = db.get_strategy_settings(uid, pos_strategy, account_type=pos_account_type)
+                                strat_settings = db.get_strategy_settings(uid, pos_strategy, exchange=current_exchange, account_type=pos_account_type)
                                 side_prefix = "long" if side == "Buy" else "short"
                             
                                 # Get side-specific ATR settings, fallback to general, then timeframe defaults
