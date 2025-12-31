@@ -154,7 +154,9 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
                         leverage=_safe_int(pos_dict.get('leverage'), 1),
                         margin_mode=pos_dict.get('margin_mode', 'cross'),
                         margin_used=_safe_float(pos_dict.get('margin_used')),
-                        liquidation_price=_safe_float(pos_dict.get('liquidation_price')) if pos_dict.get('liquidation_price') else None
+                        liquidation_price=_safe_float(pos_dict.get('liquidation_price')) if pos_dict.get('liquidation_price') else None,
+                        stop_loss=_safe_float(pos_dict.get('stop_loss')) if pos_dict.get('stop_loss') else None,
+                        take_profit=_safe_float(pos_dict.get('take_profit')) if pos_dict.get('take_profit') else None
                     ))
                 except Exception as pos_err:
                     logger.warning(f"Skipping invalid position: {pos_err}, data: {pos_dict}")
