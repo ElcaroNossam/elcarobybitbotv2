@@ -6596,10 +6596,16 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         for c in acct.get("coin", []) or []:
             if c.get("coin") == "USDT":
                 try:
+                    # Log all balance fields for debugging
+                    wallet = float(c.get("walletBalance") or 0)
+                    available = float(c.get("availableToWithdraw") or 0)
+                    available2 = float(c.get("availableBalance") or 0)
+                    logger.info(f"[{user_id}] USDT balances: wallet={wallet:.2f} availableToWithdraw={available:.2f} availableBalance={available2:.2f} [{account_type or 'auto'}]")
+                    
                     # Use availableToWithdraw (free balance) instead of walletBalance (total)
                     # Fallback chain: availableToWithdraw -> availableBalance -> walletBalance
-                    available = c.get("availableToWithdraw") or c.get("availableBalance") or c.get("walletBalance") or 0.0
-                    return float(available)
+                    result = c.get("availableToWithdraw") or c.get("availableBalance") or c.get("walletBalance") or 0.0
+                    return float(result)
                 except (TypeError, ValueError):
                     return 0.0
     return 0.0
