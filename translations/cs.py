@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'Vaše ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Chyba: {msg}',
+    'error_fetch_balance':           '❌ Chyba při načítání zůstatku: {error}',
+    'error_fetch_orders':            '❌ Chyba při načítání objednávek: {error}',
+    'error_occurred':                '❌ Chyba: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

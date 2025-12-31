@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       '您的ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 '错误: {msg}',
+    'error_fetch_balance':           '❌ 获取余额错误: {error}',
+    'error_fetch_orders':            '❌ 获取订单错误: {error}',
+    'error_occurred':                '❌ 错误: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'ID juaj: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Gabim: {msg}',
+    'error_fetch_balance':           '❌ Gabim në marrjen e bilancit: {error}',
+    'error_fetch_orders':            '❌ Gabim në marrjen e porosive: {error}',
+    'error_occurred':                '❌ Gabim: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

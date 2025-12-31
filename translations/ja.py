@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'あなたのID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'エラー: {msg}',
+    'error_fetch_balance':           '❌ 残高取得エラー: {error}',
+    'error_fetch_orders':            '❌ 注文取得エラー: {error}',
+    'error_occurred':                '❌ エラー: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

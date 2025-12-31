@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'Su ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Error: {msg}',
+    'error_fetch_balance':           '❌ Error al obtener el saldo: {error}',
+    'error_fetch_orders':            '❌ Error al obtener las órdenes: {error}',
+    'error_occurred':                '❌ Error: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

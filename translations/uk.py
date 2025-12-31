@@ -635,6 +635,9 @@ TEXTS = {
     'your_id':                       'Ваш ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Помилка: {msg}',
+    'error_fetch_balance':           '❌ Помилка отримання балансу: {error}',
+    'error_fetch_orders':            '❌ Помилка отримання ордерів: {error}',
+    'error_occurred':                '❌ Помилка: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Статистика',

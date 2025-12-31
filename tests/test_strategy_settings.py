@@ -13,6 +13,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pytest
 import db
 from coin_params import DEFAULT_SL_PCT, DEFAULT_TP_PCT
 
@@ -26,6 +27,21 @@ TEST_USERS = [
 STRATEGIES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
 EXCHANGES = ["bybit"]
 ACCOUNT_TYPES = ["demo", "real"]
+
+# Flag to track if setup was done
+_setup_done = False
+
+
+@pytest.fixture(autouse=True)
+def ensure_test_users_exist():
+    """Pytest fixture to ensure test users exist before each test"""
+    global _setup_done
+    if not _setup_done:
+        cleanup_test_users()
+        setup_test_users()
+        _setup_done = True
+    yield
+    # Note: cleanup is done only when running via run_all_tests()
 
 
 def cleanup_test_users():

@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'המזהה שלך: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'שגיאה: {msg}',
+    'error_fetch_balance':           '❌ שגיאה בהבאת יתרה: {error}',
+    'error_fetch_orders':            '❌ שגיאה בהבאת הזמנות: {error}',
+    'error_occurred':                '❌ שגיאה: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

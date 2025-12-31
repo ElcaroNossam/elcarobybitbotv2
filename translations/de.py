@@ -631,6 +631,9 @@ TEXTS = {
     'your_id':                       'Ihre ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Fehler: {msg}',
+    'error_fetch_balance':           '❌ Fehler beim Abrufen des Guthabens: {error}',
+    'error_fetch_orders':            '❌ Fehler beim Abrufen der Aufträge: {error}',
+    'error_occurred':                '❌ Fehler: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistik',

@@ -637,6 +637,9 @@ TEXTS = {
     'your_id':                       'معرّفك: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'خطأ: {msg}',
+    'error_fetch_balance':           '❌ خطأ في جلب الرصيد: {error}',
+    'error_fetch_orders':            '❌ خطأ في جلب الأوامر: {error}',
+    'error_occurred':                '❌ خطأ: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',

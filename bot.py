@@ -7882,7 +7882,7 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         
     except Exception as e:
         logger.error(f"Balance fetch error (Bybit {account_type}): {e}")
-        await update.message.reply_text(f"❌ Error fetching balance: {str(e)}")
+        await update.message.reply_text(t.get('error_fetch_balance', '❌ Error fetching balance: {error}').format(error=str(e)))
 
 
 async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
@@ -8000,7 +8000,7 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
             )
     except Exception as e:
         logger.error(f"Orders fetch error ({account_type}): {e}")
-        await update.message.reply_text(f"❌ Error fetching orders: {str(e)}")
+        await update.message.reply_text(t.get('error_fetch_orders', '❌ Error fetching orders: {error}').format(error=str(e)))
 
 
 @log_calls
@@ -10014,7 +10014,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 symbol, price = m_sym.group(1).upper(), float(m_sym.group(2))
             spot_price = float(price)
     except Exception as e:
-        logger.error(f"Parse symbol/side/price failed: {e}")
+        logger.error(f"Parse symbol/side/price failed: {e}", exc_info=True)
         return
 
     if symbol in BLACKLIST:
@@ -15311,6 +15311,7 @@ async def cmd_hl_setkey(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show HyperLiquid balance"""
     uid = update.effective_user.id
+    t = ctx.t
     
     hl_creds = get_hl_credentials(uid)
     if not hl_creds.get("hl_private_key"):
@@ -15350,12 +15351,12 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(text, parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                f"❌ Failed to fetch balance: {result.get('error', 'Unknown error')}",
+                t.get('error_fetch_balance', '❌ Error fetching balance: {error}').format(error=result.get('error', 'Unknown error')),
                 parse_mode="Markdown"
             )
     except Exception as e:
         logger.error(f"HL balance error: {e}")
-        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
 
 
 @require_premium_for_hl
@@ -15412,12 +15413,12 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                f"❌ Failed to fetch positions: {result.get('error', 'Unknown error')}",
+                t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch positions: {result.get('error', 'Unknown error')}"),
                 parse_mode="Markdown"
             )
     except Exception as e:
         logger.error(f"HL positions error: {e}")
-        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
 
 
 @require_premium_for_hl
@@ -15501,12 +15502,12 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                f"❌ Failed to fetch orders: {result.get('error', 'Unknown error')}",
+                t.get('error_fetch_orders', '❌ Error fetching orders: {error}').format(error=result.get('error', 'Unknown error')),
                 parse_mode="Markdown"
             )
     except Exception as e:
         logger.error(f"HL orders error: {e}")
-        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
 
 
 @require_premium_for_hl
@@ -15624,12 +15625,12 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                f"❌ Failed to fetch history: {result.get('error', 'Unknown error')}",
+                t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch history: {result.get('error', 'Unknown error')}"),
                 parse_mode="Markdown"
             )
     except Exception as e:
         logger.error(f"HL history error: {e}")
-        await update.message.reply_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+        await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
 
 
 @require_premium_for_hl
@@ -16134,7 +16135,7 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
             else:
                 # Enable DCA globally
-                set_user_value(uid, "dca_enabled", 1)
+                set_user_field(uid, "dca_enabled", 1)
                 
                 await q.edit_message_text(
                     t.get('dca_enabled_for_symbol',

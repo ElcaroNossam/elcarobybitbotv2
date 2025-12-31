@@ -632,6 +632,9 @@ TEXTS = {
     'your_id':                       'Jūsų ID: {uid}',
     'error_validation':              '❌ {msg}',
     'error_generic':                 'Klaida: {msg}',
+    'error_fetch_balance':           '❌ Klaida gaunant balansą: {error}',
+    'error_fetch_orders':            '❌ Klaida gaunant užsakymus: {error}',
+    'error_occurred':                '❌ Klaida: {error}',
 
     # Trading Statistics
     'button_stats':                  '📊 Statistics',
