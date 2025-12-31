@@ -377,8 +377,8 @@ TEXTS = {
     'feature_scryptomera':         'Scryptomera',
 
     # Insufficient balance error
-    'insufficient_balance_error':  '❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error':  '❌ <b>Insufficient balance!</b>\n\n💰 Not enough FREE margin on your {account_type} account.\n\n<b>Why this happens:</b>\nAll your balance is locked in open positions.\n\n<b>Solutions:</b>\n• Close some open positions to free margin\n• Reduce position size (% per trade)\n• Lower leverage\n• Use /positions to view and close positions',
+    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough FREE margin on your {account_type} account.\n\n<b>Why this happens:</b>\nAll your balance is locked in open positions.\n\n<b>Solutions:</b>\n• Close some open positions\n• Reduce position size (% per trade)\n• Lower leverage',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.',

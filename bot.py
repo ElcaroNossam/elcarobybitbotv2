@@ -6588,8 +6588,9 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
     Uses availableToWithdraw which is the actual free balance for trading,
     not walletBalance which includes margin used by open positions.
     
-    For Demo accounts, Bybit API returns empty availableToWithdraw - we fallback
-    to totalAvailableBalance from account level.
+    For Demo accounts, Bybit API doesn't provide margin info - we fallback
+    to walletBalance but this may cause INSUFFICIENT_BALANCE errors when
+    all margin is used by existing positions.
     """
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
@@ -6598,38 +6599,25 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         return 0.0
 
     for acct in res.get("list", []) or []:
-        # Log ALL account-level fields for debugging Demo API response
-        acct_keys = [k for k in acct.keys() if k != 'coin']
-        acct_values = {k: acct.get(k) for k in acct_keys}
-        logger.info(f"[{user_id}] Account fields: {acct_values} [{account_type or 'auto'}]")
-        
-        # First try account-level totalAvailableBalance (works for Demo accounts!)
+        # First try account-level totalAvailableBalance (NOT available on Demo!)
         total_available = acct.get("totalAvailableBalance")
         if total_available and total_available != "":
-            logger.info(f"[{user_id}] Using account totalAvailableBalance={total_available} [{account_type or 'auto'}]")
+            logger.info(f"[{user_id}] Using totalAvailableBalance={total_available} [{account_type or 'auto'}]")
             return float(total_available)
         
         for c in acct.get("coin", []) or []:
             if c.get("coin") == "USDT":
                 try:
-                    # Log RAW values for debugging (before any conversion)
                     raw_wallet = c.get("walletBalance")
                     raw_available = c.get("availableToWithdraw")
-                    raw_available2 = c.get("availableBalance")
-                    logger.debug(f"[{user_id}] USDT RAW: wallet={raw_wallet!r} availableToWithdraw={raw_available!r} availableBalance={raw_available2!r} [{account_type or 'auto'}]")
                     
                     # CRITICAL: Use availableToWithdraw (NOT walletBalance!)
-                    # For Demo accounts, this returns empty string - we handle that above
+                    # For Demo accounts, this returns empty string
                     if raw_available is not None and raw_available != "":
                         return float(raw_available)
                     
-                    # Fallback to availableBalance (some API versions use this)
-                    if raw_available2 is not None and raw_available2 != "":
-                        return float(raw_available2)
-                    
-                    # Last resort: use walletBalance but with WARNING
-                    # This may lead to INSUFFICIENT_BALANCE errors on trade
-                    logger.warning(f"[{user_id}] No available balance data, using walletBalance={raw_wallet} (may cause order failures)")
+                    # For Demo accounts: walletBalance is all we have
+                    # This will cause INSUFFICIENT_BALANCE if margin is fully used
                     return float(raw_wallet or 0.0)
                 except (TypeError, ValueError):
                     return 0.0
