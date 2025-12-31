@@ -3191,7 +3191,8 @@ async def set_trading_stop(
     symbol: str,
     tp_price: float | None = None,
     sl_price: float | None = None,
-    side_hint: str | None = None,  
+    side_hint: str | None = None,
+    is_trailing: bool = False,  # Skip entry price validation for trailing SL
 ) -> bool:
     """Set TP/SL for a position. Returns True if successful, False if position not found."""
     if tp_price is None and sl_price is None:
@@ -3293,8 +3294,14 @@ async def set_trading_stop(
                 break
 
     if sl_price is not None:
-        # SL validation - must be valid against BOTH entry and mark price
-        check_prices = [p for p in [entry_price, mark] if p and p > 0]
+        # SL validation - for trailing SL only check against mark price, not entry
+        # For regular SL, check against both entry and mark price
+        if is_trailing:
+            # Trailing SL: only validate against mark price (SL follows price movement)
+            check_prices = [mark] if mark and mark > 0 else []
+        else:
+            # Regular SL: validate against both entry and mark price
+            check_prices = [p for p in [entry_price, mark] if p and p > 0]
         for check_price in check_prices:
             if effective_side == "Buy" and sl_price >= check_price:
                 logger.warning(f"{symbol}: SL ({sl_price}) >= price ({check_price}) for LONG - skipping SL")
@@ -11908,7 +11915,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
                                     if current_sl is None or new_sl > current_sl:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True)
                                             logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
@@ -11926,7 +11933,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
                                     if current_sl is None or new_sl < current_sl:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side)
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True)
                                             logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
