@@ -9782,28 +9782,50 @@ def parse_signal(txt: str) -> dict:
             price_m = _Dummy()
 
     oi_prev = oi_now = oi_chg = None
-    oi_lines = [m.group(0) for m in re.finditer(
-        r'(?im)^[^\n\r]*(?:\bOI\b|\bOpen\s+Interest\b)[^\n\r]*$', txt)]
+    
+    # NEW FORMAT: PRE-ALERT signals with "OI Total: 74.88M (+794.75%, z=295.1)"
+    # Format: OI Total: VALUE (+CHANGE%, z=SCORE)
+    prealert_oi_match = re.search(
+        r'OI\s+Total\s*:\s*([0-9]+(?:[.,][0-9]+)?)\s*([kKmMbB]?)\s*\(\s*([+\-]?[0-9]+(?:[.,][0-9]+)?)%',
+        txt
+    )
+    if prealert_oi_match:
+        # Parse OI value and change from PRE-ALERT format
+        oi_val = _tof(prealert_oi_match.group(1))
+        oi_unit = (prealert_oi_match.group(2) or '').upper()
+        oi_chg = _tof(prealert_oi_match.group(3))
+        
+        oi_now = _to_mln_ext(oi_val, oi_unit, bare_is_units=True)
+        # Calculate oi_prev from oi_now and oi_chg
+        if oi_chg and abs(oi_chg) > 0.01:
+            oi_prev = oi_now / (1 + oi_chg / 100)
+        else:
+            oi_prev = oi_now
+        logger.debug(f"PRE-ALERT OI parsed: now={oi_now}M, prev={oi_prev:.4f}M, chg={oi_chg}%")
+    else:
+        # LEGACY FORMAT: Two separate OI lines
+        oi_lines = [m.group(0) for m in re.finditer(
+            r'(?im)^[^\n\r]*(?:\bOI\b|\bOpen\s+Interest\b)[^\n\r]*$', txt)]
 
-    def _oi(line: str):
-        norm = line.replace('\u00A0', ' ').replace('\u202F', ' ')
-        m = re.search(r'([0-9]+(?:[.,][0-9]+)?)\s*([kKmMbB]?)', norm)
-        if not m:
-            return (None, None)
-        v  = _tof(m.group(1))
-        su = (m.group(2) or '').upper()  
-        return (v, su or '')
+        def _oi(line: str):
+            norm = line.replace('\u00A0', ' ').replace('\u202F', ' ')
+            m = re.search(r'([0-9]+(?:[.,][0-9]+)?)\s*([kKmMbB]?)', norm)
+            if not m:
+                return (None, None)
+            v  = _tof(m.group(1))
+            su = (m.group(2) or '').upper()  
+            return (v, su or '')
 
-    if oi_lines:
-        v, u = _oi(oi_lines[0])
-        if v is not None:
-            oi_prev = _to_mln_ext(v, u, bare_is_units=True)
-    if len(oi_lines) >= 2:
-        v, u = _oi(oi_lines[1])
-        if v is not None:
-            oi_now = _to_mln_ext(v, u, bare_is_units=True)
-    if oi_prev not in (None, 0) and oi_now is not None:
-        oi_chg = round((oi_now - oi_prev) / oi_prev * 100, 2)
+        if oi_lines:
+            v, u = _oi(oi_lines[0])
+            if v is not None:
+                oi_prev = _to_mln_ext(v, u, bare_is_units=True)
+        if len(oi_lines) >= 2:
+            v, u = _oi(oi_lines[1])
+            if v is not None:
+                oi_now = _to_mln_ext(v, u, bare_is_units=True)
+        if oi_prev not in (None, 0) and oi_now is not None:
+            oi_chg = round((oi_now - oi_prev) / oi_prev * 100, 2)
 
     vol_from = vol_to = None
     arrow_re = r'(?:→|->|=>)'
@@ -10224,7 +10246,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type)
                 except Exception as e:
                     logger.warning(f"[{uid}] {symbol}: calc_qty failed for rsi_bb: {e}")
                     continue
@@ -10328,13 +10350,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
 
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
                     # Set leverage if configured
                     user_leverage = strat_settings.get("leverage")
                     if user_leverage:
                         try:
-                            await set_leverage(uid, symbol, leverage=user_leverage)
+                            await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
                         except Exception as e:
                             logger.warning(f"[{uid}] scryptomera: failed to set leverage: {e}")
 
@@ -10426,13 +10448,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
 
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
                     # Set leverage if configured
                     user_leverage = strat_settings.get("leverage")
                     if user_leverage:
                         try:
-                            await set_leverage(uid, symbol, leverage=user_leverage)
+                            await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
                         except Exception as e:
                             logger.warning(f"[{uid}] scalper: failed to set leverage: {e}")
 
@@ -10566,12 +10588,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         tp_pct = 6.0  # fallback
 
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
 
                     # Set leverage from signal if available
                     if elcaro_mode and elcaro_leverage:
                         try:
-                            await set_leverage(uid, symbol, leverage=elcaro_leverage)
+                            await set_leverage(uid, symbol, leverage=elcaro_leverage, account_type=ctx_account_type)
                             logger.debug(f"[{uid}] Elcaro: set leverage={elcaro_leverage} for {symbol}")
                         except Exception as e:
                             logger.warning(f"[{uid}] Elcaro: failed to set leverage: {e}")
@@ -10731,12 +10753,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     continue
                 
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=fibo_sl_pct)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=fibo_sl_pct, account_type=ctx_account_type)
                     
                     # Set leverage
                     if user_leverage:
                         try:
-                            await set_leverage(uid, symbol, leverage=user_leverage)
+                            await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
                         except Exception as e:
                             logger.warning(f"[{uid}] Fibonacci: failed to set leverage: {e}")
                     
@@ -10864,13 +10886,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 try:
                     if user_sl_pct <= 0:
                         user_sl_pct = 1.0
-                    qty_total = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct)
+                    qty_total = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
                     # Set leverage if configured
                     user_leverage = strat_settings.get("leverage")
                     if user_leverage:
                         try:
-                            await set_leverage(uid, symbol, leverage=user_leverage)
+                            await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
                         except Exception as e:
                             logger.warning(f"[{uid}] oi: failed to set leverage: {e}")
 
@@ -11745,7 +11767,8 @@ async def monitor_positions_loop(app: Application):
                                                 sym,
                                                 price=mark,
                                                 risk_pct=risk_pct_for_dca,
-                                                sl_pct=sl_pct
+                                                sl_pct=sl_pct,
+                                                account_type=pos_account_type
                                             )
                                             if add_qty > 0:
                                                 await place_order(
@@ -11753,7 +11776,8 @@ async def monitor_positions_loop(app: Application):
                                                     symbol=sym,
                                                     side=side,
                                                     orderType="Market",
-                                                    qty=add_qty
+                                                    qty=add_qty,
+                                                    account_type=pos_account_type
                                                 )
                                                 set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
                                                 try:
@@ -11785,7 +11809,8 @@ async def monitor_positions_loop(app: Application):
                                                 sym,
                                                 price=mark,
                                                 risk_pct=risk_pct_for_dca,
-                                                sl_pct=sl_pct
+                                                sl_pct=sl_pct,
+                                                account_type=pos_account_type
                                             )
                                             if add_qty > 0:
                                                 await place_order(
@@ -11793,7 +11818,8 @@ async def monitor_positions_loop(app: Application):
                                                     symbol=sym,
                                                     side=side,
                                                     orderType="Market",
-                                                    qty=add_qty
+                                                    qty=add_qty,
+                                                    account_type=pos_account_type
                                                 )
                                                 set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
                                                 try:
