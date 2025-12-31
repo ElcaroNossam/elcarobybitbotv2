@@ -11857,7 +11857,7 @@ async def monitor_positions_loop(app: Application):
                         
                             if position_use_atr:
                                 # Log current ATR state for debugging
-                                logger.info(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
+                                logger.info(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
                                     # Log ATR status for debugging
