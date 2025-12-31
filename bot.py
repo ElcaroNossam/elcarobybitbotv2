@@ -3972,6 +3972,8 @@ async def place_order(
 
         # Денег нет — сразу human-readable ошибка (110007: ab not enough, insufficient balance)
         if "insufficient" in msg or "balance" in msg or "110007" in msg or "ab not enough" in msg:
+            # Log full error and order params for debugging
+            logger.error(f"[{user_id}] INSUFFICIENT_BALANCE error. Order body: {body}. Full error: {e}")
             raise ValueError("INSUFFICIENT_BALANCE")
 
         # Неправильный position mode — меняем и ретраим
