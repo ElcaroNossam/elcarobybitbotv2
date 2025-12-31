@@ -2254,7 +2254,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             # ─── Row 1: Trading Info ───
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
             # ─── Row 2: Actions ───
-            [ "📋 History", "❌ Close All", "🤖 Strategies" ],
+            [ "📋 History", "📉 Market", "🤖 Strategies" ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
@@ -2272,7 +2272,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             # ─── Row 1: Trading Info ───
             [ "💰 Balance", "📊 Positions", "📈 Orders" ],
             # ─── Row 2: Actions & Strategies ───
-            [ "📋 History", "❌ Close All", "🤖 Strategies" ],
+            [ "📋 History", "📉 Market", "🤖 Strategies" ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
