@@ -275,7 +275,9 @@ class UnifiedExchangeClient:
                         "mark_price": pos.mark_price or pos.entry_price,  # Fallback to entry if no mark
                         "unrealized_pnl": pos.unrealized_pnl,
                         "leverage": pos.leverage,
-                        "liquidation_price": pos.liquidation_price
+                        "liquidation_price": pos.liquidation_price,
+                        "stop_loss": pos.stop_loss,
+                        "take_profit": pos.take_profit
                     })
             
             return ExchangeResult(

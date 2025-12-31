@@ -35,6 +35,8 @@ class Position:
     liquidation_price: Optional[float] = None
     margin_used: Optional[float] = None
     mark_price: Optional[float] = None  # Current market price for PNL calculation
+    stop_loss: Optional[float] = None  # Current stop loss price
+    take_profit: Optional[float] = None  # Current take profit price
 
     @property
     def is_long(self) -> bool:

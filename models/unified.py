@@ -156,6 +156,14 @@ class Position:
         mark_price_raw = data.get('mark_price') or data.get('markPrice')
         mark_price = float(mark_price_raw) if mark_price_raw else entry_price
         
+        # Handle stop_loss - support both formats
+        sl_raw = data.get('stop_loss') or data.get('stopLoss')
+        stop_loss = float(sl_raw) if sl_raw else None
+        
+        # Handle take_profit - support both formats
+        tp_raw = data.get('take_profit') or data.get('takeProfit')
+        take_profit = float(tp_raw) if tp_raw else None
+        
         return cls(
             symbol=data['symbol'],
             side=PositionSide.from_string(data['side']),
@@ -167,8 +175,8 @@ class Position:
             margin_mode=data.get('tradeMode', 'cross').lower(),
             margin_used=float(data.get('positionIM', 0)),
             liquidation_price=float(data.get('liqPrice') or data.get('liquidation_price', 0)) if data.get('liqPrice') or data.get('liquidation_price') else None,
-            take_profit=float(data.get('takeProfit', 0)) if data.get('takeProfit') else None,
-            stop_loss=float(data.get('stopLoss', 0)) if data.get('stopLoss') else None,
+            take_profit=take_profit,
+            stop_loss=stop_loss,
             exchange='bybit'
         )
     
