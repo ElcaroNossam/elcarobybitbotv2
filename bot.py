@@ -6581,6 +6581,11 @@ async def cmd_show_config(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @log_calls
 async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
+    """Fetch AVAILABLE USDT balance (not total wallet balance).
+    
+    Uses availableToWithdraw which is the actual free balance for trading,
+    not walletBalance which includes margin used by open positions.
+    """
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
         res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
@@ -6591,7 +6596,10 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         for c in acct.get("coin", []) or []:
             if c.get("coin") == "USDT":
                 try:
-                    return float(c.get("walletBalance") or 0.0)
+                    # Use availableToWithdraw (free balance) instead of walletBalance (total)
+                    # Fallback chain: availableToWithdraw -> availableBalance -> walletBalance
+                    available = c.get("availableToWithdraw") or c.get("availableBalance") or c.get("walletBalance") or 0.0
+                    return float(available)
                 except (TypeError, ValueError):
                     return 0.0
     return 0.0
