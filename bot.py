@@ -6587,6 +6587,9 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
     
     Uses availableToWithdraw which is the actual free balance for trading,
     not walletBalance which includes margin used by open positions.
+    
+    For Demo accounts, Bybit API returns empty availableToWithdraw - we fallback
+    to totalAvailableBalance from account level.
     """
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
@@ -6595,6 +6598,12 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         return 0.0
 
     for acct in res.get("list", []) or []:
+        # First try account-level totalAvailableBalance (works for Demo accounts!)
+        total_available = acct.get("totalAvailableBalance")
+        if total_available and total_available != "":
+            logger.info(f"[{user_id}] Using account totalAvailableBalance={total_available} [{account_type or 'auto'}]")
+            return float(total_available)
+        
         for c in acct.get("coin", []) or []:
             if c.get("coin") == "USDT":
                 try:
@@ -6602,11 +6611,10 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
                     raw_wallet = c.get("walletBalance")
                     raw_available = c.get("availableToWithdraw")
                     raw_available2 = c.get("availableBalance")
-                    logger.info(f"[{user_id}] USDT RAW: wallet={raw_wallet!r} availableToWithdraw={raw_available!r} availableBalance={raw_available2!r} [{account_type or 'auto'}]")
+                    logger.debug(f"[{user_id}] USDT RAW: wallet={raw_wallet!r} availableToWithdraw={raw_available!r} availableBalance={raw_available2!r} [{account_type or 'auto'}]")
                     
                     # CRITICAL: Use availableToWithdraw (NOT walletBalance!)
-                    # If availableToWithdraw is 0 or empty, that means NO FREE MARGIN
-                    # We should NOT fallback to walletBalance as that would be misleading
+                    # For Demo accounts, this returns empty string - we handle that above
                     if raw_available is not None and raw_available != "":
                         return float(raw_available)
                     
@@ -6614,9 +6622,9 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
                     if raw_available2 is not None and raw_available2 != "":
                         return float(raw_available2)
                     
-                    # Only fallback to walletBalance if other fields are missing
-                    # This is a last resort and may cause INSUFFICIENT_BALANCE errors
-                    logger.warning(f"[{user_id}] availableToWithdraw not available, using walletBalance")
+                    # Last resort: use walletBalance but with WARNING
+                    # This may lead to INSUFFICIENT_BALANCE errors on trade
+                    logger.warning(f"[{user_id}] No available balance data, using walletBalance={raw_wallet} (may cause order failures)")
                     return float(raw_wallet or 0.0)
                 except (TypeError, ValueError):
                     return 0.0
