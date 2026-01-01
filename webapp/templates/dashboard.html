@@ -1515,11 +1515,13 @@
             if (authToken) {
                 localStorage.setItem('elcaro_token', authToken);
                 window.history.replaceState({}, document.title, '/dashboard');
-            } else if (startParam && !localStorage.getItem('elcaro_token')) {
+            } else if (startParam) {
                 // Auto-login with start parameter (user_id from Telegram WebApp)
+                // Always try to login when start param is present (refresh token)
                 try {
                     const userId = parseInt(startParam);
                     if (userId > 0) {
+                        console.log('🔄 Auto-login attempt for user:', userId);
                         const res = await fetch('/api/auth/direct-login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1529,6 +1531,10 @@
                         if (res.ok) {
                             const data = await res.json();
                             localStorage.setItem('elcaro_token', data.access_token);
+                            localStorage.setItem('elcaro_user_id', userId.toString());
+                            if (data.user) {
+                                localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                            }
                             console.log('✅ Auto-login successful for user:', userId);
                         } else {
                             console.error('❌ Auto-login failed:', await res.text());
