@@ -860,11 +860,11 @@
         // ========================================
         // AUTO-LOGIN FROM TELEGRAM (start parameter)
         // ========================================
-        (async function() {
+        async function handleAutoLogin() {
             const params = new URLSearchParams(window.location.search);
             const startParam = params.get('start');
             
-            // If start param exists, try auto-login
+            // If start param exists, ALWAYS try auto-login to refresh token
             if (startParam) {
                 const userId = parseInt(startParam, 10);
                 if (!isNaN(userId) && userId > 0) {
@@ -890,16 +890,28 @@
                     window.history.replaceState({}, document.title, '/dashboard');
                 }
             }
+        }
+        
+        // ========================================
+        // MAIN INITIALIZATION (wait for auto-login first)
+        // ========================================
+        (async function() {
+            await handleAutoLogin();
+            
+            const token = localStorage.getItem('elcaro_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Initialize dashboard after auth is ready
+            initDashboard();
         })();
         
-        // ========================================
-        // TOKEN CHECK & MAIN LOGIC
-        // ========================================
-        const token = localStorage.getItem('elcaro_token');
-        if (!token) window.location.href = '/login';
-        
-        let currentExchange = 'bybit';
-        let pnlChart = null;
+        function initDashboard() {
+            const token = localStorage.getItem('elcaro_token');
+            let currentExchange = 'bybit';
+            let pnlChart = null;
         
         // Exchange Selector
         document.querySelectorAll('.exchange-btn').forEach(btn => {
@@ -1209,6 +1221,7 @@
         
         // Auto refresh every 30 seconds
         setInterval(refreshData, 30000);
+        } // end initDashboard
     </script>
 </body>
 </html>
