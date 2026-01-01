@@ -6296,7 +6296,10 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 webapp_url = ngrok_file.read_text().strip()
         
         # Add user_id as start param for auto-login and go directly to dashboard
-        webapp_url_with_user = f"{webapp_url}/dashboard?start={uid}"
+        # Add timestamp to prevent Telegram from caching old URL
+        import time
+        cache_bust = int(time.time())
+        webapp_url_with_user = f"{webapp_url}/dashboard?start={uid}&_t={cache_bust}"
         menu_button = MenuButtonWebApp(
             text="🖥️ Dashboard",
             web_app=WebAppInfo(url=webapp_url_with_user)
@@ -12397,18 +12400,22 @@ async def start_monitoring(app: Application):
         if last_url_file.exists():
             last_url = last_url_file.read_text().strip()
         
-        current_url = f"{webapp_url}/dashboard"
+        # Add timestamp to prevent Telegram from caching old URL
+        import time
+        cache_bust = int(time.time())
+        current_url = f"{webapp_url}/dashboard?_t={cache_bust}"
+        base_url = f"{webapp_url}/dashboard"
         
-        # Only update menu button if URL changed
-        if last_url != current_url:
-            logger.info(f"Menu button URL changed: {last_url} -> {current_url}")
+        # Only update menu button if base URL changed
+        if last_url != base_url:
+            logger.info(f"Menu button URL changed: {last_url} -> {base_url}")
             
             # Reset to default first to clear Telegram's cache
             await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
             logger.info("Menu button reset to default (clearing cache)")
             await asyncio.sleep(1)
             
-            # Set the menu button for all users
+            # Set the menu button for all users with cache-busting timestamp
             menu_button = MenuButtonWebApp(
                 text="🖥️ Dashboard",
                 web_app=WebAppInfo(url=current_url)
@@ -12416,10 +12423,10 @@ async def start_monitoring(app: Application):
             await app.bot.set_chat_menu_button(menu_button=menu_button)
             logger.info(f"Menu button set to Dashboard: {current_url}")
             
-            # Save current URL
-            last_url_file.write_text(current_url)
+            # Save base URL (without timestamp) for comparison
+            last_url_file.write_text(base_url)
         else:
-            logger.info(f"Menu button URL unchanged: {current_url}")
+            logger.info(f"Menu button URL unchanged: {base_url}")
     except Exception as e:
         logger.warning(f"Failed to set menu button: {e}")
     
@@ -15910,10 +15917,13 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         from webapp.services import telegram_auth
         token, login_url = telegram_auth.generate_login_token(uid)
         # Update login_url with current webapp URL (in case ngrok changed)
-        login_url = f"{webapp_url}/api/auth/token-login?token={token}"
+        # Add timestamp to prevent Telegram from caching old URL
+        import time
+        cache_bust = int(time.time())
+        login_url = f"{webapp_url}/api/auth/token-login?token={token}&_t={cache_bust}"
     except Exception as e:
         logging.warning(f"Failed to generate login token: {e}")
-        login_url = webapp_url
+        login_url = f"{webapp_url}?_t={int(time.time())}"
     
     # Check if ngrok (free tier has warning page that breaks WebApp)
     is_ngrok = "ngrok" in webapp_url
@@ -15926,8 +15936,10 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ])
     else:
         # For production HTTPS, use WebAppInfo for native experience
+        # Add timestamp to URL to prevent Telegram caching
+        webapp_url_with_cache_bust = f"{webapp_url}?_t={cache_bust}"
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url_with_cache_bust))],
             [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
             [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
         ])
