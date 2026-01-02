@@ -165,8 +165,10 @@ async def get_dashboard_stats(
         max_drawdown = 0.0
         max_drawdown_abs = 0.0
         if pnl_history:
-            peak = pnl_history[0]
-            for val in pnl_history:
+            # Extract cumulative values for drawdown calculation
+            cumulative_values = [h["cumulative"] for h in pnl_history]
+            peak = cumulative_values[0]
+            for val in cumulative_values:
                 if val > peak:
                     peak = val
                 drawdown = peak - val
