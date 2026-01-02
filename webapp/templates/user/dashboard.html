@@ -950,10 +950,20 @@
             try {
                 const balanceRes = await fetch(`/api/trading/balance?exchange=${exchange}&account_type=demo`, { headers });
                 if (balanceRes.status === 401) {
+                    // Token expired - try re-auth via Telegram
+                    if (tg?.initData) {
+                        localStorage.removeItem('triacelo_token');
+                        const success = await autoLoginTelegram();
+                        if (success) {
+                            refreshData();
+                            return;
+                        }
+                    }
                     window.location.href = '/login';
                     return;
                 }
                 const balance = await balanceRes.json();
+                console.log('Balance response:', balance);
                 if (balance.equity !== undefined || balance.total_equity !== undefined) {
                     document.getElementById('total-equity').textContent = 
                         '$' + (balance.equity || balance.total_equity || 0).toFixed(2);
@@ -961,6 +971,7 @@
                 
                 const posRes = await fetch(`/api/trading/positions?exchange=${exchange}&account_type=demo`, { headers });
                 const positions = await posRes.json();
+                console.log('Positions response:', positions);
                 if (Array.isArray(positions)) {
                     updatePositionsTable(positions);
                     document.getElementById('open-positions').textContent = positions.length;
@@ -968,15 +979,20 @@
                     // Calculate today's PnL from open positions
                     const todayPnl = positions.reduce((sum, p) => sum + (parseFloat(p.unrealized_pnl) || 0), 0);
                     document.getElementById('daily-pnl').textContent = 
-                        (todayPnl >= 0 ? '+' : '') + '$' + Math.abs(todayPnl).toFixed(2);
+                        (todayPnl >= 0 ? '+$' : '-$') + Math.abs(todayPnl).toFixed(2);
+                    document.getElementById('daily-pnl').style.color = todayPnl >= 0 ? 'var(--green)' : 'var(--red)';
                 }
                 
                 // Use dashboard stats endpoint
                 const statsRes = await fetch(`/api/stats/dashboard?exchange=${exchange}&period=30d`, { headers });
                 const stats = await statsRes.json();
+                console.log('Stats response:', stats);
                 if (stats.success && stats.data && stats.data.summary) {
-                    document.getElementById('win-rate').textContent = (stats.data.summary.winRate || 0).toFixed(1) + '%';
-                    document.getElementById('trades-count').textContent = (stats.data.summary.totalTrades || 0) + ' trades';
+                    const summary = stats.data.summary;
+                    document.getElementById('win-rate').textContent = (summary.winRate || 0).toFixed(1) + '%';
+                    document.getElementById('trades-count').textContent = (summary.totalTrades || 0) + ' trades';
+                } else if (stats.detail) {
+                    console.error('Stats API error:', stats.detail);
                 }
             } catch (err) {
                 console.error('Error loading data:', err);
