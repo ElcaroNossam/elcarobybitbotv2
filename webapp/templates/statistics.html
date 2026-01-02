@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>Trading Statistics | ElCaro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-card: #16161f;
+            --bg-hover: #1e1e28;
+            --accent: #6366f1;
+            --accent-purple: #8b5cf6;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.08);
+            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
+            --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .page-title i { -webkit-text-fill-color: #6366f1; }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .filter-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-select:hover { border-color: var(--accent); }
+        .filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+        
+        /* Period Tabs */
+        .period-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .period-tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .period-tab:hover { color: var(--text-primary); }
+        .period-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+        
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent);
+        }
+        
+        .summary-card.highlight {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+        
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .summary-value.positive { color: var(--green); }
+        .summary-value.negative { color: var(--red); }
+        
+        .summary-change {
+            font-size: 12px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .summary-change.up { color: var(--green); }
+        .summary-change.down { color: var(--red); }
+        
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+        
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Strategy Cards */
+        .strategies-section {
+            margin-bottom: 32px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        
+        .strategy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .strategy-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .strategy-name {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .strategy-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .strategy-badge.win { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+        .strategy-badge.loss { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+        
+        .strategy-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
+        .strategy-stat {
+            text-align: center;
+        }
+        
+        .strategy-stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .strategy-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .strategy-progress {
+            margin-top: 16px;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.win { background: var(--gradient-green); }
+        .progress-fill.loss { background: var(--gradient-red); }
+        
+        /* Trades Table */
+        .trades-section {
+            margin-bottom: 32px;
+        }
+        
+        .trades-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .trades-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .trades-table th {
+            text-align: left;
+            padding: 14px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-secondary);
+        }
+        
+        .trades-table td {
+            padding: 16px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .trades-table tr:hover td {
+            background: var(--bg-hover);
+        }
+        
+        .trade-symbol {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .trade-side {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .trade-side.long { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+        .trade-side.short { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+        
+        .trade-pnl { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+        .trade-pnl.positive { color: var(--green); }
+        .trade-pnl.negative { color: var(--red); }
+        
+        .trade-strategy {
+            padding: 4px 10px;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--accent);
+        }
+        
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .filters { width: 100%; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .summary-value { font-size: 22px; }
+            .trades-table { font-size: 12px; }
+            .trades-table th, .trades-table td { padding: 10px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-chart-line"></i>
+                Trading Statistics
+            </h1>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <span class="filter-label">Exchange:</span>
+                    <select class="filter-select" id="exchangeFilter">
+                        <option value="all">All Exchanges</option>
+                        <option value="bybit">Bybit</option>
+                        <option value="hyperliquid">HyperLiquid</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <span class="filter-label">Strategy:</span>
+                    <select class="filter-select" id="strategyFilter">
+                        <option value="all">All Strategies</option>
+                        <option value="elcaro">ElCaro</option>
+                        <option value="scryptomera">Scryptomera</option>
+                        <option value="scalper">Scalper</option>
+                        <option value="wyckoff">Wyckoff</option>
+                        <option value="OI">OI Flow</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+                
+                <div class="period-tabs">
+                    <button class="period-tab" data-period="7d">7D</button>
+                    <button class="period-tab active" data-period="30d">30D</button>
+                    <button class="period-tab" data-period="90d">90D</button>
+                    <button class="period-tab" data-period="all">All</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summaryGrid">
+            <div class="summary-card highlight">
+                <div class="summary-label"><i class="fas fa-dollar-sign"></i> Total PnL</div>
+                <div class="summary-value positive" id="totalPnl">$0.00</div>
+                <div class="summary-change up" id="pnlChange"><i class="fas fa-arrow-up"></i> +0%</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label"><i class="fas fa-percentage"></i> Return</div>
+                <div class="summary-value" id="returnPct">0%</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label"><i class="fas fa-exchange-alt"></i> Total Trades</div>
+                <div class="summary-value" id="totalTrades">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label"><i class="fas fa-trophy"></i> Win Rate</div>
+                <div class="summary-value" id="winRate">0%</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label"><i class="fas fa-chart-bar"></i> Profit Factor</div>
+                <div class="summary-value" id="profitFactor">0.00</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label"><i class="fas fa-arrow-down"></i> Max Drawdown</div>
+                <div class="summary-value negative" id="maxDrawdown">0%</div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title"><i class="fas fa-chart-area"></i> PnL Over Time</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="pnlChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title"><i class="fas fa-pie-chart"></i> By Strategy</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="strategyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Strategy Performance -->
+        <div class="strategies-section">
+            <h2 class="section-title"><i class="fas fa-robot"></i> Strategy Performance</h2>
+            <div class="strategy-grid" id="strategyGrid">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+        
+        <!-- Recent Trades -->
+        <div class="trades-section">
+            <div class="trades-card">
+                <div class="trades-header">
+                    <h3 class="chart-title"><i class="fas fa-history"></i> Recent Trades</h3>
+                </div>
+                <table class="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Strategy</th>
+                            <th>Entry</th>
+                            <th>Exit</th>
+                            <th>PnL</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tradesBody">
+                        <!-- Filled dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // State
+        let currentPeriod = '30d';
+        let currentExchange = 'all';
+        let currentStrategy = 'all';
+        let pnlChart = null;
+        let strategyChart = null;
+        
+        // Get auth token
+        function getToken() {
+            return localStorage.getItem('elcaro_token') || sessionStorage.getItem('elcaro_token');
+        }
+        
+        // Format currency
+        function formatCurrency(value) {
+            const num = parseFloat(value) || 0;
+            const prefix = num >= 0 ? '+$' : '-$';
+            return prefix + Math.abs(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        // Format percentage
+        function formatPct(value) {
+            const num = parseFloat(value) || 0;
+            return (num >= 0 ? '+' : '') + num.toFixed(2) + '%';
+        }
+        
+        // Load statistics
+        async function loadStats() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            try {
+                const resp = await fetch(`/api/stats/dashboard?period=${currentPeriod}&exchange=${currentExchange}&strategy=${currentStrategy}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to load stats');
+                }
+                
+                const data = await resp.json();
+                if (data.success) {
+                    renderStats(data.data);
+                }
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
+        }
+        
+        // Render statistics
+        function renderStats(data) {
+            const summary = data.summary || {};
+            
+            // Summary cards
+            const totalPnl = parseFloat(summary.totalPnL) || 0;
+            document.getElementById('totalPnl').textContent = formatCurrency(totalPnl);
+            document.getElementById('totalPnl').className = 'summary-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('returnPct').textContent = formatPct(summary.returnPct);
+            document.getElementById('returnPct').className = 'summary-value ' + (summary.returnPct >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('totalTrades').textContent = summary.totalTrades || 0;
+            document.getElementById('winRate').textContent = (summary.winRate || 0).toFixed(1) + '%';
+            document.getElementById('winRate').className = 'summary-value ' + (summary.winRate >= 50 ? 'positive' : '');
+            
+            document.getElementById('profitFactor').textContent = (summary.profitFactor || 0).toFixed(2);
+            document.getElementById('maxDrawdown').textContent = formatPct(summary.maxDrawdown);
+            
+            // PnL change
+            const pnlChange = document.getElementById('pnlChange');
+            const change = summary.pnlChange || 0;
+            pnlChange.innerHTML = `<i class="fas fa-arrow-${change >= 0 ? 'up' : 'down'}"></i> ${formatPct(change)} vs prev period`;
+            pnlChange.className = 'summary-change ' + (change >= 0 ? 'up' : 'down');
+            
+            // PnL Chart
+            renderPnlChart(data.pnlHistory || []);
+            
+            // Strategy Chart
+            renderStrategyChart(data.byStrategy || {});
+            
+            // Strategy Cards
+            renderStrategyCards(data.byStrategy || {});
+            
+            // Trades Table
+            renderTrades(data.topTrades || {});
+        }
+        
+        // PnL Chart
+        function renderPnlChart(history) {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            
+            if (pnlChart) pnlChart.destroy();
+            
+            const labels = history.map(h => h.time);
+            const cumulative = history.map(h => h.cumulative);
+            const daily = history.map(h => h.daily);
+            
+            pnlChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cumulative PnL',
+                        data: cumulative,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#16161f',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
+                            titleColor: '#f8fafc',
+                            bodyColor: '#94a3b8',
+                            padding: 12,
+                            callbacks: {
+                                label: (ctx) => `PnL: $${ctx.raw.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#64748b', maxTicksLimit: 8 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { 
+                                color: '#64748b',
+                                callback: (v) => '$' + v.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Strategy Chart
+        function renderStrategyChart(byStrategy) {
+            const ctx = document.getElementById('strategyChart').getContext('2d');
+            
+            if (strategyChart) strategyChart.destroy();
+            
+            const labels = Object.keys(byStrategy);
+            const values = Object.values(byStrategy).map(s => Math.abs(s.pnl));
+            const colors = ['#6366f1', '#8b5cf6', '#22c55e', '#eab308', '#ef4444', '#06b6d4'];
+            
+            strategyChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', padding: 16, usePointStyle: true }
+                        },
+                        tooltip: {
+                            backgroundColor: '#16161f',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: (ctx) => {
+                                    const strat = byStrategy[ctx.label];
+                                    return `PnL: $${strat.pnl.toFixed(2)} (${strat.trades} trades)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Strategy Cards
+        function renderStrategyCards(byStrategy) {
+            const grid = document.getElementById('strategyGrid');
+            
+            if (Object.keys(byStrategy).length === 0) {
+                grid.innerHTML = '<div class="empty-state"><i class="fas fa-robot"></i><p>No strategy data available</p></div>';
+                return;
+            }
+            
+            const icons = {
+                'elcaro': 'fa-bolt',
+                'scryptomera': 'fa-newspaper',
+                'scalper': 'fa-stopwatch',
+                'wyckoff': 'fa-chart-bar',
+                'OI': 'fa-water',
+                'manual': 'fa-hand-pointer'
+            };
+            
+            grid.innerHTML = Object.entries(byStrategy).map(([name, stats]) => {
+                const pnl = stats.pnl || 0;
+                const winRate = stats.winRate || 0;
+                const isWin = pnl >= 0;
+                const icon = icons[name] || 'fa-cog';
+                
+                return `
+                    <div class="strategy-card">
+                        <div class="strategy-header">
+                            <span class="strategy-name">
+                                <i class="fas ${icon}"></i>
+                                ${name.charAt(0).toUpperCase() + name.slice(1)}
+                            </span>
+                            <span class="strategy-badge ${isWin ? 'win' : 'loss'}">
+                                ${formatCurrency(pnl)}
+                            </span>
+                        </div>
+                        <div class="strategy-stats">
+                            <div class="strategy-stat">
+                                <div class="strategy-stat-value">${stats.trades}</div>
+                                <div class="strategy-stat-label">Trades</div>
+                            </div>
+                            <div class="strategy-stat">
+                                <div class="strategy-stat-value">${winRate.toFixed(1)}%</div>
+                                <div class="strategy-stat-label">Win Rate</div>
+                            </div>
+                            <div class="strategy-stat">
+                                <div class="strategy-stat-value">$${(stats.avgPnl || 0).toFixed(2)}</div>
+                                <div class="strategy-stat-label">Avg PnL</div>
+                            </div>
+                        </div>
+                        <div class="strategy-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill ${isWin ? 'win' : 'loss'}" style="width: ${winRate}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Trades Table
+        function renderTrades(topTrades) {
+            const tbody = document.getElementById('tradesBody');
+            const allTrades = [...(topTrades.best || []), ...(topTrades.worst || [])];
+            
+            if (allTrades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i> No trades found</td></tr>';
+                return;
+            }
+            
+            // Sort by time desc
+            allTrades.sort((a, b) => new Date(b.time) - new Date(a.time));
+            
+            tbody.innerHTML = allTrades.slice(0, 20).map(trade => {
+                const pnl = parseFloat(trade.pnl) || 0;
+                const isLong = trade.side?.toLowerCase() === 'long' || trade.side?.toLowerCase() === 'buy';
+                
+                return `
+                    <tr>
+                        <td>
+                            <span class="trade-symbol">
+                                <i class="fas fa-coins" style="color: var(--accent)"></i>
+                                ${trade.symbol || 'UNKNOWN'}
+                            </span>
+                        </td>
+                        <td><span class="trade-side ${isLong ? 'long' : 'short'}">${isLong ? 'LONG' : 'SHORT'}</span></td>
+                        <td><span class="trade-strategy">${trade.strategy || 'manual'}</span></td>
+                        <td>$${parseFloat(trade.entry_price || 0).toFixed(4)}</td>
+                        <td>$${parseFloat(trade.exit_price || 0).toFixed(4)}</td>
+                        <td><span class="trade-pnl ${pnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(pnl)}</span></td>
+                        <td style="color: var(--text-muted)">${new Date(trade.time).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Event Listeners
+        document.querySelectorAll('.period-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentPeriod = tab.dataset.period;
+                loadStats();
+            });
+        });
+        
+        document.getElementById('exchangeFilter').addEventListener('change', (e) => {
+            currentExchange = e.target.value;
+            loadStats();
+        });
+        
+        document.getElementById('strategyFilter').addEventListener('change', (e) => {
+            currentStrategy = e.target.value;
+            loadStats();
+        });
+        
+        // Init
+        loadStats();
+        
+        // Auto-refresh every 60 seconds
+        setInterval(loadStats, 60000);
+    </script>
+</body>
+</html>

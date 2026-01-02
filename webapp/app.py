@@ -234,6 +234,16 @@ def create_app() -> FastAPI:
         """Real-time market data test page"""
         return templates.TemplateResponse("realtime_test.html", {"request": request})
     
+    @app.get("/statistics", response_class=HTMLResponse)
+    async def statistics_page(request: Request):
+        """Trading statistics dashboard"""
+        return templates.TemplateResponse("statistics.html", {"request": request})
+    
+    @app.get("/stats", response_class=HTMLResponse)
+    async def stats_page(request: Request):
+        """Trading statistics dashboard (alias)"""
+        return templates.TemplateResponse("statistics.html", {"request": request})
+    
     @app.get("/health")
     async def health():
         """Basic health check"""
