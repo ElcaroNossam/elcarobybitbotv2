@@ -95,6 +95,30 @@
         
         .page-title i { -webkit-text-fill-color: #dc2626; }
         
+        /* Back Button */
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.25s;
+        }
+        
+        .back-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .back-btn i { font-size: 12px; }
+        
         /* Filters */
         .filters {
             display: flex;
@@ -118,15 +142,33 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 8px 32px 8px 12px;
             color: var(--text-primary);
             font-size: 14px;
             cursor: pointer;
             transition: all 0.25s;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1a1' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
         }
         
         .filter-select:hover { border-color: var(--accent); }
         .filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15); }
+        
+        .filter-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 12px;
+        }
+        
+        .filter-select option:hover,
+        .filter-select option:checked {
+            background: var(--accent);
+            color: white;
+        }
         
         /* Period Tabs */
         .period-tabs {
@@ -562,10 +604,13 @@
     <div class="container">
         <!-- Header -->
         <div class="page-header">
-            <h1 class="page-title">
-                <i class="fas fa-chart-line"></i>
-                Trading Statistics
-            </h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line"></i>
+                    Trading Statistics
+                </h1>
+            </div>
             
             <div class="filters">
                 <div class="filter-group">
@@ -581,11 +626,11 @@
                     <span class="filter-label">Strategy:</span>
                     <select class="filter-select" id="strategyFilter">
                         <option value="all">All Strategies</option>
-                        <option value="triacelo">Triacelo</option>
+                        <option value="elcaro">Elcaro</option>
                         <option value="scryptomera">Scryptomera</option>
                         <option value="scalper">Scalper</option>
                         <option value="wyckoff">Wyckoff</option>
-                        <option value="OI">OI Flow</option>
+                        <option value="oi">OI Flow</option>
                         <option value="manual">Manual</option>
                     </select>
                 </div>
@@ -943,7 +988,7 @@
             }
             
             const icons = {
-                'triacelo': 'fa-bolt',
+                'elcaro': 'fa-bolt',
                 'scryptomera': 'fa-newspaper',
                 'scalper': 'fa-stopwatch',
                 'wyckoff': 'fa-chart-bar',

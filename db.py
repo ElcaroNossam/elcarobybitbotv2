@@ -4038,6 +4038,63 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         }
 
 
+def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None, 
+                        account_type: str = None, exchange: str = None) -> list:
+    """
+    Get list of trade logs for a user.
+    Returns list of dicts with trade data from trade_logs table.
+    Used by webapp stats API.
+    """
+    with get_conn() as conn:
+        where_clauses = ["user_id = ?"]
+        params = [user_id]
+        
+        if strategy:
+            where_clauses.append("strategy = ?")
+            params.append(strategy)
+        
+        if account_type:
+            where_clauses.append("(account_type = ? OR account_type IS NULL)")
+            params.append(account_type)
+            
+        # Exchange filter - check if exchange column exists
+        if exchange and _col_exists(conn, "trade_logs", "exchange"):
+            where_clauses.append("exchange = ?")
+            params.append(exchange)
+        
+        where_sql = " AND ".join(where_clauses)
+        params.append(limit)
+        
+        cur = conn.execute(f"""
+            SELECT id, signal_id, symbol, side, entry_price, exit_price, 
+                   exit_reason, pnl, pnl_pct, strategy, account_type, ts
+            FROM trade_logs
+            WHERE {where_sql}
+            ORDER BY ts DESC
+            LIMIT ?
+        """, params)
+        
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            result.append({
+                "id": row[0],
+                "signal_id": row[1],
+                "symbol": row[2],
+                "side": row[3],
+                "entry_price": row[4],
+                "exit_price": row[5],
+                "exit_reason": row[6],
+                "pnl": row[7],
+                "pnl_percent": row[8],
+                "strategy": row[9],
+                "account_type": row[10],
+                "time": row[11],
+                "exchange": "bybit",  # Default, can be expanded later
+            })
+        return result
+
+
 def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None) -> dict:
     """Get stats for trades with NULL/unknown strategy."""
     import datetime

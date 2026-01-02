@@ -30,18 +30,24 @@ async def get_dashboard_stats(
         days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get trades from database
-        trades = db.get_trade_history(uid, limit=1000) or []
+        # Get trades from trade_logs table (where bot saves trades)
+        trades = db.get_trade_logs_list(uid, limit=1000, 
+                                        strategy=strategy if strategy != "all" else None,
+                                        exchange=exchange if exchange != "all" else None) or []
         
-        # Filter by period and exchange/strategy
+        # Filter by period
         filtered_trades = []
         for t in trades:
-            trade_time = datetime.fromisoformat(t.get("time", "2024-01-01"))
+            trade_time_str = t.get("time", "2024-01-01")
+            try:
+                if isinstance(trade_time_str, str):
+                    trade_time = datetime.fromisoformat(trade_time_str.replace("Z", "+00:00"))
+                else:
+                    trade_time = datetime.now()
+            except:
+                trade_time = datetime.now()
+            
             if trade_time >= start_date:
-                if exchange != "all" and t.get("exchange") != exchange:
-                    continue
-                if strategy != "all" and t.get("strategy") != strategy:
-                    continue
                 filtered_trades.append(t)
         
         # Calculate summary statistics
@@ -234,13 +240,14 @@ async def get_pnl_history(
         
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get trades from database
-        trades = db.get_trade_history(uid, limit=500) or []
+        # Get trades from trade_logs table
+        trades = db.get_trade_logs_list(uid, limit=500, 
+                                        exchange=exchange if exchange != "all" else None) or []
         
         # Group by date
         daily_pnl = {}
         for t in trades:
-            trade_time_str = t.get("time", t.get("created_at", ""))
+            trade_time_str = t.get("time", "")
             if not trade_time_str:
                 continue
             
@@ -248,14 +255,11 @@ async def get_pnl_history(
                 if isinstance(trade_time_str, (int, float)):
                     trade_time = datetime.fromtimestamp(trade_time_str)
                 else:
-                    trade_time = datetime.fromisoformat(trade_time_str.replace("Z", ""))
+                    trade_time = datetime.fromisoformat(str(trade_time_str).replace("Z", "+00:00"))
             except:
                 continue
             
             if trade_time < start_date:
-                continue
-            
-            if exchange != "all" and t.get("exchange", "bybit") != exchange:
                 continue
             
             date_key = trade_time.strftime("%Y-%m-%d")
