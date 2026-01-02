@@ -9206,6 +9206,41 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     )
                 except Exception as log_err:
                     logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
+                # Send position-closed notification (for Close All flow)
+                try:
+                    strategy_display = {
+                        "scryptomera": "Scryptomera",
+                        "scalper": "Scalper",
+                        "rsi_bb": "RSI+BB",
+                        "oi": "OI",
+                        "elcaro": "Elcaro",
+                        "fibonacci": "Fibonacci",
+                        "manual": "Manual",
+                    }.get(strategy, strategy.title() if strategy else "Manual")
+                    if notification_service:
+                        pnl_pct = 0.0
+                        try:
+                            if entry_price:
+                                pnl_pct = (mark_price / entry_price - 1.0) * (100 if pos["side"] == "Buy" else -100)
+                        except Exception:
+                            pnl_pct = 0.0
+                        await notification_service.send_position_closed_notification(
+                            user_id=uid,
+                            position_data={
+                                'symbol': symbol,
+                                'side': pos.get('side'),
+                                'entry_price': entry_price,
+                                'exit_price': mark_price,
+                                'quantity': size,
+                                'pnl': unrealized_pnl,
+                                'pnl_percent': pnl_pct,
+                                'strategy': strategy_display,
+                                'close_reason': 'Manual'
+                            },
+                            t=t
+                        )
+                except Exception as notif_err:
+                    logger.error(f"Failed to send position closed notification (close_all): {notif_err}")
                 
                 # log_exit_and_remove_position already removes position
                 reset_pyramid(uid, symbol)
