@@ -1,66 +1,83 @@
 /**
- * ElCaro Trading Platform - Unified Design System
- * Version 2.0
+ * ElCaro Trading Platform - STARK Design System
+ * Version 3.0 - Iron Man / Tony Stark Edition
  * 
- * This file contains all CSS variables and base styles
- * that should be consistent across all pages.
+ * Color Palette: Red, Black, Graphite, Gold accents
+ * Style: Elite, Premium, High-tech, Futuristic
  */
 
 :root {
-    /* === Core Colors === */
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #111118;
-    --bg-tertiary: #16161f;
-    --bg-card: #16161f;
-    --bg-hover: #1e1e28;
+    /* === Core Colors - STARK Edition === */
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-tertiary: #1a1a1a;
+    --bg-card: #141414;
+    --bg-hover: #1f1f1f;
+    --bg-graphite: #2a2a2a;
     
-    /* === Accent Colors === */
-    --accent: #6366f1;
-    --accent-primary: #6366f1;
-    --accent-purple: #8b5cf6;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-orange: #ff9500;
+    /* === STARK Accent Colors === */
+    --accent: #dc2626;
+    --accent-primary: #dc2626;
+    --accent-red: #ef4444;
+    --accent-crimson: #b91c1c;
+    --accent-gold: #d4a017;
+    --accent-platinum: #a8a8a8;
+    --accent-arc: #00d4ff;
+    --accent-purple: #dc2626;
+    --accent-blue: #dc2626;
+    --accent-cyan: #00d4ff;
+    --accent-orange: #d4a017;
     
     /* === Semantic Colors === */
     --green: #22c55e;
     --accent-green: #22c55e;
-    --green-dim: rgba(34, 197, 94, 0.15);
+    --green-dim: rgba(34, 197, 94, 0.12);
     
     --red: #ef4444;
-    --accent-red: #ef4444;
-    --red-dim: rgba(239, 68, 68, 0.15);
+    --red-dim: rgba(239, 68, 68, 0.12);
     
     --yellow: #eab308;
-    --accent-yellow: #f59e0b;
-    --yellow-dim: rgba(234, 179, 8, 0.15);
+    --accent-yellow: #d4a017;
+    --yellow-dim: rgba(212, 160, 23, 0.12);
     
     /* === Text Colors === */
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-primary: #f5f5f5;
+    --text-secondary: #a1a1a1;
+    --text-muted: #6b6b6b;
+    --text-gold: #d4a017;
     
     /* === Border Colors === */
     --border: rgba(255, 255, 255, 0.06);
     --border-color: rgba(255, 255, 255, 0.06);
-    --border-hover: rgba(255, 255, 255, 0.12);
+    --border-hover: rgba(220, 38, 38, 0.4);
+    --border-gold: rgba(212, 160, 23, 0.3);
     
     /* === Fonts === */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     
-    /* === Gradients === */
-    --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
-    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    /* === STARK Gradients === */
+    --gradient-primary: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    --gradient-purple: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+    --gradient-stark: linear-gradient(135deg, #dc2626 0%, #7f1d1d 50%, #450a0a 100%);
+    --gradient-iron: linear-gradient(135deg, #dc2626 0%, #d4a017 100%);
+    --gradient-gold: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
+    --gradient-graphite: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+    --gradient-arc: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
     --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-blue: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    --gradient-metal: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+    --gradient-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
     
-    /* === Glow Effects === */
+    /* === STARK Glow Effects === */
+    --glow-red: 0 0 40px rgba(220, 38, 38, 0.4), 0 0 80px rgba(220, 38, 38, 0.2);
+    --glow-gold: 0 0 30px rgba(212, 160, 23, 0.3);
+    --glow-arc: 0 0 40px rgba(0, 212, 255, 0.4), 0 0 80px rgba(0, 212, 255, 0.2);
     --glow-green: 0 0 30px rgba(34, 197, 94, 0.3);
-    --glow-blue: 0 0 30px rgba(99, 102, 241, 0.3);
-    --glow-purple: 0 0 30px rgba(139, 92, 246, 0.3);
-    --glow-red: 0 0 30px rgba(239, 68, 68, 0.3);
+    --glow-purple: 0 0 30px rgba(220, 38, 38, 0.3);
+    --glow-blue: 0 0 30px rgba(220, 38, 38, 0.3);
+    --glow-graphite: 0 4px 20px rgba(0, 0, 0, 0.6);
     
     /* === Exchange-Specific Colors === */
     --bybit-color: #f7a600;
@@ -82,17 +99,19 @@
     --radius-xl: 24px;
     --radius-full: 9999px;
     
-    /* === Shadows === */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    /* === Shadows - STARK Edition === */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+    --shadow-red: 0 4px 30px rgba(220, 38, 38, 0.2);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
     
     /* === Transitions === */
     --transition-fast: 0.15s ease;
-    --transition-normal: 0.2s ease;
-    --transition-slow: 0.3s ease;
+    --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     
-    /* === Force dark theme for native elements === */
+    /* === Force dark theme === */
     color-scheme: dark;
 }
 
@@ -113,16 +132,45 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* === Background Pattern === */
+/* === STARK Background Pattern === */
 .bg-pattern {
     position: fixed;
     inset: 0;
     background: 
-        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+        /* Arc reactor glow center */
+        radial-gradient(ellipse at 50% 0%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
+        /* Red accent corners */
+        radial-gradient(circle at 0% 0%, rgba(220, 38, 38, 0.06) 0%, transparent 30%),
+        radial-gradient(circle at 100% 100%, rgba(220, 38, 38, 0.04) 0%, transparent 30%),
+        /* Subtle grid pattern */
+        linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 50px 50px, 50px 50px;
     z-index: 0;
     pointer-events: none;
+}
+
+/* === STARK Arc Reactor Effect === */
+.arc-reactor {
+    position: relative;
+}
+
+.arc-reactor::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.8) 0%, rgba(0, 212, 255, 0.3) 40%, transparent 70%);
+    border-radius: 50%;
+    animation: arcPulse 2s ease-in-out infinite;
+}
+
+@keyframes arcPulse {
+    0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
 }
 
 /* === Exchange-Specific Styles === */
@@ -134,13 +182,14 @@ body {
     background: linear-gradient(135deg, var(--hl-color), #00cc66); 
 }
 [data-exchange="bybit"] .logo-icon { 
-    background: linear-gradient(135deg, var(--accent), #8b5cf6); 
+    background: var(--gradient-stark); 
 }
 
 /* === Utility Classes === */
 .text-green { color: var(--green) !important; }
 .text-red { color: var(--red) !important; }
 .text-yellow { color: var(--yellow) !important; }
+.text-gold { color: var(--text-gold) !important; }
 .text-muted { color: var(--text-muted) !important; }
 .text-accent { color: var(--accent) !important; }
 
@@ -151,72 +200,121 @@ body {
 .negative { color: var(--red) !important; }
 .neutral { color: var(--text-secondary) !important; }
 
-/* === Common Components === */
+/* === STARK Badges === */
 .badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 4px 12px;
     border-radius: var(--radius-full);
     font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
 }
 
 .badge-success {
     background: var(--green-dim);
     color: var(--green);
+    border-color: rgba(34, 197, 94, 0.2);
 }
 
 .badge-danger {
     background: var(--red-dim);
     color: var(--red);
+    border-color: rgba(239, 68, 68, 0.2);
 }
 
 .badge-warning {
     background: var(--yellow-dim);
-    color: var(--yellow);
+    color: var(--accent-gold);
+    border-color: rgba(212, 160, 23, 0.2);
+}
+
+.badge-stark {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(220, 38, 38, 0.1));
+    color: var(--accent-red);
+    border-color: rgba(220, 38, 38, 0.3);
+}
+
+.badge-premium {
+    background: linear-gradient(135deg, rgba(212, 160, 23, 0.2), rgba(212, 160, 23, 0.1));
+    color: var(--accent-gold);
+    border-color: rgba(212, 160, 23, 0.3);
 }
 
 .demo-badge {
     background: var(--green-dim);
     color: var(--green);
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
     font-size: 11px;
     font-weight: 600;
+    border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .real-badge {
     background: var(--red-dim);
     color: var(--red);
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
     font-size: 11px;
     font-weight: 600;
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-/* === Buttons === */
+/* === STARK Buttons === */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 12px 28px;
     border: none;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
 
 .btn-primary {
-    background: var(--gradient-purple);
+    background: var(--gradient-stark);
     color: white;
+    box-shadow: var(--shadow-red);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: var(--glow-purple);
+    box-shadow: var(--glow-red);
+}
+
+.btn-gold {
+    background: var(--gradient-gold);
+    color: #0a0a0a;
+    font-weight: 700;
+}
+
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glow-gold);
 }
 
 .btn-success {
@@ -235,31 +333,44 @@ body {
 }
 
 .btn-secondary {
-    background: var(--bg-tertiary);
+    background: var(--gradient-graphite);
     color: var(--text-primary);
     border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
     border-color: var(--accent);
-    color: var(--accent);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
 }
 
-/* === Form Elements === */
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(220, 38, 38, 0.05);
+}
+
+/* === STARK Form Elements === */
 .form-input {
     width: 100%;
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-size: 14px;
-    transition: border-color var(--transition-normal);
+    transition: all var(--transition-normal);
 }
 
 .form-input:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .form-input::placeholder {
@@ -268,7 +379,7 @@ body {
 
 .form-select {
     width: 100%;
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -281,6 +392,7 @@ body {
 .form-select:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .form-label {
@@ -292,12 +404,36 @@ body {
     margin-bottom: 8px;
 }
 
-/* === Cards === */
+/* === STARK Cards === */
 .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220, 38, 38, 0.3), transparent);
+}
+
+.card:hover {
+    border-color: rgba(220, 38, 38, 0.2);
+}
+
+.card-premium {
+    border-color: rgba(212, 160, 23, 0.2);
+}
+
+.card-premium::before {
+    background: linear-gradient(90deg, transparent, rgba(212, 160, 23, 0.5), transparent);
 }
 
 .card-header {
@@ -310,9 +446,13 @@ body {
 .card-title {
     font-size: 18px;
     font-weight: 600;
+    background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-/* === Tables === */
+/* === STARK Tables === */
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -320,7 +460,7 @@ body {
 
 .table th,
 .table td {
-    padding: 12px 16px;
+    padding: 14px 18px;
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
@@ -331,13 +471,22 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: var(--bg-tertiary);
+    font-weight: 600;
+}
+
+.table tr {
+    transition: all var(--transition-fast);
 }
 
 .table tr:hover {
     background: var(--bg-hover);
 }
 
-/* === Scrollbar === */
+.table tr:hover td {
+    border-color: rgba(220, 38, 38, 0.1);
+}
+
+/* === STARK Scrollbar === */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -348,12 +497,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--bg-tertiary);
+    background: var(--bg-graphite);
     border-radius: 4px;
+    border: 2px solid var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--accent);
 }
 
 /* === Animations === */
@@ -367,8 +517,18 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.5); }
+}
+
+@keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
 }
 
 .animate-pulse {
@@ -379,11 +539,15 @@ body {
     animation: spin 1s linear infinite;
 }
 
-.fade-in {
-    animation: fadeIn 0.3s ease;
+.animate-glow {
+    animation: glow 2s ease-in-out infinite;
 }
 
-/* === WebSocket Status === */
+.fade-in {
+    animation: fadeIn 0.4s ease;
+}
+
+/* === STARK WebSocket Status === */
 .ws-status {
     display: flex;
     align-items: center;
@@ -402,10 +566,11 @@ body {
 
 .ws-dot.connected {
     background: var(--green);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
     animation: pulse 1.5s infinite;
 }
 
-/* === Notifications === */
+/* === STARK Notifications === */
 .notification {
     position: fixed;
     top: 80px;
@@ -417,25 +582,27 @@ body {
     font-weight: 500;
     box-shadow: var(--shadow-lg);
     animation: fadeIn 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .notification-success {
-    background: var(--green);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
 .notification-error {
-    background: var(--red);
+    background: var(--gradient-stark);
 }
 
 .notification-info {
-    background: var(--accent);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
 .notification-warning {
-    background: var(--yellow);
-    color: #000;
+    background: var(--gradient-gold);
+    color: #0a0a0a;
 }
-/* === Dropdown Menus with Background === */
+
+/* === STARK Dropdown Menus === */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -445,7 +612,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 14px;
+    padding: 10px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -461,6 +628,7 @@ body {
 
 .dropdown-trigger i.dropdown-arrow {
     transition: transform var(--transition-normal);
+    color: var(--accent);
 }
 
 .dropdown.open .dropdown-trigger i.dropdown-arrow {
@@ -471,7 +639,7 @@ body {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    min-width: 200px;
+    min-width: 220px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -492,14 +660,11 @@ body {
 .dropdown-menu::before {
     content: '';
     position: absolute;
-    top: -6px;
-    right: 20px;
-    width: 12px;
-    height: 12px;
-    background: var(--bg-secondary);
-    border-left: 1px solid var(--border);
-    border-top: 1px solid var(--border);
-    transform: rotate(45deg);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
 }
 
 .dropdown-header {
@@ -507,8 +672,9 @@ body {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-muted);
+    color: var(--accent);
     border-bottom: 1px solid var(--border);
+    font-weight: 600;
 }
 
 .dropdown-item {
@@ -528,12 +694,13 @@ body {
 
 .dropdown-item.active {
     color: var(--accent);
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(220, 38, 38, 0.1);
 }
 
 .dropdown-item i {
     width: 20px;
     text-align: center;
+    color: var(--accent);
 }
 
 .dropdown-item .check {
@@ -552,14 +719,14 @@ body {
     margin: 8px 0;
 }
 
-/* === Language Selector === */
+/* === STARK Language Selector === */
 .lang-selector {
     position: relative;
 }
 
 .lang-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -574,6 +741,7 @@ body {
 .lang-btn:hover {
     border-color: var(--accent);
     background: var(--bg-hover);
+    box-shadow: 0 0 15px rgba(220, 38, 38, 0.15);
 }
 
 .lang-menu {
@@ -614,7 +782,7 @@ body {
 }
 
 .lang-item.active {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(220, 38, 38, 0.1);
     color: var(--accent);
 }
 
@@ -626,14 +794,14 @@ body {
     font-size: 0.875rem;
 }
 
-/* === Theme Switcher === */
+/* === STARK Theme Switcher === */
 .theme-switcher {
     position: relative;
 }
 
 .theme-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -652,8 +820,8 @@ body {
     background: var(--bg-hover);
 }
 
-.theme-btn .fa-sun { color: #f59e0b; }
-.theme-btn .fa-moon { color: #6366f1; }
+.theme-btn .fa-sun { color: var(--accent-gold); }
+.theme-btn .fa-moon { color: var(--accent); }
 
 .theme-menu {
     position: absolute;
@@ -701,11 +869,11 @@ body {
 }
 
 .theme-option.active {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(220, 38, 38, 0.1);
     color: var(--accent);
 }
 
-/* === Select Dropdown Styled === */
+/* === STARK Custom Select === */
 .custom-select {
     position: relative;
 }
@@ -714,7 +882,7 @@ body {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
-    padding: 10px 36px 10px 14px;
+    padding: 12px 40px 12px 16px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -732,6 +900,7 @@ body {
 .custom-select select:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .custom-select select option {
@@ -745,14 +914,14 @@ body {
     font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted);
+    color: var(--accent);
     pointer-events: none;
 }
 
-/* === Header Actions === */
+/* === STARK Header Actions === */
 .header-actions {
     display: flex;
     align-items: center;
@@ -760,8 +929,8 @@ body {
 }
 
 .header-icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -777,22 +946,53 @@ body {
 .header-icon-btn:hover {
     background: var(--bg-card);
     border-color: var(--border);
-    color: var(--text-primary);
+    color: var(--accent);
 }
 
 .header-icon-btn .badge-dot {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 8px;
+    right: 8px;
     width: 8px;
     height: 8px;
-    background: var(--red);
+    background: var(--accent);
     border-radius: 50%;
     border: 2px solid var(--bg-secondary);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.5);
+}
+
+/* === STARK Logo === */
+.stark-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stark-logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-stark);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+    box-shadow: var(--glow-red);
+}
+
+.stark-logo-text {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* ================================================================
-   RESPONSIVE DESIGN - Mobile First Approach
+   STARK RESPONSIVE DESIGN
    ================================================================ */
 
 /* === Mobile Base (< 480px) === */
@@ -807,7 +1007,7 @@ body {
     }
     
     .btn {
-        padding: 10px 16px;
+        padding: 10px 18px;
         font-size: 13px;
     }
     
@@ -1015,7 +1215,7 @@ body {
 .mobile-menu-toggle .hamburger {
     width: 20px;
     height: 2px;
-    background: var(--text-primary);
+    background: var(--accent);
     position: relative;
     transition: all var(--transition-normal);
 }
@@ -1026,7 +1226,7 @@ body {
     position: absolute;
     width: 20px;
     height: 2px;
-    background: var(--text-primary);
+    background: var(--accent);
     left: 0;
     transition: all var(--transition-normal);
 }
@@ -1058,7 +1258,7 @@ body {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 90;
     opacity: 0;
     transition: opacity var(--transition-normal);
@@ -1103,30 +1303,6 @@ body {
     }
 }
 
-/* === Dark/Light Theme Support === */
-[data-theme="light"] {
-    --bg-primary: #f8fafc;
-    --bg-secondary: #f1f5f9;
-    --bg-tertiary: #e2e8f0;
-    --bg-card: #ffffff;
-    --bg-hover: #f1f5f9;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --border: rgba(0, 0, 0, 0.08);
-    --border-color: rgba(0, 0, 0, 0.08);
-    --border-hover: rgba(0, 0, 0, 0.15);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-
-[data-theme="light"] .bg-pattern {
-    background: 
-        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.04) 0%, transparent 40%);
-}
-
 /* === Print Styles === */
 @media print {
     .sidebar,
@@ -1146,4 +1322,79 @@ body {
         background: white;
         color: black;
     }
+}
+
+/* === STARK Special Effects === */
+.stark-glow {
+    box-shadow: var(--glow-red);
+}
+
+.stark-border {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.15);
+}
+
+.gold-accent {
+    color: var(--accent-gold);
+}
+
+.gold-border {
+    border-color: var(--accent-gold) !important;
+    box-shadow: var(--glow-gold);
+}
+
+/* Holographic effect for premium elements */
+.holographic {
+    position: relative;
+    overflow: hidden;
+}
+
+.holographic::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.03) 45%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.03) 55%,
+        transparent 60%
+    );
+    animation: holographicShine 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes holographicShine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* Tech line decorations */
+.tech-line {
+    position: relative;
+}
+
+.tech-line::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 60px;
+    height: 2px;
+    background: var(--gradient-stark);
+}
+
+/* Metric highlight */
+.metric-highlight {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
