@@ -25,15 +25,18 @@ async def get_dashboard_stats(
     try:
         import db
         uid = user["user_id"]
+        print(f"[STATS DEBUG] user_id={uid}, exchange={exchange}, strategy={strategy}, period={period}")
         
         # Parse period
         days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
         start_date = datetime.now() - timedelta(days=days)
         
         # Get trades from trade_logs table (where bot saves trades)
+        # Pass exchange=None to get all trades (exchange column doesn't exist in DB)
         trades = db.get_trade_logs_list(uid, limit=1000, 
                                         strategy=strategy if strategy != "all" else None,
-                                        exchange=exchange if exchange != "all" else None) or []
+                                        exchange=None) or []  # Fixed: ignore exchange filter
+        print(f"[STATS DEBUG] trades returned: {len(trades)}")
         
         # Filter by period
         filtered_trades = []
@@ -49,6 +52,8 @@ async def get_dashboard_stats(
             
             if trade_time >= start_date:
                 filtered_trades.append(t)
+        
+        print(f"[STATS DEBUG] filtered trades: {len(filtered_trades)} (period={days}d, start={start_date})")
         
         # Calculate summary statistics
         if not filtered_trades:
@@ -240,9 +245,8 @@ async def get_pnl_history(
         
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get trades from trade_logs table
-        trades = db.get_trade_logs_list(uid, limit=500, 
-                                        exchange=exchange if exchange != "all" else None) or []
+        # Get trades from trade_logs table (ignore exchange filter - column doesn't exist)
+        trades = db.get_trade_logs_list(uid, limit=500, exchange=None) or []
         
         # Group by date
         daily_pnl = {}
