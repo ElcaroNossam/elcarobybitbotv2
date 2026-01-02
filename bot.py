@@ -1191,7 +1191,11 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
         # Action buttons
         [
             InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
-            InlineKeyboardButton("📊 Analysis", callback_data="spot:analysis"),
+            InlineKeyboardButton("� Sell", callback_data="spot:sell_menu"),
+        ],
+        [
+            InlineKeyboardButton("⚖️ Rebalance Now", callback_data="spot:rebalance_now"),
+            InlineKeyboardButton("�📊 Analysis", callback_data="spot:analysis"),
         ],
         # Holdings / Stats
         [
@@ -1828,6 +1832,150 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
             await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    if action == "sell_menu":
+        # Show menu to select coin to sell
+        account_type = spot_settings.get("trading_mode", "demo")
+        balances = await fetch_spot_balance(uid, account_type=account_type)
+        
+        # Filter coins with balance > 0 (excluding stables)
+        sellable = {coin: qty for coin, qty in balances.items() 
+                   if qty > 0.00001 and coin not in ("USDT", "USDC", "BUSD", "DAI")}
+        
+        if not sellable:
+            await q.answer("❌ No coins to sell", show_alert=True)
+            return
+        
+        buttons = []
+        for coin, qty in sorted(sellable.items()):
+            # Get current price
+            symbol = f"{coin}USDT"
+            try:
+                ticker = await get_spot_ticker(uid, symbol, account_type)
+                price = float(ticker.get("lastPrice", 0)) if ticker else 0
+                value = qty * price
+                buttons.append([InlineKeyboardButton(
+                    f"💸 {coin}: {qty:.6f} (${value:.2f})",
+                    callback_data=f"spot:sell_coin:{coin}"
+                )])
+            except:
+                buttons.append([InlineKeyboardButton(
+                    f"💸 {coin}: {qty:.6f}",
+                    callback_data=f"spot:sell_coin:{coin}"
+                )])
+        
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        
+        try:
+            await q.edit_message_text(
+                "💸 <b>Select Coin to Sell</b>\n\n"
+                "Choose a coin from your holdings:",
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action.startswith("sell_coin:"):
+        coin = action.split(":")[1]
+        
+        # Show sell percentage options
+        buttons = [
+            [
+                InlineKeyboardButton("25%", callback_data=f"spot:exec_sell:{coin}:25"),
+                InlineKeyboardButton("50%", callback_data=f"spot:exec_sell:{coin}:50"),
+            ],
+            [
+                InlineKeyboardButton("75%", callback_data=f"spot:exec_sell:{coin}:75"),
+                InlineKeyboardButton("100%", callback_data=f"spot:exec_sell:{coin}:100"),
+            ],
+            [InlineKeyboardButton("⬅️ Back", callback_data="spot:sell_menu")],
+        ]
+        
+        try:
+            await q.edit_message_text(
+                f"💸 <b>Sell {coin}</b>\n\n"
+                "Select percentage to sell:",
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action.startswith("exec_sell:"):
+        parts = action.split(":")
+        coin = parts[1]
+        sell_pct = float(parts[2])
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        await q.answer(f"Selling {sell_pct}% of {coin}...")
+        
+        result = await execute_spot_sell(uid, coin, sell_pct=sell_pct, account_type=account_type)
+        
+        if result.get("success"):
+            msg_text = (
+                f"✅ <b>Sold {coin}</b>\n\n"
+                f"Qty: {result.get('qty_sold', 0):.6f} {coin}\n"
+                f"Price: ${result.get('price', 0):.4f}\n"
+                f"Received: ${result.get('usdt_received', 0):.2f} USDT"
+            )
+        else:
+            msg_text = f"❌ <b>Sell Failed</b>\n\n{result.get('error', 'Unknown error')}"
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        
+        try:
+            await q.edit_message_text(msg_text, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    if action == "rebalance_now":
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        await q.answer("Rebalancing portfolio...")
+        
+        result = await rebalance_spot_portfolio(uid, account_type=account_type)
+        
+        if result.get("success"):
+            sells = result.get("sells", [])
+            buys = result.get("buys", [])
+            total = result.get("total_rebalanced", 0)
+            
+            lines = ["⚖️ <b>Portfolio Rebalanced</b>", ""]
+            
+            if sells:
+                lines.append("<b>Sold:</b>")
+                lines.extend([f"  • {s}" for s in sells])
+                lines.append("")
+            
+            if buys:
+                lines.append("<b>Bought:</b>")
+                lines.extend([f"  • {b}" for b in buys])
+                lines.append("")
+            
+            if not sells and not buys:
+                lines.append("✅ Portfolio already balanced!")
+            else:
+                lines.append(f"💰 Total rebalanced: ${total:.2f}")
+            
+            msg_text = "\n".join(lines)
+        else:
+            msg_text = f"❌ <b>Rebalance Failed</b>\n\n{result.get('error', 'Unknown error')}"
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        
+        try:
+            await q.edit_message_text(msg_text, reply_markup=keyboard, parse_mode="HTML")
         except BadRequest:
             pass
         return
@@ -7120,6 +7268,291 @@ async def execute_spot_dca_buy(
     except Exception as e:
         logger.error(f"execute_spot_dca_buy error: {e}")
         return {"success": False, "error": str(e)}
+
+
+async def execute_spot_sell(
+    user_id: int,
+    coin: str,
+    qty: float = None,
+    sell_pct: float = None,
+    account_type: str = None,
+) -> dict:
+    """Execute a spot sell for a specific coin.
+    
+    Args:
+        user_id: Telegram user ID
+        coin: Coin to sell (e.g., "BTC", "ETH")
+        qty: Quantity to sell (in base coin). If None, use sell_pct.
+        sell_pct: Percentage of holdings to sell (0-100). Used if qty is None.
+        account_type: 'demo', 'real', or None
+        
+    Returns:
+        dict with result info
+    """
+    symbol = f"{coin}USDT"
+    
+    # Get current balance if we need to calculate qty from percentage
+    if qty is None:
+        balances = await fetch_spot_balance(user_id, account_type=account_type)
+        coin_balance = balances.get(coin, 0)
+        
+        if coin_balance <= 0:
+            return {"success": False, "error": f"No {coin} balance to sell"}
+        
+        if sell_pct is None:
+            sell_pct = 100.0  # Sell all by default
+        
+        qty = coin_balance * (sell_pct / 100.0)
+    
+    if qty <= 0:
+        return {"success": False, "error": "Invalid quantity"}
+    
+    # Get current price
+    ticker = await get_spot_ticker(user_id, symbol, account_type)
+    if not ticker:
+        return {"success": False, "error": f"Could not get price for {symbol}"}
+    
+    current_price = float(ticker.get("lastPrice", 0))
+    if current_price <= 0:
+        return {"success": False, "error": f"Invalid price for {symbol}"}
+    
+    try:
+        result = await place_spot_order(
+            user_id=user_id,
+            symbol=symbol,
+            side="Sell",
+            qty=qty,
+            order_type="Market",
+            account_type=account_type,
+        )
+        
+        usdt_received = qty * current_price
+        
+        # Update purchase history
+        try:
+            cfg = db.get_user_config(user_id)
+            spot_settings = cfg.get("spot_settings", {})
+            purchase_history = spot_settings.get("purchase_history", {})
+            
+            if coin in purchase_history:
+                coin_history = purchase_history[coin]
+                # Reduce tracked qty
+                coin_history["total_qty"] = max(0, coin_history["total_qty"] - qty)
+                # Reduce cost proportionally
+                if coin_history["total_qty"] > 0:
+                    sold_ratio = qty / (coin_history["total_qty"] + qty)
+                    coin_history["total_cost"] = coin_history["total_cost"] * (1 - sold_ratio)
+                else:
+                    coin_history["total_cost"] = 0
+                    coin_history["avg_price"] = 0
+                
+                purchase_history[coin] = coin_history
+                spot_settings["purchase_history"] = purchase_history
+                db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+        except Exception as e:
+            logger.warning(f"Failed to update purchase history on sell: {e}")
+        
+        return {
+            "success": True,
+            "coin": coin,
+            "symbol": symbol,
+            "qty_sold": qty,
+            "usdt_received": usdt_received,
+            "price": current_price,
+            "order": result,
+        }
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        logger.error(f"execute_spot_sell error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def check_spot_tp_levels(
+    user_id: int,
+    account_type: str = None,
+) -> list:
+    """Check all spot holdings for TP level triggers and execute sells if needed.
+    
+    Returns list of executed sells.
+    """
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    
+    if not spot_settings.get("tp_enabled"):
+        return []
+    
+    purchase_history = spot_settings.get("purchase_history", {})
+    tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS)
+    tp_executed = spot_settings.get("tp_executed", {})  # Track which levels were triggered
+    
+    executed_sells = []
+    
+    for coin, coin_history in purchase_history.items():
+        avg_price = coin_history.get("avg_price", 0)
+        total_qty = coin_history.get("total_qty", 0)
+        
+        if avg_price <= 0 or total_qty <= 0:
+            continue
+        
+        symbol = f"{coin}USDT"
+        
+        try:
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            if not ticker:
+                continue
+            
+            current_price = float(ticker.get("lastPrice", 0))
+            if current_price <= 0:
+                continue
+            
+            # Calculate gain percentage
+            gain_pct = ((current_price - avg_price) / avg_price) * 100
+            
+            # Check each TP level
+            coin_tp_executed = tp_executed.get(coin, [])
+            
+            for i, level in enumerate(tp_levels):
+                level_gain = level.get("gain_pct", 0)
+                level_sell_pct = level.get("sell_pct", 0)
+                
+                # Skip if this level was already executed
+                if i in coin_tp_executed:
+                    continue
+                
+                # Check if gain reached this level
+                if gain_pct >= level_gain:
+                    logger.info(f"Spot TP triggered: {coin} +{gain_pct:.1f}% >= {level_gain}%, selling {level_sell_pct}%")
+                    
+                    result = await execute_spot_sell(
+                        user_id=user_id,
+                        coin=coin,
+                        sell_pct=level_sell_pct,
+                        account_type=account_type,
+                    )
+                    
+                    if result.get("success"):
+                        # Mark level as executed
+                        coin_tp_executed.append(i)
+                        tp_executed[coin] = coin_tp_executed
+                        
+                        executed_sells.append({
+                            "coin": coin,
+                            "level": i + 1,
+                            "gain_pct": gain_pct,
+                            "sell_pct": level_sell_pct,
+                            "qty_sold": result.get("qty_sold", 0),
+                            "usdt_received": result.get("usdt_received", 0),
+                        })
+                    else:
+                        logger.error(f"Spot TP sell failed: {result.get('error')}")
+        
+        except Exception as e:
+            logger.error(f"check_spot_tp_levels error for {coin}: {e}")
+    
+    # Save updated tp_executed state
+    if executed_sells:
+        spot_settings["tp_executed"] = tp_executed
+        db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+    
+    return executed_sells
+
+
+async def rebalance_spot_portfolio(
+    user_id: int,
+    account_type: str = None,
+) -> dict:
+    """Rebalance spot portfolio to match target allocation.
+    
+    Sells over-allocated coins and buys under-allocated coins.
+    """
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    
+    portfolio = spot_settings.get("portfolio", "custom")
+    if portfolio == "custom":
+        allocation = spot_settings.get("allocation", {})
+    else:
+        portfolio_info = SPOT_PORTFOLIOS.get(portfolio, {})
+        allocation = portfolio_info.get("coins", {})
+    
+    if not allocation:
+        return {"success": False, "error": "No target allocation defined"}
+    
+    # Get current holdings
+    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    
+    # Calculate current portfolio value
+    total_value = 0.0
+    coin_values = {}
+    
+    for coin in allocation.keys():
+        qty = balances.get(coin, 0)
+        if qty > 0:
+            symbol = f"{coin}USDT"
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            if ticker:
+                price = float(ticker.get("lastPrice", 0))
+                value = qty * price
+                coin_values[coin] = value
+                total_value += value
+    
+    # Add USDT as available cash
+    usdt_balance = balances.get("USDT", 0)
+    total_portfolio = total_value + usdt_balance
+    
+    if total_portfolio < 10:  # Minimum $10 to rebalance
+        return {"success": False, "error": "Portfolio too small to rebalance"}
+    
+    # Calculate target values and differences
+    trades = {"buy": [], "sell": []}
+    
+    for coin, target_pct in allocation.items():
+        target_value = total_portfolio * (target_pct / 100.0)
+        current_value = coin_values.get(coin, 0)
+        diff = target_value - current_value
+        
+        # Only rebalance if difference is more than 5% of target
+        if abs(diff) < target_value * 0.05:
+            continue
+        
+        if diff > 5:  # Need to buy at least $5
+            trades["buy"].append({"coin": coin, "usdt": diff})
+        elif diff < -5:  # Need to sell at least $5 worth
+            trades["sell"].append({"coin": coin, "usdt": abs(diff)})
+    
+    results = {"sells": [], "buys": [], "total_rebalanced": 0.0}
+    
+    # Execute sells first to free up USDT
+    for trade in trades["sell"]:
+        coin = trade["coin"]
+        usdt_to_sell = trade["usdt"]
+        
+        symbol = f"{coin}USDT"
+        ticker = await get_spot_ticker(user_id, symbol, account_type)
+        if not ticker:
+            continue
+        
+        price = float(ticker.get("lastPrice", 0))
+        qty_to_sell = usdt_to_sell / price if price > 0 else 0
+        
+        result = await execute_spot_sell(user_id, coin, qty=qty_to_sell, account_type=account_type)
+        if result.get("success"):
+            results["sells"].append(f"Sold {qty_to_sell:.6f} {coin}")
+            results["total_rebalanced"] += result.get("usdt_received", 0)
+    
+    # Execute buys
+    for trade in trades["buy"]:
+        coin = trade["coin"]
+        usdt_to_buy = trade["usdt"]
+        
+        result = await execute_spot_dca_buy(user_id, coin, usdt_to_buy, account_type=account_type)
+        if result.get("success"):
+            results["buys"].append(f"Bought {result.get('qty', 0):.6f} {coin}")
+            results["total_rebalanced"] += result.get("usdt_spent", 0)
+    
+    results["success"] = True
+    return results
 
 
 def _normalize_order_id(res: dict) -> str:
