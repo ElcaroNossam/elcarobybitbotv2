@@ -6588,6 +6588,54 @@ async def cmd_show_config(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         reply_markup=main_menu_keyboard(ctx, update=update)
     )
 
+
+@log_calls
+async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
+    """Fetch full account balance including totalEquity (all assets converted to USD).
+    
+    Returns dict with:
+    - total_equity: Total account value in USD (all coins)
+    - available_balance: Available for trading
+    - used_margin: Margin used by open positions
+    - coins: List of individual coin balances
+    """
+    params = {"accountType": "UNIFIED"}
+    try:
+        res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
+    except MissingAPICredentials:
+        return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "coins": []}
+    
+    for acct in res.get("list", []) or []:
+        # Account-level totals (all coins combined, in USD)
+        total_equity = float(acct.get("totalEquity") or 0.0)
+        total_wallet = float(acct.get("totalWalletBalance") or 0.0)
+        total_available = float(acct.get("totalAvailableBalance") or 0.0)
+        total_margin = float(acct.get("totalInitialMargin") or 0.0)
+        
+        # Individual coin balances
+        coins = []
+        for c in acct.get("coin", []) or []:
+            coin_name = c.get("coin", "")
+            wallet_bal = float(c.get("walletBalance") or 0.0)
+            usd_value = float(c.get("usdValue") or 0.0)
+            if wallet_bal > 0 or usd_value > 0:
+                coins.append({
+                    "coin": coin_name,
+                    "balance": wallet_bal,
+                    "usd_value": usd_value
+                })
+        
+        return {
+            "total_equity": total_equity,
+            "total_wallet": total_wallet,
+            "available_balance": total_available,
+            "used_margin": total_margin,
+            "coins": coins
+        }
+    
+    return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "coins": []}
+
+
 @log_calls
 async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
     """Fetch AVAILABLE USDT balance (not total wallet balance).
@@ -7846,8 +7894,11 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
     trading_mode = get_trading_mode(uid)
     
     try:
-        # Fetch balance for specific account type directly
-        bal = await fetch_usdt_balance(uid, account_type=account_type)
+        # Fetch FULL account balance (totalEquity = all coins in USD)
+        account_bal = await fetch_account_balance(uid, account_type=account_type)
+        total_equity = account_bal.get("total_equity", 0.0)
+        available = account_bal.get("available_balance", 0.0)
+        
         pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=account_type)
         pnl_week = await fetch_realized_pnl(uid, days=7, account_type=account_type)
         positions = await fetch_open_positions(uid, account_type=account_type)
@@ -7861,7 +7912,7 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
 
-💵 *Balance:* {bal:.2f} USDT
+💎 *Balance:* {total_equity:,.2f} USDT
 
 📊 *Realized PnL:*
 • Today: {pnl_today:+.2f} USDT
@@ -8035,7 +8086,10 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     if exchange == "bybit":
         # Fetch Bybit balance for selected mode directly
         try:
-            bal = await fetch_usdt_balance(uid, account_type=mode)
+            # Use totalEquity for full account balance (all coins)
+            account_bal = await fetch_account_balance(uid, account_type=mode)
+            total_equity = account_bal.get("total_equity", 0.0)
+            
             pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=mode)
             pnl_week = await fetch_realized_pnl(uid, days=7, account_type=mode)
             positions = await fetch_open_positions(uid, account_type=mode)
@@ -8051,7 +8105,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
 
-💵 *Balance:* {bal:.2f} USDT
+💎 *Balance:* {total_equity:,.2f} USDT
 
 📊 *Realized PnL:*
 • Today: {pnl_today:+.2f} USDT
