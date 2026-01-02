@@ -367,9 +367,9 @@ class BacktestEngine {
         });
 
         const areaSeries = chart.addAreaSeries({
-            topColor: 'rgba(99, 102, 241, 0.4)',
-            bottomColor: 'rgba(99, 102, 241, 0.0)',
-            lineColor: '#6366f1',
+            topColor: 'rgba(220, 38, 38, 0.4)',
+            bottomColor: 'rgba(220, 38, 38, 0.0)',
+            lineColor: '#dc2626',
             lineWidth: 2
         });
 
@@ -515,7 +515,7 @@ class BacktestEngine {
 
         const chart = LightweightCharts.createChart(container, {
             layout: {
-                background: { color: '#1e1e24' },
+                background: { color: '#1a1a1a' },
                 textColor: '#a1a1aa'
             },
             grid: {
@@ -530,7 +530,7 @@ class BacktestEngine {
         // Add price lines
         candleSeries.createPriceLine({
             price: trade.entryPrice,
-            color: '#6366f1',
+            color: '#dc2626',
             lineWidth: 2,
             lineStyle: 0,
             title: 'Entry'
@@ -569,7 +569,7 @@ class BacktestEngine {
             {
                 time: trade.entryTime,
                 position: trade.side === 'Long' ? 'belowBar' : 'aboveBar',
-                color: '#6366f1',
+                color: '#dc2626',
                 shape: trade.side === 'Long' ? 'arrowUp' : 'arrowDown',
                 text: 'Entry'
             },

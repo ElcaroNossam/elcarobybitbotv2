@@ -83,7 +83,7 @@ class TradingTerminal {
             "theme": "dark",
             "style": "1",
             "locale": "en",
-            "toolbar_bg": "#141418",
+            "toolbar_bg": "#141414",
             "enable_publishing": false,
             "hide_side_toolbar": false,
             "allow_symbol_change": true,
@@ -94,9 +94,9 @@ class TradingTerminal {
                 "BB@tv-basicstudies"
             ],
             "overrides": {
-                "paneProperties.background": "#0d0d0f",
+                "paneProperties.background": "#0a0a0a",
                 "paneProperties.backgroundType": "solid",
-                "scalesProperties.backgroundColor": "#0d0d0f",
+                "scalesProperties.backgroundColor": "#0a0a0a",
                 "scalesProperties.lineColor": "#27272a",
                 "scalesProperties.textColor": "#a1a1aa"
             }

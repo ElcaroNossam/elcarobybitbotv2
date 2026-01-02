@@ -714,7 +714,7 @@
 .strategy-option:hover { border-color: var(--accent-primary); }
 .strategy-option.selected {
     border-color: var(--accent-primary);
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(220, 38, 38, 0.1);
 }
 
 .strategy-option .strategy-icon {

@@ -240,7 +240,7 @@
 .dca-submit {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), #991b1b);
     border: none;
     border-radius: 8px;
     color: white;
@@ -256,7 +256,7 @@
 
 .dca-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
 }
 
 
@@ -340,7 +340,7 @@
 }
 
 .orderbook-row .depth {
-    background: var(--heat-color, rgba(99, 102, 241, 0.2));
+    background: var(--heat-color, rgba(220, 38, 38, 0.2));
     transition: width 0.3s ease;
 }
 
@@ -360,7 +360,7 @@
 
 @keyframes whale-pulse {
     0%, 100% { background: transparent; }
-    50% { background: rgba(99, 102, 241, 0.1); }
+    50% { background: rgba(220, 38, 38, 0.1); }
 }
 
 .orderbook-row .size.highlight {
@@ -531,7 +531,7 @@
 }
 
 .stat-card.streak-loss {
-    border: 1px solid #3b82f6;
+    border: 1px solid #dc2626;
     background: rgba(59, 130, 246, 0.1);
 }
 

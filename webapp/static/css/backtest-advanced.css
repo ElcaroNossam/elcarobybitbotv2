@@ -18,7 +18,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 25px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(153, 27, 27, 0.05));
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -206,7 +206,7 @@
 .indicator-item.bullish { border-left: 3px solid #22c55e; }
 .indicator-item.bearish { border-left: 3px solid #ef4444; }
 .indicator-item.overbought { border-left: 3px solid #f59e0b; }
-.indicator-item.oversold { border-left: 3px solid #06b6d4; }
+.indicator-item.oversold { border-left: 3px solid #d4a017; }
 
 /* Patterns Panel */
 .live-patterns-panel {
@@ -249,7 +249,7 @@
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 10px;
-    background: rgba(99, 102, 241, 0.15);
+    background: rgba(220, 38, 38, 0.15);
     color: var(--accent-purple);
 }
 

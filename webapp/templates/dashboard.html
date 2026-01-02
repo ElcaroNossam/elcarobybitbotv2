@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0a0f">
+    <meta name="theme-color" content="#0a0a0a">
     <title>Dashboard | ElCaro Trading</title>
     
     <!-- Fonts -->
@@ -35,15 +35,15 @@
     <style>
         :root {
             /* Unified ElCaro Design System */
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #111118;
-            --bg-tertiary: #16161f;
-            --bg-card: #16161f;
-            --bg-hover: #1e1e28;
-            --accent: #6366f1;
-            --accent-primary: #6366f1;
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --bg-card: #1a1a1a;
+            --bg-hover: #1f1f1f;
+            --accent: #dc2626;
+            --accent-primary: #dc2626;
+            --accent-purple: #dc2626;
+            --accent-blue: #dc2626;
             --accent-green: #22c55e;
             --green: #22c55e;
             --green-dim: rgba(34, 197, 94, 0.15);
@@ -52,7 +52,7 @@
             --red-dim: rgba(239, 68, 68, 0.15);
             --accent-yellow: #eab308;
             --yellow: #eab308;
-            --accent-cyan: #06b6d4;
+            --accent-cyan: #d4a017;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
             --text-muted: #64748b;
@@ -60,8 +60,8 @@
             --border-color: rgba(255, 255, 255, 0.06);
             --font-sans: 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
-            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
-            --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --gradient-primary: linear-gradient(135deg, #dc2626, #991b1b, #7f1d1d);
+            --gradient-purple: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
             --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             --gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             /* Exchange-specific colors */
@@ -95,9 +95,9 @@
             position: fixed;
             inset: 0;
             background: 
-                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 10% 20%, rgba(220, 38, 38, 0.08) 0%, transparent 40%),
                 radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+                radial-gradient(circle at 50% 50%, rgba(153, 27, 27, 0.04) 0%, transparent 60%);
             z-index: 0;
             pointer-events: none;
         }
@@ -184,7 +184,7 @@
         }
         
         .nav-item.active {
-            background: rgba(99, 102, 241, 0.1);
+            background: rgba(220, 38, 38, 0.1);
             color: var(--accent-primary);
         }
         
@@ -421,7 +421,7 @@
         
         .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: var(--accent-green); }
         .stat-icon.red { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
-        .stat-icon.blue { background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); }
+        .stat-icon.blue { background: rgba(220, 38, 38, 0.1); color: var(--accent-primary); }
         .stat-icon.yellow { background: rgba(234, 179, 8, 0.1); color: var(--accent-yellow); }
         
         .stat-change {
@@ -1930,10 +1930,10 @@
                 
                 // Strategy color mapping
                 const strategyColors = {
-                    'elcaro': { bg: 'linear-gradient(135deg, #6366f1, #8b5cf6)', icon: '🚀' },
+                    'elcaro': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', icon: '🚀' },
                     'scryptomera': { bg: 'linear-gradient(135deg, #22c55e, #16a34a)', icon: '📰' },
                     'scalper': { bg: 'linear-gradient(135deg, #f59e0b, #d97706)', icon: '⚡' },
-                    'wyckoff': { bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', icon: '📊' },
+                    'wyckoff': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', icon: '📊' },
                     'manual': { bg: 'linear-gradient(135deg, #64748b, #475569)', icon: '🎯' }
                 };
                 
@@ -2030,13 +2030,13 @@
                 datasets: [{
                     label: 'Portfolio Value',
                     data: [42000, 43500, 42800, 45200, 44100, 47500, 48752],
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderColor: '#dc2626',
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
                     fill: true,
                     tension: 0.4,
                     pointRadius: 0,
                     pointHoverRadius: 6,
-                    pointHoverBackgroundColor: '#6366f1',
+                    pointHoverBackgroundColor: '#dc2626',
                     pointHoverBorderColor: '#fff',
                     pointHoverBorderWidth: 2
                 }]

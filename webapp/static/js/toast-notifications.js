@@ -39,7 +39,7 @@ class ToastNotifications {
             }
             
             .toast {
-                background: var(--bg-secondary, #111118);
+                background: var(--bg-secondary, #111111);
                 border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
                 border-radius: 12px;
                 padding: 16px 20px;
@@ -151,25 +151,25 @@ class ToastNotifications {
             .toast.success {
                 color: var(--green, #22c55e);
                 border-color: rgba(34, 197, 94, 0.2);
-                background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, var(--bg-secondary, #111118) 100%);
+                background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, var(--bg-secondary, #111111) 100%);
             }
             
             .toast.error {
                 color: var(--red, #ef4444);
                 border-color: rgba(239, 68, 68, 0.2);
-                background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-secondary, #111118) 100%);
+                background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-secondary, #111111) 100%);
             }
             
             .toast.warning {
                 color: var(--yellow, #eab308);
                 border-color: rgba(234, 179, 8, 0.2);
-                background: linear-gradient(135deg, rgba(234, 179, 8, 0.05) 0%, var(--bg-secondary, #111118) 100%);
+                background: linear-gradient(135deg, rgba(234, 179, 8, 0.05) 0%, var(--bg-secondary, #111111) 100%);
             }
             
             .toast.info {
-                color: var(--accent, #6366f1);
-                border-color: rgba(99, 102, 241, 0.2);
-                background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, var(--bg-secondary, #111118) 100%);
+                color: var(--accent, #dc2626);
+                border-color: rgba(220, 38, 38, 0.2);
+                background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, var(--bg-secondary, #111111) 100%);
             }
             
             /* Mobile */

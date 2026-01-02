@@ -642,7 +642,7 @@ class LiveTradingChart {
         
         // Volume series
         this.volumeSeries = this.chart.addHistogramSeries({
-            color: '#6366f1',
+            color: '#dc2626',
             priceFormat: { type: 'volume' },
             priceScaleId: '',
             scaleMargins: { top: 0.8, bottom: 0 },
@@ -695,7 +695,7 @@ class LiveTradingChart {
         const entryMarker = {
             time: new Date(trade.entry_time).getTime() / 1000,
             position: trade.direction === 'LONG' ? 'belowBar' : 'aboveBar',
-            color: '#6366f1',
+            color: '#dc2626',
             shape: 'circle',
             text: 'Entry',
         };
@@ -750,7 +750,7 @@ class LiveTradingChart {
         // EMA lines
         if (indicators.ema20 && !this.indicators.ema20) {
             this.indicators.ema20 = this.chart.addLineSeries({
-                color: '#3b82f6',
+                color: '#dc2626',
                 lineWidth: 1,
             });
         }
@@ -764,7 +764,7 @@ class LiveTradingChart {
         
         if (indicators.ema50 && !this.indicators.ema50) {
             this.indicators.ema50 = this.chart.addLineSeries({
-                color: '#8b5cf6',
+                color: '#991b1b',
                 lineWidth: 1,
             });
         }

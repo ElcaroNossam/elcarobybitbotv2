@@ -222,7 +222,7 @@
                     position: absolute;
                     bottom: 10px;
                     right: 10px;
-                    background: rgba(99, 102, 241, 0.9);
+                    background: rgba(220, 38, 38, 0.9);
                     color: white;
                     padding: 8px 16px;
                     border-radius: 20px;

@@ -31,7 +31,7 @@ class ModalDialogs {
             }
             
             .modal-dialog {
-                background: var(--bg-secondary, #111118);
+                background: var(--bg-secondary, #111111);
                 border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
                 border-radius: 16px;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -82,8 +82,8 @@ class ModalDialogs {
             }
             
             .modal-icon.info {
-                background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
-                color: var(--accent, #6366f1);
+                background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%);
+                color: var(--accent, #dc2626);
             }
             
             .modal-icon.success {
@@ -134,24 +134,24 @@ class ModalDialogs {
             }
             
             .modal-btn-cancel {
-                background: var(--bg-tertiary, #16161f);
+                background: var(--bg-tertiary, #1a1a1a);
                 color: var(--text-secondary, #94a3b8);
                 border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
             }
             
             .modal-btn-cancel:hover {
-                background: var(--bg-hover, #1e1e28);
+                background: var(--bg-hover, #1f1f1f);
                 color: var(--text-primary, #f8fafc);
             }
             
             .modal-btn-primary {
-                background: var(--gradient-purple, linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%));
+                background: var(--gradient-purple, linear-gradient(135deg, #991b1b 0%, #dc2626 100%));
                 color: white;
             }
             
             .modal-btn-primary:hover {
                 transform: translateY(-1px);
-                box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+                box-shadow: 0 8px 16px rgba(220, 38, 38, 0.3);
             }
             
             .modal-btn-danger {
@@ -172,7 +172,7 @@ class ModalDialogs {
             .modal-input {
                 width: 100%;
                 padding: 12px;
-                background: var(--bg-tertiary, #16161f);
+                background: var(--bg-tertiary, #1a1a1a);
                 border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
                 border-radius: 8px;
                 color: var(--text-primary, #f8fafc);
@@ -183,8 +183,8 @@ class ModalDialogs {
             
             .modal-input:focus {
                 outline: none;
-                border-color: var(--accent, #6366f1);
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+                border-color: var(--accent, #dc2626);
+                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
             }
             
             /* Mobile */

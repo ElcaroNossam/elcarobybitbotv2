@@ -268,7 +268,7 @@ What would you like to know?`
         if (window.LightweightCharts) {
             const chart = LightweightCharts.createChart(document.getElementById('ai-mini-chart'), {
                 layout: {
-                    background: { color: '#1e1e24' },
+                    background: { color: '#1a1a1a' },
                     textColor: '#a1a1aa'
                 },
                 grid: {
@@ -282,7 +282,7 @@ What would you like to know?`
 
             // Add analysis lines
             if (chartData.entry) {
-                candleSeries.createPriceLine({ price: chartData.entry, color: '#6366f1', lineWidth: 2, title: 'Entry' });
+                candleSeries.createPriceLine({ price: chartData.entry, color: '#dc2626', lineWidth: 2, title: 'Entry' });
             }
             if (chartData.takeProfit) {
                 candleSeries.createPriceLine({ price: chartData.takeProfit, color: '#10b981', lineWidth: 2, title: 'TP' });
