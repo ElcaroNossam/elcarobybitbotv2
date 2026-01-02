@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategy Builder - ElCaro Trading</title>
+    <title>Strategy Builder - Triacelo Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* Unified ElCaro Design System */
+            /* Unified Triacelo Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -659,7 +659,7 @@
             .header { padding: 0 16px; }
         }
     </style>
-    <script src="/static/js/elcaro-theme.js"></script>
+    <script src="/static/js/triacelo-theme.js"></script>
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -667,7 +667,7 @@
     <header class="header">
         <a href="/" class="logo">
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
-            <span class="logo-text">ElCaro</span>
+            <span class="logo-text">Triacelo</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -979,12 +979,12 @@
         
         // Auth helper
         function getAuthHeaders() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
         async function initAuth() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             if (!token) {
                 // Redirect to login or use demo mode
                 console.log('No auth token, using demo mode');
@@ -997,7 +997,7 @@
                     const data = await res.json();
                     USER_ID = data.user_id;
                 } else {
-                    localStorage.removeItem('elcaro_token');
+                    localStorage.removeItem('triacelo_token');
                     USER_ID = 'demo';
                 }
             } catch (e) {

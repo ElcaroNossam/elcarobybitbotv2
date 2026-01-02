@@ -7,7 +7,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>ElCaro Trading Terminal v2.0 - Professional Trading</title>
+    <title>Triacelo Trading Terminal v2.0 - Professional Trading</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/images/favicon.svg">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="/static/css/terminal-advanced.css" rel="stylesheet">
@@ -20,7 +25,7 @@
     <script src="/static/js/modal-dialogs.js"></script>
     <style>
         :root {
-            /* Unified ElCaro Design System */
+            /* Unified Triacelo Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -640,7 +645,7 @@
             <div class="header-left">
                 <a href="/dashboard" class="logo">
                     <div class="logo-icon"><i class="fas fa-rocket"></i></div>
-                    <span>ElCaro</span>
+                    <span>Triacelo</span>
                 </a>
                 <div class="symbol-selector" onclick="openSymbolModal()">
                     <div class="symbol-info">
@@ -994,8 +999,8 @@
                                 <button class="strategy-btn" data-strategy="scalper" onclick="applyStrategySettings('scalper')" title="Scalper">
                                     ⚡ Scalper
                                 </button>
-                                <button class="strategy-btn" data-strategy="elcaro" onclick="applyStrategySettings('elcaro')" title="ElCaro">
-                                    🤖 ElCaro
+                                <button class="strategy-btn" data-strategy="triacelo" onclick="applyStrategySettings('triacelo')" title="Triacelo">
+                                    🤖 Triacelo
                                 </button>
                                 <button class="strategy-btn" data-strategy="wyckoff" onclick="applyStrategySettings('wyckoff')" title="Wyckoff">
                                     📊 Wyckoff
@@ -1307,17 +1312,17 @@
             const params = new URLSearchParams(window.location.search);
             const authToken = params.get('auth_token');
             if (authToken) {
-                localStorage.setItem('elcaro_token', authToken);
+                localStorage.setItem('triacelo_token', authToken);
                 fetch('/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 })
                 .then(res => res.json())
                 .then(user => {
                     if (user && user.user_id) {
-                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
-                        localStorage.setItem('elcaro_user', JSON.stringify(user));
-                        if (user.language) localStorage.setItem('elcaro_language', user.language);
-                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                        localStorage.setItem('triacelo_user_id', user.user_id.toString());
+                        localStorage.setItem('triacelo_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('triacelo_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('triacelo_exchange', user.exchange_type);
                     }
                 })
                 .catch(err => console.error('Auth error:', err));
@@ -1674,7 +1679,7 @@
         // Load strategy settings from API
         async function loadStrategySettings() {
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) return;
                 
                 const params = new URLSearchParams({
@@ -1819,7 +1824,7 @@
             }
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) return;
                 
                 const tpPct = parseFloat(document.getElementById('tpInput').value) || 8;
@@ -2082,7 +2087,7 @@
                 state.errors.positions = null;
                 setLoading(posTable, true, 'Loading positions...');
                 
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) {
                     showTableError('positionsBody', 10, 'Please log in to view positions');
                     return;
@@ -2122,7 +2127,7 @@
                 state.errors.orders = null;
                 setLoading(ordersTable, true, 'Loading orders...');
                 
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) {
                     showTableError('ordersBody', 8, 'Please log in to view orders');
                     return;
@@ -2160,7 +2165,7 @@
             try {
                 state.loading.balance = true;
                 
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) return;
                 
                 const params = new URLSearchParams({
@@ -2212,7 +2217,7 @@
                     const strategyIcons = {
                         'scryptomera': '📰',
                         'scalper': '⚡',
-                        'elcaro': '🤖',
+                        'triacelo': '🤖',
                         'wyckoff': '📊',
                         'manual': '👤'
                     };
@@ -2350,7 +2355,7 @@
             if (!state.symbol) {
                 errors.push('Select a trading pair');
             }
-            if (!localStorage.getItem('elcaro_token')) {
+            if (!localStorage.getItem('triacelo_token')) {
                 showNotification('Please log in to trade', 'error');
                 return;
             }
@@ -2424,7 +2429,7 @@
                 state.loading.order = true;
                 if (submitBtn) submitBtn.classList.add('btn-loading');
                 
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/order', {
                     method: 'POST',
                     headers: { 
@@ -2461,7 +2466,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/close', {
                     method: 'POST',
                     headers: { 
@@ -2494,7 +2499,7 @@
             if (!tp && !sl) return;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/modify-tpsl', {
                     method: 'POST',
                     headers: { 
@@ -2531,7 +2536,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/order', {
                     method: 'DELETE',
                     headers: { 
@@ -2572,7 +2577,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/close-all', {
                     method: 'POST',
                     headers: { 
@@ -2612,7 +2617,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const params = new URLSearchParams({
                     exchange: state.exchange || 'bybit',
                     account_type: state.accountType || 'demo'
@@ -2917,7 +2922,7 @@
         // Enhanced WebSocket connection with orderbook streaming
         function connectAdvancedWebSocket() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const userId = localStorage.getItem('elcaro_user_id') || 0;
+            const userId = localStorage.getItem('triacelo_user_id') || 0;
             
             const ws = new WebSocket(`${proto}//${location.host}/ws/terminal/${userId}`);
             
@@ -3162,7 +3167,7 @@
             }
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/trading/dca-ladder', {
                     method: 'POST',
                     headers: {
@@ -3274,7 +3279,7 @@
         
         async function loadUserSettings() {
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 if (!token) return;
                 
                 const res = await fetch('/api/users/me', {
@@ -3391,7 +3396,7 @@
             state.exchange = newExchange;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/users/exchange', {
                     method: 'POST',
                     headers: { 
@@ -3443,7 +3448,7 @@
             state.accountType = newAccountType;
             
             try {
-                const token = localStorage.getItem('elcaro_token');
+                const token = localStorage.getItem('triacelo_token');
                 const res = await fetch('/api/users/switch-account-type', {
                     method: 'POST',
                     headers: { 
@@ -3604,15 +3609,15 @@
         // ============================================================
         
         function connectSettingsSyncWebSocket() {
-            let userId = localStorage.getItem('elcaro_user_id');
+            let userId = localStorage.getItem('triacelo_user_id');
             
-            // Fallback: try to get from elcaro_user object
+            // Fallback: try to get from triacelo_user object
             if (!userId) {
                 try {
-                    const userObj = JSON.parse(localStorage.getItem('elcaro_user') || '{}');
+                    const userObj = JSON.parse(localStorage.getItem('triacelo_user') || '{}');
                     if (userObj.user_id) {
                         userId = userObj.user_id.toString();
-                        localStorage.setItem('elcaro_user_id', userId);
+                        localStorage.setItem('triacelo_user_id', userId);
                     }
                 } catch (e) {}
             }
@@ -3796,7 +3801,7 @@
             });
             
             // Save to localStorage
-            localStorage.setItem('elcaro_language', lang);
+            localStorage.setItem('triacelo_language', lang);
             
             // Close menu
             document.getElementById('langMenu').classList.remove('show');
@@ -3844,7 +3849,7 @@
             });
             
             // Save to localStorage
-            localStorage.setItem('elcaro_theme', theme);
+            localStorage.setItem('triacelo_theme', theme);
             
             // Close menu
             document.getElementById('themeMenu').classList.remove('show');
@@ -3855,7 +3860,7 @@
         // Initialize language and theme from localStorage
         function initLanguageAndTheme() {
             // Language
-            const savedLang = localStorage.getItem('elcaro_language') || 'en';
+            const savedLang = localStorage.getItem('triacelo_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 document.getElementById('currentLangFlag').textContent = langData.flag;
@@ -3868,7 +3873,7 @@
             }
             
             // Theme
-            const savedTheme = localStorage.getItem('elcaro_theme') || 'dark';
+            const savedTheme = localStorage.getItem('triacelo_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             
@@ -3909,7 +3914,7 @@
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            const savedTheme = localStorage.getItem('elcaro_theme');
+            const savedTheme = localStorage.getItem('triacelo_theme');
             if (savedTheme === 'system') {
                 const html = document.documentElement;
                 if (e.matches) {

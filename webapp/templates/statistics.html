@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Trading Statistics | ElCaro STARK</title>
+    <title>Trading Statistics | Triacelo</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/images/favicon.svg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
     
     <style>
         :root {
@@ -575,7 +578,7 @@
                     <span class="filter-label">Strategy:</span>
                     <select class="filter-select" id="strategyFilter">
                         <option value="all">All Strategies</option>
-                        <option value="elcaro">ElCaro</option>
+                        <option value="triacelo">Triacelo</option>
                         <option value="scryptomera">Scryptomera</option>
                         <option value="scalper">Scalper</option>
                         <option value="wyckoff">Wyckoff</option>
@@ -687,7 +690,7 @@
         
         // Get auth token
         function getToken() {
-            return localStorage.getItem('elcaro_token') || sessionStorage.getItem('elcaro_token');
+            return localStorage.getItem('triacelo_token') || sessionStorage.getItem('triacelo_token');
         }
         
         // Format currency
@@ -887,7 +890,7 @@
             }
             
             const icons = {
-                'elcaro': 'fa-bolt',
+                'triacelo': 'fa-bolt',
                 'scryptomera': 'fa-newspaper',
                 'scalper': 'fa-stopwatch',
                 'wyckoff': 'fa-chart-bar',

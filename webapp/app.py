@@ -17,7 +17,7 @@ APP_DIR = Path(__file__).parent
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="ElCaro Trading Terminal",
+        title="Triacelo Trading Terminal",
         description="Professional Trading Terminal with AI Analysis, Backtesting & Statistics",
         version="2.0.0",
         docs_url="/api/docs",
@@ -223,7 +223,8 @@ def create_app() -> FastAPI:
     
     @app.get("/portfolio", response_class=HTMLResponse)
     async def portfolio_page(request: Request):
-        return templates.TemplateResponse("dashboard.html", {"request": request})
+        """Portfolio page redirects to statistics"""
+        return RedirectResponse(url="/statistics", status_code=302)
     
     @app.get("/pricing", response_class=HTMLResponse)
     async def pricing_page(request: Request):

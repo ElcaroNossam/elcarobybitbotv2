@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategy Marketplace - ElCaro Trading</title>
+    <title>Strategy Marketplace - Triacelo Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* Unified ElCaro Design System */
+            /* Unified Triacelo Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -610,7 +610,7 @@
             <div class="logo-icon">
                 <i class="fas fa-bolt"></i>
             </div>
-            <span class="logo-text">ElCaro</span>
+            <span class="logo-text">Triacelo</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -766,12 +766,12 @@
         let selectedPaymentMethod = 'ton';
         
         function getAuthHeaders() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
         async function initAuth() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             if (token) {
                 try {
                     const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
@@ -844,8 +844,8 @@
             return [
                 {
                     id: 1,
-                    name: "ElCaro Pro Scalper",
-                    author: "ElCaro Team",
+                    name: "Triacelo Pro Scalper",
+                    author: "Triacelo Team",
                     author_id: "511692487",
                     description: "Professional scalping strategy using RSI, Bollinger Bands, and Open Interest analysis. Optimized for high-frequency trading on volatile pairs.",
                     profit_percent: 127.5,
@@ -1177,7 +1177,7 @@
                 }
             });
             
-            localStorage.setItem('elcaro_language', lang);
+            localStorage.setItem('triacelo_language', lang);
             document.getElementById('langMenu').classList.remove('show');
         }
         
@@ -1207,12 +1207,12 @@
                 }
             });
             
-            localStorage.setItem('elcaro_theme', theme);
+            localStorage.setItem('triacelo_theme', theme);
             document.getElementById('themeMenu').classList.remove('show');
         }
         
         function initLanguageAndTheme() {
-            const savedLang = localStorage.getItem('elcaro_language') || 'en';
+            const savedLang = localStorage.getItem('triacelo_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 const flag = document.getElementById('currentLangFlag');
@@ -1225,7 +1225,7 @@
                 });
             }
             
-            const savedTheme = localStorage.getItem('elcaro_theme') || 'dark';
+            const savedTheme = localStorage.getItem('triacelo_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <defs>
+    <linearGradient id="stark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626"/>
+      <stop offset="50%" style="stop-color:#991b1b"/>
+      <stop offset="100%" style="stop-color:#7f1d1d"/>
+    </linearGradient>
+    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4a017"/>
+      <stop offset="100%" style="stop-color:#b8860b"/>
+    </linearGradient>
+    <filter id="logo-glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Icon Box -->
+  <rect x="2" y="8" width="44" height="44" rx="10" fill="#0a0a0a"/>
+  <rect x="2" y="8" width="44" height="44" rx="10" fill="url(#stark-grad)" opacity="0.2"/>
+  
+  <!-- T Letter with Arc Reactor -->
+  <g filter="url(#logo-glow)">
+    <path d="M12 16 L38 16 L38 22 L28 22 L28 44 L22 44 L22 22 L12 22 Z" 
+          fill="url(#stark-grad)"/>
+    <circle cx="25" cy="33" r="4" fill="none" stroke="url(#gold-grad)" stroke-width="1.5"/>
+    <circle cx="25" cy="33" r="2" fill="#d4a017"/>
+  </g>
+  
+  <!-- Text: TRIACELO -->
+  <text x="56" y="40" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="28" fill="url(#stark-grad)">TRIACELO</text>
+</svg>

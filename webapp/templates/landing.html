@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ElCaro Trading Bot - Professional Crypto Trading</title>
+    <title>Triacelo Trading Bot - Professional Crypto Trading</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+    <link rel="apple-touch-icon" href="/static/images/favicon.svg">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Telegram WebApp Script -->
@@ -456,7 +461,7 @@
     <nav class="navbar">
         <div class="logo">
             <div class="logo-icon">🚀</div>
-            <span>ElCaro</span>
+            <span>Triacelo</span>
         </div>
         <div class="nav-links">
             <a href="#features">Features</a>
@@ -554,7 +559,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🎯</div>
                 <h3 class="feature-title">Multiple Strategies</h3>
-                <p class="feature-desc">ElCaro, RSI+BB+OI, Wyckoff SMC, Scryptomera, and Scalper strategies running 24/7.</p>
+                <p class="feature-desc">Triacelo, RSI+BB+OI, Wyckoff SMC, Scryptomera, and Scalper strategies running 24/7.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔔</div>
@@ -572,7 +577,7 @@
     <!-- CTA -->
     <section class="cta">
         <h2 class="cta-title">Ready to Automate Your Trading?</h2>
-        <p class="cta-subtitle">Join thousands of traders using ElCaro to maximize their profits</p>
+        <p class="cta-subtitle">Join thousands of traders using Triacelo to maximize their profits</p>
         <a href="/terminal" class="btn-primary" style="font-size: 1.1rem; padding: 18px 40px;">
             <i class="fas fa-rocket"></i> Launch Terminal
         </a>
@@ -597,17 +602,17 @@
             // Method 2: Check for auth_token (from token-login redirect)
             const authToken = params.get('auth_token');
             if (authToken) {
-                localStorage.setItem('elcaro_token', authToken);
+                localStorage.setItem('triacelo_token', authToken);
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     });
                     const user = await res.json();
                     if (user && user.user_id) {
-                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
-                        localStorage.setItem('elcaro_user', JSON.stringify(user));
-                        if (user.language) localStorage.setItem('elcaro_language', user.language);
-                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                        localStorage.setItem('triacelo_user_id', user.user_id.toString());
+                        localStorage.setItem('triacelo_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('triacelo_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('triacelo_exchange', user.exchange_type);
                         console.log('✅ Auto-login via token:', user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
@@ -632,11 +637,11 @@
                         });
                         const data = await res.json();
                         if (data.access_token) {
-                            localStorage.setItem('elcaro_token', data.access_token);
-                            localStorage.setItem('elcaro_user_id', userId.toString());
-                            localStorage.setItem('elcaro_user', JSON.stringify(data.user));
-                            if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
-                            if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
+                            localStorage.setItem('triacelo_token', data.access_token);
+                            localStorage.setItem('triacelo_user_id', userId.toString());
+                            localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('triacelo_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('triacelo_exchange', data.user.exchange_type);
                             console.log('✅ Auto-login via start param:', userId);
                             // Redirect to dashboard after successful auto-login
                             window.location.href = '/dashboard';
@@ -660,9 +665,9 @@
                     });
                     const data = await res.json();
                     if (data.token) {
-                        localStorage.setItem('elcaro_token', data.token);
-                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
-                        localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                        localStorage.setItem('triacelo_token', data.token);
+                        localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
+                        localStorage.setItem('triacelo_user', JSON.stringify(data.user));
                         console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
@@ -676,21 +681,21 @@
             }
             
             // Method 5: Check existing token and refresh user data
-            const existingToken = localStorage.getItem('elcaro_token');
+            const existingToken = localStorage.getItem('triacelo_token');
             if (existingToken) {
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${existingToken}` }
                     });
                     if (!res.ok) {
-                        localStorage.removeItem('elcaro_token');
-                        localStorage.removeItem('elcaro_user');
-                        localStorage.removeItem('elcaro_user_id');
+                        localStorage.removeItem('triacelo_token');
+                        localStorage.removeItem('triacelo_user');
+                        localStorage.removeItem('triacelo_user_id');
                     } else {
                         const user = await res.json();
                         if (user && user.user_id) {
-                            localStorage.setItem('elcaro_user', JSON.stringify(user));
-                            localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                            localStorage.setItem('triacelo_user', JSON.stringify(user));
+                            localStorage.setItem('triacelo_user_id', user.user_id.toString());
                             console.log('✅ Session restored:', user.user_id);
                         }
                     }
@@ -747,7 +752,7 @@
         
         // Smart navigation: redirect logged-in users to dashboard
         function updateNavigationLinks() {
-            const isLoggedIn = !!localStorage.getItem('elcaro_token');
+            const isLoggedIn = !!localStorage.getItem('triacelo_token');
             const targetPage = isLoggedIn ? '/dashboard' : '/terminal';
             
             // Update all "Launch App" and "Start Trading" buttons

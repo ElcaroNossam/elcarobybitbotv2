@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategy Leaderboard - ElCaro Trading</title>
+    <title>Strategy Leaderboard - Triacelo Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -427,7 +427,7 @@
     <header class="header">
         <a href="/" class="logo">
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
-            <span class="logo-text">ElCaro</span>
+            <span class="logo-text">Triacelo</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -473,8 +473,8 @@
                 <div class="podium-rank">
                     <div class="podium-medal medal-gold">🥇</div>
                     <div class="podium-avatar">E</div>
-                    <div class="podium-name">ElCaro Team</div>
-                    <div class="podium-strategy">ElCaro Pro Scalper</div>
+                    <div class="podium-name">Triacelo Team</div>
+                    <div class="podium-strategy">Triacelo Pro Scalper</div>
                     <div class="podium-profit">+127.5%</div>
                     <div class="podium-stats">
                         <span>68.4% WR</span>
@@ -554,12 +554,12 @@
         let leaderboardData = [];
 
         function getAuthHeaders() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
 
         async function initAuth() {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             if (token) {
                 try {
                     const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
@@ -574,7 +574,7 @@
         // Demo data
         function getDemoLeaderboard() {
             return [
-                { rank: 1, name: 'ElCaro Team', avatar: 'E', strategy: 'ElCaro Pro Scalper', profit: 127.5, win_rate: 68.4, trades: 342, rating: 4.9, sharpe: 2.1 },
+                { rank: 1, name: 'Triacelo Team', avatar: 'E', strategy: 'Triacelo Pro Scalper', profit: 127.5, win_rate: 68.4, trades: 342, rating: 4.9, sharpe: 2.1 },
                 { rank: 2, name: 'CryptoWizard', avatar: 'C', strategy: 'Wyckoff Master', profit: 89.2, win_rate: 72.1, trades: 156, rating: 4.7, sharpe: 1.8 },
                 { rank: 3, name: 'AlgoMaster', avatar: 'A', strategy: 'AI Trend Follower', profit: 76.8, win_rate: 65.2, trades: 89, rating: 4.5, sharpe: 1.6 },
                 { rank: 4, name: 'ScalperKing', avatar: 'S', strategy: 'Momentum Scalper', profit: 65.4, win_rate: 71.8, trades: 512, rating: 4.6, sharpe: 1.4 },

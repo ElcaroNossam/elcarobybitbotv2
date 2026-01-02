@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <meta name="description" content="ElCaro Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
-    <title>ElCaro Trading Terminal | AI-Powered Crypto Trading</title>
+    <meta name="description" content="Triacelo Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
+    <title>Triacelo Trading Terminal | AI-Powered Crypto Trading</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/favicon.png">
@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="/static/css/mobile.css">
     
     <!-- Theme & Language Script -->
-    <script src="/static/js/elcaro-theme.js"></script>
+    <script src="/static/js/triacelo-theme.js"></script>
     
     <!-- Telegram WebApp Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -44,7 +44,7 @@
         <div class="container">
             <a href="/" class="logo">
                 <div class="logo-icon">🚀</div>
-                <span class="logo-text">ElCaro</span>
+                <span class="logo-text">Triacelo</span>
             </a>
             
             <ul class="nav-links">
@@ -89,7 +89,7 @@
                     </div>
                 </div>
                 
-                <a href="https://t.me/elcaro_bybit_bot" class="btn btn-ghost" target="_blank">
+                <a href="https://t.me/triacelo_bybit_bot" class="btn btn-ghost" target="_blank">
                     <i class="fab fa-telegram"></i>
                 </a>
                 <a href="/terminal" class="btn btn-primary">
@@ -144,7 +144,7 @@
                             <i class="fas fa-rocket"></i>
                             Start Trading Now
                         </a>
-                        <a href="https://t.me/elcaro_bybit_bot" class="btn btn-secondary btn-lg" target="_blank">
+                        <a href="https://t.me/triacelo_bybit_bot" class="btn btn-secondary btn-lg" target="_blank">
                             <i class="fab fa-telegram"></i>
                             Open in Telegram
                         </a>
@@ -429,7 +429,7 @@
             <div class="strategies-grid">
                 <div class="strategy-card" style="--accent: #dc2626;">
                     <div class="strategy-icon" style="background: rgba(220, 38, 38, 0.1);">🎯</div>
-                    <h3 class="strategy-name">ElCaro</h3>
+                    <h3 class="strategy-name">Triacelo</h3>
                     <p class="strategy-desc">Channel breakout with momentum</p>
                     <div class="strategy-stats">
                         <div class="strategy-stat">
@@ -820,7 +820,7 @@
                 </div>
                 <p class="testimonial-text">
                     "The AI signals are incredibly accurate. I've increased my win rate from 45% to 72% 
-                    since using ElCaro. The backtesting feature helped me optimize my strategy perfectly."
+                    since using Triacelo. The backtesting feature helped me optimize my strategy perfectly."
                 </p>
             </div>
             
@@ -881,7 +881,7 @@
                 </div>
                 <p class="testimonial-text">
                     "The AI signals are incredibly accurate. I've increased my win rate from 45% to 72% 
-                    since using ElCaro. The backtesting feature helped me optimize my strategy perfectly."
+                    since using Triacelo. The backtesting feature helped me optimize my strategy perfectly."
                 </p>
             </div>
             
@@ -908,14 +908,14 @@
             <div class="cta-content">
                 <h2 class="cta-title">Ready to Start Trading Smarter?</h2>
                 <p class="cta-subtitle">
-                    Join 12,500+ traders already using ElCaro to maximize their profits
+                    Join 12,500+ traders already using Triacelo to maximize their profits
                 </p>
                 <div class="cta-buttons">
                     <a href="/terminal" class="btn btn-white btn-lg">
                         <i class="fas fa-rocket"></i>
                         Launch Terminal
                     </a>
-                    <a href="https://t.me/elcaro_bybit_bot" class="btn btn-outline-white btn-lg" target="_blank">
+                    <a href="https://t.me/triacelo_bybit_bot" class="btn btn-outline-white btn-lg" target="_blank">
                         <i class="fab fa-telegram"></i>
                         Telegram Bot
                     </a>
@@ -931,14 +931,14 @@
                 <div class="footer-brand">
                     <a href="/" class="logo">
                         <div class="logo-icon">🚀</div>
-                        <span class="logo-text">ElCaro</span>
+                        <span class="logo-text">Triacelo</span>
                     </a>
                     <p>
                         AI-powered crypto trading platform for Bybit and HyperLiquid. 
                         Trade smarter with automated strategies and real-time signals.
                     </p>
                     <div class="footer-social">
-                        <a href="https://t.me/elcaro_bybit_bot" target="_blank"><i class="fab fa-telegram"></i></a>
+                        <a href="https://t.me/triacelo_bybit_bot" target="_blank"><i class="fab fa-telegram"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
                         <a href="#"><i class="fab fa-discord"></i></a>
                         <a href="#"><i class="fab fa-youtube"></i></a>
@@ -987,11 +987,11 @@
             </div>
             
             <div class="footer-bottom">
-                <p>© 2025 ElCaro Trading. All rights reserved.</p>
+                <p>© 2025 Triacelo Trading. All rights reserved.</p>
                 <div class="footer-links">
                     <a href="#">Status</a>
                     <a href="#">Security</a>
-                    <a href="mailto:support@elcaro.io">support@elcaro.io</a>
+                    <a href="mailto:support@triacelo.io">support@triacelo.io</a>
                 </div>
             </div>
         </div>
@@ -1102,17 +1102,17 @@
             // Method 2: Check for auth_token (from token-login redirect)
             const authToken = params.get('auth_token');
             if (authToken) {
-                localStorage.setItem('elcaro_token', authToken);
+                localStorage.setItem('triacelo_token', authToken);
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     });
                     const user = await res.json();
                     if (user && user.user_id) {
-                        localStorage.setItem('elcaro_user_id', user.user_id.toString());
-                        localStorage.setItem('elcaro_user', JSON.stringify(user));
-                        if (user.language) localStorage.setItem('elcaro_language', user.language);
-                        if (user.exchange_type) localStorage.setItem('elcaro_exchange', user.exchange_type);
+                        localStorage.setItem('triacelo_user_id', user.user_id.toString());
+                        localStorage.setItem('triacelo_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('triacelo_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('triacelo_exchange', user.exchange_type);
                         console.log('✅ Auto-login via token:', user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
@@ -1137,11 +1137,11 @@
                         });
                         const data = await res.json();
                         if (data.access_token) {
-                            localStorage.setItem('elcaro_token', data.access_token);
-                            localStorage.setItem('elcaro_user_id', userId.toString());
-                            localStorage.setItem('elcaro_user', JSON.stringify(data.user));
-                            if (data.user?.language) localStorage.setItem('elcaro_language', data.user.language);
-                            if (data.user?.exchange_type) localStorage.setItem('elcaro_exchange', data.user.exchange_type);
+                            localStorage.setItem('triacelo_token', data.access_token);
+                            localStorage.setItem('triacelo_user_id', userId.toString());
+                            localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('triacelo_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('triacelo_exchange', data.user.exchange_type);
                             console.log('✅ Auto-login via start param:', userId);
                             // Redirect to dashboard after successful auto-login
                             window.location.href = '/dashboard';
@@ -1165,9 +1165,9 @@
                     });
                     const data = await res.json();
                     if (data.token) {
-                        localStorage.setItem('elcaro_token', data.token);
-                        localStorage.setItem('elcaro_user_id', data.user.user_id.toString());
-                        localStorage.setItem('elcaro_user', JSON.stringify(data.user));
+                        localStorage.setItem('triacelo_token', data.token);
+                        localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
+                        localStorage.setItem('triacelo_user', JSON.stringify(data.user));
                         console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
@@ -1181,21 +1181,21 @@
             }
             
             // Method 5: Check existing token and refresh user data
-            const existingToken = localStorage.getItem('elcaro_token');
+            const existingToken = localStorage.getItem('triacelo_token');
             if (existingToken) {
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${existingToken}` }
                     });
                     if (!res.ok) {
-                        localStorage.removeItem('elcaro_token');
-                        localStorage.removeItem('elcaro_user');
-                        localStorage.removeItem('elcaro_user_id');
+                        localStorage.removeItem('triacelo_token');
+                        localStorage.removeItem('triacelo_user');
+                        localStorage.removeItem('triacelo_user_id');
                     } else {
                         const user = await res.json();
                         if (user && user.user_id) {
-                            localStorage.setItem('elcaro_user', JSON.stringify(user));
-                            localStorage.setItem('elcaro_user_id', user.user_id.toString());
+                            localStorage.setItem('triacelo_user', JSON.stringify(user));
+                            localStorage.setItem('triacelo_user_id', user.user_id.toString());
                             console.log('✅ Session restored:', user.user_id);
                         }
                     }
