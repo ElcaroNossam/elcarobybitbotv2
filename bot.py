@@ -6605,25 +6605,69 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
     except MissingAPICredentials:
         return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "coins": []}
     
+    def safe_float(val, default=0.0):
+        """Convert value to float, handling empty strings and None"""
+        if val is None or val == "" or val == "":
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+    
     for acct in res.get("list", []) or []:
         # Account-level totals (all coins combined, in USD)
-        total_equity = float(acct.get("totalEquity") or 0.0)
-        total_wallet = float(acct.get("totalWalletBalance") or 0.0)
-        total_available = float(acct.get("totalAvailableBalance") or 0.0)
-        total_margin = float(acct.get("totalInitialMargin") or 0.0)
+        total_equity = safe_float(acct.get("totalEquity"))
+        total_wallet = safe_float(acct.get("totalWalletBalance"))
+        total_available = safe_float(acct.get("totalAvailableBalance"))
+        total_margin = safe_float(acct.get("totalInitialMargin"))
+        total_maintenance = safe_float(acct.get("totalMaintenanceMargin"))
         
-        # Individual coin balances
+        # Individual coin balances and calculate margin from coins
         coins = []
+        total_position_im = 0.0
+        total_order_im = 0.0
         for c in acct.get("coin", []) or []:
             coin_name = c.get("coin", "")
-            wallet_bal = float(c.get("walletBalance") or 0.0)
-            usd_value = float(c.get("usdValue") or 0.0)
+            wallet_bal = safe_float(c.get("walletBalance"))
+            usd_value = safe_float(c.get("usdValue"))
+            position_im = safe_float(c.get("totalPositionIM"))
+            order_im = safe_float(c.get("totalOrderIM"))
+            
+            total_position_im += position_im
+            total_order_im += order_im
+            
             if wallet_bal > 0 or usd_value > 0:
                 coins.append({
                     "coin": coin_name,
                     "balance": wallet_bal,
                     "usd_value": usd_value
                 })
+        
+        # For Demo accounts, calculate from coin data if account-level is empty
+        if total_available == 0 and total_wallet > 0:
+            # Available = Wallet - Position Margin - Order Margin
+            total_available = total_wallet - total_position_im - total_order_im
+            if total_available < 0:
+                total_available = 0.0
+        
+        if total_margin == 0:
+            total_margin = total_position_im + total_order_im
+        
+        # For Demo accounts - also need to fetch positions for real margin usage
+        # because coin-level margin data is often 0
+        if total_margin == 0 and account_type == "demo":
+            try:
+                pos_res = await _bybit_request(user_id, "GET", "/v5/position/list", 
+                                               params={"category": "linear", "settleCoin": "USDT"}, 
+                                               account_type=account_type)
+                positions = pos_res.get("list", [])
+                for p in positions:
+                    total_margin += safe_float(p.get("positionIM"))
+                
+                if total_margin > 0 and total_available == 0:
+                    total_available = max(0, total_wallet - total_margin)
+            except Exception as e:
+                logger.warning(f"Failed to fetch positions for margin calc: {e}")
         
         return {
             "total_equity": total_equity,
