@@ -1105,6 +1105,9 @@ def init_db():
             cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_stop_price REAL")
         if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_last_update_ts"):
             cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_update_ts INTEGER")
+        # P0.5: use_atr - флаг включения ATR trailing для позиции
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "use_atr"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN use_atr INTEGER DEFAULT 0")
         
         # Миграция: leverage для позиции
         if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "leverage"):
@@ -3039,6 +3042,7 @@ def add_active_position(
     client_order_id: str | None = None,
     exchange_order_id: str | None = None,
     env: str | None = None,  # Unified env (paper/live)
+    use_atr: bool = False,  # P0.5: ATR trailing enabled for this position
 ):
     """
     UPSERT с обновлением ключевых полей.
@@ -3057,14 +3061,17 @@ def add_active_position(
     if env is None:
         env = _normalize_env(account_type)
     
+    # Convert use_atr bool to int for SQLite
+    use_atr_int = 1 if use_atr else 0
+    
     with get_conn() as conn:
         conn.execute(
             """
           INSERT INTO active_positions
             (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
              dca_10_done, dca_25_done, strategy, source, opened_by, exchange,
-             sl_price, tp_price, leverage, client_order_id, exchange_order_id, env)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             sl_price, tp_price, leverage, client_order_id, exchange_order_id, env, use_atr)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id, symbol, account_type) DO UPDATE SET
             side             = excluded.side,
             entry_price      = excluded.entry_price,
@@ -3088,11 +3095,12 @@ def add_active_position(
             leverage         = COALESCE(excluded.leverage, active_positions.leverage),
             client_order_id  = COALESCE(excluded.client_order_id, active_positions.client_order_id),
             exchange_order_id = COALESCE(excluded.exchange_order_id, active_positions.exchange_order_id),
-            env              = COALESCE(excluded.env, active_positions.env)
+            env              = COALESCE(excluded.env, active_positions.env),
+            use_atr          = excluded.use_atr
         """,
             (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
              strategy, source, opened_by, exchange, sl_price, tp_price, leverage, 
-             client_order_id, exchange_order_id, env),
+             client_order_id, exchange_order_id, env, use_atr_int),
         )
         conn.commit()
 
@@ -3113,7 +3121,7 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
                    source, opened_by, exchange, sl_price, tp_price, 
                    manual_sltp_override, manual_sltp_ts,
                    atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts,
-                   leverage, client_order_id, exchange_order_id, env
+                   leverage, client_order_id, exchange_order_id, env, COALESCE(use_atr, 0) as use_atr
             FROM active_positions
             WHERE user_id=?
         """
@@ -3165,6 +3173,8 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
                 "exchange_order_id": r[24],
                 # Unified env
                 "env": r[25] or _normalize_env(r[10] or "demo"),
+                # P0.5: ATR enabled flag
+                "use_atr": bool(r[26]) if len(r) > 26 else False,
             }
             for r in rows
         ]

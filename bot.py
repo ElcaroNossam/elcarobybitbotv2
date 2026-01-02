@@ -3650,6 +3650,10 @@ async def split_market_plus_one_limit(
         else:
             use_atr = global_use_atr
         
+        # P0.5: If hint_tp_pct is None, it means ATR mode - skip TP
+        if hint_tp_pct is None:
+            use_atr = True
+        
         # Use strategy-specific SL/TP if available
         sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=_side)
         sl_pct = hint_sl_pct or sl_pct
@@ -3665,6 +3669,7 @@ async def split_market_plus_one_limit(
             await set_trading_stop(uid, symbol, **kwargs, side_hint=_side)
         else:
             await set_trading_stop(uid, symbol, sl_price=sl_price, side_hint=_side)
+            logger.info(f"[{uid}] ATR enabled for {symbol}: only SL={sl_price:.6f} set, TP managed by trailing")
 
     await place_order(uid, symbol, side, orderType="Market", qty=leg1)
     pos = None
@@ -3679,8 +3684,12 @@ async def split_market_plus_one_limit(
         await asyncio.sleep(0.25)
 
     cfg = get_user_config(uid) or {}
-    # Use strategy-specific SL/TP if available  
-    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
+    # Use strategy-specific settings including use_atr
+    trade_params = get_strategy_trade_params(uid, cfg, symbol, strategy, side=side, account_type=account_type)
+    sl_pct = trade_params["sl_pct"]
+    tp_pct = trade_params["tp_pct"]
+    use_atr = trade_params["use_atr"]
+    
     tf = timeframe or "24h"
     periods = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["24h"])["atr_periods"]
 
@@ -3702,10 +3711,17 @@ async def split_market_plus_one_limit(
         entry_price=entry, size=size,
         timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf)),
         strategy=strategy,
-        account_type=account_type
+        account_type=account_type,
+        use_atr=use_atr  # P0.5: Pass ATR setting
     )
 
-    await strict_set_sl_tp(side_s, entry, tp_pct, sl_pct)
+    # P0.5: If ATR enabled, only set SL (no TP - will be managed by ATR trailing)
+    if use_atr:
+        await strict_set_sl_tp(side_s, entry, None, sl_pct)  # tp_pct=None
+        logger.info(f"[{uid}] ATR enabled for {symbol}: only SL set, TP will be managed by ATR trailing")
+    else:
+        await strict_set_sl_tp(side_s, entry, tp_pct, sl_pct)
+    
     try:
         await ctx.bot.send_message(
             uid,
@@ -4377,6 +4393,13 @@ async def place_order_for_targets(
                     except Exception:
                         pass  # Will be updated by monitoring
                 
+                # P0.5: Get use_atr from strategy settings
+                cfg = get_user_config(user_id) or {}
+                trade_params = get_strategy_trade_params(user_id, cfg, symbol, strategy or "manual", 
+                                                         side=side, exchange=target_exchange, 
+                                                         account_type=target_account_type)
+                pos_use_atr = trade_params.get("use_atr", False)
+                
                 add_active_position(
                     user_id=user_id,
                     signal_id=signal_id,
@@ -4390,8 +4413,9 @@ async def place_order_for_targets(
                     exchange=target_exchange,
                     env=target_env,
                     client_order_id=client_order_id,
+                    use_atr=pos_use_atr,  # P0.5: Pass ATR setting
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price}")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} (use_atr={pos_use_atr})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -11817,6 +11841,15 @@ async def monitor_positions_loop(app: Application):
                                     if order_id not in open_ids:
                                         pos = next((p for p in open_positions if p["symbol"] == sym), None)
                                         if pos:
+                                            # P0.5: Get use_atr from strategy settings
+                                            strat_name = po.get("strategy") or "manual"
+                                            cfg_pending = get_user_config(uid) or {}
+                                            trade_params_pending = get_strategy_trade_params(
+                                                uid, cfg_pending, sym, strat_name,
+                                                side=po["side"], account_type=current_account_type
+                                            )
+                                            pos_use_atr_pending = trade_params_pending.get("use_atr", False)
+                                            
                                             # Use current_account_type from the loop
                                             add_active_position(
                                                 user_id     = uid,
@@ -11826,8 +11859,9 @@ async def monitor_positions_loop(app: Application):
                                                 size        = float(pos["size"]),
                                                 timeframe   = tf_for_sym,
                                                 signal_id   = po["signal_id"],
-                                                strategy    = po.get("strategy") or "manual",
-                                                account_type = current_account_type
+                                                strategy    = strat_name,
+                                                account_type = current_account_type,
+                                                use_atr     = pos_use_atr_pending  # P0.5
                                             )
                                             await bot.send_message(
                                                 uid,
@@ -11934,6 +11968,14 @@ async def monitor_positions_loop(app: Application):
                                 # If strategy not detected, use "manual" (position opened externally)
                                 final_strategy = detected_strategy or "manual"
                                 
+                                # P0.5: Get use_atr from strategy settings
+                                cfg_detected = get_user_config(uid) or {}
+                                trade_params_detected = get_strategy_trade_params(
+                                    uid, cfg_detected, sym, final_strategy,
+                                    side=side, account_type=current_account_type
+                                )
+                                pos_use_atr_detected = trade_params_detected.get("use_atr", False)
+                                
                                 add_active_position(
                                     user_id    = uid,
                                     symbol     = sym,
@@ -11943,7 +11985,8 @@ async def monitor_positions_loop(app: Application):
                                     timeframe  = tf_for_sym,
                                     signal_id  = signal_id,
                                     strategy   = final_strategy,
-                                    account_type = current_account_type
+                                    account_type = current_account_type,
+                                    use_atr    = pos_use_atr_detected  # P0.5
                                 )
                             
                                 if detected_strategy:
