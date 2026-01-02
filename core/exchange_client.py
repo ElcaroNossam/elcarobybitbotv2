@@ -277,7 +277,9 @@ class UnifiedExchangeClient:
                         "leverage": pos.leverage,
                         "liquidation_price": pos.liquidation_price,
                         "stop_loss": pos.stop_loss,
-                        "take_profit": pos.take_profit
+                        "take_profit": pos.take_profit,
+                        "positionIM": pos.margin_used,  # Add margin for PnL % calculation
+                        "margin_used": pos.margin_used  # Unified field name
                     })
             
             return ExchangeResult(

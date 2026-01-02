@@ -272,7 +272,7 @@ class BybitExchange(BaseExchange):
                     leverage=safe_float(pos.get("leverage"), 1),
                     margin_mode=pos.get("tradeMode", "cross"),
                     liquidation_price=safe_float(pos.get("liqPrice")) or None,
-                    margin_used=safe_float(pos.get("positionMM"), 0),
+                    margin_used=safe_float(pos.get("positionIM"), 0),  # Fixed: was positionMM, now positionIM (initial margin)
                     mark_price=safe_float(pos.get("markPrice"), 0),
                     stop_loss=safe_float(pos.get("stopLoss")) or None,
                     take_profit=safe_float(pos.get("takeProfit")) or None
@@ -321,7 +321,7 @@ class BybitExchange(BaseExchange):
                 leverage=safe_float(pos.get("leverage"), 1),
                 margin_mode=pos.get("tradeMode", "cross"),
                 liquidation_price=safe_float(pos.get("liqPrice")) or None,
-                margin_used=safe_float(pos.get("positionMM"), 0)
+                margin_used=safe_float(pos.get("positionIM"), 0)  # Fixed: was positionMM, now positionIM
             )
         
         return None

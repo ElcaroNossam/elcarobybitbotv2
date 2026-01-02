@@ -164,6 +164,10 @@ class Position:
         tp_raw = data.get('take_profit') or data.get('takeProfit')
         take_profit = float(tp_raw) if tp_raw else None
         
+        # Handle margin_used - support both positionIM (Bybit API) and margin_used (unified)
+        margin_used_raw = data.get('margin_used') or data.get('positionIM', 0)
+        margin_used = float(margin_used_raw) if margin_used_raw else 0.0
+        
         return cls(
             symbol=data['symbol'],
             side=PositionSide.from_string(data['side']),
@@ -173,7 +177,7 @@ class Position:
             unrealized_pnl=float(data.get('unrealized_pnl') or data.get('unrealisedPnl', 0)),
             leverage=int(data.get('leverage', 1)),
             margin_mode=data.get('tradeMode', 'cross').lower(),
-            margin_used=float(data.get('positionIM', 0)),
+            margin_used=margin_used,
             liquidation_price=float(data.get('liqPrice') or data.get('liquidation_price', 0)) if data.get('liqPrice') or data.get('liquidation_price') else None,
             take_profit=take_profit,
             stop_loss=stop_loss,
