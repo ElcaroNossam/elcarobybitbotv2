@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#0a0a0a">
     <title>Trading Statistics | Triacelo</title>
     
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="apple-touch-icon" href="/static/images/favicon.svg">
@@ -681,6 +684,8 @@
     </div>
     
     <script>
+        const tg = window.Telegram?.WebApp;
+        
         // State
         let currentPeriod = '30d';
         let currentExchange = 'all';
@@ -691,6 +696,32 @@
         // Get auth token
         function getToken() {
             return localStorage.getItem('triacelo_token') || sessionStorage.getItem('triacelo_token');
+        }
+        
+        // Auto-login via Telegram WebApp
+        async function autoLoginTelegram() {
+            if (!tg?.initData) return false;
+            
+            try {
+                const res = await fetch('/api/auth/telegram', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ init_data: tg.initData })
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.token) {
+                    localStorage.setItem('triacelo_token', data.token);
+                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    if (data.user?.user_id) {
+                        localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
+                    }
+                    return true;
+                }
+            } catch (e) {
+                console.error('Telegram auto-login failed:', e);
+            }
+            return false;
         }
         
         // Format currency
@@ -708,10 +739,23 @@
         
         // Load statistics
         async function loadStats() {
-            const token = getToken();
+            let token = getToken();
+            
+            // Try Telegram auto-login if no token
+            if (!token && tg?.initData) {
+                await autoLoginTelegram();
+                token = getToken();
+            }
+            
             if (!token) {
                 window.location.href = '/login';
                 return;
+            }
+            
+            // Notify Telegram that webapp is ready
+            if (tg) {
+                tg.ready();
+                tg.expand();
             }
             
             try {
@@ -721,6 +765,15 @@
                 
                 if (!resp.ok) {
                     if (resp.status === 401) {
+                        // Token expired, try re-login via Telegram
+                        if (tg?.initData) {
+                            localStorage.removeItem('triacelo_token');
+                            const success = await autoLoginTelegram();
+                            if (success) {
+                                loadStats(); // Retry
+                                return;
+                            }
+                        }
                         window.location.href = '/login';
                         return;
                     }
