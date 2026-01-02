@@ -142,18 +142,28 @@ class HLAdapter:
             return {"retCode": 1, "retMsg": str(e), "result": {"list": []}}
 
     async def get_balance(self) -> Dict[str, Any]:
-        """Simplified balance method for UI"""
+        """Detailed balance method for UI"""
         await self.initialize()
         try:
             balance = await self._client.get_balance()
             pnl = await self._client.get_unrealized_pnl()
+            positions = await self._client.get_all_positions()
+            
+            # Calculate additional metrics
+            total_position_value = sum(abs(_safe_float(p.get("positionValue", 0))) for p in positions)
+            num_positions = len([p for p in positions if _safe_float(p.get("szi", 0)) != 0])
+            
             return {
                 "success": True,
                 "data": {
                     "equity": balance.get("account_value", 0),
                     "available": balance.get("withdrawable", 0),
-                    "margin_used": balance.get("margin_used", 0),
-                    "unrealized_pnl": pnl
+                    "margin_used": balance.get("total_margin_used", 0),
+                    "total_notional": balance.get("total_ntl_pos", 0),
+                    "unrealized_pnl": pnl,
+                    "position_value": total_position_value,
+                    "num_positions": num_positions,
+                    "currency": "USDC"  # HL uses USDC
                 }
             }
         except Exception as e:

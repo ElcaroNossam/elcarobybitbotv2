@@ -7897,7 +7897,10 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         # Fetch FULL account balance (totalEquity = all coins in USD)
         account_bal = await fetch_account_balance(uid, account_type=account_type)
         total_equity = account_bal.get("total_equity", 0.0)
+        total_wallet = account_bal.get("total_wallet", 0.0)
         available = account_bal.get("available_balance", 0.0)
+        used_margin = account_bal.get("used_margin", 0.0)
+        coins = account_bal.get("coins", [])
         
         pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=account_type)
         pnl_week = await fetch_realized_pnl(uid, days=7, account_type=account_type)
@@ -7909,18 +7912,44 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         mode_emoji = "🎮" if account_type == "demo" else "💎"
         mode_label = "Demo" if account_type == "demo" else "Real"
         
+        # Format assets list (only coins with balance > 0)
+        assets_text = ""
+        # Sort by USD value descending
+        sorted_coins = sorted(coins, key=lambda x: x.get("usd_value", 0), reverse=True)
+        for coin_data in sorted_coins[:10]:  # Show top 10 assets
+            coin = coin_data.get("coin", "")
+            balance = coin_data.get("balance", 0)
+            usd_val = coin_data.get("usd_value", 0)
+            if balance > 0 or usd_val > 0:
+                # Format balance nicely
+                if balance >= 1:
+                    bal_str = f"{balance:,.4f}"
+                else:
+                    bal_str = f"{balance:.8f}".rstrip('0').rstrip('.')
+                assets_text += f"  • {coin}: {bal_str} (${usd_val:,.2f})\n"
+        
+        if not assets_text:
+            assets_text = "  No assets\n"
+        
+        pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
+        pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
+        unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+        
         text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
 
-💎 *Balance:* {total_equity:,.2f} USDT
+💎 *Total Equity:* ${total_equity:,.2f}
+💵 *Wallet Balance:* ${total_wallet:,.2f}
+✅ *Available for Trading:* ${available:,.2f}
+📊 *Margin Used:* ${used_margin:,.2f}
 
-📊 *Realized PnL:*
-• Today: {pnl_today:+.2f} USDT
-• 7 Days: {pnl_week:+.2f} USDT
+📦 *Assets:*
+{assets_text}
+📈 *Realized PnL:*
+{pnl_emoji_today} Today: {pnl_today:+,.2f} USDT
+{pnl_emoji_week} 7 Days: {pnl_week:+,.2f} USDT
 
-📈 *Unrealized PnL:*
-• Total: {total_unreal:+.2f} USDT
-• Percent: {unreal_pct:+.2f}%
+{unreal_emoji} *Unrealized PnL:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%)
 """
         
         # Only show mode switch buttons if user has both modes
@@ -8086,9 +8115,13 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     if exchange == "bybit":
         # Fetch Bybit balance for selected mode directly
         try:
-            # Use totalEquity for full account balance (all coins)
+            # Use full account balance (all coins, all fields)
             account_bal = await fetch_account_balance(uid, account_type=mode)
             total_equity = account_bal.get("total_equity", 0.0)
+            total_wallet = account_bal.get("total_wallet", 0.0)
+            available = account_bal.get("available_balance", 0.0)
+            used_margin = account_bal.get("used_margin", 0.0)
+            coins = account_bal.get("coins", [])
             
             pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=mode)
             pnl_week = await fetch_realized_pnl(uid, days=7, account_type=mode)
@@ -8102,18 +8135,42 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             mode_emoji = "🎮" if mode == "demo" else "💎"
             mode_label = "Demo" if mode == "demo" else "Real"
             
+            # Format assets list
+            assets_text = ""
+            sorted_coins = sorted(coins, key=lambda x: x.get("usd_value", 0), reverse=True)
+            for coin_data in sorted_coins[:10]:
+                coin = coin_data.get("coin", "")
+                balance = coin_data.get("balance", 0)
+                usd_val = coin_data.get("usd_value", 0)
+                if balance > 0 or usd_val > 0:
+                    if balance >= 1:
+                        bal_str = f"{balance:,.4f}"
+                    else:
+                        bal_str = f"{balance:.8f}".rstrip('0').rstrip('.')
+                    assets_text += f"  • {coin}: {bal_str} (${usd_val:,.2f})\n"
+            
+            if not assets_text:
+                assets_text = "  No assets\n"
+            
+            pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
+            pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
+            unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+            
             text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
 
-💎 *Balance:* {total_equity:,.2f} USDT
+💎 *Total Equity:* ${total_equity:,.2f}
+💵 *Wallet Balance:* ${total_wallet:,.2f}
+✅ *Available for Trading:* ${available:,.2f}
+📊 *Margin Used:* ${used_margin:,.2f}
 
-📊 *Realized PnL:*
-• Today: {pnl_today:+.2f} USDT
-• 7 Days: {pnl_week:+.2f} USDT
+📦 *Assets:*
+{assets_text}
+📈 *Realized PnL:*
+{pnl_emoji_today} Today: {pnl_today:+,.2f} USDT
+{pnl_emoji_week} 7 Days: {pnl_week:+,.2f} USDT
 
-📈 *Unrealized PnL:*
-• Total: {total_unreal:+.2f} USDT
-• Percent: {unreal_pct:+.2f}%
+{unreal_emoji} *Unrealized PnL:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%)
 """
             
             # Only show mode switch buttons if user has both modes
@@ -8163,18 +8220,34 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
                 equity = float(data_bal.get("equity", 0))
                 available = float(data_bal.get("available", 0))
                 margin_used = float(data_bal.get("margin_used", 0))
+                total_notional = float(data_bal.get("total_notional", 0))
                 unrealized_pnl = float(data_bal.get("unrealized_pnl", 0))
+                position_value = float(data_bal.get("position_value", 0))
+                num_positions = int(data_bal.get("num_positions", 0))
+                currency = data_bal.get("currency", "USDC")
                 
                 pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
                 network = "🧪 Testnet" if testnet else "🌐 Mainnet"
                 
+                # Calculate margin level if margin used > 0
+                margin_level = ""
+                if margin_used > 0:
+                    level_pct = (equity / margin_used) * 100
+                    margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
+                
                 text = f"""
 💰 *HyperLiquid Balance* {network}
 
-💎 *Equity:* ${equity:,.2f}
-💵 *Available:* ${available:,.2f}
-📊 *Margin Used:* ${margin_used:,.2f}
-{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f}
+💎 *Account Equity:* ${equity:,.2f} {currency}
+✅ *Available for Trading:* ${available:,.2f} {currency}
+📊 *Margin Used:* ${margin_used:,.2f} {currency}{margin_level}
+
+📦 *Positions:*
+  • Active: {num_positions} positions
+  • Notional Value: ${total_notional:,.2f}
+  • Position Value: ${position_value:,.2f}
+
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}
 """
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
@@ -15401,18 +15474,34 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             equity = float(data.get("equity", 0))
             available = float(data.get("available", 0))
             margin_used = float(data.get("margin_used", 0))
+            total_notional = float(data.get("total_notional", 0))
             unrealized_pnl = float(data.get("unrealized_pnl", 0))
+            position_value = float(data.get("position_value", 0))
+            num_positions = int(data.get("num_positions", 0))
+            currency = data.get("currency", "USDC")
             
             pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
             network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
             
+            # Calculate margin level if margin used > 0
+            margin_level = ""
+            if margin_used > 0:
+                level_pct = (equity / margin_used) * 100
+                margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
+            
             text = f"""
 💰 *HyperLiquid Balance* {network}
 
-💎 *Equity:* ${equity:,.2f}
-💵 *Available:* ${available:,.2f}
-📊 *Margin Used:* ${margin_used:,.2f}
-{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f}
+💎 *Account Equity:* ${equity:,.2f} {currency}
+✅ *Available for Trading:* ${available:,.2f} {currency}
+📊 *Margin Used:* ${margin_used:,.2f} {currency}{margin_level}
+
+📦 *Positions:*
+  • Active: {num_positions} positions
+  • Notional Value: ${total_notional:,.2f}
+  • Position Value: ${position_value:,.2f}
+
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}
 """
             await update.message.reply_text(text, parse_mode="Markdown")
         else:
