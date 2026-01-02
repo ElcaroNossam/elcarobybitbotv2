@@ -7795,10 +7795,20 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
                         pos_dict['takeProfit'] = db_pos['tp_price']
                     if not pos_dict.get('stopLoss') and db_pos.get('sl_price'):
                         pos_dict['stopLoss'] = db_pos['sl_price']
-                    # Also copy strategy and other DB metadata
+                    # Copy ALL DB metadata for detailed view
                     pos_dict['strategy'] = db_pos.get('strategy')
                     pos_dict['source'] = db_pos.get('source')
                     pos_dict['opened_by'] = db_pos.get('opened_by')
+                    pos_dict['open_ts'] = db_pos.get('open_ts')
+                    pos_dict['account_type'] = db_pos.get('account_type', account_type)
+                    pos_dict['exchange'] = db_pos.get('exchange', exchange_type)
+                    pos_dict['use_atr'] = db_pos.get('use_atr', False)
+                    pos_dict['atr_activated'] = db_pos.get('atr_activated', False)
+                    pos_dict['timeframe'] = db_pos.get('timeframe')
+                else:
+                    # Position not in DB - set defaults
+                    pos_dict['account_type'] = account_type
+                    pos_dict['exchange'] = exchange_type
                 
                 result.append(pos_dict)
             
@@ -7871,10 +7881,16 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
                     pos['takeProfit'] = str(db_pos['tp_price'])
                 if not pos.get('stopLoss') and db_pos.get('sl_price'):
                     pos['stopLoss'] = str(db_pos['sl_price'])
-                # Copy strategy and other DB metadata
+                # Copy ALL DB metadata for detailed view
                 pos['strategy'] = db_pos.get('strategy')
                 pos['source'] = db_pos.get('source')
                 pos['opened_by'] = db_pos.get('opened_by')
+                pos['open_ts'] = db_pos.get('open_ts')
+                pos['account_type'] = db_pos.get('account_type', account_type)
+                pos['exchange'] = db_pos.get('exchange', 'bybit')
+                pos['use_atr'] = db_pos.get('use_atr', False)
+                pos['atr_activated'] = db_pos.get('atr_activated', False)
+                pos['timeframe'] = db_pos.get('timeframe')
         
         return all_positions
     except MissingAPICredentials:
@@ -8510,6 +8526,8 @@ def format_position_summary(positions: list, t: dict) -> str:
 
 def format_position_detail(p: dict, t: dict) -> str:
     """Format detailed view of a single position."""
+    import datetime
+    
     sym = p.get("symbol", "-")
     side = p.get("side", "-")
     lev = p.get("leverage", "-")
@@ -8518,6 +8536,15 @@ def format_position_detail(p: dict, t: dict) -> str:
     mark = float(p.get("markPrice") or 0)
     pnl = float(p.get("unrealisedPnl") or 0)
     im = float(p.get("positionIM") or 0)
+    
+    # Get extended info from DB
+    strategy = p.get("strategy", "Unknown")
+    account_type = p.get("account_type", "demo")
+    exchange = p.get("exchange", "bybit")
+    open_ts = p.get("open_ts")
+    use_atr = p.get("use_atr", False)
+    atr_activated = p.get("atr_activated", False)
+    timeframe = p.get("timeframe")
     
     def to_float(key):
         raw = p.get(key)
@@ -8538,9 +8565,29 @@ def format_position_detail(p: dict, t: dict) -> str:
     side_text = "LONG" if side == "Buy" else "SHORT"
     pnl_emoji = "📈" if pnl >= 0 else "📉"
     
+    # Format strategy name nicely
+    strategy_names = {
+        "scryptomera": "📰 Scryptomera",
+        "scalper": "⚡ Scalper", 
+        "elcaro": "🎯 ElCaro",
+        "wyckoff": "📊 Wyckoff",
+        "oi": "📈 OI Delta",
+        "fibonacci": "🔢 Fibonacci",
+        "rsi_bb": "📉 RSI/BB",
+        "manual": "✋ Manual",
+    }
+    strategy_display = strategy_names.get(strategy.lower() if strategy else "", f"🎲 {strategy}")
+    
+    # Format exchange and account
+    exchange_emoji = "🟡" if exchange == "bybit" else "🟣"  # Yellow for Bybit, Purple for HL
+    account_emoji = "🎮" if account_type == "demo" else "💎"
+    account_label = "Demo" if account_type == "demo" else "Real"
+    
     lines = [
-        f"{emoji} *{sym}* {lev}x",
-        f"📍 Entry: `{entry:.6g}` → Now: `{mark:.6g}`"
+        f"{emoji} *{sym}* {lev}x {side_text}",
+        f"",
+        f"📍 Entry: `{entry:.6g}` → Now: `{mark:.6g}`",
+        f"📦 Size: `{size:.6g}`"
     ]
     
     # TP/SL info
@@ -8557,8 +8604,54 @@ def format_position_detail(p: dict, t: dict) -> str:
     else:
         lines.append(f"🛑 SL: –")
     
+    # Liquidation price if available
+    if liq and liq > 0:
+        liq_pct = abs((liq - entry) / entry * 100) if entry else 0
+        lines.append(f"💀 Liq: `{liq:.6g}` (-{liq_pct:.1f}%)")
+    
     # PnL
-    lines.append(f"{pnl_emoji} {pnl_pct:+.2f}% ({pnl:+.4f} USDT)")
+    lines.append(f"")
+    lines.append(f"{pnl_emoji} *PnL:* {pnl_pct:+.2f}% ({pnl:+.4f} USDT)")
+    
+    # Separator
+    lines.append(f"")
+    lines.append(f"━━━━━━━━━━━━━━━")
+    
+    # Strategy info
+    lines.append(f"📋 Strategy: {strategy_display}")
+    
+    # Exchange & Account
+    lines.append(f"{exchange_emoji} {exchange.upper()} • {account_emoji} {account_label}")
+    
+    # ATR Trailing Stop status
+    if use_atr:
+        atr_status = "✅ Active" if atr_activated else "⏳ Waiting"
+        lines.append(f"🔄 ATR Trailing: {atr_status}")
+    
+    # Time opened
+    if open_ts:
+        try:
+            dt = datetime.datetime.fromtimestamp(open_ts)
+            # Calculate duration
+            now = datetime.datetime.now()
+            duration = now - dt
+            hours = int(duration.total_seconds() // 3600)
+            mins = int((duration.total_seconds() % 3600) // 60)
+            if hours > 24:
+                days = hours // 24
+                hours = hours % 24
+                duration_str = f"{days}d {hours}h"
+            elif hours > 0:
+                duration_str = f"{hours}h {mins}m"
+            else:
+                duration_str = f"{mins}m"
+            lines.append(f"⏱ Opened: {dt.strftime('%d.%m %H:%M')} ({duration_str} ago)")
+        except:
+            pass
+    
+    # Timeframe if available
+    if timeframe:
+        lines.append(f"📊 Timeframe: {timeframe}")
     
     return "\n".join(lines)
 
