@@ -6720,14 +6720,12 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
 
 @log_calls
 async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
-    """Fetch AVAILABLE USDT balance (not total wallet balance).
+    """Fetch AVAILABLE USDT margin for trading.
     
-    Uses availableToWithdraw which is the actual free balance for trading,
-    not walletBalance which includes margin used by open positions.
+    Returns the actual free USDT that can be used to open new positions:
+    available = walletBalance - totalPositionIM - totalOrderIM
     
-    For Demo accounts, Bybit API doesn't provide margin info - we fallback
-    to walletBalance but this may cause INSUFFICIENT_BALANCE errors when
-    all margin is used by existing positions.
+    This is the correct value for position sizing calculations.
     """
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
@@ -6736,27 +6734,22 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
         return 0.0
 
     for acct in res.get("list", []) or []:
-        # First try account-level totalAvailableBalance (NOT available on Demo!)
-        total_available = acct.get("totalAvailableBalance")
-        if total_available and total_available != "":
-            logger.info(f"[{user_id}] Using totalAvailableBalance={total_available} [{account_type or 'auto'}]")
-            return float(total_available)
-        
         for c in acct.get("coin", []) or []:
             if c.get("coin") == "USDT":
                 try:
-                    raw_wallet = c.get("walletBalance")
-                    raw_available = c.get("availableToWithdraw")
+                    wallet_balance = float(c.get("walletBalance") or 0)
+                    position_im = float(c.get("totalPositionIM") or 0)
+                    order_im = float(c.get("totalOrderIM") or 0)
                     
-                    # CRITICAL: Use availableToWithdraw (NOT walletBalance!)
-                    # For Demo accounts, this returns empty string
-                    if raw_available is not None and raw_available != "":
-                        return float(raw_available)
+                    # Available for trading = wallet - margin in positions - margin in orders
+                    available = wallet_balance - position_im - order_im
+                    if available < 0:
+                        available = 0.0
                     
-                    # For Demo accounts: walletBalance is all we have
-                    # This will cause INSUFFICIENT_BALANCE if margin is fully used
-                    return float(raw_wallet or 0.0)
-                except (TypeError, ValueError):
+                    logger.info(f"[{user_id}] USDT available for trading: {available:.2f} (wallet={wallet_balance:.2f} - posIM={position_im:.2f} - ordIM={order_im:.2f}) [{account_type or 'auto'}]")
+                    return available
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"[{user_id}] Error parsing USDT balance: {e}")
                     return 0.0
     return 0.0
 
