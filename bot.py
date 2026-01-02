@@ -11737,6 +11737,11 @@ async def monitor_positions_loop(app: Application):
     # Track deep loss notifications (position without SL in deep loss)
     # Key: (uid, symbol), Value: timestamp when notification was sent
     _deep_loss_notified = {}
+    
+    # Track close position notifications already sent to avoid spam
+    # Key: (uid, symbol, account_type), Value: timestamp when notification was sent
+    # Prevents duplicate close notifications when remove_active_position() fails (e.g., entry_price mismatch)
+    _close_notified = {}
 
     while True:
         try:
@@ -12284,22 +12289,32 @@ async def monitor_positions_loop(app: Application):
                                         "live": "Live"
                                     }.get(current_account_type, current_account_type.title())
                                 
-                                    logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
-                                    await safe_send_notification(
-                                        bot, uid,
-                                        t['position_closed'].format(
-                                            symbol=sym,
-                                            reason=reason_text,
-                                            strategy=strategy_display,
-                                            entry=float(entry_price),
-                                            exit=float(exit_price),
-                                            pnl=pnl_value,
-                                            pct=pct_value,
-                                            exchange=exchange_display,
-                                            market_type=market_type_display,
-                                        ),
-                                        parse_mode="Markdown"
-                                    )
+                                    # Deduplication: check if close notification already sent (prevents spam when remove_active_position fails)
+                                    close_notify_key = (uid, sym, ap_account_type)
+                                    now = int(time.time())
+                                    CLOSE_NOTIFY_COOLDOWN = 3600  # 1 hour cooldown for same position close
+                                    last_close_notify = _close_notified.get(close_notify_key, 0)
+                                    
+                                    if now - last_close_notify < CLOSE_NOTIFY_COOLDOWN:
+                                        logger.debug(f"[{uid}] Skipping close notification for {sym} (already sent {now - last_close_notify}s ago)")
+                                    else:
+                                        _close_notified[close_notify_key] = now
+                                        logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
+                                        await safe_send_notification(
+                                            bot, uid,
+                                            t['position_closed'].format(
+                                                symbol=sym,
+                                                reason=reason_text,
+                                                strategy=strategy_display,
+                                                entry=float(entry_price),
+                                                exit=float(exit_price),
+                                                pnl=pnl_value,
+                                                pct=pct_value,
+                                                exchange=exchange_display,
+                                                market_type=market_type_display,
+                                            ),
+                                            parse_mode="Markdown"
+                                        )
 
 
 
