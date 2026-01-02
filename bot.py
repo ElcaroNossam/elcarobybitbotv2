@@ -6595,16 +6595,15 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
     
     Returns dict with:
     - total_equity: Total account value in USD (all coins)
-    - available_balance: Available for trading
+    - total_wallet: Total wallet balance in USD
+    - available_balance: Available for trading (total, all collateral)
     - used_margin: Margin used by open positions
+    - usdt_wallet: USDT wallet balance
+    - usdt_available: USDT available for trading (key metric!)
+    - usdt_position_margin: USDT margin in positions
+    - usdt_order_margin: USDT margin in orders
     - coins: List of individual coin balances
     """
-    params = {"accountType": "UNIFIED"}
-    try:
-        res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
-    except MissingAPICredentials:
-        return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "coins": []}
-    
     def safe_float(val, default=0.0):
         """Convert value to float, handling empty strings and None"""
         if val is None or val == "" or val == "":
@@ -6614,13 +6613,45 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
         except (ValueError, TypeError):
             return default
     
+    # First get all coins for total equity
+    params = {"accountType": "UNIFIED"}
+    try:
+        res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
+    except MissingAPICredentials:
+        return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "usdt_available": 0.0, "coins": []}
+    
+    # Also get USDT-specific data for trading margin (separate request with coin=USDT)
+    usdt_wallet = 0.0
+    usdt_available = 0.0
+    usdt_position_im = 0.0
+    usdt_order_im = 0.0
+    usdt_equity = 0.0
+    
+    try:
+        usdt_res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", 
+                                         params={"accountType": "UNIFIED", "coin": "USDT"}, 
+                                         account_type=account_type)
+        for acct in usdt_res.get("list", []) or []:
+            for c in acct.get("coin", []) or []:
+                if c.get("coin") == "USDT":
+                    usdt_wallet = safe_float(c.get("walletBalance"))
+                    usdt_equity = safe_float(c.get("equity"))
+                    usdt_position_im = safe_float(c.get("totalPositionIM"))
+                    usdt_order_im = safe_float(c.get("totalOrderIM"))
+                    # Available = wallet - position margin - order margin
+                    usdt_available = usdt_wallet - usdt_position_im - usdt_order_im
+                    if usdt_available < 0:
+                        usdt_available = 0.0
+                    break
+    except Exception as e:
+        logger.warning(f"Failed to fetch USDT-specific balance: {e}")
+    
     for acct in res.get("list", []) or []:
         # Account-level totals (all coins combined, in USD)
         total_equity = safe_float(acct.get("totalEquity"))
         total_wallet = safe_float(acct.get("totalWalletBalance"))
         total_available = safe_float(acct.get("totalAvailableBalance"))
         total_margin = safe_float(acct.get("totalInitialMargin"))
-        total_maintenance = safe_float(acct.get("totalMaintenanceMargin"))
         
         # Individual coin balances and calculate margin from coins
         coins = []
@@ -6645,7 +6676,6 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
         
         # For Demo accounts, calculate from coin data if account-level is empty
         if total_available == 0 and total_wallet > 0:
-            # Available = Wallet - Position Margin - Order Margin
             total_available = total_wallet - total_position_im - total_order_im
             if total_available < 0:
                 total_available = 0.0
@@ -6653,19 +6683,22 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
         if total_margin == 0:
             total_margin = total_position_im + total_order_im
         
-        # For Demo accounts - also need to fetch positions for real margin usage
-        # because coin-level margin data is often 0
-        if total_margin == 0 and account_type == "demo":
+        # If USDT margin is still 0, fetch from positions API (Demo fallback)
+        if usdt_position_im == 0 and account_type == "demo":
             try:
                 pos_res = await _bybit_request(user_id, "GET", "/v5/position/list", 
                                                params={"category": "linear", "settleCoin": "USDT"}, 
                                                account_type=account_type)
                 positions = pos_res.get("list", [])
                 for p in positions:
-                    total_margin += safe_float(p.get("positionIM"))
+                    usdt_position_im += safe_float(p.get("positionIM"))
                 
-                if total_margin > 0 and total_available == 0:
-                    total_available = max(0, total_wallet - total_margin)
+                usdt_available = usdt_wallet - usdt_position_im - usdt_order_im
+                if usdt_available < 0:
+                    usdt_available = 0.0
+                    
+                if total_margin == 0:
+                    total_margin = usdt_position_im + usdt_order_im
             except Exception as e:
                 logger.warning(f"Failed to fetch positions for margin calc: {e}")
         
@@ -6674,10 +6707,15 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
             "total_wallet": total_wallet,
             "available_balance": total_available,
             "used_margin": total_margin,
+            "usdt_wallet": usdt_wallet,
+            "usdt_available": usdt_available,
+            "usdt_position_margin": usdt_position_im,
+            "usdt_order_margin": usdt_order_im,
+            "usdt_equity": usdt_equity,
             "coins": coins
         }
     
-    return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "coins": []}
+    return {"total_equity": 0.0, "available_balance": 0.0, "used_margin": 0.0, "usdt_available": 0.0, "coins": []}
 
 
 @log_calls
@@ -7946,6 +7984,12 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         used_margin = account_bal.get("used_margin", 0.0)
         coins = account_bal.get("coins", [])
         
+        # USDT-specific trading margin (what we actually trade with)
+        usdt_wallet = account_bal.get("usdt_wallet", 0.0)
+        usdt_available = account_bal.get("usdt_available", 0.0)
+        usdt_position_margin = account_bal.get("usdt_position_margin", 0.0)
+        usdt_order_margin = account_bal.get("usdt_order_margin", 0.0)
+        
         pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=account_type)
         pnl_week = await fetch_realized_pnl(uid, days=7, account_type=account_type)
         positions = await fetch_open_positions(uid, account_type=account_type)
@@ -7984,8 +8028,12 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
 
 💎 *Total Equity:* ${total_equity:,.2f}
 💵 *Wallet Balance:* ${total_wallet:,.2f}
-✅ *Available for Trading:* ${available:,.2f}
-📊 *Margin Used:* ${used_margin:,.2f}
+
+💵 *USDT Trading Margin:*
+  • Wallet: {usdt_wallet:,.2f} USDT
+  • In Positions: {usdt_position_margin:,.2f} USDT
+  • In Orders: {usdt_order_margin:,.2f} USDT
+  ✅ *Available:* {usdt_available:,.2f} USDT
 
 📦 *Assets:*
 {assets_text}
@@ -8167,6 +8215,12 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             used_margin = account_bal.get("used_margin", 0.0)
             coins = account_bal.get("coins", [])
             
+            # USDT-specific trading margin (what we actually trade with)
+            usdt_wallet = account_bal.get("usdt_wallet", 0.0)
+            usdt_available = account_bal.get("usdt_available", 0.0)
+            usdt_position_margin = account_bal.get("usdt_position_margin", 0.0)
+            usdt_order_margin = account_bal.get("usdt_order_margin", 0.0)
+            
             pnl_today = await fetch_today_realized_pnl(uid, tz_str=get_user_tz(uid), account_type=mode)
             pnl_week = await fetch_realized_pnl(uid, days=7, account_type=mode)
             positions = await fetch_open_positions(uid, account_type=mode)
@@ -8205,8 +8259,12 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
 💎 *Total Equity:* ${total_equity:,.2f}
 💵 *Wallet Balance:* ${total_wallet:,.2f}
-✅ *Available for Trading:* ${available:,.2f}
-📊 *Margin Used:* ${used_margin:,.2f}
+
+💵 *USDT Trading Margin:*
+  • Wallet: {usdt_wallet:,.2f} USDT
+  • In Positions: {usdt_position_margin:,.2f} USDT
+  • In Orders: {usdt_order_margin:,.2f} USDT
+  ✅ *Available:* {usdt_available:,.2f} USDT
 
 📦 *Assets:*
 {assets_text}
