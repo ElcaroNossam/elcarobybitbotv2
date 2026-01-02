@@ -11793,6 +11793,9 @@ async def monitor_positions_loop(app: Application):
     # Key: (uid, symbol), Value: timestamp when last notification was sent
     _sl_notified = {}
     
+    # Track last stale cleanup time per user (run every 5 minutes)
+    _last_stale_cleanup = {}
+    
     # Track deep loss notifications (position without SL in deep loss)
     # Key: (uid, symbol), Value: timestamp when notification was sent
     _deep_loss_notified = {}
@@ -12765,6 +12768,28 @@ async def monitor_positions_loop(app: Application):
                     
                         # Save current symbols for next iteration to prevent duplicate notifications
                         _open_syms_prev[cache_key] = open_syms
+                        
+                        # === STALE POSITION CLEANUP (every 5 minutes per user/account) ===
+                        cleanup_key = f"{uid}:{current_exchange}:{current_account_type}"
+                        cleanup_interval = 300  # 5 minutes
+                        if now - _last_stale_cleanup.get(cleanup_key, 0) >= cleanup_interval:
+                            _last_stale_cleanup[cleanup_key] = now
+                            # Get DB positions for this account
+                            db_positions = get_active_positions(uid, account_type=current_account_type)
+                            # Find stale: in DB but not on exchange
+                            for db_pos in db_positions:
+                                db_sym = db_pos.get("symbol")
+                                if db_sym not in open_syms:
+                                    # Stale position - not on exchange anymore
+                                    logger.info(f"[STALE-CLEANUP] {uid} {db_sym} - removing from DB (not on exchange)")
+                                    try:
+                                        remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"))
+                                        reset_pyramid(uid, db_sym)
+                                        _atr_triggered.pop((uid, db_sym), None)
+                                        _sl_notified.pop((uid, db_sym), None)
+                                        _deep_loss_notified.pop((uid, db_sym), None)
+                                    except Exception as e:
+                                        logger.warning(f"[STALE-CLEANUP] Failed to remove {db_sym} for {uid}: {e}")
 
                 except Exception as e:
                     logger.error(f"Monitoring error for {uid}: {e}", exc_info=True)
