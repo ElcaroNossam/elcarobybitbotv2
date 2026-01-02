@@ -5344,6 +5344,12 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     atr_status = "✅" if use_atr else "❌"
     atr_label = "ATR Trailing" if use_atr else "Fixed SL/TP"
     
+    # ATR parameters (global defaults)
+    atr_trigger = cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
+    atr_step = cfg.get('atr_step_pct', 0.5)  # Default 0.5%
+    atr_period = cfg.get('atr_period', 14)   # Default 14 candles
+    atr_mult = cfg.get('atr_multiplier', 1.5)  # Default 1.5x ATR
+    
     # Limit ladder info
     ladder_enabled = cfg.get('limit_ladder_enabled', 0)
     ladder_count = cfg.get('limit_ladder_count', 3)
@@ -5369,6 +5375,14 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     lines.append(f"{order_emoji} Order type: *{order_label}*")
     lines.append(f"{mode_emoji} Account: *{mode_label}*")
     lines.append("")
+    # ATR Settings section
+    if use_atr:
+        lines.append(f"📈 *ATR Settings:*")
+        lines.append(f"  🎯 Trigger: *{atr_trigger}%* (activate trailing)")
+        lines.append(f"  📏 Step: *{atr_step}%* (SL move step)")
+        lines.append(f"  🕐 Period: *{atr_period}* candles")
+        lines.append(f"  ✖️ Multiplier: *{atr_mult}x* ATR")
+        lines.append("")
     lines.append(f"📈 {t.get('limit_ladder', 'Limit Ladder')}: {ladder_status} (*{ladder_count}* orders)")
     lines.append("")
     lines.append(t.get('global_settings_info', 'These settings are used as defaults when strategy-specific settings are not configured.'))
@@ -5381,6 +5395,7 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
         [InlineKeyboardButton(f"{atr_status} 📉 {atr_label}", callback_data="global_param:use_atr")],
         [InlineKeyboardButton(f"{order_emoji} Order: {order_label}", callback_data="global_param:order_type")],
         [InlineKeyboardButton(f"{mode_emoji} Account: {mode_label}", callback_data="global_param:trading_mode")],
+        [InlineKeyboardButton("⚙️ ATR Settings", callback_data="global_atr:settings")],
         [InlineKeyboardButton(f"{ladder_status} {t.get('limit_ladder', '📈 Limit Ladder')}", callback_data="global_ladder:toggle")],
         [InlineKeyboardButton(t.get('limit_ladder_settings', '⚙️ Ladder Settings'), callback_data="global_ladder:settings")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
@@ -5394,6 +5409,56 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
         )
     except Exception as e:
         logger.error(f"Error editing global settings message: {e}")
+        await query.message.edit_text(
+            "\n".join(lines),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+
+async def _show_global_atr_settings_menu(query, uid: int, t: dict):
+    """Helper to display Global ATR Settings menu."""
+    cfg = get_user_config(uid)
+    
+    atr_trigger = cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
+    atr_step = cfg.get('atr_step_pct', 0.5)
+    atr_period = cfg.get('atr_period', 14)
+    atr_mult = cfg.get('atr_multiplier', 1.5)
+    use_atr = cfg.get('use_atr', 1)
+    
+    lines = [t.get('atr_settings_header', '📈 *Global ATR Settings*')]
+    lines.append("")
+    lines.append(f"📊 ATR Mode: {'✅ Enabled' if use_atr else '❌ Disabled'}")
+    lines.append("")
+    lines.append(t.get('atr_settings_desc', '_ATR (Average True Range) is used for dynamic trailing stop-loss._'))
+    lines.append("")
+    lines.append(f"🎯 *Trigger %*: {atr_trigger}%")
+    lines.append(t.get('atr_trigger_desc', '   _Profit % to activate trailing_'))
+    lines.append("")
+    lines.append(f"📏 *Step %*: {atr_step}%")
+    lines.append(t.get('atr_step_desc', '   _Min % move to update SL_'))
+    lines.append("")
+    lines.append(f"🕐 *Period*: {atr_period} candles")
+    lines.append(t.get('atr_period_desc', '   _Candles for ATR calculation_'))
+    lines.append("")
+    lines.append(f"✖️ *Multiplier*: {atr_mult}x ATR")
+    lines.append(t.get('atr_mult_desc', '   _Distance from price for SL_'))
+    
+    buttons = [
+        [InlineKeyboardButton(f"🎯 Trigger: {atr_trigger}%", callback_data="global_atr:trigger")],
+        [InlineKeyboardButton(f"📏 Step: {atr_step}%", callback_data="global_atr:step")],
+        [InlineKeyboardButton(f"🕐 Period: {atr_period}", callback_data="global_atr:period")],
+        [InlineKeyboardButton(f"✖️ Multiplier: {atr_mult}x", callback_data="global_atr:mult")],
+        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:global")],
+    ]
+    
+    try:
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        logger.error(f"Error editing ATR settings message: {e}")
         await query.message.edit_text(
             "\n".join(lines),
             reply_markup=InlineKeyboardMarkup(buttons)
@@ -5529,6 +5594,70 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         set_trading_mode(uid, new_mode)
         # Return directly to global settings with updated value
         return await _show_global_settings_menu(query, uid, t)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # ██  GLOBAL ATR SETTINGS HANDLERS  ██
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    # Show ATR settings menu
+    if data == "global_atr:settings":
+        return await _show_global_atr_settings_menu(query, uid, t)
+    
+    # ATR Trigger %
+    if data == "global_atr:trigger":
+        ctx.user_data["global_setting_mode"] = "atr_trigger_pct"
+        await query.message.edit_text(
+            t.get('atr_trigger_prompt', '🎯 *ATR Trigger %*\n\nEnter the profit % at which ATR trailing stop activates.\n\nCurrent: {current}%\n\nExample: 1 = activate when +1% profit').format(
+                current=cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
+            ])
+        )
+        return
+    
+    # ATR Step %
+    if data == "global_atr:step":
+        ctx.user_data["global_setting_mode"] = "atr_step_pct"
+        await query.message.edit_text(
+            t.get('atr_step_prompt', '📏 *ATR Step %*\n\nEnter the minimum % move to trail SL.\n\nCurrent: {current}%\n\nExample: 0.5 = move SL when price moves +0.5%').format(
+                current=cfg.get('atr_step_pct', 0.5)
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
+            ])
+        )
+        return
+    
+    # ATR Period
+    if data == "global_atr:period":
+        ctx.user_data["global_setting_mode"] = "atr_period"
+        await query.message.edit_text(
+            t.get('atr_period_prompt', '🕐 *ATR Period*\n\nEnter the number of candles for ATR calculation.\n\nCurrent: {current}\n\nExample: 14 = use 14 candles').format(
+                current=cfg.get('atr_period', 14)
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
+            ])
+        )
+        return
+    
+    # ATR Multiplier
+    if data == "global_atr:mult":
+        ctx.user_data["global_setting_mode"] = "atr_multiplier"
+        await query.message.edit_text(
+            t.get('atr_mult_prompt', '✖️ *ATR Multiplier*\n\nEnter the ATR multiplier for SL distance.\n\nCurrent: {current}x\n\nExample: 1.5 = SL at 1.5 × ATR from price').format(
+                current=cfg.get('atr_multiplier', 1.5)
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
+            ])
+        )
+        return
     
     # Limit ladder toggle
     if data == "global_ladder:toggle":
@@ -7169,6 +7298,25 @@ async def place_spot_order(
     """
     import uuid
     order_link_id = f"spot_{uuid.uuid4().hex[:20]}"
+    
+    # Get instrument info for proper qty rounding (fix "too many decimals" error)
+    if side == "Sell" or order_type == "Limit":
+        try:
+            inst_info = await get_spot_instrument_info(user_id, symbol, account_type)
+            if inst_info:
+                # basePrecision is the decimal precision for base coin qty
+                base_precision = inst_info.get("lotSizeFilter", {}).get("basePrecision", "0.00001")
+                # Calculate decimal places from precision string
+                if "." in base_precision:
+                    decimals = len(base_precision.split(".")[1].rstrip("0")) or 1
+                else:
+                    decimals = 0
+                # Round qty to proper precision
+                import math
+                qty = math.floor(qty * (10 ** decimals)) / (10 ** decimals)
+                logger.debug(f"Spot order qty rounded to {decimals} decimals: {qty}")
+        except Exception as e:
+            logger.warning(f"Could not get spot instrument info for rounding: {e}")
     
     body = {
         "category": "spot",
@@ -14782,6 +14930,20 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if value < 1 or value > 100 or int(value) != value:
                     raise ValueError("Leverage must be integer between 1 and 100")
                 value = int(value)
+            # ATR settings validation
+            elif global_setting == "atr_trigger_pct":
+                if value < 0.1 or value > 50:
+                    raise ValueError("ATR Trigger must be between 0.1 and 50")
+            elif global_setting == "atr_step_pct":
+                if value < 0.1 or value > 20:
+                    raise ValueError("ATR Step must be between 0.1 and 20")
+            elif global_setting == "atr_period":
+                if value < 1 or value > 100 or int(value) != value:
+                    raise ValueError("ATR Period must be integer between 1 and 100")
+                value = int(value)
+            elif global_setting == "atr_multiplier":
+                if value < 0.1 or value > 10:
+                    raise ValueError("ATR Multiplier must be between 0.1 and 10")
             
             logger.info(f"[GLOBAL-SETTING] uid={uid} saving {global_setting}={value}")
             set_user_field(uid, global_setting, value)
@@ -14791,8 +14953,20 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "percent": "Entry %",
                 "sl_percent": "SL %",
                 "tp_percent": "TP %",
-                "leverage": "Leverage"
+                "leverage": "Leverage",
+                "atr_trigger_pct": "ATR Trigger %",
+                "atr_step_pct": "ATR Step %",
+                "atr_period": "ATR Period",
+                "atr_multiplier": "ATR Multiplier",
             }
+            
+            # Check if ATR setting - go back to ATR menu
+            if global_setting.startswith("atr_"):
+                await update.message.reply_text(
+                    f"✅ {param_names.get(global_setting, global_setting)} → *{value}*\n\nUpdated successfully!",
+                    parse_mode="Markdown"
+                )
+                return
             
             # Get updated config for settings display
             cfg = get_user_config(uid)

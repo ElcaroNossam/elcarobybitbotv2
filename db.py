@@ -64,6 +64,11 @@ USER_FIELDS_WHITELIST = {
     "tp_percent", "sl_percent", "tp_pct", "sl_pct",  # aliases
     "leverage",  # global leverage
     "use_atr", "lang",
+    # ATR settings (global)
+    "atr_trigger_pct",   # % profit to activate ATR trailing (default 1.0)
+    "atr_step_pct",      # min % move to trail SL (default 0.5)
+    "atr_period",        # candles for ATR calculation (default 14)
+    "atr_multiplier",    # ATR multiplier for SL distance (default 1.5)
     "global_order_type",  # 'market', 'limit' - global default order type
     "exchange_type",  # 'bybit', 'hyperliquid'
     # стратегии/пороги (опционально)
