@@ -9958,9 +9958,9 @@ async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: 
         f"└ {t.get('stats_period', 'Period')}: 📅 {period_label}",
         "",
         f"*{t.get('stats_spot_config', 'Configuration')}*",
-        f"├─ {t.get('spot_coins', 'Coins')}: {coins_str}",
-        f"├─ {t.get('spot_dca_amount', 'DCA Amount')}: ${dca_amount:.2f}",
-        f"└─ {t.get('spot_auto_dca', 'Auto DCA')}: {auto_status}",
+        f"├─ 🪙 {t.get('spot_coins_label', 'Coins')}: {coins_str}",
+        f"├─ 💵 {t.get('spot_dca_amount_label', 'DCA Amount')}: ${dca_amount:.2f}",
+        f"└─ 🔄 {t.get('spot_auto_dca_label', 'Auto DCA')}: {auto_status}",
         "",
         f"*{t.get('stats_spot_holdings', 'Holdings')}*",
     ]
