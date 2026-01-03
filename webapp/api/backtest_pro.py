@@ -963,7 +963,7 @@ async def market_replay(websocket: WebSocket, session_id: str):
                     elif msg.get("action") == "resume":
                         paused = False
                     elif msg.get("action") == "speed":
-                        speed = msg.get("value", 1.0)
+                        speed = max(0.1, float(msg.get("value", 1.0)))  # Prevent division by zero
                     elif msg.get("action") == "stop":
                         break
                 except asyncio.TimeoutError:

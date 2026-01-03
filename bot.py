@@ -603,7 +603,7 @@ def require_access(func):
         if _is_banned(uid):
             try:
                 await ctx.bot.send_message(uid, t.get("banned", "You are blocked."))
-            except:
+            except Exception:
                 pass
             return
 
@@ -613,7 +613,7 @@ def require_access(func):
                 return await func(update, ctx, *args, **kw)
             try:
                 await ctx.bot.send_message(uid, t.get("invite_only", "Access by invitation. Wait for the admin's decision."))
-            except:
+            except Exception:
                 pass
             return
 
@@ -2513,7 +2513,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     if user_id is None and update is not None:
         try:
             user_id = update.effective_user.id
-        except:
+        except Exception:
             pass
     
     # Get active exchange and trading mode

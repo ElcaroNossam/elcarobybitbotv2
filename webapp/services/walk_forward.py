@@ -12,6 +12,7 @@ Features:
 - Out-of-sample validation
 """
 import asyncio
+import ast
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional, Callable
 from dataclasses import dataclass
@@ -312,8 +313,8 @@ class WalkForwardOptimizer:
             param_key = str(sorted(result.params.items()))
             param_frequency[param_key] = param_frequency.get(param_key, 0) + 1
         
-        most_common_params = max(param_frequency.items(), key=lambda x: x[1])[0] if param_frequency else "{}"
-        best_params = eval(most_common_params)  # Convert back to dict
+        most_common_params = max(param_frequency.items(), key=lambda x: x[1])[0] if param_frequency else "[]"
+        best_params = ast.literal_eval(most_common_params)  # Safe: only parses literals
         
         return WalkForwardResult(
             periods=len(periods),

@@ -8,6 +8,9 @@ import json
 import asyncio
 import aiohttp
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -56,7 +59,7 @@ class BybitOrderbookStream:
                         elif msg.type == aiohttp.WSMsgType.ERROR:
                             break
         except Exception as e:
-            print(f"Bybit WS error: {e}")
+            logger.error(f"Bybit WS error: {e}")
         finally:
             self.running = False
     
@@ -215,7 +218,7 @@ class TradesStream:
                         elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                             break
         except Exception as e:
-            print(f"Trades stream error: {e}")
+            logger.error(f"Trades stream error: {e}")
         finally:
             self.running = False
     
@@ -772,7 +775,7 @@ async def fetch_current_price(symbol: str) -> dict:
                         "fundingRate": float(ticker.get("fundingRate", 0)) * 100
                     }
     except Exception as e:
-        print(f"Price fetch error: {e}")
+        logger.error(f"Price fetch error: {e}")
     
     return {"symbol": symbol, "price": 0, "change24h": 0}
 

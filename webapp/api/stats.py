@@ -6,6 +6,9 @@ from typing import Optional
 from datetime import datetime, timedelta
 import sys
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -25,7 +28,7 @@ async def get_dashboard_stats(
     try:
         import db
         uid = user["user_id"]
-        print(f"[STATS DEBUG] user_id={uid}, exchange={exchange}, strategy={strategy}, period={period}")
+        logger.debug(f"Dashboard stats: user_id={uid}, exchange={exchange}, strategy={strategy}, period={period}")
         
         # Parse period
         days = {"7d": 7, "30d": 30, "90d": 90, "all": 365}.get(period, 30)
@@ -36,7 +39,7 @@ async def get_dashboard_stats(
         trades = db.get_trade_logs_list(uid, limit=1000, 
                                         strategy=strategy if strategy != "all" else None,
                                         exchange=None) or []  # Fixed: ignore exchange filter
-        print(f"[STATS DEBUG] trades returned: {len(trades)}")
+        logger.debug(f"Trades returned: {len(trades)}")
         
         # Filter by period
         filtered_trades = []
@@ -53,7 +56,7 @@ async def get_dashboard_stats(
             if trade_time >= start_date:
                 filtered_trades.append(t)
         
-        print(f"[STATS DEBUG] filtered trades: {len(filtered_trades)} (period={days}d, start={start_date})")
+        logger.debug(f"Filtered trades: {len(filtered_trades)} (period={days}d, start={start_date})")
         
         # Calculate summary statistics
         if not filtered_trades:

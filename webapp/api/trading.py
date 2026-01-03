@@ -485,7 +485,7 @@ async def get_orders(
                 {
                     "id": o.get("orderId"),
                     "symbol": o.get("symbol"),
-                    "side": o.get("side").lower() if o.get("side") else "buy",
+                    "side": (o.get("side") or "Buy").lower(),  # Safe: default to "Buy" if None
                     "type": o.get("orderType", "Limit"),
                     "price": float(o.get("price", 0)),
                     "size": float(o.get("qty", 0)),

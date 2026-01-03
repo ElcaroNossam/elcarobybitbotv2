@@ -73,7 +73,11 @@ class SubmitSignedOrderRequest(BaseModel):
 
 @router.get("/elc/info")
 async def get_elc_info():
-    """Get ELCARO token information and current price"""
+    """Get ELCARO token information and current price
+    
+    NOTE: Token contracts not yet deployed. Values are placeholders.
+    DO NOT use contract_addresses in production until real addresses are set.
+    """
     return {
         "token_name": "ELCARO Token",
         "ticker": "ELC",
@@ -84,9 +88,10 @@ async def get_elc_info():
         "networks": ["TON", "Polygon", "BSC"],
         "primary_network": "TON",
         "contract_addresses": {
-            "ton": "EQXXXX...",  # Add real contract
-            "polygon": "0x...",
-            "bsc": "0x..."
+            # PLACEHOLDER: Replace with real contract addresses before launch
+            "ton": None,  # TODO: Deploy and add TON contract
+            "polygon": None,  # TODO: Deploy and add Polygon contract
+            "bsc": None  # TODO: Deploy and add BSC contract
         },
         "dex_pairs": {
             "ton": ["ELC/TON", "ELC/USDT"],

@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import time
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from urllib.parse import parse_qs
@@ -19,6 +20,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from coin_params import ADMIN_ID
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -92,7 +95,7 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
         
         return None
     except Exception as e:
-        print(f"WebApp auth error: {e}")
+        logger.error(f"WebApp auth error: {e}")
         return None
 
 

@@ -12,12 +12,13 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-# Try to import OpenAI
+# Try to import OpenAI (optional dependency)
 try:
-    import openai
+    import openai  # type: ignore[import-unresolved]
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
+    openai = None  # type: ignore[assignment]
     logger.warning("OpenAI not installed. AI strategy generation will use fallback templates.")
 
 
