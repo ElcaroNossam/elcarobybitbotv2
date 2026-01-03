@@ -777,10 +777,10 @@ TEXTS = {
 ✅ 基于ATR的动态SL/TP
 ✅ 限价梯子DCA
 ✅ 所有未来更新''',
-    'premium_1m': '💎 1个月 — {price}⭐',
-    'premium_3m': '💎 3个月 — {price}⭐ (-15%)',
-    'premium_6m': '💎 6个月 — {price}⭐ (-25%)',
-    'premium_12m': '💎 12个月 — {price}⭐ (-35%)',
+    'premium_1m': '💎 1个月 — {price} TRC',
+    'premium_3m': '💎 3个月 — {price} TRC (-10%)',
+    'premium_6m': '💎 6个月 — {price} TRC (-20%)',
+    'premium_12m': '💎 12个月 — {price} TRC (-30%)',
     
     'basic_title': '🥈 *基础计划*',
     'basic_desc': '''✅ 完全访问模拟账户
@@ -788,7 +788,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — 仅限Premium
 ✅ 标准支持
 ✅ 基于ATR的动态SL/TP''',
-    'basic_1m': '🥈 1个月 — {price}⭐',
+    'basic_1m': '🥈 1个月 — {price} TRC',
     
     'trial_title': '🎁 *试用计划（免费）*',
     'trial_desc': '''✅ 完全访问模拟账户
@@ -801,10 +801,10 @@ TEXTS = {
     'trial_activated': '🎉 试用已激活！您有7天完整模拟访问权限。',
     
     'payment_select_method': '💳 *选择支付方式*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ 通过Telegram Stars支付',
-    'payment_stars_desc': '将收取{amount}⭐用于{plan}（{period}）。',
+    'payment_trc_title': ' 通过TRC支付',
+    'payment_trc_desc': '将收取{amount} TRC用于{plan}（{period}）。',
     'payment_ton_title': '💎 通过TON支付',
     'payment_ton_desc': '''发送正好*{amount} TON*到:
 
@@ -889,7 +889,7 @@ TEXTS = {
 
 💳 *支付:*
   总计: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *首次访问:* {first_seen}
 🕐 *最后访问:* {last_seen}

@@ -1493,6 +1493,20 @@ async def reward_trc(user_id: int, amount: float, reason: str = "bonus") -> Tupl
 
 
 # ============================================
+# CURRENCY CONVERSION HELPERS
+# ============================================
+
+def usdt_to_trc(usdt_amount: float) -> float:
+    """Convert USDT to TRC (1:1 rate)"""
+    return usdt_amount * TRC_TO_USDT_RATE
+
+
+def trc_to_usdt(trc_amount: float) -> float:
+    """Convert TRC to USDT (1:1 rate)"""
+    return trc_amount / TRC_TO_USDT_RATE
+
+
+# ============================================
 # PRICE CONVERSION (for license payments)
 # ============================================
 

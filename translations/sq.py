@@ -777,10 +777,10 @@ TEXTS = {
 ✅ SL/TP dinamik bazuar në ATR
 ✅ Shkallë limitesh DCA
 ✅ Të gjitha përditësimet e ardhshme''',
-    'premium_1m': '💎 1 Muaj — {price}⭐',
-    'premium_3m': '💎 3 Muaj — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 Muaj — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 Muaj — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 Muaj — {price} TRC',
+    'premium_3m': '💎 3 Muaj — {price} TRC (-10%)',
+    'premium_6m': '💎 6 Muaj — {price} TRC (-20%)',
+    'premium_12m': '💎 12 Muaj — {price} TRC (-30%)',
     
     'basic_title': '🥈 *PLANI BASIC*',
     'basic_desc': '''✅ Akses i plotë në llogarinë demo
@@ -788,7 +788,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — vetëm Premium
 ✅ Mbështetje standarde
 ✅ SL/TP dinamik bazuar në ATR''',
-    'basic_1m': '🥈 1 Muaj — {price}⭐',
+    'basic_1m': '🥈 1 Muaj — {price} TRC',
     
     'trial_title': '🎁 *PLANI PROVË (FALAS)*',
     'trial_desc': '''✅ Akses i plotë në llogarinë demo
@@ -801,10 +801,10 @@ TEXTS = {
     'trial_activated': '🎉 Prova u aktivizua! Keni 7 ditë akses demo të plotë.',
     
     'payment_select_method': '💳 *Zgjidhni Metodën e Pagesës*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Pagesë nëpërmjet Telegram Stars',
-    'payment_stars_desc': 'Do të tarifoheni {amount}⭐ për {plan} ({period}).',
+    'payment_trc_title': ' Pagesë nëpërmjet TRC',
+    'payment_trc_desc': 'Do të tarifoheni {amount} TRC për {plan} ({period}).',
     'payment_ton_title': '💎 Pagesë nëpërmjet TON',
     'payment_ton_desc': '''Dërgoni saktësisht *{amount} TON* në:
 
@@ -889,7 +889,7 @@ Pas pagesës, klikoni butonin më poshtë për verifikim.''',
 
 💳 *Pagesat:*
   Totali: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *Parë e parë:* {first_seen}
 🕐 *Parë e fundit:* {last_seen}

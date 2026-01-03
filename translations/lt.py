@@ -778,10 +778,10 @@ TEXTS = {
 ✅ Dinaminis SL/TP pagal ATR
 ✅ Limitų kopetėlės DCA
 ✅ Visi būsimi atnaujinimai''',
-    'premium_1m': '💎 1 mėnuo — {price}⭐',
-    'premium_3m': '💎 3 mėnesiai — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 mėnesiai — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 mėnesių — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 mėnuo — {price} TRC',
+    'premium_3m': '💎 3 mėnesiai — {price} TRC (-10%)',
+    'premium_6m': '💎 6 mėnesiai — {price} TRC (-20%)',
+    'premium_12m': '💎 12 mėnesių — {price} TRC (-30%)',
     
     'basic_title': '🥈 *BASIC PLANAS*',
     'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
@@ -789,7 +789,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — tik Premium
 ✅ Standartinė pagalba
 ✅ Dinaminis SL/TP pagal ATR''',
-    'basic_1m': '🥈 1 mėnuo — {price}⭐',
+    'basic_1m': '🥈 1 mėnuo — {price} TRC',
     
     'trial_title': '🎁 *BANDOMASIS PLANAS (NEMOKAMA)*',
     'trial_desc': '''✅ Pilna prieiga prie demo sąskaitos
@@ -802,10 +802,10 @@ TEXTS = {
     'trial_activated': '🎉 Bandomoji versija aktyvuota! Turite 7 dienas pilnos demo prieigos.',
     
     'payment_select_method': '💳 *Pasirinkite mokėjimo būdą*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Mokėjimas per Telegram Stars',
-    'payment_stars_desc': 'Bus nuskaičiuota {amount}⭐ už {plan} ({period}).',
+    'payment_trc_title': ' Mokėjimas per TRC',
+    'payment_trc_desc': 'Bus nuskaičiuota {amount} TRC už {plan} ({period}).',
     'payment_ton_title': '💎 Mokėjimas per TON',
     'payment_ton_desc': '''Siųskite tiksliai *{amount} TON* į:
 
@@ -890,7 +890,7 @@ Po mokėjimo paspauskite mygtuką žemiau patikrinimui.''',
 
 💳 *Mokėjimai:*
   Viso: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *Pirmas apsilankymas:* {first_seen}
 🕐 *Paskutinis apsilankymas:* {last_seen}

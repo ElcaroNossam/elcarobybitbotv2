@@ -783,10 +783,10 @@ TEXTS = {
 ✅ SL/TP ديناميكي مبني على ATR
 ✅ سلم الليمت DCA
 ✅ جميع التحديثات المستقبلية''',
-    'premium_1m': '💎 1 شهر — {price}⭐',
-    'premium_3m': '💎 3 أشهر — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 أشهر — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 شهر — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 شهر — {price} TRC',
+    'premium_3m': '💎 3 أشهر — {price} TRC (-10%)',
+    'premium_6m': '💎 6 أشهر — {price} TRC (-20%)',
+    'premium_12m': '💎 12 شهر — {price} TRC (-30%)',
     
     'basic_title': '🥈 *خطة BASIC*',
     'basic_desc': '''✅ وصول كامل للحساب التجريبي
@@ -794,7 +794,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — Premium فقط
 ✅ دعم عادي
 ✅ SL/TP ديناميكي مبني على ATR''',
-    'basic_1m': '🥈 1 شهر — {price}⭐',
+    'basic_1m': '🥈 1 شهر — {price} TRC',
     
     'trial_title': '🎁 *خطة التجربة (مجاني)*',
     'trial_desc': '''✅ وصول كامل للحساب التجريبي
@@ -807,10 +807,10 @@ TEXTS = {
     'trial_activated': '🎉 تم تفعيل التجربة! لديك 7 أيام من الوصول التجريبي الكامل.',
     
     'payment_select_method': '💳 *اختر طريقة الدفع*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ الدفع عبر Telegram Stars',
-    'payment_stars_desc': 'سيتم خصم {amount}⭐ مقابل {plan} ({period}).',
+    'payment_trc_title': ' الدفع عبر TRC',
+    'payment_trc_desc': 'سيتم خصم {amount} TRC مقابل {plan} ({period}).',
     'payment_ton_title': '💎 الدفع عبر TON',
     'payment_ton_desc': '''أرسل بالضبط *{amount} TON* إلى:
 
@@ -895,7 +895,7 @@ TEXTS = {
 
 💳 *المدفوعات:*
   الإجمالي: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *أول ظهور:* {first_seen}
 🕐 *آخر ظهور:* {last_seen}

@@ -777,10 +777,10 @@ TEXTS = {
 ✅ SL/TP דינמי מבוסס ATR
 ✅ סולם לימיט DCA
 ✅ כל העדכונים העתידיים''',
-    'premium_1m': '💎 חודש 1 — {price}⭐',
-    'premium_3m': '💎 3 חודשים — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 חודשים — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 חודשים — {price}⭐ (-35%)',
+    'premium_1m': '💎 חודש 1 — {price} TRC',
+    'premium_3m': '💎 3 חודשים — {price} TRC (-10%)',
+    'premium_6m': '💎 6 חודשים — {price} TRC (-20%)',
+    'premium_12m': '💎 12 חודשים — {price} TRC (-30%)',
     
     'basic_title': '🥈 *תוכנית BASIC*',
     'basic_desc': '''✅ גישה מלאה לחשבון דמו
@@ -788,7 +788,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — Premium בלבד
 ✅ תמיכה רגילה
 ✅ SL/TP דינמי מבוסס ATR''',
-    'basic_1m': '🥈 חודש 1 — {price}⭐',
+    'basic_1m': '🥈 חודש 1 — {price} TRC',
     
     'trial_title': '🎁 *תוכנית ניסיון (חינם)*',
     'trial_desc': '''✅ גישה מלאה לחשבון דמו
@@ -801,10 +801,10 @@ TEXTS = {
     'trial_activated': '🎉 ניסיון הופעל! יש לך 7 ימים של גישה מלאה לדמו.',
     
     'payment_select_method': '💳 *בחר אמצעי תשלום*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ תשלום דרך Telegram Stars',
-    'payment_stars_desc': 'יחויבו {amount}⭐ עבור {plan} ({period}).',
+    'payment_trc_title': ' תשלום דרך TRC',
+    'payment_trc_desc': 'יחויבו {amount} TRC עבור {plan} ({period}).',
     'payment_ton_title': '💎 תשלום דרך TON',
     'payment_ton_desc': '''שלח בדיוק *{amount} TON* ל:
 
@@ -889,7 +889,7 @@ TEXTS = {
 
 💳 *תשלומים:*
   סה"כ: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *נראה לראשונה:* {first_seen}
 🕐 *נראה לאחרונה:* {last_seen}

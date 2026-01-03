@@ -777,10 +777,10 @@ TEXTS = {
 ✅ ATRベースの動的SL/TP
 ✅ リミットラダーDCA
 ✅ 将来の全アップデート''',
-    'premium_1m': '💎 1ヶ月 — {price}⭐',
-    'premium_3m': '💎 3ヶ月 — {price}⭐ (-15%)',
-    'premium_6m': '💎 6ヶ月 — {price}⭐ (-25%)',
-    'premium_12m': '💎 12ヶ月 — {price}⭐ (-35%)',
+    'premium_1m': '💎 1ヶ月 — {price} TRC',
+    'premium_3m': '💎 3ヶ月 — {price} TRC (-10%)',
+    'premium_6m': '💎 6ヶ月 — {price} TRC (-20%)',
+    'premium_12m': '💎 12ヶ月 — {price} TRC (-30%)',
     
     'basic_title': '🥈 *ベーシックプラン*',
     'basic_desc': '''✅ デモ口座へのフルアクセス
@@ -788,7 +788,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — Premiumのみ
 ✅ 標準サポート
 ✅ ATRベースの動的SL/TP''',
-    'basic_1m': '🥈 1ヶ月 — {price}⭐',
+    'basic_1m': '🥈 1ヶ月 — {price} TRC',
     
     'trial_title': '🎁 *トライアルプラン（無料）*',
     'trial_desc': '''✅ デモ口座へのフルアクセス
@@ -801,10 +801,10 @@ TEXTS = {
     'trial_activated': '🎉 トライアル有効化！7日間のフルデモアクセスがあります。',
     
     'payment_select_method': '💳 *支払い方法を選択*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Telegram Starsでの支払い',
-    'payment_stars_desc': '{plan}（{period}）に{amount}⭐が請求されます。',
+    'payment_trc_title': '◈ Triacelo Coin (TRC)での支払い',
+    'payment_trc_desc': '{plan}（{period}）に{amount} TRCが請求されます。',
     'payment_ton_title': '💎 TONでの支払い',
     'payment_ton_desc': '''正確に*{amount} TON*を以下に送金:
 
@@ -889,7 +889,7 @@ TEXTS = {
 
 💳 *支払い:*
   合計: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *初回: {first_seen}
 🕐 *最終: {last_seen}

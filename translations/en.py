@@ -762,10 +762,10 @@ TEXTS = {
 ✅ ATR-based dynamic SL/TP
 ✅ Limit ladder DCA
 ✅ All future updates''',
-    'premium_1m': '💎 1 Month — {price}⭐',
-    'premium_3m': '💎 3 Months — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 Months — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 Months — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 Month — {price} TRC',
+    'premium_3m': '💎 3 Months — {price} TRC (-10%)',
+    'premium_6m': '💎 6 Months — {price} TRC (-20%)',
+    'premium_12m': '💎 12 Months — {price} TRC (-30%)',
     
     # Basic plan
     'basic_title': '🥈 *BASIC PLAN*',
@@ -774,7 +774,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — Premium only
 ✅ Standard support
 ✅ ATR-based dynamic SL/TP''',
-    'basic_1m': '🥈 1 Month — {price}⭐',
+    'basic_1m': '🥈 1 Month — {price} TRC',
     
     # Trial plan
     'trial_title': '🎁 *TRIAL PLAN (FREE)*',

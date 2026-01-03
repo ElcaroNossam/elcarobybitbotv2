@@ -774,10 +774,10 @@ TEXTS = {
 ✅ Динамічний SL/TP на основі ATR
 ✅ Лімітна драбина DCA
 ✅ Всі майбутні оновлення''',
-    'premium_1m': '💎 1 Місяць — {price}⭐',
-    'premium_3m': '💎 3 Місяці — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 Місяців — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 Місяців — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 Місяць — {price} TRC',
+    'premium_3m': '💎 3 Місяці — {price} TRC (-10%)',
+    'premium_6m': '💎 6 Місяців — {price} TRC (-20%)',
+    'premium_12m': '💎 12 Місяців — {price} TRC (-30%)',
     
     # Basic plan
     'basic_title': '🥈 *БАЗОВИЙ ПЛАН*',
@@ -786,7 +786,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — лише Premium
 ✅ Стандартна підтримка
 ✅ Динамічний SL/TP на основі ATR''',
-    'basic_1m': '🥈 1 Місяць — {price}⭐',
+    'basic_1m': '🥈 1 Місяць — {price} TRC',
     
     # Trial plan
     'trial_title': '🎁 *ПРОБНИЙ ПЛАН (БЕЗКОШТОВНО)*',
@@ -801,10 +801,10 @@ TEXTS = {
     
     # Payment
     'payment_select_method': '💳 *Оберіть спосіб оплати*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Оплата через Telegram Stars',
-    'payment_stars_desc': 'З вас буде списано {amount}⭐ за {plan} ({period}).',
+    'payment_trc_title': ' Оплата через TRC',
+    'payment_trc_desc': 'З вас буде списано {amount} TRC за {plan} ({period}).',
     'payment_ton_title': '💎 Оплата через TON',
     'payment_ton_desc': '''Надішліть рівно *{amount} TON* на:
 
@@ -896,7 +896,7 @@ TEXTS = {
 
 💳 *Платежі:*
   Всього: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *Перший візит:* {first_seen}
 🕐 *Останній візит:* {last_seen}

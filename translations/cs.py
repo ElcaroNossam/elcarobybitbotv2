@@ -777,10 +777,10 @@ TEXTS = {
 ✅ Dynamický SL/TP založený na ATR
 ✅ Limitní žebřík DCA
 ✅ Všechny budoucí aktualizace''',
-    'premium_1m': '💎 1 měsíc — {price}⭐',
-    'premium_3m': '💎 3 měsíce — {price}⭐ (-15%)',
-    'premium_6m': '💎 6 měsíců — {price}⭐ (-25%)',
-    'premium_12m': '💎 12 měsíců — {price}⭐ (-35%)',
+    'premium_1m': '💎 1 měsíc — {price} TRC',
+    'premium_3m': '💎 3 měsíce — {price} TRC (-10%)',
+    'premium_6m': '💎 6 měsíců — {price} TRC (-20%)',
+    'premium_12m': '💎 12 měsíců — {price} TRC (-30%)',
     
     'basic_title': '🥈 *BASIC PLÁN*',
     'basic_desc': '''✅ Plný přístup k demo účtu
@@ -788,7 +788,7 @@ TEXTS = {
 ❌ Elcaro, Fibonacci, Spot — pouze Premium
 ✅ Standardní podpora
 ✅ Dynamický SL/TP založený na ATR''',
-    'basic_1m': '🥈 1 měsíc — {price}⭐',
+    'basic_1m': '🥈 1 měsíc — {price} TRC',
     
     'trial_title': '🎁 *ZKUŠEBNÍ PLÁN (ZDARMA)*',
     'trial_desc': '''✅ Plný přístup k demo účtu
@@ -801,10 +801,10 @@ TEXTS = {
     'trial_activated': '🎉 Zkušební verze aktivována! Máte 7 dní plného demo přístupu.',
     
     'payment_select_method': '💳 *Vyberte způsob platby*',
-    'btn_pay_stars': '⭐ Telegram Stars',
+    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Platba přes Telegram Stars',
-    'payment_stars_desc': 'Bude vám účtováno {amount}⭐ za {plan} ({period}).',
+    'payment_trc_title': ' Platba přes TRC',
+    'payment_trc_desc': 'Bude vám účtováno {amount} TRC za {plan} ({period}).',
     'payment_ton_title': '💎 Platba přes TON',
     'payment_ton_desc': '''Pošlete přesně *{amount} TON* na:
 
@@ -889,7 +889,7 @@ Po platbě klikněte na tlačítko níže pro ověření.''',
 
 💳 *Platby:*
   Celkem: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc}
 
 📅 *První návštěva:* {first_seen}
 🕐 *Poslední návštěva:* {last_seen}

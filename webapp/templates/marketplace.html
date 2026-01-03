@@ -499,7 +499,7 @@
         .payment-icon.ton {
             background: linear-gradient(135deg, #0088cc, #00aaff);
         }
-        .payment-icon.stars {
+        .payment-icon.trc {
             background: linear-gradient(135deg, #ffc107, #ff9800);
         }
         .payment-details h4 {
@@ -742,15 +742,15 @@
                     </div>
                     <div class="payment-price" id="tonPrice"></div>
                 </div>
-                <div class="payment-option" data-method="stars">
-                    <div class="payment-icon stars">
+                <div class="payment-option" data-method="trc">
+                    <div class="payment-icon trc">
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="payment-details">
-                        <h4>Telegram Stars</h4>
-                        <p>Pay with Telegram Stars</p>
+                        <h4>Triacelo Coin (TRC)</h4>
+                        <p>Pay with Triacelo Coin (TRC)</p>
                     </div>
-                    <div class="payment-price" id="starsPrice"></div>
+                    <div class="payment-price" id="trcPrice"></div>
                 </div>
             </div>
             
@@ -806,7 +806,7 @@
                         max_drawdown: l.max_drawdown || 0,
                         indicators: parseIndicators(l.config),
                         price_ton: l.price_ton || 0,
-                        price_stars: l.price_stars || 0,
+                        price_trc: l.price_trc || 0,
                         is_verified: l.rating >= 4.5,
                         is_popular: l.total_sales > 10,
                         is_new: (Date.now()/1000 - (l.created_at || 0)) < 604800,
@@ -857,7 +857,7 @@
                     max_drawdown: 12.3,
                     indicators: ["RSI", "Bollinger Bands", "OI", "ATR"],
                     price_ton: 50,
-                    price_stars: 2500,
+                    price_trc: 2500,
                     is_verified: true,
                     is_popular: true,
                     rating: 4.8,
@@ -875,7 +875,7 @@
                     max_drawdown: 8.5,
                     indicators: ["Wyckoff", "Volume Profile", "VWAP"],
                     price_ton: 35,
-                    price_stars: 1750,
+                    price_trc: 1750,
                     is_verified: true,
                     is_popular: false,
                     rating: 4.6,
@@ -893,7 +893,7 @@
                     max_drawdown: 18.7,
                     indicators: ["ML Model", "EMA", "MACD", "ATR"],
                     price_ton: 75,
-                    price_stars: 3750,
+                    price_trc: 3750,
                     is_verified: false,
                     is_popular: true,
                     is_new: true,
@@ -912,7 +912,7 @@
                     max_drawdown: 5.2,
                     indicators: ["Grid", "DCA", "Support/Resistance"],
                     price_ton: 0,
-                    price_stars: 0,
+                    price_trc: 0,
                     is_verified: true,
                     is_popular: false,
                     rating: 4.2,
@@ -968,7 +968,7 @@
                         <div class="strategy-price">
                             ${s.price_ton > 0 ? `
                                 <span class="price-value">${s.price_ton} TON</span>
-                                <span class="price-label">or ${s.price_stars} ⭐</span>
+                                <span class="price-label">or ${s.price_trc} ◈</span>
                             ` : `
                                 <span class="price-value" style="color: var(--accent-blue)">FREE</span>
                                 <span class="price-label">${s.purchases || 0} downloads</span>
@@ -1050,7 +1050,7 @@
             
             document.getElementById('modalStrategyName').textContent = selectedStrategy.name;
             document.getElementById('tonPrice').textContent = selectedStrategy.price_ton + ' TON';
-            document.getElementById('starsPrice').textContent = selectedStrategy.price_stars + ' ⭐';
+            document.getElementById('trcPrice').textContent = selectedStrategy.price_trc + ' ◈';
             document.getElementById('paymentModal').classList.add('active');
         }
 
