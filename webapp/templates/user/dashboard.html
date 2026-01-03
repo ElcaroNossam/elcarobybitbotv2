@@ -534,9 +534,32 @@
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .main-content { margin-left: 0; }
-            .stats-grid { grid-template-columns: 1fr; }
+            /* Keep 2 columns on mobile with smaller cards */
+            .stats-grid { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 14px 12px;
+            }
+            .stat-value {
+                font-size: 18px;
+            }
+            .stat-label {
+                font-size: 0.75rem;
+            }
+            .stat-icon {
+                width: 36px;
+                height: 36px;
+            }
             .header { padding: 16px; }
-            .dashboard-content { padding: 16px; }
+            .dashboard-content { padding: 12px; }
+        }
+        
+        @media (max-width: 374px) {
+            .stats-grid { gap: 8px; }
+            .stat-card { padding: 12px 10px; }
+            .stat-value { font-size: 16px; }
         }
     </style>
 </head>

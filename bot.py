@@ -1836,6 +1836,54 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             pass
         return
     
+    if action.startswith("edit_tp:"):
+        # Edit specific TP level (0-3)
+        level_idx = int(action.split(":")[1])
+        tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
+        
+        if 0 <= level_idx < len(tp_levels):
+            level = tp_levels[level_idx]
+            ctx.user_data["spot_edit_tp_level"] = level_idx
+            ctx.user_data["spot_awaiting"] = "tp_gain"
+            
+            try:
+                await q.edit_message_text(
+                    f"📝 <b>Edit TP Level {level_idx + 1}</b>\n\n"
+                    f"Current settings:\n"
+                    f"• Gain trigger: +{level['gain_pct']}%\n"
+                    f"• Sell amount: {level['sell_pct']}%\n\n"
+                    f"Enter new <b>gain trigger %</b> (e.g. 50 for +50%):",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Cancel", callback_data="spot:tp_settings")]
+                    ])
+                )
+            except BadRequest:
+                pass
+        return
+    
+    if action.startswith("tp_sell_pct:"):
+        # Set sell percentage for TP level
+        level_idx = ctx.user_data.get("spot_edit_tp_level", 0)
+        ctx.user_data["spot_awaiting"] = "tp_sell"
+        
+        tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
+        if 0 <= level_idx < len(tp_levels):
+            level = tp_levels[level_idx]
+            try:
+                await q.edit_message_text(
+                    f"📝 <b>Edit TP Level {level_idx + 1}</b>\n\n"
+                    f"Gain trigger: +{level['gain_pct']}%\n\n"
+                    f"Enter <b>sell amount %</b> (e.g. 25 to sell 25% of holdings):",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Cancel", callback_data="spot:tp_settings")]
+                    ])
+                )
+            except BadRequest:
+                pass
+        return
+    
     if action == "sell_menu":
         # Show menu to select coin to sell
         account_type = spot_settings.get("trading_mode", "demo")
@@ -2144,6 +2192,86 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             return True
         except ValueError:
             await update.message.reply_text(t.get("invalid_amount", "❌ Invalid number. Please enter a valid amount."))
+            return True
+    
+    if awaiting == "tp_gain":
+        # Handle TP gain percentage input
+        try:
+            gain_pct = float(text)
+            if gain_pct < 1:
+                await update.message.reply_text("❌ Minimum gain trigger is 1%")
+                return True
+            if gain_pct > 10000:
+                await update.message.reply_text("❌ Maximum gain trigger is 10000%")
+                return True
+            
+            level_idx = ctx.user_data.get("spot_edit_tp_level", 0)
+            cfg = db.get_user_config(uid)
+            spot_settings = cfg.get("spot_settings", {})
+            tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
+            
+            if 0 <= level_idx < len(tp_levels):
+                tp_levels[level_idx]["gain_pct"] = gain_pct
+                spot_settings["tp_levels"] = tp_levels
+                db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
+            
+            # Now ask for sell percentage
+            ctx.user_data["spot_awaiting"] = "tp_sell"
+            await update.message.reply_text(
+                f"✅ Gain trigger set to +{gain_pct}%\n\n"
+                f"Now enter <b>sell amount %</b> (how much to sell when triggered):",
+                parse_mode="HTML"
+            )
+            return True
+        except ValueError:
+            await update.message.reply_text("❌ Invalid number. Please enter a valid percentage (e.g. 50)")
+            return True
+    
+    if awaiting == "tp_sell":
+        # Handle TP sell percentage input
+        try:
+            sell_pct = float(text)
+            if sell_pct < 1:
+                await update.message.reply_text("❌ Minimum sell amount is 1%")
+                return True
+            if sell_pct > 100:
+                await update.message.reply_text("❌ Maximum sell amount is 100%")
+                return True
+            
+            level_idx = ctx.user_data.pop("spot_edit_tp_level", 0)
+            cfg = db.get_user_config(uid)
+            spot_settings = cfg.get("spot_settings", {})
+            tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
+            
+            if 0 <= level_idx < len(tp_levels):
+                tp_levels[level_idx]["sell_pct"] = sell_pct
+                spot_settings["tp_levels"] = tp_levels
+                db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
+            
+            # Show updated TP levels
+            lines = [
+                "✅ <b>TP Level Updated!</b>",
+                "",
+                "🎯 <b>Current TP Levels:</b>",
+                "",
+            ]
+            for i, level in enumerate(tp_levels):
+                marker = "📍" if i == level_idx else "•"
+                lines.append(f"{marker} At +{level['gain_pct']}% → Sell {level['sell_pct']}%")
+            
+            buttons = [
+                [InlineKeyboardButton("⬅️ Back to TP Settings", callback_data="spot:tp_settings")],
+                [InlineKeyboardButton("🏠 Main Menu", callback_data="spot:back_to_main")],
+            ]
+            
+            await update.message.reply_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+            return True
+        except ValueError:
+            await update.message.reply_text("❌ Invalid number. Please enter a valid percentage (e.g. 25)")
             return True
     
     return False

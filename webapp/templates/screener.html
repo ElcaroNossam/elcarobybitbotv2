@@ -469,13 +469,33 @@
         .loading i { font-size: 2rem; color: var(--accent); margin-bottom: 12px; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
-        @media (max-width: 768px) {
-            .header { padding: 0 16px; }
+        @media (max-width: 1024px) {
+            .header { padding: 0 16px; height: 56px; }
+            .logo { font-size: 1.1rem; }
+            .logo-icon { width: 36px; height: 36px; }
             .nav-links { display: none; }
             .container { padding: 16px; }
-            .overview-bar { grid-template-columns: repeat(2, 1fr); }
-            .filters-bar { flex-direction: column; }
+            .overview-bar { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .overview-card { padding: 14px 16px; }
+            .overview-value { font-size: 1.25rem; }
+            .filters-bar { flex-wrap: wrap; gap: 8px; }
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .overview-bar { gap: 10px; }
+            .overview-card { padding: 12px; }
+            .overview-value { font-size: 1.1rem; }
+            .overview-label { font-size: 0.7rem; }
             .search-box { max-width: 100%; }
+            .filter-btn { padding: 8px 14px; font-size: 0.8rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .overview-bar { gap: 8px; }
+            .overview-card { padding: 10px; }
+            .overview-value { font-size: 1rem; }
+            .overview-label { font-size: 0.65rem; }
         }
     
         .exchange-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
