@@ -151,7 +151,7 @@ def is_backtest_cancelled(backtest_id: str) -> bool:
     return active_backtests[backtest_id].get('cancelled', False)
 
 
-def cleanup_backtest_session(backtest_id: str):
+async def cleanup_backtest_session(backtest_id: str):
     """Clean up backtest session after completion"""
     if backtest_id in active_backtests:
         del active_backtests[backtest_id]
