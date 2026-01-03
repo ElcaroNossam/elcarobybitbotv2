@@ -75,6 +75,16 @@ class BinanceDataFetcher:
     async def close(self):
         if self.session and not self.session.closed:
             await self.session.close()
+            self.session = None
+    
+    async def __aenter__(self):
+        """Async context manager entry"""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensures session is closed"""
+        await self.close()
+        return False
     
     async def fetch_futures_tickers(self) -> List[dict]:
         """Fetch futures 24hr ticker data"""

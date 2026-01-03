@@ -1552,7 +1552,7 @@ async def get_trend_analysis(symbol: str, timeframe: str = "1h"):
             "trend": analysis,
             "support_resistance": sr_levels,
             "pivot_points": pivots,
-            "current_price": candles[-1]["close"]
+            "current_price": candles[-1]["close"] if candles else 0
         }
         
     except Exception as e:
@@ -1745,6 +1745,8 @@ def apply_stress_scenario(candles: List[Dict], scenario: str) -> List[Dict]:
     
     elif scenario == "sideways":
         # Flatten prices to sideways range
+        if not modified:
+            return modified
         avg_price = sum(c["close"] for c in modified) / len(modified)
         for c in modified:
             c["close"] = avg_price + (c["close"] - avg_price) * 0.1

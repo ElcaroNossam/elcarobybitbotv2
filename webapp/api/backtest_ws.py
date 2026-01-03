@@ -157,10 +157,13 @@ def cleanup_backtest_session(backtest_id: str):
         del active_backtests[backtest_id]
     
     if backtest_id in active_connections:
-        # Close all connections
+        # Close all connections - collect tasks to await them
+        close_tasks = []
         for ws in active_connections[backtest_id]:
             try:
-                asyncio.create_task(ws.close())
-            except:
+                close_tasks.append(ws.close())
+            except Exception:
                 pass
+        if close_tasks:
+            await asyncio.gather(*close_tasks, return_exceptions=True)
         del active_connections[backtest_id]

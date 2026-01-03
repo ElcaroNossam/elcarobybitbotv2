@@ -543,7 +543,10 @@ async def update_strategy(strategy_id: int, request: UpdateStrategyRequest, user
     # Increment version
     current_version = config.get("version", "1.0.0")
     parts = current_version.split(".")
-    parts[-1] = str(int(parts[-1]) + 1)
+    try:
+        parts[-1] = str(int(parts[-1]) + 1)
+    except ValueError:
+        parts[-1] = "1"  # Reset to 1 if not numeric
     new_version = ".".join(parts)
     config["version"] = new_version
     

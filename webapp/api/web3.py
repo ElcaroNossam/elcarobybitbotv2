@@ -199,7 +199,7 @@ async def refresh_token_balance(user: Dict = Depends(get_current_user)):
         
     except Exception as e:
         logger.error(f"Failed to refresh balance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to refresh balance")
 
 
 # ==========================================
@@ -235,7 +235,7 @@ async def save_strategy(
         
     except Exception as e:
         logger.error(f"Failed to save strategy: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save strategy")
 
 
 @router.get("/strategies/my")
@@ -364,7 +364,7 @@ async def mint_strategy_nft(
         
     except Exception as e:
         logger.error(f"Failed to mint NFT: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to mint NFT")
 
 
 @router.get("/strategies/my-nfts")
@@ -437,7 +437,7 @@ async def list_strategy_on_marketplace(
         
     except Exception as e:
         logger.error(f"Failed to list strategy: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list strategy")
 
 
 @router.get("/marketplace/listings")
@@ -516,7 +516,7 @@ async def purchase_subscription_with_tokens(
         
     except Exception as e:
         logger.error(f"Failed to purchase subscription: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to purchase subscription")
 
 
 # ==========================================

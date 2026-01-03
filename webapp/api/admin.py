@@ -337,7 +337,7 @@ async def get_stats(
     
     # Today's stats
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    cur.execute(f"SELECT COUNT(*) FROM users WHERE created_at LIKE '{today}%'")
+    cur.execute("SELECT COUNT(*) FROM users WHERE created_at LIKE ?", (f"{today}%",))
     new_today = cur.fetchone()[0]
     
     conn.close()
