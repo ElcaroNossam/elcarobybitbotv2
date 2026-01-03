@@ -17,6 +17,8 @@ from typing import Dict, List, Optional
 from decimal import Decimal
 from collections import defaultdict
 
+from core.tasks import safe_create_task
+
 logger = logging.getLogger(__name__)
 
 
@@ -517,11 +519,11 @@ async def start_workers(bybit_symbols: List[str] = None, hl_symbols: List[str] =
     # Start Bybit worker
     if bybit_symbols:
         bybit_worker = BybitWorker(bybit_symbols)
-        task = asyncio.create_task(bybit_worker.start(), name="bybit_worker")
+        task = safe_create_task(bybit_worker.start(), name="bybit_worker")
         _worker_tasks.append(task)
         
         # Start Bybit broadcaster
-        broadcaster_task = asyncio.create_task(
+        broadcaster_task = safe_create_task(
             snapshot_broadcaster('bybit', _min_snapshot_interval),
             name="bybit_broadcaster"
         )
@@ -530,11 +532,11 @@ async def start_workers(bybit_symbols: List[str] = None, hl_symbols: List[str] =
     # Start HyperLiquid worker
     if hl_symbols:
         hl_worker = HyperLiquidWorker(hl_symbols)
-        task = asyncio.create_task(hl_worker.start(), name="hyperliquid_worker")
+        task = safe_create_task(hl_worker.start(), name="hyperliquid_worker")
         _worker_tasks.append(task)
         
         # Start HyperLiquid broadcaster
-        broadcaster_task = asyncio.create_task(
+        broadcaster_task = safe_create_task(
             snapshot_broadcaster('hyperliquid', _min_snapshot_interval),
             name="hyperliquid_broadcaster"
         )

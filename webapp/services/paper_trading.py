@@ -18,6 +18,8 @@ import logging
 import json
 import uuid
 
+from core.tasks import safe_create_task
+
 
 logger = logging.getLogger(__name__)
 
@@ -491,27 +493,27 @@ class PaperTradingSession:
         # Check Take Profit
         if position.take_profit:
             if position.side == PositionSide.LONG and price >= position.take_profit:
-                asyncio.create_task(self._close_position(symbol, price, "Take Profit"))
+                safe_create_task(self._close_position(symbol, price, "Take Profit"), name=f"close_{symbol}_tp")
                 if self.on_stop_triggered:
-                    asyncio.create_task(self.on_stop_triggered(symbol, "TP", price))
+                    safe_create_task(self.on_stop_triggered(symbol, "TP", price), name=f"trigger_{symbol}_tp")
                 return
             elif position.side == PositionSide.SHORT and price <= position.take_profit:
-                asyncio.create_task(self._close_position(symbol, price, "Take Profit"))
+                safe_create_task(self._close_position(symbol, price, "Take Profit"), name=f"close_{symbol}_tp")
                 if self.on_stop_triggered:
-                    asyncio.create_task(self.on_stop_triggered(symbol, "TP", price))
+                    safe_create_task(self.on_stop_triggered(symbol, "TP", price), name=f"trigger_{symbol}_tp")
                 return
         
         # Check Stop Loss
         if position.stop_loss:
             if position.side == PositionSide.LONG and price <= position.stop_loss:
-                asyncio.create_task(self._close_position(symbol, price, "Stop Loss"))
+                safe_create_task(self._close_position(symbol, price, "Stop Loss"), name=f"close_{symbol}_sl")
                 if self.on_stop_triggered:
-                    asyncio.create_task(self.on_stop_triggered(symbol, "SL", price))
+                    safe_create_task(self.on_stop_triggered(symbol, "SL", price), name=f"trigger_{symbol}_sl")
                 return
             elif position.side == PositionSide.SHORT and price >= position.stop_loss:
-                asyncio.create_task(self._close_position(symbol, price, "Stop Loss"))
+                safe_create_task(self._close_position(symbol, price, "Stop Loss"), name=f"close_{symbol}_sl")
                 if self.on_stop_triggered:
-                    asyncio.create_task(self.on_stop_triggered(symbol, "SL", price))
+                    safe_create_task(self.on_stop_triggered(symbol, "SL", price), name=f"trigger_{symbol}_sl")
                 return
         
         # Check Trailing Stop
@@ -566,8 +568,9 @@ class PaperTradingSession:
         # Fill orders
         for order_id, order, fill_price in orders_to_fill:
             del self.pending_orders[order_id]
-            asyncio.create_task(
-                self._fill_order(order, fill_price, self.leverage_default, None, None)
+            safe_create_task(
+                self._fill_order(order, fill_price, self.leverage_default, None, None),
+                name=f"fill_order_{order_id}"
             )
     
     def _apply_slippage(self, price: float, side: OrderSide) -> float:
@@ -849,8 +852,9 @@ class PaperTradingManager:
     async def start_price_updates(self, symbols: List[str], interval: float = 5.0):
         """Start background price updates for all sessions"""
         self._running = True
-        self._price_update_task = asyncio.create_task(
-            self._price_update_loop(symbols, interval)
+        self._price_update_task = safe_create_task(
+            self._price_update_loop(symbols, interval),
+            name="paper_trading_price_updates"
         )
     
     async def stop_price_updates(self):

@@ -10,6 +10,8 @@ import aiohttp
 from datetime import datetime
 import logging
 
+from core.tasks import safe_create_task
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -167,7 +169,7 @@ class BybitOrderbookStream:
     async def start(self, symbol: str = "BTCUSDT"):
         """Start streaming in background"""
         if not self.task or self.task.done():
-            self.task = asyncio.create_task(self.connect(symbol))
+            self.task = safe_create_task(self.connect(symbol), name=f"orderbook_{symbol}")
     
     def stop(self):
         """Stop streaming"""
@@ -286,7 +288,7 @@ class TradesStream:
     
     async def start(self, symbol: str = "BTCUSDT"):
         if not self.task or self.task.done():
-            self.task = asyncio.create_task(self.connect(symbol))
+            self.task = safe_create_task(self.connect(symbol), name=f"trades_{symbol}")
     
     def stop(self):
         self.running = False

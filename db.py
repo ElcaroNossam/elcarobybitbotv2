@@ -6357,9 +6357,11 @@ def get_referral_stats(user_id: int) -> dict:
         
         # Generate referral code if not exists
         if not referral_code:
-            import random
+            import secrets
             import string
-            referral_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            # SECURITY: Use cryptographically secure random for referral codes
+            alphabet = string.ascii_uppercase + string.digits
+            referral_code = ''.join(secrets.choice(alphabet) for _ in range(8))
             conn.execute(
                 "UPDATE users SET referral_code = ? WHERE user_id = ?",
                 (referral_code, user_id)

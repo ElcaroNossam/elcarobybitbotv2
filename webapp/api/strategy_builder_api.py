@@ -40,12 +40,11 @@ from webapp.services.backtest_engine import RealBacktestEngine, CustomStrategyAn
 from webapp.services.strategy_runtime import get_orchestrator
 from webapp.services.strategy_ai_agent import get_ai_agent, AIGenerationResult
 
-# Try to import auth, fallback to mock if not available
+# Try to import auth, fail if not available (security critical)
 try:
     from webapp.api.auth import get_current_user
-except ImportError:
-    async def get_current_user():
-        return {"user_id": 511692487, "is_admin": True}
+except ImportError as e:
+    raise RuntimeError(f"Auth module import failed - cannot start without auth: {e}") from e
 
 router = APIRouter(prefix="/strategies", tags=["strategy-builder"])
 

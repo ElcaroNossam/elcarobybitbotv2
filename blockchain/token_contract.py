@@ -3,6 +3,7 @@ ELCARO Token (ERC-20) - Smart Contract Interface
 Native token for ElCaro trading platform
 """
 import logging
+from decimal import Decimal, ROUND_DOWN
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from .web3_client import Web3Client
@@ -143,11 +144,14 @@ class ElcaroToken:
         Returns:
             Transaction receipt
         """
-        # Convert to wei (considering decimals)
+        # Convert to wei (considering decimals) - use Decimal for precision
         decimals = await self.client.read_contract_function(
             self.contract_address, ELCARO_TOKEN_ABI, "decimals"
         )
-        amount_wei = int(amount * (10 ** decimals))
+        # SECURITY: Use Decimal to avoid floating point precision loss
+        amount_decimal = Decimal(str(amount))
+        multiplier = Decimal(10) ** decimals
+        amount_wei = int((amount_decimal * multiplier).to_integral_value(rounding=ROUND_DOWN))
         
         return await self.client.call_contract_function(
             self.contract_address,
@@ -171,7 +175,10 @@ class ElcaroToken:
         decimals = await self.client.read_contract_function(
             self.contract_address, ELCARO_TOKEN_ABI, "decimals"
         )
-        amount_wei = int(amount * (10 ** decimals))
+        # SECURITY: Use Decimal to avoid floating point precision loss
+        amount_decimal = Decimal(str(amount))
+        multiplier = Decimal(10) ** decimals
+        amount_wei = int((amount_decimal * multiplier).to_integral_value(rounding=ROUND_DOWN))
         
         return await self.client.call_contract_function(
             self.contract_address,
@@ -220,7 +227,10 @@ class ElcaroToken:
         decimals = await self.client.read_contract_function(
             self.contract_address, ELCARO_TOKEN_ABI, "decimals"
         )
-        amount_wei = int(amount * (10 ** decimals))
+        # SECURITY: Use Decimal to avoid floating point precision loss
+        amount_decimal = Decimal(str(amount))
+        multiplier = Decimal(10) ** decimals
+        amount_wei = int((amount_decimal * multiplier).to_integral_value(rounding=ROUND_DOWN))
         
         return await self.client.call_contract_function(
             self.contract_address,
@@ -243,7 +253,10 @@ class ElcaroToken:
         decimals = await self.client.read_contract_function(
             self.contract_address, ELCARO_TOKEN_ABI, "decimals"
         )
-        amount_wei = int(amount * (10 ** decimals))
+        # SECURITY: Use Decimal to avoid floating point precision loss
+        amount_decimal = Decimal(str(amount))
+        multiplier = Decimal(10) ** decimals
+        amount_wei = int((amount_decimal * multiplier).to_integral_value(rounding=ROUND_DOWN))
         
         return await self.client.call_contract_function(
             self.contract_address,

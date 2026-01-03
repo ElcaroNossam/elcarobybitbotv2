@@ -7,6 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from pathlib import Path
 import os
 import logging
@@ -14,6 +16,47 @@ import logging
 logger = logging.getLogger(__name__)
 
 APP_DIR = Path(__file__).parent
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Add security headers to all responses.
+    Prevents XSS, clickjacking, and other common attacks.
+    """
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        
+        # Prevent MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        
+        # Enable XSS filter
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        
+        # Referrer policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Permissions policy (disable dangerous APIs)
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # Content Security Policy - allow TradingView widgets
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com; "
+            "style-src 'self' 'unsafe-inline' https://*.tradingview.com https://fonts.googleapis.com; "
+            "img-src 'self' data: https: blob:; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "connect-src 'self' https://*.tradingview.com https://*.binance.com https://*.bybit.com wss://*.binance.com wss://*.bybit.com; "
+            "frame-src 'self' https://*.tradingview.com; "
+            "object-src 'none'; "
+            "base-uri 'self'"
+        )
+        response.headers["Content-Security-Policy"] = csp
+        
+        return response
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -24,12 +67,18 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc"
     )
     
+    # SECURITY: Add security headers middleware
+    app.add_middleware(SecurityHeadersMiddleware)
+    
+    # SECURITY: Restrict CORS origins in production
+    # allow_credentials=True requires specific origins, not "*"
+    allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8765").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     )
     
     static_path = APP_DIR / "static"

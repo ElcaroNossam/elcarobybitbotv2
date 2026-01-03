@@ -2,7 +2,7 @@
 Enhanced Backtest API with Editable Strategy Parameters
 Allows users to customize and test strategies with any parameter configuration
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import json
@@ -11,6 +11,7 @@ from webapp.services.strategy_parameters import (
     StrategyConfig, StrategyParametersManager, StrategyTemplates
 )
 from webapp.services.backtest_engine import RealBacktestEngine
+from webapp.api.auth import get_current_user
 
 router = APIRouter()
 manager = StrategyParametersManager()
@@ -130,10 +131,15 @@ async def validate_strategy(config: Dict):
 
 
 @router.post("/backtest/custom")
-async def run_custom_backtest(request: CustomBacktestRequest):
+async def run_custom_backtest(
+    request: CustomBacktestRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Run backtest with custom parameters
     User can modify any parameter from the base template
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         # Create custom strategy from template + modifications
@@ -168,10 +174,15 @@ async def run_custom_backtest(request: CustomBacktestRequest):
 
 
 @router.post("/strategies/ai/generate")
-async def generate_ai_strategy(request: AIStrategyRequest):
+async def generate_ai_strategy(
+    request: AIStrategyRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Generate a new strategy using AI based on natural language description
     Example: "Create a scalping strategy using RSI and BB for 5m timeframe"
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         from webapp.services.ai_strategy_generator import AIStrategyGenerator
@@ -193,9 +204,15 @@ async def generate_ai_strategy(request: AIStrategyRequest):
 
 
 @router.post("/strategies/ai/optimize")
-async def optimize_strategy_parameters(base_strategy: str, historical_results: List[Dict]):
+async def optimize_strategy_parameters(
+    base_strategy: str,
+    historical_results: List[Dict],
+    user: dict = Depends(get_current_user)
+):
     """
     Use AI to optimize strategy parameters based on historical results
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         from webapp.services.ai_strategy_generator import AIStrategyGenerator
@@ -222,11 +239,14 @@ async def compare_strategies(
     symbol: str = "BTCUSDT",
     timeframe: str = "1h",
     days: int = 30,
-    initial_balance: float = 10000
+    initial_balance: float = 10000,
+    user: dict = Depends(get_current_user)
 ):
     """
     Compare multiple strategy configurations side-by-side
     Useful for A/B testing different parameters
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         engine = RealBacktestEngine()

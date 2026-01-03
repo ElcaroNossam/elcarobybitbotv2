@@ -55,11 +55,41 @@ class WebAppConfig:
     reload: bool = field(default_factory=lambda: os.getenv("ENV", "dev") == "dev")
     workers: int = 1
     
-    # CORS
-    allow_origins: list = field(default_factory=lambda: ["*"])
+    # CORS - Secure default, configure via CORS_ORIGINS env var
+    allow_origins: list = field(default_factory=lambda: _get_cors_origins())
     
     # Session - SECRET_KEY must be set in environment for production
-    secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY") or os.urandom(32).hex())
+    secret_key: str = field(default_factory=lambda: _get_secret_key())
+
+
+def _get_cors_origins() -> list:
+    """
+    Get CORS origins from environment or return secure defaults.
+    SECURITY: Never use ["*"] with credentials in production.
+    """
+    origins_env = os.getenv("CORS_ORIGINS", "")
+    if origins_env:
+        return [o.strip() for o in origins_env.split(",") if o.strip()]
+    # Default to localhost only for development
+    if os.getenv("ENV") == "production":
+        raise RuntimeError("CORS_ORIGINS must be set in production environment")
+    return ["http://localhost:8765", "http://127.0.0.1:8765"]
+
+
+def _get_secret_key() -> str:
+    """
+    Get session secret key from environment.
+    SECURITY: Random key each restart breaks sessions and tokens.
+    """
+    key = os.getenv("SECRET_KEY")
+    if not key:
+        if os.getenv("ENV") == "production":
+            raise RuntimeError("SECRET_KEY must be set in production environment")
+        # Dev only - generate warning
+        import warnings
+        warnings.warn("SECRET_KEY not set - using random key (sessions won't persist)", UserWarning)
+        return os.urandom(32).hex()
+    return key
 
 
 @dataclass  

@@ -35,6 +35,28 @@ JWT_EXPIRATION_HOURS = 168  # 7 days
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 
 
+def get_client_ip(request: Request) -> Optional[str]:
+    """
+    Get real client IP, handling proxies (nginx/cloudflare).
+    
+    SECURITY: X-Forwarded-For can be spoofed if not behind trusted proxy.
+    In production, nginx should set X-Real-IP from leftmost non-trusted X-Forwarded-For.
+    """
+    # X-Forwarded-For: client, proxy1, proxy2
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        # Take first (original client) IP
+        return xff.split(",")[0].strip()
+    
+    # X-Real-IP set by nginx
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    
+    # Direct connection (no proxy)
+    return request.client.host if request.client else None
+
+
 class TelegramWebAppAuth(BaseModel):
     """Telegram WebApp init_data"""
     init_data: str
@@ -89,7 +111,9 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
         
         received_hash = parsed.get('hash', [''])[0]
         
-        if computed_hash == received_hash:
+        # Use constant-time comparison to prevent timing attacks
+        import secrets
+        if secrets.compare_digest(computed_hash, received_hash):
             user_data = json.loads(parsed.get('user', ['{}'])[0])
             return user_data
         
@@ -97,6 +121,54 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
     except Exception as e:
         logger.error(f"WebApp auth error: {e}")
         return None
+
+
+# =============================================================================
+# TOKEN BLACKLIST (in-memory, use Redis in production for horizontal scaling)
+# =============================================================================
+from collections import OrderedDict
+from threading import Lock
+
+class TokenBlacklist:
+    """
+    In-memory JWT token blacklist with auto-expiry.
+    Stores token JTI (unique identifier) until expiration.
+    
+    SECURITY: In production with multiple workers, use Redis instead.
+    """
+    def __init__(self, max_size: int = 10000):
+        self._blacklist: OrderedDict[str, datetime] = OrderedDict()
+        self._max_size = max_size
+        self._lock = Lock()
+    
+    def add(self, token: str, expires_at: datetime) -> None:
+        """Add token to blacklist until its expiration."""
+        with self._lock:
+            # Clean expired tokens
+            now = datetime.utcnow()
+            expired_keys = [k for k, exp in self._blacklist.items() if exp <= now]
+            for k in expired_keys:
+                del self._blacklist[k]
+            
+            # Enforce max size (LRU eviction)
+            while len(self._blacklist) >= self._max_size:
+                self._blacklist.popitem(last=False)
+            
+            self._blacklist[token] = expires_at
+    
+    def is_blacklisted(self, token: str) -> bool:
+        """Check if token is blacklisted."""
+        with self._lock:
+            if token in self._blacklist:
+                # Check if still valid (not expired)
+                if self._blacklist[token] > datetime.utcnow():
+                    return True
+                # Expired, remove
+                del self._blacklist[token]
+            return False
+
+# Global blacklist instance
+_token_blacklist = TokenBlacklist()
 
 
 def create_access_token(user_id: int, is_admin: bool = False) -> str:
@@ -115,6 +187,10 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     """Verify JWT and return user info from DB."""
     if not credentials:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Check if token is blacklisted (logged out)
+    if _token_blacklist.is_blacklisted(credentials.credentials):
+        raise HTTPException(status_code=401, detail="Token has been revoked")
     
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -219,8 +295,28 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout():
-    """Logout - client should remove token."""
+async def logout(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """
+    Logout - invalidates the JWT token by adding to blacklist.
+    
+    SECURITY: Token will be rejected by get_current_user() until expiration.
+    After expiration, it's automatically cleaned from the blacklist.
+    """
+    if credentials and credentials.credentials:
+        try:
+            # Decode to get expiration time
+            payload = jwt.decode(
+                credentials.credentials, 
+                JWT_SECRET, 
+                algorithms=[JWT_ALGORITHM],
+                options={"verify_exp": False}  # Allow expired tokens to be blacklisted too
+            )
+            exp = datetime.utcfromtimestamp(payload.get("exp", 0))
+            _token_blacklist.add(credentials.credentials, exp)
+            logger.info(f"Token blacklisted for user {payload.get('sub')}")
+        except jwt.PyJWTError:
+            pass  # Invalid token, nothing to blacklist
+    
     return {"success": True, "message": "Logged out"}
 
 
@@ -291,7 +387,7 @@ async def telegram_token_auth(token: str, request: Request):
     from webapp.services import telegram_auth
     from fastapi.responses import RedirectResponse
     
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     ua = request.headers.get("user-agent")
     
     user_id = telegram_auth.validate_login_token(token, ip, ua)
@@ -341,7 +437,7 @@ async def login_by_telegram_id(data: LoginByIdRequest, request: Request, backgro
         raise HTTPException(status_code=403, detail="User is banned")
     
     # Create 2FA confirmation
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     ua = request.headers.get("user-agent")
     
     confirmation_id = telegram_auth.create_2fa_confirmation(user_id, ip, ua)

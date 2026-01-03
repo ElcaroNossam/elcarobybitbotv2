@@ -154,10 +154,10 @@ async def switch_exchange(
     # Notify settings sync manager
     try:
         from services.settings_sync import settings_sync
-        import asyncio
+        from core.tasks import safe_create_task
         
         creds = db.get_all_user_credentials(user_id) if data.exchange == "bybit" else db.get_hl_credentials(user_id)
-        asyncio.create_task(settings_sync.on_exchange_switch(user_id, old_exchange, data.exchange, creds))
+        safe_create_task(settings_sync.on_exchange_switch(user_id, old_exchange, data.exchange, creds), name=f"exchange_switch_{user_id}")
     except ImportError:
         pass
     

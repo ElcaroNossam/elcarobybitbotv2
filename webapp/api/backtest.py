@@ -13,6 +13,8 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 
+from core.tasks import safe_create_task
+
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -87,7 +89,7 @@ async def run_backtest_async(request: BacktestRequest):
         backtest_id = create_backtest_session(request.dict())
         
         # Start backtest in background
-        asyncio.create_task(run_backtest_with_progress(backtest_id, request))
+        safe_create_task(run_backtest_with_progress(backtest_id, request), name=f"backtest_{backtest_id}")
         
         return {
             "success": True,

@@ -10,6 +10,8 @@ import json
 from datetime import datetime, timedelta
 from enum import Enum
 
+from webapp.api.auth import get_current_user
+
 router = APIRouter()
 
 
@@ -287,9 +289,14 @@ class ProBacktestResponse(BaseModel):
 # =====================================================
 
 @router.post("/pro/run", response_model=ProBacktestResponse)
-async def run_pro_backtest(request: ProBacktestRequest):
+async def run_pro_backtest(
+    request: ProBacktestRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Run professional backtest with advanced metrics and custom strategies
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         from webapp.services.backtest_engine_pro import ProBacktestEngine
@@ -320,9 +327,14 @@ async def run_pro_backtest(request: ProBacktestRequest):
 
 
 @router.post("/portfolio")
-async def run_portfolio_backtest(request: PortfolioBacktestRequest):
+async def run_portfolio_backtest(
+    request: PortfolioBacktestRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Run portfolio backtest with multiple strategies and correlation analysis
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         from webapp.services.backtest_engine_pro import ProBacktestEngine
@@ -352,9 +364,14 @@ async def run_portfolio_backtest(request: PortfolioBacktestRequest):
 
 
 @router.post("/optimize")
-async def optimize_strategy(request: OptimizationRequest):
+async def optimize_strategy(
+    request: OptimizationRequest,
+    user: dict = Depends(get_current_user)
+):
     """
     Optimize strategy parameters using grid search or genetic algorithm
+    
+    **REQUIRES:** JWT Authentication
     """
     try:
         from webapp.services.strategy_optimizer import StrategyOptimizer

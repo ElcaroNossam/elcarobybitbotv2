@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 import logging
 
+from core.tasks import safe_create_task
+
 
 logger = logging.getLogger(__name__)
 
@@ -1049,7 +1051,7 @@ class SignalScanner:
         """Start continuous live scanning"""
         self.config = config
         self.running = True
-        self._scan_task = asyncio.create_task(self._live_scan_loop())
+        self._scan_task = safe_create_task(self._live_scan_loop(), name="signal_scanner_live")
     
     async def stop_live_scan(self) -> None:
         """Stop live scanning"""

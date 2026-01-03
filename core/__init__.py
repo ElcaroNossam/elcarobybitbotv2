@@ -95,6 +95,16 @@ from .exchange_client import (
 )
 
 # Blockchain and TRC token
+# Task management
+from .tasks import (
+    safe_create_task,
+    create_task_safe,
+    fire_and_forget,
+    gather_with_exceptions,
+    get_active_background_tasks,
+    cancel_all_background_tasks,
+)
+
 from .blockchain import (
     # Core
     TriaceloBlockchain,
@@ -281,4 +291,12 @@ __all__ = [
     "confirm_deposit",
     "get_withdrawal_fees",
     "get_network_status",
+    
+    # Task management
+    "safe_create_task",
+    "create_task_safe",
+    "fire_and_forget",
+    "gather_with_exceptions",
+    "get_active_background_tasks",
+    "cancel_all_background_tasks",
 ]

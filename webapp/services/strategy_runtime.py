@@ -28,6 +28,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import db
 from models.strategy_spec import StrategySpec
+from core.tasks import safe_create_task
 from webapp.services.backtest_engine import CustomStrategyAnalyzer
 
 
@@ -124,7 +125,7 @@ class StrategyRuntimeOrchestrator:
         await self._load_running_strategies()
         
         # Start background loop
-        self._task = asyncio.create_task(self._run_loop())
+        self._task = safe_create_task(self._run_loop(), name="strategy_runtime_loop")
         logger.info("Strategy Runtime Orchestrator started")
     
     async def stop(self):

@@ -10,6 +10,7 @@ import json
 from datetime import datetime
 import logging
 from .exchange_fetchers import BybitDataFetcher, OKXDataFetcher
+from core.tasks import safe_create_task
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -352,7 +353,7 @@ background_task = None
 @router.on_event("startup")
 async def startup():
     global background_task
-    background_task = asyncio.create_task(update_market_data())
+    background_task = safe_create_task(update_market_data(), name="screener_market_data")
 
 @router.on_event("shutdown")
 async def shutdown():
