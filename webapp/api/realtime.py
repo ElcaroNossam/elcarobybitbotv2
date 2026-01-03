@@ -77,7 +77,8 @@ async def websocket_endpoint(
                 # Send ping to keep connection alive
                 try:
                     await websocket.send_json({'type': 'ping'})
-                except:
+                except Exception as e:
+                    logger.debug(f"Failed to send ping: {e}")
                     break
             except WebSocketDisconnect:
                 break

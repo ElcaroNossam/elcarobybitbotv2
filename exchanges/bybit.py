@@ -193,7 +193,8 @@ class BybitExchange(BaseExchange):
                         if attempt < max_retries - 1:
                             await asyncio.sleep(1)
                             continue
-                    raise Exception(f"Bybit API error {ret_code}: {error_msg}")
+                    from core.exceptions import ExchangeError
+                    raise ExchangeError(f"Bybit API error {ret_code}: {error_msg}")
                 
                 return data.get("result", {})
                 

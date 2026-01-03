@@ -165,7 +165,7 @@ def _make_cache_key(*args, **kwargs) -> str:
     key_str = ":".join(key_parts)
     
     if len(key_str) > 200:
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.sha256(key_str.encode()).hexdigest()[:32]
     return key_str
 
 

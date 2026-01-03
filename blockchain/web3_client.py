@@ -173,7 +173,7 @@ class Web3Client:
         """Check if connected to blockchain"""
         try:
             return self.w3.is_connected()
-        except:
+        except Exception:
             return False
     
     async def get_balance(self, address: Optional[str] = None) -> float:

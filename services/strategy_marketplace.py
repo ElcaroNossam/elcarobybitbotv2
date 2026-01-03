@@ -629,7 +629,7 @@ class StrategyMarketplace:
         }
         
         # Generate checksum
-        export["checksum"] = hashlib.md5(json.dumps(export["settings"]).encode()).hexdigest()[:8]
+        export["checksum"] = hashlib.sha256(json.dumps(export["settings"]).encode()).hexdigest()[:8]
         
         return export
     

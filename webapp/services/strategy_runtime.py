@@ -180,8 +180,8 @@ class StrategyRuntimeOrchestrator:
                     if row.get("open_positions"):
                         try:
                             self._strategies[key].open_positions = json.loads(row["open_positions"])
-                        except:
-                            pass
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse open_positions for strategy {row.get('strategy_id')}: {e}")
                     
                     logger.info(f"Loaded running strategy: {key}")
                     

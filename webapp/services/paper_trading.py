@@ -399,8 +399,8 @@ class PaperTradingSession:
         if self.on_order_filled:
             try:
                 await self.on_order_filled(order, position)
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"on_order_filled callback failed: {e}")
         
         return {
             "success": True,
@@ -470,8 +470,8 @@ class PaperTradingSession:
         if self.on_position_closed:
             try:
                 await self.on_position_closed(trade)
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"on_position_closed callback failed: {e}")
         
         return {
             "success": True,

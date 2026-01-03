@@ -108,8 +108,9 @@ async def get_sync_status(user: dict = Depends(get_current_user)):
     if config.get("strategy_settings"):
         try:
             strategy_settings = json.loads(config["strategy_settings"])
-        except:
-            pass
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse strategy_settings for user {user_id}: {e}")
+            strategy_settings = {}
     
     # Build status for each strategy
     status = []

@@ -1064,8 +1064,9 @@ class ProBacktestEngine:
                 monthly[month]["pnl"] += t.pnl_percent
                 if t.pnl > 0:
                     monthly[month]["win_rate"] += 1
-            except:
-                pass
+            except (TypeError, AttributeError, KeyError) as e:
+                logger.debug(f"Failed to process trade for monthly breakdown: {e}")
+                continue
         
         result = []
         for m, data in sorted(monthly.items()):
@@ -1420,7 +1421,8 @@ class MarketReplayEngine:
                 start = datetime.fromisoformat(start_date)
                 end = datetime.fromisoformat(end_date)
                 days = (end - start).days
-            except:
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse replay dates: {e}")
                 days = 30
         else:
             days = 30

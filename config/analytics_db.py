@@ -55,7 +55,7 @@ def get_analytics_conn():
                         _pool.put_nowait(conn)
                     else:
                         conn.close()
-            except:
+            except Exception:
                 conn.close()
 
 

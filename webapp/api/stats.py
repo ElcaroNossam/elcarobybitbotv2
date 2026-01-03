@@ -50,7 +50,8 @@ async def get_dashboard_stats(
                     trade_time = datetime.fromisoformat(trade_time_str.replace("Z", "+00:00"))
                 else:
                     trade_time = datetime.now()
-            except:
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Failed to parse trade time '{trade_time_str}': {e}")
                 trade_time = datetime.now()
             
             if trade_time >= start_date:
@@ -265,7 +266,8 @@ async def get_pnl_history(
                     trade_time = datetime.fromtimestamp(trade_time_str)
                 else:
                     trade_time = datetime.fromisoformat(str(trade_time_str).replace("Z", "+00:00"))
-            except:
+            except (ValueError, TypeError, OSError) as e:
+                logger.debug(f"Failed to parse trade time '{trade_time_str}': {e}")
                 continue
             
             if trade_time < start_date:
@@ -332,7 +334,8 @@ async def get_strategy_report(
         for t in trades:
             try:
                 trade_time = datetime.fromisoformat(t.get("time", "2024-01-01").replace("Z", ""))
-            except:
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Failed to parse trade time: {e}")
                 continue
             if trade_time >= start_date:
                 if exchange != "all" and t.get("exchange", "bybit") != exchange:

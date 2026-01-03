@@ -354,7 +354,8 @@ async def send_2fa_notification(user_id: int, confirmation_id: str, ip_address: 
         import db
         cfg = db.get_user_config(user_id)
         lang = cfg.get("lang", "en") if cfg else "en"
-    except:
+    except Exception as e:
+        logger.debug(f"Failed to get user language for {user_id}: {e}")
         lang = "en"
     
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
