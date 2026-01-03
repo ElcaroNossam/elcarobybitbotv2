@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRC Wallet - Triacelo</title>
+    <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-green: #00ff88;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --border-color: rgba(255,255,255,0.1);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(59,130,246,0.1));
+            border-radius: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .header h1 span {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .balance-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .balance-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .balance-value {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .balance-usd {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .wallet-address {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            word-break: break-all;
+        }
+        
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-primary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 24px rgba(59,130,246,0.2);
+        }
+        
+        .action-btn .icon {
+            font-size: 32px;
+        }
+        
+        .action-btn .label {
+            font-weight: 600;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .network-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        
+        .network-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .network-btn:hover {
+            border-color: var(--accent-blue);
+        }
+        
+        .network-btn.selected {
+            border-color: var(--accent-green);
+            background: rgba(0,255,136,0.1);
+        }
+        
+        .network-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .network-fee {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,255,136,0.3);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .deposit-address {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .deposit-address .address {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin: 16px 0;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+        }
+        
+        .deposit-address .memo {
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+        
+        .copy-btn {
+            padding: 10px 20px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        
+        .warning {
+            background: rgba(245,158,11,0.1);
+            border: 1px solid var(--accent-yellow);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--accent-yellow);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.purple { color: var(--accent-purple); }
+        
+        .hidden { display: none; }
+        
+        @media (max-width: 600px) {
+            .actions { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .network-grid { grid-template-columns: repeat(2, 1fr); }
+            .balance-value { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🪙 <span>TRC Wallet</span></h1>
+            <p style="color: var(--text-secondary);">Triacelo Coin - Your Global Stablecoin</p>
+        </div>
+        
+        <div class="balance-card">
+            <div class="balance-label">Available Balance</div>
+            <div class="balance-value" id="balance">0.00 TRC</div>
+            <div class="balance-usd" id="balanceUsd">≈ $0.00 USD</div>
+            <div class="wallet-address" id="walletAddress">Loading...</div>
+        </div>
+        
+        <div class="actions">
+            <div class="action-btn" onclick="openModal('depositModal')">
+                <span class="icon">📥</span>
+                <span class="label">Deposit</span>
+            </div>
+            <div class="action-btn" onclick="openModal('withdrawModal')">
+                <span class="icon">📤</span>
+                <span class="label">Withdraw</span>
+            </div>
+            <div class="action-btn" onclick="openModal('stakeModal')">
+                <span class="icon">🔐</span>
+                <span class="label">Stake</span>
+            </div>
+            <div class="action-btn" onclick="openModal('subscribeModal')">
+                <span class="icon">⭐</span>
+                <span class="label">Subscribe</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📊 Your Stats</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Staked</div>
+                    <div class="stat-value blue" id="stakedBalance">0 TRC</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Pending Rewards</div>
+                    <div class="stat-value green" id="pendingRewards">0 TRC</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Current APY</div>
+                    <div class="stat-value purple" id="currentApy">12%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🌐 Blockchain Info</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Total Supply</div>
+                    <div class="stat-value" id="totalSupply">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Wallets</div>
+                    <div class="stat-value" id="totalWallets">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Block Height</div>
+                    <div class="stat-value" id="blockHeight">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Deposit Modal -->
+    <div class="modal" id="depositModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📥 Deposit USDT</h3>
+                <button class="close-btn" onclick="closeModal('depositModal')">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">Select network to deposit USDT:</p>
+            <div class="network-grid" id="depositNetworks">
+                <!-- Populated by JS -->
+            </div>
+            <div id="depositAddressSection" class="hidden" style="margin-top: 24px;">
+                <div class="deposit-address">
+                    <div style="font-weight: 600; margin-bottom: 8px;" id="depositNetworkName">-</div>
+                    <div class="address" id="depositAddressText">-</div>
+                    <div class="memo">Memo: <span id="depositMemo">-</span></div>
+                    <button class="copy-btn" onclick="copyAddress()">📋 Copy Address</button>
+                </div>
+                <div class="warning" id="depositWarning">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Withdraw Modal -->
+    <div class="modal" id="withdrawModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📤 Withdraw USDT</h3>
+                <button class="close-btn" onclick="closeModal('withdrawModal')">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">Select network:</p>
+            <div class="network-grid" id="withdrawNetworks">
+                <!-- Populated by JS -->
+            </div>
+            <form id="withdrawForm" style="margin-top: 24px;">
+                <div class="form-group">
+                    <label>Amount (USDT)</label>
+                    <input type="number" id="withdrawAmount" placeholder="100" min="5" step="any">
+                </div>
+                <div class="form-group">
+                    <label>External Address</label>
+                    <input type="text" id="withdrawAddress" placeholder="Your external wallet address">
+                </div>
+                <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                    Fee: <span id="withdrawFee">-</span> USDT • You receive: <span id="withdrawNet">-</span> USDT
+                </div>
+                <button type="submit" class="btn btn-primary">📤 Withdraw</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Stake Modal -->
+    <div class="modal" id="stakeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 Stake TRC</h3>
+                <button class="close-btn" onclick="closeModal('stakeModal')">&times;</button>
+            </div>
+            <div style="text-align: center; padding: 32px;">
+                <div style="font-size: 64px; margin-bottom: 16px;">🚀</div>
+                <h4 style="margin-bottom: 8px;">Earn 12% APY</h4>
+                <p style="color: var(--text-secondary);">Stake your TRC and earn passive income. Rewards distributed daily!</p>
+                <div style="margin-top: 24px; color: var(--accent-yellow);">Coming Soon</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subscribe Modal -->
+    <div class="modal" id="subscribeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⭐ Premium Subscription</h3>
+                <button class="close-btn" onclick="closeModal('subscribeModal')">&times;</button>
+            </div>
+            <div id="subscriptionPlans">
+                <div class="network-btn selected" data-plan="premium-1" onclick="selectPlan(this)">
+                    <span style="font-size: 24px;">⭐</span>
+                    <span class="network-name">Premium 1 Month</span>
+                    <span class="network-fee">100 TRC</span>
+                </div>
+                <div class="network-btn" data-plan="premium-3" onclick="selectPlan(this)" style="margin-top: 12px;">
+                    <span style="font-size: 24px;">🌟</span>
+                    <span class="network-name">Premium 3 Months</span>
+                    <span class="network-fee">270 TRC (-10%)</span>
+                </div>
+                <div class="network-btn" data-plan="premium-6" onclick="selectPlan(this)" style="margin-top: 12px;">
+                    <span style="font-size: 24px;">💫</span>
+                    <span class="network-name">Premium 6 Months</span>
+                    <span class="network-fee">480 TRC (-20%)</span>
+                </div>
+                <div class="network-btn" data-plan="premium-12" onclick="selectPlan(this)" style="margin-top: 12px;">
+                    <span style="font-size: 24px;">✨</span>
+                    <span class="network-name">Premium 12 Months</span>
+                    <span class="network-fee">840 TRC (-30%)</span>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top: 24px;" onclick="subscribe()">💎 Subscribe Now</button>
+        </div>
+    </div>
+    
+    <script>
+        // Demo user ID - in production, get from auth
+        const USER_ID = 123456789;
+        const API_BASE = '/api/blockchain';
+        
+        let selectedNetwork = null;
+        let networks = [];
+        let selectedPlan = 'premium-1';
+        
+        function formatNumber(n) {
+            if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+            if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+            if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+            return n.toFixed(2);
+        }
+        
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        async function loadWallet() {
+            try {
+                const response = await fetch(`${API_BASE}/wallet/${USER_ID}`);
+                const data = await response.json();
+                
+                document.getElementById('balance').textContent = formatNumber(data.balance) + ' TRC';
+                document.getElementById('balanceUsd').textContent = '≈ $' + formatNumber(data.balance) + ' USD';
+                document.getElementById('walletAddress').textContent = data.address;
+                document.getElementById('stakedBalance').textContent = formatNumber(data.staked_balance) + ' TRC';
+                document.getElementById('pendingRewards').textContent = formatNumber(data.pending_rewards) + ' TRC';
+            } catch (e) {
+                console.error('Failed to load wallet:', e);
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                
+                document.getElementById('totalSupply').textContent = formatNumber(data.current_supply);
+                document.getElementById('totalWallets').textContent = data.total_wallets;
+                document.getElementById('blockHeight').textContent = data.block_height;
+                document.getElementById('currentApy').textContent = data.staking_apy.toFixed(1) + '%';
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+        
+        async function loadNetworks() {
+            try {
+                const response = await fetch(`${API_BASE}/networks`);
+                const data = await response.json();
+                networks = data.networks;
+                
+                const html = networks.map(n => `
+                    <div class="network-btn" data-network="${n.id}" onclick="selectNetwork(this, '${n.id}')">
+                        <span class="network-name">${n.name}</span>
+                        <span class="network-fee">Fee: $${n.withdrawal_fee}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('depositNetworks').innerHTML = html;
+                document.getElementById('withdrawNetworks').innerHTML = html;
+            } catch (e) {
+                console.error('Failed to load networks:', e);
+            }
+        }
+        
+        async function selectNetwork(el, networkId) {
+            document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedNetwork = networkId;
+            
+            // Load deposit address
+            try {
+                const response = await fetch(`${API_BASE}/wallet/${USER_ID}/deposit-address/${networkId}`);
+                const data = await response.json();
+                
+                document.getElementById('depositNetworkName').textContent = data.network_name;
+                document.getElementById('depositAddressText').textContent = data.address;
+                document.getElementById('depositMemo').textContent = data.memo;
+                document.getElementById('depositWarning').textContent = data.warning;
+                document.getElementById('depositAddressSection').classList.remove('hidden');
+                
+                // Update withdraw fee
+                const network = networks.find(n => n.id === networkId);
+                if (network) {
+                    document.getElementById('withdrawFee').textContent = network.withdrawal_fee;
+                }
+            } catch (e) {
+                console.error('Failed to get deposit address:', e);
+            }
+        }
+        
+        function copyAddress() {
+            const address = document.getElementById('depositAddressText').textContent;
+            navigator.clipboard.writeText(address);
+            alert('Address copied!');
+        }
+        
+        function selectPlan(el) {
+            document.querySelectorAll('#subscriptionPlans .network-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedPlan = el.dataset.plan;
+        }
+        
+        async function subscribe() {
+            const [type, months] = selectedPlan.split('-');
+            try {
+                const response = await fetch(`${API_BASE}/pay/license`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: USER_ID,
+                        license_type: type,
+                        months: parseInt(months)
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Subscription activated! ' + data.message);
+                    closeModal('subscribeModal');
+                    loadWallet();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
+        // Withdraw amount calculation
+        document.getElementById('withdrawAmount').oninput = function() {
+            const amount = parseFloat(this.value) || 0;
+            const network = networks.find(n => n.id === selectedNetwork);
+            const fee = network ? network.withdrawal_fee : 0;
+            const net = Math.max(0, amount - fee);
+            document.getElementById('withdrawNet').textContent = net.toFixed(2);
+        };
+        
+        document.getElementById('withdrawForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+            const address = document.getElementById('withdrawAddress').value;
+            
+            if (!selectedNetwork || !amount || !address) {
+                alert('Please fill all fields and select a network');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: USER_ID,
+                        amount,
+                        network: selectedNetwork,
+                        external_address: address
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Withdrawal initiated! ' + data.message);
+                    closeModal('withdrawModal');
+                    loadWallet();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        };
+        
+        // Initialize
+        loadWallet();
+        loadStats();
+        loadNetworks();
+    </script>
+</body>
+</html>

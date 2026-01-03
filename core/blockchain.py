@@ -173,6 +173,169 @@ LICENSE_PRICES_TRC = {
 
 
 # ============================================
+# SUPPORTED DEPOSIT/WITHDRAWAL NETWORKS
+# ============================================
+
+class CryptoNetwork(Enum):
+    """Supported blockchain networks for USDT deposit/withdrawal"""
+    # Primary networks
+    TRC20 = "trc20"         # TRON - lowest fees
+    BEP20 = "bep20"         # BNB Smart Chain
+    ERC20 = "erc20"         # Ethereum
+    
+    # L2 networks (low fees)
+    POLYGON = "polygon"     # Polygon (MATIC)
+    ARBITRUM = "arbitrum"   # Arbitrum One
+    OPTIMISM = "optimism"   # Optimism
+    BASE = "base"           # Base (Coinbase L2)
+    
+    # Alternative networks
+    SOLANA = "solana"       # Solana
+    AVAX_C = "avax_c"       # Avalanche C-Chain
+    TON = "ton"             # TON Network
+
+
+# Network configuration with fees and confirmation times
+NETWORK_CONFIG = {
+    CryptoNetwork.TRC20: {
+        "name": "TRON (TRC20)",
+        "token": "USDT",
+        "deposit_fee": 0.0,        # Free deposits
+        "withdrawal_fee": 1.0,     # $1 flat fee
+        "min_deposit": 1.0,
+        "min_withdrawal": 10.0,
+        "confirmations": 20,
+        "avg_time_minutes": 3,
+        "explorer": "https://tronscan.org/#/transaction/",
+        "enabled": True
+    },
+    CryptoNetwork.BEP20: {
+        "name": "BNB Smart Chain (BEP20)",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.5,
+        "min_deposit": 1.0,
+        "min_withdrawal": 10.0,
+        "confirmations": 15,
+        "avg_time_minutes": 2,
+        "explorer": "https://bscscan.com/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.ERC20: {
+        "name": "Ethereum (ERC20)",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 5.0,     # Higher due to gas
+        "min_deposit": 10.0,
+        "min_withdrawal": 50.0,
+        "confirmations": 12,
+        "avg_time_minutes": 5,
+        "explorer": "https://etherscan.io/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.POLYGON: {
+        "name": "Polygon",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.1,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 128,
+        "avg_time_minutes": 4,
+        "explorer": "https://polygonscan.com/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.ARBITRUM: {
+        "name": "Arbitrum One",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.3,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 64,
+        "avg_time_minutes": 3,
+        "explorer": "https://arbiscan.io/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.OPTIMISM: {
+        "name": "Optimism",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.3,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 50,
+        "avg_time_minutes": 3,
+        "explorer": "https://optimistic.etherscan.io/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.BASE: {
+        "name": "Base",
+        "token": "USDC",  # Base primarily uses USDC
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.2,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 50,
+        "avg_time_minutes": 3,
+        "explorer": "https://basescan.org/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.SOLANA: {
+        "name": "Solana",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.1,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 32,
+        "avg_time_minutes": 1,
+        "explorer": "https://solscan.io/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.AVAX_C: {
+        "name": "Avalanche C-Chain",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.5,
+        "min_deposit": 1.0,
+        "min_withdrawal": 10.0,
+        "confirmations": 15,
+        "avg_time_minutes": 2,
+        "explorer": "https://snowtrace.io/tx/",
+        "enabled": True
+    },
+    CryptoNetwork.TON: {
+        "name": "TON Network",
+        "token": "USDT",
+        "deposit_fee": 0.0,
+        "withdrawal_fee": 0.1,
+        "min_deposit": 1.0,
+        "min_withdrawal": 5.0,
+        "confirmations": 10,
+        "avg_time_minutes": 1,
+        "explorer": "https://tonscan.org/tx/",
+        "enabled": True
+    },
+}
+
+
+# Platform deposit addresses (for user deposits)
+PLATFORM_DEPOSIT_ADDRESSES = {
+    CryptoNetwork.TRC20: "TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    CryptoNetwork.BEP20: "0xPlatformBEP20DepositAddress",
+    CryptoNetwork.ERC20: "0xPlatformERC20DepositAddress",
+    CryptoNetwork.POLYGON: "0xPlatformPolygonDepositAddress",
+    CryptoNetwork.ARBITRUM: "0xPlatformArbitrumDepositAddress",
+    CryptoNetwork.OPTIMISM: "0xPlatformOptimismDepositAddress",
+    CryptoNetwork.BASE: "0xPlatformBaseDepositAddress",
+    CryptoNetwork.SOLANA: "PlatformSolanaDepositPublicKey",
+    CryptoNetwork.AVAX_C: "0xPlatformAvalancheDepositAddress",
+    CryptoNetwork.TON: "EQPlatformTONDepositAddress",
+}
+
+
+# ============================================
 # ENUMS
 # ============================================
 
@@ -449,7 +612,14 @@ class TriaceloBlockchain:
     SOVEREIGN_OWNER = SOVEREIGN_OWNER_ID
     
     _instance = None
-    _lock = asyncio.Lock()
+    _lock = None  # Created lazily to avoid event loop issues
+    
+    @classmethod
+    def _get_lock(cls):
+        """Get or create asyncio lock (lazy initialization)"""
+        if cls._lock is None:
+            cls._lock = asyncio.Lock()
+        return cls._lock
     
     def __new__(cls):
         if cls._instance is None:
@@ -634,9 +804,9 @@ class TriaceloBlockchain:
         if self._current_supply + amount > self._max_supply:
             return {"success": False, "error": f"Exceeds maximum supply of {self._max_supply:,.0f}"}
         
-        async with self._lock:
+        async with self._get_lock():
             # Create emission transaction
-            tx_hash = self._generate_tx_hash()
+            tx_hash = self._generate_tx_hash(BURN_ADDRESS, TREASURY_WALLET_ADDRESS, amount, datetime.utcnow())
             
             tx = TRCTransaction(
                 tx_hash=tx_hash,
@@ -700,8 +870,8 @@ class TriaceloBlockchain:
         if amount > self._treasury_balance:
             return {"success": False, "error": f"Insufficient treasury balance: {self._treasury_balance:,.2f}"}
         
-        async with self._lock:
-            tx_hash = self._generate_tx_hash()
+        async with self._get_lock():
+            tx_hash = self._generate_tx_hash(TREASURY_WALLET_ADDRESS, BURN_ADDRESS, amount, datetime.utcnow())
             
             tx = TRCTransaction(
                 tx_hash=tx_hash,
@@ -882,8 +1052,8 @@ class TriaceloBlockchain:
         if amount > self._treasury_balance:
             return {"success": False, "error": "Insufficient treasury balance"}
         
-        async with self._lock:
-            tx_hash = self._generate_tx_hash()
+        async with self._get_lock():
+            tx_hash = self._generate_tx_hash(TREASURY_WALLET_ADDRESS, to_address, amount, datetime.utcnow())
             
             # Create or get target wallet
             if to_address not in self._wallets:
@@ -937,39 +1107,47 @@ class TriaceloBlockchain:
         
         return address
     
+    def _get_or_create_wallet_internal(self, user_id: int) -> TRCWallet:
+        """Internal: Get existing wallet or create new one (no lock)"""
+        # Check if wallet exists
+        if user_id in self._user_wallets:
+            address = self._user_wallets[user_id]
+            return self._wallets[address]
+        
+        # Generate new wallet
+        address = self.generate_wallet_address(user_id)
+        
+        wallet = TRCWallet(
+            address=address,
+            user_id=user_id,
+            balance=0.0,
+            staked_balance=0.0,
+            pending_rewards=0.0,
+            status=WalletStatus.ACTIVE
+        )
+        
+        self._wallets[address] = wallet
+        self._user_wallets[user_id] = address
+        
+        logger.info(f"Created TRC wallet for user {user_id}: {address}")
+        
+        return wallet
+    
     async def get_or_create_wallet(self, user_id: int) -> TRCWallet:
         """Get existing wallet or create new one for user"""
-        async with self._lock:
-            # Check if wallet exists
-            if user_id in self._user_wallets:
-                address = self._user_wallets[user_id]
-                return self._wallets[address]
-            
-            # Generate new wallet
-            address = self.generate_wallet_address(user_id)
-            
-            wallet = TRCWallet(
-                address=address,
-                user_id=user_id,
-                balance=0.0,
-                staked_balance=0.0,
-                pending_rewards=0.0,
-                status=WalletStatus.ACTIVE
-            )
-            
-            self._wallets[address] = wallet
-            self._user_wallets[user_id] = address
-            
-            logger.info(f"Created TRC wallet for user {user_id}: {address}")
-            
-            return wallet
+        async with self._get_lock():
+            return self._get_or_create_wallet_internal(user_id)
     
-    async def get_wallet(self, user_id: int) -> Optional[TRCWallet]:
-        """Get wallet for user if exists"""
+    def _get_wallet_internal(self, user_id: int) -> Optional[TRCWallet]:
+        """Internal: Get wallet for user if exists (no lock)"""
         if user_id in self._user_wallets:
             address = self._user_wallets[user_id]
             return self._wallets.get(address)
         return None
+    
+    async def get_wallet(self, user_id: int) -> Optional[TRCWallet]:
+        """Get wallet for user if exists"""
+        return self._get_wallet_internal(user_id)
     
     async def get_wallet_by_address(self, address: str) -> Optional[TRCWallet]:
         """Get wallet by address"""
@@ -1020,10 +1198,10 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            # Get wallets
-            from_wallet = await self.get_or_create_wallet(from_user_id)
-            to_wallet = await self.get_or_create_wallet(to_user_id)
+        async with self._get_lock():
+            # Get wallets (use internal to avoid deadlock)
+            from_wallet = self._get_or_create_wallet_internal(from_user_id)
+            to_wallet = self._get_or_create_wallet_internal(to_user_id)
             
             # Check balance
             if from_wallet.balance < amount:
@@ -1080,8 +1258,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_or_create_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_or_create_wallet_internal(user_id)
             
             if wallet.status != WalletStatus.ACTIVE:
                 return False, None, "Wallet is not active"
@@ -1126,8 +1304,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_wallet_internal(user_id)
             
             if not wallet:
                 return False, None, "Wallet not found"
@@ -1178,8 +1356,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_wallet_internal(user_id)
             
             if not wallet:
                 return False, None, "Wallet not found. Please deposit TRC first."
@@ -1218,7 +1396,9 @@ class TriaceloBlockchain:
             wallet.updated_at = datetime.utcnow()
             
             # Credit master wallet
-            self._master_wallet.balance += amount
+            master_wallet = self._wallets.get(MASTER_WALLET_ADDRESS)
+            if master_wallet:
+                master_wallet.balance += amount
             
             self._transactions[tx.tx_hash] = tx
             
@@ -1238,8 +1418,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_or_create_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_or_create_wallet_internal(user_id)
             
             # Create reward transaction
             tx = TRCTransaction(
@@ -1283,8 +1463,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_wallet_internal(user_id)
             
             if not wallet:
                 return False, None, "Wallet not found"
@@ -1326,8 +1506,8 @@ class TriaceloBlockchain:
         if amount <= 0:
             return False, None, "Amount must be positive"
         
-        async with self._lock:
-            wallet = await self.get_wallet(user_id)
+        async with self._get_lock():
+            wallet = self._get_wallet_internal(user_id)
             
             if not wallet:
                 return False, None, "Wallet not found"
@@ -1647,4 +1827,194 @@ async def get_owner_dashboard(user_id: int) -> Optional[Dict[str, Any]]:
         "basket_weights": BASKET_WEIGHTS,
         "emission_count": len(blockchain._emission_history),
         "last_emission": blockchain._emission_history[-1].to_dict() if blockchain._emission_history else None
+    }
+
+# ============================================
+# NETWORK DEPOSIT/WITHDRAWAL API
+# ============================================
+
+def get_supported_networks() -> List[Dict[str, Any]]:
+    """Get list of all supported networks for deposit/withdrawal"""
+    networks = []
+    for network, config in NETWORK_CONFIG.items():
+        if config["enabled"]:
+            networks.append({
+                "id": network.value,
+                "name": config["name"],
+                "token": config["token"],
+                "deposit_fee": config["deposit_fee"],
+                "withdrawal_fee": config["withdrawal_fee"],
+                "min_deposit": config["min_deposit"],
+                "min_withdrawal": config["min_withdrawal"],
+                "avg_time_minutes": config["avg_time_minutes"],
+                "explorer": config["explorer"]
+            })
+    return networks
+
+
+def get_network_config(network: str) -> Optional[Dict[str, Any]]:
+    """Get configuration for specific network"""
+    try:
+        net = CryptoNetwork(network.lower())
+        return NETWORK_CONFIG.get(net)
+    except ValueError:
+        return None
+
+
+def get_deposit_address(user_id: int, network: str) -> Optional[Dict[str, Any]]:
+    """
+    Get deposit address for user on specific network.
+    In production, this would generate unique addresses per user.
+    For now, returns platform address with memo/tag.
+    """
+    try:
+        net = CryptoNetwork(network.lower())
+        config = NETWORK_CONFIG.get(net)
+        if not config or not config["enabled"]:
+            return None
+        
+        # Generate unique deposit memo/tag for tracking
+        deposit_tag = f"U{user_id}"
+        
+        return {
+            "network": net.value,
+            "network_name": config["name"],
+            "address": PLATFORM_DEPOSIT_ADDRESSES.get(net, ""),
+            "memo": deposit_tag,  # Use memo/tag for tracking
+            "token": config["token"],
+            "min_deposit": config["min_deposit"],
+            "fee": config["deposit_fee"],
+            "confirmations": config["confirmations"],
+            "avg_time": config["avg_time_minutes"],
+            "warning": f"Only send {config['token']} on {config['name']}. Wrong network = lost funds!"
+        }
+    except ValueError:
+        return None
+
+
+async def request_withdrawal(
+    user_id: int,
+    amount: float,
+    network: str,
+    external_address: str
+) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    """
+    Request USDT withdrawal to external address.
+    
+    Returns:
+        (success, message, withdrawal_info)
+    """
+    try:
+        net = CryptoNetwork(network.lower())
+        config = NETWORK_CONFIG.get(net)
+        
+        if not config or not config["enabled"]:
+            return False, "Network not supported or disabled", None
+        
+        # Validate amount
+        if amount < config["min_withdrawal"]:
+            return False, f"Minimum withdrawal is {config['min_withdrawal']} USDT", None
+        
+        # Calculate fee
+        fee = config["withdrawal_fee"]
+        net_amount = amount - fee
+        
+        if net_amount <= 0:
+            return False, f"Amount too small after fee ({fee} USDT)", None
+        
+        # Check user balance
+        wallet = await blockchain.get_wallet(user_id)
+        if not wallet:
+            return False, "Wallet not found", None
+        
+        if wallet.balance < amount:
+            return False, f"Insufficient balance. Available: {wallet.balance:.2f} TRC", None
+        
+        # Process withdrawal (deduct from wallet)
+        success, tx, msg = await blockchain.withdraw(user_id, amount, f"external:{network}")
+        
+        if not success:
+            return False, msg, None
+        
+        # In production, this would queue the actual blockchain transaction
+        withdrawal_info = {
+            "withdrawal_id": tx.tx_hash if tx else f"W{int(time.time())}",
+            "network": net.value,
+            "network_name": config["name"],
+            "external_address": external_address,
+            "amount": amount,
+            "fee": fee,
+            "net_amount": net_amount,
+            "status": "processing",
+            "estimated_time": f"{config['avg_time_minutes']} minutes",
+            "explorer": config["explorer"]
+        }
+        
+        logger.info(f"Withdrawal request: {amount} USDT to {external_address} on {net.value} by user {user_id}")
+        
+        return True, f"Withdrawal of {net_amount:.2f} USDT initiated on {config['name']}", withdrawal_info
+        
+    except ValueError:
+        return False, f"Unknown network: {network}", None
+
+
+async def confirm_deposit(
+    user_id: int,
+    amount: float,
+    network: str,
+    tx_hash: str
+) -> Tuple[bool, str]:
+    """
+    Confirm incoming deposit from external blockchain.
+    Called by deposit monitoring service.
+    """
+    try:
+        net = CryptoNetwork(network.lower())
+        config = NETWORK_CONFIG.get(net)
+        
+        if not config:
+            return False, "Unknown network"
+        
+        # Apply deposit fee if any
+        fee = config["deposit_fee"]
+        net_amount = amount - (amount * fee)
+        
+        # Credit user wallet
+        success, tx, msg = await blockchain.deposit(
+            user_id, 
+            net_amount, 
+            source=f"deposit:{network}",
+            memo=f"TX: {tx_hash}"
+        )
+        
+        if success:
+            logger.info(f"Deposit confirmed: {net_amount} TRC to user {user_id} from {network}")
+            return True, f"Deposited {net_amount:.2f} TRC from {config['name']}"
+        
+        return False, msg
+        
+    except ValueError:
+        return False, f"Unknown network: {network}"
+
+
+def get_withdrawal_fees() -> Dict[str, float]:
+    """Get withdrawal fees for all networks"""
+    return {
+        network.value: config["withdrawal_fee"]
+        for network, config in NETWORK_CONFIG.items()
+        if config["enabled"]
+    }
+
+
+def get_network_status() -> Dict[str, Dict[str, Any]]:
+    """Get status of all networks (for admin/monitoring)"""
+    return {
+        network.value: {
+            "name": config["name"],
+            "enabled": config["enabled"],
+            "token": config["token"],
+            "deposit_fee": config["deposit_fee"],
+            "withdrawal_fee": config["withdrawal_fee"],
+        }
+        for network, config in NETWORK_CONFIG.items()
     }

@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRC Blockchain Admin - Triacelo</title>
+    <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-green: #00ff88;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --border-color: rgba(255,255,255,0.1);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header h1 span {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .owner-badge {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .stat-item {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.purple { color: var(--accent-purple); }
+        .stat-value.yellow { color: var(--accent-yellow); }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #00cc66);
+            color: #000;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-yellow), #d97706);
+            color: #000;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .network-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .network-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .network-name {
+            font-weight: 500;
+        }
+        
+        .network-fee {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .status-active {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+        
+        .hidden { display: none; }
+        
+        .full-width { grid-column: 1 / -1; }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        
+        .log-container {
+            background: #000;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .log-entry.success { color: var(--accent-green); }
+        .log-entry.error { color: var(--accent-red); }
+        .log-entry.info { color: var(--accent-blue); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🪙 <span>TRC Blockchain</span> Admin Panel</h1>
+        <div class="owner-badge">👑 Sovereign Owner</div>
+    </div>
+    
+    <div id="alertContainer"></div>
+    
+    <div class="grid">
+        <!-- Treasury Stats -->
+        <div class="card">
+            <h2>💎 Treasury Overview</h2>
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Current Supply</div>
+                    <div class="stat-value green" id="currentSupply">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Max Supply</div>
+                    <div class="stat-value" id="maxSupply">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Treasury Balance</div>
+                    <div class="stat-value blue" id="treasuryBalance">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Reserve Ratio</div>
+                    <div class="stat-value purple" id="reserveRatio">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Staked</div>
+                    <div class="stat-value yellow" id="totalStaked">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Staking APY</div>
+                    <div class="stat-value green" id="stakingApy">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Emission Control -->
+        <div class="card">
+            <h2>🖨️ Token Emission</h2>
+            <form id="emissionForm">
+                <div class="form-group">
+                    <label>Amount to Emit (TRC)</label>
+                    <input type="number" id="emitAmount" placeholder="1000000" min="1" step="any">
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="emitReason" placeholder="Market expansion">
+                </div>
+                <button type="submit" class="btn btn-success">🖨️ Emit Tokens</button>
+            </form>
+        </div>
+        
+        <!-- Burn Control -->
+        <div class="card">
+            <h2>🔥 Token Burn</h2>
+            <form id="burnForm">
+                <div class="form-group">
+                    <label>Amount to Burn (TRC)</label>
+                    <input type="number" id="burnAmount" placeholder="500000" min="1" step="any">
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="burnReason" placeholder="Supply reduction">
+                </div>
+                <button type="submit" class="btn btn-danger">🔥 Burn Tokens</button>
+            </form>
+        </div>
+        
+        <!-- Monetary Policy -->
+        <div class="card">
+            <h2>📊 Monetary Policy</h2>
+            <form id="policyForm">
+                <div class="form-group">
+                    <label>Staking APY (%)</label>
+                    <input type="number" id="newApy" placeholder="12" min="1" max="50" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Reserve Ratio</label>
+                    <input type="number" id="newReserveRatio" placeholder="1.1" min="0.5" max="2" step="0.01">
+                </div>
+                <button type="submit" class="btn btn-primary">💾 Update Policy</button>
+            </form>
+        </div>
+        
+        <!-- Treasury Transfer -->
+        <div class="card">
+            <h2>📤 Treasury Transfer</h2>
+            <form id="transferForm">
+                <div class="form-group">
+                    <label>Recipient User ID</label>
+                    <input type="number" id="transferUserId" placeholder="123456789">
+                </div>
+                <div class="form-group">
+                    <label>Amount (TRC)</label>
+                    <input type="number" id="transferAmount" placeholder="1000" min="1" step="any">
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="transferReason" placeholder="Partner bonus">
+                </div>
+                <button type="submit" class="btn btn-warning">📤 Transfer</button>
+            </form>
+        </div>
+        
+        <!-- Wallet Management -->
+        <div class="card">
+            <h2>👛 Wallet Management</h2>
+            <div class="tabs">
+                <button class="tab active" data-tab="freeze">Freeze</button>
+                <button class="tab" data-tab="unfreeze">Unfreeze</button>
+                <button class="tab" data-tab="lookup">Lookup</button>
+            </div>
+            <form id="walletForm">
+                <div class="form-group">
+                    <label>User ID</label>
+                    <input type="number" id="walletUserId" placeholder="123456789">
+                </div>
+                <div class="form-group" id="freezeReasonGroup">
+                    <label>Reason</label>
+                    <input type="text" id="freezeReason" placeholder="Suspicious activity">
+                </div>
+                <button type="submit" class="btn btn-danger" id="walletActionBtn">❄️ Freeze Wallet</button>
+            </form>
+            <div id="walletInfo" class="hidden" style="margin-top: 16px;"></div>
+        </div>
+        
+        <!-- Network Status -->
+        <div class="card full-width">
+            <h2>🌐 Network Status</h2>
+            <div class="network-list" id="networkList">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        
+        <!-- Activity Log -->
+        <div class="card full-width">
+            <h2>📜 Activity Log</h2>
+            <div class="log-container" id="activityLog">
+                <div class="log-entry info">[INFO] Dashboard loaded</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const ADMIN_ID = 511692487; // Sovereign Owner ID
+        const API_BASE = '/api/blockchain';
+        let currentWalletAction = 'freeze';
+        
+        // Utility functions
+        function formatNumber(n) {
+            if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+            if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+            if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+            return n.toFixed(2);
+        }
+        
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+        
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+        }
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/dashboard/${ADMIN_ID}`);
+                const data = await response.json();
+                
+                if (data.treasury) {
+                    document.getElementById('currentSupply').textContent = formatNumber(data.treasury.current_supply);
+                    document.getElementById('maxSupply').textContent = formatNumber(data.treasury.max_supply);
+                    document.getElementById('treasuryBalance').textContent = formatNumber(data.treasury.treasury_balance) + ' TRC';
+                    document.getElementById('reserveRatio').textContent = (data.treasury.reserve_ratio * 100).toFixed(0) + '%';
+                    document.getElementById('stakingApy').textContent = data.treasury.staking_apy.toFixed(1) + '%';
+                }
+                
+                if (data.global) {
+                    document.getElementById('totalStaked').textContent = formatNumber(data.global.total_staked) + ' TRC';
+                }
+                
+                addLog('Dashboard refreshed', 'success');
+            } catch (e) {
+                addLog('Failed to load dashboard: ' + e.message, 'error');
+            }
+        }
+        
+        // Load networks
+        async function loadNetworks() {
+            try {
+                const response = await fetch(`${API_BASE}/networks`);
+                const data = await response.json();
+                
+                const list = document.getElementById('networkList');
+                list.innerHTML = data.networks.map(n => `
+                    <div class="network-item">
+                        <div>
+                            <span class="status-active"></span>
+                            <span class="network-name">${n.name}</span>
+                        </div>
+                        <span class="network-fee">Fee: $${n.withdrawal_fee}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                addLog('Failed to load networks: ' + e.message, 'error');
+            }
+        }
+        
+        // Form handlers
+        document.getElementById('emissionForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('emitAmount').value);
+            const reason = document.getElementById('emitReason').value;
+            
+            if (!amount || !reason) return showAlert('Fill all fields', 'error');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/emit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: ADMIN_ID, amount, reason })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(`Emitted ${formatNumber(amount)} TRC`, 'success');
+                    addLog(`EMISSION: ${formatNumber(amount)} TRC - ${reason}`, 'success');
+                    loadDashboard();
+                } else {
+                    showAlert(data.error || 'Emission failed', 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        };
+        
+        document.getElementById('burnForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('burnAmount').value);
+            const reason = document.getElementById('burnReason').value;
+            
+            if (!amount || !reason) return showAlert('Fill all fields', 'error');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/burn`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: ADMIN_ID, amount, reason })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(`Burned ${formatNumber(amount)} TRC`, 'success');
+                    addLog(`BURN: ${formatNumber(amount)} TRC - ${reason}`, 'success');
+                    loadDashboard();
+                } else {
+                    showAlert(data.error || 'Burn failed', 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        };
+        
+        document.getElementById('policyForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const staking_apy = parseFloat(document.getElementById('newApy').value) / 100;
+            const reserve_ratio = parseFloat(document.getElementById('newReserveRatio').value);
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/policy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: ADMIN_ID, staking_apy, reserve_ratio })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Monetary policy updated', 'success');
+                    addLog('POLICY: Updated monetary policy', 'info');
+                    loadDashboard();
+                } else {
+                    showAlert(data.error || 'Update failed', 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        };
+        
+        document.getElementById('transferForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const to_user_id = parseInt(document.getElementById('transferUserId').value);
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const reason = document.getElementById('transferReason').value;
+            
+            if (!to_user_id || !amount || !reason) return showAlert('Fill all fields', 'error');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/treasury-transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: ADMIN_ID, to_user_id, amount, reason })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(`Transferred ${formatNumber(amount)} TRC to user ${to_user_id}`, 'success');
+                    addLog(`TRANSFER: ${formatNumber(amount)} TRC to ${to_user_id}`, 'success');
+                    loadDashboard();
+                } else {
+                    showAlert(data.error || 'Transfer failed', 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        };
+        
+        // Tab handling
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentWalletAction = tab.dataset.tab;
+                
+                const btn = document.getElementById('walletActionBtn');
+                const reasonGroup = document.getElementById('freezeReasonGroup');
+                const walletInfo = document.getElementById('walletInfo');
+                
+                if (currentWalletAction === 'freeze') {
+                    btn.textContent = '❄️ Freeze Wallet';
+                    btn.className = 'btn btn-danger';
+                    reasonGroup.classList.remove('hidden');
+                } else if (currentWalletAction === 'unfreeze') {
+                    btn.textContent = '🔓 Unfreeze Wallet';
+                    btn.className = 'btn btn-success';
+                    reasonGroup.classList.add('hidden');
+                } else {
+                    btn.textContent = '🔍 Lookup Wallet';
+                    btn.className = 'btn btn-primary';
+                    reasonGroup.classList.add('hidden');
+                }
+                
+                walletInfo.classList.add('hidden');
+            };
+        });
+        
+        document.getElementById('walletForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const userId = parseInt(document.getElementById('walletUserId').value);
+            
+            if (!userId) return showAlert('Enter user ID', 'error');
+            
+            if (currentWalletAction === 'lookup') {
+                try {
+                    const response = await fetch(`${API_BASE}/wallet/${userId}`);
+                    const data = await response.json();
+                    
+                    document.getElementById('walletInfo').innerHTML = `
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Address</div>
+                                <div style="font-size: 12px; word-break: break-all;">${data.address}</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Balance</div>
+                                <div class="stat-value green">${formatNumber(data.balance)} TRC</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Staked</div>
+                                <div class="stat-value blue">${formatNumber(data.staked_balance)} TRC</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Status</div>
+                                <div class="stat-value">${data.status}</div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('walletInfo').classList.remove('hidden');
+                    addLog(`LOOKUP: User ${userId} wallet`, 'info');
+                } catch (e) {
+                    showAlert('Wallet not found', 'error');
+                }
+                return;
+            }
+            
+            const reason = document.getElementById('freezeReason').value;
+            const endpoint = currentWalletAction === 'freeze' ? 'freeze' : 'unfreeze';
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_id: ADMIN_ID, target_user_id: userId, reason: reason || '' })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(`Wallet ${endpoint}d successfully`, 'success');
+                    addLog(`${endpoint.toUpperCase()}: User ${userId}`, currentWalletAction === 'freeze' ? 'error' : 'success');
+                } else {
+                    showAlert(data.error || 'Operation failed', 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        };
+        
+        // Initialize
+        loadDashboard();
+        loadNetworks();
+        setInterval(loadDashboard, 30000); // Refresh every 30s
+    </script>
+</body>
+</html>

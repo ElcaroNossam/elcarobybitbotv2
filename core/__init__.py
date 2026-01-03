@@ -94,6 +94,64 @@ from .exchange_client import (
     clear_auth_error_cache,
 )
 
+# Blockchain and TRC token
+from .blockchain import (
+    # Core
+    TriaceloBlockchain,
+    TRCWallet,
+    TRCTransaction,
+    TransactionType,
+    CryptoNetwork,
+    
+    # Config
+    SOVEREIGN_OWNER_ID,
+    SOVEREIGN_OWNER_NAME,
+    CHAIN_ID,
+    CHAIN_NAME,
+    TRC_SYMBOL,
+    TRC_NAME,
+    TRC_TOTAL_SUPPLY,
+    TRC_INITIAL_CIRCULATION,
+    BASE_STAKING_APY,
+    LICENSE_PRICES_TRC,
+    NETWORK_CONFIG,
+    
+    # Wallet functions
+    get_trc_wallet,
+    get_trc_balance,
+    deposit_trc,
+    pay_with_trc,
+    reward_trc,
+    pay_license,
+    get_license_price_trc,
+    
+    # Currency conversion
+    usdt_to_trc,
+    trc_to_usdt,
+    
+    # Sovereign operations
+    is_sovereign_owner,
+    emit_tokens,
+    burn_tokens,
+    set_monetary_policy,
+    freeze_wallet,
+    unfreeze_wallet,
+    distribute_staking_rewards,
+    get_treasury_stats,
+    transfer_from_treasury,
+    get_global_stats,
+    get_owner_dashboard,
+    
+    # Network operations
+    get_supported_networks,
+    get_network_config,
+    get_deposit_address,
+    request_withdrawal,
+    confirm_deposit,
+    get_withdrawal_fees,
+    get_network_status,
+)
+
 __all__ = [
     # Exceptions
     "BotException",
@@ -168,4 +226,49 @@ __all__ = [
     "create_credentials_from_config",
     "invalidate_client",
     "clear_auth_error_cache",
+    
+    # Blockchain and TRC
+    "TriaceloBlockchain",
+    "TRCWallet",
+    "TRCTransaction",
+    "TransactionType",
+    "CryptoNetwork",
+    "SOVEREIGN_OWNER_ID",
+    "SOVEREIGN_OWNER_NAME",
+    "CHAIN_ID",
+    "CHAIN_NAME",
+    "TRC_SYMBOL",
+    "TRC_NAME",
+    "TRC_TOTAL_SUPPLY",
+    "TRC_INITIAL_CIRCULATION",
+    "BASE_STAKING_APY",
+    "LICENSE_PRICES_TRC",
+    "NETWORK_CONFIG",
+    "get_trc_wallet",
+    "get_trc_balance",
+    "deposit_trc",
+    "pay_with_trc",
+    "reward_trc",
+    "pay_license",
+    "get_license_price_trc",
+    "usdt_to_trc",
+    "trc_to_usdt",
+    "is_sovereign_owner",
+    "emit_tokens",
+    "burn_tokens",
+    "set_monetary_policy",
+    "freeze_wallet",
+    "unfreeze_wallet",
+    "distribute_staking_rewards",
+    "get_treasury_stats",
+    "transfer_from_treasury",
+    "get_global_stats",
+    "get_owner_dashboard",
+    "get_supported_networks",
+    "get_network_config",
+    "get_deposit_address",
+    "request_withdrawal",
+    "confirm_deposit",
+    "get_withdrawal_fees",
+    "get_network_status",
 ]
