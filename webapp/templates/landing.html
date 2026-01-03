@@ -70,13 +70,15 @@
             border-radius: 50%;
             opacity: 0.3;
             animation: float 20s infinite;
+            will-change: transform, opacity;
+            transform: translateZ(0); /* GPU acceleration */
         }
         
         @keyframes float {
-            0%, 100% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            0%, 100% { transform: translate3d(0, 100vh, 0); opacity: 0; }
             10% { opacity: 0.5; }
             90% { opacity: 0.5; }
-            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+            100% { transform: translate3d(100px, -100vh, 0); opacity: 0; }
         }
         
         /* Navbar */
@@ -714,16 +716,17 @@
         })();
         
         // ========================================
-        // PARTICLES ANIMATION
+        // PARTICLES ANIMATION (Optimized - reduced for performance)
         // ========================================
-        // Generate particles
+        // Generate particles - reduced from 50 to 15 for better performance
         const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 15; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
             particle.style.left = Math.random() * 100 + '%';
             particle.style.animationDelay = Math.random() * 20 + 's';
             particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            particle.style.willChange = 'transform, opacity'; // GPU acceleration
             particlesContainer.appendChild(particle);
         }
         

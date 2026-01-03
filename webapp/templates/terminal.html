@@ -583,7 +583,6 @@
         .analyzer-status .dot { width: 6px; height: 6px; border-radius: 50%; }
         .analyzer-status .dot.running { background: var(--green); animation: pulse 1.5s infinite; }
         .analyzer-status .dot.stopped { background: var(--red); }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         .strategy-toggles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
         .strategy-chip { padding: 4px 10px; font-size: 0.7rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 16px; cursor: pointer; transition: all 0.2s; }
@@ -2851,56 +2850,67 @@
             }
         }
         
+        // Cache for orderbook to prevent unnecessary DOM updates
+        let lastOrderbookHash = '';
+        
         function updateOrderbookUI(data) {
             const asksEl = document.getElementById('asks');
             const bidsEl = document.getElementById('bids');
             if (!asksEl || !bidsEl) return;
             
-            // Update heatmap analysis
-            OrderbookHeatmap.update(data.asks, data.bids);
+            // Skip if data hasn't changed (reduces flickering)
+            const currentHash = JSON.stringify(data.asks.slice(0, 10)) + JSON.stringify(data.bids.slice(0, 10));
+            if (currentHash === lastOrderbookHash) return;
+            lastOrderbookHash = currentHash;
             
-            // Render asks (reversed for display)
-            asksEl.innerHTML = data.asks.slice().reverse().map(([price, size, total, depth]) => {
-                const heatColor = OrderbookHeatmap.getHeatColor(size, 'ask');
-                const isWhale = size > OrderbookHeatmap.state.maxSize * 0.3;
-                return `<div class="orderbook-row ask ${isWhale ? 'whale' : ''}" onclick="setPrice(${price})" style="--heat-color: ${heatColor};">
-                    <span class="price">${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                    <span class="size ${isWhale ? 'highlight' : ''}">${size.toFixed(4)}</span>
-                    <span class="total">${total.toFixed(2)}</span>
-                    <div class="depth" style="width: ${depth}%;"></div>
-                    ${isWhale ? '<i class="fas fa-fish whale-icon"></i>' : ''}
-                </div>`;
-            }).join('');
-            
-            // Render bids
-            bidsEl.innerHTML = data.bids.map(([price, size, total, depth]) => {
-                const heatColor = OrderbookHeatmap.getHeatColor(size, 'bid');
-                const isWhale = size > OrderbookHeatmap.state.maxSize * 0.3;
-                return `<div class="orderbook-row bid ${isWhale ? 'whale' : ''}" onclick="setPrice(${price})" style="--heat-color: ${heatColor};">
-                    <span class="price">${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                    <span class="size ${isWhale ? 'highlight' : ''}">${size.toFixed(4)}</span>
-                    <span class="total">${total.toFixed(2)}</span>
-                    <div class="depth" style="width: ${depth}%;"></div>
-                    ${isWhale ? '<i class="fas fa-fish whale-icon"></i>' : ''}
-                </div>`;
-            }).join('');
-            
-            // Update spread
-            if (data.asks.length && data.bids.length) {
-                document.getElementById('spreadValue').textContent = '$' + data.spread.toFixed(2);
-                document.getElementById('spreadPercent').textContent = data.spread_percent.toFixed(4) + '%';
+            // Use requestAnimationFrame for smoother rendering
+            requestAnimationFrame(() => {
+                // Update heatmap analysis
+                OrderbookHeatmap.update(data.asks, data.bids);
                 
-                // Update imbalance indicator
-                const imbalanceEl = document.getElementById('imbalanceIndicator');
-                if (imbalanceEl) {
-                    const color = data.imbalance > 10 ? 'var(--green)' : data.imbalance < -10 ? 'var(--red)' : 'var(--text-muted)';
-                    const label = data.imbalance > 10 ? 'Bullish' : data.imbalance < -10 ? 'Bearish' : 'Neutral';
-                    imbalanceEl.innerHTML = `
-                        <div class="imbalance-bar"><div class="imbalance-fill" style="width: ${50 + data.imbalance/2}%; background: ${color};"></div></div>
-                        <span class="imbalance-label" style="color: ${color};">${label} (${data.imbalance.toFixed(1)}%)</span>
-                    `;
+                // Render asks (reversed for display)
+                asksEl.innerHTML = data.asks.slice().reverse().map(([price, size, total, depth]) => {
+                    const heatColor = OrderbookHeatmap.getHeatColor(size, 'ask');
+                    const isWhale = size > OrderbookHeatmap.state.maxSize * 0.3;
+                    return `<div class="orderbook-row ask ${isWhale ? 'whale' : ''}" onclick="setPrice(${price})" style="--heat-color: ${heatColor};">
+                        <span class="price">${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span class="size ${isWhale ? 'highlight' : ''}">${size.toFixed(4)}</span>
+                        <span class="total">${total.toFixed(2)}</span>
+                        <div class="depth" style="width: ${depth}%;"></div>
+                        ${isWhale ? '<i class="fas fa-fish whale-icon"></i>' : ''}
+                    </div>`;
+                }).join('');
+                
+                // Render bids
+                bidsEl.innerHTML = data.bids.map(([price, size, total, depth]) => {
+                    const heatColor = OrderbookHeatmap.getHeatColor(size, 'bid');
+                    const isWhale = size > OrderbookHeatmap.state.maxSize * 0.3;
+                    return `<div class="orderbook-row bid ${isWhale ? 'whale' : ''}" onclick="setPrice(${price})" style="--heat-color: ${heatColor};">
+                        <span class="price">${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span class="size ${isWhale ? 'highlight' : ''}">${size.toFixed(4)}</span>
+                        <span class="total">${total.toFixed(2)}</span>
+                        <div class="depth" style="width: ${depth}%;"></div>
+                        ${isWhale ? '<i class="fas fa-fish whale-icon"></i>' : ''}
+                    </div>`;
+                }).join('');
+                
+                // Update spread
+                if (data.asks.length && data.bids.length) {
+                    document.getElementById('spreadValue').textContent = '$' + data.spread.toFixed(2);
+                    document.getElementById('spreadPercent').textContent = data.spread_percent.toFixed(4) + '%';
+                    
+                    // Update imbalance indicator
+                    const imbalanceEl = document.getElementById('imbalanceIndicator');
+                    if (imbalanceEl) {
+                        const color = data.imbalance > 10 ? 'var(--green)' : data.imbalance < -10 ? 'var(--red)' : 'var(--text-muted)';
+                        const label = data.imbalance > 10 ? 'Bullish' : data.imbalance < -10 ? 'Bearish' : 'Neutral';
+                        imbalanceEl.innerHTML = `
+                            <div class="imbalance-bar"><div class="imbalance-fill" style="width: ${50 + data.imbalance/2}%; background: ${color};"></div></div>
+                            <span class="imbalance-label" style="color: ${color};">${label} (${data.imbalance.toFixed(1)}%)</span>
+                        `;
+                    }
                 }
-            }
+            });
         }
         
         // One-Click Trading toggle
@@ -3259,8 +3269,8 @@
                 PositionAnalytics.fetchStats();
                 updateAlertsPanel();
                 
-                // Start real orderbook polling (fallback if WS not available)
-                setInterval(fetchRealOrderbook, 2000);
+                // Start real orderbook polling (optimized: 4s interval to reduce flickering)
+                setInterval(fetchRealOrderbook, 4000);
                 
                 // Periodic alerts panel update
                 setInterval(updateAlertsPanel, 5000);
