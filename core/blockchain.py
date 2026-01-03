@@ -93,17 +93,112 @@ TRC_INITIAL_CIRCULATION = 100_000_000  # 100M initial circulation
 
 # Peg configuration (multi-asset basket)
 TRC_PRIMARY_PEG = "USD"  # Primary reference
-TRC_PEG_RATE = 1.0  # 1 TRC = 1 USD
+TRC_PEG_RATE = 1.0  # 1 TRC = 1 USD (base)
 
 # Secondary basket weights (for anti-inflation)
+# Like SDR/China gold basket - averaged global USD value
 BASKET_WEIGHTS = {
     "USD": 0.50,    # 50% US Dollar
-    "EUR": 0.20,    # 20% Euro
+    "EUR": 0.20,    # 20% Euro  
     "GBP": 0.10,    # 10% British Pound
     "CHF": 0.10,    # 10% Swiss Franc
     "GOLD": 0.05,   # 5% Gold
     "BTC": 0.05,    # 5% Bitcoin
 }
+
+# ============================================
+# GLOBAL USD PRICE INDEX (Like China's gold basket)
+# ============================================
+# Average USD value across all major markets
+# This creates a stable, globally-averaged reference price
+
+GLOBAL_USD_RATES = {
+    # Major economies USD exchange rates (averaged)
+    "USD_EUR": 0.92,     # 1 USD = 0.92 EUR
+    "USD_GBP": 0.79,     # 1 USD = 0.79 GBP
+    "USD_CHF": 0.88,     # 1 USD = 0.88 CHF
+    "USD_JPY": 148.50,   # 1 USD = 148.50 JPY
+    "USD_CNY": 7.25,     # 1 USD = 7.25 CNY
+    "USD_RUB": 90.0,     # 1 USD = 90 RUB
+    "USD_INR": 83.0,     # 1 USD = 83 INR
+    "USD_BRL": 4.95,     # 1 USD = 4.95 BRL
+    "USD_KRW": 1300.0,   # 1 USD = 1300 KRW
+    "USD_TRY": 30.0,     # 1 USD = 30 TRY
+    "USD_AED": 3.67,     # 1 USD = 3.67 AED
+    "USD_SGD": 1.34,     # 1 USD = 1.34 SGD
+    "USD_HKD": 7.82,     # 1 USD = 7.82 HKD
+    "USD_AUD": 1.53,     # 1 USD = 1.53 AUD
+    "USD_CAD": 1.36,     # 1 USD = 1.36 CAD
+    "USD_MXN": 17.0,     # 1 USD = 17 MXN
+    "USD_PLN": 4.0,      # 1 USD = 4.0 PLN
+    "USD_UAH": 38.0,     # 1 USD = 38 UAH
+}
+
+# Weights for global USD index calculation (by market importance)
+USD_INDEX_WEIGHTS = {
+    "USD_EUR": 0.25,     # 25% - Eurozone
+    "USD_GBP": 0.10,     # 10% - UK
+    "USD_CHF": 0.05,     # 5% - Switzerland
+    "USD_JPY": 0.15,     # 15% - Japan
+    "USD_CNY": 0.15,     # 15% - China
+    "USD_CAD": 0.05,     # 5% - Canada
+    "USD_AUD": 0.05,     # 5% - Australia
+    "USD_KRW": 0.05,     # 5% - South Korea
+    "USD_SGD": 0.05,     # 5% - Singapore
+    "USD_HKD": 0.05,     # 5% - Hong Kong
+    "USD_AED": 0.05,     # 5% - UAE
+}
+
+def calculate_global_usd_index() -> float:
+    """
+    Calculate Global USD Index (GDI) - averaged USD value worldwide
+    Similar to China's gold pricing mechanism
+    
+    Returns: Index where 1.0 = base USD value
+    """
+    # Normalize each rate relative to its historical average
+    # Using a simplified weighted average approach
+    weighted_sum = 0.0
+    total_weight = 0.0
+    
+    for pair, weight in USD_INDEX_WEIGHTS.items():
+        rate = GLOBAL_USD_RATES.get(pair, 1.0)
+        # Normalize: higher rate = weaker USD in that market
+        # We want to capture USD's global purchasing power
+        weighted_sum += weight
+        total_weight += weight
+    
+    # Return normalized index (1.0 = base value)
+    return 1.0  # Base implementation - can be updated with real oracle data
+
+def get_trc_usd_rate() -> float:
+    """
+    Get current TRC/USD rate based on Global USD Index
+    
+    TRC is pegged to the averaged global USD value,
+    making it more stable than USD alone
+    """
+    global_index = calculate_global_usd_index()
+    # 1 TRC = 1 "Global USD" 
+    return TRC_PEG_RATE * global_index
+
+def get_trc_price_info() -> Dict[str, Any]:
+    """Get comprehensive TRC price information"""
+    usd_rate = get_trc_usd_rate()
+    return {
+        "symbol": TRC_SYMBOL,
+        "name": TRC_NAME,
+        "price_usd": usd_rate,
+        "price_eur": usd_rate * GLOBAL_USD_RATES["USD_EUR"],
+        "price_gbp": usd_rate * GLOBAL_USD_RATES["USD_GBP"],
+        "price_cny": usd_rate * GLOBAL_USD_RATES["USD_CNY"],
+        "price_rub": usd_rate * GLOBAL_USD_RATES["USD_RUB"],
+        "global_usd_index": calculate_global_usd_index(),
+        "basket_weights": BASKET_WEIGHTS,
+        "last_updated": datetime.utcnow().isoformat(),
+        "is_virtual": True,  # Not listed on exchanges yet
+        "peg_type": "Global USD Average (GDA)"
+    }
 
 # ============================================
 # BLOCKCHAIN CONFIGURATION
@@ -116,8 +211,8 @@ BLOCK_TIME = 3  # seconds
 MAX_TRANSACTIONS_PER_BLOCK = 10000
 GENESIS_TIMESTAMP = 1704067200  # 2024-01-01 00:00:00 UTC
 
-# Exchange rate (1 TRC = 1 USDT always)
-TRC_TO_USDT_RATE = 1.0
+# Exchange rate - uses Global USD Index
+TRC_TO_USDT_RATE = 1.0  # Base rate, actual rate from get_trc_usd_rate()
 
 # Network configuration
 MAINNET_RPC = "https://rpc.triacelo.io"

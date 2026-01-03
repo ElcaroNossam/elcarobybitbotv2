@@ -965,14 +965,6 @@ Select report type:''',
     'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
     'payment_session_expired': '❌ Payment session expired. Please start again.',
     'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_ton_not_found': '''❌ Payment not found or amount incorrect.
-
-Please make sure you:
-• Sent the exact amount
-• Included the correct comment
-• Wait a few minutes for confirmation
-
-Try again after payment is confirmed on blockchain.''',
     'payment_verifying': '⏳ Verifying payment...',
     'position': 'Position',
     'size': 'Size',
@@ -1022,4 +1014,56 @@ Try again after payment is confirmed on blockchain.''',
 
     # Hardcore trading phrase
     'hardcore_mode': '💀 *HARDCORE-MODUS*: Keine Gnade, keine Reue. Nur Profit oder Tod! 🔥',
+
+    # Wallet & TRC translations
+
+    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+
+Your balance: {balance} TRC
+Required: {required} TRC
+
+Top up your wallet to continue.''',
+    'wallet_address': '''📍 Address: `{address}`''',
+    'wallet_balance': '''💰 *Your TRC Wallet*
+
+◈ Balance: *{balance} TRC*
+📈 Staked: *{staked} TRC*
+🎁 Pending Rewards: *{rewards} TRC*
+
+�� Total Value: *${total_usd}*
+📍 1 TRC = 1 USDT''',
+    'wallet_btn_back': '''« Back''',
+    'wallet_btn_deposit': '''📥 Deposit''',
+    'wallet_btn_history': '''📋 History''',
+    'wallet_btn_stake': '''📈 Stake''',
+    'wallet_btn_unstake': '''📤 Unstake''',
+    'wallet_btn_withdraw': '''📤 Withdraw''',
+    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
+    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+
+`{address}`
+
+💡 *Demo mode:* Click below for free test tokens.''',
+    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
+    'wallet_deposit_title': '''📥 *Deposit TRC*''',
+    'wallet_history_empty': '''No transactions yet.''',
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+   {date}''',
+    'wallet_history_title': '''�� *Transaction History*''',
+    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+
+💰 Available: {available} TRC
+📈 Currently Staked: {staked} TRC
+🎁 Pending Rewards: {rewards} TRC
+
+Daily rewards • Instant unstaking''',
+    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
+    'wallet_stake_title': '''📈 *Stake TRC*''',
+    'wallet_title': '''◈ *TRC Wallet*''',
+    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
+    'wallet_withdraw_desc': '''Enter destination address and amount:''',
+    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
+    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
+    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+
 }

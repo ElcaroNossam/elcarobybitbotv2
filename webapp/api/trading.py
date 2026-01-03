@@ -515,7 +515,13 @@ async def close_position(
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
         try:
-            result = await close_position_service(user_id, req.symbol, req.exchange, req.account_type)
+            result = await close_position_service(
+                user_id=user_id,
+                symbol=req.symbol,
+                qty=None,
+                exchange=req.exchange,
+                account_type=req.account_type
+            )
             if result.get("success"):
                 return {"success": True, "message": result.get("message")}
             return {"success": False, "error": result.get("error")}

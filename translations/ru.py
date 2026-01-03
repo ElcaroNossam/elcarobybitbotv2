@@ -989,7 +989,6 @@ TEXTS = {
     'button_licenses': '🔑 Лицензии',
     'payment_session_expired': '❌ Сессия оплаты истекла. Начните заново.',
     'payment_ton_not_configured': '❌ TON платежи не настроены.',
-    'payment_ton_not_found': '❌ Платёж не найден.',
     'payment_verifying': '⏳ Проверяем платёж...',
 
     "button_hyperliquid": "🔷 HyperLiquid",

@@ -115,6 +115,12 @@ from .blockchain import (
     BASE_STAKING_APY,
     LICENSE_PRICES_TRC,
     NETWORK_CONFIG,
+    GLOBAL_USD_RATES,
+    
+    # Price functions
+    calculate_global_usd_index,
+    get_trc_usd_rate,
+    get_trc_price_info,
     
     # Wallet functions
     get_trc_wallet,
@@ -244,6 +250,10 @@ __all__ = [
     "BASE_STAKING_APY",
     "LICENSE_PRICES_TRC",
     "NETWORK_CONFIG",
+    "GLOBAL_USD_RATES",
+    "calculate_global_usd_index",
+    "get_trc_usd_rate",
+    "get_trc_price_info",
     "get_trc_wallet",
     "get_trc_balance",
     "deposit_trc",
