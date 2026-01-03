@@ -379,54 +379,46 @@ SIGNAL_CHANNEL_IDS = _parse_chat_ids("SIGNAL_CHANNEL_IDS", "SIGNAL_CHANNEL_ID", 
 SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 
 # =====================================================
-# LICENSE PRICING
-# Stars: 1 Star ≈ $0.02, TON: 1 TON ≈ $6
+# LICENSE PRICING - TRIACELO COIN (TRC)
+# 1 TRC = 1 USDT (pegged stablecoin)
 # Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
 # =====================================================
 
-# Stars prices (1 Star = $0.02)
-PREMIUM_STARS_1M = 5000    # $100
-PREMIUM_STARS_3M = 13500   # $270 ($90/mo)
-PREMIUM_STARS_6M = 24000   # $480 ($80/mo)
-PREMIUM_STARS_12M = 42000  # $840 ($70/mo)
+# Import blockchain module
+from core.blockchain import (
+    blockchain, get_trc_balance, get_trc_wallet, pay_with_trc,
+    deposit_trc, reward_trc, get_license_price_trc, pay_license,
+    LICENSE_PRICES_TRC, TRC_SYMBOL, TRC_NAME
+)
 
-# TON prices (1 TON ≈ $6)
-PREMIUM_TON_1M = 17        # ~$102
-PREMIUM_TON_3M = 45        # ~$270
-PREMIUM_TON_6M = 80        # ~$480
-PREMIUM_TON_12M = 140      # ~$840
+# TRC prices (1 TRC = 1 USDT)
+PREMIUM_TRC_1M = 100.0    # $100
+PREMIUM_TRC_3M = 270.0    # $270 ($90/mo)
+PREMIUM_TRC_6M = 480.0    # $480 ($80/mo)
+PREMIUM_TRC_12M = 840.0   # $840 ($70/mo)
 
-# Basic plan (demo + limited real) - 50% of premium
-BASIC_STARS_1M = 2500      # $50
-BASIC_STARS_3M = 6750      # $135 ($45/mo)
-BASIC_STARS_6M = 12000     # $240 ($40/mo)
-BASIC_STARS_12M = 21000    # $420 ($35/mo)
-
-BASIC_TON_1M = 9           # ~$54
-BASIC_TON_3M = 23          # ~$138
-BASIC_TON_6M = 40          # ~$240
-BASIC_TON_12M = 70         # ~$420
+# Basic plan (50% of premium)
+BASIC_TRC_1M = 50.0       # $50
+BASIC_TRC_3M = 135.0      # $135 ($45/mo)
+BASIC_TRC_6M = 240.0      # $240 ($40/mo)
+BASIC_TRC_12M = 420.0     # $420 ($35/mo)
 
 TRIAL_PRICE = 0  # Free trial
 TRIAL_DAYS = 7   # Trial duration
 
-# TON Payment wallet (for receiving payments)
-TON_WALLET = os.getenv("PAYMENT_TON_WALLET", "")
-TON_API_KEY = os.getenv("TON_API_KEY", "")  # toncenter.com API key for verification
+# TRC Payment wallet (platform master wallet)
+TRC_MASTER_WALLET = "0xTRC000000000000000000000000000000001"
 
-# License price mapping (Stars and TON)
+# License price mapping (TRC only - fully WEB3)
 LICENSE_PRICES = {
     "premium": {
-        "stars": {1: PREMIUM_STARS_1M, 3: PREMIUM_STARS_3M, 6: PREMIUM_STARS_6M, 12: PREMIUM_STARS_12M},
-        "ton": {1: PREMIUM_TON_1M, 3: PREMIUM_TON_3M, 6: PREMIUM_TON_6M, 12: PREMIUM_TON_12M},
+        "trc": {1: PREMIUM_TRC_1M, 3: PREMIUM_TRC_3M, 6: PREMIUM_TRC_6M, 12: PREMIUM_TRC_12M},
     },
     "basic": {
-        "stars": {1: BASIC_STARS_1M, 3: BASIC_STARS_3M, 6: BASIC_STARS_6M, 12: BASIC_STARS_12M},
-        "ton": {1: BASIC_TON_1M, 3: BASIC_TON_3M, 6: BASIC_TON_6M, 12: BASIC_TON_12M},
+        "trc": {1: BASIC_TRC_1M, 3: BASIC_TRC_3M, 6: BASIC_TRC_6M, 12: BASIC_TRC_12M},
     },
     "trial": {
-        "stars": {1: 0},
-        "ton": {1: 0},
+        "trc": {1: 0},
     },
 }
 
@@ -15460,23 +15452,23 @@ def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Premium period selection keyboard with Stars + TON prices."""
+    """Premium period selection keyboard with TRC prices."""
     prices = LICENSE_PRICES["premium"]
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"💎 1 Month — {prices['stars'][1]}⭐ / {prices['ton'][1]} TON",
+            f"💎 1 Month — {prices['trc'][1]:.0f} TRC",
             callback_data="sub:period:premium:1"
         )],
         [InlineKeyboardButton(
-            f"💎 3 Months — {prices['stars'][3]}⭐ / {prices['ton'][3]} TON (-10%)",
+            f"💎 3 Months — {prices['trc'][3]:.0f} TRC (-10%)",
             callback_data="sub:period:premium:3"
         )],
         [InlineKeyboardButton(
-            f"💎 6 Months — {prices['stars'][6]}⭐ / {prices['ton'][6]} TON (-20%)",
+            f"💎 6 Months — {prices['trc'][6]:.0f} TRC (-20%)",
             callback_data="sub:period:premium:6"
         )],
         [InlineKeyboardButton(
-            f"💎 12 Months — {prices['stars'][12]}⭐ / {prices['ton'][12]} TON (-30%)",
+            f"💎 12 Months — {prices['trc'][12]:.0f} TRC (-30%)",
             callback_data="sub:period:premium:12"
         )],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")],
@@ -15484,23 +15476,23 @@ def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Basic period selection keyboard with Stars + TON prices."""
+    """Basic period selection keyboard with TRC prices."""
     prices = LICENSE_PRICES["basic"]
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"🥈 1 Month — {prices['stars'][1]}⭐ / {prices['ton'][1]} TON",
+            f"🥈 1 Month — {prices['trc'][1]:.0f} TRC",
             callback_data="sub:period:basic:1"
         )],
         [InlineKeyboardButton(
-            f"🥈 3 Months — {prices['stars'][3]}⭐ / {prices['ton'][3]} TON (-10%)",
+            f"🥈 3 Months — {prices['trc'][3]:.0f} TRC (-10%)",
             callback_data="sub:period:basic:3"
         )],
         [InlineKeyboardButton(
-            f"🥈 6 Months — {prices['stars'][6]}⭐ / {prices['ton'][6]} TON (-20%)",
+            f"🥈 6 Months — {prices['trc'][6]:.0f} TRC (-20%)",
             callback_data="sub:period:basic:6"
         )],
         [InlineKeyboardButton(
-            f"🥈 12 Months — {prices['stars'][12]}⭐ / {prices['ton'][12]} TON (-30%)",
+            f"🥈 12 Months — {prices['trc'][12]:.0f} TRC (-30%)",
             callback_data="sub:period:basic:12"
         )],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")],
@@ -15508,25 +15500,263 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboardMarkup:
-    """Payment method selection keyboard showing both Stars and TON options."""
+    """Payment method selection keyboard - TRC only (WEB3 native)."""
     prices = LICENSE_PRICES.get(plan, {})
-    stars_price = prices.get("stars", {}).get(period, 0)
-    ton_price = prices.get("ton", {}).get(period, 0)
+    trc_price = prices.get("trc", {}).get(period, 0)
     
     buttons = [
         [InlineKeyboardButton(
-            f"⭐ Pay {stars_price} Stars",
-            callback_data=f"sub:stars:{plan}:{period}"
+            f"🪙 Pay {trc_price:.0f} TRC (~${trc_price:.0f})",
+            callback_data=f"sub:trc:{plan}:{period}"
         )],
+        [InlineKeyboardButton(
+            f"💳 Buy TRC (Deposit)",
+            callback_data=f"wallet:deposit"
+        )],
+        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:plan:{plan}")],
     ]
-    # Add TON option if wallet is configured
-    if TON_WALLET:
-        buttons.append([InlineKeyboardButton(
-            f"💎 Pay {ton_price} TON",
-            callback_data=f"sub:ton:{plan}:{period}"
-        )])
-    buttons.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:plan:{plan}")])
     return InlineKeyboardMarkup(buttons)
+
+
+# =====================================================
+# TRC WALLET MANAGEMENT
+# =====================================================
+
+@log_calls
+@require_access
+async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show user's TRC wallet."""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    # Get or create wallet
+    wallet = await get_trc_wallet(uid)
+    balance_info = await blockchain.get_total_balance(uid)
+    
+    # Get recent transactions
+    transactions = await blockchain.get_transaction_history(uid, limit=5)
+    
+    text = t.get("wallet_header", "🪙 *Triacelo Coin (TRC) Wallet*")
+    text += f"\n\n📍 *Address:*\n`{wallet.address}`"
+    text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
+    text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
+    text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} TRC"
+    text += f"\n━━━━━━━━━━━━━━━"
+    text += f"\n💎 *Total:* {balance_info['total']:.2f} TRC (~${balance_info['total']:.2f})"
+    
+    # Recent transactions
+    if transactions:
+        text += f"\n\n📜 *Recent Transactions:*"
+        for tx in transactions[:5]:
+            icon = "📥" if tx.to_address == wallet.address else "📤"
+            text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} TRC"
+    
+    text += "\n\n💡 *1 TRC = 1 USDT*"
+    
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("💳 Deposit", callback_data="wallet:deposit"),
+            InlineKeyboardButton("💸 Withdraw", callback_data="wallet:withdraw")
+        ],
+        [
+            InlineKeyboardButton("📊 Stake TRC (12% APY)", callback_data="wallet:stake"),
+            InlineKeyboardButton("📜 History", callback_data="wallet:history")
+        ],
+        [InlineKeyboardButton("🔄 Refresh", callback_data="wallet:refresh")],
+    ])
+    
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+@with_texts
+async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle wallet callbacks."""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = update.effective_user.id
+    t = ctx.t
+    data = q.data  # wallet:xxx
+    
+    parts = data.split(":")
+    action = parts[1] if len(parts) > 1 else ""
+    
+    if action == "refresh":
+        # Refresh wallet display
+        wallet = await get_trc_wallet(uid)
+        balance_info = await blockchain.get_total_balance(uid)
+        transactions = await blockchain.get_transaction_history(uid, limit=5)
+        
+        text = t.get("wallet_header", "🪙 *Triacelo Coin (TRC) Wallet*")
+        text += f"\n\n📍 *Address:*\n`{wallet.address}`"
+        text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
+        text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
+        text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} TRC"
+        text += f"\n━━━━━━━━━━━━━━━"
+        text += f"\n💎 *Total:* {balance_info['total']:.2f} TRC (~${balance_info['total']:.2f})"
+        
+        if transactions:
+            text += f"\n\n📜 *Recent Transactions:*"
+            for tx in transactions[:5]:
+                icon = "📥" if tx.to_address == wallet.address else "📤"
+                text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} TRC"
+        
+        text += "\n\n💡 *1 TRC = 1 USDT*"
+        
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("💳 Deposit", callback_data="wallet:deposit"),
+                InlineKeyboardButton("💸 Withdraw", callback_data="wallet:withdraw")
+            ],
+            [
+                InlineKeyboardButton("📊 Stake TRC (12% APY)", callback_data="wallet:stake"),
+                InlineKeyboardButton("📜 History", callback_data="wallet:history")
+            ],
+            [InlineKeyboardButton("🔄 Refresh", callback_data="wallet:refresh")],
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "deposit":
+        # Show deposit options
+        wallet = await get_trc_wallet(uid)
+        
+        text = t.get("wallet_deposit_header", "💳 *Deposit TRC*")
+        text += "\n\n🪙 *Ways to get TRC:*"
+        text += "\n\n1️⃣ *Buy with Crypto:*"
+        text += f"\nSend USDT/USDC to our exchange and receive TRC 1:1"
+        text += "\n\n2️⃣ *Earn Rewards:*"
+        text += "\n• Referral bonuses"
+        text += "\n• Trading achievements"
+        text += "\n• Staking rewards (12% APY)"
+        text += "\n\n3️⃣ *Demo Deposit (Test):*"
+        text += "\nGet 100 TRC for testing (demo only)"
+        text += f"\n\n📍 *Your Wallet:*\n`{wallet.address}`"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎁 Get 100 TRC (Demo)", callback_data="wallet:demo_deposit")],
+            [InlineKeyboardButton("📊 Buy TRC (Coming Soon)", callback_data="wallet:buy_soon")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "demo_deposit":
+        # Demo deposit - give 100 TRC for testing
+        success, message = await deposit_trc(uid, 100.0, "Demo deposit")
+        
+        if success:
+            new_balance = await get_trc_balance(uid)
+            await q.edit_message_text(
+                f"✅ *Demo Deposit Successful!*\n\n🪙 +100 TRC credited\n💰 New Balance: {new_balance:.2f} TRC\n\n{message}",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")]
+                ])
+            )
+        else:
+            await q.edit_message_text(
+                f"❌ Deposit failed: {message}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:deposit")]
+                ])
+            )
+    
+    elif action == "buy_soon":
+        await q.answer("🚧 Coming soon! External TRC purchases will be available in the next update.", show_alert=True)
+    
+    elif action == "withdraw":
+        balance = await get_trc_balance(uid)
+        
+        text = t.get("wallet_withdraw_header", "💸 *Withdraw TRC*")
+        text += f"\n\n💰 Available: {balance:.2f} TRC"
+        text += "\n\n📝 Withdrawal converts TRC to USDT 1:1"
+        text += "\n• Minimum: 10 TRC"
+        text += "\n• Fee: 0%"
+        text += "\n• Processing: Instant"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💸 Withdraw to USDT", callback_data="wallet:withdraw_usdt")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "withdraw_usdt":
+        await q.answer("🚧 External withdrawals coming soon! Contact support for manual processing.", show_alert=True)
+    
+    elif action == "stake":
+        wallet = await get_trc_wallet(uid)
+        balance_info = await blockchain.get_total_balance(uid)
+        
+        text = t.get("wallet_stake_header", "📊 *TRC Staking*")
+        text += "\n\n🔥 *Earn 12% APY on your TRC!*"
+        text += f"\n\n💰 Available to stake: {balance_info['available']:.2f} TRC"
+        text += f"\n🔒 Currently staked: {balance_info['staked']:.2f} TRC"
+        text += f"\n🎁 Pending rewards: {balance_info['pending_rewards']:.2f} TRC"
+        text += "\n\n• No lock period"
+        text += "\n• Instant unstaking"
+        text += "\n• Daily reward distribution"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔒 Stake All", callback_data="wallet:stake_all")],
+            [InlineKeyboardButton("🔓 Unstake All", callback_data="wallet:unstake_all")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "stake_all":
+        balance = await get_trc_balance(uid)
+        if balance < 1:
+            await q.answer("❌ Minimum 1 TRC required for staking", show_alert=True)
+            return
+        
+        success, tx, message = await blockchain.stake(uid, balance)
+        if success:
+            await q.answer(f"✅ Staked {balance:.2f} TRC successfully!", show_alert=True)
+            # Refresh stake view
+            await on_wallet_cb(update, ctx)
+        else:
+            await q.answer(f"❌ Staking failed: {message}", show_alert=True)
+    
+    elif action == "unstake_all":
+        wallet = await get_trc_wallet(uid)
+        if wallet.staked_balance < 1:
+            await q.answer("❌ No staked TRC to unstake", show_alert=True)
+            return
+        
+        success, tx, message = await blockchain.unstake(uid, wallet.staked_balance)
+        if success:
+            await q.answer(f"✅ Unstaked {wallet.staked_balance:.2f} TRC successfully!", show_alert=True)
+            # Refresh stake view
+            await on_wallet_cb(update, ctx)
+        else:
+            await q.answer(f"❌ Unstaking failed: {message}", show_alert=True)
+    
+    elif action == "history":
+        transactions = await blockchain.get_transaction_history(uid, limit=20)
+        wallet = await get_trc_wallet(uid)
+        
+        text = t.get("wallet_history_header", "📜 *Transaction History*")
+        text += f"\n\n📍 Wallet: `{wallet.address[:20]}...`"
+        
+        if not transactions:
+            text += "\n\nNo transactions yet."
+        else:
+            for tx in transactions:
+                icon = "📥" if tx.to_address == wallet.address else "📤"
+                status_icon = "✅" if tx.status.value == "confirmed" else "⏳"
+                date_str = tx.timestamp.strftime("%m/%d %H:%M")
+                text += f"\n\n{icon} *{tx.tx_type.value.upper()}*"
+                text += f"\n   Amount: {tx.amount:.2f} TRC"
+                text += f"\n   {date_str} {status_icon}"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 @require_access
@@ -15658,18 +15888,27 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     )
     
     elif action == "period":
-        # User selected period, show payment methods
+        # User selected period, show payment with TRC
         plan = parts[2] if len(parts) > 2 else ""
         period = int(parts[3]) if len(parts) > 3 else 1
         
         prices = LICENSE_PRICES.get(plan, {})
-        stars_price = prices.get("stars", {}).get(period, 0)
-        ton_price = prices.get("ton", {}).get(period, 0)
+        trc_price = prices.get("trc", {}).get(period, 0)
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        text = t.get("payment_select_method", "💳 *Select Payment Method*")
+        # Get user's TRC balance
+        user_balance = await get_trc_balance(uid)
+        
+        text = t.get("payment_select_method", "💳 *Payment with Triacelo Coin (TRC)*")
         text += f"\n\n📦 *Plan:* {plan.title()}\n⏰ *Period:* {period_text}"
-        text += f"\n\n⭐ Stars: *{stars_price}*\n💎 TON: *{ton_price}*"
+        text += f"\n\n🪙 *Price:* {trc_price:.0f} TRC (~${trc_price:.0f})"
+        text += f"\n💰 *Your Balance:* {user_balance:.2f} TRC"
+        
+        if user_balance >= trc_price:
+            text += "\n\n✅ You have enough TRC to pay!"
+        else:
+            needed = trc_price - user_balance
+            text += f"\n\n⚠️ You need {needed:.2f} more TRC. Deposit to continue."
         
         await q.edit_message_text(
             text,
@@ -15677,167 +15916,84 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_payment_method_keyboard(t, plan, period)
         )
     
-    elif action == "stars":
+    elif action == "trc":
+        # TRC payment flow
         plan = parts[2] if len(parts) > 2 else ""
         period = int(parts[3]) if len(parts) > 3 else 1
         prices = LICENSE_PRICES.get(plan, {})
-        stars_price = prices.get("stars", {}).get(period, 0)
-        
-        # Create Telegram Stars invoice
+        trc_price = prices.get("trc", {}).get(period, 0)
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        try:
-            from telegram import LabeledPrice
-            
-            await ctx.bot.send_invoice(
-                chat_id=uid,
-                title=f"{plan.title()} License",
-                description=f"{plan.title()} license for {period_text}",
-                payload=f"license:{plan}:{period}",
-                currency="XTR",  # Telegram Stars
-                prices=[LabeledPrice(label=f"{plan.title()} {period_text}", amount=stars_price)],
-                provider_token="",  # Empty for Stars
-            )
-            await q.edit_message_text(
-                t.get("payment_stars_desc", "You will be charged {amount}⭐ for {plan} ({period}).").format(
-                    amount=stars_price, plan=plan.title(), period=period_text
-                )
-            )
-        except Exception as e:
-            logger.error(f"Failed to send invoice: {e}")
-            await q.edit_message_text(
-                t.get("payment_failed", "❌ Payment failed: {error}").format(error=str(e)),
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
-    
-    elif action == "ton":
-        # TON payment flow
-        plan = parts[2] if len(parts) > 2 else ""
-        period = int(parts[3]) if len(parts) > 3 else 1
-        prices = LICENSE_PRICES.get(plan, {})
-        ton_price = prices.get("ton", {}).get(period, 0)
-        period_text = f"{period} month{'s' if period > 1 else ''}"
+        # Check TRC balance
+        user_balance = await get_trc_balance(uid)
         
-        if not TON_WALLET:
+        if user_balance < trc_price:
+            needed = trc_price - user_balance
             await q.edit_message_text(
-                t.get("payment_ton_not_configured", "❌ TON payments are not configured."),
+                t.get("payment_insufficient_trc", "❌ *Insufficient TRC Balance*\n\nYou need {needed:.2f} more TRC.\n\nYour balance: {balance:.2f} TRC\nRequired: {price:.0f} TRC\n\nDeposit TRC to continue.").format(
+                    needed=needed, balance=user_balance, price=trc_price
+                ),
+                parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💳 Deposit TRC", callback_data="wallet:deposit")],
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
                 ])
             )
             return
         
-        # Generate unique payment memo for this transaction
-        import time
-        payment_memo = f"{uid}_{plan}_{period}_{int(time.time())}"
-        ctx.user_data["ton_payment"] = {
-            "plan": plan,
-            "period": period,
-            "amount": ton_price,
-            "memo": payment_memo,
-            "created_at": time.time()
-        }
+        # Process TRC payment
+        description = f"{plan.title()} License ({period_text})"
+        success, message = await pay_with_trc(uid, trc_price, description)
         
-        text = t.get("payment_ton_title", "💎 Payment via TON")
-        text += f"\n\n📦 *Plan:* {plan.title()}\n⏰ *Period:* {period_text}"
-        text += f"\n\n💎 *Amount:* `{ton_price} TON`"
-        text += f"\n\n📝 *Wallet:*\n`{TON_WALLET}`"
-        text += f"\n\n📌 *Comment (REQUIRED):*\n`{payment_memo}`"
-        text += "\n\n⚠️ *Important:* You MUST include the comment when sending TON, otherwise payment cannot be verified!"
-        
-        await q.edit_message_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ I Paid — Verify", callback_data=f"sub:verify_ton:{plan}:{period}")],
-                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
-            ])
-        )
-    
-    elif action == "verify_ton":
-        # Verify TON payment
-        plan = parts[2] if len(parts) > 2 else ""
-        period = int(parts[3]) if len(parts) > 3 else 1
-        
-        payment_data = ctx.user_data.get("ton_payment", {})
-        if not payment_data or payment_data.get("plan") != plan or payment_data.get("period") != period:
-            await q.edit_message_text(
-                t.get("payment_session_expired", "❌ Payment session expired. Please start again."),
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
-            return
-        
-        memo = payment_data["memo"]
-        expected_amount = payment_data["amount"]
-        
-        await q.edit_message_text(t.get("payment_verifying", "⏳ Verifying payment..."))
-        
-        # Verify payment via TON API
-        verified = await verify_ton_payment(TON_WALLET, memo, expected_amount)
-        
-        if verified:
-            # Grant license
+        if success:
+            # Activate license
             result = set_user_license(
                 user_id=uid,
                 license_type=plan,
                 period_months=period,
-                payment_type="ton",
-                amount=expected_amount,
-                currency="TON",
-                notes=f"TON payment verified. Memo: {memo}"
+                payment_type="TRC",
+                amount=trc_price,
+                currency="TRC",
+                notes=f"Paid with Triacelo Coin. {message}"
             )
             
-            ctx.user_data.pop("ton_payment", None)
-            
             if result.get("success"):
-                import datetime
-                expires_dt = datetime.datetime.fromtimestamp(result["expires"])
+                new_balance = await get_trc_balance(uid)
                 await q.edit_message_text(
-                    t.get("payment_success", "🎉 Payment successful!\n\n{plan} activated until {expires}.").format(
-                        plan=plan.title(),
-                        expires=expires_dt.strftime("%Y-%m-%d")
+                    t.get("payment_success_trc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} TRC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} TRC\n\nThank you for using Triacelo!").format(
+                        amount=trc_price, plan=plan.title(), period=period_text, balance=new_balance
                     ),
+                    parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                     ])
                 )
-                # Notify admin about successful TON payment
-                username = update.effective_user.username or ""
-                await notify_admin_payment(
-                    ctx.bot, uid, username, plan, period,
-                    expected_amount, "💎 TON", "✅ SUCCESSFUL", memo
-                )
             else:
+                # Payment went through but license activation failed - refund
+                await reward_trc(uid, trc_price, "License activation failed - refund")
                 await q.edit_message_text(
                     t.get("payment_failed", "❌ Payment failed: {error}").format(error=result.get("error", "Unknown")),
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                     ])
                 )
-                # Notify admin about failed TON payment
-                username = update.effective_user.username or ""
-                await notify_admin_payment(
-                    ctx.bot, uid, username, plan, period,
-                    expected_amount, "💎 TON", "❌ FAILED", memo
-                )
         else:
             await q.edit_message_text(
-                t.get("payment_ton_not_found", "❌ Payment not found or amount incorrect.\n\nPlease make sure you:\n• Sent the exact amount\n• Included the correct comment\n• Wait a few minutes for confirmation\n\nTry again after payment is confirmed on blockchain."),
+                t.get("payment_failed", "❌ Payment failed: {error}").format(error=message),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_check_again", "🔄 Check Again"), callback_data=f"sub:verify_ton:{plan}:{period}")],
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:ton:{plan}:{period}")]
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
                 ])
             )
-            # Notify admin about pending TON verification
-            username = update.effective_user.username or ""
-            await notify_admin_payment(
-                ctx.bot, uid, username, plan, period,
-                expected_amount, "💎 TON", "⏳ PENDING VERIFICATION", memo
-            )
+    
+    elif action == "verify_ton":
+        # TON payments deprecated - redirect to TRC
+        await q.edit_message_text(
+            t.get("payment_ton_not_configured", "❌ TON payments are deprecated. Use TRC tokens."),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get("wallet_btn_deposit", "📥 Deposit"), callback_data="wallet:deposit")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+            ])
+        )
     
     elif action == "my":
         # Show user's subscription status
@@ -15885,76 +16041,11 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def verify_ton_payment(wallet_address: str, memo: str, expected_amount: float) -> bool:
     """
-    Verify TON payment via toncenter.com API.
-    Checks for incoming transactions with matching memo and amount.
-    
-    Args:
-        wallet_address: The destination TON wallet address
-        memo: The expected comment/memo in transaction
-        expected_amount: Expected amount in TON (not nanoTON)
-    
-    Returns:
-        True if payment verified, False otherwise
+    DEPRECATED: TON payments no longer supported.
+    All payments now use TRC tokens via the blockchain module.
     """
-    if not TON_API_KEY:
-        logger.warning("TON_API_KEY not configured, cannot verify payment")
-        return False
-    
-    try:
-        # Convert expected amount to nanoTON for comparison (1 TON = 10^9 nanoTON)
-        expected_nano = int(expected_amount * 1e9)
-        # Allow 1% tolerance for exchange rate fluctuations
-        min_nano = int(expected_nano * 0.99)
-        
-        # Get last 100 transactions for the wallet
-        url = f"https://toncenter.com/api/v3/transactions"
-        params = {
-            "account": wallet_address,
-            "limit": 100,
-            "sort": "desc"  # Most recent first
-        }
-        headers = {
-            "X-API-Key": TON_API_KEY
-        }
-        
-        async with _session.get(url, params=params, headers=headers) as resp:
-            if resp.status != 200:
-                logger.error(f"TON API error: {resp.status}")
-                return False
-            
-            data = await resp.json()
-        
-        transactions = data.get("transactions", [])
-        
-        for tx in transactions:
-            # Check if it's an incoming transaction
-            in_msg = tx.get("in_msg", {})
-            if not in_msg:
-                continue
-            
-            # Get the message comment
-            msg_comment = ""
-            if in_msg.get("message_content", {}).get("decoded", {}).get("type") == "text_comment":
-                msg_comment = in_msg.get("message_content", {}).get("decoded", {}).get("comment", "")
-            
-            # Alternative: check body field
-            if not msg_comment and in_msg.get("decoded_body", {}).get("text"):
-                msg_comment = in_msg.get("decoded_body", {}).get("text", "")
-            
-            # Check if memo matches
-            if memo in msg_comment:
-                # Check amount
-                value = int(in_msg.get("value", 0))
-                if value >= min_nano:
-                    logger.info(f"TON payment verified: {value/1e9} TON, memo: {memo}")
-                    return True
-        
-        logger.info(f"TON payment not found: memo={memo}, expected={expected_amount} TON")
-        return False
-        
-    except Exception as e:
-        logger.error(f"Error verifying TON payment: {e}")
-        return False
+    logger.warning("verify_ton_payment is deprecated. Use TRC payments instead.")
+    return False
 
 
 async def notify_admin_payment(bot, uid: int, username: str, plan: str, period: int, 
@@ -18013,6 +18104,10 @@ def main():
     app.add_handler(CallbackQueryHandler(on_admin_payment_cb, pattern=r"^adm_pay:"))
     app.add_handler(PreCheckoutQueryHandler(on_pre_checkout_query))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, on_successful_payment))
+    
+    # TRC Wallet handlers
+    app.add_handler(CommandHandler("wallet",       cmd_wallet))
+    app.add_handler(CallbackQueryHandler(on_wallet_cb, pattern=r"^wallet:"))
 
     app.add_handler(CallbackQueryHandler(on_moderate_cb, pattern=r"^mod:(approve|ban):\d+$"))
     app.add_handler(CallbackQueryHandler(on_admin_cb,    pattern=r"^admin:"))

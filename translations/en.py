@@ -789,32 +789,70 @@ TEXTS = {
     
     # Payment
     'payment_select_method': '💳 *Select Payment Method*',
-    'btn_pay_stars': '⭐ Telegram Stars',
-    'btn_pay_ton': '💎 TON',
-    'payment_stars_title': '⭐ Payment via Telegram Stars',
-    'payment_stars_desc': 'You will be charged {amount}⭐ for {plan} ({period}).',
-    'payment_ton_title': '💎 Payment via TON',
-    'payment_ton_desc': '''Send exactly *{amount} TON* to:
-
-`{wallet}`
-
-After payment, click the button below to verify.''',
+    'btn_pay_trc': '◈ Pay with TRC',
+    'btn_pay_ton': '💎 TON (deprecated)',
+    'payment_trc_title': '◈ Payment via Triacelo Coin (TRC)',
+    'payment_trc_desc': 'You will be charged {amount} TRC for {plan} ({period}).',
+    'payment_ton_title': '💎 Payment via TON (Deprecated)',
+    'payment_ton_desc': '''TON payments are no longer supported.
+Please use TRC tokens instead.''',
     'btn_verify_ton': '✅ I Paid — Verify',
     'btn_check_again': '🔄 Check Again',
     'payment_processing': '⏳ Processing payment...',
     'payment_verifying': '⏳ Verifying payment...',
     'payment_success': '🎉 Payment successful!\n\n{plan} activated until {expires}.',
     'payment_failed': '❌ Payment failed: {error}',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
+    'payment_ton_not_configured': '❌ TON payments are deprecated. Use TRC tokens.',
     'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_found': '''❌ Payment not found or amount incorrect.
+    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
 
-Please make sure you:
-• Sent the exact amount
-• Included the correct comment
-• Wait a few minutes for confirmation
+Your balance: {balance} TRC
+Required: {required} TRC
 
-Try again after payment is confirmed on blockchain.''',
+Top up your wallet to continue.''',
+    
+    # Wallet
+    'wallet_title': '◈ *TRC Wallet*',
+    'wallet_balance': '''💰 *Your TRC Wallet*
+
+◈ Balance: *{balance} TRC*
+📈 Staked: *{staked} TRC*
+🎁 Pending Rewards: *{rewards} TRC*
+
+💵 Total Value: *${total_usd}*
+📍 1 TRC = 1 USDT''',
+    'wallet_address': '📍 Address: `{address}`',
+    'wallet_btn_deposit': '📥 Deposit',
+    'wallet_btn_withdraw': '📤 Withdraw',
+    'wallet_btn_stake': '📈 Stake',
+    'wallet_btn_unstake': '📤 Unstake',
+    'wallet_btn_history': '📋 History',
+    'wallet_btn_back': '« Back',
+    'wallet_deposit_title': '📥 *Deposit TRC*',
+    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+
+`{address}`
+
+💡 *Demo mode:* Click below for free test tokens.''',
+    'wallet_deposit_demo': '🎁 Get 100 TRC (Demo)',
+    'wallet_deposit_success': '✅ Deposited {amount} TRC successfully!',
+    'wallet_withdraw_title': '📤 *Withdraw TRC*',
+    'wallet_withdraw_desc': 'Enter destination address and amount:',
+    'wallet_withdraw_success': '✅ Withdrawn {amount} TRC to {address}',
+    'wallet_withdraw_failed': '❌ Withdrawal failed: {error}',
+    'wallet_stake_title': '📈 *Stake TRC*',
+    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+
+💰 Available: {available} TRC
+📈 Currently Staked: {staked} TRC
+🎁 Pending Rewards: {rewards} TRC
+
+Daily rewards • Instant unstaking''',
+    'wallet_stake_success': '✅ Staked {amount} TRC successfully!',
+    'wallet_unstake_success': '✅ Unstaked {amount} TRC + {rewards} TRC rewards!',
+    'wallet_history_title': '📋 *Transaction History*',
+    'wallet_history_empty': 'No transactions yet.',
+    'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} TRC\n   {date}',
     
     # My subscription
     'my_subscription_header': '📋 *My Subscription*',
@@ -896,7 +934,7 @@ Try again after payment is confirmed on blockchain.''',
 
 💳 *Payments:*
   Total: {payments_count}
-  Stars: {total_stars}⭐
+  TRC: {total_trc} ◈
 
 📅 *First Seen:* {first_seen}
 🕐 *Last Seen:* {last_seen}
