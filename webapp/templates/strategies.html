@@ -650,17 +650,40 @@
         }
         .lang-item .flag { font-size: 18px; }
         
-        /* Responsive */
+        /* Responsive - Tablet */
         @media (max-width: 1200px) {
             .builder-grid { grid-template-columns: 1fr; }
+            .strategies-grid { grid-template-columns: repeat(2, 1fr); }
         }
+        
+        /* Responsive - Mobile */
         @media (max-width: 768px) {
             .sidebar { display: none; }
-            .content { padding: 20px; }
+            .content { padding: 12px; padding-bottom: 80px; }
             .indicators-grid { grid-template-columns: 1fr; }
-            .preview-stats { grid-template-columns: repeat(2, 1fr); }
+            .preview-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .nav-links { display: none; }
-            .header { padding: 0 16px; }
+            .header { padding: 0 12px; height: 56px; }
+            .logo-text { display: none; }
+            .logo-icon { width: 36px; height: 36px; }
+            .strategies-grid { grid-template-columns: 1fr; gap: 12px; }
+            .strategy-card { padding: 14px; }
+            .strategy-header { flex-wrap: wrap; gap: 8px; }
+            .strategy-name { font-size: 15px; }
+            .strategy-meta { font-size: 11px; }
+            .strategy-stats { gap: 10px; flex-wrap: wrap; }
+            .strategy-actions { flex-direction: column; gap: 6px; }
+            .strategy-actions button { width: 100%; padding: 10px; }
+            .page-title { font-size: 20px; }
+            .section-header { flex-wrap: wrap; gap: 8px; }
+            .section-header h2 { font-size: 16px; }
+        }
+        
+        /* Extra small */
+        @media (max-width: 375px) {
+            .content { padding: 10px; }
+            .preview-stats { grid-template-columns: 1fr; }
+            .strategy-card { padding: 12px; }
         }
     </style>
     <script src="/static/js/triacelo-theme.js"></script>

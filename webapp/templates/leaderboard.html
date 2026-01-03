@@ -400,9 +400,10 @@
             color: #000;
             border-color: var(--accent-green);
         }
-        /* Responsive */
+        /* Responsive - Tablet */
         @media (max-width: 1024px) {
-            .podium { flex-direction: column; align-items: center; }
+            .podium { flex-direction: column; align-items: center; gap: 16px; }
+            .podium-item { width: 100%; max-width: 300px; }
             .podium-item:nth-child(2) { order: -1; }
             .leaderboard-header, .leaderboard-row {
                 grid-template-columns: 60px 1fr 100px 100px;
@@ -414,13 +415,43 @@
                 display: none;
             }
         }
+        
+        /* Responsive - Mobile */
         @media (max-width: 768px) {
-            .header { padding: 0 20px; }
+            .header { padding: 0 12px; height: 56px; }
             .nav-links { display: none; }
-            .main-content { padding: 90px 20px 20px; }
-            .hero h1 { font-size: 32px; }
-            .period-tabs { flex-wrap: wrap; }
-            .your-position { flex-direction: column; gap: 20px; text-align: center; }
+            .logo-text { display: none; }
+            .logo-icon { width: 36px; height: 36px; }
+            .main-content { padding: 70px 12px 80px; }
+            .hero { padding: 20px 0; }
+            .hero h1 { font-size: 22px; }
+            .hero p { font-size: 14px; }
+            .period-tabs { flex-wrap: wrap; gap: 8px; justify-content: center; }
+            .period-tab { padding: 8px 16px; font-size: 13px; }
+            .your-position { flex-direction: column; gap: 16px; text-align: center; padding: 16px; }
+            .your-position-stats { flex-direction: row; justify-content: center; gap: 16px; flex-wrap: wrap; }
+            
+            .podium-item { padding: 16px; }
+            .podium-rank { width: 40px; height: 40px; font-size: 18px; }
+            .podium-name { font-size: 16px; }
+            .podium-roi { font-size: 20px; }
+            
+            .leaderboard-header, .leaderboard-row {
+                grid-template-columns: 40px 1fr 80px;
+                font-size: 12px;
+                padding: 10px 12px;
+            }
+            .leaderboard-header > *:nth-child(4),
+            .leaderboard-row > *:nth-child(4) {
+                display: none;
+            }
+        }
+        
+        /* Extra small */
+        @media (max-width: 375px) {
+            .hero h1 { font-size: 18px; }
+            .period-tab { padding: 6px 12px; font-size: 12px; }
+            .podium-roi { font-size: 18px; }
         }
     </style>
 </head>

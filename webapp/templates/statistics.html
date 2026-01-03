@@ -590,15 +590,77 @@
             color: var(--accent);
         }
         
-        /* Responsive */
+        /* Responsive - Tablet */
+        @media (max-width: 1024px) {
+            .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .chart-container { height: 250px; }
+        }
+        
+        /* Responsive - Mobile */
         @media (max-width: 768px) {
-            .container { padding: 16px; }
-            .page-header { flex-direction: column; align-items: flex-start; }
-            .filters { width: 100%; }
-            .summary-grid { grid-template-columns: repeat(2, 1fr); }
-            .summary-value { font-size: 22px; }
-            .trades-table { font-size: 12px; }
-            .trades-table th, .trades-table td { padding: 10px 12px; }
+            .container { padding: 12px; padding-bottom: 80px; }
+            .page-header { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                gap: 12px;
+            }
+            .page-title { font-size: 1.25rem; }
+            .filters { 
+                width: 100%; 
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .filter-group { flex: 1; min-width: 120px; }
+            .filter-select { width: 100%; padding: 8px; font-size: 12px; }
+            .period-tabs { 
+                width: 100%; 
+                justify-content: center;
+                margin-top: 8px;
+            }
+            .period-tab { padding: 8px 12px; font-size: 12px; }
+            
+            .summary-grid { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 8px;
+            }
+            .summary-card { padding: 12px; }
+            .summary-label { font-size: 11px; }
+            .summary-value { font-size: 18px; }
+            .summary-change { font-size: 10px; }
+            
+            .charts-grid { grid-template-columns: 1fr; gap: 12px; }
+            .chart-card { padding: 12px; }
+            .chart-title { font-size: 14px; }
+            .chart-container { height: 200px; }
+            
+            .strategy-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .strategy-card { padding: 12px; }
+            
+            .trades-card { padding: 0; }
+            .trades-header { padding: 12px; }
+            .trades-table { font-size: 11px; }
+            .trades-table th, .trades-table td { 
+                padding: 8px 6px; 
+                white-space: nowrap;
+            }
+            /* Hide some columns on mobile */
+            .trades-table th:nth-child(4),
+            .trades-table td:nth-child(4),
+            .trades-table th:nth-child(5),
+            .trades-table td:nth-child(5) {
+                display: none;
+            }
+            
+            .section-title { font-size: 16px; margin-bottom: 12px; }
+        }
+        
+        /* Extra Small Mobile (iPhone SE, small Android) */
+        @media (max-width: 375px) {
+            .summary-grid { grid-template-columns: 1fr; }
+            .strategy-grid { grid-template-columns: 1fr; }
+            .summary-value { font-size: 20px; }
+            .period-tab { padding: 6px 10px; font-size: 11px; }
         }
     </style>
 </head>

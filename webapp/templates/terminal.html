@@ -616,6 +616,93 @@
             .ticker-tape { display: none; }
         }
         
+        /* Mobile - Portrait tablets and large phones */
+        @media (max-width: 768px) {
+            .terminal-layout { 
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr auto;
+            }
+            .header { 
+                padding: 10px 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .header-left { flex: 1; min-width: 200px; }
+            .header-center { display: none; }
+            .header-right { 
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .logo span { display: none; }
+            .logo-icon { width: 32px; height: 32px; font-size: 14px; }
+            
+            .symbol-selector { padding: 8px 10px; }
+            .symbol-name { font-size: 14px; }
+            .symbol-price { font-size: 13px; }
+            .symbol-change { font-size: 11px; }
+            
+            .left-panel { display: none; }
+            .right-panel { 
+                grid-column: 1;
+                max-height: none;
+                overflow: visible;
+            }
+            
+            .center-panel { 
+                padding: 8px;
+                overflow-x: hidden;
+            }
+            
+            .positions-table { font-size: 11px; }
+            .positions-table th, .positions-table td { 
+                padding: 8px 4px; 
+                white-space: nowrap;
+            }
+            /* Hide some columns on mobile */
+            .positions-table th:nth-child(5),
+            .positions-table td:nth-child(5),
+            .positions-table th:nth-child(6),
+            .positions-table td:nth-child(6) {
+                display: none;
+            }
+            
+            .bottom-tabs { 
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 4px;
+                padding: 8px;
+            }
+            .bottom-tab { 
+                padding: 6px 10px; 
+                font-size: 11px;
+                flex: 1;
+                min-width: 70px;
+                text-align: center;
+            }
+            
+            .order-form { padding: 12px; }
+            .side-btns { margin-bottom: 12px; }
+            .side-btn { padding: 12px; font-size: 13px; }
+            .form-group label { font-size: 11px; }
+            .form-input { padding: 10px; font-size: 13px; }
+            .submit-btn { padding: 14px; font-size: 14px; }
+            
+            .quick-actions { flex-wrap: wrap; gap: 6px; }
+            .quick-btn { flex: 1; min-width: 100px; padding: 10px 8px; font-size: 11px; }
+        }
+        
+        /* Extra small phones (iPhone SE, etc) */
+        @media (max-width: 375px) {
+            .container { padding: 8px; }
+            .header { padding: 8px; }
+            .symbol-selector { padding: 6px 8px; }
+            .symbol-name { font-size: 12px; }
+            .bottom-tab { padding: 5px 8px; font-size: 10px; }
+            .positions-table { font-size: 10px; }
+            .order-form { padding: 10px; }
+        }
+        
         /* Exchange-specific styles */
         [data-exchange="hyperliquid"] .bybit-only { display: none !important; }
         [data-exchange="bybit"] .hl-only { display: none !important; }
@@ -1304,6 +1391,19 @@
     </div>
     
     <script>
+        // ========================================
+        // ENSURE MODAL DIALOGS ARE AVAILABLE
+        // ========================================
+        // Fallback if modal-dialogs.js didn't load properly
+        if (typeof showConfirm === 'undefined') {
+            window.showConfirm = async (message, title, options = {}) => {
+                return confirm(message.replace(/<[^>]*>/g, ''));
+            };
+            window.showAlert = async (message, title) => {
+                alert(message.replace(/<[^>]*>/g, ''));
+            };
+        }
+        
         // ========================================
         // AUTH HANDLING - Token from bot auto-login
         // ========================================
