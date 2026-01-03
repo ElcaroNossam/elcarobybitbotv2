@@ -1191,11 +1191,11 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
         # Action buttons
         [
             InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
-            InlineKeyboardButton("� Sell", callback_data="spot:sell_menu"),
+            InlineKeyboardButton("💸 Sell", callback_data="spot:sell_menu"),
         ],
         [
             InlineKeyboardButton("⚖️ Rebalance Now", callback_data="spot:rebalance_now"),
-            InlineKeyboardButton("�📊 Analysis", callback_data="spot:analysis"),
+            InlineKeyboardButton("📊 Analysis", callback_data="spot:analysis"),
         ],
         # Holdings / Stats
         [
@@ -1204,7 +1204,7 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
         ],
         # TP Levels settings
         [InlineKeyboardButton(
-            "🎯 TP Levels Settings",
+            "⚙️ TP Settings",
             callback_data="spot:tp_settings"
         )],
         # Back to strategies
