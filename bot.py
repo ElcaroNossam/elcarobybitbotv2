@@ -384,11 +384,19 @@ SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 # Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
 # =====================================================
 
-# Import blockchain module
+# Import blockchain module (Sovereign Monetary System)
 from core.blockchain import (
+    # Core
     blockchain, get_trc_balance, get_trc_wallet, pay_with_trc,
     deposit_trc, reward_trc, get_license_price_trc, pay_license,
-    LICENSE_PRICES_TRC, TRC_SYMBOL, TRC_NAME
+    LICENSE_PRICES_TRC, TRC_SYMBOL, TRC_NAME,
+    # Sovereign owner operations
+    is_sovereign_owner, emit_tokens, burn_tokens, set_monetary_policy,
+    freeze_wallet, unfreeze_wallet, distribute_staking_rewards,
+    get_treasury_stats, transfer_from_treasury, get_global_stats,
+    get_owner_dashboard,
+    # Constants
+    SOVEREIGN_OWNER_ID, SOVEREIGN_OWNER_NAME, CHAIN_ID, CHAIN_NAME
 )
 
 # TRC prices (1 TRC = 1 USDT)
@@ -14565,6 +14573,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text  = (update.message.text or "").strip()
     mode  = ctx.user_data.get("mode") if ctx.user_data else None
 
+    # Handle Sovereign Owner input (emission, burn, policy)
+    if await handle_sovereign_input(update, ctx):
+        return
+
     # Handle HyperLiquid private key input FIRST
     if await handle_hl_private_key(update, ctx):
         return
@@ -15516,6 +15528,429 @@ def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboa
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:plan:{plan}")],
     ]
     return InlineKeyboardMarkup(buttons)
+
+
+# =====================================================
+# SOVEREIGN OWNER CONTROLS (Monetary Authority)
+# =====================================================
+
+@log_calls
+async def cmd_sovereign(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    SOVEREIGN OWNER COMMAND: Full monetary control panel.
+    Only available to the sovereign owner (SOVEREIGN_OWNER_ID).
+    """
+    uid = update.effective_user.id
+    
+    if not is_sovereign_owner(uid):
+        await update.message.reply_text("❌ Unauthorized. This command is only for the Sovereign Owner.")
+        return
+    
+    # Get comprehensive dashboard
+    dashboard = await get_owner_dashboard(uid)
+    
+    if not dashboard:
+        await update.message.reply_text("❌ Error loading dashboard.")
+        return
+    
+    treasury = dashboard["treasury"]
+    global_stats = dashboard["global"]
+    
+    text = f"""🏛️ *SOVEREIGN MONETARY CONTROL PANEL*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👑 *{SOVEREIGN_OWNER_NAME}*
+🎖️ {dashboard['owner_title']}
+
+📊 *SUPPLY METRICS*
+├ Current Supply: *{treasury['current_supply']:,.0f} TRC*
+├ Max Supply: *{treasury['max_supply']:,.0f} TRC*
+├ Utilization: *{treasury['supply_utilization']*100:.2f}%*
+└ Circulating: *{treasury['current_supply'] - treasury['treasury_balance']:,.0f} TRC*
+
+🏦 *TREASURY*
+├ Treasury Balance: *{treasury['treasury_balance']:,.0f} TRC*
+├ Liquidity Pool: *{treasury['liquidity_pool']:,.0f} TRC*
+└ Fees Collected: *{treasury['total_fees_collected']:,.2f} TRC*
+
+📈 *RESERVES*
+├ Total Value: *${treasury['total_reserve_value']:,.0f}*
+├ Reserve Ratio: *{treasury['reserve_ratio']*100:.1f}%*
+└ Status: {'✅ Healthy' if treasury['reserve_ratio'] >= 1.0 else '⚠️ Under-collateralized'}
+
+💎 *STAKING*
+├ Total Staked: *{treasury['total_staked']:,.0f} TRC*
+├ Current APY: *{treasury['staking_apy']*100:.1f}%*
+└ Rewards Distributed: *{treasury['total_rewards_distributed']:,.2f} TRC*
+
+🔗 *BLOCKCHAIN*
+├ Chain: *{CHAIN_NAME}*
+├ Chain ID: *{CHAIN_ID}*
+├ Wallets: *{global_stats['total_wallets']:,}*
+├ Transactions: *{global_stats['total_transactions']:,}*
+└ Block Height: *{global_stats['block_height']:,}*
+
+⚡ *STATUS:* {'🔴 PAUSED' if treasury['is_paused'] else '🟢 ACTIVE'}
+📊 *Emission Events:* {dashboard['emission_count']}
+"""
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("💵 Emit Tokens", callback_data="sovereign:emit"),
+            InlineKeyboardButton("🔥 Burn Tokens", callback_data="sovereign:burn")
+        ],
+        [
+            InlineKeyboardButton("📊 Set APY", callback_data="sovereign:set_apy"),
+            InlineKeyboardButton("💰 Set Fees", callback_data="sovereign:set_fees")
+        ],
+        [
+            InlineKeyboardButton("🎁 Distribute Rewards", callback_data="sovereign:distribute"),
+            InlineKeyboardButton("💸 Treasury Transfer", callback_data="sovereign:transfer")
+        ],
+        [
+            InlineKeyboardButton("❄️ Freeze Wallet", callback_data="sovereign:freeze"),
+            InlineKeyboardButton("🔓 Unfreeze Wallet", callback_data="sovereign:unfreeze")
+        ],
+        [
+            InlineKeyboardButton("⏸️ Pause Protocol" if not treasury['is_paused'] else "▶️ Resume Protocol", 
+                               callback_data="sovereign:pause" if not treasury['is_paused'] else "sovereign:resume"),
+        ],
+        [InlineKeyboardButton("🔄 Refresh", callback_data="sovereign:refresh")]
+    ])
+    
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle sovereign owner callbacks."""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = update.effective_user.id
+    
+    if not is_sovereign_owner(uid):
+        await q.edit_message_text("❌ Unauthorized.")
+        return
+    
+    data = q.data  # sovereign:xxx
+    parts = data.split(":")
+    action = parts[1] if len(parts) > 1 else ""
+    
+    if action == "refresh":
+        dashboard = await get_owner_dashboard(uid)
+        treasury = dashboard["treasury"]
+        global_stats = dashboard["global"]
+        
+        text = f"""🏛️ *SOVEREIGN MONETARY CONTROL PANEL*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👑 *{SOVEREIGN_OWNER_NAME}*
+
+📊 Supply: *{treasury['current_supply']:,.0f}* / {treasury['max_supply']:,.0f} TRC
+🏦 Treasury: *{treasury['treasury_balance']:,.0f} TRC*
+📈 Reserves: *${treasury['total_reserve_value']:,.0f}* ({treasury['reserve_ratio']*100:.1f}%)
+💎 Staked: *{treasury['total_staked']:,.0f} TRC* @ {treasury['staking_apy']*100:.1f}% APY
+🔗 Wallets: *{global_stats['total_wallets']:,}* | TXs: *{global_stats['total_transactions']:,}*
+
+⚡ *STATUS:* {'🔴 PAUSED' if treasury['is_paused'] else '🟢 ACTIVE'}
+"""
+        
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("💵 Emit", callback_data="sovereign:emit"),
+                InlineKeyboardButton("🔥 Burn", callback_data="sovereign:burn"),
+                InlineKeyboardButton("📊 APY", callback_data="sovereign:set_apy")
+            ],
+            [
+                InlineKeyboardButton("🎁 Rewards", callback_data="sovereign:distribute"),
+                InlineKeyboardButton("💸 Transfer", callback_data="sovereign:transfer"),
+                InlineKeyboardButton("❄️ Freeze", callback_data="sovereign:freeze")
+            ],
+            [
+                InlineKeyboardButton("⏸️ Pause" if not treasury['is_paused'] else "▶️ Resume", 
+                                   callback_data="sovereign:pause" if not treasury['is_paused'] else "sovereign:resume"),
+                InlineKeyboardButton("🔄 Refresh", callback_data="sovereign:refresh")
+            ]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "emit":
+        ctx.user_data["sovereign_mode"] = "emit"
+        await q.edit_message_text(
+            "💵 *TOKEN EMISSION*\n\n"
+            "Enter the amount of TRC to emit and reason:\n"
+            "Format: `amount reason`\n\n"
+            "Example: `1000000 Liquidity expansion Q1 2026`\n\n"
+            "⚠️ This will increase total supply!",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action == "burn":
+        ctx.user_data["sovereign_mode"] = "burn"
+        dashboard = await get_owner_dashboard(uid)
+        treasury_balance = dashboard["treasury"]["treasury_balance"]
+        
+        await q.edit_message_text(
+            f"🔥 *TOKEN BURN*\n\n"
+            f"Treasury Balance: *{treasury_balance:,.0f} TRC*\n\n"
+            "Enter amount and reason:\n"
+            "Format: `amount reason`\n\n"
+            "Example: `500000 Supply reduction for stability`\n\n"
+            "⚠️ This will decrease total supply!",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action == "set_apy":
+        ctx.user_data["sovereign_mode"] = "set_apy"
+        await q.edit_message_text(
+            "📊 *SET STAKING APY*\n\n"
+            "Current APY: 12%\n"
+            "Range: 5% - 25%\n\n"
+            "Enter new APY (number only):\n"
+            "Example: `15` for 15% APY",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action == "distribute":
+        result = await distribute_staking_rewards(uid)
+        
+        if result["success"]:
+            await q.edit_message_text(
+                f"✅ *REWARDS DISTRIBUTED*\n\n"
+                f"💰 Total: *{result['distributed']:,.2f} TRC*\n"
+                f"👥 Recipients: *{result['recipients']}*\n"
+                f"📊 Daily Rate: *{result['daily_rate']*100:.4f}%*\n"
+                f"📈 APY: *{result['apy']*100:.1f}%*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("« Back", callback_data="sovereign:refresh")]
+                ])
+            )
+        else:
+            await q.edit_message_text(f"❌ Error: {result.get('message', 'Unknown')}")
+    
+    elif action == "transfer":
+        ctx.user_data["sovereign_mode"] = "transfer"
+        await q.edit_message_text(
+            "💸 *TREASURY TRANSFER*\n\n"
+            "Transfer TRC from treasury to a user.\n\n"
+            "Format: `user_id amount reason`\n"
+            "Example: `123456789 10000 Partner bonus`",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action == "freeze":
+        ctx.user_data["sovereign_mode"] = "freeze"
+        await q.edit_message_text(
+            "❄️ *FREEZE WALLET*\n\n"
+            "Enter user ID to freeze:\n"
+            "Format: `user_id reason`\n\n"
+            "Example: `123456789 Suspicious activity`",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action == "unfreeze":
+        ctx.user_data["sovereign_mode"] = "unfreeze"
+        await q.edit_message_text(
+            "🔓 *UNFREEZE WALLET*\n\n"
+            "Enter user ID to unfreeze:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="sovereign:refresh")]
+            ])
+        )
+    
+    elif action in ("pause", "resume"):
+        is_pause = action == "pause"
+        result = await set_monetary_policy(uid, is_paused=is_pause)
+        
+        if result["success"]:
+            status = "⏸️ PAUSED" if is_pause else "▶️ RESUMED"
+            await q.edit_message_text(
+                f"✅ Protocol {status}\n\n"
+                f"{'⚠️ All transactions are now blocked!' if is_pause else '✅ Normal operations restored.'}",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("« Back", callback_data="sovereign:refresh")]
+                ])
+            )
+
+
+async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Handle sovereign mode text inputs. Returns True if handled."""
+    uid = update.effective_user.id
+    
+    if not is_sovereign_owner(uid):
+        return False
+    
+    mode = ctx.user_data.get("sovereign_mode")
+    if not mode:
+        return False
+    
+    text = update.message.text.strip()
+    
+    if mode == "emit":
+        try:
+            parts = text.split(maxsplit=1)
+            amount = float(parts[0])
+            reason = parts[1] if len(parts) > 1 else "Manual emission"
+            
+            result = await emit_tokens(uid, amount, reason)
+            
+            if result["success"]:
+                await update.message.reply_text(
+                    f"✅ *TOKEN EMISSION SUCCESSFUL*\n\n"
+                    f"💵 Amount: *{amount:,.0f} TRC*\n"
+                    f"📝 Reason: {reason}\n"
+                    f"📊 New Supply: *{result['new_supply']:,.0f} TRC*\n"
+                    f"🔗 TX: `{result['tx_hash'][:20]}...`",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result['error']}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    elif mode == "burn":
+        try:
+            parts = text.split(maxsplit=1)
+            amount = float(parts[0])
+            reason = parts[1] if len(parts) > 1 else "Manual burn"
+            
+            result = await burn_tokens(uid, amount, reason)
+            
+            if result["success"]:
+                await update.message.reply_text(
+                    f"✅ *TOKEN BURN SUCCESSFUL*\n\n"
+                    f"🔥 Amount: *{amount:,.0f} TRC*\n"
+                    f"📝 Reason: {reason}\n"
+                    f"📊 New Supply: *{result['new_supply']:,.0f} TRC*\n"
+                    f"🔗 TX: `{result['tx_hash'][:20]}...`",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result['error']}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    elif mode == "set_apy":
+        try:
+            apy = float(text) / 100  # Convert from percent
+            
+            result = await set_monetary_policy(uid, staking_apy=apy)
+            
+            if result["success"]:
+                changes = result.get("changes", {})
+                apy_change = changes.get("staking_apy", {})
+                await update.message.reply_text(
+                    f"✅ *STAKING APY UPDATED*\n\n"
+                    f"📉 Old: {apy_change.get('old', 0)*100:.1f}%\n"
+                    f"📈 New: {apy_change.get('new', apy)*100:.1f}%",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result.get('error', 'Unknown')}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    elif mode == "transfer":
+        try:
+            parts = text.split(maxsplit=2)
+            target_uid = int(parts[0])
+            amount = float(parts[1])
+            reason = parts[2] if len(parts) > 2 else "Treasury transfer"
+            
+            result = await transfer_from_treasury(uid, target_uid, amount, reason)
+            
+            if result["success"]:
+                await update.message.reply_text(
+                    f"✅ *TREASURY TRANSFER SUCCESSFUL*\n\n"
+                    f"👤 To: User `{target_uid}`\n"
+                    f"💰 Amount: *{amount:,.0f} TRC*\n"
+                    f"📝 Reason: {reason}\n"
+                    f"🏦 Remaining: *{result['remaining_treasury']:,.0f} TRC*",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result['error']}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    elif mode == "freeze":
+        try:
+            parts = text.split(maxsplit=1)
+            target_uid = int(parts[0])
+            reason = parts[1] if len(parts) > 1 else "Frozen by owner"
+            
+            target_wallet = await get_trc_wallet(target_uid)
+            result = await freeze_wallet(uid, target_wallet.address, reason)
+            
+            if result["success"]:
+                await update.message.reply_text(
+                    f"✅ *WALLET FROZEN*\n\n"
+                    f"👤 User: `{target_uid}`\n"
+                    f"📍 Address: `{result['address'][:20]}...`\n"
+                    f"📝 Reason: {reason}",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result['error']}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    elif mode == "unfreeze":
+        try:
+            target_uid = int(text.strip())
+            target_wallet = await get_trc_wallet(target_uid)
+            result = await unfreeze_wallet(uid, target_wallet.address)
+            
+            if result["success"]:
+                await update.message.reply_text(
+                    f"✅ *WALLET UNFROZEN*\n\n"
+                    f"👤 User: `{target_uid}`\n"
+                    f"📍 Address: `{result['address'][:20]}...`",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.message.reply_text(f"❌ Error: {result['error']}")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Invalid format: {e}")
+        
+        ctx.user_data.pop("sovereign_mode", None)
+        return True
+    
+    return False
 
 
 # =====================================================
@@ -18108,6 +18543,10 @@ def main():
     # TRC Wallet handlers
     app.add_handler(CommandHandler("wallet",       cmd_wallet))
     app.add_handler(CallbackQueryHandler(on_wallet_cb, pattern=r"^wallet:"))
+    
+    # Sovereign Owner (Monetary Authority) handlers
+    app.add_handler(CommandHandler("sovereign",    cmd_sovereign))
+    app.add_handler(CallbackQueryHandler(on_sovereign_cb, pattern=r"^sovereign:"))
 
     app.add_handler(CallbackQueryHandler(on_moderate_cb, pattern=r"^mod:(approve|ban):\d+$"))
     app.add_handler(CallbackQueryHandler(on_admin_cb,    pattern=r"^admin:"))
