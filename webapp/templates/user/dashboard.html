@@ -526,6 +526,155 @@
         .empty-state { text-align: center; padding: 48px; color: var(--text-muted); }
         .empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
         
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+        
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .toast.success { border-left: 4px solid var(--green); }
+        .toast.error { border-left: 4px solid var(--red); }
+        .toast.warning { border-left: 4px solid var(--yellow); }
+        .toast.info { border-left: 4px solid var(--accent-arc); }
+        
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        
+        .toast.success .toast-icon { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+        .toast.error .toast-icon { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+        .toast.warning .toast-icon { background: rgba(234, 179, 8, 0.2); color: var(--yellow); }
+        .toast.info .toast-icon { background: rgba(0, 212, 255, 0.2); color: var(--accent-arc); }
+        
+        .toast-content { flex: 1; }
+        .toast-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+        .toast-message { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.4; }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+        
+        .toast-close:hover { color: var(--text-primary); }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* Confirm Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+        
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 380px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 0.2s;
+        }
+        
+        .modal-overlay.active .modal { transform: scale(1); }
+        
+        .modal-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--red);
+        }
+        
+        .modal-title { text-align: center; font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .modal-text { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+        
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn.cancel {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        
+        .modal-btn.cancel:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        
+        .modal-btn.confirm {
+            background: var(--gradient-red);
+            border: none;
+            color: white;
+        }
+        
+        .modal-btn.confirm:hover { filter: brightness(1.1); box-shadow: var(--glow-red); }
+        
         @media (max-width: 1400px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -1118,42 +1267,131 @@
             }).join('');
         }
         
-        async function closePosition(symbol) {
-            if (!confirm(`Close position ${symbol}?`)) return;
-            
-            const exchange = document.querySelector('.exchange-btn.active').dataset.exchange;
-            try {
-                const res = await fetch('/api/trading/close-position', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol, exchange, account_type: 'demo' })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    refreshData();
-                } else {
-                    alert('Error: ' + (data.message || 'Failed to close position'));
-                }
-            } catch (err) {
-                alert('Error: ' + err.message);
+        // Toast notification system
+        function showToast(type, title, message, duration = 4000) {
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
             }
+            
+            const icons = {
+                success: 'fa-check',
+                error: 'fa-times',
+                warning: 'fa-exclamation',
+                info: 'fa-info'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon"><i class="fas ${icons[type]}"></i></div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+        
+        // Confirm modal
+        function showConfirmModal(title, message, onConfirm) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="modal-title">${title}</div>
+                    <div class="modal-text">${message}</div>
+                    <div class="modal-actions">
+                        <button class="modal-btn cancel">Cancel</button>
+                        <button class="modal-btn confirm">Confirm</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.classList.add('active'), 10);
+            
+            const close = () => {
+                overlay.classList.remove('active');
+                setTimeout(() => overlay.remove(), 200);
+            };
+            
+            overlay.querySelector('.cancel').onclick = close;
+            overlay.onclick = (e) => { if (e.target === overlay) close(); };
+            overlay.querySelector('.confirm').onclick = () => {
+                close();
+                onConfirm();
+            };
+        }
+        
+        async function closePosition(symbol) {
+            showConfirmModal(
+                'Close Position',
+                `Are you sure you want to close <strong>${symbol}</strong>?`,
+                async () => {
+                    const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                    const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+                    
+                    try {
+                        const res = await fetch('/api/trading/close', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ symbol, exchange, account_type: 'demo' })
+                        });
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            showToast('success', 'Position Closed', `${symbol} position has been closed successfully`);
+                            refreshData();
+                        } else {
+                            showToast('error', 'Failed to Close', data.error || data.message || 'Unknown error occurred');
+                        }
+                    } catch (err) {
+                        showToast('error', 'Network Error', err.message);
+                    }
+                }
+            );
         }
         
         async function closeAllPositions() {
-            if (!confirm('Close ALL positions?')) return;
-            
-            const exchange = document.querySelector('.exchange-btn.active').dataset.exchange;
-            try {
-                const res = await fetch('/api/trading/close-all', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ exchange, account_type: 'demo' })
-                });
-                const data = await res.json();
-                if (data.success) refreshData();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
+            showConfirmModal(
+                'Close All Positions',
+                'Are you sure you want to close <strong>ALL</strong> open positions? This action cannot be undone.',
+                async () => {
+                    const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                    const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+                    
+                    try {
+                        const res = await fetch('/api/trading/close-all', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ exchange, account_type: 'demo' })
+                        });
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            showToast('success', 'All Positions Closed', 'All positions have been closed successfully');
+                            refreshData();
+                        } else {
+                            showToast('error', 'Failed to Close', data.error || data.message || 'Unknown error occurred');
+                        }
+                    } catch (err) {
+                        showToast('error', 'Network Error', err.message);
+                    }
+                }
+            );
         }
         
         // Auto-refresh every 30 seconds
