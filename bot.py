@@ -9700,8 +9700,20 @@ ACCOUNT_DISPLAY_NAMES = {
     "real": "🟢 Real",
 }
 
-def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", period_label: str = "", unrealized_pnl: float = 0.0, uid: int = None, account_type: str = "demo") -> str:
-    """Format trade statistics in beautiful style like the screenshot."""
+async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", period_label: str = "", unrealized_pnl: float = 0.0, uid: int = None, account_type: str = "demo", period: str = "all", api_pnl: float = None) -> str:
+    """Format trade statistics in beautiful style like the screenshot.
+    
+    Args:
+        stats: Trade stats from database
+        t: Translations dict
+        strategy_name: Strategy filter
+        period_label: Human-readable period label
+        unrealized_pnl: Unrealized PnL from open positions
+        uid: User ID
+        account_type: 'demo' or 'real'
+        period: Period key ('today', 'week', 'month', 'all')
+        api_pnl: PnL from exchange API (for comparison/accuracy)
+    """
     strat_display = STRATEGY_DISPLAY_NAMES.get(strategy_name, strategy_name.upper())
     account_display = ACCOUNT_DISPLAY_NAMES.get(account_type, account_type.capitalize())
     
@@ -9767,6 +9779,15 @@ def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", period_
         f"├─ {t.get('stats_gross_loss', 'Loss')}: ${abs(gross_loss):.2f}",
         f"├─ {pnl_emoji} {t.get('stats_realized_pnl', 'Realized')}: ${pnl_sign}{total_pnl:.2f}",
     ]
+    
+    # Show API PnL for comparison if available (only for specific periods)
+    if api_pnl is not None and strategy_name == "all":
+        api_sign = "+" if api_pnl >= 0 else ""
+        api_emoji = "📈" if api_pnl >= 0 else "📉"
+        diff = api_pnl - total_pnl
+        if abs(diff) > 1.0:  # Show difference only if significant (> $1)
+            diff_sign = "+" if diff >= 0 else ""
+            lines.append(f"├─ {api_emoji} Bybit API: ${api_sign}{api_pnl:.2f} ({diff_sign}{diff:.2f})")
     
     # Add unrealized PnL if there are open positions
     if open_trades > 0:
@@ -9947,7 +9968,8 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Get unrealized PnL from open positions
     unrealized_pnl = await get_unrealized_pnl(uid, strategy=None)
     
-    text = format_trade_stats(stats, t, strategy_name="all", period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=default_account)
+    # For "all time" period, we don't fetch API PnL (would be too expensive)
+    text = await format_trade_stats(stats, t, strategy_name="all", period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=default_account, period="all", api_pnl=None)
     keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all", current_account=default_account)
     
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
@@ -10038,7 +10060,20 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Get unrealized PnL for selected strategy
     unrealized_pnl = await get_unrealized_pnl(uid, strategy=strat_filter)
     
-    text = format_trade_stats(stats, t, strategy_name=strategy, period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=account_type)
+    # Fetch API PnL for comparison (only for today/week periods and "all" strategy)
+    api_pnl = None
+    if strategy == "all" and period in ("today", "week"):
+        try:
+            exchange = db.get_exchange_type(uid) or 'bybit'
+            if exchange == 'bybit':
+                if period == "today":
+                    api_pnl = await fetch_today_realized_pnl(uid, account_type=account_type)
+                elif period == "week":
+                    api_pnl = await fetch_realized_pnl(uid, days=7, account_type=account_type)
+        except Exception as e:
+            logger.warning(f"Failed to fetch API PnL for stats: {e}")
+    
+    text = await format_trade_stats(stats, t, strategy_name=strategy, period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=account_type, period=period, api_pnl=api_pnl)
     keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
     
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
