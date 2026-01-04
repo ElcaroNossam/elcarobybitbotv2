@@ -10048,6 +10048,7 @@ async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: 
     coins = spot_settings.get("coins", SPOT_DCA_COINS)
     dca_amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
     auto_dca = spot_settings.get("auto_dca", False)
+    purchase_history = spot_settings.get("purchase_history", {})
     
     # Use provided account_type instead of auto-detecting
     account_display = ACCOUNT_DISPLAY_NAMES.get(account_type, account_type.capitalize())
@@ -10067,7 +10068,20 @@ async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: 
                     qty = balances[coin]
                     value = qty * price
                     holdings_value += value
-                    holdings_lines.append(f"├─ {coin}: {qty:.8f} ≈ ${value:.2f}")
+                    
+                    # Calculate PnL per coin using purchase history
+                    coin_history = purchase_history.get(coin, {})
+                    avg_price = coin_history.get("avg_price", 0)
+                    total_cost = coin_history.get("total_cost", 0)
+                    
+                    if avg_price > 0 and total_cost > 0:
+                        # PnL = current value - cost basis (proportional to held qty)
+                        pnl = value - (qty * avg_price)
+                        pnl_sign = "+" if pnl >= 0 else ""
+                        pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+                        holdings_lines.append(f"├─ {coin}: {qty:.8f} ≈ ${value:.2f} {pnl_emoji} {pnl_sign}${pnl:.2f}")
+                    else:
+                        holdings_lines.append(f"├─ {coin}: {qty:.8f} ≈ ${value:.2f}")
     except Exception as e:
         logger.error(f"Error getting spot holdings for stats: {e}")
         holdings_lines.append("├─ Unable to fetch holdings")
