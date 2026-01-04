@@ -9777,17 +9777,23 @@ async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", p
         f"*{t.get('stats_pnl', 'Profit/Loss')}*",
         f"├─ {t.get('stats_gross_profit', 'Profit')}: ${gross_profit:.2f}",
         f"├─ {t.get('stats_gross_loss', 'Loss')}: ${abs(gross_loss):.2f}",
-        f"├─ {pnl_emoji} {t.get('stats_realized_pnl', 'Realized')}: ${pnl_sign}{total_pnl:.2f}",
     ]
     
-    # Show API PnL for comparison if available (only for specific periods)
+    # Use API PnL as primary if available (more accurate), otherwise use DB
     if api_pnl is not None and strategy_name == "all":
-        api_sign = "+" if api_pnl >= 0 else ""
-        api_emoji = "📈" if api_pnl >= 0 else "📉"
-        diff = api_pnl - total_pnl
-        if abs(diff) > 1.0:  # Show difference only if significant (> $1)
-            diff_sign = "+" if diff >= 0 else ""
-            lines.append(f"├─ {api_emoji} Bybit API: ${api_sign}{api_pnl:.2f} ({diff_sign}{diff:.2f})")
+        # API PnL is the real truth from exchange
+        display_pnl = api_pnl
+        display_sign = "+" if api_pnl >= 0 else ""
+        display_emoji = "📈" if api_pnl >= 0 else "📉"
+        lines.append(f"├─ {display_emoji} {t.get('stats_realized_pnl', 'Realized')}: ${display_sign}{display_pnl:.2f}")
+        
+        # Calculate combined with API PnL
+        combined_pnl = api_pnl + unrealized_pnl
+        combined_sign = "+" if combined_pnl >= 0 else ""
+        combined_emoji = "📈" if combined_pnl >= 0 else "📉"
+    else:
+        # Fallback to DB tracked PnL
+        lines.append(f"├─ {pnl_emoji} {t.get('stats_realized_pnl', 'Realized')}: ${pnl_sign}{total_pnl:.2f}")
     
     # Add unrealized PnL if there are open positions
     if open_trades > 0:
@@ -10062,7 +10068,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Fetch API PnL for comparison (only for today/week periods and "all" strategy)
     api_pnl = None
-    if strategy == "all" and period in ("today", "week"):
+    if strategy == "all":
         try:
             exchange = db.get_exchange_type(uid) or 'bybit'
             if exchange == 'bybit':
@@ -10070,6 +10076,11 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     api_pnl = await fetch_today_realized_pnl(uid, account_type=account_type)
                 elif period == "week":
                     api_pnl = await fetch_realized_pnl(uid, days=7, account_type=account_type)
+                elif period == "month":
+                    api_pnl = await fetch_realized_pnl(uid, days=30, account_type=account_type)
+                elif period == "all":
+                    # For all-time, fetch maximum Bybit allows (90 days)
+                    api_pnl = await fetch_realized_pnl(uid, days=90, account_type=account_type)
         except Exception as e:
             logger.warning(f"Failed to fetch API PnL for stats: {e}")
     
