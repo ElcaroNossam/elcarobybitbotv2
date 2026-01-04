@@ -11076,6 +11076,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             symbol     = parsed_scalper["symbol"]
             side       = parsed_scalper["side"]
             spot_price = float(parsed_scalper["price"])
+        elif is_elcaro:
+            symbol     = parsed_elcaro["symbol"]
+            side       = parsed_elcaro["side"]
+            spot_price = float(parsed_elcaro["price"])
         elif is_fibonacci:
             symbol     = parsed_fibonacci["symbol"]
             side       = parsed_fibonacci["side"]
