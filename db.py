@@ -3959,17 +3959,21 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
             where_clauses.append("(account_type = ? OR account_type IS NULL)")
             params.append(account_type)
         
-        # Фильтр по периоду
+        # Фильтр по периоду - используем скользящие окна (rolling windows)
+        # вместо жёсткой привязки к полуночи
         now = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Последние 24 часа вместо "с полуночи"
+            start = now - datetime.timedelta(hours=24)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "week":
+            # Последние 7 дней
             start = now - datetime.timedelta(days=7)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "month":
+            # Последние 30 дней
             start = now - datetime.timedelta(days=30)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))

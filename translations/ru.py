@@ -672,7 +672,7 @@ TEXTS = {
     'stats_spot_summary':            'Итого',
     'stats_spot_current_value':      'Текущая стоимость',
     'stats_period_all':              'Всё время',
-    'stats_period_today':            'Сегодня',
+    'stats_period_today':            '24 часа',
     'stats_period_week':             'Неделя',
     'stats_period_month':            'Месяц',
     'stats_demo':                    '🔵 Демо',

@@ -675,7 +675,7 @@ TEXTS = {
     'stats_scalper':                 '⚡ Scalper',
     'stats_elcaro':                  '🔥 Elcaro',
     'stats_period_all':              'Весь час',
-    'stats_period_today':            'Сьогодні',
+    'stats_period_today':            '24 години',
     'stats_period_week':             'Тиждень',
     'stats_period_month':            'Місяць',
     'stats_demo':                    '🔵 Demo',

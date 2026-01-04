@@ -671,7 +671,7 @@ TEXTS = {
     'stats_scalper':                 '⚡ Scalper',
     'stats_elcaro':                  '🔥 Elcaro',
     'stats_period_all':              'Gesamtzeit',
-    'stats_period_today':            'Heute',
+    'stats_period_today':            '24h',
     'stats_period_week':             'Woche',
     'stats_period_month':            'Monat',
     'stats_demo':                    '🔵 Demo',

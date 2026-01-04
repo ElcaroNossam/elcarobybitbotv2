@@ -9824,7 +9824,7 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
     
     periods = [
         ("all", t.get('stats_period_all', '📅 All')),
-        ("today", t.get('stats_period_today', '📆 Today')),
+        ("today", t.get('stats_period_today', '📆 24h')),
         ("week", t.get('stats_period_week', '📅 Week')),
         ("month", t.get('stats_period_month', '🗓 Month')),
     ]
@@ -9992,7 +9992,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     period_labels = {
         "all": t.get('stats_period_all', 'All time'),
-        "today": t.get('stats_period_today', 'Today'),
+        "today": t.get('stats_period_today', '24h'),
         "week": t.get('stats_period_week', 'Week'),
         "month": t.get('stats_period_month', 'Month'),
     }
