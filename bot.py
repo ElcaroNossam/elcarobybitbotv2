@@ -10074,14 +10074,22 @@ async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: 
                     avg_price = coin_history.get("avg_price", 0)
                     total_cost = coin_history.get("total_cost", 0)
                     
-                    if avg_price > 0 and total_cost > 0:
+                    if avg_price > 0:
                         # PnL = current value - cost basis (proportional to held qty)
                         pnl = value - (qty * avg_price)
                         pnl_sign = "+" if pnl >= 0 else ""
                         pnl_emoji = "🟢" if pnl >= 0 else "🔴"
-                        holdings_lines.append(f"├─ {coin}: {qty:.8f} ≈ ${value:.2f} {pnl_emoji} {pnl_sign}${pnl:.2f}")
+                        holdings_lines.append(f"├─ {coin}: {qty:.8g} ≈ ${value:.2f} {pnl_emoji} {pnl_sign}${pnl:.2f}")
+                    elif total_invested > 0 and holdings_value > 0:
+                        # Fallback: estimate cost proportionally from total invested
+                        coin_share = value / holdings_value if holdings_value > 0 else 0
+                        estimated_cost = total_invested * coin_share
+                        pnl = value - estimated_cost
+                        pnl_sign = "+" if pnl >= 0 else ""
+                        pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+                        holdings_lines.append(f"├─ {coin}: {qty:.8g} ≈ ${value:.2f} {pnl_emoji} ~{pnl_sign}${pnl:.2f}")
                     else:
-                        holdings_lines.append(f"├─ {coin}: {qty:.8f} ≈ ${value:.2f}")
+                        holdings_lines.append(f"├─ {coin}: {qty:.8g} ≈ ${value:.2f}")
     except Exception as e:
         logger.error(f"Error getting spot holdings for stats: {e}")
         holdings_lines.append("├─ Unable to fetch holdings")
