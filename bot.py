@@ -3318,19 +3318,22 @@ async def set_leverage(
             _leverage_cache[cache_key] = leverage
             logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x (from API)")
             return False
-        # If error is "leverage invalid" (10001) - fallback to standard 10x
+        # If error is "leverage invalid" (10001) - fallback through decreasing values
         if "10001" in str(e) or "leverage invalid" in err_str:
-            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, using standard 10x")
-            if leverage != 10:
-                try:
-                    body["buyLeverage"] = "10"
-                    body["sellLeverage"] = "10"
-                    await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
-                    _leverage_cache[cache_key] = 10
-                    logger.info(f"[{user_id}] Leverage for {symbol} set to standard 10x [{account_type or 'auto'}]")
-                    return True
-                except Exception as e2:
-                    logger.warning(f"[{user_id}] Could not set 10x leverage for {symbol}: {e2}")
+            logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, trying fallbacks")
+            # Try decreasing leverage values until one works
+            for fallback_lev in [50, 25, 10, 5, 3, 2, 1]:
+                if fallback_lev < leverage:
+                    try:
+                        body["buyLeverage"] = str(fallback_lev)
+                        body["sellLeverage"] = str(fallback_lev)
+                        await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
+                        _leverage_cache[cache_key] = fallback_lev
+                        logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
+                        return True
+                    except Exception:
+                        continue
+            logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
             return False
         # 110013: leverage exceeds maxLeverage by risk limit - try to extract and use max
         if "110013" in str(e) or "cannot set leverage" in err_str or "maxleverage" in err_str:
@@ -4892,18 +4895,23 @@ async def place_order(
             logger.info(f"{symbol}: retry with alt position mode {alt_mode}")
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
-        # Ошибка кредитного плеча — пытаемся извлечь maxLeverage из ошибки или используем 10x
+        # Ошибка кредитного плеча — пытаемся извлечь maxLeverage из ошибки и установить
         elif "110013" in msg or "cannot set leverage" in msg:
             # Try to extract maxLeverage from error message: "gt maxLeverage [500]"
             import re
             match = re.search(r'maxLeverage\s*\[(\d+)\]', str(e))
-            if match:
-                max_lev = int(match.group(1))
-                logger.info(f"{symbol}: leverage error → set max {max_lev}x and retry")
-                await set_leverage(user_id, symbol, leverage=max_lev, account_type=account_type)
-            else:
-                logger.info(f"{symbol}: leverage error → set 10x and retry")
-                await set_leverage(user_id, symbol, leverage=10, account_type=account_type)
+            target_lev = int(match.group(1)) if match else 10
+            
+            logger.info(f"{symbol}: leverage error → trying to set {target_lev}x")
+            lev_success = await set_leverage(user_id, symbol, leverage=target_lev, account_type=account_type)
+            
+            # If set_leverage failed, try progressively lower values
+            if not lev_success:
+                for fallback in [5, 3, 2, 1]:
+                    logger.info(f"{symbol}: trying fallback leverage {fallback}x")
+                    if await set_leverage(user_id, symbol, leverage=fallback, account_type=account_type):
+                        break
+            
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
 
         # Ошибка 110090 - позиция превышает лимит, нужно снизить плечо до 45 или ниже
