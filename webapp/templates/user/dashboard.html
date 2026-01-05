@@ -1157,7 +1157,6 @@
                     return;
                 }
                 const balance = await balanceRes.json();
-                console.log('Balance response:', balance);
                 if (balance.equity !== undefined || balance.total_equity !== undefined) {
                     document.getElementById('total-equity').textContent = 
                         '$' + (balance.equity || balance.total_equity || 0).toFixed(2);
@@ -1165,7 +1164,6 @@
                 
                 const posRes = await fetch(`/api/trading/positions?exchange=${exchange}&account_type=demo`, { headers });
                 const positions = await posRes.json();
-                console.log('Positions response:', positions);
                 if (Array.isArray(positions)) {
                     updatePositionsTable(positions);
                     document.getElementById('open-positions').textContent = positions.length;
@@ -1180,7 +1178,6 @@
                 // Use dashboard stats endpoint
                 const statsRes = await fetch(`/api/stats/dashboard?exchange=${exchange}&period=30d`, { headers });
                 const stats = await statsRes.json();
-                console.log('Stats response:', stats);
                 if (stats.success && stats.data && stats.data.summary) {
                     const summary = stats.data.summary;
                     document.getElementById('win-rate').textContent = (summary.winRate || 0).toFixed(1) + '%';

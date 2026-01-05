@@ -827,7 +827,6 @@
             btnFutures.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Switching to Futures');
                 document.querySelectorAll('.market-type-btn').forEach(b => b.classList.remove('active'));
                 btnFutures.classList.add('active');
                 activeMarket = 'futures';
@@ -841,7 +840,6 @@
             btnSpot.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Switching to Spot');
                 document.querySelectorAll('.market-type-btn').forEach(b => b.classList.remove('active'));
                 btnSpot.classList.add('active');
                 activeMarket = 'spot';
@@ -884,7 +882,6 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const newExchange = btn.dataset.exchange;
-                console.log('Switching exchange to:', newExchange);
                 
                 // Update UI
                 document.querySelectorAll('.exchange-btn').forEach(b => {

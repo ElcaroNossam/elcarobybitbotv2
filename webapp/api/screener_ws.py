@@ -436,16 +436,16 @@ async def screener_websocket(websocket: WebSocket):
         active_connections.discard(websocket)
 
 @router.get("/api/screener/symbols")
-async def get_symbols(market: str = "futures"):
+async def get_symbols(market: str = "futures", exchange: str = "binance"):
     """Get list of symbols"""
     if market == "futures":
-        return {"symbols": list(cache.futures_data.keys())}
-    return {"symbols": list(cache.spot_data.keys())}
+        return {"symbols": list(cache.get_futures_data(exchange).keys())}
+    return {"symbols": list(cache.get_spot_data(exchange).keys())}
 
 @router.get("/api/screener/overview")
-async def get_overview(market: str = "futures"):
+async def get_overview(market: str = "futures", exchange: str = "binance"):
     """Get market overview"""
-    data = cache.futures_data if market == "futures" else cache.spot_data
+    data = cache.get_futures_data(exchange) if market == "futures" else cache.get_spot_data(exchange)
     values = list(data.values())
     
     gainers = len([s for s in values if s.get('change_24h', 0) > 0])
@@ -462,9 +462,9 @@ async def get_overview(market: str = "futures"):
     }
 
 @router.get("/api/screener/symbol/{symbol}")
-async def get_symbol_data(symbol: str, market: str = "futures"):
+async def get_symbol_data(symbol: str, market: str = "futures", exchange: str = "binance"):
     """Get data for specific symbol"""
-    data = cache.futures_data if market == "futures" else cache.spot_data
+    data = cache.get_futures_data(exchange) if market == "futures" else cache.get_spot_data(exchange)
     if symbol not in data:
         raise HTTPException(status_code=404, detail="Symbol not found")
     return data[symbol]

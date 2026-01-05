@@ -892,14 +892,11 @@
                 }
                 
                 const data = await resp.json();
-                console.log('Stats API response:', data);
                 if (data.success) {
                     renderStats(data.data);
-                } else {
-                    console.error('Stats API returned success=false:', data);
                 }
             } catch (err) {
-                console.error('Error loading stats:', err);
+                // Stats loading error - silently ignore in production
             }
         }
         

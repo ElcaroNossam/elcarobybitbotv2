@@ -623,7 +623,6 @@
                         localStorage.setItem('triacelo_user', JSON.stringify(user));
                         if (user.language) localStorage.setItem('triacelo_language', user.language);
                         if (user.exchange_type) localStorage.setItem('triacelo_exchange', user.exchange_type);
-                        console.log('✅ Auto-login via token:', user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
                         return;
@@ -652,7 +651,6 @@
                             localStorage.setItem('triacelo_user', JSON.stringify(data.user));
                             if (data.user?.language) localStorage.setItem('triacelo_language', data.user.language);
                             if (data.user?.exchange_type) localStorage.setItem('triacelo_exchange', data.user.exchange_type);
-                            console.log('✅ Auto-login via start param:', userId);
                             // Redirect to dashboard after successful auto-login
                             window.location.href = '/dashboard';
                             return;
@@ -678,7 +676,6 @@
                         localStorage.setItem('triacelo_token', data.token);
                         localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
                         localStorage.setItem('triacelo_user', JSON.stringify(data.user));
-                        console.log('✅ Auto-login via Telegram initData:', data.user.user_id);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
                         return;
@@ -706,7 +703,6 @@
                         if (user && user.user_id) {
                             localStorage.setItem('triacelo_user', JSON.stringify(user));
                             localStorage.setItem('triacelo_user_id', user.user_id.toString());
-                            console.log('✅ Session restored:', user.user_id);
                         }
                     }
                 } catch (err) {
@@ -776,8 +772,6 @@
                     link.href = targetPage;
                 }
             });
-            
-            console.log(`🔗 Navigation updated: ${isLoggedIn ? 'Dashboard (logged in)' : 'Terminal (guest)'}`);
         }
         
         // Call after auth check completes
