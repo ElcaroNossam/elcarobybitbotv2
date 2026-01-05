@@ -1522,8 +1522,18 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 spent = result.get("usdt_spent", adjusted_amount)
                 results.append(f"✅ {result.get('qty', 0):.6f} {coin} (${spent:.2f})")
                 total_spent += spent
+            elif result.get("error") == "SKIP":
+                # Silently skip - don't show error to user
+                reason = result.get("reason", "unknown")
+                if reason == "order_too_small":
+                    skipped.append(f"{coin} (min)")
+                elif reason == "insufficient_balance":
+                    skipped.append(f"{coin} (bal)")
+                else:
+                    skipped.append(coin)
             else:
-                results.append(f"❌ {coin}: {result.get('error', 'Unknown error')}")
+                # Only show real errors
+                results.append(f"❌ {coin}: {result.get('error', 'Error')}")
         
         # Update total invested
         spot_settings["total_invested"] = spot_settings.get("total_invested", 0.0) + total_spent
@@ -3303,7 +3313,7 @@ async def _bybit_request(user_id: int, method: str, path: str,
                     raise MissingAPICredentials(f"API key error: {data.get('retMsg')}")
                 
                 # Leverage validation errors - log as debug only, not error (handled in set_leverage)
-                elif path == "/v5/position/set-leverage" and ret_code == 10001:
+                elif path == "/v5/position/set-leverage" and ret_code in (10001, 110013):
                     logger.debug(f"Bybit leverage validation: {data.get('retMsg')}")
                     raise RuntimeError(f"Bybit error {path}: {data}")
                 
@@ -7484,6 +7494,12 @@ async def place_spot_order(
         msg = str(e).lower()
         if "insufficient" in msg or "balance" in msg or "110007" in msg or "ab not enough" in msg:
             raise ValueError("INSUFFICIENT_BALANCE")
+        # 170140 = Order value exceeded lower limit (order too small)
+        if "170140" in str(e) or "lower limit" in msg:
+            raise ValueError("ORDER_TOO_SMALL")
+        # 170136 = Order qty too small
+        if "170136" in str(e) or "qty" in msg and "small" in msg:
+            raise ValueError("ORDER_TOO_SMALL")
         raise
 
 
@@ -7574,10 +7590,18 @@ async def execute_spot_dca_buy(
             "order": result,
         }
     except ValueError as e:
-        return {"success": False, "error": str(e)}
+        err_str = str(e)
+        if err_str == "ORDER_TOO_SMALL":
+            # Silently skip - amount too small for exchange minimum
+            logger.debug(f"Spot DCA {coin}: order too small (${usdt_amount:.2f}), skipping")
+            return {"success": False, "error": "SKIP", "reason": "order_too_small"}
+        if err_str == "INSUFFICIENT_BALANCE":
+            return {"success": False, "error": "SKIP", "reason": "insufficient_balance"}
+        return {"success": False, "error": err_str}
     except Exception as e:
-        logger.error(f"execute_spot_dca_buy error: {e}")
-        return {"success": False, "error": str(e)}
+        # Don't show raw API errors to user
+        logger.warning(f"execute_spot_dca_buy {coin}: {e}")
+        return {"success": False, "error": "SKIP", "reason": "api_error"}
 
 
 async def execute_spot_sell(
@@ -13551,8 +13575,12 @@ async def spot_auto_dca_loop(app: Application):
                                 spent = result.get("usdt_spent", adjusted_amount)
                                 results.append(f"✅ {result.get('qty', 0):.6f} {coin} (${spent:.2f})")
                                 total_spent += spent
+                            elif result.get("error") == "SKIP":
+                                # Silently skip - don't notify user
+                                skipped.append(coin)
                             else:
-                                results.append(f"❌ {coin}: {result.get('error', 'Unknown error')}")
+                                # Only show real errors
+                                results.append(f"❌ {coin}: {result.get('error', 'Error')}")
                         except Exception as e:
                             logger.error(f"Auto DCA buy error for {coin}: {e}")
                             results.append(f"❌ {coin}: {str(e)[:50]}")
