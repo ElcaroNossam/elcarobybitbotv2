@@ -11655,6 +11655,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
                             parse_mode="HTML"
                         )
+                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+                        # Position limit exceeded error
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Scryptomera", symbol=symbol),
+                            parse_mode="HTML"
+                        )
                     else:
                         await ctx.bot.send_message(
                             uid,
@@ -11750,6 +11757,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await ctx.bot.send_message(
                             uid,
                             t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                            parse_mode="HTML"
+                        )
+                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Scalper", symbol=symbol),
                             parse_mode="HTML"
                         )
                     else:
@@ -11922,6 +11935,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
                                     parse_mode="HTML"
                                 )
+                            elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Elcaro", symbol=symbol),
+                                    parse_mode="HTML"
+                                )
                             else:
                                 await ctx.bot.send_message(
                                     uid,
@@ -11942,6 +11961,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await ctx.bot.send_message(
                             uid,
                             t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
+                            parse_mode="HTML"
+                        )
+                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+                        await ctx.bot.send_message(
+                            uid,
+                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Elcaro", symbol=symbol),
                             parse_mode="HTML"
                         )
                     else:

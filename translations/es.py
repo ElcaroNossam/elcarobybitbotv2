@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>¡Apalancamiento muy alto!</b>\n\n⚙️ Su apalancamiento configurado excede el máximo permitido para este símbolo.\n\n<b>Máximo permitido:</b> {max_leverage}x\n\n<b>Solución:</b> Vaya a la configuración de estrategia y reduzca el apalancamiento.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>¡Límite de posición excedido!</b>\n\n📊 Estrategia: <b>{strategy}</b>\n🪙 Símbolo: <b>{symbol}</b>\n\n⚠️ Su posición excedería el límite máximo.\n\n<b>Soluciones:</b>\n• Reducir apalancamiento\n• Reducir tamaño de posición\n• Cerrar algunas posiciones',
     
 
 

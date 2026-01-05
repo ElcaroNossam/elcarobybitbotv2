@@ -385,6 +385,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.',
+    
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions',
 
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',

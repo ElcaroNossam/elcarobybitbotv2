@@ -272,6 +272,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Svertas per didelis!</b>\n\n⚙️ Jūsų nustatytas svertas viršija maksimalų leidžiamą šiam simboliui.\n\n<b>Maksimalus leidžiamas:</b> {max_leverage}x\n\n<b>Sprendimas:</b> Eikite į strategijos nustatymus ir sumažinkite svertą.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Viršytas pozicijos limitas!</b>\n\n📊 Strategija: <b>{strategy}</b>\n🪙 Simbolis: <b>{symbol}</b>\n\n⚠️ Jūsų pozicija viršytų maksimalų limitą.\n\n<b>Sprendimai:</b>\n• Sumažinkite svertą\n• Sumažinkite pozicijos dydį\n• Uždarykite dalį pozicijų',
     
 
 

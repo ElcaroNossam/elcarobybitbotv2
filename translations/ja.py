@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>レバレッジが高すぎます！</b>\n\n⚙️ 設定されたレバレッジがこのシンボルの最大許容値を超えています。\n\n<b>最大許容:</b> {max_leverage}x\n\n<b>解決策:</b> ストラテジー設定に移動し、レバレッジを減らしてください。',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>ポジション制限超過！</b>\n\n📊 戦略: <b>{strategy}</b>\n🪙 シンボル: <b>{symbol}</b>\n\n⚠️ ポジションが最大制限を超えます。\n\n<b>解決策:</b>\n• レバレッジを下げる\n• ポジションサイズを減らす\n• 一部のポジションを決済',
     
 
 

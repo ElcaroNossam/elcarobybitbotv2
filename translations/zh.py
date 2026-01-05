@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>杠杆过高！</b>\n\n⚙️ 您配置的杠杆超过了该品种允许的最大值。\n\n<b>最大允许:</b> {max_leverage}x\n\n<b>解决方案:</b> 前往策略设置并降低杠杆。',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>超出持仓限制！</b>\n\n📊 策略: <b>{strategy}</b>\n🪙 品种: <b>{symbol}</b>\n\n⚠️ 您的持仓将超过最大限制。\n\n<b>解决方案:</b>\n• 降低杠杆\n• 减少仓位大小\n• 平掉部分持仓',
     
 
 

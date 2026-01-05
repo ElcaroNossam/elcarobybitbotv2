@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Zbyt wysoka dźwignia!</b>\n\n⚙️ Skonfigurowana dźwignia przekracza maksimum dozwolone dla tego symbolu.\n\n<b>Maksymalna dozwolona:</b> {max_leverage}x\n\n<b>Rozwiązanie:</b> Przejdź do ustawień strategii i zmniejsz dźwignię.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Przekroczono limit pozycji!</b>\n\n📊 Strategia: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Twoja pozycja przekroczyłaby maksymalny limit.\n\n<b>Rozwiązania:</b>\n• Zmniejsz dźwignię\n• Zmniejsz rozmiar pozycji\n• Zamknij część pozycji',
     
 
 

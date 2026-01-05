@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Hebel zu hoch!</b>\n\n⚙️ Ihr konfigurierter Hebel überschreitet das Maximum für dieses Symbol.\n\n<b>Maximal erlaubt:</b> {max_leverage}x\n\n<b>Lösung:</b> Gehen Sie zu den Strategieeinstellungen und reduzieren Sie den Hebel.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Positionslimit überschritten!</b>\n\n📊 Strategie: <b>{strategy}</b>\n�� Symbol: <b>{symbol}</b>\n\n⚠️ Ihre Position würde das maximale Limit überschreiten.\n\n<b>Lösungen:</b>\n• Hebel in Strategieeinstellungen reduzieren\n• Positionsgröße reduzieren\n• Offene Positionen schließen',
     
 
 

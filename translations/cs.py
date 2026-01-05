@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Příliš vysoká páka!</b>\n\n⚙️ Vaše nakonfigurovaná páka překračuje maximum povolené pro tento symbol.\n\n<b>Maximálně povoleno:</b> {max_leverage}x\n\n<b>Řešení:</b> Přejděte do nastavení strategie a snižte páku.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Překročen limit pozice!</b>\n\n📊 Strategie: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Vaše pozice by překročila maximální limit.\n\n<b>Řešení:</b>\n• Snižte páku\n• Zmenšete velikost pozice\n• Zavřete některé pozice',
     
 
 

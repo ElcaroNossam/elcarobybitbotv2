@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>מינוף גבוה מדי!</b>\n\n⚙️ המינוף שהוגדר חורג מהמקסימום המותר עבור סמל זה.\n\n<b>מקסימום מותר:</b> {max_leverage}x\n\n<b>פתרון:</b> עבור להגדרות האסטרטגיה והפחת את המינוף.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>חריגה ממגבלת פוזיציה!</b>\n\n📊 אסטרטגיה: <b>{strategy}</b>\n🪙 סמל: <b>{symbol}</b>\n\n⚠️ הפוזיציה שלך תחרוג מהמגבלה המקסימלית.\n\n<b>פתרונות:</b>\n• הפחת מינוף\n• הקטן גודל פוזיציה\n• סגור חלק מהפוזיציות',
     
 
 

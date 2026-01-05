@@ -272,6 +272,9 @@ TEXTS = {
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Effet de levier trop élevé!</b>\n\n⚙️ Votre effet de levier dépasse le maximum autorisé pour ce symbole.\n\n<b>Maximum autorisé:</b> {max_leverage}x\n\n<b>Solution:</b> Allez dans les paramètres de stratégie et réduisez l\'effet de levier.',
 
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Limite de position dépassée!</b>\n\n📊 Stratégie: <b>{strategy}</b>\n🪙 Symbole: <b>{symbol}</b>\n\n⚠️ Votre position dépasserait la limite maximale.\n\n<b>Solutions:</b>\n• Réduire l\'effet de levier\n• Réduire la taille de position\n• Fermer des positions',
+
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper Limit erreur: {msg}',

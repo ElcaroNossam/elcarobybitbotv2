@@ -271,6 +271,9 @@ TEXTS = {
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leva shumë e lartë!</b>\n\n⚙️ Leva juaj e konfiguruar tejkalon maksimumin e lejuar për këtë simbol.\n\n<b>Maksimumi i lejuar:</b> {max_leverage}x\n\n<b>Zgjidhja:</b> Shkoni te cilësimet e strategjisë dhe ulni levën.',
+
+    # Position limit exceeded error (110090)
+    'position_limit_error':        '❌ <b>Limiti i pozicionit u tejkalua!</b>\n\n📊 Strategjia: <b>{strategy}</b>\n🪙 Simboli: <b>{symbol}</b>\n\n⚠️ Pozicioni juaj do të tejkalonte limitin maksimal.\n\n<b>Zgjidhjet:</b>\n• Ulni levën\n• Ulni madhësinë e pozicionit\n• Mbyllni disa pozicione',
     
 
 
