@@ -318,3 +318,99 @@ journalctl -u elcaro-bot -n 100 --no-pager
 
 *Last updated: 6 января 2025*
 *Version: 3.0.0*
+
+### ✅ WebApp API Enrichment Fix (Dec 30, 2025)
+- **Problem:** API returning `strategy: null`, `pnl: null` for positions
+- **File:** `webapp/services_integration.py`
+- **Fix:** `get_positions_service()` now enriches exchange data with DB data
+- **Added Fields:**
+  - `strategy` - from `db.get_active_positions()`
+  - `account_type`, `env` - from request params
+  - `tp_price`, `sl_price` - from DB or exchange
+  - `use_atr`, `atr_activated` - ATR trailing stop state
+- **Balance Fix:** Mapped `total_equity`→`equity`, `available_balance`→`available`
+
+### ✅ Monitor Loop Multi-Exchange Fix (Dec 30, 2025)
+- **Problem:** Stale positions not cleaned for demo accounts (only testnet)
+- **File:** `bot.py` lines 10893-11799
+- **Fix:** Critical indentation bug - cleanup code was OUTSIDE the account_type loop
+- **Added:** `current_exchange` tracking alongside `current_account_type`
+- **Notifications:** Now include exchange and market_type in open/close messages
+
+### ✅ Position Notifications Enhanced (Dec 30, 2025)
+- **Feature:** Exchange + market type in position notifications
+- **Files:** `bot.py`, all 15 `translations/*.py`
+- **Format:**
+  ```
+  🚀 New position BTCUSDT @ 94000, size=0.001
+  📍 BYBIT • Demo
+  
+  🔔 Position BTCUSDT closed by *TP*:
+  ...
+  📍 BYBIT • Demo
+  ```
+
+### ✅ Screener Full Refactoring (Dec 23, 2025)
+- **Feature:** Complete screener redesign with WebSocket real-time updates
+- **Files:** `webapp/templates/screener.html`, `webapp/api/screener_ws.py`
+- **What's New:**
+  - Real-time market data from Binance (Futures + Spot)
+  - 14 columns: Symbol, Price, 1m/5m/15m/1h/24h %, Vol 15m/1h, OI, OI Δ 15m, Funding, Volatility
+  - Dynamic Futures/Spot switching with gradient buttons
+  - WebSocket updates every 3 seconds
+  - Improved `process_ticker()` with full timeframe calculations
+  - Top Gainers/Losers sidebar
+  - Beautiful gradient UI matching ElCaro design system
+- **Tests:** `tests/test_screener.py` created with cache and fetcher tests
+- **Status:** ✅ All CSS errors fixed, 102 core tests passing
+
+### ✅ CSS Design System Fixed (Dec 23, 2025)
+- **Problem:** CSS variables outside `:root` block causing 30+ errors
+- **File:** `webapp/static/css/elcaro-design-system.css`
+- **Fix:** All CSS variables moved inside `:root { }` block
+- **Variables Added:**
+  - Gradients: `--gradient-primary`, `--gradient-purple`, `--gradient-green`
+  - Glow effects: `--glow-green`, `--glow-blue`, `--glow-purple`
+  - Exchange colors: `--bybit-color`, `--hl-color`, `--binance-color`
+  - Spacing, radius, shadows, transitions
+- **Result:** 0 CSS errors, perfect syntax
+
+### ✅ Unified Architecture Integration (Dec 23, 2024)
+- **Feature:** Complete unified architecture for multi-exchange support
+- **Files:** `models/unified.py`, `bot_unified.py`, `core/exchange_client.py`
+- **What's New:**
+  - Unified `Position`, `Balance`, `Order` models with `.from_bybit()` and `.from_hyperliquid()` converters
+  - 5 main functions: `get_balance_unified()`, `get_positions_unified()`, `place_order_unified()`, `close_position_unified()`, `set_leverage_unified()`
+  - All functions accept `exchange='bybit'` and `account_type='demo'` parameters
+  - `fetch_open_positions()` in bot.py now uses unified architecture with field mapping
+  - Proper `account_type` propagation through entire call chain
+  - Full support for demo/real/testnet modes on both Bybit and HyperLiquid
+- **Tests:** 13/13 passing in `tests/test_unified_models.py`
+- **Feature Flag:** `USE_UNIFIED_ARCHITECTURE = True` in bot.py to enable (line ~120)
+
+### ✅ Translation Sync (Dec 23, 2024)
+- **Status:** All 15 languages perfectly synchronized (651 keys each)
+- **Cleaned:** Removed obsolete keys (`elcaro_ai_note`, `elcaro_ai_params_*`, `lang_XX`)
+- **Languages:** ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh
+- **Command:** Use `python3 utils/translation_sync.py --report` to check status
+
+### Position Close Strategy Detection
+- **Problem:** "Position closed by UNKNOWN: Strategy: Unknown"
+- **Fix:** Enhanced `detect_exit_reason()` at bot.py:2291 with fallback checks
+- **Fix:** Added strategy parameter to `split_market_plus_one_limit()` and its `add_active_position()` call
+
+### Elcaro Signal Parsing  
+- **Problem:** Signals not being detected
+- **Fix:** Made `ELCARO_RE_MAIN` regex more flexible (supports USDC, extra emojis)
+- **Fix:** `is_elcaro_signal()` now requires core match + one additional indicator (more lenient)
+
+### Positions Pagination
+- **Change:** Now shows 10 positions per page instead of 1
+- **New constant:** `POSITIONS_PER_PAGE = 10` at bot.py:6335
+- **New functions:** `get_positions_list_keyboard()`, `format_positions_list_header()`
+- **Handler:** `pos:list:{page}` for page navigation
+
+### HyperLiquid Backend
+- **Fix:** `place_order_hyperliquid()` now properly sets leverage BEFORE placing order
+- **Fix:** TP/SL are set after successful order via `set_tp_sl()`
+- **Fix:** `exchange_router.py` now uses correct response format (`retCode` for Bybit-like responses)
