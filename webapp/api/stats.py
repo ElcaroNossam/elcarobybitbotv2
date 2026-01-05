@@ -35,11 +35,16 @@ async def get_dashboard_stats(
         start_date = datetime.now() - timedelta(days=days)
         
         # Get trades from trade_logs table (where bot saves trades)
-        # Pass exchange=None to get all trades (exchange column doesn't exist in DB)
+        # Note: exchange column may not exist in all rows - filter in Python
         trades = db.get_trade_logs_list(uid, limit=1000, 
                                         strategy=strategy if strategy != "all" else None,
-                                        exchange=None) or []  # Fixed: ignore exchange filter
+                                        exchange=None) or []
         logger.debug(f"Trades returned: {len(trades)}")
+        
+        # Filter by exchange if specified
+        if exchange and exchange != "all":
+            trades = [t for t in trades if t.get("exchange", "bybit") == exchange]
+            logger.debug(f"Trades after exchange filter: {len(trades)}")
         
         # Filter by period
         filtered_trades = []

@@ -237,19 +237,22 @@ async def get_balance(
         if not hl_creds.get("hl_private_key"):
             return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": "HL not configured"}
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
                 testnet=hl_creds.get("hl_testnet", False)
             )
             result = await adapter.get_balance()
-            await adapter.close()
             
             if result.get("success"):
                 return result["data"]
             return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": result.get("error")}
         except Exception as e:
             return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": str(e)}
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit balance
@@ -330,13 +333,13 @@ async def get_positions(
         if not hl_creds.get("hl_private_key"):
             return []
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
                 testnet=hl_creds.get("hl_testnet", False)
             )
             result = await adapter.fetch_positions()
-            await adapter.close()
             
             positions = result.get("result", {}).get("list", [])
             
@@ -363,6 +366,9 @@ async def get_positions(
         except Exception as e:
             logger.error(f"HL positions error: {e}")
             return []
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit positions
@@ -456,13 +462,13 @@ async def get_orders(
         if not hl_creds.get("hl_private_key"):
             return []
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
                 testnet=hl_creds.get("hl_testnet", False)
             )
             result = await adapter.fetch_open_orders()
-            await adapter.close()
             
             if result.get("success"):
                 return result["data"]
@@ -470,6 +476,9 @@ async def get_orders(
         except Exception as e:
             logger.error(f"HL orders error: {e}")
             return []
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit orders
@@ -535,6 +544,7 @@ async def close_position(
         if not hl_creds.get("hl_private_key"):
             raise HTTPException(status_code=400, detail="HL not configured")
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
@@ -546,7 +556,6 @@ async def close_position(
             pos_info = next((p for p in positions if p.get("symbol") == req.symbol), None)
             
             result = await adapter.close_position(req.symbol)
-            await adapter.close()
             
             if result.get("retCode") == 0:
                 # Sync: Log trade and remove position from DB
@@ -593,6 +602,9 @@ async def close_position(
             return {"success": False, "error": result.get("retMsg")}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit close position

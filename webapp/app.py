@@ -217,8 +217,6 @@ def create_app() -> FastAPI:
         logger.info("✅ TRC Blockchain API loaded at /api/blockchain")
     except ImportError as e:
         logger.warning(f"blockchain router not available: {e}")
-    except ImportError as e:
-        logger.warning(f"payments router not available: {e}")
     
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)

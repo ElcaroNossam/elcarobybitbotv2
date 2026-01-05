@@ -149,7 +149,7 @@ class BybitOrderbookStream:
         for ws in self.subscribers[symbol]:
             try:
                 await ws.send_json(message)
-            except:
+            except Exception:
                 dead_connections.append(ws)
         
         for ws in dead_connections:
@@ -271,7 +271,7 @@ class TradesStream:
         for ws in self.subscribers[symbol]:
             try:
                 await ws.send_json(message)
-            except:
+            except Exception:
                 dead.append(ws)
         
         for ws in dead:
@@ -340,8 +340,8 @@ class ConnectionManager:
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_json(message)
-                except:
-                    pass
+                except Exception:
+                    pass  # Connection likely closed
     
     async def broadcast(self, message: dict):
         """Broadcast to all connected clients"""
@@ -349,7 +349,7 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
-            except:
+            except Exception:
                 disconnected.append(connection)
         
         for conn in disconnected:
@@ -419,7 +419,7 @@ async def websocket_trades(websocket: WebSocket, user_id: int):
                 # Send ping to keep connection alive
                 try:
                     await websocket.send_json({"type": "ping"})
-                except:
+                except Exception:
                     break
                     
     except WebSocketDisconnect:
@@ -444,7 +444,7 @@ async def websocket_signals(websocket: WebSocket):
             except asyncio.TimeoutError:
                 try:
                     await websocket.send_json({"type": "ping"})
-                except:
+                except Exception:
                     break
                     
     except WebSocketDisconnect:
@@ -663,13 +663,13 @@ async def websocket_terminal(websocket: WebSocket, user_id: int):
             except asyncio.TimeoutError:
                 try:
                     await websocket.send_json({"type": "ping"})
-                except:
+                except Exception:
                     break
                     
     except WebSocketDisconnect:
-        pass
+        pass  # Normal disconnect
     except Exception:
-        pass
+        pass  # Handle unexpected errors
     finally:
         # Cleanup: cancel streaming tasks
         if orderbook_task:
@@ -920,7 +920,7 @@ class SettingsSyncManager:
         for ws in self.user_connections[user_id]:
             try:
                 await ws.send_json(message)
-            except:
+            except Exception:
                 dead.append(ws)
         
         for ws in dead:
@@ -1039,8 +1039,8 @@ async def settings_sync_websocket(websocket: WebSocket, user_id: int):
                                         "value": value,
                                         "source": "websocket"
                                     })
-                                except:
-                                    pass
+                                except Exception:
+                                    pass  # Connection closed
                         
                         await websocket.send_json({
                             "type": "update_confirmed",
@@ -1051,7 +1051,7 @@ async def settings_sync_websocket(websocket: WebSocket, user_id: int):
             except asyncio.TimeoutError:
                 try:
                     await websocket.send_json({"type": "ping"})
-                except:
+                except Exception:
                     break
                     
     except WebSocketDisconnect:
@@ -1101,12 +1101,12 @@ async def backtest_live_websocket(websocket: WebSocket):
     except Exception as e:
         try:
             await websocket.send_json({"type": "error", "message": str(e)})
-        except:
-            pass
+        except Exception:
+            pass  # Already disconnected
     finally:
         try:
             from webapp.api.backtest import live_manager
             await live_manager.stop_session(websocket)
-        except:
-            pass
+        except Exception:
+            pass  # Manager not available
 

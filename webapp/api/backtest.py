@@ -1189,8 +1189,8 @@ class LiveBacktestManager:
         except Exception as e:
             try:
                 await ws.send_json({"type": "error", "message": str(e)})
-            except:
-                pass
+            except Exception:
+                pass  # Connection already closed
         finally:
             if session_id in self.active_sessions:
                 del self.active_sessions[session_id]
