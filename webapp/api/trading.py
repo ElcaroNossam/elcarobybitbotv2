@@ -630,6 +630,7 @@ async def close_position(
             
             import uuid
             import time
+            order_link_id = f"close_{uuid.uuid4().hex[:12]}"
             result = await bybit_request(
                 user_id, "POST", "/v5/order/create",
                 body={
@@ -639,16 +640,36 @@ async def close_position(
                     "orderType": "Market",
                     "qty": str(size),
                     "reduceOnly": True,
-                    "orderLinkId": f"close_{uuid.uuid4().hex[:12]}",
+                    "orderLinkId": order_link_id,
                     "timeInForce": "IOC"
                 },
                 account_type=req.account_type
             )
             
-            # Sync: Get position info from DB for trade logging
+            # Get actual execution price from order result
+            order_id = result.get("result", {}).get("orderId")
             entry_price = float(pos.get("avgPrice", 0))
-            exit_price = float(pos.get("markPrice", entry_price))
             side_for_log = pos.get("side", "Buy")
+            
+            # Try to get actual fill price from order info
+            exit_price = float(pos.get("markPrice", entry_price))  # Fallback
+            if order_id:
+                try:
+                    await asyncio.sleep(0.3)  # Wait for order to fill
+                    order_info = await bybit_request(
+                        user_id, "GET", "/v5/order/history",
+                        params={"category": "linear", "orderId": order_id},
+                        account_type=req.account_type
+                    )
+                    order_list = order_info.get("result", {}).get("list", [])
+                    if order_list:
+                        filled_order = order_list[0]
+                        avg_fill_price = float(filled_order.get("avgPrice", 0))
+                        if avg_fill_price > 0:
+                            exit_price = avg_fill_price
+                            logger.info(f"[{user_id}] Got actual fill price: {exit_price} for {req.symbol}")
+                except Exception as fill_err:
+                    logger.warning(f"[{user_id}] Could not get fill price: {fill_err}, using markPrice")
             
             # Get DB position for strategy info
             db_pos = None
@@ -717,6 +738,7 @@ async def close_all_positions(
         if not hl_creds.get("hl_private_key"):
             raise HTTPException(status_code=400, detail="HL not configured")
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_creds["hl_private_key"],
@@ -725,27 +747,50 @@ async def close_all_positions(
             
             account_type = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
             
-            # Get all positions
+            # Get all positions - create snapshot
             positions_result = await adapter.fetch_positions()
             positions = positions_result.get("result", {}).get("list", [])
             
-            closed = 0
+            # Create snapshot (защита от race condition)
+            positions_snapshot = []
             for pos in positions:
-                symbol = pos.get("symbol")
-                if symbol:
-                    # Get position info before closing
-                    entry_price = float(pos.get("avgPrice", 0))
-                    exit_price = float(pos.get("markPrice", entry_price))
-                    size = float(pos.get("size", 0))
-                    side = pos.get("side", "Buy")
+                size = float(pos.get("size", 0))
+                if size > 0:
+                    positions_snapshot.append({
+                        "symbol": pos.get("symbol"),
+                        "side": pos.get("side", "Buy"),
+                        "size": size,
+                        "entry_price": float(pos.get("avgPrice", 0)),
+                        "mark_price": float(pos.get("markPrice", 0))
+                    })
+            
+            if not positions_snapshot:
+                return {"success": True, "closed": 0, "total": 0, "total_pnl": 0}
+            
+            closed = 0
+            total_pnl = 0
+            errors = []
+            
+            for snap in positions_snapshot:
+                symbol = snap["symbol"]
+                entry_price = snap["entry_price"]
+                size = snap["size"]
+                side = snap["side"]
+                
+                try:
+                    result = await adapter.close_position(symbol, size)
                     
-                    result = await adapter.close_position(symbol)
-                    if result.get("retCode") == 0:
+                    if result.get("retCode") == 0 or result.get("success"):
                         closed += 1
                         
-                        # Log trade
+                        # Try to get actual fill price from result
+                        exit_price = snap["mark_price"]  # Fallback
+                        if result.get("data", {}).get("avgPrice"):
+                            exit_price = float(result["data"]["avgPrice"])
+                        
                         pnl_abs = (exit_price - entry_price) * size * (1 if side == "Buy" else -1)
                         pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side == "Buy" else -1) if entry_price > 0 else 0
+                        total_pnl += pnl_abs
                         
                         try:
                             db.add_trade_log(
@@ -767,23 +812,34 @@ async def close_all_positions(
                         except Exception:
                             pass
                         
-                        # Remove from DB
                         try:
                             db.remove_active_position(user_id, symbol, account_type=account_type)
                         except Exception:
                             pass
+                except Exception as e:
+                    error_msg = str(e)
+                    if "position" not in error_msg.lower():
+                        errors.append(f"{symbol}: {error_msg}")
             
-            await adapter.close()
-            logger.info(f"[{user_id}] WebApp HL: Closed {closed} positions via close-all")
-            return {"success": True, "closed": closed}
+            logger.info(f"[{user_id}] WebApp HL: Closed {closed}/{len(positions_snapshot)} positions, PnL: {total_pnl:.2f}")
+            return {
+                "success": closed > 0 or len(positions_snapshot) == 0,
+                "closed": closed,
+                "total": len(positions_snapshot),
+                "total_pnl": round(total_pnl, 2),
+                "errors": errors if errors else None
+            }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            if adapter:
+                await adapter.close()
     
     else:
         # Bybit close all positions
         import uuid
         try:
-            # Get all open positions
+            # Get all open positions - create snapshot
             pos_data = await bybit_request(
                 user_id, "GET", "/v5/position/list",
                 params={"category": "linear", "settleCoin": "USDT"},
@@ -800,40 +856,80 @@ async def close_all_positions(
                 pass
             
             positions = pos_data.get("result", {}).get("list", [])
+            
+            # Create snapshot of positions to close (защита от race condition)
+            positions_snapshot = []
+            for pos in positions:
+                size = float(pos.get("size", 0))
+                if size > 0:
+                    positions_snapshot.append({
+                        "symbol": pos.get("symbol"),
+                        "side": pos.get("side", "Buy"),
+                        "size": size,
+                        "entry_price": float(pos.get("avgPrice", 0)),
+                        "mark_price": float(pos.get("markPrice", 0))
+                    })
+            
+            if not positions_snapshot:
+                return {"success": True, "closed": 0, "total": 0, "total_pnl": 0}
+            
             closed = 0
             errors = []
             total_pnl = 0
             
-            for pos in positions:
-                size = float(pos.get("size", 0))
-                if size == 0:
-                    continue
-                    
-                symbol = pos.get("symbol")
-                side = pos.get("side", "Buy")
+            for snap in positions_snapshot:
+                symbol = snap["symbol"]
+                side = snap["side"]
+                snapshot_size = snap["size"]
+                entry_price = snap["entry_price"]
                 close_side = "Sell" if side == "Buy" else "Buy"
-                entry_price = float(pos.get("avgPrice", 0))
-                exit_price = float(pos.get("markPrice", entry_price))
                 
                 try:
-                    await bybit_request(
+                    order_link_id = f"closeall_{uuid.uuid4().hex[:10]}"
+                    result = await bybit_request(
                         user_id, "POST", "/v5/order/create",
                         body={
                             "category": "linear",
                             "symbol": symbol,
                             "side": close_side,
                             "orderType": "Market",
-                            "qty": str(size),
-                            "reduceOnly": True,
-                            "orderLinkId": f"closeall_{uuid.uuid4().hex[:10]}",
+                            "qty": str(snapshot_size),
+                            "reduceOnly": True,  # Критично! Не откроет обратную позицию
+                            "orderLinkId": order_link_id,
                             "timeInForce": "IOC"
                         },
                         account_type=req.account_type
                     )
+                    
+                    # Get actual fill price
+                    order_id = result.get("result", {}).get("orderId")
+                    exit_price = snap["mark_price"]  # Fallback
+                    actual_size = snapshot_size
+                    
+                    if order_id:
+                        try:
+                            await asyncio.sleep(0.2)
+                            order_info = await bybit_request(
+                                user_id, "GET", "/v5/order/history",
+                                params={"category": "linear", "orderId": order_id},
+                                account_type=req.account_type
+                            )
+                            order_list = order_info.get("result", {}).get("list", [])
+                            if order_list:
+                                filled_order = order_list[0]
+                                avg_fill_price = float(filled_order.get("avgPrice", 0))
+                                filled_qty = float(filled_order.get("cumExecQty", 0))
+                                if avg_fill_price > 0:
+                                    exit_price = avg_fill_price
+                                if filled_qty > 0:
+                                    actual_size = filled_qty
+                        except Exception:
+                            pass
+                    
                     closed += 1
                     
-                    # Calculate PnL
-                    pnl_abs = (exit_price - entry_price) * size * (1 if side == "Buy" else -1)
+                    # Calculate PnL with actual fill price
+                    pnl_abs = (exit_price - entry_price) * actual_size * (1 if side == "Buy" else -1)
                     pnl_pct = ((exit_price / entry_price) - 1) * 100 * (1 if side == "Buy" else -1) if entry_price > 0 else 0
                     total_pnl += pnl_abs
                     
@@ -867,14 +963,19 @@ async def close_all_positions(
                         pass
                         
                 except Exception as e:
-                    errors.append(f"{symbol}: {str(e)}")
+                    error_msg = str(e)
+                    # Если позиция уже закрыта - не считаем ошибкой
+                    if "position not found" in error_msg.lower() or "reduce only" in error_msg.lower():
+                        logger.info(f"[{user_id}] Position {symbol} already closed or changed")
+                    else:
+                        errors.append(f"{symbol}: {error_msg}")
             
-            logger.info(f"[{user_id}] WebApp: Closed {closed} positions via close-all, PnL: {total_pnl:.2f}")
+            logger.info(f"[{user_id}] WebApp: Closed {closed}/{len(positions_snapshot)} positions, PnL: {total_pnl:.2f}")
             return {
-                "success": closed > 0 or len(positions) == 0,
+                "success": closed > 0 or len(positions_snapshot) == 0,
                 "closed": closed,
-                "total": len([p for p in positions if float(p.get("size", 0)) > 0]),
-                "total_pnl": total_pnl,
+                "total": len(positions_snapshot),
+                "total_pnl": round(total_pnl, 2),
                 "errors": errors if errors else None
             }
         except Exception as e:
