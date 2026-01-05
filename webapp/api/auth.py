@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from urllib.parse import parse_qs
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -20,6 +21,16 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from coin_params import ADMIN_ID
+
+# Load .env file if environment variables not set (needed when running uvicorn standalone)
+_env_file = Path(__file__).parent.parent.parent / ".env"
+if _env_file.exists() and not os.getenv("TELEGRAM_TOKEN"):
+    with open(_env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                os.environ.setdefault(key.strip(), value.strip())
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +93,13 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
     """Verify Telegram WebApp init_data and extract user info."""
     if not TELEGRAM_BOT_TOKEN:
         # Dev mode - parse without verification
+        logger.warning("TELEGRAM_BOT_TOKEN not set! Running in dev mode (no verification)")
         try:
             parsed = parse_qs(init_data)
             if 'user' in parsed:
                 return json.loads(parsed['user'][0])
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Dev mode parse failed: {e}")
         return None
     
     try:
@@ -96,6 +108,7 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
         # Check auth_date
         auth_date = int(parsed.get('auth_date', [0])[0])
         if time.time() - auth_date > 86400:  # 24 hours
+            logger.warning(f"Auth expired: auth_date={auth_date}, now={time.time()}")
             return None
         
         # Build data check string
@@ -115,8 +128,10 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
         import secrets
         if secrets.compare_digest(computed_hash, received_hash):
             user_data = json.loads(parsed.get('user', ['{}'])[0])
+            logger.info(f"Telegram WebApp auth success: user_id={user_data.get('id')}")
             return user_data
         
+        logger.warning(f"Hash mismatch: computed={computed_hash[:16]}... received={received_hash[:16]}...")
         return None
     except Exception as e:
         logger.error(f"WebApp auth error: {e}")
