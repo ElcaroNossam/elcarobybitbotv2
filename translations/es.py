@@ -1069,4 +1069,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 Cada 2 semanas',
+    'spot_trailing_enabled': '✅ Trailing TP activado: activación +{activation}%, trail {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP desactivado',
+    'spot_grid_started': '🔲 Grid bot iniciado para {coin}: {levels} niveles de ${low} a ${high}',
+    'spot_grid_stopped': '⏹ Grid bot detenido para {coin}',
+    'spot_limit_placed': '📝 Orden límite colocada: Comprar {amount} {coin} a ${price}',
+    'spot_limit_cancelled': '❌ Orden límite cancelada para {coin}',
 }

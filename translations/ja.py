@@ -1055,4 +1055,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 2週間ごと',
+    'spot_trailing_enabled': '✅ Trailing TP有効: +{activation}%で発動、{trail}%トレール',
+    'spot_trailing_disabled': '❌ Trailing TP無効',
+    'spot_grid_started': '🔲 {coin}のグリッドボット開始: ${low}から${high}まで{levels}レベル',
+    'spot_grid_stopped': '⏹ {coin}のグリッドボット停止',
+    'spot_limit_placed': '📝 指値注文作成: {coin} {amount}を${price}で購入',
+    'spot_limit_cancelled': '❌ {coin}の指値注文がキャンセルされました',
 }

@@ -1055,4 +1055,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 Çdo 2 javë',
+    'spot_trailing_enabled': '✅ Trailing TP aktivizuar: aktivizim +{activation}%, trail {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP çaktivizuar',
+    'spot_grid_started': '🔲 Grid bot filloi për {coin}: {levels} nivele nga ${low} deri ${high}',
+    'spot_grid_stopped': '⏹ Grid bot u ndal për {coin}',
+    'spot_limit_placed': '📝 Porosia limit u vendos: Bli {amount} {coin} me ${price}',
+    'spot_limit_cancelled': '❌ Porosia limit u anulua për {coin}',
 }

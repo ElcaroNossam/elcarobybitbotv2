@@ -1055,4 +1055,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 每两周',
+    'spot_trailing_enabled': '✅ 追踪止盈已启用：+{activation}%激活，追踪{trail}%',
+    'spot_trailing_disabled': '❌ 追踪止盈已禁用',
+    'spot_grid_started': '🔲 {coin}网格机器人已启动：{levels}个级别，从${low}到${high}',
+    'spot_grid_stopped': '⏹ {coin}网格机器人已停止',
+    'spot_limit_placed': '📝 限价单已下：以${price}买入{amount} {coin}',
+    'spot_limit_cancelled': '❌ {coin}限价单已取消',
 }

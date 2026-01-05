@@ -1055,4 +1055,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 כל שבועיים',
+    'spot_trailing_enabled': '✅ Trailing TP מופעל: הפעלה ב-+{activation}%, מעקב {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP מושבת',
+    'spot_grid_started': '🔲 Grid bot הופעל עבור {coin}: {levels} רמות מ-${low} עד ${high}',
+    'spot_grid_stopped': '⏹ Grid bot הופסק עבור {coin}',
+    'spot_limit_placed': '📝 הזמנת לימיט הונחה: קניית {amount} {coin} ב-${price}',
+    'spot_limit_cancelled': '❌ הזמנת לימיט בוטלה עבור {coin}',
 }

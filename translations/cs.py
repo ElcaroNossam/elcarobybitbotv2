@@ -1055,4 +1055,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 Každé 2 týdny',
+    'spot_trailing_enabled': '✅ Trailing TP zapnutý: aktivace +{activation}%, trail {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP vypnutý',
+    'spot_grid_started': '🔲 Grid bot spuštěn pro {coin}: {levels} úrovní od ${low} do ${high}',
+    'spot_grid_stopped': '⏹ Grid bot zastaven pro {coin}',
+    'spot_limit_placed': '📝 Limit příkaz zadán: Nákup {amount} {coin} za ${price}',
+    'spot_limit_cancelled': '❌ Limit příkaz zrušen pro {coin}',
 }

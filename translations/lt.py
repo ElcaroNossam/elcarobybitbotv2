@@ -1056,4 +1056,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 Kas 2 savaites',
+    'spot_trailing_enabled': '✅ Trailing TP įjungtas: aktyvacija +{activation}%, trail {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP išjungtas',
+    'spot_grid_started': '🔲 Grid botas paleistas {coin}: {levels} lygiai nuo ${low} iki ${high}',
+    'spot_grid_stopped': '⏹ Grid botas sustabdytas {coin}',
+    'spot_limit_placed': '📝 Limito orderis pateiktas: Pirkti {amount} {coin} už ${price}',
+    'spot_limit_cancelled': '❌ Limito orderis atšauktas {coin}',
 }

@@ -1072,4 +1072,12 @@ Daily rewards • Instant unstaking''',
     'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
     'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
 
+
+    'spot_freq_biweekly': '📅 Кожні 2 тижні',
+    'spot_trailing_enabled': '✅ Trailing TP увімкнено: активація +{activation}%, трейл {trail}%',
+    'spot_trailing_disabled': '❌ Trailing TP вимкнено',
+    'spot_grid_started': '🔲 Grid бот запущено для {coin}: {levels} рівнів від ${low} до ${high}',
+    'spot_grid_stopped': '⏹ Grid бот зупинено для {coin}',
+    'spot_limit_placed': '📝 Лімітний ордер розміщено: Купівля {amount} {coin} за ${price}',
+    'spot_limit_cancelled': '❌ Лімітний ордер скасовано для {coin}',
 }
