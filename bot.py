@@ -1157,6 +1157,7 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
     
     freq_labels = {
         "manual": "⏸️ Manual",
+        "hourly": t.get("spot_freq_hourly", "⏰ Hourly"),
         "daily": t.get("spot_freq_daily", "Daily"),
         "weekly": t.get("spot_freq_weekly", "Weekly"),
         "biweekly": t.get("spot_freq_biweekly", "Bi-Weekly"),
@@ -1401,6 +1402,10 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "frequency": "manual",
             "auto_dca": False,
             "total_invested": 0.0,
+            "trailing_tp": SPOT_TRAILING_TP_DEFAULTS.copy(),
+            "trailing_state": {},
+            "grids": {},
+            "purchase_history": {},
         }
     
     # Handle actions
@@ -1478,8 +1483,8 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if action == "frequency":
-        # Cycle through frequencies
-        freqs = ["manual", "daily", "weekly", "monthly"]
+        # Cycle through frequencies (includes hourly and biweekly)
+        freqs = ["manual", "hourly", "daily", "weekly", "biweekly", "monthly"]
         current = spot_settings.get("frequency", "manual")
         idx = freqs.index(current) if current in freqs else 0
         new_freq = freqs[(idx + 1) % len(freqs)]
@@ -1489,8 +1494,10 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         freq_labels = {
             "manual": "⏸️ Manual",
+            "hourly": t.get("spot_freq_hourly", "⏰ Hourly"),
             "daily": t.get("spot_freq_daily", "Daily"),
             "weekly": t.get("spot_freq_weekly", "Weekly"),
+            "biweekly": t.get("spot_freq_biweekly", "Bi-Weekly"),
             "monthly": t.get("spot_freq_monthly", "Monthly"),
         }
         await q.answer(t.get("spot_frequency_saved", "✅ Frequency set to {freq}").format(freq=freq_labels[new_freq]))
@@ -2253,6 +2260,60 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         buttons = [
             [InlineKeyboardButton("🔄 Refresh", callback_data="spot:portfolio_stats")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
+        ]
+        
+        try:
+            await q.edit_message_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    # ==================== PERFORMANCE (DCA History) ====================
+    if action == "performance":
+        await q.answer("Loading performance...")
+        account_type = spot_settings.get("trading_mode", "demo")
+        purchase_history = spot_settings.get("purchase_history", {})
+        total_invested = spot_settings.get("total_invested", 0)
+        last_dca_ts = spot_settings.get("last_dca_ts", 0)
+        
+        lines = ["📈 <b>DCA Performance</b>", ""]
+        
+        # Summary
+        lines.append(f"💵 <b>Total Invested:</b> ${total_invested:.2f}")
+        if last_dca_ts:
+            from datetime import datetime
+            last_dca_date = datetime.fromtimestamp(last_dca_ts).strftime("%Y-%m-%d %H:%M")
+            lines.append(f"⏰ <b>Last DCA:</b> {last_dca_date}")
+        lines.append("")
+        
+        # Per-coin history
+        if purchase_history:
+            lines.append("<b>🪙 Purchase History:</b>")
+            for coin, history in sorted(purchase_history.items()):
+                total_qty = history.get("total_qty", 0)
+                avg_price = history.get("avg_price", 0)
+                total_cost = history.get("total_cost", 0)
+                buy_count = len(history.get("purchases", []))
+                
+                if total_qty > 0:
+                    lines.append(f"  • {coin}: {total_qty:.6f} @ avg ${avg_price:.4f}")
+                    lines.append(f"    Cost: ${total_cost:.2f} ({buy_count} buys)")
+        else:
+            lines.append("<i>No DCA purchases yet. Use 'Buy Now' to start.</i>")
+        
+        # DCA frequency info
+        lines.append("")
+        freq = spot_settings.get("frequency", "manual")
+        auto_dca = spot_settings.get("auto_dca", False)
+        lines.append(f"⚙️ <b>Mode:</b> {freq.title()}" + (" (Auto)" if auto_dca else " (Manual)"))
+        
+        buttons = [
+            [InlineKeyboardButton("📊 Portfolio Stats", callback_data="spot:portfolio_stats")],
             [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
         ]
         
@@ -8171,6 +8232,10 @@ async def execute_spot_sell(
             sell_pct = 100.0  # Sell all by default
         
         qty = coin_balance * (sell_pct / 100.0)
+        
+        # For 100% sell, use slightly less to avoid "insufficient balance" due to rounding
+        if sell_pct >= 99.9:
+            qty = coin_balance * 0.9999  # Leave tiny dust to avoid rounding issues
     
     if qty <= 0:
         return {"success": False, "error": "Invalid quantity"}

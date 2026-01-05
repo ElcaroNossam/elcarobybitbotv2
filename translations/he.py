@@ -1063,4 +1063,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid bot הופסק עבור {coin}',
     'spot_limit_placed': '📝 הזמנת לימיט הונחה: קניית {amount} {coin} ב-${price}',
     'spot_limit_cancelled': '❌ הזמנת לימיט בוטלה עבור {coin}',
+    'spot_freq_hourly': '⏰ כל שעה',
 }

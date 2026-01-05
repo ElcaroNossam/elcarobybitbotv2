@@ -1045,4 +1045,5 @@ Daily rewards • Instant unstaking''',
 
     # Hardcore trading phrase
     'hardcore_mode': '💀 *HARDCORE MODE*: No mercy, no regrets. Only profit or death! 🔥',
+    'spot_freq_hourly': '⏰ Hourly',
 }

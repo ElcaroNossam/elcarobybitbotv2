@@ -1080,4 +1080,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid бот зупинено для {coin}',
     'spot_limit_placed': '📝 Лімітний ордер розміщено: Купівля {amount} {coin} за ${price}',
     'spot_limit_cancelled': '❌ Лімітний ордер скасовано для {coin}',
+    'spot_freq_hourly': '⏰ Щогодини',
 }

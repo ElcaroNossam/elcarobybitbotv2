@@ -1063,4 +1063,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid bot zastaven pro {coin}',
     'spot_limit_placed': '📝 Limit příkaz zadán: Nákup {amount} {coin} za ${price}',
     'spot_limit_cancelled': '❌ Limit příkaz zrušen pro {coin}',
+    'spot_freq_hourly': '⏰ Každou hodinu',
 }

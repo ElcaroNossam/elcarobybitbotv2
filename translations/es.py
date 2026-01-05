@@ -1077,4 +1077,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid bot detenido para {coin}',
     'spot_limit_placed': '📝 Orden límite colocada: Comprar {amount} {coin} a ${price}',
     'spot_limit_cancelled': '❌ Orden límite cancelada para {coin}',
+    'spot_freq_hourly': '⏰ Cada hora',
 }

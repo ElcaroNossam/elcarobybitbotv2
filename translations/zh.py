@@ -1063,4 +1063,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ {coin}网格机器人已停止',
     'spot_limit_placed': '📝 限价单已下：以${price}买入{amount} {coin}',
     'spot_limit_cancelled': '❌ {coin}限价单已取消',
+    'spot_freq_hourly': '⏰ 每小时',
 }

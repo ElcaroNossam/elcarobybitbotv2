@@ -1063,4 +1063,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid bot u ndal për {coin}',
     'spot_limit_placed': '📝 Porosia limit u vendos: Bli {amount} {coin} me ${price}',
     'spot_limit_cancelled': '❌ Porosia limit u anulua për {coin}',
+    'spot_freq_hourly': '⏰ Çdo orë',
 }

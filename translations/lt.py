@@ -1064,4 +1064,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ Grid botas sustabdytas {coin}',
     'spot_limit_placed': '📝 Limito orderis pateiktas: Pirkti {amount} {coin} už ${price}',
     'spot_limit_cancelled': '❌ Limito orderis atšauktas {coin}',
+    'spot_freq_hourly': '⏰ Kas valandą',
 }

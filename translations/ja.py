@@ -1063,4 +1063,5 @@ Daily rewards • Instant unstaking''',
     'spot_grid_stopped': '⏹ {coin}のグリッドボット停止',
     'spot_limit_placed': '📝 指値注文作成: {coin} {amount}を${price}で購入',
     'spot_limit_cancelled': '❌ {coin}の指値注文がキャンセルされました',
+    'spot_freq_hourly': '⏰ 毎時',
 }
