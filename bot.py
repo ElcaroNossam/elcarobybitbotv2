@@ -14031,6 +14031,20 @@ async def monitor_positions_loop(app: Application):
                                 entry_price = float(rec["avgEntryPrice"])
                                 exit_price  = float(rec["avgExitPrice"])
                                 pos_side = ap.get("side", "Buy")
+                                
+                                # CRITICAL: Validate that closed PnL record matches our position
+                                # Bybit API may return stale data from previous positions
+                                db_entry_price = ap.get("entry_price")
+                                if db_entry_price:
+                                    price_diff_pct = abs(entry_price - db_entry_price) / db_entry_price * 100
+                                    if price_diff_pct > 3.0:  # >3% difference means wrong record
+                                        logger.warning(
+                                            f"[{uid}] {sym}: Closed PnL entry price mismatch! "
+                                            f"API={entry_price:.6f}, DB={db_entry_price:.6f}, diff={price_diff_pct:.1f}%. "
+                                            f"Skipping - waiting for correct closed PnL record."
+                                        )
+                                        # Skip processing this iteration - wait for fresh data
+                                        continue
                             
                                 # Get strategy-specific SL/TP percentages for better detection
                                 position_strategy = ap.get("strategy")
