@@ -9,7 +9,7 @@ import aiohttp
 import json
 from datetime import datetime
 import logging
-from .exchange_fetchers import BybitDataFetcher, OKXDataFetcher
+from .exchange_fetchers import BybitDataFetcher, OKXDataFetcher, HyperLiquidDataFetcher
 from core.tasks import safe_create_task
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ BINANCE_FUTURES_WS = "wss://fstream.binance.com"
 
 BYBIT_API = "https://api.bybit.com"
 OKX_API = "https://www.okx.com"
+HYPERLIQUID_API = "https://api.hyperliquid.xyz"
 
 # Cache for market data (per exchange)
 class MarketDataCache:
@@ -35,6 +36,8 @@ class MarketDataCache:
         # OKX data
         self.okx_futures_data: Dict[str, dict] = {}
         self.okx_spot_data: Dict[str, dict] = {}
+        # HyperLiquid data (perps only)
+        self.hyperliquid_futures_data: Dict[str, dict] = {}
         # Common data
         self.btc_data: dict = {}
         self.liquidations: List[dict] = []
@@ -46,6 +49,8 @@ class MarketDataCache:
             return self.bybit_futures_data
         elif exchange == 'okx':
             return self.okx_futures_data
+        elif exchange == 'hyperliquid':
+            return self.hyperliquid_futures_data
         return self.binance_futures_data
     
     def get_spot_data(self, exchange: str = 'binance') -> Dict[str, dict]:
@@ -54,8 +59,9 @@ class MarketDataCache:
             return self.bybit_spot_data
         elif exchange == 'okx':
             return self.okx_spot_data
+        elif exchange == 'hyperliquid':
+            return {}  # HyperLiquid is perps only
         return self.binance_spot_data
-        self.last_update: datetime = datetime.now()
         
 cache = MarketDataCache()
 
@@ -240,6 +246,7 @@ class BinanceDataFetcher:
 binance_fetcher = BinanceDataFetcher()
 bybit_fetcher = BybitDataFetcher()
 okx_fetcher = OKXDataFetcher()
+hyperliquid_fetcher = HyperLiquidDataFetcher()
 
 async def update_market_data():
     """Background task to update market data every 3 seconds for all exchanges"""
@@ -298,6 +305,17 @@ async def update_market_data():
                     cache.okx_spot_data[processed['symbol']] = processed
             except Exception as e:
                 logger.error(f"Error updating OKX data: {e}")
+            
+            # Update HyperLiquid data (perps only)
+            try:
+                funding_rates = await hyperliquid_fetcher.fetch_funding_rates()
+                futures_tickers = await hyperliquid_fetcher.fetch_futures_tickers()
+                
+                for ticker in futures_tickers:
+                    processed = hyperliquid_fetcher.process_ticker(ticker, funding_rates)
+                    cache.hyperliquid_futures_data[processed['symbol']] = processed
+            except Exception as e:
+                logger.error(f"Error updating HyperLiquid data: {e}")
             
             # Update BTC data (from Binance as primary)
             if 'BTCUSDT' in cache.binance_futures_data:
@@ -363,6 +381,7 @@ async def shutdown():
     await binance_fetcher.close()
     await bybit_fetcher.close()
     await okx_fetcher.close()
+    await hyperliquid_fetcher.close()
 
 @router.websocket("/ws/screener")
 async def screener_websocket(websocket: WebSocket):
