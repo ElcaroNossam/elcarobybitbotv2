@@ -299,6 +299,45 @@ DEFAULT_SPOT_TP_LEVELS = [
     {"gain_pct": 200, "sell_pct": 25},  # At 200% gain, sell remaining 25%
 ]
 
+# Trailing TP settings for Spot
+SPOT_TRAILING_TP_DEFAULTS = {
+    "enabled": False,
+    "activation_pct": 15.0,    # Activate trailing at +15% profit
+    "trail_pct": 5.0,          # Trail by 5% from peak
+    "min_profit_pct": 10.0,    # Minimum profit to lock (activation - trail)
+}
+
+# Spot Grid Bot defaults
+SPOT_GRID_DEFAULTS = {
+    "enabled": False,
+    "price_low": 0.0,          # Grid lower bound
+    "price_high": 0.0,         # Grid upper bound
+    "grid_count": 10,          # Number of grid levels
+    "total_investment": 100.0, # Total USDT to invest
+    "take_profit_pct": None,   # Optional overall TP
+    "stop_loss_pct": None,     # Optional overall SL
+}
+
+# Spot DCA intervals in seconds
+SPOT_DCA_INTERVALS = {
+    "hourly": 3600,
+    "daily": 86400,
+    "weekly": 604800,
+    "biweekly": 1209600,
+    "monthly": 2592000,
+}
+
+# Multi-timeframe DCA plan structure
+SPOT_DCA_PLAN_TEMPLATE = {
+    "name": "Plan 1",
+    "coins": [],
+    "amount": 10.0,
+    "frequency": "weekly",
+    "strategy": "fixed",
+    "enabled": True,
+    "last_exec_ts": 0,
+}
+
 _session: ClientSession | None = None
 
 TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), "translations")
@@ -1183,6 +1222,11 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
             InlineKeyboardButton(f"🔄 Auto DCA: {auto_emoji}", callback_data="spot:auto_toggle"),
             InlineKeyboardButton(f"🎯 Auto TP: {tp_emoji}", callback_data="spot:tp_toggle"),
         ],
+        # Trailing TP
+        [InlineKeyboardButton(
+            f"📈 Trailing TP: {'✅' if spot_settings.get('trailing_tp', {}).get('enabled') else '❌'}",
+            callback_data="spot:trailing_toggle"
+        )],
         # Rebalancing
         [InlineKeyboardButton(
             f"⚖️ Auto Rebalance: {rebalance_emoji}",
@@ -1194,8 +1238,12 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
             InlineKeyboardButton("💸 Sell", callback_data="spot:sell_menu"),
         ],
         [
+            InlineKeyboardButton("📋 Limit Order", callback_data="spot:limit_order"),
+            InlineKeyboardButton("🔲 Grid Bot", callback_data="spot:grid_menu"),
+        ],
+        [
             InlineKeyboardButton("⚖️ Rebalance Now", callback_data="spot:rebalance_now"),
-            InlineKeyboardButton("📊 Analysis", callback_data="spot:analysis"),
+            InlineKeyboardButton("📊 Stats", callback_data="spot:portfolio_stats"),
         ],
         # Holdings / Stats
         [
@@ -2149,6 +2197,352 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # === END NEW PROFESSIONAL SPOT FEATURES ===
     
+    # ==================== TRAILING TP ====================
+    if action == "trailing_toggle":
+        trailing_config = spot_settings.get("trailing_tp", SPOT_TRAILING_TP_DEFAULTS.copy())
+        trailing_config["enabled"] = not trailing_config.get("enabled", False)
+        spot_settings["trailing_tp"] = trailing_config
+        db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
+        
+        status = "enabled" if trailing_config["enabled"] else "disabled"
+        await q.answer(f"📈 Trailing TP {status}!", show_alert=True)
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        msg = format_spot_settings_message(t, cfg, spot_settings)
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        try:
+            await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    # ==================== PORTFOLIO STATS ====================
+    if action == "portfolio_stats":
+        await q.answer("Loading portfolio stats...")
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        stats = await get_spot_portfolio_stats(uid, account_type=account_type)
+        
+        lines = ["📊 <b>Portfolio Statistics</b>", ""]
+        
+        # Overall stats
+        lines.append(f"💰 <b>Total Value:</b> ${stats['total_current_value']:.2f}")
+        lines.append(f"💵 <b>Cost Basis:</b> ${stats['total_cost_basis']:.2f}")
+        lines.append(f"🏦 <b>USDT Available:</b> ${stats['usdt_balance']:.2f}")
+        lines.append("")
+        
+        pnl = stats['overall_pnl_value']
+        pnl_pct = stats['overall_pnl_pct']
+        pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+        lines.append(f"{pnl_emoji} <b>Overall P&L:</b> ${pnl:.2f} ({pnl_pct:+.2f}%)")
+        lines.append("")
+        
+        # Per-coin breakdown
+        if stats['coins']:
+            lines.append("<b>📈 Coins Breakdown:</b>")
+            for coin_stat in stats['coins'][:8]:  # Top 8 coins
+                coin = coin_stat['coin']
+                value = coin_stat['current_value']
+                coin_pnl = coin_stat['pnl_pct']
+                emoji = "🟢" if coin_pnl >= 0 else "🔴"
+                lines.append(f"  {emoji} {coin}: ${value:.2f} ({coin_pnl:+.1f}%)")
+        
+        lines.append("")
+        lines.append(f"📊 <b>Total Invested:</b> ${stats.get('total_invested', 0):.2f}")
+        
+        buttons = [
+            [InlineKeyboardButton("🔄 Refresh", callback_data="spot:portfolio_stats")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
+        ]
+        
+        try:
+            await q.edit_message_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    # ==================== LIMIT ORDERS ====================
+    if action == "limit_order":
+        coins = spot_settings.get("coins", SPOT_DCA_COINS)
+        
+        buttons = []
+        for coin in coins:
+            buttons.append([InlineKeyboardButton(
+                f"📋 {coin} Limit Order",
+                callback_data=f"spot:limit_setup:{coin}"
+            )])
+        buttons.append([InlineKeyboardButton("📋 View Open Orders", callback_data="spot:limit_view")])
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        
+        try:
+            await q.edit_message_text(
+                "📋 <b>Spot Limit Orders</b>\n\n"
+                "Place limit buy orders at specific prices.\n"
+                "Select a coin to set up a limit order:",
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action.startswith("limit_setup:"):
+        coin = action.split(":")[1]
+        ctx.user_data["spot_limit_coin"] = coin
+        ctx.user_data["spot_awaiting"] = "limit_price"
+        
+        account_type = spot_settings.get("trading_mode", "demo")
+        symbol = f"{coin}USDT"
+        
+        # Get current price
+        current_price = 0
+        try:
+            ticker = await get_spot_ticker(uid, symbol, account_type)
+            if ticker:
+                current_price = float(ticker.get("lastPrice", 0))
+        except:
+            pass
+        
+        try:
+            await q.edit_message_text(
+                f"📋 <b>Limit Buy {coin}</b>\n\n"
+                f"💰 Current price: ${current_price:.4f}\n\n"
+                f"Enter the price at which you want to buy {coin}:",
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action == "limit_view":
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        orders = await get_spot_open_orders(uid, account_type)
+        
+        if not orders:
+            try:
+                await q.edit_message_text(
+                    "📋 <b>Open Limit Orders</b>\n\n"
+                    "No open orders.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Back", callback_data="spot:limit_order")]
+                    ]),
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
+            return
+        
+        lines = ["📋 <b>Open Limit Orders</b>", ""]
+        buttons = []
+        
+        for order in orders[:10]:  # Limit to 10
+            symbol = order.get("symbol", "")
+            side = order.get("side", "")
+            price = float(order.get("price", 0))
+            qty = float(order.get("qty", 0))
+            order_id = order.get("orderId", "")
+            
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            lines.append(f"{side_emoji} {symbol}: {qty:.6f} @ ${price:.4f}")
+            
+            buttons.append([InlineKeyboardButton(
+                f"❌ Cancel {symbol[:6]}",
+                callback_data=f"spot:limit_cancel:{symbol}:{order_id}"
+            )])
+        
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:limit_order")])
+        
+        try:
+            await q.edit_message_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action.startswith("limit_cancel:"):
+        parts = action.split(":")
+        symbol = parts[1]
+        order_id = parts[2]
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        result = await cancel_spot_order(uid, symbol, order_id, account_type)
+        
+        if result.get("success"):
+            await q.answer("✅ Order cancelled!", show_alert=True)
+        else:
+            await q.answer(f"❌ Failed: {result.get('error', 'Unknown')}", show_alert=True)
+        
+        # Refresh order list
+        orders = await get_spot_open_orders(uid, account_type)
+        
+        if not orders:
+            try:
+                await q.edit_message_text(
+                    "📋 <b>Open Limit Orders</b>\n\n"
+                    "No open orders.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⬅️ Back", callback_data="spot:limit_order")]
+                    ]),
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
+            return
+        
+        lines = ["📋 <b>Open Limit Orders</b>", ""]
+        buttons = []
+        
+        for order in orders[:10]:
+            symbol = order.get("symbol", "")
+            side = order.get("side", "")
+            price = float(order.get("price", 0))
+            qty = float(order.get("qty", 0))
+            oid = order.get("orderId", "")
+            
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            lines.append(f"{side_emoji} {symbol}: {qty:.6f} @ ${price:.4f}")
+            buttons.append([InlineKeyboardButton(f"❌ Cancel {symbol[:6]}", callback_data=f"spot:limit_cancel:{symbol}:{oid}")])
+        
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:limit_order")])
+        
+        try:
+            await q.edit_message_text("\n".join(lines), reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    # ==================== GRID BOT ====================
+    if action == "grid_menu":
+        coins = spot_settings.get("coins", SPOT_DCA_COINS)
+        grids = spot_settings.get("grids", {})
+        
+        lines = ["🔲 <b>Spot Grid Bot</b>", ""]
+        
+        # Show active grids
+        active_grids = [c for c, g in grids.items() if g.get("active")]
+        if active_grids:
+            lines.append("<b>Active Grids:</b>")
+            for coin in active_grids:
+                grid = grids[coin]
+                profit = grid.get("realized_profit", 0)
+                trades = grid.get("trades_count", 0)
+                lines.append(f"  ✅ {coin}: ${profit:.2f} profit ({trades} trades)")
+            lines.append("")
+        
+        lines.append("Select a coin to set up grid trading:")
+        
+        buttons = []
+        for coin in coins:
+            is_active = coin in active_grids
+            emoji = "✅" if is_active else "➕"
+            action_text = "Stop" if is_active else "Setup"
+            buttons.append([InlineKeyboardButton(
+                f"{emoji} {coin} Grid ({action_text})",
+                callback_data=f"spot:grid_coin:{coin}"
+            )])
+        
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        
+        try:
+            await q.edit_message_text(
+                "\n".join(lines),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action.startswith("grid_coin:"):
+        coin = action.split(":")[1]
+        grids = spot_settings.get("grids", {})
+        
+        if coin in grids and grids[coin].get("active"):
+            # Grid is active - show stop option
+            grid = grids[coin]
+            profit = grid.get("realized_profit", 0)
+            trades = grid.get("trades_count", 0)
+            
+            buttons = [
+                [InlineKeyboardButton("🛑 Stop Grid", callback_data=f"spot:grid_stop:{coin}")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="spot:grid_menu")],
+            ]
+            
+            try:
+                await q.edit_message_text(
+                    f"🔲 <b>{coin} Grid Active</b>\n\n"
+                    f"💰 Profit: ${profit:.2f}\n"
+                    f"📊 Trades: {trades}\n"
+                    f"📈 Range: ${grid.get('price_low', 0):.2f} - ${grid.get('price_high', 0):.2f}\n"
+                    f"🔢 Levels: {grid.get('grid_count', 0)}",
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
+        else:
+            # Setup new grid
+            ctx.user_data["spot_grid_coin"] = coin
+            ctx.user_data["spot_awaiting"] = "grid_range"
+            
+            account_type = spot_settings.get("trading_mode", "demo")
+            symbol = f"{coin}USDT"
+            
+            current_price = 0
+            try:
+                ticker = await get_spot_ticker(uid, symbol, account_type)
+                if ticker:
+                    current_price = float(ticker.get("lastPrice", 0))
+            except:
+                pass
+            
+            try:
+                await q.edit_message_text(
+                    f"🔲 <b>Setup {coin} Grid</b>\n\n"
+                    f"💰 Current price: ${current_price:.4f}\n\n"
+                    f"Enter grid parameters:\n"
+                    f"<code>low_price high_price grid_count total_usdt</code>\n\n"
+                    f"Example: <code>{current_price*0.9:.2f} {current_price*1.1:.2f} 10 100</code>",
+                    parse_mode="HTML"
+                )
+            except BadRequest:
+                pass
+        return
+    
+    if action.startswith("grid_stop:"):
+        coin = action.split(":")[1]
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        result = await stop_spot_grid(uid, coin, account_type)
+        
+        if result.get("success"):
+            msg = (
+                f"🛑 <b>{coin} Grid Stopped</b>\n\n"
+                f"📊 Total Trades: {result.get('total_trades', 0)}\n"
+                f"💰 Total Profit: ${result.get('total_profit', 0):.2f}\n"
+                f"❌ Orders Cancelled: {result.get('orders_cancelled', 0)}"
+            )
+            await q.answer("Grid stopped!")
+        else:
+            msg = f"❌ Failed to stop grid: {result.get('error', 'Unknown')}"
+        
+        buttons = [[InlineKeyboardButton("⬅️ Back", callback_data="spot:grid_menu")]]
+        
+        try:
+            await q.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
     if action == "back":
         await q.message.delete()
         await ctx.bot.send_message(
@@ -2282,6 +2676,146 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             return True
         except ValueError:
             await update.message.reply_text("❌ Invalid number. Please enter a valid percentage (e.g. 25)")
+            return True
+    
+    # ==================== LIMIT ORDER INPUT ====================
+    if awaiting == "limit_price":
+        try:
+            limit_price = float(text)
+            if limit_price <= 0:
+                await update.message.reply_text("❌ Price must be positive")
+                return True
+            
+            ctx.user_data["spot_limit_price"] = limit_price
+            ctx.user_data["spot_awaiting"] = "limit_amount"
+            
+            coin = ctx.user_data.get("spot_limit_coin", "BTC")
+            await update.message.reply_text(
+                f"📋 <b>Limit Buy {coin}</b>\n\n"
+                f"💰 Price: ${limit_price:.4f}\n\n"
+                f"Enter USDT amount to invest:",
+                parse_mode="HTML"
+            )
+            return True
+        except ValueError:
+            await update.message.reply_text("❌ Invalid price. Please enter a number.")
+            return True
+    
+    if awaiting == "limit_amount":
+        try:
+            amount = float(text)
+            if amount < 5:
+                await update.message.reply_text("❌ Minimum amount is 5 USDT")
+                return True
+            
+            coin = ctx.user_data.pop("spot_limit_coin", "BTC")
+            limit_price = ctx.user_data.pop("spot_limit_price", 0)
+            
+            cfg = db.get_user_config(uid)
+            spot_settings = cfg.get("spot_settings", {})
+            account_type = spot_settings.get("trading_mode", "demo")
+            
+            result = await place_spot_limit_order(
+                user_id=uid,
+                coin=coin,
+                side="Buy",
+                price=limit_price,
+                usdt_amount=amount,
+                account_type=account_type,
+            )
+            
+            if result.get("success"):
+                msg = (
+                    f"✅ <b>Limit Order Placed!</b>\n\n"
+                    f"🪙 {coin}\n"
+                    f"💰 Price: ${limit_price:.4f}\n"
+                    f"📦 Amount: {result.get('qty', 0):.6f}\n"
+                    f"💵 Investment: ${amount:.2f}"
+                )
+            else:
+                msg = f"❌ <b>Failed to place order</b>\n\n{result.get('error', 'Unknown error')}"
+            
+            buttons = [
+                [InlineKeyboardButton("📋 View Orders", callback_data="spot:limit_view")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="spot:limit_order")],
+            ]
+            
+            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+            return True
+        except ValueError:
+            await update.message.reply_text("❌ Invalid amount. Please enter a number.")
+            return True
+    
+    # ==================== GRID BOT INPUT ====================
+    if awaiting == "grid_range":
+        try:
+            parts = text.split()
+            if len(parts) != 4:
+                await update.message.reply_text(
+                    "❌ Invalid format. Please enter:\n"
+                    "<code>low_price high_price grid_count total_usdt</code>",
+                    parse_mode="HTML"
+                )
+                return True
+            
+            price_low = float(parts[0])
+            price_high = float(parts[1])
+            grid_count = int(parts[2])
+            total_investment = float(parts[3])
+            
+            if price_low >= price_high:
+                await update.message.reply_text("❌ Low price must be less than high price")
+                return True
+            if grid_count < 3 or grid_count > 50:
+                await update.message.reply_text("❌ Grid count must be between 3 and 50")
+                return True
+            if total_investment < 10:
+                await update.message.reply_text("❌ Minimum investment is 10 USDT")
+                return True
+            
+            coin = ctx.user_data.pop("spot_grid_coin", "BTC")
+            
+            cfg = db.get_user_config(uid)
+            spot_settings = cfg.get("spot_settings", {})
+            account_type = spot_settings.get("trading_mode", "demo")
+            
+            await update.message.reply_text(f"⏳ Setting up {coin} grid...")
+            
+            result = await setup_spot_grid(
+                user_id=uid,
+                coin=coin,
+                price_low=price_low,
+                price_high=price_high,
+                grid_count=grid_count,
+                total_investment=total_investment,
+                account_type=account_type,
+            )
+            
+            if result.get("success"):
+                msg = (
+                    f"✅ <b>{coin} Grid Bot Started!</b>\n\n"
+                    f"📈 Range: ${price_low:.2f} - ${price_high:.2f}\n"
+                    f"🔢 Levels: {grid_count}\n"
+                    f"💵 Investment: ${total_investment:.2f}\n"
+                    f"📊 Orders placed: {result.get('orders_placed', 0)}\n"
+                    f"📍 Grid step: ${result.get('grid_step', 0):.4f}"
+                )
+            else:
+                msg = f"❌ <b>Failed to setup grid</b>\n\n{result.get('error', 'Unknown error')}"
+            
+            buttons = [
+                [InlineKeyboardButton("🔲 Grid Menu", callback_data="spot:grid_menu")],
+                [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
+            ]
+            
+            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+            return True
+        except ValueError:
+            await update.message.reply_text(
+                "❌ Invalid input. Please enter numbers:\n"
+                "<code>low_price high_price grid_count total_usdt</code>",
+                parse_mode="HTML"
+            )
             return True
     
     return False
@@ -7889,6 +8423,691 @@ async def rebalance_spot_portfolio(
     return results
 
 
+# ==================== SPOT TRAILING TP ====================
+
+async def check_spot_trailing_tp(
+    user_id: int,
+    account_type: str = None,
+) -> list:
+    """
+    Check spot holdings for trailing TP triggers.
+    
+    Logic:
+    1. If price reaches activation_pct above avg_price -> activate trailing
+    2. Track peak price after activation
+    3. If price drops trail_pct from peak -> sell
+    
+    Returns list of executed sells.
+    """
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    
+    trailing_config = spot_settings.get("trailing_tp", SPOT_TRAILING_TP_DEFAULTS)
+    if not trailing_config.get("enabled"):
+        return []
+    
+    activation_pct = trailing_config.get("activation_pct", 15.0)
+    trail_pct = trailing_config.get("trail_pct", 5.0)
+    
+    purchase_history = spot_settings.get("purchase_history", {})
+    trailing_state = spot_settings.get("trailing_state", {})  # {coin: {active, peak_price}}
+    
+    executed_sells = []
+    state_changed = False
+    
+    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    
+    for coin, coin_history in purchase_history.items():
+        avg_price = coin_history.get("avg_price", 0)
+        total_qty = coin_history.get("total_qty", 0)
+        
+        if avg_price <= 0 or total_qty <= 0:
+            continue
+        
+        # Check actual balance
+        actual_qty = balances.get(coin, 0)
+        if actual_qty < 0.00001:
+            continue
+        
+        symbol = f"{coin}USDT"
+        
+        try:
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            if not ticker:
+                continue
+            
+            current_price = float(ticker.get("lastPrice", 0))
+            if current_price <= 0:
+                continue
+            
+            gain_pct = ((current_price - avg_price) / avg_price) * 100
+            coin_state = trailing_state.get(coin, {"active": False, "peak_price": 0})
+            
+            if not coin_state.get("active"):
+                # Check if we should activate trailing
+                if gain_pct >= activation_pct:
+                    coin_state["active"] = True
+                    coin_state["peak_price"] = current_price
+                    coin_state["activation_gain"] = gain_pct
+                    trailing_state[coin] = coin_state
+                    state_changed = True
+                    logger.info(f"[SPOT-TRAIL] {coin} trailing activated at +{gain_pct:.1f}%, peak=${current_price:.4f}")
+            else:
+                # Trailing is active - update peak and check for trigger
+                peak = coin_state.get("peak_price", current_price)
+                
+                if current_price > peak:
+                    # New peak
+                    coin_state["peak_price"] = current_price
+                    trailing_state[coin] = coin_state
+                    state_changed = True
+                    logger.debug(f"[SPOT-TRAIL] {coin} new peak: ${current_price:.4f}")
+                else:
+                    # Check if dropped enough from peak to trigger
+                    drop_from_peak = ((peak - current_price) / peak) * 100
+                    
+                    if drop_from_peak >= trail_pct:
+                        # TRIGGER! Sell all
+                        logger.info(f"[SPOT-TRAIL] {coin} TRIGGER! Peak=${peak:.4f}, now=${current_price:.4f}, drop={drop_from_peak:.1f}%")
+                        
+                        result = await execute_spot_sell(
+                            user_id=user_id,
+                            coin=coin,
+                            qty=actual_qty,
+                            account_type=account_type,
+                        )
+                        
+                        if result.get("success"):
+                            usdt_received = result.get("usdt_received", actual_qty * current_price)
+                            final_gain = ((current_price - avg_price) / avg_price) * 100
+                            
+                            executed_sells.append({
+                                "coin": coin,
+                                "qty_sold": actual_qty,
+                                "usdt_received": usdt_received,
+                                "gain_pct": final_gain,
+                                "peak_price": peak,
+                                "sell_price": current_price,
+                            })
+                            
+                            # Reset state for this coin
+                            coin_state["active"] = False
+                            coin_state["peak_price"] = 0
+                            trailing_state[coin] = coin_state
+                            state_changed = True
+                        else:
+                            logger.error(f"Trailing TP sell failed for {coin}: {result.get('error')}")
+                            
+        except Exception as e:
+            logger.error(f"check_spot_trailing_tp error for {coin}: {e}")
+    
+    # Save state
+    if state_changed:
+        spot_settings["trailing_state"] = trailing_state
+        db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+    
+    return executed_sells
+
+
+# ==================== SPOT LIMIT ORDERS ====================
+
+async def place_spot_limit_order(
+    user_id: int,
+    coin: str,
+    side: str,  # "Buy" or "Sell"
+    price: float,
+    usdt_amount: float = None,  # For Buy
+    qty: float = None,          # For Sell
+    account_type: str = None,
+) -> dict:
+    """
+    Place a limit order for spot.
+    
+    For Buy: specify usdt_amount, qty will be calculated
+    For Sell: specify qty directly
+    """
+    symbol = f"{coin}USDT"
+    
+    if side == "Buy":
+        if not usdt_amount or usdt_amount <= 0:
+            return {"success": False, "error": "Invalid USDT amount"}
+        order_qty = usdt_amount / price
+    else:
+        if not qty or qty <= 0:
+            return {"success": False, "error": "Invalid quantity"}
+        order_qty = qty
+    
+    try:
+        result = await place_spot_order(
+            user_id=user_id,
+            symbol=symbol,
+            side=side,
+            qty=order_qty,
+            order_type="Limit",
+            price=price,
+            account_type=account_type,
+        )
+        
+        # Save pending limit order to track
+        cfg = db.get_user_config(user_id)
+        spot_settings = cfg.get("spot_settings", {})
+        pending_orders = spot_settings.get("pending_limit_orders", [])
+        
+        order_id = result.get("orderId") or result.get("order_id")
+        pending_orders.append({
+            "order_id": order_id,
+            "symbol": symbol,
+            "coin": coin,
+            "side": side,
+            "price": price,
+            "qty": order_qty,
+            "usdt": usdt_amount if side == "Buy" else order_qty * price,
+            "created_ts": int(time.time()),
+        })
+        
+        # Keep last 50 orders
+        if len(pending_orders) > 50:
+            pending_orders = pending_orders[-50:]
+        
+        spot_settings["pending_limit_orders"] = pending_orders
+        db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+        
+        return {
+            "success": True,
+            "order_id": order_id,
+            "symbol": symbol,
+            "side": side,
+            "price": price,
+            "qty": order_qty,
+        }
+        
+    except Exception as e:
+        logger.error(f"place_spot_limit_order error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def get_spot_open_orders(user_id: int, account_type: str = None) -> list:
+    """Get all open spot orders."""
+    try:
+        params = {"category": "spot"}
+        res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params, account_type=account_type)
+        orders = res.get("list", [])
+        return orders
+    except Exception as e:
+        logger.error(f"get_spot_open_orders error: {e}")
+        return []
+
+
+async def cancel_spot_order(user_id: int, symbol: str, order_id: str, account_type: str = None) -> dict:
+    """Cancel a spot order."""
+    try:
+        params = {
+            "category": "spot",
+            "symbol": symbol,
+            "orderId": order_id,
+        }
+        res = await _bybit_request(user_id, "POST", "/v5/order/cancel", params=params, account_type=account_type)
+        return {"success": True, "result": res}
+    except Exception as e:
+        logger.error(f"cancel_spot_order error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ==================== SPOT GRID BOT ====================
+
+async def setup_spot_grid(
+    user_id: int,
+    coin: str,
+    price_low: float,
+    price_high: float,
+    grid_count: int,
+    total_investment: float,
+    account_type: str = None,
+) -> dict:
+    """
+    Setup a grid bot for spot trading.
+    
+    Creates limit buy orders at regular intervals from price_low to current price,
+    and prepares sell levels above current price.
+    """
+    symbol = f"{coin}USDT"
+    
+    try:
+        # Get current price
+        ticker = await get_spot_ticker(user_id, symbol, account_type)
+        if not ticker:
+            return {"success": False, "error": f"Could not get price for {symbol}"}
+        
+        current_price = float(ticker.get("lastPrice", 0))
+        if current_price <= 0:
+            return {"success": False, "error": "Invalid current price"}
+        
+        if price_low >= price_high:
+            return {"success": False, "error": "Price low must be less than price high"}
+        
+        if current_price < price_low or current_price > price_high:
+            return {"success": False, "error": f"Current price ${current_price:.2f} must be within grid range ${price_low:.2f} - ${price_high:.2f}"}
+        
+        # Calculate grid step
+        grid_step = (price_high - price_low) / grid_count
+        usdt_per_grid = total_investment / grid_count
+        
+        # Generate grid levels
+        grid_levels = []
+        for i in range(grid_count + 1):
+            level_price = price_low + (i * grid_step)
+            grid_levels.append({
+                "price": level_price,
+                "side": "Buy" if level_price < current_price else "Sell",
+                "usdt": usdt_per_grid,
+                "qty": usdt_per_grid / level_price,
+                "filled": False,
+                "order_id": None,
+            })
+        
+        # Place buy orders below current price
+        placed_orders = []
+        for level in grid_levels:
+            if level["side"] == "Buy" and level["price"] < current_price * 0.99:  # 1% buffer
+                result = await place_spot_limit_order(
+                    user_id=user_id,
+                    coin=coin,
+                    side="Buy",
+                    price=level["price"],
+                    usdt_amount=level["usdt"],
+                    account_type=account_type,
+                )
+                
+                if result.get("success"):
+                    level["order_id"] = result.get("order_id")
+                    placed_orders.append(level["price"])
+        
+        # Save grid config
+        cfg = db.get_user_config(user_id)
+        spot_settings = cfg.get("spot_settings", {})
+        
+        grids = spot_settings.get("grids", {})
+        grids[coin] = {
+            "price_low": price_low,
+            "price_high": price_high,
+            "grid_count": grid_count,
+            "grid_step": grid_step,
+            "total_investment": total_investment,
+            "usdt_per_grid": usdt_per_grid,
+            "levels": grid_levels,
+            "created_ts": int(time.time()),
+            "active": True,
+            "realized_profit": 0.0,
+            "trades_count": 0,
+        }
+        
+        spot_settings["grids"] = grids
+        db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+        
+        return {
+            "success": True,
+            "coin": coin,
+            "price_low": price_low,
+            "price_high": price_high,
+            "grid_count": grid_count,
+            "grid_step": grid_step,
+            "orders_placed": len(placed_orders),
+            "placed_at": placed_orders,
+        }
+        
+    except Exception as e:
+        logger.error(f"setup_spot_grid error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def check_spot_grids(user_id: int, account_type: str = None) -> list:
+    """
+    Check and manage active spot grids.
+    
+    When a buy order fills -> place sell order at next level up
+    When a sell order fills -> place buy order at the same level
+    """
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    grids = spot_settings.get("grids", {})
+    
+    if not grids:
+        return []
+    
+    events = []
+    state_changed = False
+    
+    # Get all open orders
+    open_orders = await get_spot_open_orders(user_id, account_type)
+    open_order_ids = {o.get("orderId") for o in open_orders}
+    
+    for coin, grid_config in grids.items():
+        if not grid_config.get("active"):
+            continue
+        
+        symbol = f"{coin}USDT"
+        levels = grid_config.get("levels", [])
+        grid_step = grid_config.get("grid_step", 0)
+        usdt_per_grid = grid_config.get("usdt_per_grid", 0)
+        
+        for i, level in enumerate(levels):
+            order_id = level.get("order_id")
+            if not order_id:
+                continue
+            
+            # Check if order was filled (not in open orders anymore)
+            if order_id not in open_order_ids and not level.get("filled"):
+                level["filled"] = True
+                state_changed = True
+                
+                if level["side"] == "Buy":
+                    # Buy filled -> place sell at next level
+                    sell_price = level["price"] + grid_step
+                    qty = level["qty"]
+                    
+                    result = await place_spot_limit_order(
+                        user_id=user_id,
+                        coin=coin,
+                        side="Sell",
+                        price=sell_price,
+                        qty=qty,
+                        account_type=account_type,
+                    )
+                    
+                    if result.get("success"):
+                        # Create new level entry for sell
+                        new_sell_level = {
+                            "price": sell_price,
+                            "side": "Sell",
+                            "qty": qty,
+                            "order_id": result.get("order_id"),
+                            "filled": False,
+                            "linked_buy_price": level["price"],
+                        }
+                        levels.append(new_sell_level)
+                        
+                        events.append({
+                            "type": "grid_buy_filled",
+                            "coin": coin,
+                            "buy_price": level["price"],
+                            "sell_placed": sell_price,
+                            "qty": qty,
+                        })
+                        
+                        grid_config["trades_count"] = grid_config.get("trades_count", 0) + 1
+                
+                elif level["side"] == "Sell":
+                    # Sell filled -> place buy back at linked level, record profit
+                    buy_price = level.get("linked_buy_price", level["price"] - grid_step)
+                    qty = level["qty"]
+                    profit = (level["price"] - buy_price) * qty
+                    
+                    result = await place_spot_limit_order(
+                        user_id=user_id,
+                        coin=coin,
+                        side="Buy",
+                        price=buy_price,
+                        usdt_amount=qty * buy_price,
+                        account_type=account_type,
+                    )
+                    
+                    if result.get("success"):
+                        # Update buy level
+                        for buy_level in levels:
+                            if buy_level.get("price") == buy_price and buy_level.get("side") == "Buy":
+                                buy_level["filled"] = False
+                                buy_level["order_id"] = result.get("order_id")
+                                break
+                        else:
+                            # Create new buy level
+                            levels.append({
+                                "price": buy_price,
+                                "side": "Buy",
+                                "usdt": qty * buy_price,
+                                "qty": qty,
+                                "order_id": result.get("order_id"),
+                                "filled": False,
+                            })
+                        
+                        grid_config["realized_profit"] = grid_config.get("realized_profit", 0) + profit
+                        grid_config["trades_count"] = grid_config.get("trades_count", 0) + 1
+                        
+                        events.append({
+                            "type": "grid_sell_filled",
+                            "coin": coin,
+                            "sell_price": level["price"],
+                            "profit": profit,
+                            "total_profit": grid_config["realized_profit"],
+                        })
+        
+        grid_config["levels"] = levels
+    
+    # Save state
+    if state_changed:
+        spot_settings["grids"] = grids
+        db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+    
+    return events
+
+
+async def stop_spot_grid(user_id: int, coin: str, account_type: str = None) -> dict:
+    """Stop a grid bot and cancel all its orders."""
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    grids = spot_settings.get("grids", {})
+    
+    if coin not in grids:
+        return {"success": False, "error": f"No grid found for {coin}"}
+    
+    grid_config = grids[coin]
+    symbol = f"{coin}USDT"
+    
+    # Cancel all open orders
+    cancelled = 0
+    for level in grid_config.get("levels", []):
+        order_id = level.get("order_id")
+        if order_id and not level.get("filled"):
+            result = await cancel_spot_order(user_id, symbol, order_id, account_type)
+            if result.get("success"):
+                cancelled += 1
+    
+    # Mark grid as inactive
+    grid_config["active"] = False
+    grid_config["stopped_ts"] = int(time.time())
+    grids[coin] = grid_config
+    
+    spot_settings["grids"] = grids
+    db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+    
+    return {
+        "success": True,
+        "coin": coin,
+        "orders_cancelled": cancelled,
+        "total_profit": grid_config.get("realized_profit", 0),
+        "total_trades": grid_config.get("trades_count", 0),
+    }
+
+
+# ==================== SPOT PORTFOLIO STATS ====================
+
+async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> dict:
+    """
+    Get comprehensive spot portfolio statistics.
+    
+    Returns:
+    - Total value
+    - Profit/loss per coin
+    - Overall P&L
+    - Comparison with HODL BTC
+    """
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    purchase_history = spot_settings.get("purchase_history", {})
+    total_invested = spot_settings.get("total_invested", 0)
+    
+    # Get current balances and prices
+    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    
+    coins_stats = []
+    total_current_value = 0
+    total_cost_basis = 0
+    
+    for coin, history in purchase_history.items():
+        avg_price = history.get("avg_price", 0)
+        total_qty = history.get("total_qty", 0)
+        total_cost = history.get("total_cost", 0)
+        
+        if avg_price <= 0:
+            continue
+        
+        # Get actual balance (may differ if user traded outside bot)
+        actual_qty = balances.get(coin, 0)
+        
+        symbol = f"{coin}USDT"
+        try:
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            if not ticker:
+                continue
+            
+            current_price = float(ticker.get("lastPrice", 0))
+            change_24h = float(ticker.get("price24hPcnt", 0)) * 100
+            
+            current_value = actual_qty * current_price
+            
+            # Calculate P&L based on tracked history
+            pnl_value = current_value - total_cost if actual_qty > 0 else 0
+            pnl_pct = ((current_price - avg_price) / avg_price) * 100 if avg_price > 0 else 0
+            
+            coins_stats.append({
+                "coin": coin,
+                "qty": actual_qty,
+                "avg_price": avg_price,
+                "current_price": current_price,
+                "current_value": current_value,
+                "cost_basis": total_cost,
+                "pnl_value": pnl_value,
+                "pnl_pct": pnl_pct,
+                "change_24h": change_24h,
+            })
+            
+            total_current_value += current_value
+            total_cost_basis += total_cost
+            
+        except Exception as e:
+            logger.error(f"get_spot_portfolio_stats error for {coin}: {e}")
+    
+    # Add USDT balance
+    usdt_balance = balances.get("USDT", 0)
+    total_current_value += usdt_balance
+    
+    # Calculate overall P&L
+    overall_pnl_value = total_current_value - total_cost_basis
+    overall_pnl_pct = ((total_current_value - total_cost_basis) / total_cost_basis * 100) if total_cost_basis > 0 else 0
+    
+    # Compare with HODL BTC
+    btc_comparison = None
+    if total_invested > 0:
+        try:
+            btc_ticker = await get_spot_ticker(user_id, "BTCUSDT", account_type)
+            if btc_ticker:
+                btc_price = float(btc_ticker.get("lastPrice", 0))
+                # Get historical price when user started (approximation using first purchase)
+                first_purchase_ts = None
+                for history in purchase_history.values():
+                    purchases = history.get("purchases", [])
+                    if purchases:
+                        ts = purchases[0].get("ts", 0)
+                        if first_purchase_ts is None or ts < first_purchase_ts:
+                            first_purchase_ts = ts
+                
+                # If we had just held BTC instead
+                # Simplified: assume we could have bought at avg of all our buy times
+                # For now, just show what total invested would be worth in BTC at current price
+                btc_qty_if_hodl = total_invested / btc_price if btc_price > 0 else 0
+                # This is simplified - real comparison would need historical prices
+                btc_comparison = {
+                    "total_invested": total_invested,
+                    "btc_price_now": btc_price,
+                    "btc_qty_if_hodl": btc_qty_if_hodl,
+                }
+        except Exception as e:
+            logger.error(f"BTC comparison error: {e}")
+    
+    # Sort by value descending
+    coins_stats.sort(key=lambda x: x["current_value"], reverse=True)
+    
+    return {
+        "coins": coins_stats,
+        "total_current_value": total_current_value,
+        "total_cost_basis": total_cost_basis,
+        "usdt_balance": usdt_balance,
+        "overall_pnl_value": overall_pnl_value,
+        "overall_pnl_pct": overall_pnl_pct,
+        "total_invested": total_invested,
+        "btc_comparison": btc_comparison,
+    }
+
+
+# ==================== MULTI-TIMEFRAME DCA ====================
+
+async def execute_dca_plan(
+    user_id: int,
+    plan: dict,
+    account_type: str = None,
+) -> dict:
+    """Execute a single DCA plan."""
+    coins = plan.get("coins", [])
+    amount = plan.get("amount", 10.0)
+    strategy = plan.get("strategy", "fixed")
+    plan_name = plan.get("name", "Plan")
+    
+    results = []
+    total_spent = 0.0
+    skipped = []
+    
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    
+    for coin in coins:
+        # Calculate amount per coin
+        coin_amount = amount / len(coins) if coins else amount
+        
+        # Apply strategy
+        adjusted_amount = await calculate_smart_dca_amount(
+            base_amount=coin_amount,
+            strategy=strategy,
+            coin=coin,
+            spot_settings=spot_settings,
+            user_id=user_id,
+            account_type=account_type,
+        )
+        
+        if adjusted_amount <= 0:
+            skipped.append(coin)
+            continue
+        
+        result = await execute_spot_dca_buy(user_id, coin, adjusted_amount, account_type=account_type)
+        if result.get("success"):
+            spent = result.get("usdt_spent", adjusted_amount)
+            results.append({
+                "coin": coin,
+                "qty": result.get("qty", 0),
+                "spent": spent,
+                "price": result.get("price", 0),
+            })
+            total_spent += spent
+        elif result.get("error") == "SKIP":
+            skipped.append(coin)
+    
+    return {
+        "success": True,
+        "plan_name": plan_name,
+        "results": results,
+        "total_spent": total_spent,
+        "skipped": skipped,
+    }
+
+
 def _normalize_order_id(res: dict) -> str:
     return str(res.get("orderId") or res.get("id") or res.get("order_id") or "")
 
@@ -13490,6 +14709,86 @@ async def spot_tp_rebalance_loop(app: Application):
                                         )
                                     except Exception as e:
                                         logger.warning(f"Failed to notify rebalance for {uid}: {e}")
+                    
+                    # === Trailing TP Monitoring ===
+                    trailing_config = spot_settings.get("trailing_tp", {})
+                    if trailing_config.get("enabled"):
+                        try:
+                            sells = await check_spot_trailing_tp(uid, account_type=account_type)
+                            
+                            for sell in sells:
+                                coin = sell.get("coin", "")
+                                qty_sold = sell.get("qty_sold", 0)
+                                usdt_received = sell.get("usdt_received", 0)
+                                gain_pct = sell.get("gain_pct", 0)
+                                peak_price = sell.get("peak_price", 0)
+                                sell_price = sell.get("sell_price", 0)
+                                
+                                msg = (
+                                    f"📈 <b>Trailing TP Triggered!</b>\n\n"
+                                    f"🪙 {coin}\n"
+                                    f"📊 Final gain: +{gain_pct:.1f}%\n"
+                                    f"🏔️ Peak: ${peak_price:.4f}\n"
+                                    f"💰 Sold at: ${sell_price:.4f}\n"
+                                    f"📦 Quantity: {qty_sold:.6f}\n"
+                                    f"💵 Received: ${usdt_received:.2f}"
+                                )
+                                
+                                try:
+                                    await safe_send_notification(bot, uid, msg, parse_mode="HTML")
+                                except Exception as e:
+                                    logger.warning(f"Failed to notify trailing TP for {uid}: {e}")
+                                    
+                        except Exception as e:
+                            logger.error(f"Trailing TP check error for {uid}: {e}")
+                    
+                    # === Grid Bot Monitoring ===
+                    grids = spot_settings.get("grids", {})
+                    active_grids = [c for c, g in grids.items() if g.get("active")]
+                    
+                    if active_grids:
+                        try:
+                            events = await check_spot_grids(uid, account_type=account_type)
+                            
+                            for event in events:
+                                event_type = event.get("type", "")
+                                coin = event.get("coin", "")
+                                
+                                if event_type == "grid_buy_filled":
+                                    buy_price = event.get("buy_price", 0)
+                                    sell_placed = event.get("sell_placed", 0)
+                                    qty = event.get("qty", 0)
+                                    
+                                    msg = (
+                                        f"🔲 <b>Grid Buy Filled</b>\n\n"
+                                        f"🪙 {coin}\n"
+                                        f"💰 Bought at: ${buy_price:.4f}\n"
+                                        f"📦 Quantity: {qty:.6f}\n"
+                                        f"📈 Sell placed at: ${sell_placed:.4f}"
+                                    )
+                                    
+                                elif event_type == "grid_sell_filled":
+                                    sell_price = event.get("sell_price", 0)
+                                    profit = event.get("profit", 0)
+                                    total_profit = event.get("total_profit", 0)
+                                    
+                                    msg = (
+                                        f"🔲 <b>Grid Sell Filled</b>\n\n"
+                                        f"🪙 {coin}\n"
+                                        f"💰 Sold at: ${sell_price:.4f}\n"
+                                        f"✅ Profit: +${profit:.2f}\n"
+                                        f"📊 Total Grid Profit: +${total_profit:.2f}"
+                                    )
+                                else:
+                                    continue
+                                
+                                try:
+                                    await safe_send_notification(bot, uid, msg, parse_mode="HTML")
+                                except Exception as e:
+                                    logger.warning(f"Failed to notify grid event for {uid}: {e}")
+                                    
+                        except Exception as e:
+                            logger.error(f"Grid check error for {uid}: {e}")
                     
                 except Exception as e:
                     logger.error(f"TP/Rebalance error for user {uid}: {e}")

@@ -125,6 +125,13 @@ TEXTS = {
     'spot_auto_enabled':           '✅ Auto DCA enabled',
     'spot_auto_disabled':          '❌ Auto DCA disabled',
     'spot_not_enabled':            '❌ Spot trading is not enabled. Enable it in Strategy Settings first.',
+    'spot_freq_biweekly':          'Bi-Weekly',
+    'spot_trailing_enabled':       '✅ Trailing TP enabled',
+    'spot_trailing_disabled':      '❌ Trailing TP disabled',
+    'spot_grid_started':           '✅ Grid bot started for {coin}',
+    'spot_grid_stopped':           '🛑 Grid bot stopped for {coin}',
+    'spot_limit_placed':           '✅ Limit order placed',
+    'spot_limit_cancelled':        '❌ Order cancelled',
 
     # Strategy trading mode
     'strat_mode_global':           '🌐 Global',
