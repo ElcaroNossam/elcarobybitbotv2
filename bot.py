@@ -13527,9 +13527,9 @@ def log_exit_and_remove_position(
 ) -> None:
     cfg = get_user_config(user_id) or {}
     
-    # Use strategy-specific SL/TP if available
+    # Use strategy-specific SL/TP if available (pass side for side-specific settings)
     if strategy:
-        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id)
+        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
     else:
         sl_pct = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
         tp_pct = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
