@@ -2685,6 +2685,9 @@ async def set_leverage(
     Set leverage for a symbol. Uses cache to avoid redundant API calls.
     Returns True if leverage was changed, False if already set.
     """
+    # Clamp leverage to reasonable bounds (Bybit max is typically 100-500 depending on symbol)
+    leverage = max(1, min(leverage, 200))
+    
     cache_key = (user_id, symbol, account_type or "auto")
     current_lev = _leverage_cache.get(cache_key)
     
@@ -3299,17 +3302,19 @@ async def _bybit_request(user_id: int, method: str, path: str,
                     logger.warning(f"API key error for user {user_id} (cached for {EXPIRED_API_KEYS_CACHE_TTL}s): {data.get('retMsg')}")
                     raise MissingAPICredentials(f"API key error: {data.get('retMsg')}")
                 
-                # Leverage validation errors - log as debug, not error (handled in set_leverage)
-                if path == "/v5/position/set-leverage" and ret_code == 10001:
+                # Leverage validation errors - log as debug only, not error (handled in set_leverage)
+                elif path == "/v5/position/set-leverage" and ret_code == 10001:
                     logger.debug(f"Bybit leverage validation: {data.get('retMsg')}")
                     raise RuntimeError(f"Bybit error {path}: {data}")
                 
                 # SL/TP validation errors - log as warning, not error (expected for deep loss positions)
-                if ret_code == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
+                elif ret_code == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
                     logger.warning(f"Bybit SL/TP validation: {path} - {data.get('retMsg')}")
+                    raise RuntimeError(f"Bybit error {path}: {data}")
+                
                 else:
                     logger.error(f"Bybit error for user {user_id} on {path}: {data}")
-                raise RuntimeError(f"Bybit error {path}: {data}")
+                    raise RuntimeError(f"Bybit error {path}: {data}")
 
             return data.get("result") or data
 
