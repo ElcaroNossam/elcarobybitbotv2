@@ -7339,11 +7339,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if ngrok_file.exists():
                 webapp_url = ngrok_file.read_text().strip()
         
-        # Add user_id as start param for auto-login and go directly to dashboard
+        # Add user_id as start param for auto-login
+        # Landing page handles auth and redirects to dashboard
         # Add timestamp to prevent Telegram from caching old URL
         import time
         cache_bust = int(time.time())
-        webapp_url_with_user = f"{webapp_url}/dashboard?start={uid}&_t={cache_bust}"
+        webapp_url_with_user = f"{webapp_url}?start={uid}&_t={cache_bust}"
         menu_button = MenuButtonWebApp(
             text="🖥️ Dashboard",
             web_app=WebAppInfo(url=webapp_url_with_user)
@@ -19145,10 +19146,10 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ])
     else:
         # For production HTTPS, use WebAppInfo for native experience
-        # Add timestamp to URL to prevent Telegram caching
-        webapp_url_with_cache_bust = f"{webapp_url}?_t={cache_bust}"
+        # Add start param with user_id for auto-login and timestamp to prevent Telegram caching
+        webapp_url_with_start = f"{webapp_url}?start={uid}&_t={cache_bust}"
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url_with_cache_bust))],
+            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url_with_start))],
             [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
             [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
         ])
