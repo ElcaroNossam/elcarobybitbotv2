@@ -61,22 +61,47 @@ ps aux | grep python | grep -v grep
 
 ---
 
-## 🌐 WebApp (nginx + домен)
+## 🌐 WebApp + Cloudflare Tunnel
 
-WebApp доступен через nginx reverse proxy с SSL. Туннель НЕ используется.
+WebApp доступен через Cloudflare Quick Tunnel (trycloudflare.com).
 
 ### Как работает
-1. **nginx** слушает на 80/443 и проксирует на localhost:8765
-2. **uvicorn** запущен отдельным сервисом на порту 8765
-3. **start_bot.sh** запускает только бота (без туннеля)
+1. **uvicorn** запущен на порту 8765
+2. **cloudflared** создаёт туннель к localhost:8765
+3. URL туннеля сохраняется в `.env` как `WEBAPP_URL`
+
+### 🔄 Обновление Cloudflare URL (ВАЖНО!)
+Когда URL туннеля устаревает или "Name or service not known":
+```bash
+# 1. Получить текущий URL туннеля
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
+  "cat /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep -oE 'https://[^[:space:]]+\.trycloudflare\.com' | tail -1"
+
+# 2. Обновить URL в .env и перезапустить бота
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
+  "sed -i 's|WEBAPP_URL=.*|WEBAPP_URL=https://NEW-URL.trycloudflare.com|' /home/ubuntu/project/elcarobybitbotv2/.env && \
+   sudo systemctl restart elcaro-bot"
+```
+
+### Перезапуск Cloudflare Tunnel
+```bash
+# Убить старые процессы и запустить новый
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
+  "pkill -9 cloudflared; sleep 2; \
+   screen -dmS cftunnel cloudflared tunnel --url http://localhost:8765"
+
+# Проверить новый URL (подождать 5 сек)
+ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
+  "cat /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep -oE 'https://[^[:space:]]+\.trycloudflare\.com' | tail -1"
+```
 
 ### Проверка работы
 ```bash
 # Локальный webapp
 curl localhost:8765/health
 
-# nginx status
-sudo systemctl status nginx
+# Cloudflared процессы
+ps aux | grep cloudflared | grep -v grep
 ```
 
 ---

@@ -1064,13 +1064,15 @@
                 tg.expand();
             }
             
-            // Load data after auth check
+            // Load data after auth check (chart is already initialized below)
             refreshData();
-            loadPnLData('30d');
+            // Delay PnL loading slightly to ensure chart is ready
+            setTimeout(() => loadPnLData('30d'), 100);
         })();
         
+        // Initialize chart FIRST (before async code tries to use it)
         const ctx = document.getElementById('pnlChart').getContext('2d');
-        const pnlChart = new Chart(ctx, {
+        let pnlChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: [],
