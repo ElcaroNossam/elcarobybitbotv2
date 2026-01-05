@@ -12931,8 +12931,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             parse_mode="HTML"
                         )
                     elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        # Extract max leverage from error if possible
-                        import re
+                        # Extract max leverage from error if possible (re is imported globally)
                         match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
                         max_lev = match.group(1) if match else "50-100"
                         await ctx.bot.send_message(
@@ -13035,8 +13034,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             parse_mode="HTML"
                         )
                     elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        # Extract max leverage from error if possible
-                        import re
+                        # Extract max leverage from error if possible (re is imported globally)
                         match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
                         max_lev = match.group(1) if match else "50-100"
                         await ctx.bot.send_message(
@@ -13212,7 +13210,6 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     parse_mode="HTML"
                                 )
                             elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                                import re
                                 match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
                                 max_lev = match.group(1) if match else "50-100"
                                 await ctx.bot.send_message(
@@ -13240,7 +13237,6 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             parse_mode="HTML"
                         )
                     elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        import re
                         match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
                         max_lev = match.group(1) if match else "50-100"
                         await ctx.bot.send_message(
