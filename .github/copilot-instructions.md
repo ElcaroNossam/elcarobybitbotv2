@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.1.0 | Обновлено: 6 января 2026
+# Версия: 3.2.0 | Обновлено: 6 января 2026
 # =============================================
 
 ---
@@ -52,77 +52,176 @@
 - После исправления важных багов (с описанием fix'а)
 - После изменения архитектуры
 - После изменения deployment процедур
+- После каждой сессии с важными изменениями
 
 **Как обновлять:**
 1. Добавить в секцию "Recent Fixes" с датой
 2. Обновить номера строк если изменились
 3. Добавить новые паттерны если появились
+4. Обновить версию и дату в заголовке
 
 ---
 
 # 📊 АРХИТЕКТУРА ПРОЕКТА
 
-## Общая структура
+## Статистика проекта (актуально на 06.01.2026)
+
+| Метрика | Значение |
+|---------|----------|
+| Python файлов | 273 |
+| HTML шаблонов | 36 |
+| CSS файлов | 9 |
+| JS файлов | 18 |
+| Тестов | 664 |
+| Языков перевода | 15 |
+| Ключей перевода | 679 |
+
+## Структура проекта
 
 ```
 ElCaro Trading Platform
-├── bot.py              # Главный бот (20000+ строк) - ВСЯ логика торговли
-├── bot_unified.py      # Unified API для Bybit/HyperLiquid (5 функций)
-├── db.py               # SQLite database (3800+ строк)
-├── exchange_router.py  # Роутинг между биржами
-├── hl_adapter.py       # HyperLiquid адаптер (41 метод)
-├── coin_params.py      # Параметры монет, ADMIN_ID, лимиты
+├── bot.py                 # 🔥 Главный бот (20218 строк, 241 функция)
+├── db.py                  # 💾 SQLite database (6379 строк, 165 функций)
+├── bot_unified.py         # 🔗 Unified API Bybit/HyperLiquid (530 строк)
+├── exchange_router.py     # 🔀 Роутинг между биржами (1140 строк)
+├── hl_adapter.py          # 🌐 HyperLiquid адаптер (716 строк)
+├── coin_params.py         # ⚙️ Параметры, ADMIN_ID, лимиты (309 строк)
 │
-├── webapp/             # FastAPI веб-приложение
-│   ├── app.py          # Main FastAPI app (port 8765)
-│   ├── api/            # API роутеры (trading, stats, backtest...)
-│   ├── templates/      # HTML шаблоны (dashboard, terminal...)
-│   └── static/         # CSS/JS/Images
+├── webapp/                # 🌐 FastAPI веб-приложение
+│   ├── app.py             # Main FastAPI app (port 8765)
+│   ├── api/               # 25 API роутеров
+│   │   ├── auth.py        # Авторизация, JWT токены
+│   │   ├── trading.py     # Торговые операции
+│   │   ├── stats.py       # Статистика, PnL
+│   │   ├── backtest.py    # Бэктестинг (85K строк!)
+│   │   ├── admin.py       # Админ панель
+│   │   ├── marketplace.py # Маркетплейс стратегий
+│   │   ├── screener.py    # Скринер монет
+│   │   └── ...            # И другие
+│   ├── templates/         # 17 HTML шаблонов
+│   │   ├── terminal.html  # Торговый терминал
+│   │   ├── backtest.html  # Бэктестер
+│   │   ├── screener.html  # Скринер
+│   │   ├── marketplace.html
+│   │   └── ...
+│   └── static/            # CSS/JS/Images
 │
-├── core/               # Инфраструктура
-│   ├── cache.py        # Кеширование (TTL 30s)
-│   ├── rate_limiter.py # Rate limiting для бирж
-│   └── exceptions.py   # Кастомные исключения
+├── models/                # Data models
+│   ├── unified.py         # Position, Balance, Order
+│   ├── user.py            # User model
+│   ├── trade.py           # Trade model
+│   └── strategy_spec.py   # Strategy specifications
 │
-├── services/           # Бизнес-логика (новый код)
+├── services/              # Бизнес-логика
 │   ├── trading_service.py
-│   └── signal_service.py
+│   ├── signal_service.py
+│   ├── strategy_service.py
+│   ├── license_service.py
+│   └── notification_service.py
 │
-├── exchanges/          # Адаптеры бирж
-│   ├── bybit.py        # BybitExchange (34 метода)
-│   └── base.py         # Базовые классы
+├── core/                  # Инфраструктура
+│   ├── cache.py           # Кеширование (TTL 30s)
+│   ├── rate_limiter.py    # Rate limiting
+│   └── exceptions.py      # Кастомные исключения
 │
-├── translations/       # 15 языков (651 ключ каждый)
-│   └── en.py           # REFERENCE файл
+├── utils/                 # Утилиты
+│   ├── formatters.py      # Форматирование цен/процентов
+│   ├── validators.py      # Валидация данных
+│   ├── crypto.py          # HMAC подписи
+│   └── translation_sync.py # Синхронизация переводов
 │
-├── models/             # Data models
-│   └── unified.py      # Position, Balance, Order
+├── translations/          # 15 языков (679 ключей каждый)
+│   └── en.py              # REFERENCE файл
 │
-├── tests/              # Тесты (pytest)
-└── logs/               # Логи
+├── tests/                 # 664 теста (pytest)
+└── logs/                  # Логи
 ```
 
-## Ключевые файлы (номера строк актуальны на 06.01.2025)
+---
 
-### bot.py (~20000 строк)
-| Секция | Строки | Описание |
-|--------|--------|----------|
-| Decorators | 375-520 | `@log_calls`, `@with_texts`, `@require_access` |
-| API Settings | 791-1200 | Demo/Real ключи |
-| set_leverage | 3321-3380 | Установка плеча с fallback 50→25→10→5→3→2→1 |
-| place_order | 4850-5100 | Основная функция ордеров |
-| Signal Parsing | 6000-7500 | Парсинг сигналов (scryptomera, scalper, elcaro) |
-| Monitor Loop | 10893-11800 | Мониторинг позиций (TP/SL/ATR) |
-| Handlers | 12000-20000 | Telegram handlers |
+# 💾 БАЗА ДАННЫХ (SQLite)
 
-### db.py (~3880 строк)
-| Секция | Строки | Описание |
-|--------|--------|----------|
-| Connection Pool | 17-120 | SQLite pool (10 connections) |
-| User Management | 737-1260 | `get_user_config`, `set_user_field` |
-| Credentials | 772-965 | API keys management |
-| Positions | 1736-2280 | `add_active_position`, `get_active_positions` |
-| Trade Logs | 2280-2500 | История сделок |
+## Основные таблицы
+
+### users (главная таблица пользователей)
+```sql
+user_id            INTEGER PRIMARY KEY   -- Telegram ID
+-- API ключи
+demo_api_key       TEXT                  -- Bybit Demo API key
+demo_api_secret    TEXT                  -- Bybit Demo API secret
+real_api_key       TEXT                  -- Bybit Real API key
+real_api_secret    TEXT                  -- Bybit Real API secret
+trading_mode       TEXT DEFAULT 'demo'   -- 'demo' | 'real' | 'both'
+-- Торговые настройки
+percent            REAL DEFAULT 1.0      -- Entry % от баланса
+tp_percent         REAL DEFAULT 8.0      -- Take Profit %
+sl_percent         REAL DEFAULT 3.0      -- Stop Loss %
+use_atr            INTEGER DEFAULT 1     -- 1=ATR trailing, 0=fixed
+coins              TEXT DEFAULT 'ALL'    -- Разрешённые монеты
+-- Стратегии
+trade_scryptomera  INTEGER DEFAULT 0     -- Scryptomera вкл/выкл
+trade_scalper      INTEGER DEFAULT 0     -- Scalper вкл/выкл
+trade_elcaro       INTEGER DEFAULT 0     -- ElCaro AI вкл/выкл
+trade_fibonacci    INTEGER DEFAULT 0     -- Fibonacci вкл/выкл
+trade_oi           INTEGER DEFAULT 1     -- OI Strategy вкл/выкл
+strategy_settings  TEXT                  -- JSON с настройками по стратегиям
+-- DCA
+dca_enabled        INTEGER DEFAULT 0     -- DCA вкл/выкл
+dca_pct_1          REAL DEFAULT 10.0     -- 1й добор при -10%
+dca_pct_2          REAL DEFAULT 25.0     -- 2й добор при -25%
+-- Доступ
+is_allowed         INTEGER DEFAULT 0     -- 1=одобрен админом
+is_banned          INTEGER DEFAULT 0     -- 1=забанен
+lang               TEXT DEFAULT 'en'     -- Язык интерфейса
+```
+
+### active_positions (открытые позиции)
+```sql
+user_id       INTEGER NOT NULL
+symbol        TEXT NOT NULL
+account_type  TEXT DEFAULT 'demo'    -- 'demo' | 'real'
+side          TEXT                   -- 'Buy' | 'Sell'
+entry_price   REAL
+size          REAL
+open_ts       DATETIME
+strategy      TEXT                   -- Название стратегии
+leverage      REAL                   -- Плечо (добавлено Jan 6, 2026)
+sl_price      REAL                   -- Стоп-лосс
+tp_price      REAL                   -- Тейк-профит
+dca_10_done   INTEGER DEFAULT 0      -- 1й добор выполнен
+dca_25_done   INTEGER DEFAULT 0      -- 2й добор выполнен
+PRIMARY KEY(user_id, symbol, account_type)
+```
+
+### trade_logs (история сделок)
+```sql
+id              INTEGER PRIMARY KEY AUTOINCREMENT
+user_id         INTEGER NOT NULL
+symbol          TEXT
+side            TEXT
+entry_price     REAL
+exit_price      REAL
+exit_reason     TEXT              -- 'TP', 'SL', 'MANUAL', 'ATR'
+pnl             REAL              -- Profit/Loss в USDT
+pnl_pct         REAL              -- Profit/Loss в %
+ts              DATETIME          -- Timestamp закрытия
+strategy        TEXT              -- Название стратегии
+sl_pct          REAL
+tp_pct          REAL
+timeframe       TEXT
+```
+
+### Другие таблицы
+| Таблица | Описание |
+|---------|----------|
+| signals | История сигналов |
+| pending_limit_orders | Лимитные ордера |
+| user_licenses | Лицензии пользователей |
+| custom_strategies | Кастомные стратегии |
+| strategy_marketplace | Маркетплейс стратегий |
+| user_strategy_settings | Настройки стратегий по юзерам |
+| exchange_accounts | Подключённые биржи |
+| connected_wallets | Крипто кошельки (для ELC) |
 
 ---
 
@@ -138,92 +237,38 @@ ElCaro Trading Platform
 | **SSH Key** | `noet-dat.pem` (в корне проекта, НЕ в git!) |
 | **Path** | `/home/ubuntu/project/elcarobybitbotv2/` |
 | **Python** | `/home/ubuntu/project/elcarobybitbotv2/venv/bin/python` |
+| **Service** | `elcaro-bot` (systemd) |
+| **WebApp Port** | `8765` |
 
-## SSH и деплой
+## Деплой команды
 
 ```bash
-# 1. Подключение
+# 1. SSH подключение
 ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com
 
-# 2. На сервере
+# 2. Деплой
 cd /home/ubuntu/project/elcarobybitbotv2
 git pull origin main
 sudo systemctl restart elcaro-bot
 
-# 3. Проверка логов
+# 3. Логи
 journalctl -u elcaro-bot -f --no-pager -n 100
+
+# 4. Статус
+sudo systemctl status elcaro-bot
 ```
 
-## Cloudflare Tunnel (WebApp)
+## Cloudflare Tunnel
 
-WebApp доступен через Cloudflare Quick Tunnel:
-- uvicorn на порту 8765
-- cloudflared создаёт туннель
-- URL в `.env` как `WEBAPP_URL`
+WebApp доступен через Cloudflare Quick Tunnel (URL меняется при рестарте!):
 
-### Обновление Cloudflare URL
 ```bash
-# 1. Получить актуальный URL
-ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
-  "cat /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep -oE 'https://[^[:space:]]+\.trycloudflare\.com' | tail -1"
+# Получить текущий URL
+tail -20 /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep trycloudflare
 
-# 2. Обновить .env и перезапустить
-ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
-  "sed -i 's|WEBAPP_URL=.*|WEBAPP_URL=https://NEW-URL.trycloudflare.com|' /home/ubuntu/project/elcarobybitbotv2/.env && \
-   sudo systemctl restart elcaro-bot"
+# Обновить .env (БЕЗ рестарта бота!)
+sed -i 's|WEBAPP_URL=.*|WEBAPP_URL=https://NEW-URL.trycloudflare.com|' .env
 ```
-
----
-
-# 🔧 RECENT FIXES (Январь 2026)
-
-### ✅ Position Sizing: Equity vs Available (Jan 6, 2026)
-- **Проблема:** calc_qty использовал available (свободные средства) вместо equity
-- **Результат:** Размер позиций скакал от 282 до 4284 USDT при одинаковом entry%
-- **Файл:** `bot.py` lines 7796-7840, 11959-12000
-- **Fix:** `fetch_usdt_balance(use_equity=True)` возвращает walletBalance
-- **Логика:** Entry% всегда считается от общего капитала, не от свободных средств
-- **Commit:** d111612
-
-### ✅ Leverage saved in add_active_position (Jan 6, 2026)
-- **Проблема:** Leverage никогда не сохранялся в add_active_position
-- **Файл:** `bot.py` - 4 места вызова add_active_position
-- **Fix:** Добавлен параметр leverage во все вызовы
-- **Commit:** 0af4baa
-
-### ✅ PnL Display: Price Change vs ROE (Jan 6, 2026)
-- **Проблема:** Показывался ROE (price_change * leverage) но calc_qty не использует leverage
-- **Файл:** `bot.py` line ~14150
-- **Fix:** Показываем price_change % (реальное изменение цены)
-- **Commit:** 6d855a8
-
-### ✅ Strategy Summary for Scryptomera/Scalper (Jan 6, 2026)
-- **Проблема:** Scryptomera/Scalper не показывали общие настройки Entry/SL/TP%
-- **Файл:** `bot.py` `_build_strategy_status_parts()` line ~5480
-- **Fix:** Fallback на общие настройки если нет side-specific
-- **Commit:** 3590005
-
-### ✅ Leverage Fallback для низколиквидных монет (Jan 6, 2026)
-- **Проблема:** PONKEUSDT (max 5x) не торговался - "cannot set leverage [1000] gt maxLeverage [500]"
-- **Файл:** `bot.py` lines 3321-3380
-- **Fix:** `set_leverage()` теперь пробует: 50→25→10→5→3→2→1
-- **Commit:** aae2aa2
-
-### ✅ PnL Chart Race Condition (Jan 6, 2026)
-- **Проблема:** График PnL не отображался, кнопки периодов не работали
-- **Файл:** `webapp/templates/user/dashboard.html` line 1069
-- **Fix:** `setTimeout(() => loadPnLData('30d'), 100)` + `let pnlChart`
-- **Commit:** a7c954e
-
-### ✅ Spot DCA PnL Calculation (Jan 5, 2025)
-- **Проблема:** Spot DCA показывал unrealized_pnl = 0
-- **Файл:** `bot.py` lines 11150-11200
-- **Fix:** Расчёт PnL на основе avg_entry и current_price
-
-### ✅ Rolling 24h Stats (Jan 5, 2025)
-- **Проблема:** Статистика обновлялась только раз в день
-- **Файлы:** `db.py`, `bot.py`, `webapp/api/stats.py`
-- **Fix:** Теперь считает за последние 24 часа rolling
 
 ---
 
@@ -238,10 +283,10 @@ ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
 equity = await fetch_usdt_balance(uid, account_type=acc, use_equity=True)  # walletBalance
 available = await fetch_usdt_balance(uid, account_type=acc, use_equity=False)  # свободные средства
 
-# Формула calc_qty:
+# Формула calc_qty (НЕ использует leverage!):
 risk_usdt = equity * (entry_pct / 100)
 price_move = price * (sl_pct / 100)
-qty = risk_usdt / price_move  # НЕ использует leverage!
+qty = risk_usdt / price_move
 ```
 
 ⚠️ **Entry% ВСЕГДА от equity, НЕ от available!**
@@ -279,31 +324,76 @@ db.set_user_field(uid, "some_field", value)
 db.invalidate_user_cache(uid)  # Обязательно!
 ```
 
+## Leverage Fallback
+
+```python
+# set_leverage() пробует: 50 → 25 → 10 → 5 → 3 → 2 → 1
+# Для низколиквидных монет (PONKEUSDT max 5x) автоматически подберёт
+await set_leverage(uid, symbol, 50, account_type)  # автоматический fallback
+```
+
 ## Translations
 
 **15 языков:** ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh
 
 ```python
 # Добавить новый текст:
-# 1. translations/en.py (reference)
+# 1. Добавить в translations/en.py (reference)
 # 2. Проверить sync:
 python3 utils/translation_sync.py --report
 ```
 
 ---
 
+# 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ Position Sizing: Equity vs Available (Jan 6, 2026)
+- **Проблема:** calc_qty использовал available (свободные средства) вместо equity
+- **Результат:** Размер позиций скакал от 282 до 4284 USDT при одинаковом entry%
+- **Файл:** `bot.py` lines 7796-7840, 11959-12000
+- **Fix:** `fetch_usdt_balance(use_equity=True)` возвращает walletBalance
+- **Логика:** Entry% всегда считается от общего капитала
+- **Commit:** d111612
+
+### ✅ Leverage saved in add_active_position (Jan 6, 2026)
+- **Проблема:** Leverage никогда не сохранялся в add_active_position
+- **Файл:** `bot.py` - 4 места вызова add_active_position
+- **Fix:** Добавлен параметр leverage во все вызовы
+- **Commit:** 0af4baa
+
+### ✅ PnL Display: Price Change vs ROE (Jan 6, 2026)
+- **Проблема:** Показывался ROE (price_change * leverage) но calc_qty не использует leverage
+- **Файл:** `bot.py` line ~14150
+- **Fix:** Показываем price_change % (реальное изменение цены)
+- **Commit:** 6d855a8
+
+### ✅ Strategy Summary for Scryptomera/Scalper (Jan 6, 2026)
+- **Проблема:** Scryptomera/Scalper не показывали общие настройки Entry/SL/TP%
+- **Файл:** `bot.py` `_build_strategy_status_parts()` line ~5480
+- **Fix:** Fallback на общие настройки если нет side-specific
+- **Commit:** 3590005
+
+### ✅ Leverage Fallback для низколиквидных монет (Jan 6, 2026)
+- **Проблема:** PONKEUSDT (max 5x) не торговался
+- **Fix:** `set_leverage()` пробует: 50→25→10→5→3→2→1
+- **Commit:** aae2aa2
+
+---
+
 # 🧪 ТЕСТИРОВАНИЕ
 
 ```bash
-# Запуск тестов
+# Все тесты (664 теста)
 python3 -m pytest tests/ -v
 
-# Конкретный тест
-python3 -m pytest tests/test_screener.py -v
+# Конкретный файл
+python3 -m pytest tests/test_webapp.py -v
 
 # С покрытием
 python3 -m pytest tests/ --cov=. --cov-report=html
 ```
+
+**Текущий статус: 664/664 tests passing ✅**
 
 ---
 
@@ -319,7 +409,8 @@ sudo systemctl restart elcaro-bot
 ## WebApp недоступен
 ```bash
 curl localhost:8765/health
-sudo systemctl status nginx
+# Проверить cloudflared
+tail -20 logs/cloudflared.log
 ```
 
 ## Бот не запускается
@@ -327,138 +418,38 @@ sudo systemctl status nginx
 journalctl -u elcaro-bot -n 100 --no-pager
 ```
 
----
-
-# 📊 СТРУКТУРА БАЗЫ ДАННЫХ
-
-## Основные таблицы
-- `users` - Все настройки пользователей, API ключи
-- `active_positions` - Текущие открытые позиции
-- `trade_logs` - История сделок с PnL
-- `signals` - История сигналов
-- `pending_limit_orders` - Лимитные ордера
-
-## Ключевые поля users
-- `api_key_demo`, `api_secret_demo` - Demo ключи Bybit
-- `api_key_real`, `api_secret_real` - Real ключи Bybit
-- `hl_private_key`, `hl_vault_address` - HyperLiquid
-- `trading_mode` - 'demo' | 'real' | 'both'
-- `exchange_type` - 'bybit' | 'hyperliquid'
+## Позиции не закрываются
+```bash
+# Проверить monitor loop
+journalctl -u elcaro-bot | grep -i "ATR\|monitor" | tail -50
+```
 
 ---
 
 # 📁 ИГНОРИРУЕМЫЕ ФАЙЛЫ
 
 В корне проекта много старых MD файлов документации.
-**Актуальная документация:**
-- Этот файл (.github/copilot-instructions.md)
-- README.md (базовый)
-- TARGET_MODEL_ARCHITECTURE.md (модель Target)
 
-**Можно игнорировать:** Все остальные *_COMPLETE.md, *_REPORT.md, *_FIXED.md файлы.
+**Актуальная документация:**
+- Этот файл (`.github/copilot-instructions.md`)
+- `README.md` (базовый)
+
+**Можно игнорировать:** Все `*_COMPLETE.md`, `*_REPORT.md`, `*_FIXED.md` файлы.
 
 ---
 
-*Last updated: 6 января 2025*
-*Version: 3.0.0*
+# 🔑 КЛЮЧЕВЫЕ КОНСТАНТЫ
 
-### ✅ WebApp API Enrichment Fix (Dec 30, 2025)
-- **Problem:** API returning `strategy: null`, `pnl: null` for positions
-- **File:** `webapp/services_integration.py`
-- **Fix:** `get_positions_service()` now enriches exchange data with DB data
-- **Added Fields:**
-  - `strategy` - from `db.get_active_positions()`
-  - `account_type`, `env` - from request params
-  - `tp_price`, `sl_price` - from DB or exchange
-  - `use_atr`, `atr_activated` - ATR trailing stop state
-- **Balance Fix:** Mapped `total_equity`→`equity`, `available_balance`→`available`
-
-### ✅ Monitor Loop Multi-Exchange Fix (Dec 30, 2025)
-- **Problem:** Stale positions not cleaned for demo accounts (only testnet)
-- **File:** `bot.py` lines 10893-11799
-- **Fix:** Critical indentation bug - cleanup code was OUTSIDE the account_type loop
-- **Added:** `current_exchange` tracking alongside `current_account_type`
-- **Notifications:** Now include exchange and market_type in open/close messages
-
-### ✅ Position Notifications Enhanced (Dec 30, 2025)
-- **Feature:** Exchange + market type in position notifications
-- **Files:** `bot.py`, all 15 `translations/*.py`
-- **Format:**
-  ```
-  🚀 New position BTCUSDT @ 94000, size=0.001
-  📍 BYBIT • Demo
-  
-  🔔 Position BTCUSDT closed by *TP*:
-  ...
-  📍 BYBIT • Demo
-  ```
-
-### ✅ Screener Full Refactoring (Dec 23, 2025)
-- **Feature:** Complete screener redesign with WebSocket real-time updates
-- **Files:** `webapp/templates/screener.html`, `webapp/api/screener_ws.py`
-- **What's New:**
-  - Real-time market data from Binance (Futures + Spot)
-  - 14 columns: Symbol, Price, 1m/5m/15m/1h/24h %, Vol 15m/1h, OI, OI Δ 15m, Funding, Volatility
-  - Dynamic Futures/Spot switching with gradient buttons
-  - WebSocket updates every 3 seconds
-  - Improved `process_ticker()` with full timeframe calculations
-  - Top Gainers/Losers sidebar
-  - Beautiful gradient UI matching ElCaro design system
-- **Tests:** `tests/test_screener.py` created with cache and fetcher tests
-- **Status:** ✅ All CSS errors fixed, 102 core tests passing
-
-### ✅ CSS Design System Fixed (Dec 23, 2025)
-- **Problem:** CSS variables outside `:root` block causing 30+ errors
-- **File:** `webapp/static/css/elcaro-design-system.css`
-- **Fix:** All CSS variables moved inside `:root { }` block
-- **Variables Added:**
-  - Gradients: `--gradient-primary`, `--gradient-purple`, `--gradient-green`
-  - Glow effects: `--glow-green`, `--glow-blue`, `--glow-purple`
-  - Exchange colors: `--bybit-color`, `--hl-color`, `--binance-color`
-  - Spacing, radius, shadows, transitions
-- **Result:** 0 CSS errors, perfect syntax
-
-### ✅ Unified Architecture Integration (Dec 23, 2024)
-- **Feature:** Complete unified architecture for multi-exchange support
-- **Files:** `models/unified.py`, `bot_unified.py`, `core/exchange_client.py`
-- **What's New:**
-  - Unified `Position`, `Balance`, `Order` models with `.from_bybit()` and `.from_hyperliquid()` converters
-  - 5 main functions: `get_balance_unified()`, `get_positions_unified()`, `place_order_unified()`, `close_position_unified()`, `set_leverage_unified()`
-  - All functions accept `exchange='bybit'` and `account_type='demo'` parameters
-  - `fetch_open_positions()` in bot.py now uses unified architecture with field mapping
-  - Proper `account_type` propagation through entire call chain
-  - Full support for demo/real/testnet modes on both Bybit and HyperLiquid
-- **Tests:** 13/13 passing in `tests/test_unified_models.py`
-- **Feature Flag:** `USE_UNIFIED_ARCHITECTURE = True` in bot.py to enable (line ~120)
-
-### ✅ Translation Sync (Dec 23, 2024)
-- **Status:** All 15 languages perfectly synchronized (651 keys each)
-- **Cleaned:** Removed obsolete keys (`elcaro_ai_note`, `elcaro_ai_params_*`, `lang_XX`)
-- **Languages:** ar, cs, de, en, es, fr, he, it, ja, lt, pl, ru, sq, uk, zh
-- **Command:** Use `python3 utils/translation_sync.py --report` to check status
-
-### Position Close Strategy Detection
-- **Problem:** "Position closed by UNKNOWN: Strategy: Unknown"
-- **Fix:** Enhanced `detect_exit_reason()` at bot.py:2291 with fallback checks
-- **Fix:** Added strategy parameter to `split_market_plus_one_limit()` and its `add_active_position()` call
-
-### Elcaro Signal Parsing  
-- **Problem:** Signals not being detected
-- **Fix:** Made `ELCARO_RE_MAIN` regex more flexible (supports USDC, extra emojis)
-- **Fix:** `is_elcaro_signal()` now requires core match + one additional indicator (more lenient)
-
-### Positions Pagination
-- **Change:** Now shows 10 positions per page instead of 1
-- **New constant:** `POSITIONS_PER_PAGE = 10` at bot.py:6335
-- **New functions:** `get_positions_list_keyboard()`, `format_positions_list_header()`
-- **Handler:** `pos:list:{page}` for page navigation
-
-### HyperLiquid Backend
-- **Fix:** `place_order_hyperliquid()` now properly sets leverage BEFORE placing order
-- **Fix:** TP/SL are set after successful order via `set_tp_sl()`
-- **Fix:** `exchange_router.py` now uses correct response format (`retCode` for Bybit-like responses)
+| Константа | Файл | Значение |
+|-----------|------|----------|
+| `ADMIN_ID` | coin_params.py | 511692487 |
+| `WEBAPP_PORT` | webapp/app.py | 8765 |
+| `CACHE_TTL` | core/cache.py | 30 секунд |
+| `POSITIONS_PER_PAGE` | bot.py | 10 |
+| `LEVERAGE_FALLBACK` | bot.py | [50, 25, 10, 5, 3, 2, 1] |
 
 ---
 
 *Last updated: 6 января 2026*
-*Version: 3.1.0*
+*Version: 3.2.0*
+*Tests: 664/664 passing*
