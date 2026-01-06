@@ -409,7 +409,6 @@ sudo systemctl restart elcaro-bot
 ## WebApp недоступен
 ```bash
 curl localhost:8765/health
-# Проверить cloudflared
 tail -20 logs/cloudflared.log
 ```
 
@@ -420,8 +419,22 @@ journalctl -u elcaro-bot -n 100 --no-pager
 
 ## Позиции не закрываются
 ```bash
-# Проверить monitor loop
 journalctl -u elcaro-bot | grep -i "ATR\|monitor" | tail -50
+```
+
+## Полезные команды для отладки
+```bash
+# Логи конкретного юзера
+journalctl -u elcaro-bot | grep "USER_ID" | tail -50
+
+# Ошибки в логах
+journalctl -u elcaro-bot | grep -iE "error|exception|traceback" | tail -30
+
+# calc_qty логи (размеры позиций)
+journalctl -u elcaro-bot | grep "calc_qty" | tail -20
+
+# ATR мониторинг
+journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 ```
 
 ---
