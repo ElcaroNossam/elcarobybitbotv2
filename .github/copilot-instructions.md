@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.0.0 | Обновлено: 6 января 2025
+# Версия: 3.1.0 | Обновлено: 6 января 2026
 # =============================================
 
 ---
@@ -175,15 +175,41 @@ ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
 
 ---
 
-# 🔧 RECENT FIXES (Январь 2025)
+# 🔧 RECENT FIXES (Январь 2026)
 
-### ✅ Leverage Fallback для низколиквидных монет (Jan 6, 2025)
+### ✅ Position Sizing: Equity vs Available (Jan 6, 2026)
+- **Проблема:** calc_qty использовал available (свободные средства) вместо equity
+- **Результат:** Размер позиций скакал от 282 до 4284 USDT при одинаковом entry%
+- **Файл:** `bot.py` lines 7796-7840, 11959-12000
+- **Fix:** `fetch_usdt_balance(use_equity=True)` возвращает walletBalance
+- **Логика:** Entry% всегда считается от общего капитала, не от свободных средств
+- **Commit:** d111612
+
+### ✅ Leverage saved in add_active_position (Jan 6, 2026)
+- **Проблема:** Leverage никогда не сохранялся в add_active_position
+- **Файл:** `bot.py` - 4 места вызова add_active_position
+- **Fix:** Добавлен параметр leverage во все вызовы
+- **Commit:** 0af4baa
+
+### ✅ PnL Display: Price Change vs ROE (Jan 6, 2026)
+- **Проблема:** Показывался ROE (price_change * leverage) но calc_qty не использует leverage
+- **Файл:** `bot.py` line ~14150
+- **Fix:** Показываем price_change % (реальное изменение цены)
+- **Commit:** 6d855a8
+
+### ✅ Strategy Summary for Scryptomera/Scalper (Jan 6, 2026)
+- **Проблема:** Scryptomera/Scalper не показывали общие настройки Entry/SL/TP%
+- **Файл:** `bot.py` `_build_strategy_status_parts()` line ~5480
+- **Fix:** Fallback на общие настройки если нет side-specific
+- **Commit:** 3590005
+
+### ✅ Leverage Fallback для низколиквидных монет (Jan 6, 2026)
 - **Проблема:** PONKEUSDT (max 5x) не торговался - "cannot set leverage [1000] gt maxLeverage [500]"
 - **Файл:** `bot.py` lines 3321-3380
 - **Fix:** `set_leverage()` теперь пробует: 50→25→10→5→3→2→1
 - **Commit:** aae2aa2
 
-### ✅ PnL Chart Race Condition (Jan 6, 2025)
+### ✅ PnL Chart Race Condition (Jan 6, 2026)
 - **Проблема:** График PnL не отображался, кнопки периодов не работали
 - **Файл:** `webapp/templates/user/dashboard.html` line 1069
 - **Fix:** `setTimeout(() => loadPnLData('30d'), 100)` + `let pnlChart`
@@ -202,6 +228,23 @@ ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
 ---
 
 # 📋 ПАТТЕРНЫ РАЗРАБОТКИ
+
+## Position Sizing (КРИТИЧЕСКИ ВАЖНО!)
+
+```python
+# calc_qty использует EQUITY (walletBalance), НЕ available!
+# Это обеспечивает стабильный размер позиций независимо от открытых сделок
+
+equity = await fetch_usdt_balance(uid, account_type=acc, use_equity=True)  # walletBalance
+available = await fetch_usdt_balance(uid, account_type=acc, use_equity=False)  # свободные средства
+
+# Формула calc_qty:
+risk_usdt = equity * (entry_pct / 100)
+price_move = price * (sl_pct / 100)
+qty = risk_usdt / price_move  # НЕ использует leverage!
+```
+
+⚠️ **Entry% ВСЕГДА от equity, НЕ от available!**
 
 ## Bot Handler Decorators
 
@@ -414,3 +457,8 @@ journalctl -u elcaro-bot -n 100 --no-pager
 - **Fix:** `place_order_hyperliquid()` now properly sets leverage BEFORE placing order
 - **Fix:** TP/SL are set after successful order via `set_tp_sl()`
 - **Fix:** `exchange_router.py` now uses correct response format (`retCode` for Bybit-like responses)
+
+---
+
+*Last updated: 6 января 2026*
+*Version: 3.1.0*
