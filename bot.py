@@ -4450,7 +4450,13 @@ async def split_market_plus_one_limit(
 
     entry  = float(pos.get("avgPrice") or spot_price)
     size   = float(pos.get("size") or leg1)
-    side_s = pos.get("side") or side  
+    side_s = pos.get("side") or side
+    # Get leverage from position data (Bybit returns it) or from user config
+    pos_leverage = pos.get("leverage")
+    if pos_leverage:
+        pos_leverage = int(float(pos_leverage))
+    else:
+        pos_leverage = cfg.get('leverage', 10)
 
     add_active_position(
         user_id=uid, symbol=symbol, side=side_s,
@@ -4458,7 +4464,8 @@ async def split_market_plus_one_limit(
         timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf)),
         strategy=strategy,
         account_type=account_type,
-        use_atr=use_atr  # P0.5: Pass ATR setting
+        use_atr=use_atr,  # P0.5: Pass ATR setting
+        leverage=pos_leverage  # Save actual leverage used
     )
 
     # P0.5: If ATR enabled, only set SL (no TP - will be managed by ATR trailing)
@@ -5165,8 +5172,9 @@ async def place_order_for_targets(
                     env=target_env,
                     client_order_id=client_order_id,
                     use_atr=pos_use_atr,  # P0.5: Pass ATR setting
+                    leverage=leverage  # Save leverage used for this order
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} (use_atr={pos_use_atr})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} (use_atr={pos_use_atr}, leverage={leverage})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -13676,6 +13684,10 @@ async def monitor_positions_loop(app: Application):
                                                 side=po["side"], account_type=current_account_type
                                             )
                                             pos_use_atr_pending = trade_params_pending.get("use_atr", False)
+                                            # Get leverage from position (Bybit returns it)
+                                            pos_leverage = pos.get("leverage")
+                                            if pos_leverage:
+                                                pos_leverage = int(float(pos_leverage))
                                             
                                             # Use current_account_type from the loop
                                             add_active_position(
@@ -13688,7 +13700,8 @@ async def monitor_positions_loop(app: Application):
                                                 signal_id   = po["signal_id"],
                                                 strategy    = strat_name,
                                                 account_type = current_account_type,
-                                                use_atr     = pos_use_atr_pending  # P0.5
+                                                use_atr     = pos_use_atr_pending,  # P0.5
+                                                leverage    = pos_leverage  # Save actual leverage
                                             )
                                             await bot.send_message(
                                                 uid,
@@ -13803,6 +13816,11 @@ async def monitor_positions_loop(app: Application):
                                 )
                                 pos_use_atr_detected = trade_params_detected.get("use_atr", False)
                                 
+                                # Get leverage from position data (Bybit returns it)
+                                pos_leverage = p.get("leverage")
+                                if pos_leverage:
+                                    pos_leverage = int(float(pos_leverage))
+                                
                                 add_active_position(
                                     user_id    = uid,
                                     symbol     = sym,
@@ -13813,7 +13831,8 @@ async def monitor_positions_loop(app: Application):
                                     signal_id  = signal_id,
                                     strategy   = final_strategy,
                                     account_type = current_account_type,
-                                    use_atr    = pos_use_atr_detected  # P0.5
+                                    use_atr    = pos_use_atr_detected,  # P0.5
+                                    leverage   = pos_leverage  # Save actual leverage
                                 )
                             
                                 if detected_strategy:
