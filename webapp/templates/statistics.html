@@ -1006,7 +1006,24 @@
             
             const labels = Object.keys(byStrategy);
             const values = Object.values(byStrategy).map(s => Math.abs(s.pnl));
-            const colors = ['#dc2626', '#d4a017', '#22c55e', '#ef4444', '#b91c1c', '#00d4ff'];
+            
+            // Unique colors for each strategy - more distinct palette
+            const strategyColorMap = {
+                'scryptomera': '#dc2626',   // Red
+                'scalper': '#d4a017',        // Gold
+                'oi': '#22c55e',             // Green
+                'elcaro': '#3b82f6',         // Blue
+                'fibonacci': '#a855f7',      // Purple
+                'rsi_bb': '#00d4ff',         // Cyan
+                'wyckoff': '#f97316',        // Orange
+                'manual': '#ec4899',         // Pink
+                'atr': '#14b8a6',            // Teal
+                'unknown': '#6b7280'         // Gray
+            };
+            
+            const colors = labels.map(label => 
+                strategyColorMap[label.toLowerCase()] || strategyColorMap['unknown']
+            );
             
             strategyChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -1014,7 +1031,7 @@
                     labels: labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: colors.slice(0, labels.length),
+                        backgroundColor: colors,
                         borderWidth: 0,
                         hoverOffset: 8
                     }]
@@ -1058,20 +1075,37 @@
                 'scryptomera': 'fa-newspaper',
                 'scalper': 'fa-stopwatch',
                 'wyckoff': 'fa-chart-bar',
-                'OI': 'fa-water',
+                'oi': 'fa-water',
+                'fibonacci': 'fa-wave-square',
+                'rsi_bb': 'fa-chart-area',
+                'atr': 'fa-chart-line',
                 'manual': 'fa-hand-pointer'
+            };
+            
+            // Unique accent colors for each strategy
+            const strategyAccentColors = {
+                'scryptomera': '#dc2626',
+                'scalper': '#d4a017',
+                'oi': '#22c55e',
+                'elcaro': '#3b82f6',
+                'fibonacci': '#a855f7',
+                'rsi_bb': '#00d4ff',
+                'wyckoff': '#f97316',
+                'manual': '#ec4899',
+                'atr': '#14b8a6'
             };
             
             grid.innerHTML = Object.entries(byStrategy).map(([name, stats]) => {
                 const pnl = stats.pnl || 0;
                 const winRate = stats.winRate || 0;
                 const isWin = pnl >= 0;
-                const icon = icons[name] || 'fa-cog';
+                const icon = icons[name.toLowerCase()] || 'fa-cog';
+                const accentColor = strategyAccentColors[name.toLowerCase()] || '#6b7280';
                 
                 return `
-                    <div class="strategy-card">
+                    <div class="strategy-card" style="border-left: 3px solid ${accentColor};">
                         <div class="strategy-header">
-                            <span class="strategy-name">
+                            <span class="strategy-name" style="color: ${accentColor};">
                                 <i class="fas ${icon}"></i>
                                 ${name.charAt(0).toUpperCase() + name.slice(1)}
                             </span>
@@ -1095,7 +1129,7 @@
                         </div>
                         <div class="strategy-progress">
                             <div class="progress-bar">
-                                <div class="progress-fill ${isWin ? 'win' : 'loss'}" style="width: ${winRate}%"></div>
+                                <div class="progress-fill" style="width: ${winRate}%; background: ${accentColor};"></div>
                             </div>
                         </div>
                     </div>

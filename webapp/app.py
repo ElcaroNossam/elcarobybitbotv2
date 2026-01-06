@@ -48,7 +48,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "style-src 'self' 'unsafe-inline' https://*.tradingview.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https: blob:; "
             "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-            "connect-src 'self' https://*.tradingview.com https://*.binance.com https://*.bybit.com wss://*.binance.com wss://*.bybit.com; "
+            "connect-src 'self' https://*.tradingview.com https://*.binance.com https://*.bybit.com wss://*.binance.com wss://*.bybit.com https://cdn.jsdelivr.net; "
             "frame-src 'self' https://*.tradingview.com; "
             "object-src 'none'; "
             "base-uri 'self'"
