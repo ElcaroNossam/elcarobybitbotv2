@@ -1043,17 +1043,22 @@
         // Check auth on page load
         (async function checkAuth() {
             let token = getToken();
+            const userId = localStorage.getItem('triacelo_user_id');
+            console.log('[Auth] Token exists:', !!token, 'User ID:', userId);
             
             // If no token but we have Telegram WebApp - try auto-login
             if (!token && tg?.initData) {
+                console.log('[Auth] No token, attempting Telegram auto-login');
                 const success = await autoLoginTelegram();
                 if (success) {
                     token = getToken();
+                    console.log('[Auth] Auto-login successful, new token obtained');
                 }
             }
             
             // Still no token - redirect to login
             if (!token) {
+                console.log('[Auth] No token, redirecting to login');
                 window.location.href = '/login';
                 return;
             }
@@ -1221,19 +1226,36 @@
                 console.log('[PnL] Auth headers:', headers.Authorization ? 'Bearer ***' : 'NO TOKEN');
                 
                 const res = await fetch(`/api/stats/pnl-history?exchange=${exchange}&period=${period}`, { headers });
-                const data = await res.json();
                 
+                // Handle auth errors
+                if (res.status === 401) {
+                    console.error('[PnL] Auth error 401 - trying re-auth');
+                    if (tg?.initData) {
+                        const success = await autoLoginTelegram();
+                        if (success) {
+                            return loadPnLData(period); // Retry with new token
+                        }
+                    }
+                    console.error('[PnL] Re-auth failed, redirecting to login');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const data = await res.json();
                 console.log('[PnL] Response status:', res.status, 'Data:', data);
 
                 // API returns { labels: [], values: [], period: '30d' }
                 if (data && Array.isArray(data.labels) && Array.isArray(data.values)) {
                     console.log('[PnL] Loaded', data.labels.length, 'data points');
+                    if (data.labels.length === 0) {
+                        console.log('[PnL] No data available for this period');
+                    }
                     pnlChart.data.labels = data.labels;
                     pnlChart.data.datasets[0].data = data.values;
                     pnlChart.update();
                 } else if (data.detail) {
                     // Auth error
-                    console.error('[PnL] Auth error:', data.detail);
+                    console.error('[PnL] API error:', data.detail);
                 } else {
                     // Fallback: try old format (array of {time,daily,cumulative})
                     if (Array.isArray(data) && data.length > 0 && data[0].time) {
