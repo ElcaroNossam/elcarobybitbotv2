@@ -41,13 +41,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Permissions policy (disable dangerous APIs)
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         
-        # Content Security Policy - allow TradingView widgets
+        # Content Security Policy - allow TradingView widgets, Telegram WebApp, Chart.js, FontAwesome
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com; "
-            "style-src 'self' 'unsafe-inline' https://*.tradingview.com https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com https://telegram.org https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://*.tradingview.com https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https: blob:; "
-            "font-src 'self' data: https://fonts.gstatic.com; "
+            "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
             "connect-src 'self' https://*.tradingview.com https://*.binance.com https://*.bybit.com wss://*.binance.com wss://*.bybit.com; "
             "frame-src 'self' https://*.tradingview.com; "
             "object-src 'none'; "
