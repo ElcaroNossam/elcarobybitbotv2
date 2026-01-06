@@ -7793,13 +7793,16 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
 
 
 @log_calls
-async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
-    """Fetch AVAILABLE USDT margin for trading.
+async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity: bool = True) -> float:
+    """Fetch USDT balance for position sizing.
     
-    Returns the actual free USDT that can be used to open new positions:
-    available = walletBalance - totalPositionIM - totalOrderIM
+    Args:
+        use_equity: If True (default), returns total equity (walletBalance) for consistent
+                    position sizing regardless of open positions.
+                    If False, returns available margin (free funds).
     
-    This is the correct value for position sizing calculations.
+    Using equity ensures entry% is always calculated from total capital,
+    making position sizes consistent and predictable.
     """
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
@@ -7820,8 +7823,14 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None) -> float:
                     if available < 0:
                         available = 0.0
                     
-                    logger.info(f"[{user_id}] USDT available for trading: {available:.2f} (wallet={wallet_balance:.2f} - posIM={position_im:.2f} - ordIM={order_im:.2f}) [{account_type or 'auto'}]")
-                    return available
+                    if use_equity:
+                        # Use total equity for consistent position sizing
+                        logger.info(f"[{user_id}] USDT equity for sizing: {wallet_balance:.2f} (available={available:.2f}) [{account_type or 'auto'}]")
+                        return wallet_balance
+                    else:
+                        # Use available margin
+                        logger.info(f"[{user_id}] USDT available: {available:.2f} (equity={wallet_balance:.2f}) [{account_type or 'auto'}]")
+                        return available
                 except (TypeError, ValueError) as e:
                     logger.warning(f"[{user_id}] Error parsing USDT balance: {e}")
                     return 0.0
@@ -11956,11 +11965,12 @@ async def calc_qty(
     sl_pct: float,
     account_type: str = None
 ) -> float:
-    balance = await fetch_usdt_balance(user_id, account_type=account_type)
-    logger.info(f"[calc_qty] uid={user_id} symbol={symbol} account_type={account_type} balance={balance:.2f}")
-    if balance <= 0:
-        raise ValueError(f"Don't have USDT (balance={balance}, account_type={account_type})")
-    risk_usdt = balance * (risk_pct / 100)
+    # Use equity (total capital) for consistent position sizing
+    equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
+    logger.info(f"[calc_qty] uid={user_id} symbol={symbol} account_type={account_type} equity={equity:.2f}")
+    if equity <= 0:
+        raise ValueError(f"Don't have USDT (equity={equity}, account_type={account_type})")
+    risk_usdt = equity * (risk_pct / 100)
     price_move = price * (sl_pct / 100)
     if price_move <= 0:
         raise ValueError("Wrong sl_pct for price_move")
