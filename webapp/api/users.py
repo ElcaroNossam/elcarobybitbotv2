@@ -89,6 +89,24 @@ async def get_settings(
         }
 
 
+@router.get("/me")
+async def get_current_user_info(user: dict = Depends(get_current_user)):
+    """Get current authenticated user info for quick UI setup."""
+    user_id = user["user_id"]
+    creds = db.get_all_user_credentials(user_id)
+    
+    return {
+        "user": {
+            "user_id": user_id,
+            "exchange_type": creds.get("exchange_mode") or creds.get("active_exchange") or "bybit",
+            "trading_mode": creds.get("trading_mode", "demo"),
+            "leverage": creds.get("leverage", 10),
+            "language": creds.get("lang", "en"),
+            "is_allowed": creds.get("is_allowed", False),
+        }
+    }
+
+
 @router.put("/settings")
 async def update_settings(
     data: SettingsUpdate,

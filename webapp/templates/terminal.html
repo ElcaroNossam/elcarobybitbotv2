@@ -714,6 +714,53 @@
             
             .quick-actions { flex-wrap: wrap; gap: 6px; }
             .quick-btn { flex: 1; min-width: 100px; padding: 10px 8px; font-size: 11px; }
+            
+            /* Account selector mobile - larger touch targets */
+            .account-selector {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                align-items: center;
+            }
+            
+            .exchange-select,
+            .account-select {
+                padding: 10px 12px;
+                font-size: 14px;
+                min-width: 100px;
+                min-height: 44px; /* iOS touch target minimum */
+                -webkit-appearance: none;
+                appearance: none;
+                background-color: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                color: var(--text-primary);
+            }
+            
+            .demo-badge {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .wallet-connect-btn {
+                padding: 10px 14px;
+                font-size: 13px;
+                min-height: 44px;
+            }
+            
+            .ws-status {
+                display: none; /* Hide on mobile */
+            }
+            
+            .lang-selector {
+                position: relative;
+            }
+            
+            .lang-btn {
+                padding: 10px;
+                min-width: 44px;
+                min-height: 44px;
+            }
         }
         
         /* Extra small phones (iPhone SE, etc) */
@@ -2338,7 +2385,7 @@
             }
             
             tbody.innerHTML = positions.map(p => {
-                const pnlClass = p.pnl >= 0 ? 'positive' : 'negative';
+                const pnlClass = (p.pnl || 0) >= 0 ? 'positive' : 'negative';
                 
                 // Strategy badge
                 let strategyBadge = '';
@@ -2372,14 +2419,14 @@
                 
                 return `<tr>
                     <td><strong>${p.symbol}</strong> ${strategyBadge} ${atrIndicator}</td>
-                    <td><span class="position-side ${p.side}">${p.side.toUpperCase()}</span></td>
-                    <td style="font-family: var(--font-mono);">${p.size}</td>
-                    <td style="font-family: var(--font-mono);">$${p.entry_price.toLocaleString()}</td>
-                    <td style="font-family: var(--font-mono);">$${p.mark_price.toLocaleString()}</td>
+                    <td><span class="position-side ${p.side}">${(p.side || 'buy').toUpperCase()}</span></td>
+                    <td style="font-family: var(--font-mono);">${p.size || 0}</td>
+                    <td style="font-family: var(--font-mono);">$${(p.entry_price || 0).toLocaleString()}</td>
+                    <td style="font-family: var(--font-mono);">$${(p.mark_price || 0).toLocaleString()}</td>
                     <td style="font-family: var(--font-mono); color: var(--red);">$${p.liq_price?.toLocaleString() || '--'}</td>
                     <td>${tpslInfo}</td>
                     <td style="font-family: var(--font-mono);">$${p.margin?.toLocaleString() || '--'}</td>
-                    <td class="pnl ${pnlClass}" style="font-family: var(--font-mono);">${p.pnl >= 0 ? '+' : ''}$${p.pnl.toFixed(2)} (${p.roe >= 0 ? '+' : ''}${p.roe?.toFixed(2) || 0}%)</td>
+                    <td class="pnl ${pnlClass}" style="font-family: var(--font-mono);">${(p.pnl || 0) >= 0 ? '+' : ''}$${(p.pnl || 0).toFixed(2)} (${(p.roe || 0) >= 0 ? '+' : ''}${(p.roe || 0).toFixed(2)}%)</td>
                     <td>
                         <button class="action-btn close" onclick="closePosition('${p.symbol}')">Close</button>
                         <button class="action-btn edit" onclick="editPosition('${p.symbol}')">TP/SL</button>
