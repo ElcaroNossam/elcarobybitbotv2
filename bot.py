@@ -5490,10 +5490,23 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
         s_pct = strat_settings.get("short_percent")
         s_sl = strat_settings.get("short_sl_percent")
         
-        if l_pct is not None or l_sl is not None:
-            status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
-        if s_pct is not None or s_sl is not None:
-            status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
+        has_side_specific = (l_pct is not None or l_sl is not None or 
+                            s_pct is not None or s_sl is not None)
+        
+        if has_side_specific:
+            # Show side-specific settings
+            if l_pct is not None or l_sl is not None:
+                status_parts.append(f"L:{l_pct or '-'}%/{l_sl or '-'}%")
+            if s_pct is not None or s_sl is not None:
+                status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
+        else:
+            # Show general settings if no side-specific overrides
+            if pct is not None:
+                status_parts.append(f"Entry: {pct}%")
+            if sl is not None:
+                status_parts.append(f"SL: {sl}%")
+            if tp is not None:
+                status_parts.append(f"TP: {tp}%")
     else:
         # General settings for other strategies
         if pct is not None:
