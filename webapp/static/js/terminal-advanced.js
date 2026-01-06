@@ -334,7 +334,7 @@ const DCABuilder = {
         const orders = this.state.orders;
         if (!orders.length) return;
 
-        const token = localStorage.getItem('elcaro_token');
+        const token = localStorage.getItem('triacelo_token');
         let success = 0, failed = 0;
 
         for (const order of orders) {
@@ -633,7 +633,7 @@ const OneClickTrading = {
         this.state.pendingOrder = null;
 
         try {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             const res = await fetch('/api/trading/order', {
                 method: 'POST',
                 headers: { 
@@ -680,7 +680,7 @@ const PositionAnalytics = {
 
     async fetchStats() {
         try {
-            const token = localStorage.getItem('elcaro_token');
+            const token = localStorage.getItem('triacelo_token');
             const res = await fetch('/api/trading/stats?period=week', {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
