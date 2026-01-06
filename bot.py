@@ -14143,19 +14143,22 @@ async def monitor_positions_loop(app: Application):
                                     except Exception:
                                         pnl_value = pnl_calc
                                 
-                                    # Percent value (ROE with leverage)
-                                    # Bybit closedPnlRate is ROE as decimal (already includes leverage)
+                                    # Percent value - show PRICE CHANGE %, not ROE
+                                    # Our calc_qty formula doesn't use leverage, so showing ROE is misleading
+                                    # We show the actual price change percentage instead
                                     pct_value = None
                                     if rate_from_exch is not None:
                                         try:
-                                            pct_value = float(rate_from_exch) * 100.0  # Convert to %
+                                            # Bybit closedPnlRate is ROE - convert back to price change
+                                            roe_pct = float(rate_from_exch) * 100.0
+                                            # Price change = ROE / leverage
+                                            pct_value = roe_pct / leverage if leverage > 0 else roe_pct
                                         except Exception:
                                             pass
                                 
-                                    # Fallback: calculate ROE from price change * leverage
+                                    # Fallback: use calculated price change directly (no leverage multiplication)
                                     if pct_value is None:
-                                        price_change_pct = pct_calc  # This is just price change %
-                                        pct_value = price_change_pct * leverage  # Apply leverage for ROE
+                                        pct_value = pct_calc  # Just price change %, NOT multiplied by leverage
                                     
                                     # CRITICAL: Ensure pct_value sign matches pnl_value sign
                                     # Sometimes Bybit API returns wrong sign for closedPnlRate
