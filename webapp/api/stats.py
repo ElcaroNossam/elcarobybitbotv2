@@ -249,6 +249,7 @@ async def get_pnl_history(
     try:
         import db
         uid = user["user_id"]
+        logger.info(f"[PnL-API] Request from user {uid}, exchange={exchange}, period={period}")
         
         # Parse period
         days_map = {"24h": 1, "7d": 7, "30d": 30, "90d": 90, "all": 365}
@@ -258,6 +259,7 @@ async def get_pnl_history(
         
         # Get trades from trade_logs table (ignore exchange filter - column doesn't exist)
         trades = db.get_trade_logs_list(uid, limit=500, exchange=None) or []
+        logger.info(f"[PnL-API] User {uid}: fetched {len(trades)} trades")
         
         # Group by date
         daily_pnl = {}
@@ -306,13 +308,14 @@ async def get_pnl_history(
                 cumulative += daily_pnl[d]
                 values.append(round(cumulative, 2))
         
+        logger.info(f"[PnL-API] User {uid}: returning {len(labels)} data points, cumulative={cumulative if 'cumulative' in dir() else 0}")
         return {
             "labels": labels,
             "values": values,
             "period": period
         }
     except Exception as e:
-        print(f"PnL history error: {e}")
+        logger.error(f"[PnL-API] Error: {e}")
         return {"labels": [], "values": [], "error": str(e)}
 
 
