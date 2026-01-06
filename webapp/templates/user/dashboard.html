@@ -1217,24 +1217,36 @@
             try {
                 const exchange = document.querySelector('.exchange-btn.active').dataset.exchange;
                 const headers = getAuthHeaders();
+                console.log('[PnL] Loading data for exchange:', exchange, 'period:', period);
+                console.log('[PnL] Auth headers:', headers.Authorization ? 'Bearer ***' : 'NO TOKEN');
+                
                 const res = await fetch(`/api/stats/pnl-history?exchange=${exchange}&period=${period}`, { headers });
                 const data = await res.json();
+                
+                console.log('[PnL] Response status:', res.status, 'Data:', data);
 
                 // API returns { labels: [], values: [], period: '30d' }
                 if (data && Array.isArray(data.labels) && Array.isArray(data.values)) {
+                    console.log('[PnL] Loaded', data.labels.length, 'data points');
                     pnlChart.data.labels = data.labels;
                     pnlChart.data.datasets[0].data = data.values;
                     pnlChart.update();
+                } else if (data.detail) {
+                    // Auth error
+                    console.error('[PnL] Auth error:', data.detail);
                 } else {
                     // Fallback: try old format (array of {time,daily,cumulative})
                     if (Array.isArray(data) && data.length > 0 && data[0].time) {
+                        console.log('[PnL] Using old format, loaded', data.length, 'data points');
                         pnlChart.data.labels = data.map(d => d.time);
                         pnlChart.data.datasets[0].data = data.map(d => d.cumulative || d.pnl || 0);
                         pnlChart.update();
+                    } else {
+                        console.warn('[PnL] Unknown data format:', data);
                     }
                 }
             } catch (err) {
-                console.error('Error loading PnL data:', err);
+                console.error('[PnL] Error loading data:', err);
             }
         }
         
