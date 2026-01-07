@@ -13641,6 +13641,11 @@ async def monitor_positions_loop(app: Application):
     # Key: (uid, symbol, account_type), Value: timestamp when notification was sent
     # Prevents duplicate close notifications when remove_active_position() fails (e.g., entry_price mismatch)
     _close_notified = {}
+    
+    # Track already processed closures to prevent duplicate logging
+    # Key: (uid, symbol, entry_price_rounded, pnl_rounded), Value: timestamp
+    # This is a second layer of protection (first layer is in add_trade_log)
+    _processed_closures = {}
 
     while True:
         try:
@@ -14134,6 +14139,36 @@ async def monitor_positions_loop(app: Application):
 
                                 try:
                                     sig = fetch_signal_by_id(ap["signal_id"]) or {}
+                                    
+                                    # Calculate PnL for deduplication check
+                                    size_for_pnl = float(rec.get("closedSize") or ap.get("size") or 0.0)
+                                    pnl_for_check = (exit_price - entry_price) * size_for_pnl * (1 if ap["side"] == "Buy" else -1)
+                                    
+                                    # DEDUPLICATION: Check if this closure was already processed
+                                    # Key includes entry_price and pnl to identify unique trades
+                                    closure_key = (uid, sym, round(entry_price, 4), round(pnl_for_check, 2))
+                                    now_ts = int(time.time())
+                                    CLOSURE_COOLDOWN = 86400  # 24 hours
+                                    
+                                    if closure_key in _processed_closures:
+                                        last_processed = _processed_closures[closure_key]
+                                        if now_ts - last_processed < CLOSURE_COOLDOWN:
+                                            logger.debug(
+                                                f"[{uid}] Skipping already processed closure: {sym} "
+                                                f"entry={entry_price:.4f} pnl={pnl_for_check:.2f} "
+                                                f"(processed {now_ts - last_processed}s ago)"
+                                            )
+                                            # Still try to remove the position from active_positions
+                                            remove_active_position(uid, sym, account_type=ap_account_type, entry_price=entry_price)
+                                            continue
+                                    
+                                    # Mark as processed BEFORE logging to prevent race condition
+                                    _processed_closures[closure_key] = now_ts
+                                    
+                                    # Cleanup old entries (keep last 24 hours only)
+                                    if len(_processed_closures) > 1000:
+                                        cutoff = now_ts - CLOSURE_COOLDOWN
+                                        _processed_closures = {k: v for k, v in _processed_closures.items() if v > cutoff}
                                 
                                     # Determine strategy: from position or fallback to signal detection
                                     if not position_strategy and sig:
@@ -14155,7 +14190,7 @@ async def monitor_positions_loop(app: Application):
                                         entry_price=entry_price,
                                         exit_price=exit_price,
                                         exit_reason=exit_reason,
-                                        size=float(rec.get("closedSize") or ap.get("size") or 0.0),
+                                        size=size_for_pnl,
                                         signal_source=("bitk" if (sig.get("raw_message") and ("DROP CATCH" in sig["raw_message"] or "TIGHTBTC" in sig["raw_message"])) else None),
                                         rsi=sig.get("rsi"), bb_hi=sig.get("bb_hi"), bb_lo=sig.get("bb_lo"),
                                         oi_prev=sig.get("oi_prev"), oi_now=sig.get("oi_now"), oi_chg=sig.get("oi_chg"),
