@@ -7491,8 +7491,6 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
     Returns:
         Total realized PnL in USDT
     """
-    end_ts = int(time.time() * 1000)
-    start_ts = end_ts - days * 24 * 60 * 60 * 1000
     total_pnl = 0.0
     
     # Determine exchange
@@ -7501,6 +7499,8 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
     
     if exchange == 'hyperliquid':
         # Use HyperLiquid adapter for PnL
+        end_ts = int(time.time() * 1000)
+        start_ts = end_ts - days * 24 * 60 * 60 * 1000
         try:
             creds = db.get_hl_credentials(uid)
             if creds and creds.get("private_key"):
@@ -7524,25 +7524,42 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
         except Exception as e:
             logger.warning(f"[{uid}] HL realized PnL fetch error: {e}")
     else:
-        # Bybit
-        cursor = None
-        while True:
-            params = {
-                "category": "linear",
-                "startTime": start_ts,
-                "endTime": end_ts,
-                "limit": 100,      
-            }
-            if cursor:
-                params["cursor"] = cursor
+        # Bybit - API limits to 7 days per request, so we need to chunk
+        # Split into 7-day chunks to avoid "time range cannot exceed 7 days" error
+        chunk_days = 7
+        end_ts = int(time.time() * 1000)
+        overall_start_ts = end_ts - days * 24 * 60 * 60 * 1000
+        
+        # Process in 7-day chunks from most recent to oldest
+        chunk_end = end_ts
+        while chunk_end > overall_start_ts:
+            chunk_start = max(chunk_end - chunk_days * 24 * 60 * 60 * 1000, overall_start_ts)
+            
+            cursor = None
+            while True:
+                params = {
+                    "category": "linear",
+                    "startTime": chunk_start,
+                    "endTime": chunk_end,
+                    "limit": 100,      
+                }
+                if cursor:
+                    params["cursor"] = cursor
 
-            res = await _bybit_request(uid, "GET", "/v5/position/closed-pnl", params=params, account_type=account_type)
-            for item in res.get("list", []):
-                total_pnl += float(item.get("closedPnl", 0))
+                try:
+                    res = await _bybit_request(uid, "GET", "/v5/position/closed-pnl", params=params, account_type=account_type)
+                    for item in res.get("list", []):
+                        total_pnl += float(item.get("closedPnl", 0))
 
-            cursor = res.get("nextPageCursor")
-            if not cursor:
-                break
+                    cursor = res.get("nextPageCursor")
+                    if not cursor:
+                        break
+                except Exception as e:
+                    logger.warning(f"[{uid}] Bybit closed-pnl chunk error: {e}")
+                    break
+            
+            # Move to next chunk (older period)
+            chunk_end = chunk_start
 
     return total_pnl
 
