@@ -315,7 +315,7 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'Оберіть групу монет:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP100',
+    'group_top100':                'TOP',
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ Групу монет встановлено: {group}',
 

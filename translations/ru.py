@@ -431,7 +431,7 @@ TEXTS = {
     # Группы монет
     'select_coin_group':           'Выбери группу монет:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP100',
+    'group_top100':                'TOP',
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ Группа монет установлена: {group}',
 

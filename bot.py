@@ -7247,7 +7247,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 callback_data=f"strat_coins_set:{strategy}:ALL"
             )],
             [InlineKeyboardButton(
-                ("✓ " if current_group == "TOP100" else "") + "💎 " + t.get('group_top100', 'TOP 100'),
+                ("✓ " if current_group == "TOP100" else "") + "💎 " + t.get('group_top100', 'TOP'),
                 callback_data=f"strat_coins_set:{strategy}:TOP100"
             )],
             [InlineKeyboardButton(
@@ -7282,7 +7282,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         group_labels = {
             "GLOBAL": t.get('group_global', '📊 Global'),
             "ALL": "🌐 " + t.get('group_all', 'ALL'),
-            "TOP100": "💎 " + t.get('group_top100', 'TOP 100'),
+            "TOP100": "💎 " + t.get('group_top100', 'TOP'),
             "VOLATILE": "🔥 " + t.get('group_volatile', 'VOLATILE'),
         }
         await query.answer(group_labels.get(group, group))
@@ -20191,7 +20191,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

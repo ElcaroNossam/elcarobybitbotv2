@@ -314,7 +314,7 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'Selecciona grupo de monedas:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP100',
+    'group_top100':                'TOP',
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ Grupo de monedas establecido: {group}',
 
