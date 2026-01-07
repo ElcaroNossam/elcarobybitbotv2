@@ -3886,6 +3886,29 @@ def add_trade_log(
 ):
     ensure_user(user_id)
     with get_conn() as conn:
+        # CRITICAL: Check for duplicate trade before inserting
+        # A trade is considered duplicate if same user+symbol+side+entry_price+pnl within last 24 hours
+        # This prevents the monitoring loop from logging the same closed position multiple times
+        existing = conn.execute(
+            """
+            SELECT id FROM trade_logs 
+            WHERE user_id = ? AND symbol = ? AND side = ? 
+              AND ABS(entry_price - ?) < 0.0001 
+              AND ABS(pnl - ?) < 0.01
+              AND ts > datetime('now', '-24 hours')
+            LIMIT 1
+            """,
+            (user_id, symbol, side, entry_price, pnl)
+        ).fetchone()
+        
+        if existing:
+            # Duplicate detected, skip insert
+            import logging
+            logging.getLogger(__name__).debug(
+                f"[{user_id}] Skipping duplicate trade log: {symbol} {side} pnl={pnl}"
+            )
+            return
+        
         conn.execute(
             """
           INSERT INTO trade_logs(
