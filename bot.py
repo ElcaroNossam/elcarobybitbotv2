@@ -10258,13 +10258,20 @@ async def _fetch_balance_data_parallel(uid: int, account_type: str, tz_str: str)
     import time as _time
     start_time = _time.time()
     
-    # Run all fetches in parallel
+    # Wrap each function with timing
+    async def timed_fetch(name: str, coro):
+        t0 = _time.time()
+        result = await coro
+        logger.debug(f"[{uid}] ⏱️ {name}: {_time.time() - t0:.2f}s")
+        return result
+    
+    # Run all fetches in parallel with timing
     results = await asyncio.gather(
-        fetch_account_balance(uid, account_type=account_type),
-        fetch_today_realized_pnl(uid, tz_str=tz_str, account_type=account_type),
-        fetch_realized_pnl(uid, days=7, account_type=account_type),
-        fetch_open_positions(uid, account_type=account_type),
-        fetch_spot_pnl(uid, days=7, account_type=account_type),
+        timed_fetch("account_balance", fetch_account_balance(uid, account_type=account_type)),
+        timed_fetch("today_pnl", fetch_today_realized_pnl(uid, tz_str=tz_str, account_type=account_type)),
+        timed_fetch("week_pnl", fetch_realized_pnl(uid, days=7, account_type=account_type)),
+        timed_fetch("positions", fetch_open_positions(uid, account_type=account_type)),
+        timed_fetch("spot_pnl", fetch_spot_pnl(uid, days=7, account_type=account_type)),
         return_exceptions=True
     )
     
