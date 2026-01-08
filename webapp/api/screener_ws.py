@@ -249,73 +249,112 @@ okx_fetcher = OKXDataFetcher()
 hyperliquid_fetcher = HyperLiquidDataFetcher()
 
 async def update_market_data():
-    """Background task to update market data every 3 seconds for all exchanges"""
+    """Background task to update market data every 3 seconds for all exchanges.
+    
+    OPTIMIZED: Fetches data from all exchanges in parallel using asyncio.gather().
+    """
     while True:
         try:
-            # Update Binance data
-            try:
-                funding_rates = await binance_fetcher.fetch_funding_rates()
-                futures_tickers = await binance_fetcher.fetch_futures_tickers()
-                spot_tickers = await binance_fetcher.fetch_spot_tickers()
-                
-                for ticker in futures_tickers:
-                    processed = binance_fetcher.process_ticker(ticker, funding_rates)
-                    cache.binance_futures_data[processed['symbol']] = processed
-                
-                for ticker in spot_tickers:
-                    processed = binance_fetcher.process_ticker(ticker, {})
-                    processed['funding_rate'] = None
-                    processed['open_interest'] = None
-                    cache.binance_spot_data[processed['symbol']] = processed
-            except Exception as e:
-                logger.error(f"Error updating Binance data: {e}")
+            # OPTIMIZED: Fetch data from all exchanges in parallel
+            async def fetch_binance_data():
+                """Fetch all Binance data in parallel."""
+                try:
+                    funding_rates, futures_tickers, spot_tickers = await asyncio.gather(
+                        binance_fetcher.fetch_funding_rates(),
+                        binance_fetcher.fetch_futures_tickers(),
+                        binance_fetcher.fetch_spot_tickers(),
+                        return_exceptions=True
+                    )
+                    
+                    if not isinstance(funding_rates, Exception):
+                        if not isinstance(futures_tickers, Exception):
+                            for ticker in futures_tickers:
+                                processed = binance_fetcher.process_ticker(ticker, funding_rates)
+                                cache.binance_futures_data[processed['symbol']] = processed
+                        
+                        if not isinstance(spot_tickers, Exception):
+                            for ticker in spot_tickers:
+                                processed = binance_fetcher.process_ticker(ticker, {})
+                                processed['funding_rate'] = None
+                                processed['open_interest'] = None
+                                cache.binance_spot_data[processed['symbol']] = processed
+                except Exception as e:
+                    logger.error(f"Error updating Binance data: {e}")
             
-            # Update Bybit data
-            try:
-                funding_rates = await bybit_fetcher.fetch_funding_rates()
-                futures_tickers = await bybit_fetcher.fetch_futures_tickers()
-                spot_tickers = await bybit_fetcher.fetch_spot_tickers()
-                
-                for ticker in futures_tickers:
-                    processed = bybit_fetcher.process_ticker(ticker, funding_rates)
-                    cache.bybit_futures_data[processed['symbol']] = processed
-                
-                for ticker in spot_tickers:
-                    processed = bybit_fetcher.process_ticker(ticker, {})
-                    processed['funding_rate'] = None
-                    processed['open_interest'] = None
-                    cache.bybit_spot_data[processed['symbol']] = processed
-            except Exception as e:
-                logger.error(f"Error updating Bybit data: {e}")
+            async def fetch_bybit_data():
+                """Fetch all Bybit data in parallel."""
+                try:
+                    funding_rates, futures_tickers, spot_tickers = await asyncio.gather(
+                        bybit_fetcher.fetch_funding_rates(),
+                        bybit_fetcher.fetch_futures_tickers(),
+                        bybit_fetcher.fetch_spot_tickers(),
+                        return_exceptions=True
+                    )
+                    
+                    if not isinstance(funding_rates, Exception):
+                        if not isinstance(futures_tickers, Exception):
+                            for ticker in futures_tickers:
+                                processed = bybit_fetcher.process_ticker(ticker, funding_rates)
+                                cache.bybit_futures_data[processed['symbol']] = processed
+                        
+                        if not isinstance(spot_tickers, Exception):
+                            for ticker in spot_tickers:
+                                processed = bybit_fetcher.process_ticker(ticker, {})
+                                processed['funding_rate'] = None
+                                processed['open_interest'] = None
+                                cache.bybit_spot_data[processed['symbol']] = processed
+                except Exception as e:
+                    logger.error(f"Error updating Bybit data: {e}")
             
-            # Update OKX data
-            try:
-                funding_rates = await okx_fetcher.fetch_funding_rates()
-                futures_tickers = await okx_fetcher.fetch_futures_tickers()
-                spot_tickers = await okx_fetcher.fetch_spot_tickers()
-                
-                for ticker in futures_tickers:
-                    processed = okx_fetcher.process_ticker(ticker, funding_rates)
-                    cache.okx_futures_data[processed['symbol']] = processed
-                
-                for ticker in spot_tickers:
-                    processed = okx_fetcher.process_ticker(ticker, {})
-                    processed['funding_rate'] = None
-                    processed['open_interest'] = None
-                    cache.okx_spot_data[processed['symbol']] = processed
-            except Exception as e:
-                logger.error(f"Error updating OKX data: {e}")
+            async def fetch_okx_data():
+                """Fetch all OKX data in parallel."""
+                try:
+                    funding_rates, futures_tickers, spot_tickers = await asyncio.gather(
+                        okx_fetcher.fetch_funding_rates(),
+                        okx_fetcher.fetch_futures_tickers(),
+                        okx_fetcher.fetch_spot_tickers(),
+                        return_exceptions=True
+                    )
+                    
+                    if not isinstance(funding_rates, Exception):
+                        if not isinstance(futures_tickers, Exception):
+                            for ticker in futures_tickers:
+                                processed = okx_fetcher.process_ticker(ticker, funding_rates)
+                                cache.okx_futures_data[processed['symbol']] = processed
+                        
+                        if not isinstance(spot_tickers, Exception):
+                            for ticker in spot_tickers:
+                                processed = okx_fetcher.process_ticker(ticker, {})
+                                processed['funding_rate'] = None
+                                processed['open_interest'] = None
+                                cache.okx_spot_data[processed['symbol']] = processed
+                except Exception as e:
+                    logger.error(f"Error updating OKX data: {e}")
             
-            # Update HyperLiquid data (perps only)
-            try:
-                funding_rates = await hyperliquid_fetcher.fetch_funding_rates()
-                futures_tickers = await hyperliquid_fetcher.fetch_futures_tickers()
-                
-                for ticker in futures_tickers:
-                    processed = hyperliquid_fetcher.process_ticker(ticker, funding_rates)
-                    cache.hyperliquid_futures_data[processed['symbol']] = processed
-            except Exception as e:
-                logger.error(f"Error updating HyperLiquid data: {e}")
+            async def fetch_hyperliquid_data():
+                """Fetch HyperLiquid data in parallel."""
+                try:
+                    funding_rates, futures_tickers = await asyncio.gather(
+                        hyperliquid_fetcher.fetch_funding_rates(),
+                        hyperliquid_fetcher.fetch_futures_tickers(),
+                        return_exceptions=True
+                    )
+                    
+                    if not isinstance(funding_rates, Exception) and not isinstance(futures_tickers, Exception):
+                        for ticker in futures_tickers:
+                            processed = hyperliquid_fetcher.process_ticker(ticker, funding_rates)
+                            cache.hyperliquid_futures_data[processed['symbol']] = processed
+                except Exception as e:
+                    logger.error(f"Error updating HyperLiquid data: {e}")
+            
+            # Run all exchange fetches in parallel
+            await asyncio.gather(
+                fetch_binance_data(),
+                fetch_bybit_data(),
+                fetch_okx_data(),
+                fetch_hyperliquid_data(),
+                return_exceptions=True
+            )
             
             # Update BTC data (from Binance as primary)
             if 'BTCUSDT' in cache.binance_futures_data:

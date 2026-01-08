@@ -11,6 +11,7 @@ from typing import List, Optional, Dict, Any
 import sqlite3
 import json
 import time
+import asyncio
 from pathlib import Path
 
 router = APIRouter()
@@ -624,40 +625,61 @@ async def get_market_overview():
         }
         
         async with aiohttp.ClientSession() as session:
-            # BTC ticker
-            async with session.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT") as resp:
-                if resp.status == 200:
-                    btc = await resp.json()
-                    data["btc"] = {
-                        "price": float(btc["lastPrice"]),
-                        "change_24h": float(btc["priceChangePercent"]),
-                        "volume_24h": float(btc["quoteVolume"]),
-                        "high_24h": float(btc["highPrice"]),
-                        "low_24h": float(btc["lowPrice"])
-                    }
+            # Parallel fetch: BTC, ETH, and all tickers
+            async def fetch_btc():
+                async with session.get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT") as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                return None
             
-            # ETH ticker
-            async with session.get("https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT") as resp:
-                if resp.status == 200:
-                    eth = await resp.json()
-                    data["eth"] = {
-                        "price": float(eth["lastPrice"]),
-                        "change_24h": float(eth["priceChangePercent"]),
-                        "volume_24h": float(eth["quoteVolume"])
-                    }
+            async def fetch_eth():
+                async with session.get("https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT") as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                return None
             
-            # Top movers
-            async with session.get("https://api.binance.com/api/v3/ticker/24hr") as resp:
-                if resp.status == 200:
-                    tickers = await resp.json()
-                    usdt_pairs = [t for t in tickers if t["symbol"].endswith("USDT") and float(t["quoteVolume"]) > 10000000]
-                    sorted_gainers = sorted(usdt_pairs, key=lambda x: float(x["priceChangePercent"]), reverse=True)[:5]
-                    sorted_losers = sorted(usdt_pairs, key=lambda x: float(x["priceChangePercent"]))[:5]
-                    
-                    data["top_movers"] = {
-                        "gainers": [{"symbol": t["symbol"], "change": float(t["priceChangePercent"])} for t in sorted_gainers],
-                        "losers": [{"symbol": t["symbol"], "change": float(t["priceChangePercent"])} for t in sorted_losers]
-                    }
+            async def fetch_all_tickers():
+                async with session.get("https://api.binance.com/api/v3/ticker/24hr") as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                return None
+            
+            # Run all requests in parallel
+            btc, eth, tickers = await asyncio.gather(
+                fetch_btc(),
+                fetch_eth(),
+                fetch_all_tickers(),
+                return_exceptions=True
+            )
+            
+            # Process BTC
+            if btc and not isinstance(btc, Exception):
+                data["btc"] = {
+                    "price": float(btc["lastPrice"]),
+                    "change_24h": float(btc["priceChangePercent"]),
+                    "volume_24h": float(btc["quoteVolume"]),
+                    "high_24h": float(btc["highPrice"]),
+                    "low_24h": float(btc["lowPrice"])
+                }
+            
+            # Process ETH
+            if eth and not isinstance(eth, Exception):
+                data["eth"] = {
+                    "price": float(eth["lastPrice"]),
+                    "change_24h": float(eth["priceChangePercent"]),
+                    "volume_24h": float(eth["quoteVolume"])
+                }
+            
+            # Process top movers
+            if tickers and not isinstance(tickers, Exception):
+                usdt_pairs = [t for t in tickers if t["symbol"].endswith("USDT") and float(t["quoteVolume"]) > 10000000]
+                sorted_gainers = sorted(usdt_pairs, key=lambda x: float(x["priceChangePercent"]), reverse=True)[:5]
+                sorted_losers = sorted(usdt_pairs, key=lambda x: float(x["priceChangePercent"]))[:5]
+                
+                data["top_movers"] = {
+                    "gainers": [{"symbol": t["symbol"], "change": float(t["priceChangePercent"])} for t in sorted_gainers],
+                    "losers": [{"symbol": t["symbol"], "change": float(t["priceChangePercent"])} for t in sorted_losers]
+                }
         
         return {"success": True, "data": data, "timestamp": int(time.time())}
     except Exception as e:
@@ -673,47 +695,62 @@ async def get_symbol_data(symbol: str):
         data = {"symbol": symbol, "indicators": {}}
         
         async with aiohttp.ClientSession() as session:
-            # Ticker
-            async with session.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}") as resp:
-                if resp.status == 200:
-                    ticker = await resp.json()
-                    data["ticker"] = {
-                        "price": float(ticker["lastPrice"]),
-                        "change_24h": float(ticker["priceChangePercent"]),
-                        "volume_24h": float(ticker["quoteVolume"]),
-                        "high_24h": float(ticker["highPrice"]),
-                        "low_24h": float(ticker["lowPrice"]),
-                        "trades_24h": int(ticker["count"])
-                    }
+            # Parallel fetch: ticker and klines
+            async def fetch_ticker():
+                async with session.get(f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}") as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                return None
             
-            # Klines for indicator calculation
-            async with session.get(f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=100") as resp:
-                if resp.status == 200:
-                    klines = await resp.json()
-                    closes = [float(k[4]) for k in klines]
-                    
-                    # Calculate RSI
-                    if len(closes) >= 15:
-                        deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
-                        gains = [d if d > 0 else 0 for d in deltas[-14:]]
-                        losses = [-d if d < 0 else 0 for d in deltas[-14:]]
-                        avg_gain = sum(gains) / 14
-                        avg_loss = sum(losses) / 14
-                        rs = avg_gain / avg_loss if avg_loss > 0 else 100
-                        rsi = 100 - (100 / (1 + rs))
-                        data["indicators"]["rsi"] = round(rsi, 2)
-                    
-                    # Calculate BB
-                    if len(closes) >= 20:
-                        window = closes[-20:]
-                        sma = sum(window) / 20
-                        std = (sum((p - sma) ** 2 for p in window) / 20) ** 0.5
-                        data["indicators"]["bb"] = {
-                            "upper": round(sma + 2 * std, 2),
-                            "middle": round(sma, 2),
-                            "lower": round(sma - 2 * std, 2),
-                            "position": round((closes[-1] - (sma - 2 * std)) / (4 * std) * 100, 1)  # 0-100%
-                        }
+            async def fetch_klines():
+                async with session.get(f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=100") as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                return None
+            
+            ticker, klines = await asyncio.gather(
+                fetch_ticker(),
+                fetch_klines(),
+                return_exceptions=True
+            )
+            
+            # Process ticker
+            if ticker and not isinstance(ticker, Exception):
+                data["ticker"] = {
+                    "price": float(ticker["lastPrice"]),
+                    "change_24h": float(ticker["priceChangePercent"]),
+                    "volume_24h": float(ticker["quoteVolume"]),
+                    "high_24h": float(ticker["highPrice"]),
+                    "low_24h": float(ticker["lowPrice"]),
+                    "trades_24h": int(ticker["count"])
+                }
+            
+            # Process klines and calculate indicators
+            if klines and not isinstance(klines, Exception):
+                closes = [float(k[4]) for k in klines]
+                
+                # Calculate RSI
+                if len(closes) >= 15:
+                    deltas = [closes[i] - closes[i-1] for i in range(1, len(closes))]
+                    gains = [d if d > 0 else 0 for d in deltas[-14:]]
+                    losses = [-d if d < 0 else 0 for d in deltas[-14:]]
+                    avg_gain = sum(gains) / 14
+                    avg_loss = sum(losses) / 14
+                    rs = avg_gain / avg_loss if avg_loss > 0 else 100
+                    rsi = 100 - (100 / (1 + rs))
+                    data["indicators"]["rsi"] = round(rsi, 2)
+                
+                # Calculate BB
+                if len(closes) >= 20:
+                    window = closes[-20:]
+                    sma = sum(window) / 20
+                    std = (sum((p - sma) ** 2 for p in window) / 20) ** 0.5
+                    data["indicators"]["bb"] = {
+                        "upper": round(sma + 2 * std, 2),
+                        "middle": round(sma, 2),
+                        "lower": round(sma - 2 * std, 2),
+                        "position": round((closes[-1] - (sma - 2 * std)) / (4 * std) * 100, 1)  # 0-100%
+                    }
         
         return {"success": True, "data": data}
     except Exception as e:
