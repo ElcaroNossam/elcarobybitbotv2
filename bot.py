@@ -3641,7 +3641,7 @@ async def cmd_select_coin_group(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Emojis for current selection
     filters = {
         "ALL": ("🌐", ctx.t.get('group_all', '🌐 All Coins')),
-        "TOP100": ("🏆", ctx.t.get('group_top100', '🏆 Top Coins')),
+        "TOP100": ("🏆", ctx.t.get('group_top100', '🏆 TOP')),
         "VOLATILE": ("🔥", ctx.t.get('group_volatile', '🔥 Volatile Coins')),
     }
     
@@ -10394,7 +10394,7 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         # Build spot stats line
         spot_stats = ""
         if spot_trades > 0:
-            spot_stats = f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+            spot_stats = f"\n🛒 *Spot Balance (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
         
         text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
@@ -10642,7 +10642,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             # Build spot stats line
             spot_stats = ""
             if spot_trades > 0:
-                spot_stats = f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+                spot_stats = f"\n🛒 *Spot Balance (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
             
             text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
@@ -15613,7 +15613,7 @@ async def on_coin_group_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     labels = {
         "ALL":      ctx.t.get('group_all', 'ALL'),
-        "TOP100":   ctx.t.get('group_top100', 'TOP100'),
+        "TOP100":   ctx.t.get('group_top100', 'TOP'),
         "VOLATILE": ctx.t.get('group_volatile', 'VOLATILE'),
     }
     label = labels[group]
