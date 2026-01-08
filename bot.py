@@ -10204,20 +10204,23 @@ def format_position_detail(p: dict, t: dict) -> str:
 async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str = None) -> dict:
     """Calculate unrealized PnL for spot holdings.
     
-    Uses the same logic as Spot DCA Statistics:
-    PnL = current holdings value - total_invested
+    Uses EXACTLY the same method as format_spot_stats():
+    - fetch_spot_balance() for coin quantities
+    - get_spot_ticker() for current market prices
+    - holdings_value = sum(qty * lastPrice for each DCA coin)
+    - PnL = holdings_value - total_invested
     
-    This matches what user sees in "Статистика Спот DCA".
+    This ensures Balance and Spot DCA Statistics show identical values.
     
     Args:
         user_id: User ID
-        coins: List of coin balances from wallet API (with coin, balance, usd_value)
+        coins: List of coin balances from wallet API (not used, kept for compatibility)
         account_type: 'demo' or 'real'
     
     Returns:
         dict with:
         - total_unrealized: Total unrealized PnL in USDT
-        - holdings_value: Total current value of non-stablecoin holdings
+        - holdings_value: Total current value of DCA holdings
         - total_invested: Total invested via DCA
         - pnl_pct: Percentage PnL
     """
@@ -10227,26 +10230,36 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
     total_invested = float(spot_settings.get("total_invested", 0.0))
     dca_coins = spot_settings.get("coins", [])  # Coins tracked by DCA
     
-    # Calculate current holdings value (only for DCA coins, excluding stablecoins)
+    # No DCA setup = no spot PnL
+    if not dca_coins or total_invested <= 0:
+        return {
+            "total_unrealized": 0.0,
+            "holdings_value": 0.0,
+            "total_invested": 0.0,
+            "pnl_pct": 0.0,
+            "coin_values": {}
+        }
+    
+    # Get spot balances using same method as format_spot_stats
+    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    
+    # Calculate holdings value using spot ticker prices (same as DCA stats)
     holdings_value = 0.0
     coin_values = {}
     
-    for coin_data in coins:
-        coin = coin_data.get("coin", "")
-        balance = float(coin_data.get("balance", 0))
-        current_value = float(coin_data.get("usd_value", 0))
-        
-        # Skip stablecoins and zero balances
-        if coin in ("USDT", "USDC", "DAI", "BUSD", "TUSD") or balance <= 0:
-            continue
-        
-        # Only count coins that are in DCA portfolio
-        if coin in dca_coins:
-            holdings_value += current_value
-            coin_values[coin] = current_value
+    for coin in dca_coins:
+        if coin in balances and balances[coin] > 0:
+            symbol = f"{coin}USDT"
+            ticker = await get_spot_ticker(user_id, symbol, account_type=account_type)
+            if ticker:
+                price = float(ticker.get("lastPrice", 0))
+                qty = balances[coin]
+                value = qty * price
+                holdings_value += value
+                coin_values[coin] = value
     
     # Calculate PnL same as Spot DCA Statistics
-    total_unrealized = holdings_value - total_invested if total_invested > 0 else 0.0
+    total_unrealized = holdings_value - total_invested
     pnl_pct = (total_unrealized / total_invested * 100) if total_invested > 0 else 0.0
     
     logger.debug(f"[{user_id}] Spot PnL: holdings={holdings_value:.2f}, invested={total_invested:.2f}, pnl={total_unrealized:.2f} ({pnl_pct:.1f}%)")
