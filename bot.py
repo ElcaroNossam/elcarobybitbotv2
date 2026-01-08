@@ -7477,6 +7477,10 @@ async def on_moderate_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     else:
         await q.answer(ctx.t['unknown_action'], show_alert=True)
 
+# Cache for realized PnL (TTL 5 minutes) to avoid slow API calls
+_realized_pnl_cache: dict[str, tuple[float, float]] = {}  # key: "uid:days:account_type" -> (pnl, timestamp)
+_REALIZED_PNL_CACHE_TTL = 300  # 5 minutes
+
 @log_calls
 async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None = None, exchange: str | None = None) -> float:
     """
@@ -7490,12 +7494,28 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
     
     Returns:
         Total realized PnL in USDT
-    """
-    total_pnl = 0.0
     
-    # Determine exchange
+    Note: Results are cached for 5 minutes to avoid slow API calls.
+    """
+    import time as _time
+    
+    # Determine exchange and account_type for cache key
     if exchange is None:
         exchange = db.get_exchange_type(uid) or 'bybit'
+    if account_type is None:
+        account_type = get_trading_mode(uid)
+        if account_type == 'both':
+            account_type = 'demo'
+    
+    # Check cache for days >= 7 (slow queries)
+    cache_key = f"{uid}:{days}:{account_type}"
+    if days >= 7 and cache_key in _realized_pnl_cache:
+        cached_pnl, cached_ts = _realized_pnl_cache[cache_key]
+        if _time.time() - cached_ts < _REALIZED_PNL_CACHE_TTL:
+            logger.info(f"[{uid}] ⚡ week_pnl from cache ({_time.time() - cached_ts:.0f}s old)")
+            return cached_pnl
+    
+    total_pnl = 0.0
     
     if exchange == 'hyperliquid':
         # Use HyperLiquid adapter for PnL
@@ -7561,6 +7581,10 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
             # Move to next chunk (older period)
             chunk_end = chunk_start
 
+    # Cache result for slow queries (days >= 7)
+    if days >= 7:
+        _realized_pnl_cache[cache_key] = (total_pnl, _time.time())
+    
     return total_pnl
 
 @require_access
