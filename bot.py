@@ -10255,6 +10255,9 @@ async def _fetch_balance_data_parallel(uid: int, account_type: str, tz_str: str)
     Instead of 5 sequential API calls, runs them all in parallel via asyncio.gather().
     This reduces total wait time from ~5-10 seconds to ~1-2 seconds.
     """
+    import time as _time
+    start_time = _time.time()
+    
     # Run all fetches in parallel
     results = await asyncio.gather(
         fetch_account_balance(uid, account_type=account_type),
@@ -10264,6 +10267,9 @@ async def _fetch_balance_data_parallel(uid: int, account_type: str, tz_str: str)
         fetch_spot_pnl(uid, days=7, account_type=account_type),
         return_exceptions=True
     )
+    
+    elapsed = _time.time() - start_time
+    logger.info(f"[{uid}] ⚡ Balance parallel fetch completed in {elapsed:.2f}s")
     
     # Unpack results with error handling
     account_bal = results[0] if not isinstance(results[0], Exception) else {}
