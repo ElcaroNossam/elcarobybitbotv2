@@ -10201,6 +10201,126 @@ def format_position_detail(p: dict, t: dict) -> str:
 # ------------------------------------------------------------------------------------
 
 @log_calls
+async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str = None) -> dict:
+    """Calculate unrealized PnL for spot holdings using average cost basis.
+    
+    Args:
+        user_id: User ID
+        coins: List of coin balances from wallet API (with coin, balance, usd_value)
+        account_type: 'demo' or 'real'
+    
+    Returns:
+        dict with:
+        - total_unrealized: Total unrealized PnL in USDT
+        - coin_pnls: Dict of {coin: {cost_basis, current_value, unrealized_pnl, pnl_pct}}
+    """
+    # Get all spot execution history to calculate average cost basis per coin
+    end_ts = int(time.time() * 1000)
+    # Look back 180 days for cost basis calculation
+    start_ts = end_ts - 180 * 24 * 60 * 60 * 1000
+    
+    # Track holdings per coin: {coin: {"qty_held": X, "total_cost": Y}}
+    holdings = {}
+    
+    cursor = None
+    try:
+        while True:
+            params = {
+                "category": "spot",
+                "startTime": start_ts,
+                "endTime": end_ts,
+                "limit": 100,
+            }
+            if cursor:
+                params["cursor"] = cursor
+            
+            res = await _bybit_request(user_id, "GET", "/v5/execution/list", params=params, account_type=account_type)
+            trades = res.get("list", []) or []
+            
+            for trade in trades:
+                try:
+                    exec_type = trade.get("execType", "")
+                    if exec_type != "Trade":
+                        continue
+                    
+                    symbol = trade.get("symbol", "")
+                    # Extract base coin from symbol (e.g., BTCUSDT -> BTC)
+                    base_coin = symbol.replace("USDT", "").replace("USDC", "")
+                    if not base_coin or base_coin in ("USDT", "USDC"):
+                        continue
+                    
+                    side = trade.get("side", "")
+                    exec_price = float(trade.get("execPrice") or 0)
+                    exec_qty = float(trade.get("execQty") or 0)
+                    exec_value = float(trade.get("execValue") or 0) or (exec_price * exec_qty)
+                    
+                    if base_coin not in holdings:
+                        holdings[base_coin] = {"qty_held": 0.0, "total_cost": 0.0}
+                    
+                    if side == "Buy":
+                        # Add to holdings with cost
+                        holdings[base_coin]["qty_held"] += exec_qty
+                        holdings[base_coin]["total_cost"] += exec_value
+                    elif side == "Sell":
+                        # Remove from holdings (FIFO approximation)
+                        old_qty = holdings[base_coin]["qty_held"]
+                        if old_qty > 0:
+                            avg_cost = holdings[base_coin]["total_cost"] / old_qty
+                            sold_cost = min(exec_qty, old_qty) * avg_cost
+                            holdings[base_coin]["qty_held"] = max(0, old_qty - exec_qty)
+                            holdings[base_coin]["total_cost"] = max(0, holdings[base_coin]["total_cost"] - sold_cost)
+                        
+                except (ValueError, TypeError):
+                    continue
+            
+            cursor = res.get("nextPageCursor")
+            if not cursor or len(trades) < 100:
+                break
+                
+    except MissingAPICredentials:
+        pass
+    except Exception as e:
+        logger.warning(f"[{user_id}] Spot unrealized PnL fetch error: {e}")
+    
+    # Calculate unrealized PnL for current holdings
+    total_unrealized = 0.0
+    coin_pnls = {}
+    
+    for coin_data in coins:
+        coin = coin_data.get("coin", "")
+        balance = float(coin_data.get("balance", 0))
+        current_value = float(coin_data.get("usd_value", 0))
+        
+        # Skip stablecoins and zero balances
+        if coin in ("USDT", "USDC", "DAI", "BUSD", "TUSD") or balance <= 0:
+            continue
+        
+        if coin in holdings and holdings[coin]["qty_held"] > 0:
+            # Use calculated cost basis
+            avg_cost_per_unit = holdings[coin]["total_cost"] / holdings[coin]["qty_held"]
+            cost_basis = balance * avg_cost_per_unit
+        else:
+            # No trade history - assume cost = current value (no PnL)
+            cost_basis = current_value
+        
+        unrealized = current_value - cost_basis
+        pnl_pct = (unrealized / cost_basis * 100) if cost_basis > 0 else 0.0
+        
+        coin_pnls[coin] = {
+            "cost_basis": cost_basis,
+            "current_value": current_value,
+            "unrealized_pnl": unrealized,
+            "pnl_pct": pnl_pct
+        }
+        total_unrealized += unrealized
+    
+    return {
+        "total_unrealized": total_unrealized,
+        "coin_pnls": coin_pnls
+    }
+
+
+@log_calls
 async def fetch_spot_pnl(user_id: int, days: int = 7, account_type: str = None) -> dict:
     """Fetch spot trading PnL by analyzing execution history.
     
@@ -10365,6 +10485,10 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         spot_trades = spot_pnl.get("trades_count", 0)
         spot_volume = spot_pnl.get("buy_volume", 0) + spot_pnl.get("sell_volume", 0)
         
+        # Fetch spot unrealized PnL (needs coins list)
+        spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=account_type)
+        spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
+        
         mode_emoji = "🎮" if account_type == "demo" else "💎"
         mode_label = "Demo" if account_type == "demo" else "Real"
         
@@ -10390,11 +10514,14 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
         pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
         unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+        spot_unreal_emoji = "🟢" if spot_unrealized >= 0 else "🔴"
         
-        # Build spot stats line
+        # Build spot stats line with unrealized PnL
         spot_stats = ""
-        if spot_trades > 0:
-            spot_stats = f"\n🛒 *Spot Balance (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+        if spot_trades > 0 or abs(spot_unrealized) > 0.01:
+            spot_stats = f"\n{spot_unreal_emoji} *Spot Unrealized:* {spot_unrealized:+,.2f} USDT"
+            if spot_trades > 0:
+                spot_stats += f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
         
         text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
@@ -10613,6 +10740,10 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             spot_trades = spot_pnl.get("trades_count", 0)
             spot_volume = spot_pnl.get("buy_volume", 0) + spot_pnl.get("sell_volume", 0)
             
+            # Fetch spot unrealized PnL (needs coins list)
+            spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=mode)
+            spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
+            
             trading_mode = get_trading_mode(uid)
             
             mode_emoji = "🎮" if mode == "demo" else "💎"
@@ -10638,11 +10769,14 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
             pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
             unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+            spot_unreal_emoji = "🟢" if spot_unrealized >= 0 else "🔴"
             
-            # Build spot stats line
+            # Build spot stats line with unrealized PnL
             spot_stats = ""
-            if spot_trades > 0:
-                spot_stats = f"\n🛒 *Spot Balance (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+            if spot_trades > 0 or abs(spot_unrealized) > 0.01:
+                spot_stats = f"\n{spot_unreal_emoji} *Spot Unrealized:* {spot_unrealized:+,.2f} USDT"
+                if spot_trades > 0:
+                    spot_stats += f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
             
             text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
