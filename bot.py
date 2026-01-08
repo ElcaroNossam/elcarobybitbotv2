@@ -10202,7 +10202,10 @@ def format_position_detail(p: dict, t: dict) -> str:
 
 @log_calls
 async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str = None) -> dict:
-    """Calculate unrealized PnL for spot holdings using average cost basis.
+    """Calculate unrealized PnL for spot holdings using stored DCA cost basis.
+    
+    Uses purchase_history from spot_settings which stores actual cost basis
+    for each coin from DCA purchases.
     
     Args:
         user_id: User ID
@@ -10214,76 +10217,17 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
         - total_unrealized: Total unrealized PnL in USDT
         - coin_pnls: Dict of {coin: {cost_basis, current_value, unrealized_pnl, pnl_pct}}
     """
-    # Get all spot execution history to calculate average cost basis per coin
-    end_ts = int(time.time() * 1000)
-    # Look back 180 days for cost basis calculation
-    start_ts = end_ts - 180 * 24 * 60 * 60 * 1000
+    # Get stored purchase history from spot_settings (DCA cost basis)
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    purchase_history = spot_settings.get("purchase_history", {})
+    total_invested = spot_settings.get("total_invested", 0.0)
     
-    # Track holdings per coin: {coin: {"qty_held": X, "total_cost": Y}}
-    holdings = {}
-    
-    cursor = None
-    try:
-        while True:
-            params = {
-                "category": "spot",
-                "startTime": start_ts,
-                "endTime": end_ts,
-                "limit": 100,
-            }
-            if cursor:
-                params["cursor"] = cursor
-            
-            res = await _bybit_request(user_id, "GET", "/v5/execution/list", params=params, account_type=account_type)
-            trades = res.get("list", []) or []
-            
-            for trade in trades:
-                try:
-                    exec_type = trade.get("execType", "")
-                    if exec_type != "Trade":
-                        continue
-                    
-                    symbol = trade.get("symbol", "")
-                    # Extract base coin from symbol (e.g., BTCUSDT -> BTC)
-                    base_coin = symbol.replace("USDT", "").replace("USDC", "")
-                    if not base_coin or base_coin in ("USDT", "USDC"):
-                        continue
-                    
-                    side = trade.get("side", "")
-                    exec_price = float(trade.get("execPrice") or 0)
-                    exec_qty = float(trade.get("execQty") or 0)
-                    exec_value = float(trade.get("execValue") or 0) or (exec_price * exec_qty)
-                    
-                    if base_coin not in holdings:
-                        holdings[base_coin] = {"qty_held": 0.0, "total_cost": 0.0}
-                    
-                    if side == "Buy":
-                        # Add to holdings with cost
-                        holdings[base_coin]["qty_held"] += exec_qty
-                        holdings[base_coin]["total_cost"] += exec_value
-                    elif side == "Sell":
-                        # Remove from holdings (FIFO approximation)
-                        old_qty = holdings[base_coin]["qty_held"]
-                        if old_qty > 0:
-                            avg_cost = holdings[base_coin]["total_cost"] / old_qty
-                            sold_cost = min(exec_qty, old_qty) * avg_cost
-                            holdings[base_coin]["qty_held"] = max(0, old_qty - exec_qty)
-                            holdings[base_coin]["total_cost"] = max(0, holdings[base_coin]["total_cost"] - sold_cost)
-                        
-                except (ValueError, TypeError):
-                    continue
-            
-            cursor = res.get("nextPageCursor")
-            if not cursor or len(trades) < 100:
-                break
-                
-    except MissingAPICredentials:
-        pass
-    except Exception as e:
-        logger.warning(f"[{user_id}] Spot unrealized PnL fetch error: {e}")
+    logger.debug(f"[{user_id}] Spot unrealized - purchase_history: {purchase_history}, total_invested: {total_invested}")
     
     # Calculate unrealized PnL for current holdings
     total_unrealized = 0.0
+    total_current_value = 0.0
     coin_pnls = {}
     
     for coin_data in coins:
@@ -10295,24 +10239,33 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
         if coin in ("USDT", "USDC", "DAI", "BUSD", "TUSD") or balance <= 0:
             continue
         
-        if coin in holdings and holdings[coin]["qty_held"] > 0:
-            # Use calculated cost basis
-            avg_cost_per_unit = holdings[coin]["total_cost"] / holdings[coin]["qty_held"]
-            cost_basis = balance * avg_cost_per_unit
-        else:
-            # No trade history - assume cost = current value (no PnL)
-            cost_basis = current_value
+        total_current_value += current_value
         
-        unrealized = current_value - cost_basis
-        pnl_pct = (unrealized / cost_basis * 100) if cost_basis > 0 else 0.0
-        
-        coin_pnls[coin] = {
-            "cost_basis": cost_basis,
-            "current_value": current_value,
-            "unrealized_pnl": unrealized,
-            "pnl_pct": pnl_pct
-        }
-        total_unrealized += unrealized
+        # Check if we have purchase history for this coin
+        if coin in purchase_history:
+            coin_history = purchase_history[coin]
+            avg_price = coin_history.get("avg_price", 0)
+            total_cost = coin_history.get("total_cost", 0)
+            
+            if avg_price > 0:
+                # PnL = current value - (held qty * avg purchase price)
+                cost_basis = balance * avg_price
+                unrealized = current_value - cost_basis
+                pnl_pct = (unrealized / cost_basis * 100) if cost_basis > 0 else 0.0
+                
+                coin_pnls[coin] = {
+                    "cost_basis": cost_basis,
+                    "current_value": current_value,
+                    "unrealized_pnl": unrealized,
+                    "pnl_pct": pnl_pct
+                }
+                total_unrealized += unrealized
+                logger.debug(f"[{user_id}] {coin}: value={current_value:.2f}, cost={cost_basis:.2f}, pnl={unrealized:.2f}")
+    
+    # Fallback: if no purchase_history but have total_invested, estimate proportionally
+    if not coin_pnls and total_invested > 0 and total_current_value > 0:
+        total_unrealized = total_current_value - total_invested
+        logger.debug(f"[{user_id}] Fallback calculation: current={total_current_value:.2f}, invested={total_invested:.2f}, pnl={total_unrealized:.2f}")
     
     return {
         "total_unrealized": total_unrealized,
