@@ -10410,11 +10410,11 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
 
 📦 *Assets:*
 {assets_text}
-📈 *Futures PnL:*
+📈 *Futures Realized:*
 {pnl_emoji_today} Today: {pnl_today:+,.2f} USDT
 {pnl_emoji_week} 7 Days: {pnl_week:+,.2f} USDT
 
-{unreal_emoji} *Unrealized PnL:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
+{unreal_emoji} *Futures Unrealized:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
 """
         
         # Only show mode switch buttons if user has both modes
@@ -10658,11 +10658,11 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
 📦 *Assets:*
 {assets_text}
-📈 *Futures PnL:*
+📈 *Futures Realized:*
 {pnl_emoji_today} Today: {pnl_today:+,.2f} USDT
 {pnl_emoji_week} 7 Days: {pnl_week:+,.2f} USDT
 
-{unreal_emoji} *Unrealized PnL:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
+{unreal_emoji} *Futures Unrealized:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
 """
             
             # Only show mode switch buttons if user has both modes
