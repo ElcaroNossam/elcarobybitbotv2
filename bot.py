@@ -10202,10 +10202,12 @@ def format_position_detail(p: dict, t: dict) -> str:
 
 @log_calls
 async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str = None) -> dict:
-    """Calculate unrealized PnL for spot holdings using stored DCA cost basis.
+    """Calculate unrealized PnL for spot holdings.
     
-    Uses purchase_history from spot_settings which stores actual cost basis
-    for each coin from DCA purchases.
+    Uses the same logic as Spot DCA Statistics:
+    PnL = current holdings value - total_invested
+    
+    This matches what user sees in "Статистика Спот DCA".
     
     Args:
         user_id: User ID
@@ -10215,20 +10217,19 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
     Returns:
         dict with:
         - total_unrealized: Total unrealized PnL in USDT
-        - coin_pnls: Dict of {coin: {cost_basis, current_value, unrealized_pnl, pnl_pct}}
+        - holdings_value: Total current value of non-stablecoin holdings
+        - total_invested: Total invested via DCA
+        - pnl_pct: Percentage PnL
     """
-    # Get stored purchase history from spot_settings (DCA cost basis)
+    # Get stored DCA data from spot_settings
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings", {})
-    purchase_history = spot_settings.get("purchase_history", {})
-    total_invested = spot_settings.get("total_invested", 0.0)
+    total_invested = float(spot_settings.get("total_invested", 0.0))
+    dca_coins = spot_settings.get("coins", [])  # Coins tracked by DCA
     
-    logger.debug(f"[{user_id}] Spot unrealized - purchase_history: {purchase_history}, total_invested: {total_invested}")
-    
-    # Calculate unrealized PnL for current holdings
-    total_unrealized = 0.0
-    total_current_value = 0.0
-    coin_pnls = {}
+    # Calculate current holdings value (only for DCA coins, excluding stablecoins)
+    holdings_value = 0.0
+    coin_values = {}
     
     for coin_data in coins:
         coin = coin_data.get("coin", "")
@@ -10239,37 +10240,23 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
         if coin in ("USDT", "USDC", "DAI", "BUSD", "TUSD") or balance <= 0:
             continue
         
-        total_current_value += current_value
-        
-        # Check if we have purchase history for this coin
-        if coin in purchase_history:
-            coin_history = purchase_history[coin]
-            avg_price = coin_history.get("avg_price", 0)
-            total_cost = coin_history.get("total_cost", 0)
-            
-            if avg_price > 0:
-                # PnL = current value - (held qty * avg purchase price)
-                cost_basis = balance * avg_price
-                unrealized = current_value - cost_basis
-                pnl_pct = (unrealized / cost_basis * 100) if cost_basis > 0 else 0.0
-                
-                coin_pnls[coin] = {
-                    "cost_basis": cost_basis,
-                    "current_value": current_value,
-                    "unrealized_pnl": unrealized,
-                    "pnl_pct": pnl_pct
-                }
-                total_unrealized += unrealized
-                logger.debug(f"[{user_id}] {coin}: value={current_value:.2f}, cost={cost_basis:.2f}, pnl={unrealized:.2f}")
+        # Only count coins that are in DCA portfolio
+        if coin in dca_coins:
+            holdings_value += current_value
+            coin_values[coin] = current_value
     
-    # Fallback: if no purchase_history but have total_invested, estimate proportionally
-    if not coin_pnls and total_invested > 0 and total_current_value > 0:
-        total_unrealized = total_current_value - total_invested
-        logger.debug(f"[{user_id}] Fallback calculation: current={total_current_value:.2f}, invested={total_invested:.2f}, pnl={total_unrealized:.2f}")
+    # Calculate PnL same as Spot DCA Statistics
+    total_unrealized = holdings_value - total_invested if total_invested > 0 else 0.0
+    pnl_pct = (total_unrealized / total_invested * 100) if total_invested > 0 else 0.0
+    
+    logger.debug(f"[{user_id}] Spot PnL: holdings={holdings_value:.2f}, invested={total_invested:.2f}, pnl={total_unrealized:.2f} ({pnl_pct:.1f}%)")
     
     return {
         "total_unrealized": total_unrealized,
-        "coin_pnls": coin_pnls
+        "holdings_value": holdings_value,
+        "total_invested": total_invested,
+        "pnl_pct": pnl_pct,
+        "coin_values": coin_values
     }
 
 
@@ -10440,7 +10427,6 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         
         # Fetch spot unrealized PnL (needs coins list)
         spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=account_type)
-        spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
         
         mode_emoji = "🎮" if account_type == "demo" else "💎"
         mode_label = "Demo" if account_type == "demo" else "Real"
@@ -10467,14 +10453,20 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
         pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
         pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
         unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+        
+        # Build spot stats section
+        spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
+        spot_pnl_pct = spot_unrealized_data.get("pnl_pct", 0.0)
+        spot_invested = spot_unrealized_data.get("total_invested", 0.0)
         spot_unreal_emoji = "🟢" if spot_unrealized >= 0 else "🔴"
         
-        # Build spot stats line with unrealized PnL
         spot_stats = ""
-        if spot_trades > 0 or abs(spot_unrealized) > 0.01:
-            spot_stats = f"\n{spot_unreal_emoji} *Spot Unrealized:* {spot_unrealized:+,.2f} USDT"
+        if spot_invested > 0 or spot_trades > 0:
+            spot_stats = f"\n\n💹 *Spot DCA:*"
+            if spot_invested > 0:
+                spot_stats += f"\n{spot_unreal_emoji} *Unrealized:* {spot_unrealized:+,.2f} USDT ({spot_pnl_pct:+.1f}%)"
             if spot_trades > 0:
-                spot_stats += f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+                spot_stats += f"\n🛒 *7d Activity:* {spot_trades} trades, ${spot_volume:,.2f} volume"
         
         text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
@@ -10695,7 +10687,6 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             
             # Fetch spot unrealized PnL (needs coins list)
             spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=mode)
-            spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
             
             trading_mode = get_trading_mode(uid)
             
@@ -10722,14 +10713,20 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             pnl_emoji_today = "🟢" if pnl_today >= 0 else "🔴"
             pnl_emoji_week = "🟢" if pnl_week >= 0 else "🔴"
             unreal_emoji = "🟢" if total_unreal >= 0 else "🔴"
+            
+            # Build spot stats section
+            spot_unrealized = spot_unrealized_data.get("total_unrealized", 0.0)
+            spot_pnl_pct = spot_unrealized_data.get("pnl_pct", 0.0)
+            spot_invested = spot_unrealized_data.get("total_invested", 0.0)
             spot_unreal_emoji = "🟢" if spot_unrealized >= 0 else "🔴"
             
-            # Build spot stats line with unrealized PnL
             spot_stats = ""
-            if spot_trades > 0 or abs(spot_unrealized) > 0.01:
-                spot_stats = f"\n{spot_unreal_emoji} *Spot Unrealized:* {spot_unrealized:+,.2f} USDT"
+            if spot_invested > 0 or spot_trades > 0:
+                spot_stats = f"\n\n💹 *Spot DCA:*"
+                if spot_invested > 0:
+                    spot_stats += f"\n{spot_unreal_emoji} *Unrealized:* {spot_unrealized:+,.2f} USDT ({spot_pnl_pct:+.1f}%)"
                 if spot_trades > 0:
-                    spot_stats += f"\n🛒 *Spot (7d):* {spot_trades} trades, ${spot_volume:,.2f} volume"
+                    spot_stats += f"\n🛒 *7d Activity:* {spot_trades} trades, ${spot_volume:,.2f} volume"
             
             text = f"""
 💰 *Bybit Balance* {mode_emoji} {mode_label}
