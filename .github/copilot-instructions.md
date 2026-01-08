@@ -409,7 +409,8 @@ python3 utils/translation_sync.py --report
   1. `asyncio.gather()` для параллельного выполнения 5 запросов
   2. Убран дублирующий запрос USDT - извлекаем из основного ответа
   3. Добавлена спотовая статистика `fetch_spot_pnl()`
-- **Результат:** Загрузка баланса 1-2 секунды вместо 5-10
+  4. Добавлен 5-минутный кеш для `week_pnl` (самый медленный запрос)
+- **Результат:** Загрузка баланса **0.3-0.4 секунды** с кешем (было 6+ сек)
 
 ### ✅ Spot Trading Statistics Added (Jan 8, 2026)
 - **Проблема:** В балансе показывался только фьючерсный PnL, спот игнорировался
@@ -419,9 +420,10 @@ python3 utils/translation_sync.py --report
 
 ### ✅ Full Performance Optimization (Jan 8, 2026)
 - **Проблема:** Множество функций делали последовательные API запросы
-- **Паттерн оптимизации:** `asyncio.gather()` для параллельных запросов
+- **Паттерн оптимизации:** `asyncio.gather()` + кеширование медленных запросов
 - **Оптимизированные функции (bot.py):**
   - `_fetch_balance_data_parallel()` - 5 запросов параллельно
+  - `fetch_realized_pnl()` - 5-минутный кеш для days>=7 (было 5-6 сек → 0 сек)
   - `cmd_account()` - 4 fetch запроса параллельно
   - `get_unrealized_pnl()` - параллельно для demo/real
   - `cmd_wallet()` - параллельный fetch wallet/balance/transactions
@@ -431,7 +433,7 @@ python3 utils/translation_sync.py --report
   - `screener_ws.py: update_market_data()` - 4 биржи параллельно (Binance, Bybit, OKX, HyperLiquid)
   - `marketplace.py: get_market_overview()` - BTC/ETH/tickers параллельно
   - `marketplace.py: get_symbol_data()` - ticker + klines параллельно
-- **Результат:** Ускорение загрузки в 2-5 раз для всех оптимизированных функций
+- **Результат:** Ускорение загрузки баланса **17x** (6.15s → 0.37s с кешем)
 
 ---
 
