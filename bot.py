@@ -10262,7 +10262,7 @@ async def _fetch_balance_data_parallel(uid: int, account_type: str, tz_str: str)
     async def timed_fetch(name: str, coro):
         t0 = _time.time()
         result = await coro
-        logger.debug(f"[{uid}] ⏱️ {name}: {_time.time() - t0:.2f}s")
+        logger.info(f"[{uid}] ⏱️ {name}: {_time.time() - t0:.2f}s")
         return result
     
     # Run all fetches in parallel with timing
