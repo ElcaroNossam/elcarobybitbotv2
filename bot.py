@@ -1531,6 +1531,11 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if action == "buy_now":
+        # Check if spot trading is enabled in strategy settings
+        if not cfg.get("spot_enabled", 0):
+            await q.answer(t.get("spot_not_enabled", "❌ Spot trading is disabled in settings"), show_alert=True)
+            return
+        
         # Execute Smart DCA buy for all selected coins
         coins = spot_settings.get("coins", SPOT_DCA_COINS)
         base_amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
@@ -2051,6 +2056,11 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if action == "rebalance_now":
+        # Check if spot trading is enabled in strategy settings
+        if not cfg.get("spot_enabled", 0):
+            await q.answer(t.get("spot_not_enabled", "❌ Spot trading is disabled in settings"), show_alert=True)
+            return
+        
         account_type = spot_settings.get("trading_mode", "demo")
         
         await q.answer("Rebalancing portfolio...")
@@ -15042,6 +15052,10 @@ async def spot_tp_rebalance_loop(app: Application):
                     cfg = get_user_config(uid)
                     spot_settings = cfg.get("spot_settings", {})
                     
+                    # Skip if spot trading is disabled in strategy settings
+                    if not cfg.get("spot_enabled", 0):
+                        continue
+                    
                     # Check if user has API credentials
                     k, s = get_user_credentials(uid)
                     if not k or not s:
@@ -15322,6 +15336,10 @@ async def spot_auto_dca_loop(app: Application):
                 try:
                     cfg = get_user_config(uid)
                     spot_settings = cfg.get("spot_settings", {})
+                    
+                    # Skip if spot trading is disabled in strategy settings
+                    if not cfg.get("spot_enabled", 0):
+                        continue
                     
                     # Skip if auto_dca is not enabled
                     if not spot_settings.get("auto_dca"):
