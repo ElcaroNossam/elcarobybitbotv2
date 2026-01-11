@@ -3280,6 +3280,43 @@ def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "dem
     return bool(row[0]) if row else False
 
 
+def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo") -> bool:
+    """
+    Синхронизирует entry_price позиции с биржей.
+    
+    Вызывается когда ATR монитор обнаруживает что entry на бирже != entry в БД.
+    Это происходит когда юзер делает DCA/добор и средняя цена меняется.
+    
+    Returns:
+        True если была произведена синхронизация, False если не нужна
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
+            (user_id, symbol, account_type),
+        ).fetchone()
+        
+        if not row:
+            return False
+        
+        db_entry = float(row[0]) if row[0] else 0
+        if db_entry == 0:
+            return False
+        
+        # Check if entry changed significantly (>0.1%)
+        diff_pct = abs(new_entry_price - db_entry) / db_entry * 100
+        if diff_pct < 0.1:
+            return False
+        
+        # Update entry_price
+        conn.execute(
+            "UPDATE active_positions SET entry_price=? WHERE user_id=? AND symbol=? AND account_type=?",
+            (new_entry_price, user_id, symbol, account_type),
+        )
+        conn.commit()
+        return True
+
+
 def get_positions_by_target(user_id: int, exchange: str, env: str) -> list[dict]:
     """
     Получает позиции по target (exchange + env).

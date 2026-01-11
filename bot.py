@@ -14665,6 +14665,24 @@ async def monitor_positions_loop(app: Application):
                             # Log if position is not tracked in DB
                             if sym not in db_syms:
                                 logger.debug(f"[{uid}] {sym}: Position not in active_positions DB, using default tf=15m")
+                            
+                            # Get DB entry for comparison
+                            ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                            db_entry = float(ap_for_sym.get("entry_price") or 0) if ap_for_sym else 0
+                            
+                            # Sync entry_price if changed (DCA/averaging)
+                            # This ensures SL is recalculated from the correct entry
+                            entry_changed = False
+                            if db_entry > 0 and entry > 0:
+                                entry_diff_pct = abs(entry - db_entry) / db_entry * 100
+                                if entry_diff_pct > 0.1:  # Entry changed by >0.1%
+                                    try:
+                                        pos_account_type = account_type_map.get(sym, "demo")
+                                        if db.sync_position_entry_price(uid, sym, entry, pos_account_type):
+                                            logger.info(f"[{uid}] {sym}: Entry synced {db_entry:.6f} → {entry:.6f} (diff={entry_diff_pct:.2f}%)")
+                                            entry_changed = True
+                                    except Exception as e:
+                                        logger.warning(f"[{uid}] {sym}: Failed to sync entry: {e}")
 
                             coin_cfg    = COIN_PARAMS.get(sym, COIN_PARAMS["DEFAULT"])
                         
@@ -14673,7 +14691,6 @@ async def monitor_positions_loop(app: Application):
                         
                             # Fallback: try to determine strategy from signal if not in DB
                             if not pos_strategy:
-                                ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
                                 if ap_for_sym and ap_for_sym.get("signal_id"):
                                     sig = fetch_signal_by_id(ap_for_sym["signal_id"])
                                     if sig:
@@ -14877,6 +14894,23 @@ async def monitor_positions_loop(app: Application):
                                     6
                                 )
 
+                                # CRITICAL FIX: If entry changed (DCA), recalculate SL from new entry
+                                # This prevents SL from being too far from current entry after averaging
+                                if entry_changed and current_sl is not None:
+                                    # Check if SL needs recalculation
+                                    sl_should_be = sl0
+                                    sl_diff_pct = abs(current_sl - sl_should_be) / entry * 100 if entry > 0 else 0
+                                    if sl_diff_pct > 0.3:  # SL off by more than 0.3%
+                                        cand = _stricter_sl(side, sl_should_be, current_sl)
+                                        if cand is not None:
+                                            try:
+                                                await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                                logger.info(f"[{uid}] {sym}: SL recalculated after DCA: {current_sl:.6f} → {cand:.6f}")
+                                            except RuntimeError as e:
+                                                if "no open positions" not in str(e).lower():
+                                                    logger.warning(f"[{uid}] {sym}: Failed to recalc SL after DCA: {e}")
+                                        continue
+
                                 if current_sl is None or current_tp is None:
                                     kwargs = {}
                                     if current_sl is None:
@@ -14929,15 +14963,22 @@ async def monitor_positions_loop(app: Application):
                                     tick = (await get_symbol_filters(uid, sym))["tickSize"]
 
                                     sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
+                                    
+                                    # CRITICAL FIX: If entry changed (DCA), always recalculate SL
+                                    # This prevents SL from being too far from current entry after averaging
                                     should_update = (
                                         current_sl is None
                                         or (side == "Buy"  and sl0 > current_sl)
-                                        or (side == "Sell" and sl0 < current_sl)  
+                                        or (side == "Sell" and sl0 < current_sl)
+                                        or entry_changed  # Force update if entry changed due to DCA
                                     )
                                     if should_update:
                                         try:
                                             await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
-                                            logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
+                                            if entry_changed:
+                                                logger.info(f"[{uid}] {sym}: ATR SL recalculated after DCA to {sl0}")
+                                            else:
+                                                logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position already closed")
