@@ -1,9 +1,37 @@
 # coin_params.py
 import os
+from pathlib import Path
 from typing import Callable
 
 DEFAULT_TP_PCT = 8.0
 DEFAULT_SL_PCT = 3.0
+
+# ─── Dynamic symbols loading from symbols.txt ───────────────────────────────
+def _load_top_symbols() -> set[str]:
+    """Load TOP symbols from symbols.txt file.
+    
+    Reads from:
+    1. symbols.txt in same directory as this module
+    2. Falls back to empty set if file not found
+    """
+    symbols_path = Path(__file__).parent / "symbols.txt"
+    if not symbols_path.exists():
+        # Try alternate locations
+        for alt_path in [Path("symbols.txt"), Path("/home/ubuntu/project/elcarobybitbotv2/symbols.txt")]:
+            if alt_path.exists():
+                symbols_path = alt_path
+                break
+    
+    if symbols_path.exists():
+        try:
+            with open(symbols_path, "r") as f:
+                return {line.strip().upper() for line in f if line.strip() and not line.startswith("#")}
+        except Exception:
+            pass
+    return set()
+
+# Load TOP symbols list dynamically from symbols.txt
+TOP_LIST: set[str] = _load_top_symbols()
 
 DEFAULT_LANG = 'en'
 
@@ -71,10 +99,12 @@ TIMEFRAME_PARAMS = {
     },
 }
 # Словарь режимов → функция проверки символа
+# TOP100 is an alias for TOP for backward compatibility
 SYMBOL_FILTER: dict[str, Callable[[str], bool]] = {
     "ALL":      lambda s: True,                   # всё пропускаем
-    "TOP100":   lambda s: s in TOP100_LIST,       # только топ-100
-    "VOLATILE": lambda s: s not in TOP100_LIST,   # всё, кроме топ-100
+    "TOP":      lambda s: s in TOP_LIST,          # только из symbols.txt
+    "TOP100":   lambda s: s in TOP_LIST,          # alias для обратной совместимости
+    "VOLATILE": lambda s: s not in TOP_LIST,      # всё, кроме TOP
 }
 # ——— дополнительные «хорошие» корни ————————————————————————
 ADDITIONAL_POSITIVE = {
@@ -184,152 +214,7 @@ NEGATIVE_KEYWORDS = {
     'torture', 'siege', 'militia'
 } | ADDITIONAL_NEGATIVE
 
-# Ваш заранее заполненный список топ-100 по капитализации:
-# Синхронизирован с symbols.txt (Jan 11, 2026)
-TOP100_LIST = [
-    "1000BONKUSDT",
-    "1000FLOKIUSDT",
-    "1000PEPEUSDT",
-    "1000RATSUSDT",
-    "1INCHUSDT",
-    "AAVEUSDT",
-    "ABUSDT",
-    "ADAUSDT",
-    "AEROUSDT",
-    "ALGOUSDT",
-    "ANKRUSDT",
-    "APEUSDT",
-    "APTUSDT",
-    "ARBUSDT",
-    "ARKMUSDT",
-    "ARKUSDT",
-    "ASTERUSDT",
-    "ATOMUSDT",
-    "AUCTIONUSDT",
-    "AVAXUSDT",
-    "AVNTUSDT",
-    "BCHUSDT",
-    "BIOUSDT",
-    "BLURUSDT",
-    "BNBUSDT",
-    "BOMEUSDT",
-    "BONKUSDT",
-    "BSVUSDT",
-    "BTCUSDT",
-    "CAKEUSDT",
-    "C98USDT",
-    "COMPUSDT",
-    "COSUSDT",
-    "CRVUSDT",
-    "DAIUSDT",
-    "DEXEUSDT",
-    "DOGEUSDT",
-    "DOTUSDT",
-    "DUCKUSDT",
-    "DYDXUSDT",
-    "ELXUSDT",
-    "ENAUSDT",
-    "ENJUSDT",
-    "ENSUSDT",
-    "ETCUSDT",
-    "ETHUSDT",
-    "FARTCOINUSDT",
-    "FETUSDT",
-    "FILUSDT",
-    "FLOKIUSDT",
-    "FORMUSDT",
-    "FTDUSDUSDT",
-    "GALAUSDT",
-    "GIGAUSDT",
-    "GNTUSDT",
-    "GRTUSDT",
-    "GRASSUSDT",
-    "GTUSDT",
-    "HBARUSDT",
-    "HIPPOUSDT",
-    "HYPEUSDT",
-    "ICPUSDT",
-    "IMXUSDT",
-    "INJUSDT",
-    "IOTAUSDT",
-    "IPUSDT",
-    "IPTUSDT",
-    "JASMYUSDT",
-    "JTOUSDT",
-    "JUPUSDT",
-    "KAVAUSDT",
-    "KAIAUSDT",
-    "KCSUSDT",
-    "LDOUSDT",
-    "LEOUSDT",
-    "LINKUSDT",
-    "LPTUSDT",
-    "LTCUSDT",
-    "MANAUSDT",
-    "MATICUSDT",
-    "MEWUSDT",
-    "MNTUSDT",
-    "MOODENGUSDT",
-    "MYRIAUSDT",
-    "NEARUSDT",
-    "NEXOUSDT",
-    "NOTUSDT",
-    "OKBUSDT",
-    "ONDOUSDT",
-    "OPUSDT",
-    "ORDIUSDT",
-    "OSMOUSDT",
-    "PAXGUSDT",
-    "PENDLEUSDT",
-    "PENGUUSDT",
-    "PEPEUSDT",
-    "PIUSDT",
-    "PNUTUSDT",
-    "POLUSDT",
-    "POPCATUSDT",
-    "PORTALUSDT",
-    "PYTHUSDT",
-    "PYUSDUSDT",
-    "QNTUSDT",
-    "RENDERUSDT",
-    "RNDRUSDT",
-    "SANDUSDT",
-    "SEIUSDT",
-    "SHIBUSDT",
-    "SKYUSDT",
-    "SNXUSDT",
-    "SOLUSDT",
-    "SOPHUSDT",
-    "SPXUSDT",
-    "STRKUSDT",
-    "SUIUSDT",
-    "SUSHIUSDT",
-    "SYRUPUSDT",
-    "TAIKOUSDT",
-    "TAOUSDT",
-    "TIAUSDT",
-    "TONUSDT",
-    "TRUMPUSDT",
-    "TRXUSDT",
-    "UMAUSDT",
-    "UNIUSDT",
-    "USD1USDT",
-    "USDCUSDT",
-    "USDEUSDT",
-    "USDTUSDT",
-    "VETUSDT",
-    "VIRTUALUSDT",
-    "WIFUSDT",
-    "WLDUSDT",
-    "WLFIUSDT",
-    "XAUTUSDT",
-    "XDCUSDT",
-    "XLMUSDT",
-    "XMRUSDT",
-    "XPLUSDT",
-    "XRPUSDT",
-    "ZECUSDT",
-    "ZETAUSDT",
-    "ZORAUSDT",
-    "ZROUSDT"
-]
+# ─── Backward compatibility alias ───────────────────────────────────────────
+# TOP100_LIST is deprecated, use TOP_LIST instead
+# Kept for backward compatibility with old code
+TOP100_LIST = TOP_LIST

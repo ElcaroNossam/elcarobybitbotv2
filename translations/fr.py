@@ -312,7 +312,8 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'Choisis le groupe de coins :',
     'group_all':                   'ALL',
-    'group_top100':                'TOP',
+    'group_top':                   'TOP',
+    'group_top100':                'TOP',  # backward compatibility
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ Groupe défini : {group}',
 

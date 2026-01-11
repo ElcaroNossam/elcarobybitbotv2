@@ -329,8 +329,8 @@ class TestCoinsGroupFilter:
         """Coins group filter is isolated per context"""
         uid = setup_user_configs['multi_exchange_user']
         
-        # Bybit demo: TOP100 only
-        set_strategy_setting(uid, 'scryptomera', 'coins_group', 'TOP100', 'bybit', 'demo')
+        # Bybit demo: TOP only
+        set_strategy_setting(uid, 'scryptomera', 'coins_group', 'TOP', 'bybit', 'demo')
         
         # Bybit real: ALL coins
         set_strategy_setting(uid, 'scryptomera', 'coins_group', 'ALL', 'bybit', 'real')
@@ -339,7 +339,7 @@ class TestCoinsGroupFilter:
         demo_settings = get_strategy_settings(uid, 'scryptomera', 'bybit', 'demo')
         real_settings = get_strategy_settings(uid, 'scryptomera', 'bybit', 'real')
         
-        assert demo_settings.get('coins_group') == 'TOP100'
+        assert demo_settings.get('coins_group') == 'TOP'
         assert real_settings.get('coins_group') == 'ALL'
 
 

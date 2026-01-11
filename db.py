@@ -412,7 +412,7 @@ def init_db():
             
             -- Order settings
             order_type      TEXT DEFAULT 'market',  -- market, limit
-            coins_group     TEXT,  -- ALL, TOP100, VOLATILE, or NULL for global
+            coins_group     TEXT,  -- ALL, TOP, VOLATILE, or NULL for global
             direction       TEXT DEFAULT 'all',  -- all, long, short
             
             -- Side-specific settings (for scryptomera/scalper)
@@ -2076,7 +2076,7 @@ DEFAULT_STRATEGY_SETTINGS = {
         "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
         "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
         "order_type": "market",  # "market" or "limit"
-        "coins_group": None,  # "ALL", "TOP100", "VOLATILE" or None for global
+        "coins_group": None,  # "ALL", "TOP", "VOLATILE" or None for global
         "leverage": None,  # None = use current, or 1-100
         "trading_mode": "global",  # "global", "demo", "real", "both"
     },
@@ -2152,7 +2152,7 @@ STRATEGY_SETTING_FIELDS = [
     "atr_periods", "atr_multiplier_sl", "atr_trigger_pct",
     "use_atr",  # 0 or 1 - use ATR trailing or fixed SL/TP
     "order_type",  # "market" or "limit"
-    "coins_group",  # "ALL", "TOP100", "VOLATILE" or None
+    "coins_group",  # "ALL", "TOP", "VOLATILE" or None
     "leverage",  # 1-100 or None
     "trading_mode",  # "demo", "real", "both", or "global" (use user's global setting)
     "enabled",  # True/False - enable this strategy

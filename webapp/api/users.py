@@ -645,7 +645,7 @@ async def test_hl_api(user: dict = Depends(get_current_user)):
 STRATEGY_FEATURES = {
     "scryptomera": {
         "order_type": True,      # Market/Limit toggle
-        "coins_group": True,     # Coins filter (ALL/TOP100/VOLATILE)
+        "coins_group": True,     # Coins filter (ALL/TOP/VOLATILE)
         "leverage": True,        # Leverage setting
         "use_atr": True,         # ATR trailing toggle
         "direction": True,       # LONG/SHORT/ALL filter

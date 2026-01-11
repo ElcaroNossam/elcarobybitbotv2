@@ -314,7 +314,8 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'Zgjidh grupin e monedhave:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP',
+    'group_top':                   'TOP',
+    'group_top100':                'TOP',  # backward compatibility
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ U vendos grupi i monedhave: {group}',
 

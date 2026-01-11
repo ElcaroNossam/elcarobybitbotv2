@@ -314,7 +314,8 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'בחר קבוצת מטבעות:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP',
+    'group_top':                   'TOP',
+    'group_top100':                'TOP',  # backward compatibility
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ קבוצת מטבעות הוגדרה: {group}',
 

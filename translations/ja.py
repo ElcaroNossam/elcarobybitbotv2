@@ -314,7 +314,8 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'コイングループを選択:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP',
+    'group_top':                   'TOP',
+    'group_top100':                'TOP',  # backward compatibility
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ コイングループを設定: {group}',
 

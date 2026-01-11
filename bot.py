@@ -3651,7 +3651,7 @@ async def cmd_select_coin_group(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Emojis for current selection
     filters = {
         "ALL": ("🌐", ctx.t.get('group_all', '🌐 All Coins')),
-        "TOP100": ("🏆", ctx.t.get('group_top100', '🏆 TOP')),
+        "TOP": ("🏆", ctx.t.get('group_top', '🏆 TOP')),
         "VOLATILE": ("🔥", ctx.t.get('group_volatile', '🔥 Volatile Coins')),
     }
     
@@ -5902,7 +5902,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     if features.get("coins_group"):
         coins_group = strat_settings.get("coins_group")
         coins_label = coins_group if coins_group else t.get('all_coins', 'All')
-        coins_emoji = {"ALL": "🌐", "TOP100": "💎", "VOLATILE": "🔥"}.get(coins_group, "🌐")
+        coins_emoji = {"ALL": "🌐", "TOP": "💎", "TOP100": "💎", "VOLATILE": "🔥"}.get(coins_group, "🌐")
         buttons.append([InlineKeyboardButton(
             f"🪙 {t.get('coins_filter', 'Coins')}: {coins_emoji} {coins_label}",
             callback_data=f"strat_coins:{strategy}"
@@ -7257,8 +7257,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 callback_data=f"strat_coins_set:{strategy}:ALL"
             )],
             [InlineKeyboardButton(
-                ("✓ " if current_group == "TOP100" else "") + "💎 " + t.get('group_top100', 'TOP'),
-                callback_data=f"strat_coins_set:{strategy}:TOP100"
+                ("✓ " if current_group in ("TOP", "TOP100") else "") + "💎 " + t.get('group_top', 'TOP'),
+                callback_data=f"strat_coins_set:{strategy}:TOP"
             )],
             [InlineKeyboardButton(
                 ("✓ " if current_group == "VOLATILE" else "") + "🔥 " + t.get('group_volatile', 'VOLATILE'),
@@ -7279,7 +7279,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_coins_set:"):
         parts = data.split(":")
         strategy = parts[1]
-        group = parts[2]  # "GLOBAL", "ALL", "TOP100", "VOLATILE"
+        group = parts[2]  # "GLOBAL", "ALL", "TOP", "VOLATILE"
         
         # Get context
         context = get_user_trading_context(uid)
@@ -7292,7 +7292,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         group_labels = {
             "GLOBAL": t.get('group_global', '📊 Global'),
             "ALL": "🌐 " + t.get('group_all', 'ALL'),
-            "TOP100": "💎 " + t.get('group_top100', 'TOP'),
+            "TOP": "💎 " + t.get('group_top', 'TOP'),
+            "TOP100": "💎 " + t.get('group_top', 'TOP'),  # backward compat
             "VOLATILE": "🔥 " + t.get('group_volatile', 'VOLATILE'),
         }
         await query.answer(group_labels.get(group, group))
@@ -15759,7 +15760,10 @@ async def on_coin_group_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     group = raw.strip().upper()
-    valid = {"ALL", "TOP100", "VOLATILE"}
+    # TOP100 -> TOP migration
+    if group == "TOP100":
+        group = "TOP"
+    valid = {"ALL", "TOP", "VOLATILE"}
     if group not in valid:
         await q.answer("Unknown group", show_alert=True)
         return
@@ -15769,7 +15773,7 @@ async def on_coin_group_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     labels = {
         "ALL":      ctx.t.get('group_all', 'ALL'),
-        "TOP100":   ctx.t.get('group_top100', 'TOP'),
+        "TOP":      ctx.t.get('group_top', 'TOP'),
         "VOLATILE": ctx.t.get('group_volatile', 'VOLATILE'),
     }
     label = labels[group]

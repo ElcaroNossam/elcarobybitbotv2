@@ -315,7 +315,8 @@ TEXTS = {
     # Coin groups
     'select_coin_group':           'Pasirinkite monetų grupę:',
     'group_all':                   'ALL',
-    'group_top100':                'TOP',
+    'group_top':                   'TOP',
+    'group_top100':                'TOP',  # backward compatibility
     'group_volatile':              'VOLATILE',
     'group_set':                   '✅ Monetų grupė nustatyta: {group}',
 
