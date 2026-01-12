@@ -4985,6 +4985,8 @@ async def place_order_all_accounts(
     signal_id: int | None = None,
     timeframe: str = "24h",
     add_position: bool = True,  # Whether to add position to DB
+    calc_qty_per_target: bool = False,  # Calculate qty for each target separately
+    entry_price: float = None,  # Required if calc_qty_per_target=True
 ) -> dict:
     """
     DEPRECATED: Use place_order_for_targets() for multi-exchange support.
@@ -4993,6 +4995,11 @@ async def place_order_all_accounts(
     If trading_mode is 'both', places order on both demo and real accounts.
     Also adds active positions to DB with correct account_type for each successful order.
     Returns dict with results per account type.
+    
+    If calc_qty_per_target=True:
+      - qty parameter becomes the FALLBACK qty
+      - Each target will calculate its own qty based on its own settings (percent, sl_pct)
+      - entry_price is REQUIRED for per-target qty calculation
     """
     # Forward to new function using legacy mode
     return await place_order_for_targets(
@@ -5008,7 +5015,9 @@ async def place_order_all_accounts(
         signal_id=signal_id,
         timeframe=timeframe,
         add_position=add_position,
-        use_legacy_routing=True  # Use old account_types logic
+        use_legacy_routing=True,  # Use old account_types logic
+        calc_qty_per_target=calc_qty_per_target,
+        entry_price=entry_price,
     )
 
 
@@ -5018,7 +5027,7 @@ async def place_order_for_targets(
     symbol: str,
     side: str,
     orderType: str,
-    qty: float,
+    qty: float = None,  # Can be None if calc_qty_per_target=True
     price: float | None = None,
     timeInForce: str = "GTC",
     strategy: str = None,
@@ -5028,6 +5037,9 @@ async def place_order_for_targets(
     add_position: bool = True,
     targets: list[dict] = None,  # Explicit targets list
     use_legacy_routing: bool = False,  # Use old account_types logic
+    # NEW: Parameters for per-target qty calculation
+    calc_qty_per_target: bool = False,  # If True, calculate qty for each target separately
+    entry_price: float = None,  # Price for qty calculation (required if calc_qty_per_target=True)
 ) -> dict:
     """
     Place order on specified targets (supports Bybit + HyperLiquid).
@@ -5036,7 +5048,7 @@ async def place_order_for_targets(
     
     Features:
     - Multi-exchange support (Bybit + HyperLiquid)
-    - Per-target qty calculation (future: can be different per target)
+    - Per-target qty calculation (when calc_qty_per_target=True)
     - Per-target leverage/SL/TP
     - Unique client_order_id per target: {signal_id}-{exchange}-{env}
     
@@ -5090,6 +5102,68 @@ async def place_order_for_targets(
         # Generate unique client_order_id for this target
         client_order_id = f"{signal_id or 'manual'}-{target_exchange[:2]}-{target_env[:1]}-{int(time.time())}"
         
+        # ═══════════════════════════════════════════════════════════════════
+        # Per-target qty calculation: get settings and calculate qty for THIS target
+        # ═══════════════════════════════════════════════════════════════════
+        target_qty = qty  # Default to passed qty
+        target_leverage = leverage
+        
+        if calc_qty_per_target and entry_price:
+            try:
+                # Get strategy settings for THIS specific target (exchange + account_type)
+                cfg = get_user_config(user_id) or {}
+                target_acc = target_account_type or ("demo" if target_env == "paper" else "real")
+                trade_params = get_strategy_trade_params(
+                    user_id, cfg, symbol, strategy or "manual",
+                    side=side, exchange=target_exchange, account_type=target_acc
+                )
+                
+                risk_pct = trade_params.get("percent", 1.0)
+                sl_pct = trade_params.get("sl_pct", 3.0)
+                
+                # Get leverage from strategy settings if not explicitly passed
+                if target_leverage is None:
+                    strat_settings = db.get_strategy_settings(user_id, strategy or "manual", target_exchange, target_acc)
+                    target_leverage = strat_settings.get("leverage") or cfg.get("leverage", 10)
+                
+                # Calculate qty for THIS account's balance
+                # For HyperLiquid we need different balance fetch method
+                if target_exchange == "hyperliquid":
+                    # HyperLiquid: get balance via exchange_router
+                    from exchange_router import ExchangeRouter
+                    router = ExchangeRouter()
+                    hl_balance = await router._get_hl_balance(user_id)
+                    equity = float(hl_balance.get("equity", 0))
+                    if equity <= 0:
+                        raise ValueError(f"HyperLiquid equity={equity}")
+                    
+                    # Manual qty calculation for HyperLiquid
+                    risk_usdt = equity * (risk_pct / 100)
+                    price_move = entry_price * (sl_pct / 100)
+                    if price_move <= 0:
+                        raise ValueError("Invalid sl_pct for price_move")
+                    target_qty = risk_usdt / price_move
+                    
+                    logger.info(
+                        f"[{user_id}] HL per-target qty for {target_key}: "
+                        f"equity={equity:.2f}, risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}"
+                    )
+                else:
+                    # Bybit: use standard calc_qty
+                    target_qty = await calc_qty(
+                        user_id, symbol, entry_price, risk_pct, sl_pct,
+                        account_type=target_acc
+                    )
+                    
+                    logger.info(
+                        f"[{user_id}] Per-target qty for {target_key}: "
+                        f"risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}, leverage={target_leverage}"
+                    )
+            except Exception as calc_err:
+                logger.error(f"[{user_id}] Failed to calc qty for {target_key}: {calc_err}")
+                errors.append({"target": target_key, "error": str(calc_err)})
+                continue
+        
         try:
             if target_exchange == "hyperliquid":
                 # ═══════════════════════════════════════════════════════════
@@ -5106,23 +5180,23 @@ async def place_order_for_targets(
                             testnet=is_testnet,
                             vault_address=hl_creds.get("hl_vault_address")
                         )
-                        await adapter.set_leverage(hl_symbol_to_coin(symbol), leverage)
+                        await adapter.set_leverage(hl_symbol_to_coin(symbol), target_leverage or leverage)
                         await adapter.close()
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set HL leverage for {symbol}: {lev_err}")
                 
-                # Place order
+                # Place order with target-specific qty
                 res = await place_order_hyperliquid(
                     user_id=user_id,
                     symbol=symbol,
                     side=side,
                     orderType=orderType,
-                    qty=qty,
+                    qty=target_qty,
                     price=price,
                     account_type=target_account_type or ("testnet" if is_testnet else "mainnet")
                 )
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange}
-                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side}")
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty}
+                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side} qty={target_qty}")
                 
             else:
                 # ═══════════════════════════════════════════════════════════
@@ -5130,22 +5204,22 @@ async def place_order_for_targets(
                 # ═══════════════════════════════════════════════════════════
                 acc_type = target_account_type or ("demo" if target_env == "paper" else "real")
                 
-                # Set leverage first
+                # Set leverage first with target-specific value
                 try:
-                    await set_leverage(user_id, symbol, leverage=leverage, account_type=acc_type)
+                    await set_leverage(user_id, symbol, leverage=target_leverage or leverage, account_type=acc_type)
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set Bybit leverage for {symbol}: {lev_err}")
                 
-                # Place order
-                res = await place_order(user_id, symbol, side, orderType, qty, price, timeInForce, account_type=acc_type)
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange}
-                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side}")
+                # Place order with target-specific qty
+                res = await place_order(user_id, symbol, side, orderType, target_qty, price, timeInForce, account_type=acc_type)
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty}
+                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side} qty={target_qty}")
             
             # Store position in DB with correct target info
             if add_position and orderType == "Market":
-                # Get current price for entry_price
-                entry_price = price if price else 0
-                if not entry_price:
+                # Get current price for position entry_price
+                pos_entry_price = price if price else entry_price  # Use param entry_price if price not set
+                if not pos_entry_price:
                     try:
                         if target_exchange == "hyperliquid":
                             # Get price from HL
@@ -5156,7 +5230,7 @@ async def place_order_for_targets(
                                     testnet=(target_env == "paper")
                                 )
                                 price_data = await adapter.get_price(hl_symbol_to_coin(symbol))
-                                entry_price = float(price_data) if price_data else 0
+                                pos_entry_price = float(price_data) if price_data else 0
                                 await adapter.close()
                         else:
                             # Get price from Bybit
@@ -5167,7 +5241,7 @@ async def place_order_for_targets(
                             )
                             ticker_list = ticker_data.get("list", [])
                             if ticker_list:
-                                entry_price = float(ticker_list[0].get("lastPrice", 0))
+                                pos_entry_price = float(ticker_list[0].get("lastPrice", 0))
                     except Exception:
                         pass  # Will be updated by monitoring
                 
@@ -5185,8 +5259,8 @@ async def place_order_for_targets(
                     signal_id=signal_id,
                     symbol=symbol,
                     side=side,
-                    size=qty,
-                    entry_price=entry_price,
+                    size=target_qty,  # Use target-specific qty
+                    entry_price=pos_entry_price,
                     timeframe=timeframe,
                     strategy=strategy,
                     account_type=target_account_type or ("demo" if target_env == "paper" else "real"),
@@ -5194,12 +5268,12 @@ async def place_order_for_targets(
                     env=target_env,
                     client_order_id=client_order_id,
                     use_atr=pos_use_atr,  # P0.5: Pass ATR setting
-                    leverage=leverage,  # Save leverage used for this order
+                    leverage=target_leverage or leverage,  # Save target-specific leverage
                     # Fix #2: Save SL/TP % at position open time
                     applied_sl_pct=pos_sl_pct,
                     applied_tp_pct=pos_tp_pct,
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} (use_atr={pos_use_atr}, leverage={leverage})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={target_leverage or leverage})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -13220,7 +13294,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="rsi_bb", leverage=user_leverage,
-                            signal_id=signal_id, timeframe=timeframe
+                            signal_id=signal_id, timeframe=timeframe,
+                            calc_qty_per_target=True, entry_price=spot_price
                         )
                         
                         # Also place on HyperLiquid if enabled
@@ -13307,7 +13382,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="scryptomera", leverage=user_leverage,
-                            signal_id=signal_id, timeframe=timeframe
+                            signal_id=signal_id, timeframe=timeframe,
+                            calc_qty_per_target=True, entry_price=spot_price
                         )
                         
                         # Also place on HyperLiquid if enabled
@@ -13411,7 +13487,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="scalper", leverage=user_leverage,
-                            signal_id=signal_id, timeframe=timeframe
+                            signal_id=signal_id, timeframe=timeframe,
+                            calc_qty_per_target=True, entry_price=spot_price
                         )
                         
                         # Also place on HyperLiquid if enabled
@@ -13577,7 +13654,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             await place_order_all_accounts(
                                 uid, symbol, side, orderType="Market", qty=qty, 
                                 strategy="elcaro", leverage=order_leverage,
-                                signal_id=signal_id, timeframe=elcaro_timeframe
+                                signal_id=signal_id, timeframe=elcaro_timeframe,
+                                calc_qty_per_target=True, entry_price=spot_price
                             )
                             
                             # Also place on HyperLiquid if enabled
@@ -13769,7 +13847,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             await place_order_all_accounts(
                                 uid, symbol, side, orderType="Market", qty=qty, 
                                 strategy="fibonacci", leverage=user_leverage,
-                                signal_id=signal_id, timeframe="1h"
+                                signal_id=signal_id, timeframe="1h",
+                                calc_qty_per_target=True, entry_price=spot_price
                             )
                             
                             # Also place on HyperLiquid if enabled
@@ -13881,7 +13960,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty_mkt, 
                             strategy="oi", leverage=user_leverage,
-                            signal_id=signal_id, timeframe=timeframe
+                            signal_id=signal_id, timeframe=timeframe,
+                            calc_qty_per_target=True, entry_price=spot_price
                         )
                         
                         # Also place on HyperLiquid if enabled
