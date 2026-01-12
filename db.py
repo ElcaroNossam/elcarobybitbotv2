@@ -3908,6 +3908,38 @@ def remove_pending_limit_order(user_id: int, order_id: str):
 # ------------------------------------------------------------------------------------
 # Trade logs
 # ------------------------------------------------------------------------------------
+
+def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, seconds: int = 120) -> bool:
+    """
+    Check if a position with the same symbol and entry price was closed recently.
+    This helps detect Bybit API sync delays where closed positions still appear as open.
+    
+    Args:
+        user_id: User ID
+        symbol: Trading pair symbol
+        entry_price: Entry price to match (rounded to 4 decimals)
+        seconds: Time window to check (default 2 minutes)
+    
+    Returns:
+        True if a matching trade was closed within the time window
+    """
+    from datetime import datetime, timedelta
+    cutoff = datetime.utcnow() - timedelta(seconds=seconds)
+    cutoff_str = cutoff.strftime('%Y-%m-%d %H:%M:%S')
+    
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*) FROM trade_logs
+            WHERE user_id = ?
+              AND symbol = ?
+              AND ABS(entry_price - ?) < 0.0001
+              AND ts > ?
+        """, (user_id, symbol, entry_price, cutoff_str))
+        count = cur.fetchone()[0]
+        return count > 0
+
+
 def add_trade_log(
     user_id: int,
     signal_id: int | None,

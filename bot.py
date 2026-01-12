@@ -106,6 +106,7 @@ from db import (
     get_dca_flag,
     get_trade_stats,
     get_stats_by_strategy,
+    was_position_recently_closed,
     # License functions
     get_user_license,
     set_user_license,
@@ -3188,8 +3189,6 @@ _position_mode_cache: dict[tuple[int, str], str] = {}
 _atr_triggered: dict[tuple[int, str], bool] = {}
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
-_symbol_trade_cooldown: dict[tuple[int, str], float] = {}  # (uid, symbol) -> timestamp when can trade again
-SYMBOL_TRADE_COOLDOWN_SECONDS = 300  # 5 minutes cooldown after closing a position on a symbol
 
 
 async def safe_send_notification(bot, uid: int, text: str, **kwargs) -> bool:
@@ -12947,15 +12946,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         pass
                 continue
 
-            # Check symbol-specific cooldown (prevents re-entry on repeated signals after closing)
-            symbol_cooldown_end = _symbol_trade_cooldown.get((uid, symbol), 0)
-            if time.time() < symbol_cooldown_end:
-                logger.debug(f"[{uid}] {symbol}: in symbol cooldown ({int(symbol_cooldown_end - time.time())}s left) → skip")
-                continue
-
             existing_positions = await fetch_open_positions(uid)
             if any(p.get("symbol") == symbol for p in existing_positions):
                 logger.debug(f"[{uid}] {symbol}: already has open position → skip")
+                continue
+
+            # CRITICAL: Check if position was recently closed (prevent re-entry on repeated signals)
+            # This handles cases where strategies like FIBONACCI send repeated signals
+            if was_position_recently_closed(uid, symbol, spot_price, seconds=120):
+                logger.debug(f"[{uid}] {symbol}: position was recently closed at similar price → skip")
                 continue
 
             existing_orders = await fetch_open_orders(uid, symbol)
@@ -13987,11 +13986,6 @@ def log_exit_and_remove_position(
     # Pass entry_price to prevent race condition where a NEW position (opened by signal)
     # gets deleted when closing OLD position (detected by monitor)
     remove_active_position(user_id, symbol, account_type=account_type, entry_price=entry_price)
-    
-    # Set symbol-specific cooldown to prevent immediate re-entry after closing
-    # This prevents reopening position on same repeated signals
-    _symbol_trade_cooldown[(user_id, symbol)] = time.time() + SYMBOL_TRADE_COOLDOWN_SECONDS
-    logger.debug(f"[{user_id}] Set {SYMBOL_TRADE_COOLDOWN_SECONDS}s cooldown for {symbol} after position close")
 
 def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str) -> None:
     status = (status or "").upper()
@@ -14206,10 +14200,12 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[{uid}] Skipping {sym} - in close_all cooldown ({int(cooldown_end - now)}s left)")
                                     continue
                                 
-                                # Check symbol-specific cooldown (prevents re-entry on repeated signals)
-                                symbol_cooldown_end = _symbol_trade_cooldown.get((uid, sym), 0)
-                                if now < symbol_cooldown_end:
-                                    logger.info(f"[{uid}] Skipping {sym} - in symbol cooldown ({int(symbol_cooldown_end - now)}s left)")
+                                # CRITICAL: Check if position with same entry price was recently closed
+                                # This prevents re-adding positions that appear on Bybit API due to sync delay
+                                entry_price_check = round(entry, 4)
+                                recently_closed = was_position_recently_closed(uid, sym, entry_price_check, seconds=120)
+                                if recently_closed:
+                                    logger.info(f"[{uid}] Skipping {sym} - position with entry={entry_price_check} was recently closed (API sync delay)")
                                     continue
                                 
                                 tf_for_sym = tf_map.get(sym, "24h") 
