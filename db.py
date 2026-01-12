@@ -4103,11 +4103,24 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         
         # Общая статистика
         # Note: webapp_close is added to EOD category as it's a manual close via webapp
+        # Updated: ATR and PARTIAL_TP are now categorized based on PnL:
+        #   - ATR/PARTIAL_TP with pnl > 0 → counted as TP (trailing win)
+        #   - ATR/PARTIAL_TP with pnl < 0 → counted as SL (trailing loss)
         row = conn.execute(f"""
             SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN exit_reason IN ('TP', 'TRAILING') OR (exit_reason = 'UNKNOWN' AND pnl > 0) THEN 1 ELSE 0 END) as tp_count,
-                SUM(CASE WHEN exit_reason IN ('SL', 'LIQ', 'ADL') OR (exit_reason = 'UNKNOWN' AND pnl < 0) THEN 1 ELSE 0 END) as sl_count,
+                SUM(CASE 
+                    WHEN exit_reason IN ('TP', 'TRAILING', 'PARTIAL_TP') THEN 1
+                    WHEN exit_reason = 'ATR' AND pnl > 0 THEN 1
+                    WHEN exit_reason = 'UNKNOWN' AND pnl > 0 THEN 1
+                    ELSE 0 
+                END) as tp_count,
+                SUM(CASE 
+                    WHEN exit_reason IN ('SL', 'LIQ', 'ADL') THEN 1
+                    WHEN exit_reason = 'ATR' AND pnl <= 0 THEN 1
+                    WHEN exit_reason = 'UNKNOWN' AND pnl < 0 THEN 1
+                    ELSE 0 
+                END) as sl_count,
                 SUM(CASE WHEN exit_reason IN ('EOD', 'MANUAL', 'webapp_close') THEN 1 ELSE 0 END) as eod_count,
                 SUM(pnl) as total_pnl,
                 AVG(pnl_pct) as avg_pnl_pct,

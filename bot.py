@@ -11509,8 +11509,10 @@ async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", p
     long_pnl = gross_profit * (long_count / max(total, 1)) if long_count > 0 else 0
     short_pnl = gross_profit * (short_count / max(total, 1)) if short_count > 0 else 0
     
-    closed = tp_count + sl_count + eod_count
+    # Closed trades = total from DB (this is already the count of closed trades in trade_logs)
+    # Open trades come from active_positions table
     open_trades = stats.get("open_count", 0)  # From active_positions table
+    closed = total  # total from trade_logs = all closed trades
     total_with_open = closed + open_trades  # Include open positions in total
     
     # Combined PnL: realized + unrealized
