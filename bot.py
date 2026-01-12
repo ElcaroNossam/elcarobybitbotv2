@@ -3414,7 +3414,8 @@ async def detect_exit_reason(
     reason = "UNKNOWN"
     order_type = ""
     
-    # Step 1: Check execution list for reduceOnly trades
+    # Step 1: Check execution list for position closes (closedSize > 0)
+    # Note: /v5/execution/list returns createType and stopOrderType which tell us WHY position was closed
     try:
         exec_data = await _bybit_request(
             user_id,
@@ -3427,17 +3428,33 @@ async def detect_exit_reason(
             }
         )
         trades = exec_data.get("list", [])
+        
+        # Filter for position closes: execType="Trade" and closedSize > 0
         closes = [
             t for t in trades
             if t.get("execType") == "Trade"
-            and str(t.get("reduceOnly", "")).lower() == "true"
+            and float(t.get("closedSize") or 0) > 0
         ]
         
         if closes:
             last = max(closes, key=lambda t: int(t.get("execTime", 0)))
             order_type = last.get("orderType", "")
             
-            # Check stopOrderType first (most reliable)
+            # Check createType FIRST - most reliable indicator from Bybit API
+            # Values: CreateByStopLoss, CreateByTakeProfit, CreateByTrailingStop, CreateByUser, etc.
+            ctp = (last.get("createType") or "").lower()
+            if "takeprofit" in ctp:
+                return "TP", order_type
+            elif "stoploss" in ctp:
+                return "SL", order_type
+            elif "trailing" in ctp:
+                return "TRAILING", order_type
+            elif "liq" in ctp or "takeover" in ctp:
+                return "LIQ", order_type
+            elif "adl" in ctp:
+                return "ADL", order_type
+            
+            # Check stopOrderType as secondary indicator
             sop = (last.get("stopOrderType") or "").lower()
             if "takeprofit" in sop or "partialtakeprofit" in sop:
                 return "TP", order_type
@@ -3446,24 +3463,11 @@ async def detect_exit_reason(
             elif "trailingstop" in sop:
                 return "TRAILING", order_type
             
-            # Check createType (from Bybit enum documentation)
-            ctp = (last.get("createType") or "").lower()
-            if "createbytakeprofit" in ctp or "createbypartialtakeprofit" in ctp:
-                return "TP", order_type
-            elif "createbystoploss" in ctp or "createbypartialstoploss" in ctp:
-                return "SL", order_type
-            elif "createbytrailingstop" in ctp or "createbytrailingprofit" in ctp:
-                return "TRAILING", order_type
-            elif "createbyliq" in ctp or "createbytakeover" in ctp:
-                return "LIQ", order_type
-            elif "createbyadl" in ctp:
-                return "ADL", order_type
-            elif "createbyclosing" in ctp:
-                return "MANUAL", order_type
-            elif "createbyuser" in ctp:
+            # If createType is CreateByUser or CreateByClosing - it's manual
+            if "user" in ctp or "closing" in ctp:
                 return "MANUAL", order_type
                 
-            # Save orderId to check order history if still unknown
+            # If we have orderId, check order history for more details (fallback)
             order_id = last.get("orderId")
             if order_id:
                 # Step 2: Check order history for more details
@@ -3482,40 +3486,42 @@ async def detect_exit_reason(
                     orders = order_data.get("list", [])
                     if orders:
                         order = orders[0]
-                        # Check stopOrderType in order
-                        sop = (order.get("stopOrderType") or "").lower()
-                        if "takeprofit" in sop:
+                        # Check createType in order (most reliable)
+                        order_ctp = (order.get("createType") or "").lower()
+                        if "takeprofit" in order_ctp:
                             return "TP", order_type
-                        elif "stoploss" in sop:
+                        elif "stoploss" in order_ctp:
                             return "SL", order_type
-                        elif "trailingstop" in sop:
+                        elif "trailing" in order_ctp:
+                            return "TRAILING", order_type
+                        elif "liq" in order_ctp or "takeover" in order_ctp:
+                            return "LIQ", order_type
+                        elif "adl" in order_ctp:
+                            return "ADL", order_type
+                        
+                        # Check stopOrderType in order
+                        order_sop = (order.get("stopOrderType") or "").lower()
+                        if "takeprofit" in order_sop:
+                            return "TP", order_type
+                        elif "stoploss" in order_sop:
+                            return "SL", order_type
+                        elif "trailingstop" in order_sop:
                             return "TRAILING", order_type
                         
-                        # Check createType in order
-                        ctp = (order.get("createType") or "").lower()
-                        if "takeprofit" in ctp:
-                            return "TP", order_type
-                        elif "stoploss" in ctp:
-                            return "SL", order_type
-                        elif "trailing" in ctp:
-                            return "TRAILING", order_type
-                        elif "liq" in ctp or "takeover" in ctp:
-                            return "LIQ", order_type
-                        elif "adl" in ctp:
-                            return "ADL", order_type
-                        elif "closing" in ctp or "user" in ctp:
+                        # If createType is user/closing in order history
+                        if "closing" in order_ctp or "user" in order_ctp:
                             return "MANUAL", order_type
                 except Exception as e:
                     logger.debug(f"Could not fetch order history for {symbol}: {e}")
             
-            # Step 3: If still unknown but we have reduceOnly trades, assume MANUAL
-            if reason == "UNKNOWN":
-                return "MANUAL", order_type
+            # Step 3: If we have a close execution but couldn't determine reason from API,
+            # we still shouldn't default to MANUAL - let's use price-based fallback below
+            # (This is reached only if createType was empty/unknown)
                     
     except Exception as e:
         logger.warning(f"Error in detect_exit_reason for {symbol}: {e}")
     
-    # Step 4: If no reduceOnly trades found, check closed-pnl API for execType
+    # Step 4: If no closes found in execution list, check closed-pnl API
     if reason == "UNKNOWN":
         try:
             pnl_data = await _bybit_request(
@@ -3531,13 +3537,13 @@ async def detect_exit_reason(
             pnl_list = pnl_data.get("list", [])
             if pnl_list:
                 latest = pnl_list[0]
+                # Note: closed-pnl doesn't have createType/stopOrderType
+                # It only has execType (Trade, BustTrade, etc.)
                 exec_type = (latest.get("execType") or "").lower()
-                if "trade" in exec_type:
-                    # Check orderType for hints
-                    ot = (latest.get("orderType") or "").lower()
-                    if ot == "market":
-                        # Market order could still be TP/SL - check by PnL
-                        pass  # Will use price-based detection below
+                if "bust" in exec_type:
+                    return "LIQ", latest.get("orderType", "")
+                elif "adl" in exec_type:
+                    return "ADL", latest.get("orderType", "")
         except Exception as e:
             logger.debug(f"Could not fetch closed-pnl for detect_exit_reason: {e}")
     
