@@ -206,12 +206,19 @@ async def get_dashboard_stats(
                 if current_loss_streak > worst_streak:
                     worst_streak = current_loss_streak
         
+        # Calculate returnPct: Use average trade size as base instead of hardcoded 10k
+        # This gives a more realistic percentage return based on actual trading volume
+        avg_trade_size = sum(abs(float(t.get("pnl", 0)) / max(abs(float(t.get("pnl_pct", 0.01) / 100)), 0.001)) 
+                             for t in filtered_trades if float(t.get("pnl_pct", 0)) != 0) / max(len(filtered_trades), 1)
+        estimated_capital = max(avg_trade_size * 10, 1000)  # Assume 10x leverage, minimum 1000
+        return_pct = (total_pnl / estimated_capital) * 100 if estimated_capital > 0 else 0
+        
         return {
             "success": True,
             "data": {
                 "summary": {
                     "totalPnL": total_pnl,
-                    "returnPct": (total_pnl / 10000) * 100,  # Assuming 10k starting
+                    "returnPct": round(return_pct, 2),
                     "totalTrades": len(filtered_trades),
                     "winRate": win_rate,
                     "profitFactor": profit_factor,
@@ -257,9 +264,10 @@ async def get_pnl_history(
         
         start_date = datetime.now() - timedelta(days=days)
         
-        # Get trades from trade_logs table (ignore exchange filter - column doesn't exist)
-        trades = db.get_trade_logs_list(uid, limit=500, exchange=None) or []
-        logger.info(f"[PnL-API] User {uid}: fetched {len(trades)} trades")
+        # Get trades from trade_logs table
+        # Fix #9: Apply exchange filter if provided and column exists
+        trades = db.get_trade_logs_list(uid, limit=500, exchange=exchange if exchange != "all" else None) or []
+        logger.info(f"[PnL-API] User {uid}: fetched {len(trades)} trades (exchange filter: {exchange})")
         
         # Group by date
         daily_pnl = {}

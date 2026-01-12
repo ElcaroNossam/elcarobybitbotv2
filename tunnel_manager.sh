@@ -61,6 +61,17 @@ start_tunnel() {
         fi
         
         log "Updated .env with WEBAPP_URL"
+        
+        # Restart bot to pick up new URL
+        log "Restarting elcaro-bot service..."
+        sudo systemctl restart elcaro-bot
+        sleep 3
+        if systemctl is-active --quiet elcaro-bot; then
+            log "Bot restarted successfully with new URL"
+        else
+            log "ERROR: Bot restart failed!"
+        fi
+        
         return 0
     else
         log "ERROR: Failed to get tunnel URL"

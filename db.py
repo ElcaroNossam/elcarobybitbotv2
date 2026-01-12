@@ -711,6 +711,9 @@ def init_db():
         # Миграция: добавляем account_type в trade_logs
         if _table_exists(conn, "trade_logs") and not _col_exists(conn, "trade_logs", "account_type"):
             cur.execute("ALTER TABLE trade_logs ADD COLUMN account_type TEXT DEFAULT 'demo'")
+        # P1: Добавляем exchange в trade_logs для multi-exchange поддержки
+        if _table_exists(conn, "trade_logs") and not _col_exists(conn, "trade_logs", "exchange"):
+            cur.execute("ALTER TABLE trade_logs ADD COLUMN exchange TEXT DEFAULT 'bybit'")
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_logs_strategy ON trade_logs(user_id, strategy)"
         )
@@ -1117,6 +1120,12 @@ def init_db():
         # Миграция: leverage для позиции
         if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "leverage"):
             cur.execute("ALTER TABLE active_positions ADD COLUMN leverage INTEGER")
+        
+        # P1: Сохраняем SL/TP % при открытии позиции (для правильного расчёта при закрытии)
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "applied_sl_pct"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN applied_sl_pct REAL")
+        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "applied_tp_pct"):
+            cur.execute("ALTER TABLE active_positions ADD COLUMN applied_tp_pct REAL")
         
         # Миграция: client_order_id для идемпотентности
         if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "client_order_id"):
@@ -3048,6 +3057,9 @@ def add_active_position(
     exchange_order_id: str | None = None,
     env: str | None = None,  # Unified env (paper/live)
     use_atr: bool = False,  # P0.5: ATR trailing enabled for this position
+    # P1: Save applied SL/TP percentages at position open time
+    applied_sl_pct: float | None = None,
+    applied_tp_pct: float | None = None,
 ):
     """
     UPSERT с обновлением ключевых полей.
@@ -3075,8 +3087,9 @@ def add_active_position(
           INSERT INTO active_positions
             (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
              dca_10_done, dca_25_done, strategy, source, opened_by, exchange,
-             sl_price, tp_price, leverage, client_order_id, exchange_order_id, env, use_atr)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             sl_price, tp_price, leverage, client_order_id, exchange_order_id, env, use_atr,
+             applied_sl_pct, applied_tp_pct)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id, symbol, account_type) DO UPDATE SET
             side             = excluded.side,
             entry_price      = excluded.entry_price,
@@ -3101,11 +3114,13 @@ def add_active_position(
             client_order_id  = COALESCE(excluded.client_order_id, active_positions.client_order_id),
             exchange_order_id = COALESCE(excluded.exchange_order_id, active_positions.exchange_order_id),
             env              = COALESCE(excluded.env, active_positions.env),
-            use_atr          = excluded.use_atr
+            use_atr          = excluded.use_atr,
+            applied_sl_pct   = COALESCE(excluded.applied_sl_pct, active_positions.applied_sl_pct),
+            applied_tp_pct   = COALESCE(excluded.applied_tp_pct, active_positions.applied_tp_pct)
         """,
             (user_id, symbol, account_type, side, entry_price, size, timeframe, signal_id, 
              strategy, source, opened_by, exchange, sl_price, tp_price, leverage, 
-             client_order_id, exchange_order_id, env, use_atr_int),
+             client_order_id, exchange_order_id, env, use_atr_int, applied_sl_pct, applied_tp_pct),
         )
         conn.commit()
 
@@ -3126,7 +3141,8 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
                    source, opened_by, exchange, sl_price, tp_price, 
                    manual_sltp_override, manual_sltp_ts,
                    atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts,
-                   leverage, client_order_id, exchange_order_id, env, COALESCE(use_atr, 0) as use_atr
+                   leverage, client_order_id, exchange_order_id, env, COALESCE(use_atr, 0) as use_atr,
+                   applied_sl_pct, applied_tp_pct
             FROM active_positions
             WHERE user_id=?
         """
@@ -3180,6 +3196,9 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
                 "env": r[25] or _normalize_env(r[10] or "demo"),
                 # P0.5: ATR enabled flag
                 "use_atr": bool(r[26]) if len(r) > 26 else False,
+                # Applied SL/TP percentages at open time (Fix #2)
+                "applied_sl_pct": r[27] if len(r) > 27 else None,
+                "applied_tp_pct": r[28] if len(r) > 28 else None,
             }
             for r in rows
         ]
@@ -3920,22 +3939,31 @@ def add_trade_log(
     exit_order_type: str | None = None,
     strategy: str | None = None,
     account_type: str = "demo",
+    exchange: str = "bybit",  # Fix #4: Add exchange column support
 ):
     ensure_user(user_id)
+    
+    # Fix #7: Ensure SL/TP never go to DB as NULL/0 - use defaults
+    if sl_pct is None or sl_pct <= 0:
+        sl_pct = DEFAULT_SL_PCT
+    if tp_pct is None or tp_pct <= 0:
+        tp_pct = DEFAULT_TP_PCT
+    
     with get_conn() as conn:
         # CRITICAL: Check for duplicate trade before inserting
-        # A trade is considered duplicate if same user+symbol+side+entry_price+pnl within last 24 hours
+        # A trade is considered duplicate if same user+symbol+side+entry_price+exit_price within last 24 hours
         # This prevents the monitoring loop from logging the same closed position multiple times
+        # NOTE: We check entry_price AND exit_price instead of pnl for more reliable matching
         existing = conn.execute(
             """
             SELECT id FROM trade_logs 
             WHERE user_id = ? AND symbol = ? AND side = ? 
               AND ABS(entry_price - ?) < 0.0001 
-              AND ABS(pnl - ?) < 0.01
+              AND ABS(exit_price - ?) < 0.0001
               AND ts > datetime('now', '-24 hours')
             LIMIT 1
             """,
-            (user_id, symbol, side, entry_price, pnl)
+            (user_id, symbol, side, entry_price, exit_price)
         ).fetchone()
         
         if existing:
@@ -3955,8 +3983,8 @@ def add_trade_log(
             rsi, bb_hi, bb_lo,
             oi_prev, oi_now, oi_chg, vol_from, vol_to, price_chg,
             vol_delta, sl_pct, tp_pct, sl_price, tp_price,
-            timeframe, entry_ts, exit_ts, exit_order_type, strategy, account_type
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            timeframe, entry_ts, exit_ts, exit_order_type, strategy, account_type, exchange
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 user_id,
@@ -3989,6 +4017,7 @@ def add_trade_log(
                 exit_order_type,
                 strategy,
                 account_type,
+                exchange,
             ),
         )
         conn.commit()
@@ -4190,7 +4219,8 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
         
         now = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Use rolling 24h for consistency with get_trade_stats
+            start = now - datetime.timedelta(hours=24)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "week":
@@ -5037,7 +5067,8 @@ def get_global_trade_stats(strategy: str | None = None, period: str = "all", acc
         
         now = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Use rolling 24h for consistency
+            start = now - datetime.timedelta(hours=24)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "week":
@@ -5203,7 +5234,8 @@ def get_top_traders(period: str = "all", account_type: str = "demo", limit: int 
         
         now = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Use rolling 24h for consistency
+            start = now - datetime.timedelta(hours=24)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "week":
@@ -6210,33 +6242,27 @@ def update_strategy_ranking(
 # ------------------------------------------------------------------------------------
 def get_trade_history(user_id: int, limit: int = 100, exchange: str = None) -> list:
     """
-    Get trade history for a user from the trades table.
+    Get trade history for a user from the trade_logs table.
     Returns list of dicts with trade data.
+    NOTE: Changed from 'trades' table to 'trade_logs' which is the actual table used by the bot.
     """
     with get_conn() as conn:
-        # Check if trades table exists
-        cur = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='trades'"
-        )
-        if not cur.fetchone():
-            return []
-        
         if exchange:
             cur = conn.execute(
-                """SELECT id, symbol, side, entry_price, exit_price, size, 
-                          pnl, pnl_percent, exchange, strategy, created_at, closed_at
-                   FROM trades 
-                   WHERE user_id = ? AND exchange = ?
-                   ORDER BY created_at DESC LIMIT ?""",
+                """SELECT id, symbol, side, entry_price, exit_price, 
+                          pnl, pnl_pct, strategy, ts, exit_reason, account_type
+                   FROM trade_logs 
+                   WHERE user_id = ? AND (exchange = ? OR exchange IS NULL)
+                   ORDER BY ts DESC LIMIT ?""",
                 (user_id, exchange, limit)
             )
         else:
             cur = conn.execute(
-                """SELECT id, symbol, side, entry_price, exit_price, size, 
-                          pnl, pnl_percent, exchange, strategy, created_at, closed_at
-                   FROM trades 
+                """SELECT id, symbol, side, entry_price, exit_price, 
+                          pnl, pnl_pct, strategy, ts, exit_reason, account_type
+                   FROM trade_logs 
                    WHERE user_id = ?
-                   ORDER BY created_at DESC LIMIT ?""",
+                   ORDER BY ts DESC LIMIT ?""",
                 (user_id, limit)
             )
         
@@ -6249,14 +6275,16 @@ def get_trade_history(user_id: int, limit: int = 100, exchange: str = None) -> l
                 "side": row[2],
                 "entry_price": row[3],
                 "exit_price": row[4],
-                "size": row[5],
-                "pnl": row[6],
-                "pnl_percent": row[7],
-                "exchange": row[8],
-                "strategy": row[9],
-                "time": row[10],  # created_at as "time" for compatibility
-                "created_at": row[10],
-                "closed_at": row[11]
+                "size": 0,  # Not stored in trade_logs, but kept for compatibility
+                "pnl": row[5],
+                "pnl_percent": row[6],
+                "exchange": exchange or "bybit",
+                "strategy": row[7],
+                "time": row[8],
+                "created_at": row[8],
+                "closed_at": row[8],  # trade_logs only has ts (exit time)
+                "exit_reason": row[9],
+                "account_type": row[10]
             })
         return result
 

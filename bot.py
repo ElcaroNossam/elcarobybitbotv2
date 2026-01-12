@@ -4475,7 +4475,10 @@ async def split_market_plus_one_limit(
         strategy=strategy,
         account_type=account_type,
         use_atr=use_atr,  # P0.5: Pass ATR setting
-        leverage=pos_leverage  # Save actual leverage used
+        leverage=pos_leverage,  # Save actual leverage used
+        # Fix #2: Save SL/TP % at position open time
+        applied_sl_pct=sl_pct,
+        applied_tp_pct=tp_pct,
     )
 
     # P0.5: If ATR enabled, only set SL (no TP - will be managed by ATR trailing)
@@ -5167,6 +5170,8 @@ async def place_order_for_targets(
                                                          side=side, exchange=target_exchange, 
                                                          account_type=target_account_type)
                 pos_use_atr = trade_params.get("use_atr", False)
+                pos_sl_pct = trade_params.get("sl_pct")
+                pos_tp_pct = trade_params.get("tp_pct")
                 
                 add_active_position(
                     user_id=user_id,
@@ -5182,7 +5187,10 @@ async def place_order_for_targets(
                     env=target_env,
                     client_order_id=client_order_id,
                     use_atr=pos_use_atr,  # P0.5: Pass ATR setting
-                    leverage=leverage  # Save leverage used for this order
+                    leverage=leverage,  # Save leverage used for this order
+                    # Fix #2: Save SL/TP % at position open time
+                    applied_sl_pct=pos_sl_pct,
+                    applied_tp_pct=pos_tp_pct,
                 )
                 logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} (use_atr={pos_use_atr}, leverage={leverage})")
                 
@@ -11092,6 +11100,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     size=size,
                     strategy=strategy,
                     account_type=account_type,
+                    # Fix #2: Use saved SL/TP % from position open time
+                    applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
+                    applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
                 )
             except Exception as log_err:
                 logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
@@ -11251,6 +11262,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         size=size,
                         strategy=strategy,
                         account_type=account_type,
+                        # Fix #2: Use saved SL/TP % from position open time
+                        applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
+                        applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
                     )
                 except Exception as log_err:
                     logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
@@ -13470,12 +13484,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 f"ATR={elcaro_atr_periods}/x{elcaro_atr_mult}/trigger={elcaro_atr_trigger}%, "
                                 f"leverage={elcaro_leverage}")
                 else:
-                    # Legacy формат - используем настройки пользователя
+                    # Legacy формат - используем настройки пользователя, но СИГНАЛ имеет приоритет
                     elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
                     params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
                                                       exchange=ctx_exchange, account_type=ctx_account_type)
-                    sl_pct = params["sl_pct"]
-                    tp_pct = params["tp_pct"]
                     risk_pct = params["percent"]
                     elcaro_entry = parsed_elcaro.get("price", spot_price)
                     elcaro_sl = parsed_elcaro.get("sl")
@@ -13486,13 +13498,26 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     elcaro_atr_mult = None
                     elcaro_atr_trigger = None
                     
-                    # Вычисляем SL% из сигнала, если пользователь не задал
-                    if (not sl_pct or sl_pct <= 0) and elcaro_sl and elcaro_entry:
+                    # Fix #8: SIGNAL SL/TP has priority over user settings for Elcaro
+                    # First try to calculate SL% from signal prices
+                    sl_pct = None
+                    tp_pct = None
+                    if elcaro_sl and elcaro_entry:
                         sl_pct = abs((elcaro_sl - elcaro_entry) / elcaro_entry * 100)
+                    if elcaro_tp and elcaro_entry:
+                        tp_pct = abs((elcaro_tp - elcaro_entry) / elcaro_entry * 100)
+                    
+                    # Fallback to user settings only if signal doesn't provide values
                     if not sl_pct or sl_pct <= 0:
-                        sl_pct = 3.0  # fallback
+                        sl_pct = params["sl_pct"]
                     if not tp_pct or tp_pct <= 0:
-                        tp_pct = 6.0  # fallback
+                        tp_pct = params["tp_pct"]
+                    
+                    # Final fallback to defaults
+                    if not sl_pct or sl_pct <= 0:
+                        sl_pct = 3.0
+                    if not tp_pct or tp_pct <= 0:
+                        tp_pct = 6.0
 
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
@@ -13909,14 +13934,25 @@ def log_exit_and_remove_position(
     exit_order_type: str | None = None,
     strategy: str | None = None,
     account_type: str = "demo",
+    applied_sl_pct: float | None = None,  # Fix #2: SL% at position open time
+    applied_tp_pct: float | None = None,  # Fix #2: TP% at position open time
+    exchange: str = "bybit",  # Fix #4: Exchange for trade log
 ) -> None:
     cfg = get_user_config(user_id) or {}
     
-    # Use strategy-specific SL/TP if available (pass side for side-specific settings)
-    if strategy:
-        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
+    # Fix #2: Use saved SL/TP % from position open time, fallback to current settings
+    if applied_sl_pct is not None:
+        sl_pct = applied_sl_pct
+    elif strategy:
+        sl_pct, _ = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
     else:
         sl_pct = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
+    
+    if applied_tp_pct is not None:
+        tp_pct = applied_tp_pct
+    elif strategy:
+        _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=user_id, side=side)
+    else:
         tp_pct = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
 
     pnl_abs = (exit_price - entry_price) * float(size) * (1 if side == "Buy" else -1)
@@ -13932,7 +13968,7 @@ def log_exit_and_remove_position(
         sl_pct=sl_pct, tp_pct=tp_pct, sl_price=sl_price, tp_price=tp_price,
         timeframe=timeframe, entry_ts=int(entry_ts_ms or 0),
         exit_ts=int(time.time()*1000), exit_order_type=exit_order_type,
-        strategy=strategy, account_type=account_type,
+        strategy=strategy, account_type=account_type, exchange=exchange,
     )
     # Pass entry_price to prevent race condition where a NEW position (opened by signal)
     # gets deleted when closing OLD position (detected by monitor)
@@ -14075,7 +14111,10 @@ async def monitor_positions_loop(app: Application):
                                                 strategy    = strat_name,
                                                 account_type = current_account_type,
                                                 use_atr     = pos_use_atr_pending,  # P0.5
-                                                leverage    = pos_leverage  # Save actual leverage
+                                                leverage    = pos_leverage,  # Save actual leverage
+                                                # Fix #2: Save SL/TP % at position open time
+                                                applied_sl_pct = trade_params_pending.get("sl_pct"),
+                                                applied_tp_pct = trade_params_pending.get("tp_pct"),
                                             )
                                             await bot.send_message(
                                                 uid,
@@ -14206,7 +14245,10 @@ async def monitor_positions_loop(app: Application):
                                     strategy   = final_strategy,
                                     account_type = current_account_type,
                                     use_atr    = pos_use_atr_detected,  # P0.5
-                                    leverage   = pos_leverage  # Save actual leverage
+                                    leverage   = pos_leverage,  # Save actual leverage
+                                    # Fix #2: Save SL/TP % at position open time
+                                    applied_sl_pct = trade_params_detected.get("sl_pct"),
+                                    applied_tp_pct = trade_params_detected.get("tp_pct"),
                                 )
                             
                                 if detected_strategy:
@@ -14532,6 +14574,11 @@ async def monitor_positions_loop(app: Application):
                                         exit_order_type=exit_order_type,
                                         strategy=position_strategy,
                                         account_type=ap_account_type,
+                                        # Fix #2: Use saved SL/TP % from position open time
+                                        applied_sl_pct=ap.get("applied_sl_pct"),
+                                        applied_tp_pct=ap.get("applied_tp_pct"),
+                                        # Fix #4: Save exchange
+                                        exchange=ap.get("exchange") or current_exchange or "bybit",
                                     )
 
                                     pnl_from_exch = rec.get("closedPnl")
