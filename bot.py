@@ -12467,56 +12467,112 @@ def _to_mln_ext(v: float, u: str, *, bare_is_units: bool = False) -> float:
         return round(v / 1000.0, 4)
     return round(v / 1_000_000.0, 6) if bare_is_units else round(v, 2)
 
-BITK_RE_HDR     = re.compile(r'^\s*[^\w\s]?\s*DROP\s+CATCH\b', re.I | re.M)
-BITK_RE_BTCLINE = re.compile(r'^\s*BTC\s*[:=]\s*[^ \t\r\n]+', re.I | re.M)
-BITK_RE_TAG     = re.compile(r'\bTIGHTBTC\b', re.I)
-BITK_RE_SYMBOL  = re.compile(r'\b([A-Z0-9]{2,}USDT)\b')
-BITK_RE_SIDE    = re.compile(r'\b(LONG|SHORT)\b', re.I)
-BITK_RE_PRICE   = re.compile(r'\b(?:Price|Px|Entry)\b\s*[:=]\s*' + NUM, re.I)
+# ═══════════════════════════════════════════════════════════════════════════════
+# SCRYPTOMERA SIGNAL PARSER (NEW FORMAT)
+# Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
+# ═══════════════════════════════════════════════════════════════════════════════
+BITK_RE_HDR = re.compile(r'^\s*SCRIPTOMER\s+(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I | re.M)
 
 def is_bitk_signal(text: str) -> bool:
-    return bool(BITK_RE_HDR.search(text) or BITK_RE_BTCLINE.search(text) or BITK_RE_TAG.search(text))
+    """Check if message is Scryptomera signal by unique SCRIPTOMER keyword."""
+    return bool(BITK_RE_HDR.search(text))
 
 def parse_bitk_signal(text: str) -> dict | None:
-    if not is_bitk_signal(text):
+    """
+    Parse Scryptomera signal.
+    Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
+    """
+    m = BITK_RE_HDR.search(text)
+    if not m:
         return None
-    m_sym = BITK_RE_SYMBOL.search(text)
-    m_side = BITK_RE_SIDE.search(text)
-    m_px = BITK_RE_PRICE.search(text)
-    if not (m_sym and m_side and m_px):
-        return None
-    symbol = m_sym.group(1).upper()
-    side = "Buy" if m_side.group(1).upper() == "LONG" else "Sell"
-    price = _tof(m_px.group(1))
+    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+    symbol = m.group(2).upper()
+    price = _tof(m.group(3))
     return {"symbol": symbol, "side": side, "price": price}
 
-# --- Scalper (DropsBot) parser ---
-SCALPER_RE_HDR = re.compile(r'DropsBot\s*[—–-]\s*Bybit\s+linear', re.I)
-SCALPER_RE_SYMBOL = re.compile(r'\[([A-Z0-9]+USDT)\]')
-SCALPER_RE_SIDE = re.compile(r'\b(?:BOX\s+)?(LONG|SHORT)\b', re.I)
-SCALPER_RE_PRICE = re.compile(r'\bPrice\s*[:=]\s*' + NUM, re.I)
+# ═══════════════════════════════════════════════════════════════════════════════
+# SCALPER SIGNAL PARSER (NEW FORMAT)
+# Format: SCALPER LONG BTCUSDT @ 95432.50
+# ═══════════════════════════════════════════════════════════════════════════════
+SCALPER_RE_HDR = re.compile(r'^\s*SCALPER\s+(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I | re.M)
 
 def is_scalper_signal(text: str) -> bool:
+    """Check if message is Scalper signal by unique SCALPER keyword."""
     return bool(SCALPER_RE_HDR.search(text))
 
 def parse_scalper_signal(text: str) -> dict | None:
     """
-    Парсит сигнал от DropsBot Scalper.
-    Пример: 📉 DropsBot — Bybit linear
-            [AXLUSDT] BOX LONG • DD -2.47% inside the box (ΔVol ok)
-            Price: 0.1384
+    Parse Scalper signal.
+    Format: SCALPER LONG BTCUSDT @ 95432.50
     """
-    if not is_scalper_signal(text):
+    m = SCALPER_RE_HDR.search(text)
+    if not m:
         return None
-    m_sym = SCALPER_RE_SYMBOL.search(text)
-    m_side = SCALPER_RE_SIDE.search(text)
-    m_px = SCALPER_RE_PRICE.search(text)
-    if not (m_sym and m_side and m_px):
-        return None
-    symbol = m_sym.group(1).upper()
-    side = "Buy" if m_side.group(1).upper() == "LONG" else "Sell"
-    price = _tof(m_px.group(1))
+    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+    symbol = m.group(2).upper()
+    price = _tof(m.group(3))
     return {"symbol": symbol, "side": side, "price": price}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OI SIGNAL PARSER (NEW FORMAT)
+# Format: 🎯 OI SIGNAL ⭐️... with 🚀 SQUEEZE... 📈 LONG BTCUSDT @ 95432.50
+# ═══════════════════════════════════════════════════════════════════════════════
+OI_SIGNAL_RE_HDR = re.compile(r'🎯\s*OI\s+SIGNAL', re.I)
+OI_SIGNAL_RE_MAIN = re.compile(r'[📈📉]\s*(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I)
+OI_SIGNAL_RE_OI_CHANGE = re.compile(r'OI\s*:\s*([+\-]?[0-9]+(?:[.,][0-9]+)?)%', re.I)
+OI_SIGNAL_RE_SCORE = re.compile(r'Score\s*:\s*([0-9]+(?:[.,][0-9]+)?)', re.I)
+
+def is_oi_signal(text: str) -> bool:
+    """Check if message is OI Signal by unique 🎯 OI SIGNAL header."""
+    return bool(OI_SIGNAL_RE_HDR.search(text))
+
+def parse_oi_signal(text: str) -> dict | None:
+    """
+    Parse OI Signal.
+    Format:
+        🎯 OI SIGNAL ⭐️⭐️⭐️⭐️
+        🚀 SQUEEZE (Сквиз шортов)
+        📈 LONG BTCUSDT @ 95432.50
+        📊 OI: +5.23% | Vol z=2.1 | CVD z=1.8
+        🎯 Score: 4.2
+    """
+    if not is_oi_signal(text):
+        return None
+    
+    m = OI_SIGNAL_RE_MAIN.search(text)
+    if not m:
+        return None
+    
+    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+    symbol = m.group(2).upper()
+    price = _tof(m.group(3))
+    
+    # Parse OI change percentage
+    oi_chg = None
+    oi_m = OI_SIGNAL_RE_OI_CHANGE.search(text)
+    if oi_m:
+        oi_chg = _tof(oi_m.group(1))
+    
+    # Parse score
+    score = None
+    score_m = OI_SIGNAL_RE_SCORE.search(text)
+    if score_m:
+        score = _tof(score_m.group(1))
+    
+    # Calculate oi_prev and oi_now from oi_chg (we use dummy values for compatibility)
+    # The actual OI values don't matter, only the change percentage matters for trigger
+    oi_now = 100.0  # Dummy base
+    oi_prev = oi_now / (1 + oi_chg / 100) if oi_chg and abs(oi_chg) > 0.01 else oi_now
+    
+    return {
+        "symbol": symbol,
+        "side": side,
+        "price": price,
+        "oi_prev": oi_prev,
+        "oi_now": oi_now,
+        "oi_chg": oi_chg,
+        "score": score,
+    }
 
 # --- Elcaro parser (new format) ---
 # Header: "Elcaro" on first line (optional - can detect by structure)
@@ -12890,7 +12946,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     parsed_fibonacci = parse_fibonacci_signal(txt)
     is_fibonacci = parsed_fibonacci is not None
     
-    logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, fibonacci={is_fibonacci}): {txt!r}")
+    # NEW: Parse OI signal with new unique format
+    parsed_oi = parse_oi_signal(txt)
+    is_oi = parsed_oi is not None
+    
+    logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, fibonacci={is_fibonacci}, oi={is_oi}): {txt!r}")
 
     parsed = parse_signal(txt)
     
@@ -12911,6 +12971,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parsed["symbol"] = parsed_fibonacci.get("symbol")
         parsed["side"] = parsed_fibonacci.get("side")
         parsed["price"] = parsed_fibonacci.get("price")
+    elif is_oi and parsed_oi:
+        parsed["symbol"] = parsed_oi.get("symbol")
+        parsed["side"] = parsed_oi.get("side")
+        parsed["price"] = parsed_oi.get("price")
+        parsed["oi_prev"] = parsed_oi.get("oi_prev")
+        parsed["oi_now"] = parsed_oi.get("oi_now")
+        parsed["oi_chg"] = parsed_oi.get("oi_chg")
     
     try:
         signal_id = db.add_signal(
@@ -12953,6 +13020,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             symbol     = parsed_fibonacci["symbol"]
             side       = parsed_fibonacci["side"]
             spot_price = float(parsed_fibonacci["price"])
+        elif is_oi:
+            symbol     = parsed_oi["symbol"]
+            side       = parsed_oi["side"]
+            spot_price = float(parsed_oi["price"])
         else:
             side_txt = (parsed.get("side") or "").upper()
             if side_txt in ("LONG", "UP"):
@@ -13063,7 +13134,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             scalper_trigger = (cfg.get("trade_scalper", 0) and is_scalper)
             elcaro_trigger  = (cfg.get("trade_elcaro", 0) and is_elcaro)
             fibonacci_trigger = (cfg.get("trade_fibonacci", 0) and is_fibonacci)
-            oi_trigger      = (cfg.get("trade_oi", 0) and oi_prev is not None and oi_now is not None)
+            oi_trigger      = (cfg.get("trade_oi", 0) and is_oi)  # NEW: Use is_oi flag from new parser
             
             # Log strategy triggers for debugging
             if is_bitk:
@@ -13072,8 +13143,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] Scalper signal detected: trade_scalper={cfg.get('trade_scalper', 0)}, scalper_trigger={scalper_trigger}, symbol={symbol}")
             if is_fibonacci:
                 logger.info(f"[{uid}] Fibonacci signal detected: trade_fibonacci={cfg.get('trade_fibonacci', 0)}, fibonacci_trigger={fibonacci_trigger}")
-            if oi_prev is not None and oi_now is not None:
-                logger.info(f"[{uid}] OI signal detected: trade_oi={cfg.get('trade_oi', 0)}, oi_trigger={oi_trigger}, symbol={symbol}, oi_prev={oi_prev:.2f}M, oi_now={oi_now:.2f}M")
+            if is_oi:
+                logger.info(f"[{uid}] OI signal detected: trade_oi={cfg.get('trade_oi', 0)}, oi_trigger={oi_trigger}, symbol={symbol}, oi_chg={parsed.get('oi_chg')}%")
 
             # Get user's trading context for settings lookup
             user_context = get_user_trading_context(uid)
