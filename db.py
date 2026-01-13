@@ -307,6 +307,7 @@ def init_db():
             ("atr_periods",        "ALTER TABLE users ADD COLUMN atr_periods        INTEGER NOT NULL DEFAULT 7"),
             ("atr_multiplier_sl",  "ALTER TABLE users ADD COLUMN atr_multiplier_sl  REAL NOT NULL DEFAULT 1.0"),
             ("atr_trigger_pct",    "ALTER TABLE users ADD COLUMN atr_trigger_pct    REAL NOT NULL DEFAULT 2.0"),
+            ("atr_step_pct",       "ALTER TABLE users ADD COLUMN atr_step_pct       REAL NOT NULL DEFAULT 0.5"),
             # Global direction setting
             ("direction",          "ALTER TABLE users ADD COLUMN direction          TEXT NOT NULL DEFAULT 'all'"),
         ]:
@@ -1956,6 +1957,8 @@ def get_user_config(user_id: int) -> dict:
             cols.append("atr_multiplier_sl")
         if _col_exists(conn, "users", "atr_trigger_pct"):
             cols.append("atr_trigger_pct")
+        if _col_exists(conn, "users", "atr_step_pct"):
+            cols.append("atr_step_pct")
         # Global direction
         if _col_exists(conn, "users", "direction"):
             cols.append("direction")
@@ -2007,6 +2010,7 @@ def get_user_config(user_id: int) -> dict:
             "atr_periods": 7,
             "atr_multiplier_sl": 1.0,
             "atr_trigger_pct": 2.0,
+            "atr_step_pct": 0.5,
             "direction": "all",
         }
 
@@ -2097,6 +2101,9 @@ def get_user_config(user_id: int) -> dict:
         "atr_trigger_pct": float(data.get("atr_trigger_pct") or 2.0)
         if "atr_trigger_pct" in data
         else 2.0,
+        "atr_step_pct": float(data.get("atr_step_pct") or 0.5)
+        if "atr_step_pct" in data
+        else 0.5,
         # Global direction
         "direction": data.get("direction", "all")
         if "direction" in data

@@ -6302,8 +6302,8 @@ async def _show_global_atr_settings_menu(query, uid: int, t: dict):
     
     atr_trigger = cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
     atr_step = cfg.get('atr_step_pct', 0.5)
-    atr_period = cfg.get('atr_period', 14)
-    atr_mult = cfg.get('atr_multiplier', 1.5)
+    atr_period = cfg.get('atr_periods', 14)  # Note: column is atr_periods (with s)
+    atr_mult = cfg.get('atr_multiplier_sl', 1.5)  # Note: column is atr_multiplier_sl
     use_atr = cfg.get('use_atr', 1)
     
     lines = [t.get('atr_settings_header', '📈 *Global ATR Settings*')]
@@ -6514,10 +6514,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     
     # ATR Period
     if data == "global_atr:period":
-        ctx.user_data["global_setting_mode"] = "atr_period"
+        ctx.user_data["global_setting_mode"] = "atr_periods"  # Column name with 's'
         await query.message.edit_text(
             t.get('atr_period_prompt', '🕐 *ATR Period*\n\nEnter the number of candles for ATR calculation.\n\nCurrent: {current}\n\nExample: 14 = use 14 candles').format(
-                current=cfg.get('atr_period', 14)
+                current=cfg.get('atr_periods', 14)
             ),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -6528,10 +6528,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     
     # ATR Multiplier
     if data == "global_atr:mult":
-        ctx.user_data["global_setting_mode"] = "atr_multiplier"
+        ctx.user_data["global_setting_mode"] = "atr_multiplier_sl"  # Column name with _sl
         await query.message.edit_text(
             t.get('atr_mult_prompt', '✖️ *ATR Multiplier*\n\nEnter the ATR multiplier for SL distance.\n\nCurrent: {current}x\n\nExample: 1.5 = SL at 1.5 × ATR from price').format(
-                current=cfg.get('atr_multiplier', 1.5)
+                current=cfg.get('atr_multiplier_sl', 1.5)
             ),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -17407,11 +17407,11 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             elif global_setting == "atr_step_pct":
                 if value < 0.1 or value > 20:
                     raise ValueError("ATR Step must be between 0.1 and 20")
-            elif global_setting == "atr_period":
+            elif global_setting == "atr_periods":  # Fixed: was atr_period
                 if value < 1 or value > 100 or int(value) != value:
                     raise ValueError("ATR Period must be integer between 1 and 100")
                 value = int(value)
-            elif global_setting == "atr_multiplier":
+            elif global_setting == "atr_multiplier_sl":  # Fixed: was atr_multiplier
                 if value < 0.1 or value > 10:
                     raise ValueError("ATR Multiplier must be between 0.1 and 10")
             
@@ -17426,8 +17426,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "leverage": "Leverage",
                 "atr_trigger_pct": "ATR Trigger %",
                 "atr_step_pct": "ATR Step %",
-                "atr_period": "ATR Period",
-                "atr_multiplier": "ATR Multiplier",
+                "atr_periods": "ATR Period",  # Fixed
+                "atr_multiplier_sl": "ATR Multiplier",  # Fixed
             }
             
             # Check if ATR setting - go back to ATR menu
