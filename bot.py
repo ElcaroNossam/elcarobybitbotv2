@@ -552,8 +552,8 @@ def once_per(key: tuple[int, str, str], seconds: int) -> bool:
 def is_db_full_error(e: Exception) -> bool:
     return "database or disk is full" in str(e).lower()
 
-async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 1.0, tp_pct: float = 3.0):
-    positions = await fetch_open_positions(uid)
+async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 1.0, tp_pct: float = 3.0, account_type: str | None = None):
+    positions = await fetch_open_positions(uid, account_type=account_type)
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
     if not pos_candidates:
         raise RuntimeError(f"No open position for {symbol} to set SL/TP")
@@ -564,7 +564,7 @@ async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: f
         raise RuntimeError(f"Could not get entry price for {symbol}")
     sl_price = round(entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6)
     tp_price = round(entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6)
-    await set_trading_stop(uid, symbol, sl_price=sl_price, tp_price=tp_price, side_hint=side)
+    await set_trading_stop(uid, symbol, sl_price=sl_price, tp_price=tp_price, side_hint=side, account_type=account_type)
 
 def with_texts(func):
     @functools.wraps(func)
@@ -4115,6 +4115,7 @@ async def set_trading_stop(
     sl_price: float | None = None,
     side_hint: str | None = None,
     is_trailing: bool = False,  # Skip entry price validation for trailing SL
+    account_type: str | None = None,  # 'demo', 'real', or None (auto-detect)
 ) -> bool:
     """Set TP/SL for a position. Returns True if successful, False if position not found."""
     if tp_price is None and sl_price is None:
@@ -4132,7 +4133,7 @@ async def set_trading_stop(
         else:
             side_hint = None  
 
-    positions = await fetch_open_positions(uid)
+    positions = await fetch_open_positions(uid, account_type=account_type)
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
 
     if not pos_candidates:
@@ -4276,11 +4277,11 @@ async def set_trading_stop(
 
     logger.debug(
         f"{symbol}: set_trading_stop side={effective_side} mode={mode} idx={position_idx} "
-        f"mark={mark} tp={tp_price} sl={sl_price}"
+        f"mark={mark} tp={tp_price} sl={sl_price} account_type={account_type}"
     )
 
     try:
-        await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body)
+        await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
@@ -4439,9 +4440,9 @@ async def split_market_plus_one_limit(
             kwargs = {"sl_price": sl_price}
             if mark is None or (_side=="Buy" and tp_price>mark) or (_side=="Sell" and tp_price<mark):
                 kwargs["tp_price"] = tp_price
-            await set_trading_stop(uid, symbol, **kwargs, side_hint=_side)
+            await set_trading_stop(uid, symbol, **kwargs, side_hint=_side, account_type=account_type)
         else:
-            await set_trading_stop(uid, symbol, sl_price=sl_price, side_hint=_side)
+            await set_trading_stop(uid, symbol, sl_price=sl_price, side_hint=_side, account_type=account_type)
             logger.info(f"[{uid}] ATR enabled for {symbol}: only SL={sl_price:.6f} set, TP managed by trailing")
 
     await place_order(uid, symbol, side, orderType="Market", qty=leg1)
@@ -13781,7 +13782,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     actual_tp = spot_price * (1 - tp_pct / 100)
                             
                             # Set TP/SL
-                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side)
+                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
@@ -13964,7 +13965,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             actual_tp = fibo_tp if fibo_tp else (spot_price * (1 + fibo_tp_pct / 100) if side == "Buy" else spot_price * (1 - fibo_tp_pct / 100))
                             
                             # Set TP/SL
-                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side)
+                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
@@ -14599,7 +14600,7 @@ async def monitor_positions_loop(app: Application):
                                             if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                                 kwargs["tp_price"] = tp_price
                                         try:
-                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side)
+                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=current_account_type)
                                         
                                             if result == "deep_loss":
                                                 # Calculate move_pct for deep loss notification
@@ -14627,7 +14628,7 @@ async def monitor_positions_loop(app: Application):
                                                 )
                                     else:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side)
+                                            result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side, account_type=current_account_type)
                                             if result == "deep_loss":
                                                 # Calculate move_pct for deep loss notification
                                                 move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
@@ -15156,7 +15157,7 @@ async def monitor_positions_loop(app: Application):
                                         cand = _stricter_sl(side, sl_should_be, current_sl)
                                         if cand is not None:
                                             try:
-                                                await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                                await set_trading_stop(uid, sym, sl_price=cand, side_hint=side, account_type=pos_account_type)
                                                 logger.info(f"[{uid}] {sym}: SL recalculated after DCA: {current_sl:.6f} → {cand:.6f}")
                                             except RuntimeError as e:
                                                 if "no open positions" not in str(e).lower():
@@ -15172,8 +15173,13 @@ async def monitor_positions_loop(app: Application):
                                             kwargs["tp_price"] = tp0
                                     if kwargs:
                                         try:
-                                            await set_trading_stop(uid, sym, **kwargs, side_hint=side)
-                                            logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
+                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type)
+                                            if result is True:
+                                                logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
+                                            elif result == "deep_loss":
+                                                logger.warning(f"[{uid}] {sym}: Position in deep loss, cannot set SL/TP")
+                                            else:
+                                                logger.debug(f"[{uid}] {sym}: SL/TP unchanged or skipped → {kwargs}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position already closed, skipping SL/TP update")
@@ -15192,7 +15198,7 @@ async def monitor_positions_loop(app: Application):
                                 cand = _stricter_sl(side, sl0, current_sl)
                                 if cand is not None:
                                     try:
-                                        await set_trading_stop(uid, sym, sl_price=cand, side_hint=side)
+                                        await set_trading_stop(uid, sym, sl_price=cand, side_hint=side, account_type=pos_account_type)
                                         logger.info(f"{sym}: Fixed SL tightened to {cand}")
                                     except RuntimeError as e:
                                         if "no open positions" in str(e).lower():
@@ -15226,7 +15232,7 @@ async def monitor_positions_loop(app: Application):
                                     )
                                     if should_update:
                                         try:
-                                            await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side)
+                                            await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side, account_type=pos_account_type)
                                             if entry_changed:
                                                 logger.info(f"[{uid}] {sym}: ATR SL recalculated after DCA to {sl0}")
                                             else:
@@ -15261,7 +15267,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
                                     if current_sl is None or new_sl > current_sl:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True)
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type)
                                             logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
@@ -15279,7 +15285,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
                                     if current_sl is None or new_sl < current_sl:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True)
+                                            result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type)
                                             logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
@@ -17050,8 +17056,22 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 reply_markup=main_menu_keyboard(ctx, update=update)
             )
 
-        positions = await fetch_open_positions(uid)
-        pos = next((p for p in positions if p.get("symbol") == symbol), None)
+        # Find position on correct account type
+        cfg = get_user_config(uid) or {}
+        trading_mode = cfg.get("trading_mode", "demo")
+        pos = None
+        pos_account_type = None
+        
+        # Check all possible account types based on trading_mode
+        account_types_to_check = ["demo", "real"] if trading_mode == "both" else [trading_mode]
+        for acc in account_types_to_check:
+            positions = await fetch_open_positions(uid, account_type=acc)
+            found_pos = next((p for p in positions if p.get("symbol") == symbol), None)
+            if found_pos:
+                pos = found_pos
+                pos_account_type = acc
+                break
+        
         if not pos:
             return await update.message.reply_text(
                 ctx.t["no_position_symbol"].format(symbol=symbol),
@@ -17073,7 +17093,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     ctx.t["invalid_tpsl_short"].format(current=current_price),
                     reply_markup=main_menu_keyboard(ctx, update=update)
                 )
-        await set_trading_stop(uid, symbol, tp_price=tp_price, sl_price=sl_price, side_hint=side)
+        await set_trading_stop(uid, symbol, tp_price=tp_price, sl_price=sl_price, side_hint=side, account_type=pos_account_type)
         ctx.user_data.pop("mode", None)
         return await update.message.reply_text(
             ctx.t["tpsl_set_success"].format(tp=tp_price, sl=sl_price, symbol=symbol),
