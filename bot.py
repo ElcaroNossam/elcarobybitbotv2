@@ -2675,10 +2675,10 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             gain_pct = float(text)
             if gain_pct < 1:
-                await update.message.reply_text("❌ Minimum gain trigger is 1%")
+                await reply_with_keyboard(update, ctx, "❌ Minimum gain trigger is 1%")
                 return True
             if gain_pct > 10000:
-                await update.message.reply_text("❌ Maximum gain trigger is 10000%")
+                await reply_with_keyboard(update, ctx, "❌ Maximum gain trigger is 10000%")
                 return True
             
             level_idx = ctx.user_data.get("spot_edit_tp_level", 0)
@@ -2700,7 +2700,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             )
             return True
         except ValueError:
-            await update.message.reply_text("❌ Invalid number. Please enter a valid percentage (e.g. 50)")
+            await reply_with_keyboard(update, ctx, "❌ Invalid number. Please enter a valid percentage (e.g. 50)")
             return True
     
     if awaiting == "tp_sell":
@@ -2708,10 +2708,10 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             sell_pct = float(text)
             if sell_pct < 1:
-                await update.message.reply_text("❌ Minimum sell amount is 1%")
+                await reply_with_keyboard(update, ctx, "❌ Minimum sell amount is 1%")
                 return True
             if sell_pct > 100:
-                await update.message.reply_text("❌ Maximum sell amount is 100%")
+                await reply_with_keyboard(update, ctx, "❌ Maximum sell amount is 100%")
                 return True
             
             level_idx = ctx.user_data.pop("spot_edit_tp_level", 0)
@@ -2747,7 +2747,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             )
             return True
         except ValueError:
-            await update.message.reply_text("❌ Invalid number. Please enter a valid percentage (e.g. 25)")
+            await reply_with_keyboard(update, ctx, "❌ Invalid number. Please enter a valid percentage (e.g. 25)")
             return True
     
     # ==================== LIMIT ORDER INPUT ====================
@@ -2755,7 +2755,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             limit_price = float(text)
             if limit_price <= 0:
-                await update.message.reply_text("❌ Price must be positive")
+                await reply_with_keyboard(update, ctx, "❌ Price must be positive")
                 return True
             
             ctx.user_data["spot_limit_price"] = limit_price
@@ -2770,14 +2770,14 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             )
             return True
         except ValueError:
-            await update.message.reply_text("❌ Invalid price. Please enter a number.")
+            await reply_with_keyboard(update, ctx, "❌ Invalid price. Please enter a number.")
             return True
     
     if awaiting == "limit_amount":
         try:
             amount = float(text)
             if amount < 5:
-                await update.message.reply_text("❌ Minimum amount is 5 USDT")
+                await reply_with_keyboard(update, ctx, "❌ Minimum amount is 5 USDT")
                 return True
             
             coin = ctx.user_data.pop("spot_limit_coin", "BTC")
@@ -2815,7 +2815,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
             return True
         except ValueError:
-            await update.message.reply_text("❌ Invalid amount. Please enter a number.")
+            await reply_with_keyboard(update, ctx, "❌ Invalid amount. Please enter a number.")
             return True
     
     # ==================== GRID BOT INPUT ====================
@@ -2836,13 +2836,13 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             total_investment = float(parts[3])
             
             if price_low >= price_high:
-                await update.message.reply_text("❌ Low price must be less than high price")
+                await reply_with_keyboard(update, ctx, "❌ Low price must be less than high price")
                 return True
             if grid_count < 3 or grid_count > 50:
-                await update.message.reply_text("❌ Grid count must be between 3 and 50")
+                await reply_with_keyboard(update, ctx, "❌ Grid count must be between 3 and 50")
                 return True
             if total_investment < 10:
-                await update.message.reply_text("❌ Minimum investment is 10 USDT")
+                await reply_with_keyboard(update, ctx, "❌ Minimum investment is 10 USDT")
                 return True
             
             coin = ctx.user_data.pop("spot_grid_coin", "BTC")
@@ -3121,6 +3121,16 @@ def _parse_sqlite_ts_to_utc(s: str) -> float:
         dt = dt.replace(tzinfo=datetime.timezone.utc)
     return dt.timestamp()
 
+
+async def reply_with_keyboard(update: Update, ctx: ContextTypes.DEFAULT_TYPE, text: str, parse_mode: str = "HTML"):
+    """
+    Send reply with main menu keyboard. Use this instead of update.message.reply_text() 
+    to ensure keyboard never disappears.
+    """
+    keyboard = main_menu_keyboard(ctx, update=update)
+    await update.message.reply_text(text, reply_markup=keyboard, parse_mode=parse_mode)
+
+
 def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, update: Update = None):
     """Generate main menu keyboard. Clean and user-friendly for each exchange."""
     t = ctx.t
@@ -3251,13 +3261,13 @@ async def cmd_approve(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if not target_uid:
             raise ValueError
     except Exception:
-        await update.message.reply_text(ctx.t["usage_approve"])
+        await reply_with_keyboard(update, ctx, ctx.t["usage_approve"])
         return
 
     set_user_field(target_uid, "is_allowed", 1)
     set_user_field(target_uid, "is_banned", 0)
 
-    await update.message.reply_text(ctx.t["moderation_approved"].format(target=target_uid))
+    await reply_with_keyboard(update, ctx, ctx.t["moderation_approved"].format(target=target_uid))
     try:
         await ctx.bot.send_message(target_uid, ctx.t["approved_user_dm"])
     except Exception:
@@ -3266,7 +3276,7 @@ async def cmd_approve(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def whoami(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(ctx.t.get("your_id", "Your ID: {uid}").format(uid=update.effective_user.id))
+    await reply_with_keyboard(update, ctx, ctx.t.get("your_id", "Your ID: {uid}").format(uid=update.effective_user.id))
 
 @with_texts
 @log_calls
@@ -3278,13 +3288,13 @@ async def cmd_ban(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if not target_uid:
             raise ValueError
     except Exception:
-        await update.message.reply_text(ctx.t["usage_ban"])
+        await reply_with_keyboard(update, ctx, ctx.t["usage_ban"])
         return
 
     set_user_field(target_uid, "is_banned", 1)
     set_user_field(target_uid, "is_allowed", 0)
 
-    await update.message.reply_text(ctx.t["moderation_banned"].format(target=target_uid))
+    await reply_with_keyboard(update, ctx, ctx.t["moderation_banned"].format(target=target_uid))
     try:
         await ctx.bot.send_message(target_uid, ctx.t["banned_user_dm"])
     except Exception:
@@ -7463,17 +7473,17 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
 
     if _is_banned(uid):
-        await update.message.reply_text(ctx.t['banned'])
+        await reply_with_keyboard(update, ctx, ctx.t['banned'])
         return
 
     if not _is_allowed_user(uid):
         await _notify_admin_new_user(update, ctx)
-        await update.message.reply_text(ctx.t['invite_only'])
+        await reply_with_keyboard(update, ctx, ctx.t['invite_only'])
         return
 
     cfg = get_user_config(uid) or {}
     if not cfg.get("terms_accepted", 0):
-        await update.message.reply_text(ctx.t['need_terms'])
+        await reply_with_keyboard(update, ctx, ctx.t['need_terms'])
         await cmd_terms(update, ctx)
         return
     
@@ -12000,7 +12010,7 @@ async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: 
 @log_calls
 async def cmd_set_percent(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data['mode'] = 'set_percent'
-    await update.message.reply_text(ctx.t['set_percent_prompt'])
+    await reply_with_keyboard(update, ctx, ctx.t['set_percent_prompt'])
 
 
 @require_access
