@@ -5161,7 +5161,7 @@ async def place_order_for_targets(
                     )
             except Exception as calc_err:
                 logger.error(f"[{user_id}] Failed to calc qty for {target_key}: {calc_err}")
-                errors.append({"target": target_key, "error": str(calc_err)})
+                errors.append(f"[{target_key.upper()}] calc_qty: {str(calc_err)}")
                 continue
         
         try:
@@ -6913,10 +6913,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             # Get current context for saving
             context = get_user_trading_context(uid)
             
-            # Save new mode to current exchange/account context
-            save_result = db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
-                                   context["exchange"], context["account_type"])
-            logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}, saved: {save_result}")
+            # Save new trading_mode to BOTH account types for consistency
+            for acc_type in ["demo", "real"]:
+                db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
+                                       context["exchange"], acc_type)
+            logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}, saved to demo+real")
             
             # Check credentials
             warning = ""
@@ -7155,10 +7156,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Get context
         context = get_user_trading_context(uid)
         
-        # Toggle order type
+        # Toggle order type - save to all account types where strategy trades
         new_type = "limit" if current_type == "market" else "market"
-        db.set_strategy_setting(uid, strategy, "order_type", new_type,
-                               context["exchange"], context["account_type"])
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        for acc_type in account_types:
+            db.set_strategy_setting(uid, strategy, "order_type", new_type,
+                                   context["exchange"], acc_type)
         
         type_labels = {
             "market": t.get('order_type_market', '⚡ Market orders'),
@@ -7231,9 +7236,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             # Get context
             context = get_user_trading_context(uid)
             
-            # Save new direction
-            db.set_strategy_setting(uid, strat_name, "direction", next_dir,
-                                   context["exchange"], context["account_type"])
+            # Save new direction to all account types where strategy trades
+            account_types = db.get_strategy_account_types(uid, strat_name)
+            if not account_types:
+                account_types = [context["account_type"]]
+            for acc_type in account_types:
+                db.set_strategy_setting(uid, strat_name, "direction", next_dir,
+                                       context["exchange"], acc_type)
             
             dir_labels = {
                 "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -7312,9 +7321,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
         
-        result = db.set_strategy_setting(uid, strategy, "use_atr", new_value,
-                                        context["exchange"], context["account_type"])
-        logger.info(f"[{uid}] ATR toggle result: {result}")
+        # Save to all account types where strategy trades
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        for acc_type in account_types:
+            db.set_strategy_setting(uid, strategy, "use_atr", new_value,
+                                    context["exchange"], acc_type)
+        logger.info(f"[{uid}] ATR toggle saved to: {account_types}")
         
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
@@ -7373,10 +7387,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Get context
         context = get_user_trading_context(uid)
         
-        # Set coins_group (None for global)
+        # Set coins_group (None for global) - save to all account types
         new_value = None if group == "GLOBAL" else group
-        db.set_strategy_setting(uid, strategy, "coins_group", new_value,
-                               context["exchange"], context["account_type"])
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        for acc_type in account_types:
+            db.set_strategy_setting(uid, strategy, "coins_group", new_value,
+                                   context["exchange"], acc_type)
         
         group_labels = {
             "GLOBAL": t.get('group_global', '📊 Global'),
@@ -17564,10 +17582,18 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
             
-            # Get context for saving
+            # Get context for saving - save to ALL account types where strategy trades
             context = get_user_trading_context(uid)
-            db.set_strategy_setting(uid, strategy, param, value,
-                                   context["exchange"], context["account_type"])
+            account_types = db.get_strategy_account_types(uid, strategy)
+            if not account_types:
+                account_types = [context["account_type"]]  # Fallback to current context
+            
+            # Save setting for all account types
+            for acc_type in account_types:
+                db.set_strategy_setting(uid, strategy, param, value,
+                                       context["exchange"], acc_type)
+            
+            logger.info(f"[{uid}] Strategy {strategy} param {param}={value} saved to: {account_types}")
             ctx.user_data.pop("strat_setting_mode", None)
             
             display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
