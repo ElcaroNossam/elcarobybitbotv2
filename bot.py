@@ -9713,6 +9713,7 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
 
 @log_calls
+@with_texts
 async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle orders account selection callbacks."""
     query = update.callback_query
@@ -9902,6 +9903,7 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
 
 
 @log_calls
+@with_texts
 async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle positions account selection callbacks."""
     query = update.callback_query
