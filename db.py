@@ -64,10 +64,11 @@ USER_FIELDS_WHITELIST = {
     "tp_percent", "sl_percent", "tp_pct", "sl_pct",  # aliases
     "leverage",  # global leverage
     "use_atr", "lang",
-    # ATR settings (global) - stored in user_strategy_settings table, not users
-    "atr_trigger_pct",   # % profit to activate ATR trailing (default 1.0)
-    "atr_step_pct",      # min % move to trail SL (default 0.5)
-    "atr_multiplier",    # ATR multiplier for SL distance (default 1.5)
+    # ATR settings (global) - fallback when strategy setting is NULL
+    "atr_periods",       # candles for ATR calculation (default 7)
+    "atr_multiplier_sl", # ATR multiplier for SL distance (default 1.0)
+    "atr_trigger_pct",   # % profit to activate ATR trailing (default 2.0)
+    "direction",         # 'all', 'long', 'short' - global direction filter
     "global_order_type",  # 'market', 'limit' - global default order type
     "exchange_type",  # 'bybit', 'hyperliquid'
     # стратегии/пороги (опционально)
@@ -302,6 +303,12 @@ def init_db():
             # User info for webapp login
             ("username",           "ALTER TABLE users ADD COLUMN username           TEXT"),
             ("first_name",         "ALTER TABLE users ADD COLUMN first_name         TEXT"),
+            # Global ATR settings (for fallback when strategy setting is NULL)
+            ("atr_periods",        "ALTER TABLE users ADD COLUMN atr_periods        INTEGER NOT NULL DEFAULT 7"),
+            ("atr_multiplier_sl",  "ALTER TABLE users ADD COLUMN atr_multiplier_sl  REAL NOT NULL DEFAULT 1.0"),
+            ("atr_trigger_pct",    "ALTER TABLE users ADD COLUMN atr_trigger_pct    REAL NOT NULL DEFAULT 2.0"),
+            # Global direction setting
+            ("direction",          "ALTER TABLE users ADD COLUMN direction          TEXT NOT NULL DEFAULT 'all'"),
         ]:
             if not _col_exists(conn, "users", col):
                 cur.execute(ddl)
@@ -2621,14 +2628,30 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
             return global_val
         return default
     
-    def _get_tf(key, default):
-        """Get value: strategy → timeframe config → default"""
+    def _get_atr(key, default):
+        """Get ATR value: strategy → global → timeframe → default"""
         val = strat_settings.get(key)
         if val is not None:
             return val
+        global_val = global_cfg.get(key)
+        if global_val is not None:
+            return global_val
         tf_val = tf_cfg.get(key)
         if tf_val is not None:
             return tf_val
+        return default
+    
+    # direction and order_type also use global fallback
+    def _get_text(key, default):
+        """Get text value: strategy → global → default"""
+        val = strat_settings.get(key)
+        if val is not None:
+            return val
+        # Map global field names (coins → coins_group, global_order_type → order_type)
+        global_key = {"coins_group": "coins", "order_type": "global_order_type"}.get(key, key)
+        global_val = global_cfg.get(global_key)
+        if global_val is not None:
+            return global_val
         return default
     
     return {
@@ -2637,15 +2660,15 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
         "sl_percent": _get("sl_percent", DEFAULT_SL_PCT),
         "tp_percent": _get("tp_percent", DEFAULT_TP_PCT),
         "leverage": _get("leverage", 10),
-        "atr_periods": _get_tf("atr_periods", 7),
-        "atr_multiplier_sl": _get_tf("atr_multiplier_sl", 1.0),
-        "atr_trigger_pct": _get_tf("atr_trigger_pct", 2.0),
-        # Strategy-specific fields
-        "direction": strat_settings.get("direction", "all"),
-        "order_type": strat_settings.get("order_type", "market"),
-        "use_atr": strat_settings.get("use_atr") if strat_settings.get("use_atr") is not None else global_cfg.get("use_atr", 1),
+        "atr_periods": _get_atr("atr_periods", 7),
+        "atr_multiplier_sl": _get_atr("atr_multiplier_sl", 1.0),
+        "atr_trigger_pct": _get_atr("atr_trigger_pct", 2.0),
+        # Strategy-specific fields with global fallback
+        "direction": _get_text("direction", "all"),
+        "order_type": _get_text("order_type", "market"),
+        "use_atr": _get("use_atr", 1),
         "trading_mode": strat_settings.get("trading_mode", "global"),
-        "coins_group": strat_settings.get("coins_group", "all"),
+        "coins_group": _get_text("coins_group", "all"),
         # Pass through any extra fields (long_*/short_* settings, etc.)
         **{k: v for k, v in strat_settings.items() if k not in [
             "enabled", "percent", "sl_percent", "tp_percent", "leverage",
