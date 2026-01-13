@@ -1949,6 +1949,16 @@ def get_user_config(user_id: int) -> dict:
         # Global order type
         if _col_exists(conn, "users", "global_order_type"):
             cols.append("global_order_type")
+        # Global ATR settings
+        if _col_exists(conn, "users", "atr_periods"):
+            cols.append("atr_periods")
+        if _col_exists(conn, "users", "atr_multiplier_sl"):
+            cols.append("atr_multiplier_sl")
+        if _col_exists(conn, "users", "atr_trigger_pct"):
+            cols.append("atr_trigger_pct")
+        # Global direction
+        if _col_exists(conn, "users", "direction"):
+            cols.append("direction")
 
         row = conn.execute(f"SELECT {', '.join(cols)} FROM users WHERE user_id=?",
                            (user_id,)).fetchone()
@@ -1994,6 +2004,10 @@ def get_user_config(user_id: int) -> dict:
             "limit_ladder_count": 3,
             "limit_ladder_settings": [],
             "global_order_type": "market",
+            "atr_periods": 7,
+            "atr_multiplier_sl": 1.0,
+            "atr_trigger_pct": 2.0,
+            "direction": "all",
         }
 
     data = dict(zip(cols, row))
