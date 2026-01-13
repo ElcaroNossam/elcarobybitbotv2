@@ -3927,7 +3927,7 @@ def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, 
     cutoff = datetime.utcnow() - timedelta(seconds=seconds)
     cutoff_str = cutoff.strftime('%Y-%m-%d %H:%M:%S')
     
-    with get_connection() as conn:
+    with get_conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT COUNT(*) FROM trade_logs
