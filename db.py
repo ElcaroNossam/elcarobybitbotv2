@@ -68,6 +68,7 @@ USER_FIELDS_WHITELIST = {
     "atr_periods",       # candles for ATR calculation (default 7)
     "atr_multiplier_sl", # ATR multiplier for SL distance (default 1.0)
     "atr_trigger_pct",   # % profit to activate ATR trailing (default 2.0)
+    "atr_step_pct",      # % step to move SL (default 0.5)
     "direction",         # 'all', 'long', 'short' - global direction filter
     "global_order_type",  # 'market', 'limit' - global default order type
     "exchange_type",  # 'bybit', 'hyperliquid'
@@ -2631,11 +2632,14 @@ def set_strategy_setting(user_id: int, strategy: str, field: str, value: float |
     return set_strategy_setting_db(user_id, strategy, field, value, exchange, account_type)
 
 
-def get_effective_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None, timeframe: str = "24h") -> dict:
+def get_effective_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None, timeframe: str = "24h", side: str = None) -> dict:
     """
     Get effective settings for a strategy with FULL FALLBACK logic.
     
     Falls back: Strategy Setting → Global Config → Timeframe Defaults → Hardcoded Defaults
+    
+    For side-specific settings (side='Buy' or 'Sell'):
+    Falls back: long_*/short_* → general strategy → global → default
     
     Args:
         user_id: User ID
@@ -2643,6 +2647,7 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
         exchange: Exchange name (bybit, hyperliquid). Auto-detected if None.
         account_type: Account type (demo, real). Auto-detected if None.
         timeframe: Timeframe for ATR defaults (24h, 4h, 1h)
+        side: Trade side ('Buy'/'LONG' or 'Sell'/'SHORT'). If provided, tries side-specific settings first.
     
     Returns dict with: enabled, percent, sl_percent, tp_percent, leverage, 
                        atr_periods, atr_multiplier_sl, atr_trigger_pct, direction, order_type
@@ -2653,18 +2658,42 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
     strat_settings = get_strategy_settings(user_id, strategy, exchange, account_type)
     tf_cfg = TIMEFRAME_PARAMS.get(timeframe, TIMEFRAME_PARAMS.get("24h", {}))
     
+    # Determine side prefix for side-specific settings
+    side_prefix = None
+    if side:
+        side_upper = str(side).upper()
+        if side_upper in ("BUY", "LONG"):
+            side_prefix = "long"
+        elif side_upper in ("SELL", "SHORT"):
+            side_prefix = "short"
+    
     def _get(key, default):
-        """Get value: strategy → global → default"""
+        """Get value: side_specific → strategy → global → default"""
+        # Try side-specific first (e.g., long_percent, short_sl_percent)
+        if side_prefix:
+            side_key = f"{side_prefix}_{key}"
+            side_val = strat_settings.get(side_key)
+            if side_val is not None:
+                return side_val
+        # Then general strategy setting
         val = strat_settings.get(key)
         if val is not None:
             return val
+        # Then global config
         global_val = global_cfg.get(key)
         if global_val is not None:
             return global_val
         return default
     
     def _get_atr(key, default):
-        """Get ATR value: strategy → global → timeframe → default"""
+        """Get ATR value: side_specific → strategy → global → timeframe → default"""
+        # Try side-specific first
+        if side_prefix:
+            side_key = f"{side_prefix}_{key}"
+            side_val = strat_settings.get(side_key)
+            if side_val is not None:
+                return side_val
+        # Then general strategy setting
         val = strat_settings.get(key)
         if val is not None:
             return val
@@ -2689,6 +2718,10 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
             return global_val
         return default
     
+    # Get use_atr and convert to bool
+    use_atr_val = _get("use_atr", 1)
+    use_atr_bool = bool(use_atr_val) if use_atr_val is not None else True
+    
     return {
         "enabled": bool(strat_settings.get("enabled", False)),
         "percent": _get("percent", 1.0),
@@ -2701,7 +2734,7 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None, ac
         # Strategy-specific fields with global fallback
         "direction": _get_text("direction", "all"),
         "order_type": _get_text("order_type", "market"),
-        "use_atr": _get("use_atr", 1),
+        "use_atr": use_atr_bool,
         "trading_mode": strat_settings.get("trading_mode", "global"),
         "coins_group": _get_text("coins_group", "all"),
         # Pass through any extra fields (long_*/short_* settings, etc.)

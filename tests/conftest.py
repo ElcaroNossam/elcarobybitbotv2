@@ -154,6 +154,14 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             exchange_order_id TEXT,
             env          TEXT DEFAULT 'paper',
             manual_sltp_override INTEGER DEFAULT 0,
+            manual_sltp_ts DATETIME,
+            atr_activated INTEGER DEFAULT 0,
+            atr_activation_price REAL,
+            atr_last_stop_price REAL,
+            atr_last_update_ts DATETIME,
+            use_atr INTEGER DEFAULT 0,
+            applied_sl_pct REAL,
+            applied_tp_pct REAL,
             PRIMARY KEY(user_id, symbol, account_type),
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
