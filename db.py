@@ -2087,6 +2087,20 @@ def get_user_config(user_id: int) -> dict:
         "global_order_type": data.get("global_order_type", "market")
         if "global_order_type" in data
         else "market",
+        # Global ATR settings
+        "atr_periods": int(data.get("atr_periods") or 7)
+        if "atr_periods" in data
+        else 7,
+        "atr_multiplier_sl": float(data.get("atr_multiplier_sl") or 1.0)
+        if "atr_multiplier_sl" in data
+        else 1.0,
+        "atr_trigger_pct": float(data.get("atr_trigger_pct") or 2.0)
+        if "atr_trigger_pct" in data
+        else 2.0,
+        # Global direction
+        "direction": data.get("direction", "all")
+        if "direction" in data
+        else "all",
     }
     # Store in cache
     _user_config_cache[user_id] = (time.time(), cfg)
