@@ -69,8 +69,8 @@ async def search_strategies(
     min_win_rate: float = Query(None),
     min_profit_factor: float = Query(None),
     sort_by: str = Query("rating"),
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     user: dict = Depends(get_current_user)
 ):
     """
@@ -390,7 +390,7 @@ async def import_settings(
 @router.get("/top")
 async def get_top_strategies(
     category: str = Query(None),
-    limit: int = Query(10),
+    limit: int = Query(10, ge=1, le=50),
     user: dict = Depends(get_current_user)
 ):
     """Get top rated strategies"""
@@ -419,7 +419,7 @@ async def get_top_strategies(
 
 @router.get("/trending")
 async def get_trending_strategies(
-    limit: int = Query(10),
+    limit: int = Query(10, ge=1, le=50),
     user: dict = Depends(get_current_user)
 ):
     """Get most copied strategies (trending)"""

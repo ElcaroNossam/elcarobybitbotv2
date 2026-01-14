@@ -16,6 +16,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
 
+from webapp.api.auth import get_current_user, require_admin
+
 # Import blockchain functions
 from core.blockchain import (
     # Wallet operations
@@ -101,32 +103,32 @@ class LicensePaymentRequest(BaseModel):
 
 
 class EmissionRequest(BaseModel):
-    admin_id: int
+    # admin_id removed - taken from JWT token for security
     amount: float = Field(gt=0)
     reason: str
 
 
 class BurnRequest(BaseModel):
-    admin_id: int
+    # admin_id removed - taken from JWT token for security
     amount: float = Field(gt=0)
     reason: str
 
 
 class PolicyRequest(BaseModel):
-    admin_id: int
+    # admin_id removed - taken from JWT token for security
     staking_apy: Optional[float] = None
     reserve_ratio: Optional[float] = None
     is_paused: Optional[bool] = None
 
 
 class FreezeRequest(BaseModel):
-    admin_id: int
+    # admin_id removed - taken from JWT token for security
     target_user_id: int
     reason: str = ""
 
 
 class TreasuryTransferRequest(BaseModel):
-    admin_id: int
+    # admin_id removed - taken from JWT token for security
     to_user_id: int
     amount: float = Field(gt=0)
     reason: str
@@ -327,25 +329,28 @@ async def give_reward(request: RewardRequest):
 
 # ============================================
 # ADMIN/SOVEREIGN ENDPOINTS
+# SECURITY: All admin endpoints require JWT auth + sovereign owner check
 # ============================================
 
-@router.get("/admin/dashboard/{admin_id}", summary="Get owner dashboard")
-async def get_admin_dashboard(admin_id: int):
+@router.get("/admin/dashboard", summary="Get owner dashboard")
+async def get_admin_dashboard(user: dict = Depends(require_admin)):
     """Sovereign: Get comprehensive owner dashboard"""
-    if not is_sovereign_owner(admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied. Sovereign owner only.")
     
-    dashboard = await get_owner_dashboard(admin_id)
+    dashboard = await get_owner_dashboard(user_id)
     return dashboard
 
 
-@router.get("/admin/treasury/{admin_id}", summary="Get treasury stats")
-async def get_admin_treasury(admin_id: int):
+@router.get("/admin/treasury", summary="Get treasury stats")
+async def get_admin_treasury(user: dict = Depends(require_admin)):
     """Sovereign: Get treasury statistics"""
-    if not is_sovereign_owner(admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    return await get_treasury_stats(admin_id)
+    return await get_treasury_stats(user_id)
 
 
 @router.get("/admin/networks/status", summary="Get all networks status")
@@ -355,13 +360,14 @@ async def get_all_network_status():
 
 
 @router.post("/admin/emit", summary="Emit new tokens")
-async def emit_new_tokens(request: EmissionRequest):
+async def emit_new_tokens(request: EmissionRequest, user: dict = Depends(require_admin)):
     """Sovereign: Emit new TRC tokens"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     result = await emit_tokens(
-        request.admin_id,
+        user_id,
         request.amount,
         request.reason
     )
@@ -369,13 +375,14 @@ async def emit_new_tokens(request: EmissionRequest):
 
 
 @router.post("/admin/burn", summary="Burn tokens")
-async def burn_existing_tokens(request: BurnRequest):
+async def burn_existing_tokens(request: BurnRequest, user: dict = Depends(require_admin)):
     """Sovereign: Burn TRC tokens from treasury"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     result = await burn_tokens(
-        request.admin_id,
+        user_id,
         request.amount,
         request.reason
     )
@@ -383,9 +390,10 @@ async def burn_existing_tokens(request: BurnRequest):
 
 
 @router.post("/admin/policy", summary="Set monetary policy")
-async def update_monetary_policy(request: PolicyRequest):
+async def update_monetary_policy(request: PolicyRequest, user: dict = Depends(require_admin)):
     """Sovereign: Update monetary policy parameters"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     params = {}
@@ -396,14 +404,15 @@ async def update_monetary_policy(request: PolicyRequest):
     if request.is_paused is not None:
         params["is_paused"] = request.is_paused
     
-    result = await set_monetary_policy(request.admin_id, **params)
+    result = await set_monetary_policy(user_id, **params)
     return result
 
 
 @router.post("/admin/freeze", summary="Freeze wallet")
-async def freeze_user_wallet(request: FreezeRequest):
+async def freeze_user_wallet(request: FreezeRequest, user: dict = Depends(require_admin)):
     """Sovereign: Freeze a user's wallet"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     target_wallet = await get_trc_wallet(request.target_user_id)
@@ -411,7 +420,7 @@ async def freeze_user_wallet(request: FreezeRequest):
         raise HTTPException(status_code=404, detail="Target wallet not found")
     
     result = await freeze_wallet(
-        request.admin_id,
+        user_id,
         target_wallet.address,
         request.reason
     )
@@ -419,9 +428,10 @@ async def freeze_user_wallet(request: FreezeRequest):
 
 
 @router.post("/admin/unfreeze", summary="Unfreeze wallet")
-async def unfreeze_user_wallet(request: FreezeRequest):
+async def unfreeze_user_wallet(request: FreezeRequest, user: dict = Depends(require_admin)):
     """Sovereign: Unfreeze a user's wallet"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     target_wallet = await get_trc_wallet(request.target_user_id)
@@ -429,30 +439,32 @@ async def unfreeze_user_wallet(request: FreezeRequest):
         raise HTTPException(status_code=404, detail="Target wallet not found")
     
     result = await unfreeze_wallet(
-        request.admin_id,
+        user_id,
         target_wallet.address
     )
     return result
 
 
 @router.post("/admin/distribute-rewards", summary="Distribute staking rewards")
-async def distribute_rewards(admin_id: int = Query(...)):
+async def distribute_rewards(user: dict = Depends(require_admin)):
     """Sovereign: Distribute staking rewards to all stakers"""
-    if not is_sovereign_owner(admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    result = await distribute_staking_rewards(admin_id)
+    result = await distribute_staking_rewards(user_id)
     return result
 
 
 @router.post("/admin/treasury-transfer", summary="Transfer from treasury")
-async def treasury_transfer(request: TreasuryTransferRequest):
+async def treasury_transfer(request: TreasuryTransferRequest, user: dict = Depends(require_admin)):
     """Sovereign: Transfer TRC from treasury to user"""
-    if not is_sovereign_owner(request.admin_id):
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
     result = await transfer_from_treasury(
-        request.admin_id,
+        user_id,
         request.to_user_id,
         request.amount,
         request.reason

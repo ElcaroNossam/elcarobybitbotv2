@@ -295,7 +295,7 @@ async def get_chart_data(
 @router.get("/rankings/live")
 async def get_live_rankings(
     period: str = Query("30d"),
-    limit: int = Query(20),
+    limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = Query(None)
 ):
     """Get live strategy rankings based on real performance."""
