@@ -8,9 +8,16 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Secret',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Solde USDT',
+    'button_balance':              '💰 Solde',
     'button_orders':               '📜 Mes ordres',
     'button_positions':            '📊 Positions',
+'button_history':              '📋 Historique',
+    'button_strategies':           '🤖 Stratégies',
+    'button_api_keys':             '🔑 Clés API',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
     'button_percent':              '🎚 % par trade',
     'button_coins':                '💠 Groupe de coins',
     'button_market':               '📈 Marché',
@@ -100,7 +107,7 @@ TEXTS = {
     'exec_price_not_found':        'Impossible de trouver le prix d’exécution pour la clôture',
 
     # /account
-    'account_balance':             '💰 Solde USDT : `{balance:.2f}`',
+    'account_balance':             '💰 Solde : `{balance:.2f}`',
     'account_realized_header':     '📈 *PnL réalisé :*',
     'account_realized_day':        '  • Aujourd’hui : `{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7 jours    : `{pnl:+.2f}` USDT',
@@ -155,26 +162,26 @@ TEXTS = {
     'positions_overall':           'PnL non réalisé total : {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
+    'open_positions_header':       '📊 *Positions ouvertes*',
     'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'positions_count_total':       'Total des positions',
+    'total_unrealized_pnl':        'PnL non réalisé total',
+    'total_pnl':                   'P/L total',
+    'btn_close_short':             'Fermer',
+    'btn_close_all':               'Fermer toutes les positions',
+    'btn_close_position':          'Fermer la position',
+    'btn_confirm_close':           'Confirmer la fermeture',
+    'btn_confirm_close_all':       'Oui, tout fermer',
+    'btn_cancel':                  '❌ Annuler',
+    'btn_back':                    '🔙 Retour',
+    'confirm_close_position':      'Fermer la position',
+    'confirm_close_all':           'Fermer TOUTES les positions',
+    'position_not_found':          'Position introuvable ou déjà fermée',
+    'position_already_closed':     'Position déjà fermée',
+    'position_closed_success':     'Position fermée',
+    'position_close_error':        'Erreur lors de la fermeture',
+    'positions_closed':            'Positions fermées',
+    'errors':                      'Erreurs',
 
     # % per trade
     'set_percent_prompt':          'Entre le pourcentage du solde par trade (ex. 2.5) :',
@@ -939,37 +946,37 @@ Après le paiement, cliquez sur le bouton ci-dessous pour vérifier.''',
     'admin_message_failed': '❌ Échec de l\'envoi du message: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 Tous les paiements',
+    'admin_demo_stats': '🎮 Stats démo',
+    'admin_enter_user_for_report': '👤 Entrez l\'ID utilisateur pour un rapport détaillé:',
+    'admin_generating_report': '📊 Génération du rapport pour l\'utilisateur {uid}...',
+    'admin_global_stats': '📊 Stats globales',
+    'admin_no_payments_found': 'Aucun paiement trouvé.',
+    'admin_payments': '💳 Paiements',
+    'admin_payments_menu': '💳 *Gestion des paiements*',
+    'admin_real_stats': '💰 Stats réelles',
+    'admin_reports': '📊 Rapports',
+    'admin_reports_menu': '''📊 *Rapports et analyses*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
+Sélectionnez le type de rapport:''',
+    'admin_strategy_breakdown': '🎯 Par stratégie',
+    'admin_top_traders': '🏆 Meilleurs traders',
+    'admin_user_report': '👤 Rapport utilisateur',
+    'admin_view_report': '📊 Voir le rapport',
+    'admin_view_user': '👤 Fiche utilisateur',
+    'all_positions_closed': 'Toutes les positions fermées',
+    'btn_check_again': '🔄 Vérifier à nouveau',
     'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
+    'button_licenses': '🔑 Licences',
+    'button_subscribe': '💎 S\'abonner',
+    'current': 'Actuel',
+    'entry': 'Entrée',
+    'max_positions_reached': '⚠️ Nombre maximum de positions atteint. Les nouveaux signaux seront ignorés jusqu\'à la fermeture d\'une position.',
+    'payment_session_expired': '❌ Session de paiement expirée. Veuillez recommencer.',
+    'payment_ton_not_configured': '❌ Les paiements TON ne sont pas configurés.',
+    'payment_verifying': '⏳ Vérification du paiement...',
     'position': 'Position',
-    'size': 'Size',
+    'size': 'Taille',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1019,54 +1026,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Solde TRC insuffisant.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Votre solde: {balance} TRC
+Requis: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Rechargez votre portefeuille pour continuer.''',
+    'wallet_address': '''📍 Adresse: `{address}`''',
+    'wallet_balance': '''💰 *Votre Portefeuille TRC*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Solde: *{balance} TRC*
+📈 En Staking: *{staked} TRC*
+🎁 Récompenses en Attente: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Valeur Totale: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« Retour''',
+    'wallet_btn_deposit': '''📥 Déposer''',
+    'wallet_btn_history': '''📋 Historique''',
+    'wallet_btn_stake': '''📈 Staking''',
+    'wallet_btn_unstake': '''📤 Retirer du Staking''',
+    'wallet_btn_withdraw': '''📤 Retirer''',
+    'wallet_deposit_demo': '''🎁 Obtenir 100 TRC (Démo)''',
+    'wallet_deposit_desc': '''Envoyez des tokens TRC à votre adresse de portefeuille:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Mode démo:* Cliquez ci-dessous pour des tokens de test gratuits.''',
+    'wallet_deposit_success': '''✅ {amount} TRC déposés avec succès!''',
+    'wallet_deposit_title': '''📥 *Déposer TRC*''',
+    'wallet_history_empty': '''Aucune transaction.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Historique des Transactions*''',
+    'wallet_stake_desc': '''Mettez vos TRC en staking pour gagner *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Disponible: {available} TRC
+📈 Actuellement en Staking: {staked} TRC
+🎁 Récompenses en Attente: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Récompenses quotidiennes • Unstaking instantané''',
+    'wallet_stake_success': '''✅ {amount} TRC mis en staking avec succès!''',
+    'wallet_stake_title': '''📈 *Staking TRC*''',
+    'wallet_title': '''◈ *Portefeuille TRC*''',
+    'wallet_unstake_success': '''✅ {amount} TRC retirés + {rewards} TRC de récompenses!''',
+    'wallet_withdraw_desc': '''Entrez l'adresse de destination et le montant:''',
+    'wallet_withdraw_failed': '''❌ Retrait échoué: {error}''',
+    'wallet_withdraw_success': '''✅ {amount} TRC retirés vers {address}''',
+    'wallet_withdraw_title': '''📤 *Retirer TRC*''',
 
 
     'spot_freq_biweekly': '📅 Toutes les 2 semaines',

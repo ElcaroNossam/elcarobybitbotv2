@@ -8,12 +8,22 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Secret',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Zůstatek USDT',
-    'button_orders':               '📜 Moje objednávky',
+    'button_subscribe':            '💎 Předplatit',
+    'button_licenses':             '🔑 Licence',
+    'button_admin':                '👑 Admin',
+    'button_balance':              '💰 Zůstatek',
+    'button_orders':               '📈 Příkazy',
     'button_positions':            '📊 Pozice',
+    'button_history':              '📋 Historie',
+    'button_strategies':           '🤖 Strategie',
+    'button_api_keys':             '🔑 API Klíče',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
     'button_percent':              '🎚 % na obchod',
     'button_coins':                '💠 Skupina mincí',
-    'button_market':               '📈 Trh',
+    'button_market':               '📉 Trh',
     'button_manual_order':         '✋ Ruční příkaz',
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ Zrušit příkaz',
@@ -21,12 +31,18 @@ TEXTS = {
     'button_toggle_oi':            '🔀 OI',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
-    'button_settings':             '⚙️ Nastavení',
+    'button_scalper':              '🎯 Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
+    'button_settings':             '📋 Moje Konfig',
     'button_indicators':           '💡 Indikátory',
     'button_support':              '🆘 Podpora',
     'toggle_oi_status':            '🔀 {feature}: {status}',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
+    'config_trade_scalper':        '🎯 Scalper: {state}',
+    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
     'button_order_limit':          'Limit',
@@ -155,26 +171,26 @@ TEXTS = {
     'positions_overall':           'Celkové nerealizované PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *Otevřené pozice*',
+    'positions_count':             'pozic',
+    'positions_count_total':       'Celkem pozic',
+    'total_unrealized_pnl':        'Celkový nereal. P/L',
+    'total_pnl':                   'Celkový P/L',
+    'btn_close_short':             'Zavřít',
+    'btn_close_all':               'Zavřít všechny pozice',
+    'btn_close_position':          'Zavřít pozici',
+    'btn_confirm_close':           'Potvrdit zavření',
+    'btn_confirm_close_all':       'Ano, zavřít všechny',
+    'btn_cancel':                  '❌ Zrušit',
+    'btn_back':                    '🔙 Zpět',
+    'confirm_close_position':      'Zavřít pozici',
+    'confirm_close_all':           'Zavřít VŠECHNY pozice',
+    'position_not_found':          'Pozice nenalezena nebo již uzavřena',
+    'position_already_closed':     'Pozice již uzavřena',
+    'position_closed_success':     'Pozice uzavřena',
+    'position_close_error':        'Chyba při zavírání pozice',
+    'positions_closed':            'Pozice uzavřeny',
+    'errors':                      'Chyby',
 
     # % per trade
     'set_percent_prompt':          'Zadej procento zůstatku na obchod (např. 2.5):',
@@ -267,7 +283,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Nedostatečný zůstatek!</b>\n\n💰 Na vašem {account_type} účtu není dostatek prostředků k otevření této pozice.\n\n<b>Řešení:</b>\n• Dobijte zůstatek\n• Zmenšete velikost pozice (% na obchod)\n• Snižte páku\n• Zavřete některé otevřené pozice',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Nedostatečný zůstatek!</b>\n\n📊 Strategie: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Na vašem {account_type} účtu není dostatek prostředků.\n\n<b>Řešení:</b>\n• Dobijte zůstatek\n• Zmenšete velikost pozice (% na obchod)\n• Snižte páku\n• Zavřete některé pozice',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Příliš vysoká páka!</b>\n\n⚙️ Vaše nakonfigurovaná páka překračuje maximum povolené pro tento symbol.\n\n<b>Maximálně povoleno:</b> {max_leverage}x\n\n<b>Řešení:</b> Přejděte do nastavení strategie a snižte páku.',
@@ -927,37 +943,37 @@ Po platbě klikněte na tlačítko níže pro ověření.''',
     'admin_message_failed': '❌ Odeslání zprávy selhalo: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 Všechny platby',
+    'admin_demo_stats': '🎮 Demo statistiky',
+    'admin_enter_user_for_report': '👤 Zadejte ID uživatele pro podrobnou zprávu:',
+    'admin_generating_report': '📊 Generování zprávy pro uživatele {uid}...',
+    'admin_global_stats': '📊 Globální statistiky',
+    'admin_no_payments_found': 'Platby nenalezeny.',
+    'admin_payments': '💳 Platby',
+    'admin_payments_menu': '💳 *Správa plateb*',
+    'admin_real_stats': '💰 Reálné statistiky',
+    'admin_reports': '📊 Zprávy',
+    'admin_reports_menu': '''📊 *Zprávy a analýzy*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
+Vyberte typ zprávy:''',
+    'admin_strategy_breakdown': '🎯 Podle strategie',
+    'admin_top_traders': '🏆 Nejlepší tradeři',
+    'admin_user_report': '👤 Zpráva uživatele',
+    'admin_view_report': '📊 Zobrazit zprávu',
+    'admin_view_user': '👤 Karta uživatele',
+    'all_positions_closed': 'Všechny pozice uzavřeny',
+    'btn_check_again': '🔄 Zkontrolovat znovu',
     'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
+    'button_licenses': '🔑 Licence',
+    'button_subscribe': '💎 Předplatit',
+    'current': 'Aktuální',
+    'entry': 'Vstup',
+    'max_positions_reached': '⚠️ Dosaženo maximálního počtu pozic. Nové signály budou přeskočeny dokud se pozice nezavře.',
+    'payment_session_expired': '❌ Platnost platby vypršela. Začněte prosím znovu.',
+    'payment_ton_not_configured': '❌ Platby TON nejsou konfigurovány.',
+    'payment_verifying': '⏳ Ověřování platby...',
+    'position': 'Pozice',
+    'size': 'Velikost',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1007,54 +1023,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Nedostatečný zůstatek TRC.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Váš zůstatek: {balance} TRC
+Požadováno: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Dobijte peněženku pro pokračování.''',
+    'wallet_address': '''📍 Adresa: `{address}`''',
+    'wallet_balance': '''💰 *Vaše TRC Peněženka*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Zůstatek: *{balance} TRC*
+📈 Stakované: *{staked} TRC*
+🎁 Čekající odměny: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Celková hodnota: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
+    'wallet_btn_back': '''« Zpět''',
+    'wallet_btn_deposit': '''📥 Vložit''',
+    'wallet_btn_history': '''📋 Historie''',
+    'wallet_btn_stake': '''📈 Staking''',
     'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_withdraw': '''📤 Vybrat''',
+    'wallet_deposit_demo': '''🎁 Získat 100 TRC (Demo)''',
+    'wallet_deposit_desc': '''Pošlete TRC tokeny na adresu vaší peněženky:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Demo režim:* Klikněte níže pro získání bezplatných testovacích tokenů.''',
+    'wallet_deposit_success': '''✅ Vloženo {amount} TRC úspěšně!''',
+    'wallet_deposit_title': '''📥 *Vklad TRC*''',
+    'wallet_history_empty': '''Žádné transakce.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Historie transakcí*''',
+    'wallet_stake_desc': '''Stakujte své TRC tokeny a vydělávejte *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Dostupné: {available} TRC
+📈 Aktuálně stakované: {staked} TRC
+🎁 Čekající odměny: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Denní odměny • Okamžitý výběr''',
+    'wallet_stake_success': '''✅ {amount} TRC úspěšně stakované!''',
+    'wallet_stake_title': '''📈 *Staking TRC*''',
+    'wallet_title': '''◈ *TRC Peněženka*''',
+    'wallet_unstake_success': '''✅ Vybráno {amount} TRC + {rewards} TRC odměn!''',
+    'wallet_withdraw_desc': '''Zadejte cílovou adresu a částku:''',
+    'wallet_withdraw_failed': '''❌ Výběr se nezdařil: {error}''',
+    'wallet_withdraw_success': '''✅ Vybráno {amount} TRC na {address}''',
+    'wallet_withdraw_title': '''📤 *Výběr TRC*''',
 
 
     'spot_freq_biweekly': '📅 Každé 2 týdny',

@@ -8,12 +8,22 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Секрет',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Баланс USDT',
-    'button_orders':               '📜 Мої ордери',
+    'button_subscribe':            '💎 Підписка',
+    'button_licenses':             '🔑 Ліцензії',
+    'button_admin':                '👑 Адмін',
+    'button_balance':              '💰 Баланс',
+    'button_orders':               '📈 Ордери',
     'button_positions':            '📊 Позиції',
+    'button_history':              '📋 Історія',
+    'button_strategies':           '🤖 Стратегії',
+    'button_api_keys':             '🔑 API Ключі',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
     'button_percent':              '🎚 % на угоду',
     'button_coins':                '💠 Група монет',
-    'button_market':               '📈 Ринок',
+    'button_market':               '📉 Ринок',
     'button_manual_order':         '✋ Ручний ордер',
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ Скасувати ордер',
@@ -21,12 +31,18 @@ TEXTS = {
     'button_toggle_oi':            '🔀 OI',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
+    'button_scalper':              '🎯 Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '📋 Мій конфіг',
     'button_indicators':           '💡 Індикатори',
     'button_support':              '🆘 Підтримка',
     'toggle_oi_status':            '🔀 {feature}: {status}',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
+    'config_trade_scalper':        '🎯 Scalper: {state}',
+    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
     'button_order_limit':          'Limit',
@@ -268,7 +284,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Недостатньо коштів!</b>\n\n💰 На вашому {account_type} акаунті недостатньо коштів для відкриття позиції.\n\n<b>Рішення:</b>\n• Поповніть баланс\n• Зменшіть розмір позиції (% від депозиту)\n• Зменшіть плече\n• Закрийте частину відкритих позицій',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Недостатньо коштів!</b>\n\n📊 Стратегія: <b>{strategy}</b>\n🪙 Символ: <b>{symbol}</b> {side}\n\n💰 На вашому {account_type} акаунті недостатньо коштів.\n\n<b>Рішення:</b>\n• Поповніть баланс\n• Зменшіть розмір позиції (% від депозиту)\n• Зменшіть плече\n• Закрийте частину позицій',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Занадто високе плече!</b>\n\n⚙️ Встановлене плече перевищує максимум для цього символу.\n\n<b>Максимально дозволено:</b> {max_leverage}x\n\n<b>Рішення:</b> Перейдіть до налаштувань стратегії та зменшіть плече.',
@@ -1024,54 +1040,54 @@ TEXTS = {
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Недостатньо балансу TRC.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Ваш баланс: {balance} TRC
+Потрібно: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Поповніть гаманець для продовження.''',
+    'wallet_address': '''📍 Адреса: `{address}`''',
+    'wallet_balance': '''💰 *Ваш TRC Гаманець*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Баланс: *{balance} TRC*
+📈 У стейку: *{staked} TRC*
+🎁 Очікуючі винагороди: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Загальна вартість: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« Назад''',
+    'wallet_btn_deposit': '''📥 Поповнити''',
+    'wallet_btn_history': '''📋 Історія''',
+    'wallet_btn_stake': '''📈 Стейкінг''',
+    'wallet_btn_unstake': '''📤 Зняти зі стейку''',
+    'wallet_btn_withdraw': '''📤 Вивести''',
+    'wallet_deposit_demo': '''🎁 Отримати 100 TRC (Демо)''',
+    'wallet_deposit_desc': '''Надішліть TRC токени на адресу вашого гаманця:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Демо режим:* Натисніть нижче, щоб отримати безкоштовні тестові токени.''',
+    'wallet_deposit_success': '''✅ Успішно поповнено {amount} TRC!''',
+    'wallet_deposit_title': '''📥 *Поповнення TRC*''',
+    'wallet_history_empty': '''Транзакцій поки немає.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Історія транзакцій*''',
+    'wallet_stake_desc': '''Застейкайте свої TRC токени та отримуйте *12% річних*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Доступно: {available} TRC
+📈 Зараз у стейку: {staked} TRC
+🎁 Очікуючі винагороди: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Щоденні винагороди • Миттєве виведення''',
+    'wallet_stake_success': '''✅ Успішно застейкано {amount} TRC!''',
+    'wallet_stake_title': '''📈 *Стейкінг TRC*''',
+    'wallet_title': '''◈ *TRC Гаманець*''',
+    'wallet_unstake_success': '''✅ Виведено {amount} TRC + {rewards} TRC винагород!''',
+    'wallet_withdraw_desc': '''Введіть адресу призначення та суму:''',
+    'wallet_withdraw_failed': '''❌ Виведення не вдалося: {error}''',
+    'wallet_withdraw_success': '''✅ Виведено {amount} TRC на {address}''',
+    'wallet_withdraw_title': '''📤 *Виведення TRC*''',
 
 
     'spot_freq_biweekly': '📅 Кожні 2 тижні',

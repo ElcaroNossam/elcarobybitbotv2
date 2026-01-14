@@ -8,9 +8,19 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Sekret',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Bilanci USDT',
+    'button_balance':              '💰 Bilanci',
     'button_orders':               '📜 Porositë e mia',
     'button_positions':            '📊 Pozicionet',
+'button_history':              '📋 Historia',
+    'button_strategies':           '🤖 Strategjitë',
+    'button_api_keys':             '🔑 Çelësat API',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
+    'button_subscribe':            '💎 Abonohu',
+    'button_licenses':             '🔑 Licencat',
+    'button_admin':                '👑 Admin',
     'button_percent':              '🎚 % për tregti',
     'button_coins':                '💠 Grupi i monedhave',
     'button_market':               '📈 Tregu',
@@ -100,7 +110,7 @@ TEXTS = {
     'exec_price_not_found':        'Nuk u gjet çmimi i ekzekutimit për mbyllje',
 
     # /account
-    'account_balance':             '💰 Bilanci USDT: `{balance:.2f}`',
+    'account_balance':             '💰 Bilanci: `{balance:.2f}`',
     'account_realized_header':     '📈 *PnL i realizuar:*',
     'account_realized_day':        '  • Sot    : `{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7 ditë : `{pnl:+.2f}` USDT',
@@ -155,26 +165,26 @@ TEXTS = {
     'positions_overall':           'PnL i parealizuar total: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *Pozicionet e hapura*',
+    'positions_count':             'pozicione',
+    'positions_count_total':       'Gjithsej pozicione',
+    'total_unrealized_pnl':        'P/L i parealizuar total',
+    'total_pnl':                   'P/L total',
+    'btn_close_short':             'Mbyll',
+    'btn_close_all':               'Mbyll të gjitha pozicionet',
+    'btn_close_position':          'Mbyll pozicionin',
+    'btn_confirm_close':           'Konfirmo mbylljen',
+    'btn_confirm_close_all':       'Po, mbyll të gjitha',
+    'btn_cancel':                  '❌ Anulo',
+    'btn_back':                    '🔙 Kthehu',
+    'confirm_close_position':      'Mbyll pozicionin',
+    'confirm_close_all':           'Mbyll TË GJITHA pozicionet',
+    'position_not_found':          'Pozicioni nuk u gjet ose është mbyllur',
+    'position_already_closed':     'Pozicioni është mbyllur tashmë',
+    'position_closed_success':     'Pozicioni u mbyll',
+    'position_close_error':        'Gabim në mbylljen e pozicionit',
+    'positions_closed':            'Pozicionet u mbyllën',
+    'errors':                      'Gabime',
 
     # % per trade
     'set_percent_prompt':          'Shkruaj përqindjen e bilancit për tregti (p.sh. 2.5):',
@@ -267,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Bilanci i pamjaftueshëm!</b>\n\n💰 Nuk ka fonde të mjaftueshme në llogarinë tuaj {account_type} për të hapur këtë pozicion.\n\n<b>Zgjidhjet:</b>\n• Rimbushni bilancin\n• Zvogëloni madhësinë e pozicionit (% për tregti)\n• Ulni levën\n• Mbyllni disa pozicione të hapura',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Bilanc i pamjaftueshëm!</b>\n\n📊 Strategjia: <b>{strategy}</b>\n🪙 Simboli: <b>{symbol}</b> {side}\n\n💰 Nuk ka mjaftueshëm fonde në llogarinë {account_type}.\n\n<b>Zgjidhjet:</b>\n• Rimbushni bilancin\n• Zvogëloni madhësinë e pozicionit (% për tregti)\n• Ulni levën\n• Mbyllni disa pozicione',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Leva shumë e lartë!</b>\n\n⚙️ Leva juaj e konfiguruar tejkalon maksimumin e lejuar për këtë simbol.\n\n<b>Maksimumi i lejuar:</b> {max_leverage}x\n\n<b>Zgjidhja:</b> Shkoni te cilësimet e strategjisë dhe ulni levën.',
@@ -927,37 +937,37 @@ Pas pagesës, klikoni butonin më poshtë për verifikim.''',
     'admin_message_failed': '❌ Dërgimi i mesazhit dështoi: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 Të gjitha pagesat',
+    'admin_demo_stats': '🎮 Statistika demo',
+    'admin_enter_user_for_report': '👤 Futni ID-në e përdoruesit për raport të detajuar:',
+    'admin_generating_report': '📊 Duke gjeneruar raportin për përdoruesin {uid}...',
+    'admin_global_stats': '📊 Statistika globale',
+    'admin_no_payments_found': 'Nuk u gjetën pagesa.',
+    'admin_payments': '💳 Pagesat',
+    'admin_payments_menu': '💳 *Menaxhimi i pagesave*',
+    'admin_real_stats': '💰 Statistika reale',
+    'admin_reports': '📊 Raportet',
+    'admin_reports_menu': '''📊 *Raporte dhe analiza*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
+Zgjidhni llojin e raportit:''',
+    'admin_strategy_breakdown': '🎯 Sipas strategjisë',
+    'admin_top_traders': '🏆 Traderët më të mirë',
+    'admin_user_report': '👤 Raport përdoruesi',
+    'admin_view_report': '📊 Shiko raportin',
+    'admin_view_user': '👤 Karta e përdoruesit',
+    'all_positions_closed': 'Të gjitha pozicionet u mbyllën',
+    'btn_check_again': '🔄 Kontrollo përsëri',
     'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
+    'button_licenses': '🔑 Licencat',
+    'button_subscribe': '💎 Abonohu',
+    'current': 'Aktual',
+    'entry': 'Hyrja',
+    'max_positions_reached': '⚠️ U arrit maksimumi i pozicioneve. Sinjalet e reja do të anashkalohen derisa të mbyllet një pozicion.',
+    'payment_session_expired': '❌ Sesioni i pagesës skadoi. Ju lutemi filloni përsëri.',
+    'payment_ton_not_configured': '❌ Pagesat TON nuk janë të konfiguruara.',
+    'payment_verifying': '⏳ Duke verifikuar pagesën...',
+    'position': 'Pozicioni',
+    'size': 'Madhësia',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1007,54 +1017,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Bilanc TRC i pamjaftueshëm.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Bilanci juaj: {balance} TRC
+E nevojshme: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Rimbushni portofolin për të vazhduar.''',
+    'wallet_address': '''📍 Adresa: `{address}`''',
+    'wallet_balance': '''💰 *Portofoli Juaj TRC*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Bilanci: *{balance} TRC*
+📈 Në Staking: *{staked} TRC*
+🎁 Shpërblime në Pritje: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Vlera Totale: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« Prapa''',
+    'wallet_btn_deposit': '''📥 Depozitoni''',
+    'wallet_btn_history': '''📋 Historia''',
+    'wallet_btn_stake': '''📈 Staking''',
+    'wallet_btn_unstake': '''📤 Terhiq nga Staking''',
+    'wallet_btn_withdraw': '''📤 Terhiq''',
+    'wallet_deposit_demo': '''🎁 Merrni 100 TRC (Demo)''',
+    'wallet_deposit_desc': '''Dërgoni tokenë TRC në adresën e portofolit tuaj:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Modaliteti demo:* Klikoni më poshtë për tokenë testimi falas.''',
+    'wallet_deposit_success': '''✅ U depozituan {amount} TRC me sukses!''',
+    'wallet_deposit_title': '''📥 *Depozitoni TRC*''',
+    'wallet_history_empty': '''Asnjë transaksion ende.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Historia e Transaksioneve*''',
+    'wallet_stake_desc': '''Bëni stake tokenët tuaj TRC për të fituar *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Në Dispozicion: {available} TRC
+📈 Aktualisht në Staking: {staked} TRC
+🎁 Shpërblime në Pritje: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Shpërblime ditore • Tërheqje e menjëhershme''',
+    'wallet_stake_success': '''✅ {amount} TRC u bën stake me sukses!''',
+    'wallet_stake_title': '''📈 *Staking TRC*''',
+    'wallet_title': '''◈ *Portofoli TRC*''',
+    'wallet_unstake_success': '''✅ U terhiqën {amount} TRC + {rewards} TRC shpërblime!''',
+    'wallet_withdraw_desc': '''Shënoni adresën e destinacionit dhe shumën:''',
+    'wallet_withdraw_failed': '''❌ Tërheqja dështoi: {error}''',
+    'wallet_withdraw_success': '''✅ U terhiqën {amount} TRC në {address}''',
+    'wallet_withdraw_title': '''📤 *Tërheqja TRC*''',
 
 
     'spot_freq_biweekly': '📅 Çdo 2 javë',

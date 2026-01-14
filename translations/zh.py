@@ -8,9 +8,19 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 密钥',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 USDT 余额',
+    'button_balance':              '💰 余额',
     'button_orders':               '📜 我的订单',
     'button_positions':            '📊 持仓',
+'button_history':              '📋 历史',
+    'button_strategies':           '🤖 策略',
+    'button_api_keys':             '🔑 API密钥',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
+    'button_subscribe':            '💎 订阅',
+    'button_licenses':             '🔑 许可证',
+    'button_admin':                '👑 管理员',
     'button_percent':              '🎚 每笔交易百分比',
     'button_coins':                '💠 币组',
     'button_market':               '📈 市场',
@@ -100,7 +110,7 @@ TEXTS = {
     'exec_price_not_found':        '未找到用于平仓的成交价',
 
     # /account
-    'account_balance':             '💰 USDT 余额：`{balance:.2f}`',
+    'account_balance':             '💰 余额：`{balance:.2f}`',
     'account_realized_header':     '📈 *已实现盈亏：*',
     'account_realized_day':        '  • 今日 ：`{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7天  ：`{pnl:+.2f}` USDT',
@@ -155,26 +165,26 @@ TEXTS = {
     'positions_overall':           '未实现盈亏合计：{pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *当前持仓*',
+    'positions_count':             '个持仓',
+    'positions_count_total':       '持仓总数',
+    'total_unrealized_pnl':        '未实现盈亏合计',
+    'total_pnl':                   '总盈亏',
+    'btn_close_short':             '平仓',
+    'btn_close_all':               '全部平仓',
+    'btn_close_position':          '平仓',
+    'btn_confirm_close':           '确认平仓',
+    'btn_confirm_close_all':       '是，全部平仓',
+    'btn_cancel':                  '❌ 取消',
+    'btn_back':                    '🔙 返回',
+    'confirm_close_position':      '平仓',
+    'confirm_close_all':           '平掉所有持仓',
+    'position_not_found':          '持仓未找到或已平仓',
+    'position_already_closed':     '持仓已平仓',
+    'position_closed_success':     '持仓已平仓',
+    'position_close_error':        '平仓出错',
+    'positions_closed':            '持仓已平仓',
+    'errors':                      '错误',
 
     # % per trade
     'set_percent_prompt':          '输入每笔交易使用余额的百分比（例如 2.5）：',
@@ -267,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>余额不足！</b>\n\n💰 您的{account_type}账户余额不足以开设此仓位。\n\n<b>解决方案：</b>\n• 充值余额\n• 减少仓位大小（每笔交易的%）\n• 降低杠杆\n• 关闭部分持仓',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>余额不足！</b>\n\n📊 策略: <b>{strategy}</b>\n🪙 品种: <b>{symbol}</b> {side}\n\n💰 您的{account_type}账户余额不足。\n\n<b>解决方案:</b>\n• 充值余额\n• 减少仓位大小 (每笔交易的%)\n• 降低杠杆\n• 平掉部分持仓',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>杠杆过高！</b>\n\n⚙️ 您配置的杠杆超过了该品种允许的最大值。\n\n<b>最大允许:</b> {max_leverage}x\n\n<b>解决方案:</b> 前往策略设置并降低杠杆。',
@@ -927,38 +937,38 @@ TEXTS = {
     'admin_message_failed': '❌ 发送消息失败: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 所有支付',
+    'admin_demo_stats': '🎮 演示统计',
+    'admin_enter_user_for_report': '👤 输入用户ID获取详细报告:',
+    'admin_generating_report': '📊 正在生成用户 {uid} 的报告...',
+    'admin_global_stats': '📊 全局统计',
+    'admin_no_payments_found': '未找到支付记录。',
+    'admin_payments': '💳 支付',
+    'admin_payments_menu': '💳 *支付管理*',
+    'admin_real_stats': '💰 实盘统计',
+    'admin_reports': '📊 报告',
+    'admin_reports_menu': '''📊 *报告与分析*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
-    'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
-    'stats_fibonacci': '📐 Fibonacci',
+选择报告类型:''',
+    'admin_strategy_breakdown': '🎯 按策略',
+    'admin_top_traders': '🏆 顶级交易员',
+    'admin_user_report': '👤 用户报告',
+    'admin_view_report': '📊 查看报告',
+    'admin_view_user': '👤 用户卡片',
+    'all_positions_closed': '所有持仓已平仓',
+    'btn_check_again': '🔄 重新检查',
+    'button_admin': '👑 管理',
+    'button_licenses': '🔑 许可证',
+    'button_subscribe': '💎 订阅',
+    'current': '当前',
+    'entry': '入场',
+    'max_positions_reached': '⚠️ 已达到最大持仓数。新信号将被跳过，直到平仓。',
+    'payment_session_expired': '❌ 支付会话已过期。请重新开始。',
+    'payment_ton_not_configured': '❌ TON支付未配置。',
+    'payment_verifying': '⏳ 验证支付中...',
+    'position': '持仓',
+    'size': '大小',
+    'stats_fibonacci': '📐 斐波那契',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 WebApp",
@@ -1007,54 +1017,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ TRC余额不足。
 
-Your balance: {balance} TRC
-Required: {required} TRC
+您的余额: {balance} TRC
+需要: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+请充值钱包后继续。''',
+    'wallet_address': '''📍 地址: `{address}`''',
+    'wallet_balance': '''💰 *您的TRC钱包*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ 余额: *{balance} TRC*
+📈 质押中: *{staked} TRC*
+🎁 待领取奖励: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 总价值: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« 返回''',
+    'wallet_btn_deposit': '''📥 充值''',
+    'wallet_btn_history': '''📋 记录''',
+    'wallet_btn_stake': '''📈 质押''',
+    'wallet_btn_unstake': '''📤 取消质押''',
+    'wallet_btn_withdraw': '''📤 提现''',
+    'wallet_deposit_demo': '''🎁 获取100 TRC (演示)''',
+    'wallet_deposit_desc': '''将TRC代币发送到您的钱包地址:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *演示模式:* 点击下方获取免费测试代币。''',
+    'wallet_deposit_success': '''✅ 成功充值 {amount} TRC！''',
+    'wallet_deposit_title': '''📥 *充值TRC*''',
+    'wallet_history_empty': '''暂无交易记录。''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *交易记录*''',
+    'wallet_stake_desc': '''质押您的TRC代币赚取*12%年化收益*！
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 可用: {available} TRC
+📈 当前质押: {staked} TRC
+🎁 待领取奖励: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+每日奖励 • 即时取消质押''',
+    'wallet_stake_success': '''✅ 成功质押 {amount} TRC！''',
+    'wallet_stake_title': '''📈 *质押TRC*''',
+    'wallet_title': '''◈ *TRC钱包*''',
+    'wallet_unstake_success': '''✅ 已取消质押 {amount} TRC + {rewards} TRC奖励！''',
+    'wallet_withdraw_desc': '''输入目标地址和金额:''',
+    'wallet_withdraw_failed': '''❌ 提现失败: {error}''',
+    'wallet_withdraw_success': '''✅ 已向 {address} 提现 {amount} TRC''',
+    'wallet_withdraw_title': '''📤 *提现TRC*''',
 
 
     'spot_freq_biweekly': '📅 每两周',

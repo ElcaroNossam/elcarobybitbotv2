@@ -9,9 +9,18 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Slaptas',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 USDT balansas',
-    'button_orders':               '📜 Mano įsakymai',
+    'button_subscribe':            '💎 Prenumerata',
+    'button_licenses':             '🔑 Licencijos',
+    'button_admin':                '👑 Administratorius',
+    'button_balance':              '💰 Balansas',
+    'button_orders':               '📈 Įsakymai',
     'button_positions':            '📊 Pozicijos',
+    'button_history':              '📋 Istorija',
+    'button_strategies':           '🤖 Strategijos',
+    'button_api_keys':             '🔑 API raktai',
+    'button_bybit':                '🟠 Bybit',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
     'button_percent':              '🎚 % vienam sandoriui',
     'button_coins':                '💠 Monetų grupė',
     'button_market':               '📈 Rinka',
@@ -156,26 +165,26 @@ TEXTS = {
     'positions_overall':           'Bendras nereal. PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *Atviros pozicijos*',
+    'positions_count':             'pozicijos',
+    'positions_count_total':       'Iš viso pozicijų',
+    'total_unrealized_pnl':        'Bendras nereal. P/L',
+    'total_pnl':                   'Bendras P/L',
+    'btn_close_short':             'Uždaryti',
+    'btn_close_all':               'Uždaryti visas pozicijas',
+    'btn_close_position':          'Uždaryti poziciją',
+    'btn_confirm_close':           'Patvirtinti uždarymą',
+    'btn_confirm_close_all':       'Taip, uždaryti visas',
+    'btn_cancel':                  '❌ Atšaukti',
+    'btn_back':                    '🔙 Atgal',
+    'confirm_close_position':      'Uždaryti poziciją',
+    'confirm_close_all':           'Uždaryti VISAS pozicijas',
+    'position_not_found':          'Pozicija nerasta arba jau uždaryta',
+    'position_already_closed':     'Pozicija jau uždaryta',
+    'position_closed_success':     'Pozicija uždaryta',
+    'position_close_error':        'Klaida uždarant poziciją',
+    'positions_closed':            'Pozicijos uždarytos',
+    'errors':                      'Klaidos',
 
     # % per trade
     'set_percent_prompt':          'Įveskite balanso procentą vienam sandoriui (pvz., 2.5):',
@@ -268,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Nepakankamas balansas!</b>\n\n💰 Jūsų {account_type} paskyroje nepakanka lėšų šiai pozicijai atidaryti.\n\n<b>Sprendimai:</b>\n• Papildykite balansą\n• Sumažinkite pozicijos dydį (% per sandorį)\n• Sumažinkite svertą\n• Uždarykite kai kurias atidarytas pozicijas',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Nepakankamas balansas!</b>\n\n📊 Strategija: <b>{strategy}</b>\n🪙 Simbolis: <b>{symbol}</b> {side}\n\n💰 Jūsų {account_type} paskyroje nepakanka lėšų.\n\n<b>Sprendimai:</b>\n• Papildykite balansą\n• Sumažinkite pozicijos dydį (% per sandorį)\n• Sumažinkite svertą\n• Uždarykite kai kurias pozicijas',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Svertas per didelis!</b>\n\n⚙️ Jūsų nustatytas svertas viršija maksimalų leidžiamą šiam simboliui.\n\n<b>Maksimalus leidžiamas:</b> {max_leverage}x\n\n<b>Sprendimas:</b> Eikite į strategijos nustatymus ir sumažinkite svertą.',
@@ -928,37 +937,37 @@ Po mokėjimo paspauskite mygtuką žemiau patikrinimui.''',
     'admin_message_failed': '❌ Nepavyko išsiųsti žinutės: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 Visi mokėjimai',
+    'admin_demo_stats': '🎮 Demo statistika',
+    'admin_enter_user_for_report': '👤 Įveskite vartotojo ID detaliai ataskaitai:',
+    'admin_generating_report': '📊 Generuojama ataskaita vartotojui {uid}...',
+    'admin_global_stats': '📊 Globali statistika',
+    'admin_no_payments_found': 'Mokėjimų nerasta.',
+    'admin_payments': '💳 Mokėjimai',
+    'admin_payments_menu': '💳 *Mokėjimų valdymas*',
+    'admin_real_stats': '💰 Real statistika',
+    'admin_reports': '📊 Ataskaitos',
+    'admin_reports_menu': '''📊 *Ataskaitos ir analitika*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
+Pasirinkite ataskaitos tipą:''',
+    'admin_strategy_breakdown': '🎯 Pagal strategiją',
+    'admin_top_traders': '🏆 Top prekiautojai',
+    'admin_user_report': '👤 Vartotojo ataskaita',
+    'admin_view_report': '📊 Žiūrėti ataskaitą',
+    'admin_view_user': '👤 Vartotojo kortelė',
+    'all_positions_closed': 'Visos pozicijos uždarytos',
+    'btn_check_again': '🔄 Tikrinti vėl',
     'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
+    'button_licenses': '🔑 Licencijos',
+    'button_subscribe': '💎 Prenumerata',
+    'current': 'Dabartinis',
+    'entry': 'Įėjimas',
+    'max_positions_reached': '⚠️ Pasiektas maksimalus pozicijų skaičius. Nauji signalai bus praleisti kol užsidarys pozicija.',
+    'payment_session_expired': '❌ Mokėjimo sesija pasibaigė. Pradėkite iš naujo.',
+    'payment_ton_not_configured': '❌ TON mokėjimai nesukonfigūruoti.',
+    'payment_verifying': '⏳ Tikrinamas mokėjimas...',
+    'position': 'Pozicija',
+    'size': 'Dydis',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1008,54 +1017,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Nepakankamas TRC balansas.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Jūsų balansas: {balance} TRC
+Reikalinga: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Papildykite piniginę, kad tęstumėte.''',
+    'wallet_address': '''📍 Adresas: `{address}`''',
+    'wallet_balance': '''💰 *Jūsų TRC Piniginė*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Balansas: *{balance} TRC*
+📈 Stakinta: *{staked} TRC*
+🎁 Laukiantys atlygiai: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Bendra vertė: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« Atgal''',
+    'wallet_btn_deposit': '''📥 Įnėšimas''',
+    'wallet_btn_history': '''📋 Istorija''',
+    'wallet_btn_stake': '''📈 Stakinti''',
+    'wallet_btn_unstake': '''📤 Atšaukti stakinimą''',
+    'wallet_btn_withdraw': '''📤 Išėmimas''',
+    'wallet_deposit_demo': '''🎁 Gauti 100 TRC (Demo)''',
+    'wallet_deposit_desc': '''Siųskite TRC žetonus į savo piniginės adresą:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Demo režimas:* Spustelėkite žemiau, kad gautumėte nemokamus bandomuosius žetonus.''',
+    'wallet_deposit_success': '''✅ Sėkmingai įnėšta {amount} TRC!''',
+    'wallet_deposit_title': '''📥 *TRC įnėšimas*''',
+    'wallet_history_empty': '''Kol kas nėra operacijų.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Operacijų istorija*''',
+    'wallet_stake_desc': '''Stakinkite savo TRC žetonus ir uždirbkite *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Galima: {available} TRC
+📈 Šiuo metu stakinta: {staked} TRC
+🎁 Laukiantys atlygiai: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Kasdieniai atlygiai • Momentinis išėmimas''',
+    'wallet_stake_success': '''✅ Sėkmingai stakinta {amount} TRC!''',
+    'wallet_stake_title': '''📈 *TRC Stakinimas*''',
+    'wallet_title': '''◈ *TRC Piniginė*''',
+    'wallet_unstake_success': '''✅ Išimta {amount} TRC + {rewards} TRC atlygių!''',
+    'wallet_withdraw_desc': '''Įveskite paskirties adresą ir sumą:''',
+    'wallet_withdraw_failed': '''❌ Išėmimas nepavyko: {error}''',
+    'wallet_withdraw_success': '''✅ Išimta {amount} TRC į {address}''',
+    'wallet_withdraw_title': '''📤 *TRC Išėmimas*''',
 
 
     'spot_freq_biweekly': '📅 Kas 2 savaites',

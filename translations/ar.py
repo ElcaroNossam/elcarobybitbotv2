@@ -8,9 +8,19 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 السر',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 رصيد USDT',
+    'button_balance':              '💰 الرصيد',
     'button_orders':               '📜 أوامري',
     'button_positions':            '📊 المراكز',
+'button_history':              '📋 السجل',
+    'button_strategies':           '🤖 الاستراتيجيات',
+    'button_api_keys':             '🔑 مفاتيح API',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
+    'button_subscribe':            '💎 اشتراك',
+    'button_licenses':             '🔑 التراخيص',
+    'button_admin':                '👑 المسؤول',
     'button_percent':              '🎚 ٪ لكل صفقة',
     'button_coins':                '💠 مجموعة العملات',
     'button_market':               '📈 السوق',
@@ -100,7 +110,7 @@ TEXTS = {
     'exec_price_not_found':        'تعذر العثور على سعر التنفيذ للإغلاق',
 
     # /account
-    'account_balance':             '💰 رصيد USDT: `{balance:.2f}`',
+    'account_balance':             '💰 الرصيد: `{balance:.2f}`',
     'account_realized_header':     '📈 *الأرباح/الخسائر المحققة:*',
     'account_realized_day':        '  • اليوم : `{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7 أيام: `{pnl:+.2f}` USDT',
@@ -155,26 +165,26 @@ TEXTS = {
     'positions_overall':           'إجمالي الربح/الخسارة غير المحقق: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *المراكز المفتوحة*',
+    'positions_count':             'مركز',
+    'positions_count_total':       'إجمالي المراكز',
+    'total_unrealized_pnl':        'إجمالي الربح/الخسارة غير المحقق',
+    'total_pnl':                   'إجمالي P/L',
+    'btn_close_short':             'إغلاق',
+    'btn_close_all':               'إغلاق جميع المراكز',
+    'btn_close_position':          'إغلاق المركز',
+    'btn_confirm_close':           'تأكيد الإغلاق',
+    'btn_confirm_close_all':       'نعم، أغلق الكل',
+    'btn_cancel':                  '❌ إلغاء',
+    'btn_back':                    '🔙 رجوع',
+    'confirm_close_position':      'إغلاق المركز',
+    'confirm_close_all':           'إغلاق جميع المراكز',
+    'position_not_found':          'المركز غير موجود أو مغلق بالفعل',
+    'position_already_closed':     'المركز مغلق بالفعل',
+    'position_closed_success':     'تم إغلاق المركز',
+    'position_close_error':        'خطأ في إغلاق المركز',
+    'positions_closed':            'تم إغلاق المراكز',
+    'errors':                      'أخطاء',
 
     # % per trade
     'set_percent_prompt':          'أدخل نسبة الرصيد لكل صفقة (مثال 2.5):',
@@ -267,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>رصيد غير كافٍ!</b>\n\n💰 لا توجد أموال كافية في حساب {account_type} الخاص بك لفتح هذا المركز.\n\n<b>الحلول:</b>\n• إعادة شحن الرصيد\n• تقليل حجم المركز (% لكل صفقة)\n• تخفيض الرافعة المالية\n• إغلاق بعض المراكز المفتوحة',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>رصيد غير كافٍ!</b>\n\n📊 الاستراتيجية: <b>{strategy}</b>\n🪙 الرمز: <b>{symbol}</b> {side}\n\n💰 لا توجد أموال كافية في حساب {account_type}.\n\n<b>الحلول:</b>\n• إعادة شحن الرصيد\n• تقليل حجم المركز (% لكل صفقة)\n• تخفيض الرافعة\n• إغلاق بعض المراكز',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>الرافعة المالية عالية جداً!</b>\n\n⚙️ الرافعة المالية المُعدّة تتجاوز الحد الأقصى المسموح به لهذا الرمز.\n\n<b>الحد الأقصى المسموح:</b> {max_leverage}x\n\n<b>الحل:</b> انتقل إلى إعدادات الاستراتيجية وقم بتخفيض الرافعة المالية.',
@@ -933,38 +943,38 @@ TEXTS = {
     'admin_message_failed': '❌ فشل إرسال الرسالة: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 جميع المدفوعات',
+    'admin_demo_stats': '🎮 إحصائيات التجريبي',
+    'admin_enter_user_for_report': '👤 أدخل معرّف المستخدم للتقرير المفصل:',
+    'admin_generating_report': '📊 جارٍ إنشاء التقرير للمستخدم {uid}...',
+    'admin_global_stats': '📊 إحصائيات عامة',
+    'admin_no_payments_found': 'لم يتم العثور على مدفوعات.',
+    'admin_payments': '💳 المدفوعات',
+    'admin_payments_menu': '💳 *إدارة المدفوعات*',
+    'admin_real_stats': '💰 إحصائيات حقيقية',
+    'admin_reports': '📊 التقارير',
+    'admin_reports_menu': '''📊 *التقارير والتحليلات*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
-    'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
-    'stats_fibonacci': '📐 Fibonacci',
+اختر نوع التقرير:''',
+    'admin_strategy_breakdown': '🎯 حسب الاستراتيجية',
+    'admin_top_traders': '🏆 أفضل المتداولين',
+    'admin_user_report': '👤 تقرير المستخدم',
+    'admin_view_report': '📊 عرض التقرير',
+    'admin_view_user': '👤 بطاقة المستخدم',
+    'all_positions_closed': 'تم إغلاق جميع المراكز',
+    'btn_check_again': '🔄 تحقق مرة أخرى',
+    'button_admin': '👑 الإدارة',
+    'button_licenses': '🔑 التراخيص',
+    'button_subscribe': '💎 اشتراك',
+    'current': 'الحالي',
+    'entry': 'الدخول',
+    'max_positions_reached': '⚠️ تم الوصول للحد الأقصى من المراكز. سيتم تخطي الإشارات الجديدة حتى يغلق مركز.',
+    'payment_session_expired': '❌ انتهت جلسة الدفع. يرجى البدء من جديد.',
+    'payment_ton_not_configured': '❌ مدفوعات TON غير مهيأة.',
+    'payment_verifying': '⏳ جارٍ التحقق من الدفع...',
+    'position': 'المركز',
+    'size': 'الحجم',
+    'stats_fibonacci': '📐 فيبوناتشي',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 WebApp",
@@ -1013,54 +1023,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ رصيد TRC غير كافٍ.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+رصيدك: {balance} TRC
+المطلوب: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+قم بشحن المحفظة للمتابعة.''',
+    'wallet_address': '''📍 العنوان: `{address}`''',
+    'wallet_balance': '''💰 *محفظتك TRC*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ الرصيد: *{balance} TRC*
+📈 في التخزين: *{staked} TRC*
+🎁 مكافآت معلقة: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 القيمة الإجمالية: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« رجوع''',
+    'wallet_btn_deposit': '''📥 إيداع''',
+    'wallet_btn_history': '''📋 السجل''',
+    'wallet_btn_stake': '''📈 تخزين''',
+    'wallet_btn_unstake': '''📤 إلغاء التخزين''',
+    'wallet_btn_withdraw': '''📤 سحب''',
+    'wallet_deposit_demo': '''🎁 احصل على 100 TRC (تجريبي)''',
+    'wallet_deposit_desc': '''أرسل رموز TRC إلى عنوان محفظتك:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *الوضع التجريبي:* انقر أدناه للحصول على رموز اختبار مجانية.''',
+    'wallet_deposit_success': '''✅ تم إيداع {amount} TRC بنجاح!''',
+    'wallet_deposit_title': '''📥 *إيداع TRC*''',
+    'wallet_history_empty': '''لا توجد معاملات حتى الآن.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *سجل المعاملات*''',
+    'wallet_stake_desc': '''خزّن رموز TRC واربح *12% سنوياً*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 متاح: {available} TRC
+📈 مخزّن حالياً: {staked} TRC
+🎁 مكافآت معلقة: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+مكافآت يومية • سحب فوري''',
+    'wallet_stake_success': '''✅ تم تخزين {amount} TRC بنجاح!''',
+    'wallet_stake_title': '''📈 *تخزين TRC*''',
+    'wallet_title': '''◈ *محفظة TRC*''',
+    'wallet_unstake_success': '''✅ تم سحب {amount} TRC + {rewards} TRC مكافآت!''',
+    'wallet_withdraw_desc': '''أدخل عنوان الوجهة والمبلغ:''',
+    'wallet_withdraw_failed': '''❌ فشل السحب: {error}''',
+    'wallet_withdraw_success': '''✅ تم سحب {amount} TRC إلى {address}''',
+    'wallet_withdraw_title': '''📤 *سحب TRC*''',
 
 
     'spot_freq_biweekly': '📅 كل أسبوعين',

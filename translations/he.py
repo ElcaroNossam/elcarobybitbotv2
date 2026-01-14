@@ -8,9 +8,19 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 סוד',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 יתרת USDT',
+    'button_balance':              '💰 יתרה',
     'button_orders':               '📜 ההזמנות שלי',
     'button_positions':            '📊 פוזיציות',
+'button_history':              '📋 היסטוריה',
+    'button_strategies':           '🤖 אסטרטגיות',
+    'button_api_keys':             '🔑 מפתחות API',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
+    'button_subscribe':            '💎 הרשמה',
+    'button_licenses':             '🔑 רישיונות',
+    'button_admin':                '👑 מנהל',
     'button_percent':              '🎚 % לעסקה',
     'button_coins':                '💠 קבוצת מטבעות',
     'button_market':               '📈 שוק',
@@ -100,7 +110,7 @@ TEXTS = {
     'exec_price_not_found':        'לא נמצא מחיר ביצוע לסגירה',
 
     # /account
-    'account_balance':             '💰 יתרת USDT: `{balance:.2f}`',
+    'account_balance':             '💰 יתרה: `{balance:.2f}`',
     'account_realized_header':     '📈 *PnL ממומש:*',
     'account_realized_day':        '  • היום : `{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7 ימים: `{pnl:+.2f}` USDT',
@@ -155,26 +165,26 @@ TEXTS = {
     'positions_overall':           'PnL לא ממומש כולל: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *פוזיציות פתוחות*',
+    'positions_count':             'פוזיציות',
+    'positions_count_total':       'סה״כ פוזיציות',
+    'total_unrealized_pnl':        'סה״כ לא ממומש P/L',
+    'total_pnl':                   'סה״כ P/L',
+    'btn_close_short':             'סגור',
+    'btn_close_all':               'סגור את כל הפוזיציות',
+    'btn_close_position':          'סגור פוזיציה',
+    'btn_confirm_close':           'אשר סגירה',
+    'btn_confirm_close_all':       'כן, סגור הכל',
+    'btn_cancel':                  '❌ ביטול',
+    'btn_back':                    '🔙 חזרה',
+    'confirm_close_position':      'סגור פוזיציה',
+    'confirm_close_all':           'סגור את כל הפוזיציות',
+    'position_not_found':          'פוזיציה לא נמצאה או כבר נסגרה',
+    'position_already_closed':     'פוזיציה כבר נסגרה',
+    'position_closed_success':     'פוזיציה נסגרה',
+    'position_close_error':        'שגיאה בסגירה',
+    'positions_closed':            'פוזיציות נסגרו',
+    'errors':                      'שגיאות',
 
     # % per trade
     'set_percent_prompt':          'הזן אחוז מהיתרה לכל עסקה (לדוגמה 2.5):',
@@ -267,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>יתרה לא מספקת!</b>\n\n💰 אין מספיק כספים בחשבון {account_type} שלך כדי לפתוח פוזיציה זו.\n\n<b>פתרונות:</b>\n• טען מחדש את היתרה\n• הקטן את גודל הפוזיציה (% לעסקה)\n• הורד את המינוף\n• סגור חלק מהפוזיציות הפתוחות',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>יתרה לא מספקת!</b>\n\n📊 אסטרטגיה: <b>{strategy}</b>\n🪙 סמל: <b>{symbol}</b> {side}\n\n💰 אין מספיק כספים בחשבון {account_type}.\n\n<b>פתרונות:</b>\n• טען מחדש את היתרה\n• הקטן את גודל הפוזיציה (% לעסקה)\n• הורד מינוף\n• סגור חלק מהפוזיציות',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>מינוף גבוה מדי!</b>\n\n⚙️ המינוף שהוגדר חורג מהמקסימום המותר עבור סמל זה.\n\n<b>מקסימום מותר:</b> {max_leverage}x\n\n<b>פתרון:</b> עבור להגדרות האסטרטגיה והפחת את המינוף.',
@@ -927,38 +937,38 @@ TEXTS = {
     'admin_message_failed': '❌ שליחת הודעה נכשלה: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 כל התשלומים',
+    'admin_demo_stats': '🎮 סטטיסטיקות דמו',
+    'admin_enter_user_for_report': '👤 הזן ID משתמש לדוח מפורט:',
+    'admin_generating_report': '📊 מייצר דוח למשתמש {uid}...',
+    'admin_global_stats': '📊 סטטיסטיקות גלובליות',
+    'admin_no_payments_found': 'לא נמצאו תשלומים.',
+    'admin_payments': '💳 תשלומים',
+    'admin_payments_menu': '💳 *ניהול תשלומים*',
+    'admin_real_stats': '💰 סטטיסטיקות אמיתיות',
+    'admin_reports': '📊 דוחות',
+    'admin_reports_menu': '''📊 *דוחות וניתוחים*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
-    'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
-    'stats_fibonacci': '📐 Fibonacci',
+בחר סוג דוח:''',
+    'admin_strategy_breakdown': '🎯 לפי אסטרטגיה',
+    'admin_top_traders': '🏆 הסוחרים המובילים',
+    'admin_user_report': '👤 דוח משתמש',
+    'admin_view_report': '📊 הצג דוח',
+    'admin_view_user': '👤 כרטיס משתמש',
+    'all_positions_closed': 'כל הפוזיציות נסגרו',
+    'btn_check_again': '🔄 בדוק שוב',
+    'button_admin': '👑 ניהול',
+    'button_licenses': '🔑 רישיונות',
+    'button_subscribe': '💎 הירשם',
+    'current': 'נוכחי',
+    'entry': 'כניסה',
+    'max_positions_reached': '⚠️ הגעת למקסימום פוזיציות. איתותים חדשים ידולגו עד שפוזיציה תיסגר.',
+    'payment_session_expired': '❌ פג התוקף של התשלום. אנא התחל מחדש.',
+    'payment_ton_not_configured': '❌ תשלומי TON אינם מוגדרים.',
+    'payment_verifying': '⏳ מאמת תשלום...',
+    'position': 'פוזיציה',
+    'size': 'גודל',
+    'stats_fibonacci': '📐 פיבונאצ\'י',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 WebApp",
@@ -1007,54 +1017,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ יתרת TRC לא מספיקה.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+היתרה שלך: {balance} TRC
+נדרש: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+טען את הארנק כדי להמשיך.''',
+    'wallet_address': '''📍 כתובת: `{address}`''',
+    'wallet_balance': '''💰 *ארנק TRC שלך*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ יתרה: *{balance} TRC*
+📈 בהימור: *{staked} TRC*
+🎁 תגמולים ממתינים: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 ערך כולל: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« חזרה''',
+    'wallet_btn_deposit': '''📥 הפקדה''',
+    'wallet_btn_history': '''📋 היסטוריה''',
+    'wallet_btn_stake': '''📈 הימור''',
+    'wallet_btn_unstake': '''📤 ביטול הימור''',
+    'wallet_btn_withdraw': '''📤 משיכה''',
+    'wallet_deposit_demo': '''🎁 קבל 100 TRC (דמו)''',
+    'wallet_deposit_desc': '''שלח טוקני TRC לכתובת הארנק שלך:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *מצב דמו:* לחץ למטה לטוקני בדיקה חינם.''',
+    'wallet_deposit_success': '''✅ הופקדו {amount} TRC בהצלחה!''',
+    'wallet_deposit_title': '''📥 *הפקדת TRC*''',
+    'wallet_history_empty': '''אין עסקאות עדיין.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *היסטוריית עסקאות*''',
+    'wallet_stake_desc': '''הימר את טוקני ה-TRC שלך והרווח *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 זמין: {available} TRC
+📈 כרגע בהימור: {staked} TRC
+🎁 תגמולים ממתינים: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+תגמולים יומיים • ביטול מיידי''',
+    'wallet_stake_success': '''✅ הומרו {amount} TRC בהצלחה!''',
+    'wallet_stake_title': '''📈 *הימור TRC*''',
+    'wallet_title': '''◈ *ארנק TRC*''',
+    'wallet_unstake_success': '''✅ נמשכו {amount} TRC + {rewards} TRC תגמולים!''',
+    'wallet_withdraw_desc': '''הזן כתובת יעד וסכום:''',
+    'wallet_withdraw_failed': '''❌ המשיכה נכשלה: {error}''',
+    'wallet_withdraw_success': '''✅ נמשכו {amount} TRC ל-{address}''',
+    'wallet_withdraw_title': '''📤 *משיכת TRC*''',
 
 
     'spot_freq_biweekly': '📅 כל שבועיים',

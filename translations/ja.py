@@ -8,9 +8,19 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 シークレット',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 USDT残高',
+    'button_balance':              '💰 残高',
     'button_orders':               '📜 注文一覧',
     'button_positions':            '📊 建玉',
+'button_history':              '📋 履歴',
+    'button_strategies':           '🤖 戦略',
+    'button_api_keys':             '🔑 APIキー',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
+    'button_subscribe':            '💎 購読',
+    'button_licenses':             '🔑 ライセンス',
+    'button_admin':                '👑 管理者',
     'button_percent':              '🎚 取引ごとの％',
     'button_coins':                '💠 コイングループ',
     'button_market':               '📈 マーケット',
@@ -100,7 +110,7 @@ TEXTS = {
     'exec_price_not_found':        'クローズの約定価格が見つかりません',
 
     # /account
-    'account_balance':             '💰 USDT残高: `{balance:.2f}`',
+    'account_balance':             '💰 残高: `{balance:.2f}`',
     'account_realized_header':     '📈 *実現損益:*',
     'account_realized_day':        '  • 今日 : `{pnl:+.2f}` USDT',
     'account_realized_week':       '  • 7日 : `{pnl:+.2f}` USDT',
@@ -155,26 +165,26 @@ TEXTS = {
     'positions_overall':           '含み損益 合計: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *保有中の建玉*',
+    'positions_count':             '建玉',
+    'positions_count_total':       '建玉合計',
+    'total_unrealized_pnl':        '含み損益合計',
+    'total_pnl':                   '合計損益',
+    'btn_close_short':             '決済',
+    'btn_close_all':               '全建玉を決済',
+    'btn_close_position':          '建玉を決済',
+    'btn_confirm_close':           '決済を確認',
+    'btn_confirm_close_all':       'はい、全て決済',
+    'btn_cancel':                  '❌ キャンセル',
+    'btn_back':                    '🔙 戻る',
+    'confirm_close_position':      '建玉を決済',
+    'confirm_close_all':           '全ての建玉を決済',
+    'position_not_found':          '建玉が見つからないか既に決済済み',
+    'position_already_closed':     '建玉は既に決済済み',
+    'position_closed_success':     '建玉を決済しました',
+    'position_close_error':        '決済エラー',
+    'positions_closed':            '建玉決済完了',
+    'errors':                      'エラー',
 
     # % per trade
     'set_percent_prompt':          '1取引あたりの残高％を入力（例 2.5）:',
@@ -267,7 +277,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>残高不足！</b>\n\n💰 {account_type}アカウントにこのポジションを開くのに十分な資金がありません。\n\n<b>解決策:</b>\n• 残高をチャージする\n• ポジションサイズを縮小する (取引あたりの%)\n• レバレッジを下げる\n• 一部のオープンポジションを閉じる',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>残高不足！</b>\n\n📊 戦略: <b>{strategy}</b>\n🪙 シンボル: <b>{symbol}</b> {side}\n\n💰 {account_type}アカウントに十分な資金がありません。\n\n<b>解決策:</b>\n• 残高をチャージする\n• ポジションサイズを縮小 (取引あたりの%)\n• レバレッジを下げる\n• 一部のポジションを決済',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>レバレッジが高すぎます！</b>\n\n⚙️ 設定されたレバレッジがこのシンボルの最大許容値を超えています。\n\n<b>最大許容:</b> {max_leverage}x\n\n<b>解決策:</b> ストラテジー設定に移動し、レバレッジを減らしてください。',
@@ -927,38 +937,38 @@ TEXTS = {
     'admin_message_failed': '❌ メッセージ送信失敗: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 すべての支払い',
+    'admin_demo_stats': '🎮 デモ統計',
+    'admin_enter_user_for_report': '👤 詳細レポートのユーザーIDを入力:',
+    'admin_generating_report': '📊 ユーザー {uid} のレポートを生成中...',
+    'admin_global_stats': '📊 グローバル統計',
+    'admin_no_payments_found': '支払いが見つかりません。',
+    'admin_payments': '💳 支払い',
+    'admin_payments_menu': '💳 *支払い管理*',
+    'admin_real_stats': '💰 リアル統計',
+    'admin_reports': '📊 レポート',
+    'admin_reports_menu': '''📊 *レポートと分析*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
-    'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
-    'position': 'Position',
-    'size': 'Size',
-    'stats_fibonacci': '📐 Fibonacci',
+レポートタイプを選択:''',
+    'admin_strategy_breakdown': '🎯 戦略別',
+    'admin_top_traders': '🏆 トップトレーダー',
+    'admin_user_report': '👤 ユーザーレポート',
+    'admin_view_report': '📊 レポートを見る',
+    'admin_view_user': '👤 ユーザーカード',
+    'all_positions_closed': 'すべてのポジションが決済されました',
+    'btn_check_again': '🔄 再確認',
+    'button_admin': '👑 管理',
+    'button_licenses': '🔑 ライセンス',
+    'button_subscribe': '💎 購読',
+    'current': '現在',
+    'entry': 'エントリー',
+    'max_positions_reached': '⚠️ 最大ポジション数に達しました。ポジションが決済されるまで新しいシグナルはスキップされます。',
+    'payment_session_expired': '❌ 支払いセッションが期限切れです。最初からやり直してください。',
+    'payment_ton_not_configured': '❌ TON支払いは設定されていません。',
+    'payment_verifying': '⏳ 支払い確認中...',
+    'position': 'ポジション',
+    'size': 'サイズ',
+    'stats_fibonacci': '📐 フィボナッチ',
 
     "button_hyperliquid": "🔷 HyperLiquid",
     "button_webapp": "🌐 WebApp",
@@ -1007,54 +1017,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ TRC残高が不足しています。
 
-Your balance: {balance} TRC
-Required: {required} TRC
+現在の残高: {balance} TRC
+必要額: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+続行するにはウォレットをチャージしてください。''',
+    'wallet_address': '''📍 アドレス: `{address}`''',
+    'wallet_balance': '''💰 *あなたのTRCウォレット*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ 残高: *{balance} TRC*
+📈 ステーク中: *{staked} TRC*
+🎁 保留中の報酬: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 合計価値: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« 戻る''',
+    'wallet_btn_deposit': '''📥 入金''',
+    'wallet_btn_history': '''📋 履歴''',
+    'wallet_btn_stake': '''📈 ステーク''',
+    'wallet_btn_unstake': '''📤 アンステーク''',
+    'wallet_btn_withdraw': '''📤 出金''',
+    'wallet_deposit_demo': '''🎁 100 TRCを取得 (デモ)''',
+    'wallet_deposit_desc': '''TRCトークンをウォレットアドレスに送信してください:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *デモモード:* 以下をクリックして無料テストトークンを取得。''',
+    'wallet_deposit_success': '''✅ {amount} TRCの入金に成功しました！''',
+    'wallet_deposit_title': '''📥 *TRC入金*''',
+    'wallet_history_empty': '''取引はまだありません。''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *取引履歴*''',
+    'wallet_stake_desc': '''TRCをステークして*年力12%*を稼ぎましょう！
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 利用可能: {available} TRC
+📈 現在ステーク中: {staked} TRC
+🎁 保留中の報酬: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+毎日報酬 • 即時アンステーク''',
+    'wallet_stake_success': '''✅ {amount} TRCのステークに成功しました！''',
+    'wallet_stake_title': '''📈 *TRCステーク*''',
+    'wallet_title': '''◈ *TRCウォレット*''',
+    'wallet_unstake_success': '''✅ {amount} TRC + {rewards} TRC報酬を引き出しました！''',
+    'wallet_withdraw_desc': '''宛先アドレスと金額を入力してください:''',
+    'wallet_withdraw_failed': '''❌ 出金に失敗しました: {error}''',
+    'wallet_withdraw_success': '''✅ {amount} TRCを{address}に出金しました''',
+    'wallet_withdraw_title': '''📤 *TRC出金*''',
 
 
     'spot_freq_biweekly': '📅 2週間ごと',

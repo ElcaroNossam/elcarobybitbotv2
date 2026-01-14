@@ -8,12 +8,22 @@ TEXTS = {
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Secret',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 USDT-Kontostand',
-    'button_orders':               '📜 Meine Orders',
+    'button_subscribe':            '💎 Abonnieren',
+    'button_licenses':             '🔑 Lizenzen',
+    'button_admin':                '👑 Admin',
+    'button_balance':              '💰 Kontostand',
+    'button_orders':               '📈 Aufträge',
     'button_positions':            '📊 Positionen',
+    'button_history':              '📋 Verlauf',
+    'button_strategies':           '🤖 Strategien',
+    'button_api_keys':             '🔑 API Schlüssel',
+    'button_bybit':                '🟠 Bybit',
+    'button_hyperliquid':          '🔷 HyperLiquid',
+    'button_switch_bybit':         '🔄 Bybit',
+    'button_switch_hl':            '🔄 HyperLiquid',
     'button_percent':              '🎚 % pro Trade',
     'button_coins':                '💠 Münzgruppe',
-    'button_market':               '📈 Markt',
+    'button_market':               '📉 Markt',
     'button_manual_order':         '✋ Manuelle Order',
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ Order abbrechen',
@@ -21,12 +31,18 @@ TEXTS = {
     'button_toggle_oi':            '🔀 OI',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
-    'button_settings':             '⚙️ Einstellungen',
+    'button_scalper':              '🎯 Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
+    'button_settings':             '📋 Mein Konfig',
     'button_indicators':           '💡 Indikatoren',
     'button_support':              '🆘 Support',
     'toggle_oi_status':            '🔀 {feature}: {status}',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
+    'config_trade_scalper':        '🎯 Scalper: {state}',
+    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
     'button_order_limit':          'Limit',
@@ -155,26 +171,26 @@ TEXTS = {
     'positions_overall':           'Gesamt nicht realisierter PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_back':                    '🔙 Back',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'errors':                      'Errors',
+    'open_positions_header':       '📊 *Offene Positionen*',
+    'positions_count':             'Positionen',
+    'positions_count_total':       'Positionen gesamt',
+    'total_unrealized_pnl':        'Nicht realisierter Gewinn/Verlust',
+    'total_pnl':                   'Gesamter P/L',
+    'btn_close_short':             'Schließen',
+    'btn_close_all':               'Alle Positionen schließen',
+    'btn_close_position':          'Position schließen',
+    'btn_confirm_close':           'Schließen bestätigen',
+    'btn_confirm_close_all':       'Ja, alle schließen',
+    'btn_cancel':                  '❌ Abbrechen',
+    'btn_back':                    '🔙 Zurück',
+    'confirm_close_position':      'Position schließen',
+    'confirm_close_all':           'ALLE Positionen schließen',
+    'position_not_found':          'Position nicht gefunden oder bereits geschlossen',
+    'position_already_closed':     'Position bereits geschlossen',
+    'position_closed_success':     'Position geschlossen',
+    'position_close_error':        'Fehler beim Schließen',
+    'positions_closed':            'Positionen geschlossen',
+    'errors':                      'Fehler',
 
     # % per trade
     'set_percent_prompt':          'Gib den Prozentanteil pro Trade ein (z. B. 2.5):',
@@ -267,7 +283,7 @@ TEXTS = {
 
     # Insufficient balance error
     'insufficient_balance_error':  '❌ <b>Unzureichendes Guthaben!</b>\n\n💰 Nicht genügend Guthaben auf Ihrem {account_type}-Konto, um diese Position zu eröffnen.\n\n<b>Lösungen:</b>\n• Guthaben aufladen\n• Positionsgröße reduzieren (% pro Trade)\n• Hebel verringern\n• Einige offene Positionen schließen',
-    'insufficient_balance_error_extended': '❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions',
+    'insufficient_balance_error_extended': '❌ <b>Unzureichendes Guthaben!</b>\n\n📊 Strategie: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Nicht genügend Guthaben auf Ihrem {account_type}-Konto.\n\n<b>Lösungen:</b>\n• Guthaben aufladen\n• Positionsgröße reduzieren (% pro Trade)\n• Hebel verringern\n• Offene Positionen schließen',
 
     # Leverage too high error
     'leverage_too_high_error':     '❌ <b>Hebel zu hoch!</b>\n\n⚙️ Ihr konfigurierter Hebel überschreitet das Maximum für dieses Symbol.\n\n<b>Maximal erlaubt:</b> {max_leverage}x\n\n<b>Lösung:</b> Gehen Sie zu den Strategieeinstellungen und reduzieren Sie den Hebel.',
@@ -941,37 +957,37 @@ Nach der Zahlung klicken Sie auf die Schaltfläche unten zur Verifizierung.''',
     'admin_message_failed': '❌ Nachricht konnte nicht gesendet werden: {error}',
 
     # Auto-synced missing keys
-    'admin_all_payments': '📜 All Payments',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_no_payments_found': 'No payments found.',
-    'admin_payments': '💳 Payments',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_reports': '📊 Reports',
-    'admin_reports_menu': '''📊 *Reports & Analytics*
+    'admin_all_payments': '📜 Alle Zahlungen',
+    'admin_demo_stats': '🎮 Demo-Statistik',
+    'admin_enter_user_for_report': '👤 Benutzer-ID für detaillierten Bericht eingeben:',
+    'admin_generating_report': '📊 Bericht für Benutzer {uid} wird erstellt...',
+    'admin_global_stats': '📊 Globale Statistik',
+    'admin_no_payments_found': 'Keine Zahlungen gefunden.',
+    'admin_payments': '💳 Zahlungen',
+    'admin_payments_menu': '💳 *Zahlungsverwaltung*',
+    'admin_real_stats': '💰 Echte Statistik',
+    'admin_reports': '📊 Berichte',
+    'admin_reports_menu': '''📊 *Berichte & Analysen*
 
-Select report type:''',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-    'all_positions_closed': 'All positions closed',
-    'btn_check_again': '🔄 Check Again',
+Berichtstyp auswählen:''',
+    'admin_strategy_breakdown': '🎯 Nach Strategie',
+    'admin_top_traders': '🏆 Top-Trader',
+    'admin_user_report': '👤 Benutzerbericht',
+    'admin_view_report': '📊 Bericht anzeigen',
+    'admin_view_user': '👤 Benutzerkarte',
+    'all_positions_closed': 'Alle Positionen geschlossen',
+    'btn_check_again': '🔄 Erneut prüfen',
     'button_admin': '👑 Admin',
-    'button_licenses': '🔑 Licenses',
-    'button_subscribe': '💎 Subscribe',
-    'current': 'Current',
-    'entry': 'Entry',
-    'max_positions_reached': '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_ton_not_configured': '❌ TON payments are not configured.',
-    'payment_verifying': '⏳ Verifying payment...',
+    'button_licenses': '🔑 Lizenzen',
+    'button_subscribe': '💎 Abonnieren',
+    'current': 'Aktuell',
+    'entry': 'Einstieg',
+    'max_positions_reached': '⚠️ Maximale Positionen erreicht. Neue Signale werden übersprungen bis eine Position geschlossen wird.',
+    'payment_session_expired': '❌ Zahlungssitzung abgelaufen. Bitte erneut starten.',
+    'payment_ton_not_configured': '❌ TON-Zahlungen sind nicht konfiguriert.',
+    'payment_verifying': '⏳ Zahlung wird verifiziert...',
     'position': 'Position',
-    'size': 'Size',
+    'size': 'Größe',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1021,54 +1037,54 @@ Select report type:''',
 
     # Wallet & TRC translations
 
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_trc_insufficient': '''❌ Unzureichendes TRC-Guthaben.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Ihr Guthaben: {balance} TRC
+Erforderlich: {required} TRC
 
-Top up your wallet to continue.''',
-    'wallet_address': '''📍 Address: `{address}`''',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+Laden Sie Ihr Wallet auf, um fortzufahren.''',
+    'wallet_address': '''📍 Adresse: `{address}`''',
+    'wallet_balance': '''💰 *Ihr TRC-Wallet*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Guthaben: *{balance} TRC*
+📈 Gestaked: *{staked} TRC*
+🎁 Ausstehende Belohnungen: *{rewards} TRC*
 
-�� Total Value: *${total_usd}*
+💵 Gesamtwert: *${total_usd}*
 📍 1 TRC = 1 USDT''',
-    'wallet_btn_back': '''« Back''',
-    'wallet_btn_deposit': '''📥 Deposit''',
-    'wallet_btn_history': '''📋 History''',
-    'wallet_btn_stake': '''📈 Stake''',
-    'wallet_btn_unstake': '''📤 Unstake''',
-    'wallet_btn_withdraw': '''📤 Withdraw''',
-    'wallet_deposit_demo': '''🎁 Get 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_btn_back': '''« Zurück''',
+    'wallet_btn_deposit': '''📥 Einzahlen''',
+    'wallet_btn_history': '''📋 Verlauf''',
+    'wallet_btn_stake': '''📈 Staken''',
+    'wallet_btn_unstake': '''📤 Unstaken''',
+    'wallet_btn_withdraw': '''📤 Abheben''',
+    'wallet_deposit_demo': '''🎁 100 TRC erhalten (Demo)''',
+    'wallet_deposit_desc': '''Senden Sie TRC-Token an Ihre Wallet-Adresse:
 
 `{address}`
 
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_success': '''✅ Deposited {amount} TRC successfully!''',
-    'wallet_deposit_title': '''📥 *Deposit TRC*''',
-    'wallet_history_empty': '''No transactions yet.''',
+💡 *Demo-Modus:* Klicken Sie unten für kostenlose Test-Token.''',
+    'wallet_deposit_success': '''✅ {amount} TRC erfolgreich eingezahlt!''',
+    'wallet_deposit_title': '''📥 *TRC einzahlen*''',
+    'wallet_history_empty': '''Noch keine Transaktionen.''',
     'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
    {date}''',
-    'wallet_history_title': '''�� *Transaction History*''',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_history_title': '''📋 *Transaktionsverlauf*''',
+    'wallet_stake_desc': '''Staken Sie Ihre TRC-Token für *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Verfügbar: {available} TRC
+📈 Derzeit gestaked: {staked} TRC
+🎁 Ausstehende Belohnungen: {rewards} TRC
 
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '''✅ Staked {amount} TRC successfully!''',
-    'wallet_stake_title': '''📈 *Stake TRC*''',
-    'wallet_title': '''◈ *TRC Wallet*''',
-    'wallet_unstake_success': '''✅ Unstaked {amount} TRC + {rewards} TRC rewards!''',
-    'wallet_withdraw_desc': '''Enter destination address and amount:''',
-    'wallet_withdraw_failed': '''❌ Withdrawal failed: {error}''',
-    'wallet_withdraw_success': '''✅ Withdrawn {amount} TRC to {address}''',
-    'wallet_withdraw_title': '''📤 *Withdraw TRC*''',
+Tägliche Belohnungen • Sofortiges Unstaking''',
+    'wallet_stake_success': '''✅ {amount} TRC erfolgreich gestaked!''',
+    'wallet_stake_title': '''📈 *TRC staken*''',
+    'wallet_title': '''◈ *TRC-Wallet*''',
+    'wallet_unstake_success': '''✅ {amount} TRC + {rewards} TRC Belohnungen abgehoben!''',
+    'wallet_withdraw_desc': '''Zieladresse und Betrag eingeben:''',
+    'wallet_withdraw_failed': '''❌ Abhebung fehlgeschlagen: {error}''',
+    'wallet_withdraw_success': '''✅ {amount} TRC an {address} abgehoben''',
+    'wallet_withdraw_title': '''📤 *TRC abheben*''',
 
 
     'spot_freq_biweekly': '📅 Alle 2 Wochen',

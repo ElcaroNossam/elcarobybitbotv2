@@ -3155,13 +3155,13 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         
         keyboard = [
             # ─── Row 1: Trading Info ───
-            [ "💰 Balance", "📊 Positions", "📈 Orders" ],
+            [ t.get('button_balance', '💰 Balance'), t.get('button_positions', '📊 Positions'), t.get('button_orders', '📈 Orders') ],
             # ─── Row 2: Actions ───
-            [ "📋 History", "📉 Market", "🤖 Strategies" ],
+            [ t.get('button_history', '📋 History'), t.get('button_market', '📉 Market'), t.get('button_strategies', '🤖 Strategies') ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
-            [ f"🔷 HL {net_emoji}", "🔄 Bybit", "🔑 API Keys" ],
+            [ f"🔷 HL {net_emoji}", t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔑 API Keys') ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
@@ -3173,13 +3173,13 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         
         keyboard = [
             # ─── Row 1: Trading Info ───
-            [ "💰 Balance", "📊 Positions", "📈 Orders" ],
+            [ t.get('button_balance', '💰 Balance'), t.get('button_positions', '📊 Positions'), t.get('button_orders', '📈 Orders') ],
             # ─── Row 2: Actions & Strategies ───
-            [ "📋 History", "📉 Market", "🤖 Strategies" ],
+            [ t.get('button_history', '📋 History'), t.get('button_market', '📉 Market'), t.get('button_strategies', '🤖 Strategies') ],
             # ─── Row 3: Coins & Premium ───
             [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
             # ─── Row 4: Exchange & API (bottom) ───
-            [ f"🟠 Bybit {mode_emoji}", "🔄 HyperLiquid", "🔑 API Keys" ],
+            [ f"🟠 Bybit {mode_emoji}", t.get('button_switch_hl', '🔄 HyperLiquid'), t.get('button_api_keys', '🔑 API Keys') ],
         ]
     
     # Add admin row if user is admin
@@ -17345,7 +17345,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 return await cmd_openorders(update, ctx)
     
     # History - works for current exchange
-    if text in ["📋 History", "📋 HL History"]:
+    if text in ["📋 History", "📋 HL History", ctx.t.get('button_history', '📋 History')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_history(update, ctx)
         else:
@@ -17387,11 +17387,11 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await cmd_show_config(update, ctx)
     
     # API Keys - unified API management
-    if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API"]:
+    if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API", ctx.t.get('button_api_keys', '🔑 API Keys')]:
         return await cmd_api_settings(update, ctx)
     
     # Strategies button
-    if text in ["🤖 Strategies", ctx.t.get('button_strategy_settings', '⚙️ Strategies')]:
+    if text in ["🤖 Strategies", ctx.t.get('button_strategies', '🤖 Strategies'), ctx.t.get('button_strategy_settings', '⚙️ Strategies')]:
         return await cmd_strategy_settings(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
