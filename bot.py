@@ -17714,46 +17714,20 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════════
     active_exchange = get_exchange_type(uid)
     
-    # Balance - works for current exchange with smart mode selection
+    # Balance - works for current exchange, shows directly with switcher if needed
     if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
-        # Use should_show_account_switcher to determine if we need mode selection
-        show_switcher = db.should_show_account_switcher(uid)
-        # Get effective mode for single-mode display
+        # Get effective mode for display
         effective_mode = get_effective_trading_mode(uid)
         
         if active_exchange == "hyperliquid":
-            # HyperLiquid: check testnet mode
+            # HyperLiquid: use testnet setting
             hl_creds = get_hl_credentials(uid)
             is_testnet = hl_creds.get("hl_testnet", False)
-            # For now, show selection - can be optimized later
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
-                 InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
-                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
-            ])
-            await update.message.reply_text(
-                "💰 *HyperLiquid Balance*\n\nSelect network:",
-                reply_markup=keyboard,
-                parse_mode="Markdown"
-            )
+            mode = "testnet" if is_testnet else "mainnet"
+            return await show_balance_for_account(update, ctx, mode)
         else:
-            # Bybit: if only one mode or no switcher needed, show directly
-            if not show_switcher:
-                # Single effective mode - show directly
-                return await show_balance_for_account(update, ctx, effective_mode)
-            else:
-                # Both modes - show selection
-                keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
-                     InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
-                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
-                ])
-                await update.message.reply_text(
-                    "💰 *Bybit Balance*\n\nSelect account type:",
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-        return
+            # Bybit: show balance for effective mode (switcher is inside show_balance_for_account)
+            return await show_balance_for_account(update, ctx, effective_mode)
     
     # Positions - works for current exchange with smart mode based on strategy settings
     if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
