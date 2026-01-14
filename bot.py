@@ -229,6 +229,16 @@ ATR_TRIGGER_PCT = 1
 # Global notification service instance
 notification_service = None
 
+
+def _safe_float(val, default=0.0):
+    """Safely convert value to float, handling None and empty strings."""
+    if val is None or val == '':
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
 # Spot DCA Settings
 SPOT_DCA_COINS = os.getenv("SPOT_DCA_COINS", "BTC,ETH").split(",")  # Coins for Spot DCA
 SPOT_DCA_DEFAULT_AMOUNT = float(os.getenv("SPOT_DCA_DEFAULT_AMOUNT", "10.0"))  # Default USDT per buy
@@ -1091,9 +1101,10 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             coins = result.get("list", [{}])[0].get("coin", [])
             usdt = next((c for c in coins if c.get("coin") == "USDT"), {})
-            balance = float(usdt.get("walletBalance", 0))
-            equity = float(usdt.get("equity", 0))
-            available = float(usdt.get("availableToWithdraw", 0))
+            
+            balance = _safe_float(usdt.get("walletBalance"))
+            equity = _safe_float(usdt.get("equity"))
+            available = _safe_float(usdt.get("availableToWithdraw"))
             
             test_msg = f"""✅ <b>{t.get('api_test_success', 'Connection Successful!')}</b>
 
