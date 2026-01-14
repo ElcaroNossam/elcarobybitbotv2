@@ -17729,33 +17729,23 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Bybit: show balance for effective mode (switcher is inside show_balance_for_account)
             return await show_balance_for_account(update, ctx, effective_mode)
     
-    # Positions - works for current exchange with smart mode based on strategy settings
+    # Positions - works for current exchange, shows directly with switcher if needed
     if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
         else:
-            # Use effective trading mode from enabled strategies
+            # Show positions for effective mode (switcher is inside show_positions_for_account)
             effective_mode = get_effective_trading_mode(uid)
-            if effective_mode in ('demo', 'real'):
-                # Single mode - show directly
-                return await show_positions_direct(update, ctx, effective_mode)
-            else:
-                # Both modes - show combined view
-                return await show_all_positions(update, ctx)
+            return await show_positions_for_account(update, ctx, effective_mode)
     
-    # Orders - works for current exchange with smart mode
+    # Orders - works for current exchange, shows directly with switcher if needed
     if text in ["📈 Orders", "📈 HL Orders", ctx.t.get('button_orders', '📈 Orders')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
         else:
-            # Use effective trading mode from enabled strategies
+            # Show orders for effective mode (switcher is inside show_orders_for_account)
             effective_mode = get_effective_trading_mode(uid)
-            if effective_mode in ('demo', 'real'):
-                # Single mode - show directly
-                return await show_orders_direct(update, ctx, effective_mode)
-            else:
-                # Both modes - use standard flow with selection
-                return await cmd_openorders(update, ctx)
+            return await show_orders_for_account(update, ctx, effective_mode)
     
     # History - works for current exchange
     if text in ["📋 History", "📋 HL History", ctx.t.get('button_history', '📋 History')]:
