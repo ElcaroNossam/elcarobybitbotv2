@@ -79,6 +79,7 @@ from db import (
     get_all_user_credentials,
     set_trading_mode,
     get_trading_mode,
+    get_effective_trading_mode,
     get_active_account_types,
     get_strategy_account_types,
     get_user_trading_context,
@@ -17760,28 +17761,30 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
         return
     
-    # Positions - works for current exchange with smart mode
+    # Positions - works for current exchange with smart mode based on strategy settings
     if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
         else:
-            trading_mode = get_trading_mode(uid)
-            if trading_mode in ('demo', 'real'):
+            # Use effective trading mode from enabled strategies
+            effective_mode = get_effective_trading_mode(uid)
+            if effective_mode in ('demo', 'real'):
                 # Single mode - show directly
-                return await show_positions_direct(update, ctx, trading_mode)
+                return await show_positions_direct(update, ctx, effective_mode)
             else:
-                # Both modes - use standard flow with selection
-                return await cmd_positions(update, ctx)
+                # Both modes - show combined view
+                return await show_all_positions(update, ctx)
     
     # Orders - works for current exchange with smart mode
     if text in ["📈 Orders", "📈 HL Orders", ctx.t.get('button_orders', '📈 Orders')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
         else:
-            trading_mode = get_trading_mode(uid)
-            if trading_mode in ('demo', 'real'):
+            # Use effective trading mode from enabled strategies
+            effective_mode = get_effective_trading_mode(uid)
+            if effective_mode in ('demo', 'real'):
                 # Single mode - show directly
-                return await show_orders_direct(update, ctx, trading_mode)
+                return await show_orders_direct(update, ctx, effective_mode)
             else:
                 # Both modes - use standard flow with selection
                 return await cmd_openorders(update, ctx)
