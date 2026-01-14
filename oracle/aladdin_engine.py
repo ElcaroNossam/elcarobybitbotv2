@@ -922,7 +922,7 @@ class AladdinEngine:
             # Kurtosis (excess)
             m4 = sum((r - mean)**4 for r in returns) / n
             result.kurtosis = (m4 / (std**4)) - 3 if std > 0 else 0
-        except:
+        except (ZeroDivisionError, ValueError, TypeError):
             result.skewness = 0
             result.kurtosis = 0
         

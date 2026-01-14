@@ -494,7 +494,8 @@ class RankingService:
             # Get total strategies count for user
             cur.execute("SELECT COUNT(*) as count FROM custom_strategies WHERE user_id = ? AND is_active = 1", 
                        (user_id,))
-            total = cur.fetchone()["count"]
+            row = cur.fetchone()
+            total = row["count"] if row else 0
             
             # Get total earnings from sales
             cur.execute("""
@@ -502,7 +503,8 @@ class RankingService:
                 FROM strategy_purchases
                 WHERE seller_id = ?
             """, (user_id,))
-            earnings = cur.fetchone()["total_earnings"] or 0
+            row = cur.fetchone()
+            earnings = row["total_earnings"] if row and row["total_earnings"] else 0
             
             return {
                 "best_rank": best_strategy["rank"] if best_strategy else None,

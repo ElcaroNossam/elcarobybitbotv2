@@ -642,7 +642,7 @@ def test_translations():
                 module = __import__(f'translations.{lang}', fromlist=['TEXTS'])
                 if hasattr(module, 'TEXTS'):
                     loaded_langs.append(lang)
-            except:
+            except (ImportError, AttributeError):
                 pass
         
         if len(loaded_langs) >= 14:  # At least 14 out of 15

@@ -330,7 +330,8 @@ async def create_subscription_payment(
             "SELECT elc_balance FROM users WHERE user_id = ?",
             (user_id,)
         )
-        user_balance = user_balance_result.fetchone()[0] or 0
+        row = user_balance_result.fetchone()
+        user_balance = row[0] if row else 0
         
         if user_balance < elc_price:
             return {

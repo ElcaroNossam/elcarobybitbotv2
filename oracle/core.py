@@ -568,7 +568,7 @@ class Oracle:
                         if file_path.name == "package.json" and content:
                             try:
                                 data["package_info"] = json.loads(content)
-                            except:
+                            except json.JSONDecodeError:
                                 pass
         
         return data

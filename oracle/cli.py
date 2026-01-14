@@ -323,7 +323,7 @@ async def cmd_report(args):
                 if data.get("report_id") == report_id:
                     found = f
                     break
-        except:
+        except (json.JSONDecodeError, IOError, KeyError):
             continue
     
     if not found:

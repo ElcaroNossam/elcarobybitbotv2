@@ -1105,7 +1105,8 @@ async def get_trades(
             SELECT COUNT(*) FROM trade_logs 
             WHERE user_id = ?
         """, (user_id,))
-        total = cur.fetchone()[0]
+        row = cur.fetchone()
+        total = row[0] if row else 0
         
         conn.close()
         return {"trades": trades, "total": total}
@@ -1160,7 +1161,8 @@ async def get_trading_stats(
             SELECT COUNT(*) FROM trade_logs 
             WHERE user_id = ? {period_filter}
         """, (user_id,))
-        total_trades = cur.fetchone()[0]
+        row = cur.fetchone()
+        total_trades = row[0] if row else 0
         
         if total_trades == 0:
             conn.close()
@@ -1180,13 +1182,15 @@ async def get_trading_stats(
             SELECT COUNT(*) FROM trade_logs 
             WHERE user_id = ? AND pnl > 0 {period_filter}
         """, (user_id,))
-        winning = cur.fetchone()[0]
+        row = cur.fetchone()
+        winning = row[0] if row else 0
         
         cur.execute(f"""
             SELECT COUNT(*) FROM trade_logs 
             WHERE user_id = ? AND pnl < 0 {period_filter}
         """, (user_id,))
-        losing = cur.fetchone()[0]
+        row = cur.fetchone()
+        losing = row[0] if row else 0
         
         # PnL stats
         cur.execute(f"""

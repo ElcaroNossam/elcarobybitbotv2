@@ -376,7 +376,8 @@ async def get_marketplace(
         
         # Get total count
         cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = 1")
-        total = cur.fetchone()[0]
+        row = cur.fetchone()
+        total = row[0] if row else 0
         
         return {
             "success": True,
@@ -786,7 +787,8 @@ async def get_seller_stats(user_id: int):
             FROM strategy_purchases
             WHERE seller_id = ?
         """, (user_id,))
-        total_sales = cur.fetchone()["total_sales"]
+        row = cur.fetchone()
+        total_sales = row["total_sales"] if row else 0
         
         # Listed strategies
         cur.execute("""

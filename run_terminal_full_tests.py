@@ -1095,7 +1095,7 @@ class TerminalFunctionalTests:
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as resp:
                     status = resp.status
-        except:
+        except (aiohttp.ClientError, asyncio.TimeoutError, Exception):
             status = 0
         
         # Should return 401 Unauthorized
