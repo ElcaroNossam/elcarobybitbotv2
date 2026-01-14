@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.4.0 | Обновлено: 8 января 2026
+# Версия: 3.5.0 | Обновлено: 9 января 2026
 # =============================================
 
 ---
@@ -437,6 +437,172 @@ python3 utils/translation_sync.py --report
 
 ---
 
+# 🔒 SECURITY FIXES (Январь 2026)
+
+### 🔐 Security Audit Round 1 (Jan 9, 2026)
+
+#### ✅ Race Condition in DB Transactions
+- **Проблема:** Конкурентные транзакции могли привести к некорректным данным
+- **Файл:** `db.py`
+- **Fix:** `isolation_level="DEFERRED"` при создании соединения + `BEGIN EXCLUSIVE` для критических операций
+
+#### ✅ Bare Exception Handling
+- **Проблема:** 17 мест с `except:` или `except Exception:` без логирования
+- **Файл:** `bot.py`
+- **Fix:** Все исключения теперь логируются с `logger.exception()` или специфичными типами
+
+#### ✅ fetchone() None Checks  
+- **Проблема:** 15+ мест где `cursor.fetchone()` использовался без проверки на None
+- **Файлы:** `db.py`, `bot.py`
+- **Fix:** Добавлены проверки `if row:` перед обращением к результатам
+
+#### ✅ Cache Thread Safety
+- **Проблема:** Доступ к кэшу без синхронизации в многопоточной среде
+- **Файл:** `db.py`
+- **Fix:** Добавлены `threading.RLock()` для _user_cache и _cfg_cache
+
+#### ✅ TOCTOU in ELC Purchase
+- **Проблема:** Time-of-check to time-of-use уязвимость при покупке ELC токенов
+- **Файл:** `db.py`
+- **Fix:** `BEGIN EXCLUSIVE` транзакция для атомарной проверки и обновления баланса
+
+#### ✅ Unsafe Dict Access
+- **Проблема:** Обращение к ключам словаря без проверки существования
+- **Файл:** `exchanges/bybit.py`
+- **Fix:** Использование `.get()` с дефолтными значениями
+
+### 🔐 Security Audit Round 2 (Jan 9, 2026)
+
+#### ✅ CRITICAL: Hardcoded JWT Secret
+- **Проблема:** JWT секрет был захардкожен в `start.sh`
+- **Файл:** `start.sh`
+- **Fix:** Генерация случайного секрета при первом запуске через `openssl rand -hex 32`
+
+#### ✅ Path Traversal in Oracle CLI
+- **Проблема:** Возможность чтения произвольных файлов через `../` в пути
+- **Файл:** `oracle/cli.py`
+- **Fix:** Whitelist `ALLOWED_ANALYSIS_DIRS` + `os.path.realpath()` валидация
+
+#### ✅ MD5 Usage (Weak Hashing)
+- **Проблема:** MD5 использовался для генерации ID отчётов
+- **Файл:** `oracle/core.py`
+- **Fix:** Заменён на SHA256: `hashlib.sha256().hexdigest()[:16]`
+
+#### ✅ CORS Wildcard Default
+- **Проблема:** CORS по умолчанию разрешал все origins (`["*"]`)
+- **Файл:** `core/config.py`
+- **Fix:** Дефолт изменён на `[]`, требуется явная настройка через env
+
+#### ✅ Open Redirect Vulnerability
+- **Проблема:** Редирект без валидации URL позволял фишинг-атаки
+- **Файл:** `scan/config/views.py`
+- **Fix:** Проверка что URL начинается с `/` и не с `//`
+
+#### ✅ Dynamic Import Injection
+- **Проблема:** `importlib.import_module(f"translations.{lang}")` без валидации
+- **Файл:** `bot.py`
+- **Fix:** Regex whitelist `VALID_LANG_PATTERN = r'^[a-z]{2}$'`
+
+### 🔐 Security Audit Round 3 (Jan 9, 2026)
+
+#### ✅ CRITICAL: IDOR in Blockchain Admin API
+- **Проблема:** Admin endpoints принимали `admin_id` из URL/request body вместо JWT
+- **Файл:** `webapp/api/blockchain.py`
+- **Fix:** 
+  - Создан `require_admin` dependency с JWT валидацией
+  - `admin_id` извлекается только из verified JWT токена
+  - Все admin endpoints (`/admin/*`) используют dependency injection
+
+#### ✅ DoS via Unlimited Pagination
+- **Проблема:** `limit` параметры в API без верхней границы
+- **Файлы:** `webapp/api/strategy_marketplace.py`, `webapp/api/strategy_sync.py`
+- **Fix:** Добавлены ограничения `Query(le=100)`, `Query(le=50)`
+
+---
+
+# 🛡️ SECURITY PATTERNS
+
+## Обязательные паттерны при написании кода:
+
+### 1. Валидация входных данных
+```python
+# ❌ ПЛОХО
+lang = user_input
+module = importlib.import_module(f"translations.{lang}")
+
+# ✅ ХОРОШО
+VALID_LANG_PATTERN = re.compile(r'^[a-z]{2}$')
+if not VALID_LANG_PATTERN.match(lang):
+    lang = "en"
+module = importlib.import_module(f"translations.{lang}")
+```
+
+### 2. Path Traversal Protection
+```python
+# ❌ ПЛОХО  
+with open(f"./data/{user_path}") as f:
+    data = f.read()
+
+# ✅ ХОРОШО
+ALLOWED_DIRS = ["/app/data", "/app/reports"]
+real_path = os.path.realpath(os.path.join(base_dir, user_path))
+if not any(real_path.startswith(d) for d in ALLOWED_DIRS):
+    raise ValueError("Invalid path")
+```
+
+### 3. JWT-based Authorization
+```python
+# ❌ ПЛОХО - admin_id из request
+@router.get("/admin/{admin_id}/data")
+async def get_admin_data(admin_id: int):
+    ...
+
+# ✅ ХОРОШО - admin_id из JWT
+async def require_admin(authorization: str = Header(...)) -> int:
+    payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+    if not payload.get("is_admin"):
+        raise HTTPException(403, "Admin required")
+    return payload["user_id"]
+
+@router.get("/admin/data")
+async def get_admin_data(admin_id: int = Depends(require_admin)):
+    ...
+```
+
+### 4. Database Transaction Safety
+```python
+# ❌ ПЛОХО - race condition
+balance = get_balance(user_id)
+if balance >= amount:
+    update_balance(user_id, balance - amount)
+
+# ✅ ХОРОШО - atomic transaction
+cursor.execute("BEGIN EXCLUSIVE")
+cursor.execute("SELECT balance FROM users WHERE id=? FOR UPDATE", (user_id,))
+balance = cursor.fetchone()[0]
+if balance >= amount:
+    cursor.execute("UPDATE users SET balance=balance-? WHERE id=?", (amount, user_id))
+cursor.execute("COMMIT")
+```
+
+### 5. Exception Handling
+```python
+# ❌ ПЛОХО
+try:
+    do_something()
+except:
+    pass
+
+# ✅ ХОРОШО
+try:
+    do_something()
+except SpecificError as e:
+    logger.exception(f"Failed to do_something: {e}")
+    raise
+```
+
+---
+
 # 🧪 ТЕСТИРОВАНИЕ
 
 ```bash
@@ -517,9 +683,39 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 | `CACHE_TTL` | core/cache.py | 30 секунд |
 | `POSITIONS_PER_PAGE` | bot.py | 10 |
 | `LEVERAGE_FALLBACK` | bot.py | [50, 25, 10, 5, 3, 2, 1] |
+| `VALID_LANG_PATTERN` | bot.py | `^[a-z]{2}$` |
 
 ---
 
-*Last updated: 6 января 2026*
-*Version: 3.2.0*
+# 🌐 MULTI-EXCHANGE SUPPORT
+
+## Поддерживаемые биржи
+
+| Биржа | Тип | Режимы | Файлы |
+|-------|-----|--------|-------|
+| **Bybit** | CEX | Demo, Real, Both | `exchanges/bybit.py`, `bot_unified.py` |
+| **HyperLiquid** | DEX | Real only | `hl_adapter.py`, `hyperliquid/` |
+
+## Роутинг между биржами
+```python
+# Получить активную биржу пользователя
+exchange = db.get_exchange_type(uid)  # 'bybit' | 'hyperliquid'
+
+# Роутинг через exchange_router.py
+await place_order_universal(uid, symbol, side, ...)  # Автоматически выбирает биржу
+```
+
+## Cold Wallet Trading (HyperLiquid)
+```python
+# cold_wallet_trading.py
+await connect_wallet(user_id, wallet_address, signature, message)
+await prepare_hl_order(user_id, symbol, side, ...)  # Возвращает unsigned tx
+await submit_signed_order(user_id, order_data, signature)  # Отправляет signed tx
+```
+
+---
+
+*Last updated: 9 января 2026*
+*Version: 3.5.0*
+*Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*

@@ -9603,6 +9603,9 @@ async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🎮 Demo Orders", callback_data="orders:demo"),
             InlineKeyboardButton("💎 Real Orders", callback_data="orders:real")
         ],
+        [
+            InlineKeyboardButton("📊 All Orders (Demo + Real)", callback_data="orders:both")
+        ],
         [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
     ])
     
@@ -9634,7 +9637,8 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
                 keyboard = InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                        InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                        InlineKeyboardButton("💎 Real", callback_data="orders:real"),
+                        InlineKeyboardButton("📊 All", callback_data="orders:both")
                     ],
                     [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
                 ])
@@ -9677,7 +9681,8 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             keyboard = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                    InlineKeyboardButton("💎 Real", callback_data="orders:real"),
+                    InlineKeyboardButton("📊 All", callback_data="orders:both")
                 ],
                 [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
             ])
@@ -9716,6 +9721,113 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             await update.callback_query.edit_message_text(error_text)
 
 
+async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show orders from both Demo and Real accounts together."""
+    uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
+    t = ctx.t
+    
+    # Fetch orders from both accounts in parallel
+    demo_ords, real_ords = await asyncio.gather(
+        fetch_open_orders(uid, account_type="demo"),
+        fetch_open_orders(uid, account_type="real"),
+        return_exceptions=True
+    )
+    
+    # Handle errors gracefully
+    if isinstance(demo_ords, Exception):
+        logger.warning(f"Error fetching demo orders for {uid}: {demo_ords}")
+        demo_ords = []
+    if isinstance(real_ords, Exception):
+        logger.warning(f"Error fetching real orders for {uid}: {real_ords}")
+        real_ords = []
+    
+    header = "📊 *All Open Orders (Demo + Real)*\n\n"
+    
+    if not demo_ords and not real_ords:
+        text = header + t.get('no_open_orders', 'No open orders')
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="orders:real"),
+                InlineKeyboardButton("📊 All", callback_data="orders:both")
+            ],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+        
+        if hasattr(update, 'message') and update.message:
+            return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    lines = [header]
+    
+    # === DEMO ORDERS ===
+    if demo_ords:
+        lines.append(f"🎮 *DEMO ORDERS* ({len(demo_ords)})")
+        lines.append("─" * 25)
+        for i, o in enumerate(demo_ords, start=1):
+            price = o.get('price')
+            price_str = str(price) if price not in (None, "", 0, "0") else "—"
+            qty_str = str(o.get('qty', "—"))
+            symbol = o.get('symbol', "—")
+            side = o.get('side', "—")
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            lines.append(f"  {side_emoji} {i}. {symbol} {side}")
+            lines.append(f"     Qty: {qty_str} @ {price_str}")
+        lines.append("")
+    
+    # === REAL ORDERS ===
+    if real_ords:
+        lines.append(f"💎 *REAL ORDERS* ({len(real_ords)})")
+        lines.append("─" * 25)
+        for i, o in enumerate(real_ords, start=1):
+            price = o.get('price')
+            price_str = str(price) if price not in (None, "", 0, "0") else "—"
+            qty_str = str(o.get('qty', "—"))
+            symbol = o.get('symbol', "—")
+            side = o.get('side', "—")
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            lines.append(f"  {side_emoji} {i}. {symbol} {side}")
+            lines.append(f"     Qty: {qty_str} @ {price_str}")
+        lines.append("")
+    
+    # === SUMMARY ===
+    lines.append("═" * 25)
+    total_count = len(demo_ords) + len(real_ords)
+    lines.append(f"📝 *TOTAL:* {total_count} open orders")
+    
+    text = "\n".join(lines)
+    
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+            InlineKeyboardButton("💎 Real", callback_data="orders:real"),
+            InlineKeyboardButton("📊 All", callback_data="orders:both")
+        ],
+        [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:both")],
+        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+    ])
+    
+    # Send message or edit existing
+    if hasattr(update, 'message') and update.message:
+        MAX_LEN = 3500
+        for pos in range(0, len(text), MAX_LEN):
+            chunk = text[pos:pos+MAX_LEN]
+            await update.message.reply_text(
+                chunk,
+                parse_mode="Markdown",
+                reply_markup=keyboard if pos + MAX_LEN >= len(text) else None
+            )
+    else:
+        if len(text) > 3500:
+            text = text[:3450] + "\n...(truncated)"
+        await update.callback_query.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=keyboard
+        )
+
+
 @log_calls
 @with_texts
 async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -9727,8 +9839,12 @@ async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     if not data.startswith("orders:"):
         return
     
-    account_type = data.split(":")[1]  # "demo" or "real"
-    await show_orders_for_account(update, ctx, account_type)
+    account_type = data.split(":")[1]  # "demo", "real" or "both"
+    
+    if account_type == "both":
+        await show_all_orders(update, ctx)
+    else:
+        await show_orders_for_account(update, ctx, account_type)
 
 @require_access
 @with_texts
@@ -9761,6 +9877,9 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton("🎮 Demo Positions", callback_data="positions:demo"),
             InlineKeyboardButton("💎 Real Positions", callback_data="positions:real")
+        ],
+        [
+            InlineKeyboardButton("📊 All Positions (Demo + Real)", callback_data="positions:both")
         ],
         [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
     ])
@@ -9870,7 +9989,8 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
             keyboard = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="positions:real")
+                    InlineKeyboardButton("💎 Real", callback_data="positions:real"),
+                    InlineKeyboardButton("📊 All", callback_data="positions:both")
                 ],
                 [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
             ])
@@ -9979,7 +10099,8 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="positions:real")
+                InlineKeyboardButton("💎 Real", callback_data="positions:real"),
+                InlineKeyboardButton("📊 All", callback_data="positions:both")
             ],
             [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
         ])
@@ -10014,6 +10135,155 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
         )
 
 
+async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show positions from both Demo and Real accounts together."""
+    uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
+    t = ctx.t
+    
+    # Fetch positions from both accounts in parallel
+    demo_pos, real_pos = await asyncio.gather(
+        fetch_open_positions(uid, account_type="demo"),
+        fetch_open_positions(uid, account_type="real"),
+        return_exceptions=True
+    )
+    
+    # Handle errors gracefully
+    if isinstance(demo_pos, Exception):
+        logger.warning(f"Error fetching demo positions for {uid}: {demo_pos}")
+        demo_pos = []
+    if isinstance(real_pos, Exception):
+        logger.warning(f"Error fetching real positions for {uid}: {real_pos}")
+        real_pos = []
+    
+    header = "📊 *All Positions (Demo + Real)*\n\n"
+    
+    if not demo_pos and not real_pos:
+        text = header + t.get('no_positions', 'No open positions')
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="positions:real"),
+                InlineKeyboardButton("📊 All", callback_data="positions:both")
+            ],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+        
+        if hasattr(update, 'message') and update.message:
+            return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    # Get DB positions for strategy info
+    demo_db = db.get_active_positions(uid, account_type="demo")
+    real_db = db.get_active_positions(uid, account_type="real")
+    
+    total_pnl = 0.0
+    total_im = 0.0
+    lines = [header]
+    
+    # === DEMO SECTION ===
+    if demo_pos:
+        demo_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in demo_pos)
+        demo_emoji = "📈" if demo_pnl >= 0 else "📉"
+        lines.append(f"🎮 *DEMO POSITIONS* ({len(demo_pos)}) {demo_emoji} `{demo_pnl:+.2f}` USDT")
+        lines.append("─" * 25)
+        
+        db_by_symbol = {p["symbol"]: p for p in demo_db}
+        for idx, p in enumerate(demo_pos, start=1):
+            sym = p.get("symbol", "-")
+            side = p.get("side", "-")
+            lev = p.get("leverage", "-")
+            pnl_i = float(p.get("unrealisedPnl") or 0)
+            im = float(p.get("positionIM") or 0)
+            
+            db_pos = db_by_symbol.get(sym, {})
+            strategy = db_pos.get("strategy") or "manual"
+            
+            pct = (pnl_i / im * 100) if im else 0.0
+            total_pnl += pnl_i
+            total_im += im
+            
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            pnl_emoji = "📈" if pnl_i >= 0 else "📉"
+            
+            lines.append(f"  {side_emoji} {idx}. {sym} {side}x{lev}")
+            lines.append(f"     [{strategy.capitalize()}] {pnl_emoji} `{pnl_i:+.2f}` ({pct:+.1f}%)")
+        
+        lines.append("")
+    
+    # === REAL SECTION ===
+    if real_pos:
+        real_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in real_pos)
+        real_emoji = "📈" if real_pnl >= 0 else "📉"
+        lines.append(f"💎 *REAL POSITIONS* ({len(real_pos)}) {real_emoji} `{real_pnl:+.2f}` USDT")
+        lines.append("─" * 25)
+        
+        db_by_symbol = {p["symbol"]: p for p in real_db}
+        for idx, p in enumerate(real_pos, start=1):
+            sym = p.get("symbol", "-")
+            side = p.get("side", "-")
+            lev = p.get("leverage", "-")
+            pnl_i = float(p.get("unrealisedPnl") or 0)
+            im = float(p.get("positionIM") or 0)
+            
+            db_pos = db_by_symbol.get(sym, {})
+            strategy = db_pos.get("strategy") or "manual"
+            
+            pct = (pnl_i / im * 100) if im else 0.0
+            total_pnl += pnl_i
+            total_im += im
+            
+            side_emoji = "🟢" if side == "Buy" else "🔴"
+            pnl_emoji = "📈" if pnl_i >= 0 else "📉"
+            
+            lines.append(f"  {side_emoji} {idx}. {sym} {side}x{lev}")
+            lines.append(f"     [{strategy.capitalize()}] {pnl_emoji} `{pnl_i:+.2f}` ({pct:+.1f}%)")
+        
+        lines.append("")
+    
+    # === SUMMARY ===
+    lines.append("═" * 25)
+    total_emoji = "📈" if total_pnl >= 0 else "📉"
+    total_count = len(demo_pos) + len(real_pos)
+    lines.append(f"💰 *TOTAL:* {total_count} positions {total_emoji} `{total_pnl:+.2f}` USDT")
+    
+    text = "\n".join(lines)
+    
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+            InlineKeyboardButton("💎 Real", callback_data="positions:real"),
+            InlineKeyboardButton("📊 All", callback_data="positions:both")
+        ],
+        [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="positions:both")],
+        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+    ])
+    
+    # Send message or edit existing
+    if hasattr(update, 'message') and update.message:
+        escaped = html.escape(text)
+        max_len = 3000
+        for i in range(0, len(escaped), max_len):
+            chunk = escaped[i : i + max_len]
+            await ctx.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"<pre>{chunk}</pre>",
+                parse_mode="HTML",
+                reply_markup=keyboard if i + max_len >= len(escaped) else None,
+                disable_web_page_preview=True
+            )
+    else:
+        escaped = html.escape(text)
+        if len(escaped) > 3000:
+            escaped = escaped[:2950] + "\n...(truncated)"
+        await update.callback_query.edit_message_text(
+            f"<pre>{escaped}</pre>",
+            parse_mode="HTML",
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
+
+
 @log_calls
 @with_texts
 async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -10025,8 +10295,12 @@ async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TY
     if not data.startswith("positions:"):
         return
     
-    account_type = data.split(":")[1]  # "demo" or "real"
-    await show_positions_for_account(update, ctx, account_type)
+    account_type = data.split(":")[1]  # "demo", "real" or "both"
+    
+    if account_type == "both":
+        await show_all_positions(update, ctx)
+    else:
+        await show_positions_for_account(update, ctx, account_type)
 
 
 # ------------------------------------------------------------------------------------

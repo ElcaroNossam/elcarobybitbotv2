@@ -161,6 +161,45 @@ def generate_user_guide_pdf(lang: str = "en") -> BytesIO:
     story.append(Paragraph(content["api_warning"], warning_style))
     story.append(Spacer(1, 3*mm))
     
+    # Multi-Exchange Support (new section)
+    if "exchange_title" in content:
+        story.append(Paragraph(content["exchange_title"], heading_style))
+        story.append(Paragraph(content["exchange_intro"], body_style))
+        for exch in content.get("exchange_features", []):
+            story.append(Paragraph(exch["name"], subheading_style))
+            story.append(Paragraph(exch["description"], body_style))
+            for item in exch.get("items", []):
+                story.append(Paragraph(f"• {item}", bullet_style))
+        story.append(Spacer(1, 3*mm))
+    
+    # ATR Trailing Stop (new section)
+    if "atr_title" in content:
+        story.append(Paragraph(content["atr_title"], heading_style))
+        story.append(Paragraph(content["atr_description"], body_style))
+        for param in content.get("atr_params", []):
+            story.append(Paragraph(f"• {param}", bullet_style))
+        if content.get("atr_tip"):
+            story.append(Paragraph(content["atr_tip"], tip_style))
+        story.append(Spacer(1, 3*mm))
+    
+    # Cold Wallet Trading (new section)
+    if "coldwallet_title" in content:
+        story.append(Paragraph(content["coldwallet_title"], heading_style))
+        story.append(Paragraph(content["coldwallet_description"], body_style))
+        for step in content.get("coldwallet_steps", []):
+            story.append(Paragraph(f"• {step}", bullet_style))
+        if content.get("coldwallet_tip"):
+            story.append(Paragraph(content["coldwallet_tip"], tip_style))
+        story.append(Spacer(1, 3*mm))
+    
+    # Web Terminal (new section)
+    if "terminal_title" in content:
+        story.append(Paragraph(content["terminal_title"], heading_style))
+        story.append(Paragraph(content["terminal_description"], body_style))
+        for feature in content.get("terminal_features", []):
+            story.append(Paragraph(f"• {feature}", bullet_style))
+        story.append(Spacer(1, 3*mm))
+    
     # Strategies Section
     story.append(Paragraph(content["strategies_title"], heading_style))
     story.append(Paragraph(content["strategies_intro"], body_style))
@@ -246,6 +285,18 @@ def generate_user_guide_pdf(lang: str = "en") -> BytesIO:
     story.append(cmd_table)
     story.append(Spacer(1, 5*mm))
     
+    # Example Configurations (new section)
+    if "config_title" in content:
+        story.append(Paragraph(content["config_title"], heading_style))
+        story.append(Paragraph(content["config_intro"], body_style))
+        for config in content.get("config_examples", []):
+            story.append(Paragraph(config["name"], subheading_style))
+            story.append(Paragraph(config["description"], body_style))
+            for setting in config.get("settings", []):
+                story.append(Paragraph(f"• {setting}", bullet_style))
+            story.append(Spacer(1, 2*mm))
+        story.append(Spacer(1, 3*mm))
+    
     # Support
     story.append(Paragraph(content["support_title"], heading_style))
     story.append(Paragraph(content["support_text"], body_style))
@@ -258,28 +309,87 @@ def generate_user_guide_pdf(lang: str = "en") -> BytesIO:
 
 def _get_english_content():
     return {
-        "title": "Bybit Trading Bot - User Guide",
-        "intro": "Welcome to the Bybit Trading Bot! This guide will help you set up and configure the bot for automated cryptocurrency futures trading.",
+        "title": "ElCaro Trading Bot - User Guide",
+        "intro": "Welcome to the ElCaro Trading Bot! This comprehensive platform supports automated cryptocurrency trading on Bybit and HyperLiquid exchanges, featuring advanced AI analysis, ATR trailing stops, and Web3 wallet integration.",
         
         "quick_start_title": "Quick Start",
         "quick_start_steps": [
-            "Set up your Bybit API keys (Demo or Real account)",
-            "Choose and enable strategies you want to use",
-            "Configure entry size, stop-loss, and take-profit for each strategy",
-            "Select trading mode (Demo/Real/Both) per strategy",
+            "Set up your API keys (Bybit Demo/Real or HyperLiquid)",
+            "Choose your preferred exchange (Bybit or HyperLiquid)",
+            "Enable and configure your trading strategies",
+            "Set up entry size (% of equity), stop-loss, and take-profit",
+            "Enable ATR trailing stop for dynamic risk management",
             "Start receiving and executing trading signals automatically",
         ],
         
-        "api_title": "API Setup",
-        "api_intro": "To use the bot, you need to create API keys on Bybit:",
+        "api_title": "Exchange & API Setup",
+        "api_intro": "The bot supports multiple exchanges. Choose your preferred exchange and set up API keys:",
         "api_steps": [
-            "Go to Bybit.com → Account → API Management",
-            "Create new API key with 'Contract Trading' permission",
-            "For Demo: Use api-demo.bybit.com to create demo account first",
-            "Copy API Key and Secret to the bot via /api command",
-            "You can set up both Demo and Real API keys",
+            "Bybit: Go to Bybit.com → Account → API Management, create key with 'Contract Trading' permission",
+            "Bybit Demo: Use api-demo.bybit.com to create demo account first for risk-free testing",
+            "HyperLiquid: Connect via MetaMask or provide your wallet private key",
+            "Use /api command in bot to configure your API credentials",
+            "Switch between exchanges anytime from main menu (🔄 button)",
         ],
-        "api_warning": "⚠️ NEVER share your API keys! The bot stores them securely but you should use IP restrictions on Bybit for extra security.",
+        "api_warning": "⚠️ NEVER share your API keys! The bot stores them securely. Use IP restrictions on Bybit for extra security. For HyperLiquid, use a dedicated trading wallet.",
+        
+        "exchange_title": "Multi-Exchange Support",
+        "exchange_intro": "Trade on Bybit or HyperLiquid with seamless switching:",
+        "exchange_features": [
+            {
+                "name": "🟠 Bybit",
+                "description": "Full-featured CEX with Demo/Real modes:",
+                "items": [
+                    "Demo mode: Risk-free testing with virtual funds",
+                    "Real mode: Live trading with real assets",
+                    "Both mode: Execute signals on Demo and Real simultaneously",
+                    "Linear perpetual contracts (USDT-margined)",
+                    "Leverage up to 100x on major pairs",
+                ],
+            },
+            {
+                "name": "🟢 HyperLiquid",
+                "description": "Decentralized perpetual DEX on Arbitrum:",
+                "items": [
+                    "Non-custodial: Your keys, your funds",
+                    "On-chain settlement and order book",
+                    "Connect via MetaMask or private key",
+                    "Cold wallet trading support for maximum security",
+                    "Lower fees compared to CEX",
+                ],
+            },
+        ],
+        
+        "atr_title": "ATR Trailing Stop",
+        "atr_description": "Adaptive trailing stop that adjusts to market volatility using Average True Range:",
+        "atr_params": [
+            "ATR Mode: Enable/Disable in strategy settings or globally via /config",
+            "ATR Multiplier: Default 1.5x ATR for trailing distance",
+            "Timeframe: Uses 15m candles for ATR calculation",
+            "Auto-adjust: Trail distance increases in volatile markets, tightens in calm markets",
+        ],
+        "atr_tip": "💡 ATR trailing lets profits run during strong trends while protecting gains. Highly recommended for momentum strategies like OI and Elcaro.",
+        
+        "coldwallet_title": "Cold Wallet Trading (HyperLiquid)",
+        "coldwallet_description": "Trade on HyperLiquid without exposing your private keys:",
+        "coldwallet_steps": [
+            "Connect MetaMask wallet to Web Terminal",
+            "Bot prepares unsigned transaction for your order",
+            "Sign the transaction in MetaMask (keys never leave your device)",
+            "Bot submits signed transaction to HyperLiquid",
+        ],
+        "coldwallet_tip": "💡 Perfect for large accounts. Your private key is never stored or transmitted.",
+        
+        "terminal_title": "Web Trading Terminal",
+        "terminal_description": "Professional trading interface accessible via /terminal command:",
+        "terminal_features": [
+            "Real-time charts with TradingView integration",
+            "One-click manual trading with market/limit orders",
+            "Position management: TP/SL adjustment, partial close",
+            "Multi-timeframe analysis (1m, 5m, 15m, 1h, 4h, 1d)",
+            "Order book and recent trades display",
+            "Mobile-responsive design",
+        ],
         
         "strategies_title": "Trading Strategies",
         "strategies_intro": "The bot supports 5 different trading strategies. Each can be configured independently:",
@@ -431,45 +541,149 @@ def _get_english_content():
         "commands_table": [
             ["Command", "Description"],
             ["/start", "Start bot and show main menu"],
-            ["/balance", "Check USDT balance"],
-            ["/positions", "View open positions"],
-            ["/orders", "View pending orders"],
-            ["/stats", "Trading statistics"],
-            ["/api", "Configure API keys"],
-            ["/config", "Bot settings"],
-            ["/strategies", "Strategy settings"],
-            ["/language", "Change language"],
+            ["/balance", "Check USDT balance (Demo + Real)"],
+            ["/positions", "View open positions with live PnL"],
+            ["/orders", "View pending limit orders"],
+            ["/stats", "Trading statistics and performance"],
+            ["/api", "Configure API keys (Bybit/HyperLiquid)"],
+            ["/config", "Bot settings (Entry%, SL%, TP%, ATR)"],
+            ["/strategies", "Strategy settings and modes"],
+            ["/terminal", "Open Web Trading Terminal"],
+            ["/dca", "DCA (Dollar Cost Averaging) settings"],
+            ["/language", "Change interface language"],
+            ["/wallet", "Connect crypto wallet (for ELC)"],
+            ["/guide", "Download this user guide as PDF"],
+        ],
+        
+        "config_title": "Example Configurations",
+        "config_intro": "Recommended starting configurations for different trading styles:",
+        "config_examples": [
+            {
+                "name": "🐢 Conservative",
+                "description": "Low risk, stable returns:",
+                "settings": [
+                    "Entry: 1%",
+                    "SL: 2%",
+                    "TP: 4%",
+                    "ATR: ON",
+                    "DCA: OFF",
+                    "Strategies: OI + RSI+BB",
+                ],
+            },
+            {
+                "name": "⚖️ Balanced",
+                "description": "Moderate risk/reward:",
+                "settings": [
+                    "Entry: 2%",
+                    "SL: 3%",
+                    "TP: 6%",
+                    "ATR: ON",
+                    "DCA: ON (10%, 25%)",
+                    "Strategies: All except Scalper",
+                ],
+            },
+            {
+                "name": "🚀 Aggressive",
+                "description": "Higher risk, higher potential:",
+                "settings": [
+                    "Entry: 3-5%",
+                    "SL: 5%",
+                    "TP: 10%",
+                    "ATR: ON",
+                    "DCA: ON (15%, 30%)",
+                    "Strategies: All strategies",
+                ],
+            },
         ],
         
         "support_title": "Support",
-        "support_text": "If you have questions or issues, contact the bot administrator. Happy trading! 🚀",
+        "support_text": "If you have questions or issues, contact the bot administrator. Visit our Web Terminal for advanced trading features. Happy trading! 🚀",
     }
 
 
 def _get_russian_content():
     return {
-        "title": "Bybit Trading Bot - Руководство",
-        "intro": "Добро пожаловать в Bybit Trading Bot! Это руководство поможет вам настроить бота для автоматической торговли криптовалютными фьючерсами.",
+        "title": "ElCaro Trading Bot - Руководство",
+        "intro": "Добро пожаловать в ElCaro Trading Bot! Комплексная платформа для автоматической торговли криптовалютами на биржах Bybit и HyperLiquid с AI-анализом, ATR trailing stop и интеграцией Web3 кошельков.",
         
         "quick_start_title": "Быстрый старт",
         "quick_start_steps": [
-            "Настройте API ключи Bybit (Demo или Real аккаунт)",
-            "Выберите и включите нужные стратегии",
-            "Настройте размер входа, стоп-лосс и тейк-профит для каждой стратегии",
-            "Выберите режим торговли (Demo/Real/Both) для каждой стратегии",
+            "Настройте API ключи (Bybit Demo/Real или HyperLiquid)",
+            "Выберите предпочитаемую биржу (Bybit или HyperLiquid)",
+            "Включите и настройте торговые стратегии",
+            "Установите размер входа (% от капитала), стоп-лосс и тейк-профит",
+            "Включите ATR trailing stop для динамического управления рисками",
             "Начните автоматически получать и исполнять торговые сигналы",
         ],
         
-        "api_title": "Настройка API",
-        "api_intro": "Для работы бота нужно создать API ключи на Bybit:",
+        "api_title": "Настройка бирж и API",
+        "api_intro": "Бот поддерживает несколько бирж. Выберите предпочитаемую и настройте API:",
         "api_steps": [
-            "Перейдите на Bybit.com → Аккаунт → API Management",
-            "Создайте новый API ключ с правами 'Contract Trading'",
-            "Для Demo: сначала создайте демо-аккаунт на api-demo.bybit.com",
-            "Скопируйте API Key и Secret в бота через команду /api",
-            "Можно настроить оба типа ключей: Demo и Real",
+            "Bybit: Перейдите Bybit.com → Аккаунт → API Management, создайте ключ с правами 'Contract Trading'",
+            "Bybit Demo: Используйте api-demo.bybit.com для создания демо-аккаунта (безрисковое тестирование)",
+            "HyperLiquid: Подключите MetaMask или введите приватный ключ кошелька",
+            "Используйте команду /api в боте для настройки API credentials",
+            "Переключайтесь между биржами в любое время из главного меню (кнопка 🔄)",
         ],
-        "api_warning": "⚠️ НИКОГДА не передавайте свои API ключи! Бот хранит их безопасно, но используйте IP-ограничения на Bybit для дополнительной защиты.",
+        "api_warning": "⚠️ НИКОГДА не передавайте API ключи! Бот хранит их безопасно. Используйте IP-ограничения на Bybit. Для HyperLiquid используйте отдельный торговый кошелёк.",
+        
+        "exchange_title": "Мульти-биржевая поддержка",
+        "exchange_intro": "Торгуйте на Bybit или HyperLiquid с лёгким переключением:",
+        "exchange_features": [
+            {
+                "name": "🟠 Bybit",
+                "description": "Полнофункциональная CEX с режимами Demo/Real:",
+                "items": [
+                    "Demo режим: Безрисковое тестирование с виртуальными средствами",
+                    "Real режим: Реальная торговля с настоящими активами",
+                    "Both режим: Исполнение сигналов на Demo и Real одновременно",
+                    "Линейные бессрочные контракты (USDT-маржа)",
+                    "Плечо до 100x на основных парах",
+                ],
+            },
+            {
+                "name": "🟢 HyperLiquid",
+                "description": "Децентрализованная перпетуал DEX на Arbitrum:",
+                "items": [
+                    "Некастодиальность: Ваши ключи, ваши средства",
+                    "On-chain расчёты и ордербук",
+                    "Подключение через MetaMask или приватный ключ",
+                    "Поддержка торговли с холодного кошелька для максимальной безопасности",
+                    "Более низкие комиссии по сравнению с CEX",
+                ],
+            },
+        ],
+        
+        "atr_title": "ATR Trailing Stop",
+        "atr_description": "Адаптивный трейлинг-стоп, подстраивающийся под волатильность рынка через Average True Range:",
+        "atr_params": [
+            "ATR Mode: Включить/Выключить в настройках стратегии или глобально через /config",
+            "ATR Множитель: По умолчанию 1.5x ATR для расстояния трейлинга",
+            "Таймфрейм: Использует 15m свечи для расчёта ATR",
+            "Авто-подстройка: Расстояние увеличивается на волатильных рынках, сужается на спокойных",
+        ],
+        "atr_tip": "💡 ATR trailing позволяет прибыли расти при сильных трендах, защищая при этом накопленную прибыль. Рекомендуется для моментум-стратегий OI и Elcaro.",
+        
+        "coldwallet_title": "Торговля с холодного кошелька (HyperLiquid)",
+        "coldwallet_description": "Торгуйте на HyperLiquid не раскрывая приватные ключи:",
+        "coldwallet_steps": [
+            "Подключите кошелёк MetaMask к Web Terminal",
+            "Бот готовит неподписанную транзакцию для вашего ордера",
+            "Подпишите транзакцию в MetaMask (ключи не покидают ваше устройство)",
+            "Бот отправляет подписанную транзакцию в HyperLiquid",
+        ],
+        "coldwallet_tip": "💡 Идеально для крупных счетов. Ваш приватный ключ никогда не хранится и не передаётся.",
+        
+        "terminal_title": "Web Trading Terminal",
+        "terminal_description": "Профессиональный торговый интерфейс, доступный через команду /terminal:",
+        "terminal_features": [
+            "Real-time графики с интеграцией TradingView",
+            "One-click ручная торговля market/limit ордерами",
+            "Управление позициями: изменение TP/SL, частичное закрытие",
+            "Мульти-таймфрейм анализ (1m, 5m, 15m, 1h, 4h, 1d)",
+            "Отображение ордербука и последних сделок",
+            "Адаптивный дизайн для мобильных устройств",
+        ],
         
         "strategies_title": "Торговые стратегии",
         "strategies_intro": "Бот поддерживает 5 различных стратегий. Каждая настраивается независимо:",
@@ -621,45 +835,149 @@ def _get_russian_content():
         "commands_table": [
             ["Команда", "Описание"],
             ["/start", "Запуск бота и главное меню"],
-            ["/balance", "Проверить баланс USDT"],
-            ["/positions", "Открытые позиции"],
-            ["/orders", "Отложенные ордера"],
-            ["/stats", "Статистика торговли"],
-            ["/api", "Настройка API ключей"],
-            ["/config", "Настройки бота"],
-            ["/strategies", "Настройки стратегий"],
-            ["/language", "Сменить язык"],
+            ["/balance", "Проверить баланс USDT (Demo + Real)"],
+            ["/positions", "Открытые позиции с live PnL"],
+            ["/orders", "Отложенные лимитные ордера"],
+            ["/stats", "Статистика торговли и эффективность"],
+            ["/api", "Настройка API ключей (Bybit/HyperLiquid)"],
+            ["/config", "Настройки бота (Entry%, SL%, TP%, ATR)"],
+            ["/strategies", "Настройки стратегий и режимов"],
+            ["/terminal", "Открыть Web Trading Terminal"],
+            ["/dca", "Настройки DCA (усреднения позиции)"],
+            ["/language", "Сменить язык интерфейса"],
+            ["/wallet", "Подключить крипто-кошелёк (для ELC)"],
+            ["/guide", "Скачать это руководство в PDF"],
+        ],
+        
+        "config_title": "Примеры конфигураций",
+        "config_intro": "Рекомендуемые начальные настройки для разных стилей торговли:",
+        "config_examples": [
+            {
+                "name": "🐢 Консервативный",
+                "description": "Низкий риск, стабильная доходность:",
+                "settings": [
+                    "Entry: 1%",
+                    "SL: 2%",
+                    "TP: 4%",
+                    "ATR: ВКЛ",
+                    "DCA: ВЫКЛ",
+                    "Стратегии: OI + RSI+BB",
+                ],
+            },
+            {
+                "name": "⚖️ Сбалансированный",
+                "description": "Умеренный риск/доходность:",
+                "settings": [
+                    "Entry: 2%",
+                    "SL: 3%",
+                    "TP: 6%",
+                    "ATR: ВКЛ",
+                    "DCA: ВКЛ (10%, 25%)",
+                    "Стратегии: Все кроме Scalper",
+                ],
+            },
+            {
+                "name": "🚀 Агрессивный",
+                "description": "Высокий риск, высокий потенциал:",
+                "settings": [
+                    "Entry: 3-5%",
+                    "SL: 5%",
+                    "TP: 10%",
+                    "ATR: ВКЛ",
+                    "DCA: ВКЛ (15%, 30%)",
+                    "Стратегии: Все стратегии",
+                ],
+            },
         ],
         
         "support_title": "Поддержка",
-        "support_text": "Если есть вопросы или проблемы, свяжитесь с администратором бота. Удачной торговли! 🚀",
+        "support_text": "Если есть вопросы или проблемы, свяжитесь с администратором бота. Посетите Web Terminal для продвинутых торговых функций. Удачной торговли! 🚀",
     }
 
 
 def _get_ukrainian_content():
     return {
-        "title": "Bybit Trading Bot - Посібник",
-        "intro": "Ласкаво просимо до Bybit Trading Bot! Цей посібник допоможе вам налаштувати бота для автоматичної торгівлі криптовалютними ф'ючерсами.",
+        "title": "ElCaro Trading Bot - Посібник",
+        "intro": "Ласкаво просимо до ElCaro Trading Bot! Комплексна платформа для автоматичної торгівлі криптовалютами на біржах Bybit та HyperLiquid з AI-аналізом, ATR trailing stop та інтеграцією Web3 гаманців.",
         
         "quick_start_title": "Швидкий старт",
         "quick_start_steps": [
-            "Налаштуйте API ключі Bybit (Demo або Real акаунт)",
-            "Оберіть та увімкніть потрібні стратегії",
-            "Налаштуйте розмір входу, стоп-лос та тейк-профіт для кожної стратегії",
-            "Оберіть режим торгівлі (Demo/Real/Both) для кожної стратегії",
+            "Налаштуйте API ключі (Bybit Demo/Real або HyperLiquid)",
+            "Оберіть бажану біржу (Bybit або HyperLiquid)",
+            "Увімкніть та налаштуйте торгові стратегії",
+            "Встановіть розмір входу (% від капіталу), стоп-лос та тейк-профіт",
+            "Увімкніть ATR trailing stop для динамічного управління ризиками",
             "Почніть автоматично отримувати та виконувати торгові сигнали",
         ],
         
-        "api_title": "Налаштування API",
-        "api_intro": "Для роботи бота потрібно створити API ключі на Bybit:",
+        "api_title": "Налаштування бірж та API",
+        "api_intro": "Бот підтримує кілька бірж. Оберіть бажану та налаштуйте API:",
         "api_steps": [
-            "Перейдіть на Bybit.com → Акаунт → API Management",
-            "Створіть новий API ключ з правами 'Contract Trading'",
-            "Для Demo: спочатку створіть демо-акаунт на api-demo.bybit.com",
-            "Скопіюйте API Key і Secret в бота через команду /api",
-            "Можна налаштувати обидва типи ключів: Demo і Real",
+            "Bybit: Перейдіть Bybit.com → Акаунт → API Management, створіть ключ з правами 'Contract Trading'",
+            "Bybit Demo: Використовуйте api-demo.bybit.com для створення демо-акаунта (безризикове тестування)",
+            "HyperLiquid: Підключіть MetaMask або введіть приватний ключ гаманця",
+            "Використовуйте команду /api в боті для налаштування API credentials",
+            "Перемикайтеся між біржами будь-коли з головного меню (кнопка 🔄)",
         ],
-        "api_warning": "⚠️ НІКОЛИ не передавайте свої API ключі! Бот зберігає їх безпечно, але використовуйте IP-обмеження на Bybit для додаткового захисту.",
+        "api_warning": "⚠️ НІКОЛИ не передавайте API ключі! Бот зберігає їх безпечно. Використовуйте IP-обмеження на Bybit. Для HyperLiquid використовуйте окремий торговий гаманець.",
+        
+        "exchange_title": "Мульти-біржова підтримка",
+        "exchange_intro": "Торгуйте на Bybit або HyperLiquid з легким перемиканням:",
+        "exchange_features": [
+            {
+                "name": "🟠 Bybit",
+                "description": "Повнофункціональна CEX з режимами Demo/Real:",
+                "items": [
+                    "Demo режим: Безризикове тестування з віртуальними коштами",
+                    "Real режим: Реальна торгівля з справжніми активами",
+                    "Both режим: Виконання сигналів на Demo і Real одночасно",
+                    "Лінійні безстрокові контракти (USDT-маржа)",
+                    "Плече до 100x на основних парах",
+                ],
+            },
+            {
+                "name": "🟢 HyperLiquid",
+                "description": "Децентралізована перпетуал DEX на Arbitrum:",
+                "items": [
+                    "Некастодіальність: Ваші ключі, ваші кошти",
+                    "On-chain розрахунки та ордербук",
+                    "Підключення через MetaMask або приватний ключ",
+                    "Підтримка торгівлі з холодного гаманця для максимальної безпеки",
+                    "Нижчі комісії порівняно з CEX",
+                ],
+            },
+        ],
+        
+        "atr_title": "ATR Trailing Stop",
+        "atr_description": "Адаптивний трейлінг-стоп, що підлаштовується під волатильність ринку через Average True Range:",
+        "atr_params": [
+            "ATR Mode: Увімкнути/Вимкнути в налаштуваннях стратегії або глобально через /config",
+            "ATR Множник: За замовчуванням 1.5x ATR для відстані трейлінгу",
+            "Таймфрейм: Використовує 15m свічки для розрахунку ATR",
+            "Авто-підлаштування: Відстань збільшується на волатильних ринках, звужується на спокійних",
+        ],
+        "atr_tip": "💡 ATR trailing дозволяє прибутку зростати при сильних трендах, захищаючи при цьому накопичений прибуток. Рекомендується для моментум-стратегій OI та Elcaro.",
+        
+        "coldwallet_title": "Торгівля з холодного гаманця (HyperLiquid)",
+        "coldwallet_description": "Торгуйте на HyperLiquid не розкриваючи приватні ключі:",
+        "coldwallet_steps": [
+            "Підключіть гаманець MetaMask до Web Terminal",
+            "Бот готує непідписану транзакцію для вашого ордера",
+            "Підпишіть транзакцію в MetaMask (ключі не покидають ваш пристрій)",
+            "Бот відправляє підписану транзакцію в HyperLiquid",
+        ],
+        "coldwallet_tip": "💡 Ідеально для великих рахунків. Ваш приватний ключ ніколи не зберігається і не передається.",
+        
+        "terminal_title": "Web Trading Terminal",
+        "terminal_description": "Професійний торговий інтерфейс, доступний через команду /terminal:",
+        "terminal_features": [
+            "Real-time графіки з інтеграцією TradingView",
+            "One-click ручна торгівля market/limit ордерами",
+            "Управління позиціями: зміна TP/SL, часткове закриття",
+            "Мульти-таймфрейм аналіз (1m, 5m, 15m, 1h, 4h, 1d)",
+            "Відображення ордербуку та останніх угод",
+            "Адаптивний дизайн для мобільних пристроїв",
+        ],
         
         "strategies_title": "Торгові стратегії",
         "strategies_intro": "Бот підтримує 5 різних стратегій. Кожна налаштовується незалежно:",
@@ -811,18 +1129,63 @@ def _get_ukrainian_content():
         "commands_table": [
             ["Команда", "Опис"],
             ["/start", "Запуск бота та головне меню"],
-            ["/balance", "Перевірити баланс USDT"],
-            ["/positions", "Відкриті позиції"],
-            ["/orders", "Відкладені ордери"],
-            ["/stats", "Статистика торгівлі"],
-            ["/api", "Налаштування API ключів"],
-            ["/config", "Налаштування бота"],
-            ["/strategies", "Налаштування стратегій"],
-            ["/language", "Змінити мову"],
+            ["/balance", "Перевірити баланс USDT (Demo + Real)"],
+            ["/positions", "Відкриті позиції з live PnL"],
+            ["/orders", "Відкладені лімітні ордери"],
+            ["/stats", "Статистика торгівлі та ефективність"],
+            ["/api", "Налаштування API ключів (Bybit/HyperLiquid)"],
+            ["/config", "Налаштування бота (Entry%, SL%, TP%, ATR)"],
+            ["/strategies", "Налаштування стратегій та режимів"],
+            ["/terminal", "Відкрити Web Trading Terminal"],
+            ["/dca", "Налаштування DCA (усереднення позиції)"],
+            ["/language", "Змінити мову інтерфейсу"],
+            ["/wallet", "Підключити крипто-гаманець (для ELC)"],
+            ["/guide", "Завантажити цей посібник у PDF"],
+        ],
+        
+        "config_title": "Приклади конфігурацій",
+        "config_intro": "Рекомендовані початкові налаштування для різних стилів торгівлі:",
+        "config_examples": [
+            {
+                "name": "🐢 Консервативний",
+                "description": "Низький ризик, стабільна доходність:",
+                "settings": [
+                    "Entry: 1%",
+                    "SL: 2%",
+                    "TP: 4%",
+                    "ATR: УВІМК",
+                    "DCA: ВИМК",
+                    "Стратегії: OI + RSI+BB",
+                ],
+            },
+            {
+                "name": "⚖️ Збалансований",
+                "description": "Помірний ризик/доходність:",
+                "settings": [
+                    "Entry: 2%",
+                    "SL: 3%",
+                    "TP: 6%",
+                    "ATR: УВІМК",
+                    "DCA: УВІМК (10%, 25%)",
+                    "Стратегії: Всі крім Scalper",
+                ],
+            },
+            {
+                "name": "🚀 Агресивний",
+                "description": "Високий ризик, високий потенціал:",
+                "settings": [
+                    "Entry: 3-5%",
+                    "SL: 5%",
+                    "TP: 10%",
+                    "ATR: УВІМК",
+                    "DCA: УВІМК (15%, 30%)",
+                    "Стратегії: Всі стратегії",
+                ],
+            },
         ],
         
         "support_title": "Підтримка",
-        "support_text": "Якщо є питання або проблеми, зв'яжіться з адміністратором бота. Успішної торгівлі! 🚀",
+        "support_text": "Якщо є питання або проблеми, зв'яжіться з адміністратором бота. Відвідайте Web Terminal для продвинутих торгових функцій. Успішної торгівлі! 🚀",
     }
 
 
