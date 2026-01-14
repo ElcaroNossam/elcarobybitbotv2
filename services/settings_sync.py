@@ -305,7 +305,7 @@ class StrategyDeploymentManager:
         if current:
             try:
                 settings = json.loads(current)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 settings = {}
         else:
             settings = {}

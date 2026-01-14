@@ -384,7 +384,7 @@ class SignalService:
         if config.get("strategy_settings"):
             try:
                 strategy_settings = json.loads(config["strategy_settings"])
-            except:
+            except (json.JSONDecodeError, TypeError):
                 pass
         
         for str_id, settings in strategy_settings.items():

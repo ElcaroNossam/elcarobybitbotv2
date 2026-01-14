@@ -420,7 +420,7 @@ class StrategyMarketplace:
         current = db.get_user_field(user_id, "strategy_settings")
         try:
             settings = json.loads(current) if current else {}
-        except:
+        except (json.JSONDecodeError, TypeError):
             settings = {}
         settings[base_strategy] = params
         db.set_user_field(user_id, "strategy_settings", json.dumps(settings))
