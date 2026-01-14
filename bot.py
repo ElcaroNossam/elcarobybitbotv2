@@ -12184,18 +12184,22 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
     return InlineKeyboardMarkup(keyboard)
 
 
-async def get_unrealized_pnl(user_id: int, strategy: str | None = None) -> float:
-    """Get total unrealized PnL from Bybit positions, optionally filtered by strategy.
+async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_type: str | None = None) -> float:
+    """Get total unrealized PnL from Bybit positions, optionally filtered by strategy and account_type.
     
-    OPTIMIZED: Fetches positions for all account types in parallel.
+    OPTIMIZED: Fetches positions for specified account type or all account types in parallel.
     """
     try:
-        # Get positions from all accounts
-        account_types = get_active_account_types(user_id)
+        # Get positions from specified account or all accounts
+        if account_type:
+            account_types = [account_type]
+        else:
+            account_types = get_active_account_types(user_id)
+        
         if not account_types:
             return 0.0
         
-        db_positions = db.get_active_positions(user_id)
+        db_positions = db.get_active_positions(user_id, account_type=account_type)
         
         # Build a mapping of symbol -> strategy from DB
         symbol_strategy_map = {p["symbol"]: p.get("strategy") for p in db_positions}
@@ -12270,8 +12274,8 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account)
     period_label = t.get('stats_period_all', 'All time')
     
-    # Get unrealized PnL from open positions
-    unrealized_pnl = await get_unrealized_pnl(uid, strategy=None)
+    # Get unrealized PnL from open positions for the selected account
+    unrealized_pnl = await get_unrealized_pnl(uid, strategy=None, account_type=default_account)
     
     # For "all time" period, we don't fetch API PnL (would be too expensive)
     text = await format_trade_stats(stats, t, strategy_name="all", period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=default_account, period="all", api_pnl=None)
@@ -12384,7 +12388,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Fetch unrealized PnL and API PnL in parallel
     unrealized_pnl, api_pnl = await asyncio.gather(
-        get_unrealized_pnl(uid, strategy=strat_filter),
+        get_unrealized_pnl(uid, strategy=strat_filter, account_type=account_type),
         get_api_pnl(),
         return_exceptions=True
     )
