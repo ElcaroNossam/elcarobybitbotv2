@@ -10058,10 +10058,14 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKe
         emoji = "🟢" if side == "Buy" else "🔴"
         pnl_emoji = "📈" if pnl >= 0 else "📉"
         
-        # Row: position button + close button
+        # Row: position button + PnL button + close button (3 columns)
         buttons.append([
             InlineKeyboardButton(
-                f"{emoji} {global_idx}. {sym} {pnl_emoji}{pnl:+.2f}",
+                f"{emoji} {global_idx}. {sym}",
+                callback_data=f"pos:view:{sym}"
+            ),
+            InlineKeyboardButton(
+                f"{pnl_emoji} {pnl:+.2f}",
                 callback_data=f"pos:view:{sym}"
             ),
             InlineKeyboardButton("❌", callback_data=f"pos:close:{sym}")
