@@ -218,45 +218,54 @@ def complete_elc_purchase(
     elc_amount = purchase["elc_amount"]
     
     with get_conn() as conn:
-        # Update purchase status
-        conn.execute(
-            """UPDATE elc_purchases 
-               SET status = 'completed', tx_hash = ?, completed_at = CURRENT_TIMESTAMP
-               WHERE payment_id = ?""",
-            (tx_hash, payment_id)
-        )
-        
-        # Add ELC to user balance
-        conn.execute(
-            "UPDATE users SET elc_balance = elc_balance + ? WHERE user_id = ?",
-            (elc_amount, user_id)
-        )
-        
-        # Get new balance
-        cur = conn.execute(
-            "SELECT elc_balance FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        new_balance = cur.fetchone()[0]
-        
-        # Record transaction
-        add_elc_transaction(
-            user_id=user_id,
-            transaction_type="purchase",
-            amount=elc_amount,
-            balance_after=new_balance,
-            description=f"Purchased {elc_amount} ELC with USDT",
-            metadata=json.dumps({
-                "payment_id": payment_id,
-                "tx_hash": tx_hash,
-                "usdt_amount": purchase["usdt_amount"]
-            })
-        )
-        
-        # Update global stats
-        update_elc_stats(total_purchases_delta=elc_amount)
-        
-        conn.commit()
+        # SECURITY: Use EXCLUSIVE transaction to prevent TOCTOU race conditions
+        conn.execute("BEGIN EXCLUSIVE")
+        try:
+            # Update purchase status
+            conn.execute(
+                """UPDATE elc_purchases 
+                   SET status = 'completed', tx_hash = ?, completed_at = CURRENT_TIMESTAMP
+                   WHERE payment_id = ?""",
+                (tx_hash, payment_id)
+            )
+            
+            # Add ELC to user balance and get new balance atomically
+            # Note: SQLite 3.35+ supports RETURNING, but for compatibility we use SELECT after UPDATE
+            conn.execute(
+                "UPDATE users SET elc_balance = elc_balance + ? WHERE user_id = ?",
+                (elc_amount, user_id)
+            )
+            
+            # Get new balance (within same transaction for consistency)
+            cur = conn.execute(
+                "SELECT elc_balance FROM users WHERE user_id = ?",
+                (user_id,)
+            )
+            row = cur.fetchone()
+            new_balance = row[0] if row else elc_amount  # Fallback to elc_amount if user not found
+            
+            # Record transaction
+            add_elc_transaction(
+                user_id=user_id,
+                transaction_type="purchase",
+                amount=elc_amount,
+                balance_after=new_balance,
+                description=f"Purchased {elc_amount} ELC with USDT",
+                metadata=json.dumps({
+                    "payment_id": payment_id,
+                    "tx_hash": tx_hash,
+                    "usdt_amount": purchase["usdt_amount"]
+                })
+            )
+            
+            # Update global stats
+            update_elc_stats(total_purchases_delta=elc_amount)
+            
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Failed to complete ELC purchase {payment_id}: {e}")
+            raise
         invalidate_user_cache(user_id)
         
         logger.info(f"Completed ELC purchase: {payment_id} → {elc_amount} ELC to user {user_id}")
@@ -584,7 +593,8 @@ def pay_subscription_with_elc(
             "SELECT elc_balance FROM users WHERE user_id = ?",
             (user_id,)
         )
-        new_balance = cur.fetchone()[0]
+        row = cur.fetchone()
+        new_balance = row[0] if row else 0.0
         
         # Record transaction
         add_elc_transaction(
@@ -652,7 +662,8 @@ def get_total_elc_distributed() -> float:
         cur = conn.execute(
             "SELECT SUM(elc_balance + elc_staked + elc_locked) FROM users"
         )
-        total = cur.fetchone()[0]
+        row = cur.fetchone()
+        total = row[0] if row else None
         return total or 0.0
 
 

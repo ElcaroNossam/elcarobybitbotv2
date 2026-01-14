@@ -215,7 +215,9 @@ class BybitExchange(BaseExchange):
             {"accountType": "UNIFIED"}
         )
         
-        account = result.get("list", [{}])[0]
+        # SECURITY: Safe access - handle None and empty list
+        list_data = result.get("list") or [{}]
+        account = list_data[0] if list_data else {}
         
         def safe_float(val, default=0.0):
             if val is None or val == '':
@@ -854,7 +856,9 @@ class BybitExchange(BaseExchange):
             {"accountType": "UNIFIED"}
         )
         
-        account = result.get("list", [{}])[0]
+        # SECURITY: Safe access - handle None and empty list
+        list_data = result.get("list") or [{}]
+        account = list_data[0] if list_data else {}
         coins = []
         for coin in account.get("coin", []):
             equity = safe_float(coin.get("equity"))
@@ -1011,7 +1015,9 @@ class BybitExchange(BaseExchange):
         try:
             result = await self._request("GET", "/v5/account/fee-rate", params)
             
-            fees = result.get("list", [{}])[0]
+            # SECURITY: Safe access - handle None and empty list
+            list_data = result.get("list") or [{}]
+            fees = list_data[0] if list_data else {}
             return {
                 "symbol": fees.get("symbol", "default"),
                 "taker_fee": safe_float(fees.get("takerFeeRate")),
@@ -1083,7 +1089,9 @@ class BybitExchange(BaseExchange):
             signed=False
         )
         
-        data = result.get("list", [{}])[0]
+        # SECURITY: Safe access - handle None and empty list
+        list_data = result.get("list") or [{}]
+        data = list_data[0] if list_data else {}
         return {
             "symbol": data.get("symbol"),
             "open_interest": float(data.get("openInterest", 0)),

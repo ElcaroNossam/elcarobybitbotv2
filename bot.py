@@ -507,7 +507,7 @@ def log_calls(func):
                 elif hasattr(args[0], 'effective_user'):
                     try:
                         uid = args[0].effective_user.id
-                    except:
+                    except Exception:
                         pass
             # Log as debug to reduce spam
             logger.debug(f"⚠️ {func.__name__} [uid={uid}]: API keys not configured")
@@ -520,7 +520,7 @@ def log_calls(func):
                 elif hasattr(args[0], 'effective_user'):
                     try:
                         uid = args[0].effective_user.id
-                    except:
+                    except Exception:
                         pass
             # Skip logging for expected SL/TP validation errors
             err_str = str(e).lower()
@@ -674,7 +674,7 @@ def require_access(func):
                         t.get("need_terms", "First, accept the rules: /terms"),
                         reply_markup=terms_keyboard(ctx.t),
                     )
-                except:
+                except Exception:
                     pass
                 return
 
@@ -714,7 +714,7 @@ def require_license(license_types: list[str] | None = None):
                         await update.callback_query.answer(msg[:200], show_alert=True)
                     else:
                         await ctx.bot.send_message(uid, msg)
-                except:
+                except Exception:
                     pass
                 return
             
@@ -727,7 +727,7 @@ def require_license(license_types: list[str] | None = None):
                         await update.callback_query.answer(msg[:200], show_alert=True)
                     else:
                         await ctx.bot.send_message(uid, msg)
-                except:
+                except Exception:
                     pass
                 return
             
@@ -1980,7 +1980,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"💸 {coin}: {qty:.6f} (${value:.2f})",
                     callback_data=f"spot:sell_coin:{coin}"
                 )])
-            except:
+            except Exception:
                 buttons.append([InlineKeyboardButton(
                     f"💸 {coin}: {qty:.6f}",
                     callback_data=f"spot:sell_coin:{coin}"
@@ -2377,7 +2377,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ticker = await get_spot_ticker(uid, symbol, account_type)
             if ticker:
                 current_price = float(ticker.get("lastPrice", 0))
-        except:
+        except Exception:
             pass
         
         try:
@@ -2574,7 +2574,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ticker = await get_spot_ticker(uid, symbol, account_type)
                 if ticker:
                     current_price = float(ticker.get("lastPrice", 0))
-            except:
+            except Exception:
                 pass
             
             try:
@@ -10429,7 +10429,7 @@ def format_position_detail(p: dict, t: dict) -> str:
             else:
                 duration_str = f"{mins}m"
             lines.append(f"⏱ Opened: {dt.strftime('%d.%m %H:%M')} ({duration_str} ago)")
-        except:
+        except Exception:
             pass
     
     # Timeframe if available
@@ -13232,7 +13232,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             uid, 
                             t.get('max_positions_reached', "⚠️ Maximum positions reached. New signals will be skipped until a position closes.")
                         )
-                    except:
+                    except Exception:
                         pass
                 continue
 
@@ -13402,7 +13402,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             uid,
                             t.get("no_license_trading", "⚠️ You need an active subscription to trade.\n\nUse /subscribe to purchase a license.")
                         )
-                    except:
+                    except Exception:
                         pass
                 continue
             
@@ -13436,7 +13436,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     uid,
                                     t.get("trial_demo_only", "⚠️ Trial license allows only demo trading.\n\nUpgrade to Premium or Basic for real trading: /subscribe")
                                 )
-                            except:
+                            except Exception:
                                 pass
                         continue
                     elif access["reason"] == "basic_strategy_limit":
@@ -13447,7 +13447,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                     uid,
                                     t.get("basic_strategy_limit", "⚠️ Basic license on real account allows only: {strategies}\n\nUpgrade to Premium for all strategies: /subscribe").format(strategies=allowed)
                                 )
-                            except:
+                            except Exception:
                                 pass
                         continue
 
@@ -19006,7 +19006,7 @@ async def on_admin_payment_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     target_uid,
                     f"🎉 Your {plan.title()} license has been activated!\n\nExpires: {expires_dt.strftime('%Y-%m-%d')}"
                 )
-            except:
+            except Exception:
                 pass
         else:
             await q.edit_message_text(f"❌ Failed to grant license: {result.get('error')}")
@@ -19327,7 +19327,7 @@ def require_premium_for_hl(func):
                     await update.callback_query.edit_message_text(msg, parse_mode="HTML")
                 else:
                     await ctx.bot.send_message(uid, msg, parse_mode="HTML")
-            except:
+            except Exception:
                 pass
             return
         
@@ -20028,7 +20028,7 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
             if ngrok_file.exists():
                 webapp_url = ngrok_file.read_text().strip()
-    except:
+    except Exception:
         pass
     
     # Generate auto-login token
@@ -20858,7 +20858,7 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
         # Delete the message containing the private key for security
         try:
             await update.message.delete()
-        except:
+        except Exception:
             pass
         
         network = "🧪 Testnet" if testnet else "🌐 Mainnet"

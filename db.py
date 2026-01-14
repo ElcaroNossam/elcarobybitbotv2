@@ -21,7 +21,9 @@ _pool_lock = threading.Lock()
 
 def _create_connection() -> sqlite3.Connection:
     """Create a new connection with optimal settings."""
-    conn = sqlite3.connect(DB_FILE, timeout=30.0, isolation_level=None, check_same_thread=False)
+    # SECURITY: Use DEFERRED isolation for transaction safety (prevents race conditions)
+    # Previously was isolation_level=None (autocommit) which caused race conditions in financial ops
+    conn = sqlite3.connect(DB_FILE, timeout=30.0, isolation_level="DEFERRED", check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
@@ -39,16 +41,18 @@ _user_config_cache: dict[int, tuple[float, dict]] = {}  # user_id -> (timestamp,
 _all_users_cache: tuple[float, list[int]] = (0.0, [])  # (timestamp, user_ids)
 _active_users_cache: tuple[float, list[int]] = (0.0, [])  # users with API keys
 CACHE_TTL = 30.0  # seconds
+_cache_lock = threading.RLock()  # SECURITY: Lock for thread-safe cache access
 
 def invalidate_user_cache(user_id: int = None):
     """Invalidate cache for a user or all users."""
     global _all_users_cache, _active_users_cache
-    if user_id:
-        _user_config_cache.pop(user_id, None)
-    else:
-        _user_config_cache.clear()
-    _all_users_cache = (0.0, [])
-    _active_users_cache = (0.0, [])
+    with _cache_lock:
+        if user_id:
+            _user_config_cache.pop(user_id, None)
+        else:
+            _user_config_cache.clear()
+        _all_users_cache = (0.0, [])
+        _active_users_cache = (0.0, [])
 
 # --- Полезные константы/whitelist'ы -------------------------------------------------
 USER_FIELDS_WHITELIST = {

@@ -42,18 +42,22 @@ async def get_users(
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     
-    # Get counts
+    # Get counts (with safe None handling)
     cur.execute("SELECT COUNT(*) FROM users")
-    total = cur.fetchone()[0]
+    row = cur.fetchone()
+    total = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
-    active = cur.fetchone()[0]
+    row = cur.fetchone()
+    active = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
-    premium = cur.fetchone()[0]
+    row = cur.fetchone()
+    premium = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE is_banned = 1")
-    banned = cur.fetchone()[0]
+    row = cur.fetchone()
+    banned = row[0] if row else 0
     
     # Get users list
     offset = (page - 1) * limit
@@ -322,23 +326,28 @@ async def get_stats(
     conn = sqlite3.connect(db.DB_FILE)
     cur = conn.cursor()
     
-    # Users stats
+    # Users stats (with safe None handling)
     cur.execute("SELECT COUNT(*) FROM users")
-    total_users = cur.fetchone()[0]
+    row = cur.fetchone()
+    total_users = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
-    active_users = cur.fetchone()[0]
+    row = cur.fetchone()
+    active_users = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
-    premium_users = cur.fetchone()[0]
+    row = cur.fetchone()
+    premium_users = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM users WHERE exchange_type = 'hyperliquid'")
-    hl_users = cur.fetchone()[0]
+    row = cur.fetchone()
+    hl_users = row[0] if row else 0
     
     # Today's stats
     today = datetime.utcnow().strftime("%Y-%m-%d")
     cur.execute("SELECT COUNT(*) FROM users WHERE created_at LIKE ?", (f"{today}%",))
-    new_today = cur.fetchone()[0]
+    row = cur.fetchone()
+    new_today = row[0] if row else 0
     
     conn.close()
     
@@ -401,10 +410,12 @@ async def get_all_strategies(
         })
     
     cur.execute("SELECT COUNT(*) FROM custom_strategies")
-    total = cur.fetchone()[0]
+    row = cur.fetchone()
+    total = row[0] if row else 0
     
     cur.execute("SELECT COUNT(*) FROM custom_strategies WHERE is_public = 1")
-    public = cur.fetchone()[0]
+    row = cur.fetchone()
+    public = row[0] if row else 0
     
     conn.close()
     
@@ -429,7 +440,8 @@ async def get_marketplace_stats(
     
     # Total listings
     cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = 1")
-    active_listings = cur.fetchone()[0]
+    row = cur.fetchone()
+    active_listings = row[0] if row else 0
     
     # Total sales
     cur.execute("SELECT COUNT(*), SUM(amount_paid) FROM strategy_purchases")
