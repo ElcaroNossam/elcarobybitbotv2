@@ -265,6 +265,20 @@ TEXTS = {
         "  • Stop Loss      : {sl}\n"
         "  • Unreal PnL     : {pnl:+.2f} ({pct:+.2f}%)"
     ),
+    'position_item_v2':            (
+        "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
+        "  • Size           : {size}\n"
+        "  • Entry Price    : {avg:.8f}\n"
+        "  • Mark Price     : {mark:.8f}\n"
+        "  • Liquidation    : {liq}\n"
+        "  • Initial Margin : {im:.2f}\n"
+        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Take Profit    : {tp}\n"
+        "  • Stop Loss      : {sl}\n"
+        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+    ),
+    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
+    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
     'positions_overall':           'Total Unreal PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

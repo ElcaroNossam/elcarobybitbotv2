@@ -9769,6 +9769,84 @@ async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+def build_pnl_summary_by_strategy_and_exchange(
+    api_positions: list[dict], 
+    db_positions: list[dict]
+) -> tuple[dict, dict, float]:
+    """
+    Build PnL summary grouped by strategy and exchange.
+    
+    Returns:
+        tuple of (strategy_pnl, exchange_pnl, total_pnl)
+        strategy_pnl: {strategy_name: {"pnl": float, "count": int}}
+        exchange_pnl: {exchange_name: {"pnl": float, "count": int}}
+    """
+    # Create lookup from DB positions by symbol
+    db_by_symbol = {p["symbol"]: p for p in db_positions}
+    
+    strategy_pnl: dict[str, dict] = {}
+    exchange_pnl: dict[str, dict] = {}
+    total_pnl = 0.0
+    
+    for pos in api_positions:
+        sym = pos.get("symbol", "")
+        pnl = float(pos.get("unrealisedPnl") or 0)
+        total_pnl += pnl
+        
+        # Get strategy and exchange from DB
+        db_pos = db_by_symbol.get(sym, {})
+        strategy = db_pos.get("strategy") or "manual"
+        exchange = db_pos.get("exchange") or "bybit"
+        
+        # Aggregate by strategy
+        if strategy not in strategy_pnl:
+            strategy_pnl[strategy] = {"pnl": 0.0, "count": 0}
+        strategy_pnl[strategy]["pnl"] += pnl
+        strategy_pnl[strategy]["count"] += 1
+        
+        # Aggregate by exchange
+        if exchange not in exchange_pnl:
+            exchange_pnl[exchange] = {"pnl": 0.0, "count": 0}
+        exchange_pnl[exchange]["pnl"] += pnl
+        exchange_pnl[exchange]["count"] += 1
+    
+    return strategy_pnl, exchange_pnl, total_pnl
+
+
+def format_pnl_summary(strategy_pnl: dict, exchange_pnl: dict, total_pnl: float, t: dict) -> str:
+    """Format PnL summary section for positions view."""
+    lines = []
+    
+    # Strategy breakdown
+    if strategy_pnl:
+        lines.append(t.get('pnl_by_strategy', '📊 *PnL by Strategy:*'))
+        # Sort by PnL descending
+        for strat, data in sorted(strategy_pnl.items(), key=lambda x: x[1]["pnl"], reverse=True):
+            pnl = data["pnl"]
+            count = data["count"]
+            emoji = "📈" if pnl >= 0 else "📉"
+            strat_display = strat.capitalize() if strat else "Manual"
+            lines.append(f"  {emoji} {strat_display}: `{pnl:+.2f}` ({count})")
+    
+    # Exchange breakdown (only if more than one exchange)
+    if len(exchange_pnl) > 1:
+        lines.append("")
+        lines.append(t.get('pnl_by_exchange', '🏦 *PnL by Exchange:*'))
+        for exch, data in sorted(exchange_pnl.items(), key=lambda x: x[1]["pnl"], reverse=True):
+            pnl = data["pnl"]
+            count = data["count"]
+            emoji = "📈" if pnl >= 0 else "📉"
+            exch_display = exch.upper() if exch else "BYBIT"
+            lines.append(f"  {emoji} {exch_display}: `{pnl:+.2f}` ({count})")
+    
+    # Total
+    lines.append("")
+    total_emoji = "📈" if total_pnl >= 0 else "📉"
+    lines.append(f"{total_emoji} *{t.get('total_pnl', 'Total PnL')}:* `{total_pnl:+.2f}` USDT")
+    
+    return "\n".join(lines)
+
+
 async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
     """Show positions for specific account type."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
@@ -9803,14 +9881,38 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
         else:
             return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
+    # Get DB positions for strategy/exchange info
+    db_positions = db.get_active_positions(uid, account_type=account_type)
+    
+    # Build PnL summary by strategy and exchange
+    strategy_pnl, exchange_pnl, total_pnl_calc = build_pnl_summary_by_strategy_and_exchange(pos_list, db_positions)
+    
+    # Format PnL summary section
+    pnl_summary = format_pnl_summary(strategy_pnl, exchange_pnl, total_pnl_calc, t)
+    
     total_pnl = 0.0
     total_im  = 0.0
     lines = [header + t.get('positions_header', '📊 Open Positions:')]
+    
+    # Add PnL summary after header
+    lines.append("")
+    lines.append(pnl_summary)
+    lines.append("")
+    lines.append("─" * 25)
+    lines.append("")
+
+    # Create symbol->db_pos lookup for strategy display
+    db_by_symbol = {p["symbol"]: p for p in db_positions}
 
     for idx, p in enumerate(pos_list, start=1):
         sym   = p.get("symbol",    "-")
         side  = p.get("side",      "-")
         lev   = p.get("leverage",  "-")
+        
+        # Get strategy from DB
+        db_pos = db_by_symbol.get(sym, {})
+        strategy = db_pos.get("strategy") or "manual"
+        exchange = db_pos.get("exchange") or "bybit"
 
         size   = human_format(float(p.get("size", 0)))
         avg    = float(p.get("avgPrice")    or 0)
@@ -9831,13 +9933,18 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
         pct = (pnl_i / im * 100) if im else 0.0
         total_pnl += pnl_i
         total_im  += im
+        
+        # Strategy display
+        strat_display = strategy.capitalize() if strategy else "Manual"
+        pnl_emoji = "📈" if pnl_i >= 0 else "📉"
 
         lines.append(
-            t.get('position_item', '#{idx} {symbol} {side}x{leverage}\n  Size: {size}\n  Entry: {avg:.6f} → Mark: {mark:.6f}\n  Liq: {liq} | IM: {im:.2f} | MM: {mm:.2f}\n  TP: {tp} | SL: {sl}\n  PnL: {pnl:+.2f} ({pct:+.2f}%)').format(
+            t.get('position_item_v2', '#{idx} {symbol} {side}x{leverage} [{strategy}]\n  Size: {size}\n  Entry: {avg:.6f} → Mark: {mark:.6f}\n  Liq: {liq} | IM: {im:.2f} | MM: {mm:.2f}\n  TP: {tp} | SL: {sl}\n  {pnl_emoji} PnL: {pnl:+.2f} ({pct:+.2f}%)').format(
                 idx=idx,
                 symbol=sym,
                 side=side,
                 leverage=lev,
+                strategy=strat_display,
                 size=size,
                 avg=avg,
                 mark=mark,
@@ -9848,7 +9955,8 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
                 tp=(f"{tp:.8f}" if tp is not None else "–"),
                 sl=(f"{sl:.8f}" if sl is not None else "–"),
                 pnl=pnl_i,
-                pct=pct
+                pct=pct,
+                pnl_emoji=pnl_emoji
             )
         )
 
