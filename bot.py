@@ -5342,6 +5342,99 @@ def hl_symbol_to_coin(symbol: str) -> str:
     return symbol
 
 
+async def place_order_bybit_if_needed(
+    user_id: int,
+    symbol: str,
+    side: str,
+    qty: float,
+    strategy: str,
+    leverage: int = None,
+    sl_percent: float = None,
+    tp_percent: float = None,
+    entry_price: float = None,
+) -> dict | None:
+    """
+    Place order on Bybit if user's active exchange is HyperLiquid but Bybit is also configured.
+    This is the symmetric counterpart to place_order_hyperliquid().
+    
+    Only called when:
+    1. User's active exchange is HyperLiquid
+    2. User has Bybit API keys configured
+    3. User wants to trade on both exchanges
+    
+    Returns result dict or None if not executed.
+    """
+    try:
+        # Only execute if active exchange is hyperliquid
+        active_exchange = db.get_exchange_type(user_id)
+        if active_exchange != "hyperliquid":
+            # Bybit is already handled by place_order_all_accounts
+            return None
+        
+        # Check if user has Bybit credentials
+        trading_mode = db.get_trading_mode(user_id)
+        bybit_types = db._get_bybit_account_types(user_id)
+        if not bybit_types:
+            logger.debug(f"[{user_id}] No Bybit credentials configured")
+            return None
+        
+        # Check if user wants to trade on both exchanges
+        # Option 1: routing_policy = ALL_ENABLED
+        # Option 2: trading_mode = "both" (means user wants both demo+real, implies multi-exchange intent)
+        routing_policy = db.get_routing_policy(user_id)
+        wants_both_exchanges = (
+            routing_policy == db.RoutingPolicy.ALL_ENABLED or
+            trading_mode == "both"  # User explicitly chose to trade on demo+real
+        )
+        
+        if not wants_both_exchanges:
+            logger.debug(f"[{user_id}] User doesn't want both exchanges - routing={routing_policy}, mode={trading_mode}")
+            return None
+        
+        # Get strategy settings for Bybit
+        cfg = get_user_config(user_id) or {}
+        
+        results = {}
+        for acc_type in bybit_types:
+            try:
+                # Get per-account settings
+                params = get_strategy_trade_params(
+                    user_id, cfg, symbol, strategy or "manual",
+                    side=side, exchange="bybit", account_type=acc_type
+                )
+                
+                risk_pct = params.get("percent", 1.0)
+                sl_pct = params.get("sl_pct", sl_percent or 3.0)
+                
+                # Calculate qty for this account
+                if entry_price:
+                    target_qty = await calc_qty(user_id, symbol, entry_price, risk_pct, sl_pct, account_type=acc_type)
+                else:
+                    target_qty = qty
+                
+                # Set leverage
+                target_leverage = leverage or params.get("leverage", 10)
+                try:
+                    await set_leverage(user_id, symbol, leverage=target_leverage, account_type=acc_type)
+                except Exception as lev_err:
+                    logger.warning(f"[{user_id}] Failed to set Bybit leverage: {lev_err}")
+                
+                # Place order
+                res = await place_order(user_id, symbol, side, "Market", target_qty, account_type=acc_type)
+                results[acc_type] = {"success": True, "result": res, "qty": target_qty}
+                logger.info(f"✅ [{user_id}] Bybit {acc_type} order placed: {symbol} {side} qty={target_qty}")
+                
+            except Exception as acc_err:
+                logger.error(f"[{user_id}] Bybit {acc_type} order failed: {acc_err}")
+                results[acc_type] = {"success": False, "error": str(acc_err)}
+        
+        return {"success": True, "exchange": "bybit", "results": results}
+        
+    except Exception as e:
+        logger.error(f"[{user_id}] Bybit order failed for {symbol}: {e}")
+        return {"success": False, "error": str(e), "exchange": "bybit"}
+
+
 async def place_order_hyperliquid(
     user_id: int,
     symbol: str,
@@ -5357,10 +5450,22 @@ async def place_order_hyperliquid(
     1. User has HL credentials configured
     2. HL is enabled for this strategy
     3. The coin is available on HL
+    4. User's active exchange is NOT already HyperLiquid (to avoid duplicate)
     
     Returns result dict or None if not executed.
+    
+    NOTE: This function is called AFTER place_order_all_accounts() which handles
+    the user's active exchange. If active exchange is already 'hyperliquid',
+    the order was already placed there, so we skip to avoid duplicates.
     """
     try:
+        # CRITICAL: Check if user's active exchange is already HyperLiquid
+        # In that case, place_order_all_accounts already handled HL order
+        active_exchange = db.get_exchange_type(user_id)
+        if active_exchange == "hyperliquid":
+            logger.debug(f"[{user_id}] Skipping duplicate HL order - already placed via active exchange")
+            return None
+        
         # Check if HL is enabled for this strategy
         hl_settings = db.get_hl_effective_settings(user_id, strategy)
         if not hl_settings.get("enabled"):
@@ -13791,10 +13896,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Also place on HyperLiquid if enabled
+                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
                         if hl_result and hl_result.get("success"):
                             await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
+                        if bybit_result and bybit_result.get("success"):
+                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -13879,10 +13989,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Also place on HyperLiquid if enabled
+                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
                         if hl_result and hl_result.get("success"):
                             await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
+                        if bybit_result and bybit_result.get("success"):
+                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -13984,10 +14099,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Also place on HyperLiquid if enabled
+                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
                         if hl_result and hl_result.get("success"):
                             await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
+                        if bybit_result and bybit_result.get("success"):
+                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -14151,10 +14271,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
                             
-                            # Also place on HyperLiquid if enabled
+                            # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
                             if hl_result and hl_result.get("success"):
                                 await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                            
+                            # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                            bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct, entry_price=spot_price)
+                            if bybit_result and bybit_result.get("success"):
+                                await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                             
                             # Calculate exact SL/TP prices
                             if elcaro_mode and elcaro_sl and elcaro_tp:
@@ -14344,10 +14469,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
                             
-                            # Also place on HyperLiquid if enabled
+                            # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct)
                             if hl_result and hl_result.get("success"):
                                 await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                            
+                            # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                            bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct, entry_price=spot_price)
+                            if bybit_result and bybit_result.get("success"):
+                                await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                             
                             # Use exact SL/TP from signal
                             actual_sl = fibo_sl if fibo_sl else (spot_price * (1 - fibo_sl_pct / 100) if side == "Buy" else spot_price * (1 + fibo_sl_pct / 100))
@@ -14457,10 +14587,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Also place on HyperLiquid if enabled
+                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
                         if hl_result and hl_result.get("success"):
                             await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
+                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
+                        if bybit_result and bybit_result.get("success"):
+                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
