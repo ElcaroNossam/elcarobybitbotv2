@@ -5153,6 +5153,18 @@ async def place_order_for_targets(
             logger.debug(f"[{user_id}] Skipping HyperLiquid target - HL is disabled")
             continue
         
+        # ═══════════════════════════════════════════════════════════════════
+        # Skip target if position already exists for this symbol+account_type
+        # ═══════════════════════════════════════════════════════════════════
+        acc_for_check = target_account_type or ("demo" if target_env == "paper" else "real")
+        existing_positions = get_active_positions(user_id, account_type=acc_for_check)
+        has_existing = any(p.get("symbol") == symbol for p in existing_positions)
+        
+        if has_existing:
+            logger.info(f"[{user_id}] Skipping {target_key} - position already exists for {symbol} on {acc_for_check}")
+            results[target_key] = {"success": False, "skipped": True, "reason": f"Position already exists for {symbol}"}
+            continue
+        
         # Generate unique client_order_id for this target
         client_order_id = f"{signal_id or 'manual'}-{target_exchange[:2]}-{target_env[:1]}-{int(time.time())}"
         
@@ -14004,15 +14016,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Build success summary from order results
+                        # Build success and skipped summary from order results
                         success_accounts = []
+                        skipped_accounts = []
                         for target_key, result in order_results.items():
+                            acc_label = "Demo" if "paper" in target_key else "Real"
+                            exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            
                             if result.get("success"):
-                                exchange = result.get("exchange", "bybit")
                                 target_qty = result.get("qty", qty)
-                                acc_label = "Demo" if "paper" in target_key else "Real"
-                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                 success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                            elif result.get("skipped"):
+                                skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14030,7 +14045,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         # Send unified entry message with account details
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
-                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
+                        
+                        # Build accounts display string
+                        accounts_lines = []
+                        if success_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in success_accounts)
+                        if skipped_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                        accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
+                        
                         await ctx.bot.send_message(
                             uid,
                             f"📊 *RSI+BB: {side_display}*\n"
@@ -14110,15 +14133,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Build success summary from order results
+                        # Build success and skipped summary from order results
                         success_accounts = []
+                        skipped_accounts = []
                         for target_key, result in order_results.items():
+                            acc_label = "Demo" if "paper" in target_key else "Real"
+                            exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            
                             if result.get("success"):
-                                exchange = result.get("exchange", "bybit")
                                 target_qty = result.get("qty", qty)
-                                acc_label = "Demo" if "paper" in target_key else "Real"
-                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                 success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                            elif result.get("skipped"):
+                                skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14135,7 +14161,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
-                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
+                        
+                        # Build accounts display string
+                        accounts_lines = []
+                        if success_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in success_accounts)
+                        if skipped_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                        accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
+                        
                         await ctx.bot.send_message(
                             uid,
                             f"🔮 *Scryptomera: {side_display}*\n"
@@ -14233,15 +14267,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Build success summary from order results
+                        # Build success and skipped summary from order results
                         success_accounts = []
+                        skipped_accounts = []
                         for target_key, result in order_results.items():
+                            acc_label = "Demo" if "paper" in target_key else "Real"
+                            exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            
                             if result.get("success"):
-                                exchange = result.get("exchange", "bybit")
                                 target_qty = result.get("qty", qty)
-                                acc_label = "Demo" if "paper" in target_key else "Real"
-                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                 success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                            elif result.get("skipped"):
+                                skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14258,7 +14295,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
-                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
+                        
+                        # Build accounts display string
+                        accounts_lines = []
+                        if success_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in success_accounts)
+                        if skipped_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                        accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
+                        
                         await ctx.bot.send_message(
                             uid,
                             f"⚡ *Scalper: {side_display}*\n"
@@ -14418,15 +14463,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
                             
-                            # Build success summary from order results
+                            # Build success and skipped summary from order results
                             success_accounts = []
+                            skipped_accounts = []
                             for target_key, result in order_results.items():
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                                
                                 if result.get("success"):
-                                    exchange = result.get("exchange", "bybit")
                                     target_qty = result.get("qty", qty)
-                                    acc_label = "Demo" if "paper" in target_key else "Real"
-                                    exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                     success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                                elif result.get("skipped"):
+                                    skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                             
                             # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
@@ -14459,7 +14507,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             inc_pyramid(uid, symbol, side)
                             
                             # Format signal message with account details
-                            accounts_str = '\n'.join(f'  • {acc}' for acc in success_accounts) if success_accounts else f'  • Qty: {qty}'
+                            accounts_lines = []
+                            if success_accounts:
+                                accounts_lines.extend(f'  • {acc}' for acc in success_accounts)
+                            if skipped_accounts:
+                                accounts_lines.extend(f'  • {acc}' for acc in skipped_accounts)
+                            accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'  • Qty: {qty}'
+                            
                             signal_info = (
                                 f"🔥 *Elcaro* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"📊 {symbol}\n"
@@ -14628,15 +14682,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
                             
-                            # Build success summary from order results
+                            # Build success and skipped summary from order results
                             success_accounts = []
+                            skipped_accounts = []
                             for target_key, result in order_results.items():
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                                
                                 if result.get("success"):
-                                    exchange = result.get("exchange", "bybit")
                                     target_qty = result.get("qty", qty)
-                                    acc_label = "Demo" if "paper" in target_key else "Real"
-                                    exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                     success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                                elif result.get("skipped"):
+                                    skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                             
                             # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct)
@@ -14659,7 +14716,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             inc_pyramid(uid, symbol, side)
                             
                             # Format signal message with account details
-                            accounts_str = '\n'.join(f'  • {acc}' for acc in success_accounts) if success_accounts else f'  • Qty: {qty}'
+                            accounts_lines = []
+                            if success_accounts:
+                                accounts_lines.extend(f'  • {acc}' for acc in success_accounts)
+                            if skipped_accounts:
+                                accounts_lines.extend(f'  • {acc}' for acc in skipped_accounts)
+                            accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'  • Qty: {qty}'
+                            
                             signal_info = (
                                 f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"🪙 {symbol}\n"
@@ -14758,15 +14821,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             calc_qty_per_target=True, entry_price=spot_price
                         )
                         
-                        # Build success summary from order results
+                        # Build success and skipped summary from order results
                         success_accounts = []
+                        skipped_accounts = []
                         for target_key, result in order_results.items():
+                            acc_label = "Demo" if "paper" in target_key else "Real"
+                            exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            
                             if result.get("success"):
-                                exchange = result.get("exchange", "bybit")
                                 target_qty = result.get("qty", qty_mkt)
-                                acc_label = "Demo" if "paper" in target_key else "Real"
-                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
                                 success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
+                            elif result.get("skipped"):
+                                skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14781,7 +14847,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
-                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty_mkt}'
+                        
+                        # Build accounts display string
+                        accounts_lines = []
+                        if success_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in success_accounts)
+                        if skipped_accounts:
+                            accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                        accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty_mkt}'
+                        
                         await ctx.bot.send_message(
                             uid,
                             f"📉 *OI: {side_display}*\n"
