@@ -9721,42 +9721,24 @@ async def fetch_open_orders(user_id: int, symbol: str | None = None, account_typ
 @with_texts
 @log_calls
 async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show open orders with account type selection."""
+    """Show open orders - auto-selects based on enabled strategies."""
     uid = update.effective_user.id
-    t = ctx.t
     
-    # Get user's trading mode to show available options
-    trading_mode = get_trading_mode(uid)
+    # Get effective trading mode based on enabled strategies
+    effective_mode = get_effective_trading_mode(uid)
     
-    # If user has only one mode configured, show orders directly
-    if trading_mode in ('demo', 'real'):
-        await show_orders_for_account(update, ctx, trading_mode)
-        return
-    
-    # If both modes, show selection
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎮 Demo Orders", callback_data="orders:demo"),
-            InlineKeyboardButton("💎 Real Orders", callback_data="orders:real")
-        ],
-        [
-            InlineKeyboardButton("📊 All Orders (Demo + Real)", callback_data="orders:both")
-        ],
-        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-    ])
-    
-    await update.message.reply_text(
-        t.get('select_account_orders', '📝 *Select Account Type*\n\nChoose which account orders to view:'),
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    # Show orders for the effective mode (demo, real, or both)
+    if effective_mode == 'both':
+        await show_all_orders(update, ctx)
+    else:
+        await show_orders_for_account(update, ctx, effective_mode)
 
 
 async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
     """Show orders for specific account type."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
-    trading_mode = get_trading_mode(uid)
+    show_switcher = db.should_show_account_switcher(uid)
     
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
@@ -9768,13 +9750,12 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
         if not ords:
             text = header + t.get('no_open_orders', 'No open orders')
             
-            # Only show mode switch buttons if user has both modes
-            if trading_mode == 'both':
+            # Only show mode switch buttons if user should see switcher
+            if show_switcher:
                 keyboard = InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                        InlineKeyboardButton("💎 Real", callback_data="orders:real"),
-                        InlineKeyboardButton("📊 All", callback_data="orders:both")
+                        InlineKeyboardButton("💎 Real", callback_data="orders:real")
                     ],
                     [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
                 ])
@@ -9812,13 +9793,12 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
         text = "\n".join(lines)
         
-        # Only show mode switch buttons if user has both modes
-        if trading_mode == 'both':
+        # Only show mode switch buttons if user should see switcher
+        if show_switcher:
             keyboard = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="orders:real"),
-                    InlineKeyboardButton("📊 All", callback_data="orders:both")
+                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
                 ],
                 [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
             ])
@@ -9861,6 +9841,7 @@ async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show orders from both Demo and Real accounts together."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
+    show_switcher = db.should_show_account_switcher(uid)
     
     # Fetch orders from both accounts in parallel
     demo_ords, real_ords = await asyncio.gather(
@@ -9881,14 +9862,18 @@ async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if not demo_ords and not real_ords:
         text = header + t.get('no_open_orders', 'No open orders')
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="orders:real"),
-                InlineKeyboardButton("📊 All", callback_data="orders:both")
-            ],
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
+        if show_switcher:
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
+                ],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
         
         if hasattr(update, 'message') and update.message:
             return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -9934,15 +9919,20 @@ async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     text = "\n".join(lines)
     
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-            InlineKeyboardButton("💎 Real", callback_data="orders:real"),
-            InlineKeyboardButton("📊 All", callback_data="orders:both")
-        ],
-        [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:both")],
-        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-    ])
+    if show_switcher:
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="orders:real")
+            ],
+            [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:both")],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+    else:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:both")],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
     
     # Send message or edit existing
     if hasattr(update, 'message') and update.message:
@@ -9996,35 +9986,17 @@ async def cmd_select_coins(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show positions with account type selection."""
+    """Show positions - auto-selects based on enabled strategies."""
     uid = update.effective_user.id
-    t = ctx.t
     
-    # Get user's trading mode to show available options
-    trading_mode = get_trading_mode(uid)
+    # Get effective trading mode based on enabled strategies
+    effective_mode = get_effective_trading_mode(uid)
     
-    # If user has only one mode configured, show positions directly
-    if trading_mode in ('demo', 'real'):
-        await show_positions_for_account(update, ctx, trading_mode)
-        return
-    
-    # If both modes, show selection
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎮 Demo Positions", callback_data="positions:demo"),
-            InlineKeyboardButton("💎 Real Positions", callback_data="positions:real")
-        ],
-        [
-            InlineKeyboardButton("📊 All Positions (Demo + Real)", callback_data="positions:both")
-        ],
-        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-    ])
-    
-    await update.message.reply_text(
-        t.get('select_account_type', '📊 *Select Account Type*\n\nChoose which account positions to view:'),
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    # Show positions for the effective mode (demo, real, or both)
+    if effective_mode == 'both':
+        await show_all_positions(update, ctx)
+    else:
+        await show_positions_for_account(update, ctx, effective_mode)
 
 
 def build_pnl_summary_by_strategy_and_exchange(
@@ -10109,7 +10081,7 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     """Show positions for specific account type."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
-    trading_mode = get_trading_mode(uid)
+    show_switcher = db.should_show_account_switcher(uid)
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
@@ -10120,13 +10092,12 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     if not pos_list:
         text = header + t.get('no_positions', 'No open positions')
         
-        # Only show mode switch buttons if user has both modes
-        if trading_mode == 'both':
+        # Only show mode switch buttons if user has both API keys and strategies trade on both
+        if show_switcher:
             keyboard = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="positions:real"),
-                    InlineKeyboardButton("📊 All", callback_data="positions:both")
+                    InlineKeyboardButton("💎 Real", callback_data="positions:real")
                 ],
                 [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
             ])
@@ -10230,13 +10201,12 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
 
     text = "\n".join(lines)
     
-    # Only show mode switch buttons if user has both modes
-    if trading_mode == 'both':
+    # Only show mode switch buttons if user has both API keys and strategies trade on both
+    if show_switcher:
         keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="positions:real"),
-                InlineKeyboardButton("📊 All", callback_data="positions:both")
+                InlineKeyboardButton("💎 Real", callback_data="positions:real")
             ],
             [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
         ])
@@ -10275,6 +10245,7 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show positions from both Demo and Real accounts together."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
+    show_switcher = db.should_show_account_switcher(uid)
     
     # Fetch positions from both accounts in parallel
     demo_pos, real_pos = await asyncio.gather(
@@ -10295,14 +10266,18 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if not demo_pos and not real_pos:
         text = header + t.get('no_positions', 'No open positions')
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="positions:real"),
-                InlineKeyboardButton("📊 All", callback_data="positions:both")
-            ],
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
+        if show_switcher:
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                    InlineKeyboardButton("💎 Real", callback_data="positions:real")
+                ],
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
+        else:
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+            ])
         
         if hasattr(update, 'message') and update.message:
             return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -10385,15 +10360,20 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     text = "\n".join(lines)
     
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-            InlineKeyboardButton("💎 Real", callback_data="positions:real"),
-            InlineKeyboardButton("📊 All", callback_data="positions:both")
-        ],
-        [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="positions:both")],
-        [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-    ])
+    if show_switcher:
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
+                InlineKeyboardButton("💎 Real", callback_data="positions:real")
+            ],
+            [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="positions:both")],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
+    else:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="positions:both")],
+            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
+        ])
     
     # Send message or edit existing
     if hasattr(update, 'message') and update.message:

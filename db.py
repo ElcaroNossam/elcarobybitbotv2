@@ -1374,6 +1374,27 @@ def get_trading_mode(user_id: int) -> str:
     return row[0] if row and row[0] else "demo"
 
 
+def should_show_account_switcher(user_id: int) -> bool:
+    """Check if user should see Demo/Real switcher.
+    
+    Returns True only if:
+    1. User has both demo AND real API keys configured
+    2. User's effective trading mode is 'both' (based on enabled strategies)
+    """
+    creds = get_all_user_credentials(user_id)
+    
+    # Check if both API keys exist
+    has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
+    has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
+    
+    if not (has_demo and has_real):
+        return False
+    
+    # Check if effective mode is 'both'
+    effective_mode = get_effective_trading_mode(user_id)
+    return effective_mode == "both"
+
+
 def get_effective_trading_mode(user_id: int) -> str:
     """
     Get effective trading mode based on enabled strategies' settings.
