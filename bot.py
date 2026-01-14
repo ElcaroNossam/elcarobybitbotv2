@@ -10479,30 +10479,35 @@ async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TY
 
 POSITIONS_PER_PAGE = 10  # Show 10 positions per page
 
-def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKeyboardMarkup:
+def get_positions_list_keyboard(positions: list, page: int, t: dict, account_type: str = "demo", show_switcher: bool = True) -> InlineKeyboardMarkup:
     """Build inline keyboard for paginated positions list (10 per page)."""
     buttons = []
     total = len(positions)
     total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
     
     if total == 0:
-        return InlineKeyboardMarkup([[
-            InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-        ]])
+        # No positions - show switcher and back
+        if show_switcher:
+            buttons.append([
+                InlineKeyboardButton("🎮 Demo" if account_type != "demo" else "🎮 Demo ✓", callback_data="pos:switch:demo"),
+                InlineKeyboardButton("💎 Real" if account_type != "real" else "💎 Real ✓", callback_data="pos:switch:real")
+            ])
+        buttons.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")])
+        return InlineKeyboardMarkup(buttons)
     
     # Get positions for current page
     start_idx = page * POSITIONS_PER_PAGE
     end_idx = min(start_idx + POSITIONS_PER_PAGE, total)
     page_positions = positions[start_idx:end_idx]
     
-    # Create button for each position on this page
+    # Create button for each position on this page (3 columns: symbol, PnL, close)
     for idx, pos in enumerate(page_positions):
         global_idx = start_idx + idx + 1  # 1-based index
         sym = pos.get("symbol", "-")
         side = pos.get("side", "-")
         pnl = float(pos.get("unrealisedPnl") or 0)
         
-        emoji = "🟢" if side == "Buy" else "🔴"
+        emoji = "🔴" if side == "Sell" else "🟢"
         pnl_emoji = "📈" if pnl >= 0 else "📉"
         
         # Row: position button + PnL button + close button (3 columns)
@@ -10534,7 +10539,7 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKe
         
         buttons.append(nav_row)
     
-    # Action buttons
+    # Action buttons row (refresh + close all)
     action_row = [InlineKeyboardButton("🔄", callback_data=f"pos:list:{page}")]
     if total > 1:
         action_row.append(
@@ -10545,6 +10550,13 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKe
         )
     buttons.append(action_row)
     
+    # Account type switcher (Demo/Real)
+    if show_switcher:
+        buttons.append([
+            InlineKeyboardButton("🎮 Demo" if account_type != "demo" else "🎮 Demo ✓", callback_data="pos:switch:demo"),
+            InlineKeyboardButton("💎 Real" if account_type != "real" else "💎 Real ✓", callback_data="pos:switch:real")
+        ])
+    
     # Back button
     buttons.append([
         InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
@@ -10553,7 +10565,7 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict) -> InlineKe
     return InlineKeyboardMarkup(buttons)
 
 
-def format_positions_list_header(positions: list, page: int, t: dict) -> str:
+def format_positions_list_header(positions: list, page: int, t: dict, account_type: str = "demo") -> str:
     """Format header for paginated positions list."""
     total = len(positions)
     total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
@@ -10561,8 +10573,11 @@ def format_positions_list_header(positions: list, page: int, t: dict) -> str:
     total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
     pnl_emoji = "📈" if total_pnl >= 0 else "📉"
     
+    mode_emoji = "🎮" if account_type == "demo" else "💎"
+    mode_label = "Demo" if account_type == "demo" else "Real"
+    
     return (
-        f"📊 *{t.get('open_positions', 'Open Positions')}* ({total})\n"
+        f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} ({total})\n"
         f"{pnl_emoji} Total P/L: `{total_pnl:+.2f}` USDT\n"
         f"📄 Page {page + 1}/{total_pages}\n"
         f"_Tap position to view details_"
@@ -11559,6 +11574,15 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = query.data
     t = ctx.t
     
+    # Get current account_type from user_data or default to user's trading_mode
+    account_type = ctx.user_data.get('positions_account_type')
+    if not account_type:
+        trading_mode = db.get_trading_mode(uid)
+        account_type = 'demo' if trading_mode in ('demo', 'both') else 'real'
+        ctx.user_data['positions_account_type'] = account_type
+    
+    show_switcher = db.should_show_account_switcher(uid)
+    
     if data == "pos:back":
         # Go back to main menu
         await query.message.delete()
@@ -11568,20 +11592,40 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Do nothing - just for counter button
         return
     
+    # Handle account type switch
+    if data.startswith("pos:switch:"):
+        new_account_type = data.split(":")[2]
+        ctx.user_data['positions_account_type'] = new_account_type
+        ctx.user_data['positions_page'] = 0  # Reset to first page
+        
+        positions = await fetch_open_positions(uid, account_type=new_account_type)
+        
+        if not positions:
+            mode_emoji = "🎮" if new_account_type == "demo" else "💎"
+            mode_label = "Demo" if new_account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=new_account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+            return
+        
+        text = format_positions_list_header(positions, 0, t, account_type=new_account_type)
+        keyboard = get_positions_list_keyboard(positions, 0, t, account_type=new_account_type, show_switcher=show_switcher)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        return
+    
     if data.startswith("pos:refresh"):
         # Refresh positions list - show list view
         # Support pos:refresh or pos:refresh:PAGE format
         parts = data.split(":")
         saved_page = int(parts[2]) if len(parts) > 2 else ctx.user_data.get('positions_page', 0)
         
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         if not positions:
-            await query.edit_message_text(
-                t.get('no_positions', 'No open positions'),
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-                ]])
-            )
+            mode_emoji = "🎮" if account_type == "demo" else "💎"
+            mode_label = "Demo" if account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Validate page is still valid after position changes
@@ -11589,22 +11633,21 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         page = max(0, min(saved_page, total_pages - 1))
         ctx.user_data['positions_page'] = page
         
-        text = format_positions_list_header(positions, page, t)
-        keyboard = get_positions_list_keyboard(positions, page, t)
+        text = format_positions_list_header(positions, page, t, account_type=account_type)
+        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:list:"):
         # Navigate to specific page of positions list
         page = int(data.split(":")[2])
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         if not positions:
-            await query.edit_message_text(
-                t.get('no_positions', 'No open positions'),
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-                ]])
-            )
+            mode_emoji = "🎮" if account_type == "demo" else "💎"
+            mode_label = "Demo" if account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Ensure valid page
@@ -11614,22 +11657,21 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Save current page for later restoration
         ctx.user_data['positions_page'] = page
         
-        text = format_positions_list_header(positions, page, t)
-        keyboard = get_positions_list_keyboard(positions, page, t)
+        text = format_positions_list_header(positions, page, t, account_type=account_type)
+        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:page:"):
         # Legacy: Navigate to specific single position (keeping for backward compatibility)
         page_idx = int(data.split(":")[2])
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         if not positions:
-            await query.edit_message_text(
-                t.get('no_positions', 'No open positions'),
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-                ]])
-            )
+            mode_emoji = "🎮" if account_type == "demo" else "💎"
+            mode_label = "Demo" if account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         # Ensure valid index
@@ -11646,7 +11688,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:view:"):
         # View detailed position
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page from user_data
@@ -11672,7 +11714,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:close:"):
         # Close single position
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page
@@ -11710,7 +11752,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:confirm_close:"):
         # Execute close
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page
@@ -11740,11 +11782,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 symbol=symbol,
                 side=close_side,
                 orderType="Market",
-                qty=size
+                qty=size,
+                account_type=account_type
             )
             
             # Get active position info for strategy
-            active_pos = get_active_positions(uid)
+            active_pos = get_active_positions(uid, account_type=account_type)
             ap = next((a for a in active_pos if a["symbol"] == symbol), None)
             strategy = ap.get("strategy") if ap else None
             strategy_display = {
@@ -11759,7 +11802,6 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             # Log the trade
             try:
-                account_type = get_trading_mode(uid) or "demo"
                 log_exit_and_remove_position(
                     user_id=uid,
                     signal_id=ap.get("signal_id") if ap else None,
@@ -11834,18 +11876,19 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "pos:close_all":
         # Confirm close all
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         if not positions:
-            await query.edit_message_text(
-                t.get('no_positions', 'No open positions'),
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-                ]])
-            )
+            mode_emoji = "🎮" if account_type == "demo" else "💎"
+            mode_label = "Demo" if account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
         pnl_emoji = "📈" if total_pnl >= 0 else "📉"
+        mode_emoji = "🎮" if account_type == "demo" else "💎"
+        mode_label = "Demo" if account_type == "demo" else "Real"
         
         saved_page = ctx.user_data.get('positions_page', 0)
         keyboard = InlineKeyboardMarkup([
@@ -11855,6 +11898,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         await query.edit_message_text(
             f"⚠️ {t.get('confirm_close_all', 'Close ALL positions')}?\n\n"
+            f"{mode_emoji} *{mode_label}*\n"
             f"{t.get('positions_count_total', 'Total positions')}: {len(positions)}\n"
             f"{pnl_emoji} {t.get('total_pnl', 'Total P/L')}: {total_pnl:+.4f} USDT",
             parse_mode="Markdown",
@@ -11884,21 +11928,20 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "pos:confirm_close_all":
         # Execute close all
-        positions = await fetch_open_positions(uid)
+        positions = await fetch_open_positions(uid, account_type=account_type)
         if not positions:
-            await query.edit_message_text(
-                t.get('no_positions', 'No open positions'),
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")
-                ]])
-            )
+            mode_emoji = "🎮" if account_type == "demo" else "💎"
+            mode_label = "Demo" if account_type == "demo" else "Real"
+            text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         closed = 0
         errors = 0
         total_pnl = 0.0
         closed_positions = []
-        active_list = get_active_positions(uid)
+        active_list = get_active_positions(uid, account_type=account_type)
         
         for pos in positions:
             try:
@@ -11914,13 +11957,13 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     symbol=symbol,
                     side=close_side,
                     orderType="Market",
-                    qty=size
+                    qty=size,
+                    account_type=account_type
                 )
                 
                 # Log the trade
                 ap = next((a for a in active_list if a["symbol"] == symbol), None)
                 strategy = ap.get("strategy") if ap else None
-                account_type = get_trading_mode(uid) or "demo"
                 try:
                     log_exit_and_remove_position(
                         user_id=uid,
