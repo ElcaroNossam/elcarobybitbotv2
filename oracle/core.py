@@ -744,8 +744,9 @@ Investment Recommendation: {risk.investment_recommendation.upper().replace('_', 
     
     def _generate_report_id(self, project_path: str) -> str:
         """Generate unique report ID"""
+        # SECURITY: Use SHA256 instead of MD5 (MD5 is cryptographically weak)
         data = f"{project_path}:{datetime.now().isoformat()}"
-        return hashlib.md5(data.encode()).hexdigest()[:12]
+        return hashlib.sha256(data.encode()).hexdigest()[:12]
     
     def _cache_report(self, report: OracleReport) -> None:
         """Cache report to disk"""

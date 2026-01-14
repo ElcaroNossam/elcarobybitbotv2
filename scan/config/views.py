@@ -17,6 +17,11 @@ def set_language_custom(request):
     next_url = request.POST.get('next', '/')
     language = request.POST.get('language')
     
+    # SECURITY: Validate next_url to prevent open redirect attacks
+    # Only allow internal URLs (starting with /)
+    if not next_url or not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = '/'
+    
     if language and language in [lang[0] for lang in settings.LANGUAGES]:
         # Activate the language
         translation.activate(language)
@@ -70,6 +75,9 @@ def set_language_custom(request):
         )
         return response
     
+    # SECURITY: Validate next_url again before final redirect
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = '/'
     # If language is invalid, redirect to next URL without changing language
     return HttpResponseRedirect(next_url)
 

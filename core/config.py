@@ -54,7 +54,9 @@ class WebAppConfig:
     secret_key: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expiry_hours: int = 24
-    cors_origins: List[str] = field(default_factory=lambda: ["*"])
+    # SECURITY: Changed from ["*"] to empty list - must be configured explicitly
+    # Wildcard CORS origins are dangerous as they allow any website to make requests
+    cors_origins: List[str] = field(default_factory=list)
 
 
 @dataclass

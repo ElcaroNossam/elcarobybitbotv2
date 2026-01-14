@@ -342,10 +342,13 @@ SPOT_DCA_PLAN_TEMPLATE = {
 _session: ClientSession | None = None
 
 TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), "translations")
+# SECURITY: Whitelist valid language codes to prevent arbitrary module imports
+VALID_LANG_PATTERN = re.compile(r'^[a-z]{2}$')  # Only 2-letter lowercase codes like 'en', 'ru', etc.
+
 SUPPORTED_LANGS = [
     fname[:-3]
     for fname in os.listdir(TRANSLATIONS_DIR)
-    if fname.endswith(".py") and fname != "__init__.py"
+    if fname.endswith(".py") and fname != "__init__.py" and VALID_LANG_PATTERN.match(fname[:-3])
 ]
 
 LANGS: dict[str, dict] = {

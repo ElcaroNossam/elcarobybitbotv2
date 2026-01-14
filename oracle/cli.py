@@ -127,6 +127,7 @@ async def cmd_watch(args):
 
 async def cmd_serve(args):
     """Start API server"""
+    import os
     try:
         import uvicorn
         from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -150,7 +151,7 @@ async def cmd_serve(args):
     
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=os.environ.get("CORS_ORIGINS", "").split(",") if os.environ.get("CORS_ORIGINS") else [],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -184,9 +185,36 @@ async def cmd_serve(args):
             "version": "1.0.0"
         }
     
+    # Security: Allowed base directories for analysis
+    ALLOWED_ANALYSIS_DIRS = [
+        Path("/home/ubuntu/projects"),
+        Path("/tmp/oracle_analysis"),
+        Path.cwd(),  # Current working directory
+    ]
+    
+    def is_safe_path(path: str) -> bool:
+        """Validate path is within allowed directories (prevent path traversal)"""
+        try:
+            resolved = Path(path).resolve()
+            # Check if path is within any allowed directory
+            for allowed in ALLOWED_ANALYSIS_DIRS:
+                try:
+                    allowed_resolved = allowed.resolve()
+                    if resolved.is_relative_to(allowed_resolved):
+                        return True
+                except (ValueError, OSError):
+                    continue
+            return False
+        except (ValueError, OSError):
+            return False
+    
     @app.post("/api/analyze")
     async def analyze(request: AnalyzeRequest, background_tasks: BackgroundTasks):
         """Analyze a project"""
+        # Security: Validate path to prevent traversal attacks
+        if not is_safe_path(request.path):
+            raise HTTPException(status_code=403, detail="Access denied: path outside allowed directories")
+        
         if not Path(request.path).exists():
             raise HTTPException(status_code=404, detail="Path not found")
         

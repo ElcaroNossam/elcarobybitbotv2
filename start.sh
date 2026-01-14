@@ -222,8 +222,12 @@ start_webapp() {
     fi
     
     if [ "$daemon" = "true" ]; then
-        # Set JWT secret for webapp
-        export JWT_SECRET=${JWT_SECRET:-"elcaro_jwt_secret_key_2024_v2_secure"}
+        # SECURITY: JWT_SECRET must be set in environment - no hardcoded fallback
+        if [ -z "$JWT_SECRET" ]; then
+            # Generate secure random secret if not set (for development only)
+            export JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex(32))")
+            warning "JWT_SECRET not set - generated random secret (not persistent across restarts!)"
+        fi
         
         nohup $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT >> "$WEBAPP_LOG" 2>&1 &
         echo $! > "$WEBAPP_PID_FILE"
@@ -252,7 +256,11 @@ start_webapp() {
         fi
     else
         log "Starting in foreground with hot reload (Ctrl+C to stop)..."
-        export JWT_SECRET=${JWT_SECRET:-"elcaro_jwt_secret_key_2024_v2_secure"}
+        # SECURITY: JWT_SECRET must be set - no hardcoded fallback
+        if [ -z "$JWT_SECRET" ]; then
+            export JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex(32))")
+            warning "JWT_SECRET not set - generated random secret (not persistent!)"
+        fi
         $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT --reload 2>&1 | tee -a "$WEBAPP_LOG"
     fi
 }
