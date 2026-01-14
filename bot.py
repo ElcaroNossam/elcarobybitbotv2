@@ -17716,7 +17716,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Balance - works for current exchange with smart mode selection
     if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
-        trading_mode = get_trading_mode(uid)
+        # Use should_show_account_switcher to determine if we need mode selection
+        show_switcher = db.should_show_account_switcher(uid)
+        # Get effective mode for single-mode display
+        effective_mode = get_effective_trading_mode(uid)
         
         if active_exchange == "hyperliquid":
             # HyperLiquid: check testnet mode
@@ -17734,10 +17737,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
         else:
-            # Bybit: if only one mode, show directly
-            if trading_mode in ('demo', 'real'):
-                # Directly show balance for this mode
-                return await show_balance_for_account(update, ctx, trading_mode)
+            # Bybit: if only one mode or no switcher needed, show directly
+            if not show_switcher:
+                # Single effective mode - show directly
+                return await show_balance_for_account(update, ctx, effective_mode)
             else:
                 # Both modes - show selection
                 keyboard = InlineKeyboardMarkup([
