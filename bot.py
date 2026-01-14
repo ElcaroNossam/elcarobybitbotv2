@@ -5209,9 +5209,48 @@ async def place_order_for_targets(
                         account_type=target_acc
                     )
                     
+                    # Check minimum notional value ($5 on Bybit) and adjust qty/leverage if needed
+                    MIN_NOTIONAL = 5.0  # Bybit minimum order value
+                    notional_value = target_qty * entry_price
+                    
+                    if notional_value < MIN_NOTIONAL:
+                        # Get instrument info for proper qty rounding
+                        inst = await _bybit_request(
+                            user_id, "GET", "/v5/market/instruments-info",
+                            params={"category": "linear", "symbol": symbol},
+                            account_type=target_acc
+                        )
+                        lot = inst["list"][0]["lotSizeFilter"]
+                        step_qty = float(lot["qtyStep"])
+                        min_qty = float(lot["minOrderQty"])
+                        
+                        # Calculate minimum qty needed to reach min notional
+                        min_qty_for_notional = MIN_NOTIONAL / entry_price
+                        # Round up to step_qty
+                        adjusted_qty = math.ceil(min_qty_for_notional / step_qty) * step_qty
+                        adjusted_qty = max(adjusted_qty, min_qty)
+                        
+                        # Calculate leverage multiplier needed
+                        original_notional = target_qty * entry_price
+                        required_multiplier = adjusted_qty / target_qty if target_qty > 0 else 1
+                        
+                        # Adjust leverage proportionally
+                        new_leverage = math.ceil(target_leverage * required_multiplier)
+                        new_leverage = min(new_leverage, 50)  # Cap at 50x
+                        
+                        logger.info(
+                            f"[{user_id}] Notional ${notional_value:.2f} < ${MIN_NOTIONAL} min. "
+                            f"Adjusting: qty {target_qty:.4f} -> {adjusted_qty:.4f}, "
+                            f"leverage {target_leverage}x -> {new_leverage}x"
+                        )
+                        
+                        target_qty = adjusted_qty
+                        target_leverage = new_leverage
+                        notional_value = target_qty * entry_price
+                    
                     logger.info(
                         f"[{user_id}] Per-target qty for {target_key}: "
-                        f"risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}, leverage={target_leverage}"
+                        f"risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}, leverage={target_leverage}, notional=${target_qty * entry_price:.2f}"
                     )
             except Exception as calc_err:
                 logger.error(f"[{user_id}] Failed to calc qty for {target_key}: {calc_err}")
