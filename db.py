@@ -130,9 +130,9 @@ def get_conn() -> sqlite3.Connection:
         try:
             conn.execute("SELECT 1")
             return conn
-        except:
+        except sqlite3.Error:
             pass  # Соединение мёртвое, создаём новое
-    except:
+    except queue.Empty:
         pass  # Пул пустой
     return _create_connection()
 
@@ -140,11 +140,11 @@ def release_conn(conn: sqlite3.Connection):
     """Возвращает соединение в пул для переиспользования."""
     try:
         _pool.put_nowait(conn)
-    except:
+    except queue.Full:
         # Пул полный - закрываем соединение
         try:
             conn.close()
-        except:
+        except sqlite3.Error:
             pass
 
 
@@ -1798,7 +1798,7 @@ def get_execution_targets(
             if targets_json:
                 try:
                     strategy_targets = json.loads(targets_json)
-                except:
+                except (json.JSONDecodeError, TypeError):
                     pass
         elif strat_settings.get("routing_policy") and strat_settings.get("routing_policy") != "global":
             policy = strat_settings.get("routing_policy")
@@ -2702,7 +2702,8 @@ def _enrich_with_routing(user_id: int, strategy: str, exchange: str, account_typ
             settings["routing_policy"] = None
             settings["targets_json"] = None
         return settings
-    except:
+    except sqlite3.Error as e:
+        logger.warning(f"Error enriching settings with routing: {e}")
         settings["routing_policy"] = None
         settings["targets_json"] = None
         return settings
@@ -4094,7 +4095,8 @@ def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, 
               AND ABS(entry_price - ?) < 0.0001
               AND ts > ?
         """, (user_id, symbol, entry_price, cutoff_str))
-        count = cur.fetchone()[0]
+        row = cur.fetchone()
+        count = row[0] if row else 0
         return count > 0
 
 
@@ -5114,16 +5116,18 @@ def get_user_full_info(user_id: int) -> dict | None:
             return None
         
         # Count active positions
-        positions_count = conn.execute(
+        pos_row = conn.execute(
             "SELECT COUNT(*) FROM active_positions WHERE user_id = ?",
             (user_id,)
-        ).fetchone()[0]
+        ).fetchone()
+        positions_count = pos_row[0] if pos_row else 0
         
         # Count trade logs
-        trades_count = conn.execute(
+        trades_row = conn.execute(
             "SELECT COUNT(*) FROM trade_logs WHERE user_id = ?",
             (user_id,)
-        ).fetchone()[0]
+        ).fetchone()
+        trades_count = trades_row[0] if trades_row else 0
         
         # Calculate total PnL
         pnl_row = conn.execute(
@@ -5134,16 +5138,18 @@ def get_user_full_info(user_id: int) -> dict | None:
         wins = pnl_row[1] or 0
         
         # Payment history count
-        payments_count = conn.execute(
+        pay_row = conn.execute(
             "SELECT COUNT(*) FROM payment_history WHERE user_id = ?",
             (user_id,)
-        ).fetchone()[0]
+        ).fetchone()
+        payments_count = pay_row[0] if pay_row else 0
         
         # Total payments amount
-        total_paid = conn.execute(
+        paid_row = conn.execute(
             "SELECT SUM(amount) FROM payment_history WHERE user_id = ? AND status = 'completed' AND currency = 'XTR'",
             (user_id,)
-        ).fetchone()[0] or 0
+        ).fetchone()
+        total_paid = (paid_row[0] or 0) if paid_row else 0
         
         # License days left
         license_expires = row[14]
@@ -5209,7 +5215,8 @@ def get_users_paginated(page: int = 0, per_page: int = 10, filter_type: str = "a
             where = f"(current_license = 'none' OR current_license IS NULL OR license_expires <= {now})"
         
         # Get total count
-        total = conn.execute(f"SELECT COUNT(*) FROM users WHERE {where}").fetchone()[0]
+        total_row = conn.execute(f"SELECT COUNT(*) FROM users WHERE {where}").fetchone()
+        total = total_row[0] if total_row else 0
         
         # Get page data
         offset = page * per_page
@@ -5369,7 +5376,8 @@ def get_all_payments(status: str | None = None, limit: int = 50, offset: int = 0
             where += " AND status = ?"
             params.append(status)
         
-        total = conn.execute(f"SELECT COUNT(*) FROM payment_history WHERE {where}", params).fetchone()[0]
+        total_row = conn.execute(f"SELECT COUNT(*) FROM payment_history WHERE {where}", params).fetchone()
+        total = total_row[0] if total_row else 0
         
         rows = conn.execute(f"""
             SELECT id, user_id, payment_type, amount, currency, license_type, period_days, status, created_at, telegram_charge_id
@@ -6155,7 +6163,7 @@ def get_strategy_live_state(user_id: int, strategy_id: int, exchange: str = "byb
                 if result.get(field):
                     try:
                         result[field] = json.loads(result[field])
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         result[field] = []
             return result
         return None

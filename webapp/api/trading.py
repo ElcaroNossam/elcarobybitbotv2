@@ -1267,7 +1267,7 @@ async def _place_order_bybit(user_id: int, req: PlaceOrderRequest, side: str, or
             },
             account_type=req.account_type
         )
-    except:
+    except Exception:
         pass  # Leverage might already be set
     
     # Build order body
@@ -1827,7 +1827,7 @@ async def place_dca_ladder(
     # Set leverage first
     try:
         await _set_leverage_for_symbol(user_id, req.symbol, req.leverage, req.exchange, req.account_type)
-    except:
+    except Exception:
         pass
     
     # Place orders
@@ -2064,7 +2064,7 @@ async def _fetch_price(symbol: str) -> dict:
                         "low24h": float(ticker.get("lowPrice24h", 0)),
                         "volume24h": float(ticker.get("turnover24h", 0)),
                     }
-    except:
+    except Exception:
         pass
     return {"price": 0}
 

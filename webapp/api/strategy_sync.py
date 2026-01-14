@@ -168,7 +168,7 @@ async def activate_strategy(
         if config.get("strategy_settings"):
             try:
                 strategy_settings = json.loads(config["strategy_settings"])
-            except:
+            except (json.JSONDecodeError, TypeError):
                 pass
         
         # Update strategy activation
@@ -397,7 +397,7 @@ class ConnectionManager:
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_json(message)
-                except:
+                except (RuntimeError, ConnectionResetError):
                     pass
     
     async def broadcast(self, message: dict):

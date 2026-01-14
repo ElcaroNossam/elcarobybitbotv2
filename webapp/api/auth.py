@@ -247,7 +247,7 @@ async def telegram_auth(data: TelegramWebAppAuth):
             parsed = parse_qs(data.init_data)
             if 'user' in parsed:
                 user_data = json.loads(parsed['user'][0])
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             pass
     
     if not user_data or 'id' not in user_data:
