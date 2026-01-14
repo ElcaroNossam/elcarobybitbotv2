@@ -10144,167 +10144,38 @@ def format_pnl_summary(strategy_pnl: dict, exchange_pnl: dict, total_pnl: float,
 
 
 async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
-    """Show positions for specific account type."""
+    """Show positions for specific account type with interactive 3-column keyboard."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
+    
+    # Save account type to user_data for callbacks
+    ctx.user_data['positions_account_type'] = account_type
+    ctx.user_data['positions_page'] = 0
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
     mode_emoji = "🎮" if account_type == "demo" else "💎"
     mode_label = "Demo" if account_type == "demo" else "Real"
-    header = f"{mode_emoji} *{mode_label} Positions*\n\n"
     
     if not pos_list:
-        text = header + t.get('no_positions', 'No open positions')
+        text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
+        keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
         
-        # Only show mode switch buttons if user has both API keys and strategies trade on both
-        if show_switcher:
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="positions:real")
-                ],
-                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-            ])
-        else:
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-            ])
-        
-        if hasattr(update, 'message'):
+        if hasattr(update, 'message') and update.message:
             return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
         else:
             return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
-    # Get DB positions for strategy/exchange info
-    db_positions = db.get_active_positions(uid, account_type=account_type)
-    
-    # Build PnL summary by strategy and exchange
-    strategy_pnl, exchange_pnl, total_pnl_calc = build_pnl_summary_by_strategy_and_exchange(pos_list, db_positions)
-    
-    # Format PnL summary section
-    pnl_summary = format_pnl_summary(strategy_pnl, exchange_pnl, total_pnl_calc, t)
-    
-    total_pnl = 0.0
-    total_im  = 0.0
-    lines = [header + t.get('positions_header', '📊 Open Positions:')]
-    
-    # Add PnL summary after header
-    lines.append("")
-    lines.append(pnl_summary)
-    lines.append("")
-    lines.append("─" * 25)
-    lines.append("")
-
-    # Create symbol->db_pos lookup for strategy display
-    db_by_symbol = {p["symbol"]: p for p in db_positions}
-
-    for idx, p in enumerate(pos_list, start=1):
-        sym   = p.get("symbol",    "-")
-        side  = p.get("side",      "-")
-        lev   = p.get("leverage",  "-")
-        
-        # Get strategy from DB
-        db_pos = db_by_symbol.get(sym, {})
-        strategy = db_pos.get("strategy") or "manual"
-        exchange = db_pos.get("exchange") or "bybit"
-
-        size   = human_format(float(p.get("size", 0)))
-        avg    = float(p.get("avgPrice")    or 0)
-        mark   = float(p.get("markPrice")   or 0)
-        im     = float(p.get("positionIM")  or 0)
-        mm     = float(p.get("positionMM")  or 0)
-        pm     = float(p.get("positionBalance") or 0)
-        pnl_i  = float(p.get("unrealisedPnl") or 0)
-
-        def to_float(key):
-            raw = p.get(key)
-            return float(raw) if raw not in (None, "", "0") else None
-
-        liq = to_float("liqPrice")
-        tp  = to_float("takeProfit")
-        sl  = to_float("stopLoss")
-
-        pct = (pnl_i / im * 100) if im else 0.0
-        total_pnl += pnl_i
-        total_im  += im
-        
-        # Strategy display
-        strat_display = strategy.capitalize() if strategy else "Manual"
-        pnl_emoji = "📈" if pnl_i >= 0 else "📉"
-
-        lines.append(
-            t.get('position_item_v2', '#{idx} {symbol} {side}x{leverage} [{strategy}]\n  Size: {size}\n  Entry: {avg:.6f} → Mark: {mark:.6f}\n  Liq: {liq} | IM: {im:.2f} | MM: {mm:.2f}\n  TP: {tp} | SL: {sl}\n  {pnl_emoji} PnL: {pnl:+.2f} ({pct:+.2f}%)').format(
-                idx=idx,
-                symbol=sym,
-                side=side,
-                leverage=lev,
-                strategy=strat_display,
-                size=size,
-                avg=avg,
-                mark=mark,
-                liq=(f"{liq:.8f}" if liq is not None else "–"),
-                im=im,
-                mm=mm,
-                pm=pm,
-                tp=(f"{tp:.8f}" if tp is not None else "–"),
-                sl=(f"{sl:.8f}" if sl is not None else "–"),
-                pnl=pnl_i,
-                pct=pct,
-                pnl_emoji=pnl_emoji
-            )
-        )
-
-    if total_im:
-        overall = total_pnl / total_im * 100
-        lines.append(
-            "\n" + t.get('positions_overall', '💰 *Total PnL:* {pnl:+.2f} USDT ({pct:+.2f}%)').format(
-                pnl=total_pnl,
-                pct=overall
-            )
-        )
-
-    text = "\n".join(lines)
-    
-    # Only show mode switch buttons if user has both API keys and strategies trade on both
-    if show_switcher:
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
-                InlineKeyboardButton("💎 Real", callback_data="positions:real")
-            ],
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
-    else:
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-        ])
+    # Use the interactive 3-column keyboard format
+    text = format_positions_list_header(pos_list, 0, t, account_type=account_type)
+    keyboard = get_positions_list_keyboard(pos_list, 0, t, account_type=account_type, show_switcher=show_switcher)
 
     # Send message or edit existing
     if hasattr(update, 'message') and update.message:
-        escaped = html.escape(text)
-        max_len = 3000
-        for i in range(0, len(escaped), max_len):
-            chunk = escaped[i : i + max_len]
-            await ctx.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"<pre>{chunk}</pre>",
-                parse_mode="HTML",
-                reply_markup=keyboard if i + max_len >= len(escaped) else None,
-                disable_web_page_preview=True
-            )
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
     else:
-        # Callback query - edit message
-        escaped = html.escape(text)
-        if len(escaped) > 3000:
-            escaped = escaped[:2950] + "\n...(truncated)"
-        await update.callback_query.edit_message_text(
-            f"<pre>{escaped}</pre>",
-            parse_mode="HTML",
-            reply_markup=keyboard,
-            disable_web_page_preview=True
-        )
+        await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
