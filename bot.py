@@ -3140,7 +3140,12 @@ async def reply_with_keyboard(update: Update, ctx: ContextTypes.DEFAULT_TYPE, te
 
 def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, update: Update = None):
     """Generate main menu keyboard. Clean and user-friendly for each exchange."""
-    t = ctx.t
+    # Get translations - fallback to English if ctx.t not available
+    t = getattr(ctx, 't', None)
+    if t is None:
+        # Load translations for this user
+        lang = db.get_user_lang(user_id) if user_id else 'en'
+        t = load_translations(lang)
     
     # Try to get user_id from update if not provided
     if user_id is None and update is not None:
@@ -20929,6 +20934,7 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+@with_texts
 async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle Bybit mode switching callbacks"""
     q = update.callback_query
@@ -20981,6 +20987,7 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 @log_calls
+@with_texts
 async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid callbacks"""
     q = update.callback_query
