@@ -11050,7 +11050,7 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
     """
     uid = update.effective_user.id
     t = ctx.t
-    trading_mode = get_trading_mode(uid)
+    show_switcher = db.should_show_account_switcher(uid)
     
     try:
         # OPTIMIZED: Fetch ALL data in parallel (was sequential = slow!)
@@ -11149,8 +11149,8 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
 {unreal_emoji} *Futures Unrealized:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
 """
         
-        # Only show mode switch buttons if user has both modes
-        if trading_mode == 'both':
+        # Only show mode switch buttons if user should see switcher
+        if show_switcher:
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
                  InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
@@ -11173,7 +11173,7 @@ async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, 
     """Show positions directly without mode selection (for single-mode users)."""
     uid = update.effective_user.id
     t = ctx.t
-    trading_mode = get_trading_mode(uid)
+    show_switcher = db.should_show_account_switcher(uid)
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
@@ -11183,8 +11183,8 @@ async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, 
     if not pos_list:
         text = f"{mode_emoji} *{mode_label} Positions*\n\n" + t.get('no_positions', '🚫 No open positions')
         
-        # Only show mode switch buttons if user has both modes
-        if trading_mode == 'both':
+        # Only show mode switch buttons if user should see switcher
+        if show_switcher:
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🎮 Demo", callback_data="positions:demo"),
                  InlineKeyboardButton("💎 Real", callback_data="positions:real")],
@@ -11212,7 +11212,7 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
     """Show orders directly without mode selection (for single-mode users)."""
     uid = update.effective_user.id
     t = ctx.t
-    trading_mode = get_trading_mode(uid)
+    show_switcher = db.should_show_account_switcher(uid)
     
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
@@ -11224,8 +11224,8 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
         if not ords:
             text = header + t.get('no_open_orders', '🚫 No open orders')
             
-            # Only show mode switch buttons if user has both modes
-            if trading_mode == 'both':
+            # Only show mode switch buttons if user should see switcher
+            if show_switcher:
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
                      InlineKeyboardButton("💎 Real", callback_data="orders:real")],
@@ -11262,8 +11262,8 @@ async def show_orders_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, acc
 
         text = "\n".join(lines)
         
-        # Only show mode switch buttons if user has both modes
-        if trading_mode == 'both':
+        # Only show mode switch buttons if user should see switcher
+        if show_switcher:
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
                  InlineKeyboardButton("💎 Real", callback_data="orders:real")],
@@ -11348,7 +11348,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             # Fetch spot unrealized PnL (needs coins list)
             spot_unrealized_data = await fetch_spot_unrealized_pnl(uid, coins, account_type=mode)
             
-            trading_mode = get_trading_mode(uid)
+            show_switcher = db.should_show_account_switcher(uid)
             
             mode_emoji = "🎮" if mode == "demo" else "💎"
             mode_label = "Demo" if mode == "demo" else "Real"
@@ -11409,8 +11409,8 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 {unreal_emoji} *Futures Unrealized:* {total_unreal:+,.2f} USDT ({unreal_pct:+.2f}%){spot_stats}
 """
             
-            # Only show mode switch buttons if user has both modes
-            if trading_mode == 'both':
+            # Only show mode switch buttons if user should see switcher
+            if show_switcher:
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("🎮 Demo", callback_data="balance:bybit:demo"),
                      InlineKeyboardButton("💎 Real", callback_data="balance:bybit:real")],
