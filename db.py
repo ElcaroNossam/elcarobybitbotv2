@@ -294,6 +294,8 @@ def init_db():
             ("hl_vault_address",   "ALTER TABLE users ADD COLUMN hl_vault_address   TEXT"),
             ("hl_testnet",         "ALTER TABLE users ADD COLUMN hl_testnet         INTEGER NOT NULL DEFAULT 0"),
             ("hl_enabled",         "ALTER TABLE users ADD COLUMN hl_enabled         INTEGER NOT NULL DEFAULT 0"),
+            # Bybit enable/disable flag (default enabled for backward compatibility)
+            ("bybit_enabled",      "ALTER TABLE users ADD COLUMN bybit_enabled      INTEGER NOT NULL DEFAULT 1"),
             # Separate HL testnet/mainnet credentials
             ("hl_testnet_private_key",     "ALTER TABLE users ADD COLUMN hl_testnet_private_key     TEXT"),
             ("hl_testnet_wallet_address",  "ALTER TABLE users ADD COLUMN hl_testnet_wallet_address  TEXT"),
@@ -5611,6 +5613,29 @@ def set_hl_enabled(user_id: int, enabled: bool):
     with get_conn() as conn:
         conn.execute(
             "UPDATE users SET hl_enabled = ? WHERE user_id = ?",
+            (1 if enabled else 0, user_id)
+        )
+        conn.commit()
+    invalidate_user_cache(user_id)
+
+
+def is_bybit_enabled(user_id: int) -> bool:
+    """Check if Bybit trading is enabled for user."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT bybit_enabled FROM users WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+    # Default to True for backward compatibility
+    return bool(row[0]) if row and row[0] is not None else True
+
+
+def set_bybit_enabled(user_id: int, enabled: bool):
+    """Enable or disable Bybit trading for user."""
+    ensure_user(user_id)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET bybit_enabled = ? WHERE user_id = ?",
             (1 if enabled else 0, user_id)
         )
         conn.commit()

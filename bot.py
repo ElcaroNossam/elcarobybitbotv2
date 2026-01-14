@@ -60,6 +60,10 @@ from db import (
     set_hl_credentials,
     clear_hl_credentials,
     set_hl_enabled,
+    is_hl_enabled,
+    # Bybit enable/disable
+    is_bybit_enabled,
+    set_bybit_enabled,
     get_exchange_mode,
     set_exchange_mode,
     get_exchange_type,
@@ -5084,6 +5088,13 @@ async def place_order_for_targets(
             
             # Convert to targets format
             exchange = db.get_exchange_type(user_id)
+            
+            # Check if exchange is enabled
+            if exchange == "bybit" and not db.is_bybit_enabled(user_id):
+                raise ValueError("Bybit trading is disabled for this user")
+            if exchange == "hyperliquid" and not db.is_hl_enabled(user_id):
+                raise ValueError("HyperLiquid trading is disabled for this user")
+            
             targets = []
             for acc_type in account_types:
                 env = "paper" if acc_type in ("demo", "testnet") else "live"
@@ -5112,6 +5123,14 @@ async def place_order_for_targets(
         target_env = target.get("env", "paper")
         target_account_type = target.get("account_type")
         target_key = f"{target_exchange}:{target_env}"
+        
+        # Skip disabled exchanges
+        if target_exchange == "bybit" and not db.is_bybit_enabled(user_id):
+            logger.debug(f"[{user_id}] Skipping Bybit target - Bybit is disabled")
+            continue
+        if target_exchange == "hyperliquid" and not db.is_hl_enabled(user_id):
+            logger.debug(f"[{user_id}] Skipping HyperLiquid target - HL is disabled")
+            continue
         
         # Generate unique client_order_id for this target
         client_order_id = f"{signal_id or 'manual'}-{target_exchange[:2]}-{target_env[:1]}-{int(time.time())}"
@@ -5361,6 +5380,7 @@ async def place_order_bybit_if_needed(
     1. User's active exchange is HyperLiquid
     2. User has Bybit API keys configured
     3. User wants to trade on both exchanges
+    4. Bybit is enabled (bybit_enabled = 1)
     
     Returns result dict or None if not executed.
     """
@@ -5369,6 +5389,11 @@ async def place_order_bybit_if_needed(
         active_exchange = db.get_exchange_type(user_id)
         if active_exchange != "hyperliquid":
             # Bybit is already handled by place_order_all_accounts
+            return None
+        
+        # Check if Bybit is enabled for this user
+        if not db.is_bybit_enabled(user_id):
+            logger.debug(f"[{user_id}] Bybit is disabled for this user")
             return None
         
         # Check if user has Bybit credentials
@@ -20393,30 +20418,42 @@ async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     current = status.get("active_exchange", "bybit")
     hl_configured = status.get("hyperliquid", {}).get("configured", False)
     bybit_configured = status.get("bybit", {}).get("configured", False)
+    bybit_enabled = db.is_bybit_enabled(uid)
+    hl_enabled = db.is_hl_enabled(uid)
     
     keyboard = []
     
     # Bybit option
+    bybit_status = "✅" if bybit_enabled else "❌"
     if current == "bybit":
-        keyboard.append([InlineKeyboardButton("🟠 Bybit ✓ (current)", callback_data="exchange:noop")])
+        keyboard.append([InlineKeyboardButton(f"🟠 Bybit {bybit_status} ✓ (current)", callback_data="exchange:noop")])
     else:
-        keyboard.append([InlineKeyboardButton("🟠 Switch to Bybit", callback_data="exchange:set_bybit")])
+        if bybit_configured:
+            keyboard.append([InlineKeyboardButton(f"🟠 Switch to Bybit {bybit_status}", callback_data="exchange:set_bybit")])
+        else:
+            keyboard.append([InlineKeyboardButton("🟠 Setup Bybit API", callback_data="exchange:noop")])
     
     # HyperLiquid option
+    hl_status = "✅" if hl_enabled else "❌"
     if hl_configured:
         if current == "hyperliquid":
-            keyboard.append([InlineKeyboardButton("🔷 HyperLiquid ✓ (current)", callback_data="exchange:noop")])
+            keyboard.append([InlineKeyboardButton(f"🔷 HyperLiquid {hl_status} ✓ (current)", callback_data="exchange:noop")])
         else:
-            keyboard.append([InlineKeyboardButton("🔷 Switch to HyperLiquid", callback_data="exchange:set_hl")])
+            keyboard.append([InlineKeyboardButton(f"🔷 Switch to HyperLiquid {hl_status}", callback_data="exchange:set_hl")])
     else:
         keyboard.append([InlineKeyboardButton("🔷 Setup HyperLiquid", callback_data="exchange:setup_hl")])
     
+    # Settings button for enable/disable
+    keyboard.append([InlineKeyboardButton("⚙️ Exchange Settings (Enable/Disable)", callback_data="exchange:settings")])
     keyboard.append([InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")])
     
     text = (
         "🔄 *Switch Exchange*\n\n"
-        f"Current: {'🔷 HyperLiquid' if current == 'hyperliquid' else '🟠 Bybit'}\n\n"
-        "Select the exchange you want to trade on:"
+        f"*Active:* {'🔷 HyperLiquid' if current == 'hyperliquid' else '🟠 Bybit'}\n\n"
+        f"*Status:*\n"
+        f"• 🟠 Bybit: {bybit_status} {'enabled' if bybit_enabled else 'disabled'}\n"
+        f"• 🔷 HyperLiquid: {hl_status} {'enabled' if hl_enabled else 'disabled'}\n\n"
+        "_Select exchange or go to Settings to enable/disable._"
     )
     
     await update.message.reply_text(
@@ -20826,6 +20863,66 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     elif data == "exchange:noop":
         pass  # Do nothing, already on this exchange
+    
+    elif data == "exchange:toggle_bybit":
+        # Toggle Bybit enabled status
+        current_enabled = db.is_bybit_enabled(uid)
+        db.set_bybit_enabled(uid, not current_enabled)
+        new_status = "✅ enabled" if not current_enabled else "❌ disabled"
+        
+        await q.edit_message_text(
+            f"🟠 *Bybit Trading: {new_status}*\n\n"
+            f"{'Bybit will now receive trading signals.' if not current_enabled else 'Bybit will NOT receive trading signals. Only HyperLiquid will be used.'}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back to Exchange Settings", callback_data="exchange:settings")]
+            ])
+        )
+    
+    elif data == "exchange:toggle_hl":
+        # Toggle HyperLiquid enabled status
+        current_enabled = db.is_hl_enabled(uid)
+        db.set_hl_enabled(uid, not current_enabled)
+        new_status = "✅ enabled" if not current_enabled else "❌ disabled"
+        
+        await q.edit_message_text(
+            f"🔷 *HyperLiquid Trading: {new_status}*\n\n"
+            f"{'HyperLiquid will now receive trading signals.' if not current_enabled else 'HyperLiquid will NOT receive trading signals. Only Bybit will be used.'}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back to Exchange Settings", callback_data="exchange:settings")]
+            ])
+        )
+    
+    elif data == "exchange:settings":
+        # Show exchange settings menu
+        bybit_enabled = db.is_bybit_enabled(uid)
+        hl_enabled = db.is_hl_enabled(uid)
+        current_exchange = get_exchange_type(uid)
+        
+        bybit_status = "✅ ON" if bybit_enabled else "❌ OFF"
+        hl_status = "✅ ON" if hl_enabled else "❌ OFF"
+        
+        text = (
+            "⚙️ *Exchange Settings*\n\n"
+            f"*Active Exchange:* {'🔷 HyperLiquid' if current_exchange == 'hyperliquid' else '🟠 Bybit'}\n\n"
+            "*Trading Enabled:*\n"
+            f"• 🟠 Bybit: {bybit_status}\n"
+            f"• 🔷 HyperLiquid: {hl_status}\n\n"
+            "_Enable/disable exchanges to control which receive signals._"
+        )
+        
+        keyboard = [
+            [InlineKeyboardButton(f"🟠 Bybit: {bybit_status}", callback_data="exchange:toggle_bybit")],
+            [InlineKeyboardButton(f"🔷 HyperLiquid: {hl_status}", callback_data="exchange:toggle_hl")],
+            [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
+        ]
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     
     elif data == "main_menu":
         await q.edit_message_text("Use /start to return to main menu.")
