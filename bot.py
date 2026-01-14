@@ -5135,11 +5135,15 @@ async def place_order_for_targets(
     results = {}
     errors = []
     
+    logger.info(f"[{user_id}] place_order_for_targets: strategy={strategy}, targets={targets}")
+    
     for target in targets:
         target_exchange = target.get("exchange", "bybit")
         target_env = target.get("env", "paper")
         target_account_type = target.get("account_type")
         target_key = f"{target_exchange}:{target_env}"
+        
+        logger.info(f"[{user_id}] Processing target: {target_key} account_type={target_account_type}")
         
         # Skip disabled exchanges
         if target_exchange == "bybit" and not db.is_bybit_enabled(user_id):
