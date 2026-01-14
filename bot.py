@@ -13954,12 +13954,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             t.get('rsi_zone_neutral', 'neutral')
                         )
                         
-                        await place_order_all_accounts(
+                        order_results = await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="rsi_bb", leverage=user_leverage,
                             signal_id=signal_id, timeframe=timeframe,
                             calc_qty_per_target=True, entry_price=spot_price
                         )
+                        
+                        # Build success summary from order results
+                        success_accounts = []
+                        for target_key, result in order_results.items():
+                            if result.get("success"):
+                                exchange = result.get("exchange", "bybit")
+                                target_qty = result.get("qty", qty)
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -13975,13 +13985,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
-                        # Send unified entry message
+                        # Send unified entry message with account details
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('rsi_bb_market_ok', '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%')
-                             .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, 
-                                     rsi=rv, zone=rsi_zone, sl_pct=user_sl_pct),
+                            f"📊 *RSI+BB: {side_display}*\n"
+                            f"• {symbol} @ {spot_price:.6f}\n"
+                            f"• RSI: {rv} ({rsi_zone})\n"
+                            f"• SL: {user_sl_pct}%\n\n"
+                            f"*Opened on:*\n{accounts_str}",
                             parse_mode="Markdown"
                         )
                         
@@ -14047,12 +14060,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 t.get('bitk_limit_error', "Scryptomera limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        await place_order_all_accounts(
+                        order_results = await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="scryptomera", leverage=user_leverage,
                             signal_id=signal_id, timeframe=timeframe,
                             calc_qty_per_target=True, entry_price=spot_price
                         )
+                        
+                        # Build success summary from order results
+                        success_accounts = []
+                        for target_key, result in order_results.items():
+                            if result.get("success"):
+                                exchange = result.get("exchange", "bybit")
+                                target_qty = result.get("qty", qty)
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14069,10 +14092,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('bitk_market_ok', "🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
-                            .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, sl_pct=user_sl_pct),
+                            f"🔮 *Scryptomera: {side_display}*\n"
+                            f"• {symbol} @ {spot_price:.6f}\n"
+                            f"• SL: {user_sl_pct}%\n\n"
+                            f"*Opened on:*\n{accounts_str}",
                             parse_mode="Markdown"
                         )
                         
@@ -14157,12 +14183,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 t.get('scalper_limit_error', "Scalper limit error: {msg}").format(msg=str(e))
                             )
                     else:
-                        await place_order_all_accounts(
+                        order_results = await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty, 
                             strategy="scalper", leverage=user_leverage,
                             signal_id=signal_id, timeframe=timeframe,
                             calc_qty_per_target=True, entry_price=spot_price
                         )
+                        
+                        # Build success summary from order results
+                        success_accounts = []
+                        for target_key, result in order_results.items():
+                            if result.get("success"):
+                                exchange = result.get("exchange", "bybit")
+                                target_qty = result.get("qty", qty)
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14179,10 +14215,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty}'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('scalper_market_ok', "⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%")
-                            .format(symbol=symbol, side=side_display, price=spot_price, qty=qty, sl_pct=user_sl_pct),
+                            f"⚡ *Scalper: {side_display}*\n"
+                            f"• {symbol} @ {spot_price:.6f}\n"
+                            f"• SL: {user_sl_pct}%\n\n"
+                            f"*Opened on:*\n{accounts_str}",
                             parse_mode="Markdown"
                         )
                         
@@ -14329,12 +14368,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Market order - price is close to Entry
                         try:
-                            await place_order_all_accounts(
+                            order_results = await place_order_all_accounts(
                                 uid, symbol, side, orderType="Market", qty=qty, 
                                 strategy="elcaro", leverage=order_leverage,
                                 signal_id=signal_id, timeframe=elcaro_timeframe,
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
+                            
+                            # Build success summary from order results
+                            success_accounts = []
+                            for target_key, result in order_results.items():
+                                if result.get("success"):
+                                    exchange = result.get("exchange", "bybit")
+                                    target_qty = result.get("qty", qty)
+                                    acc_label = "Demo" if "paper" in target_key else "Real"
+                                    exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                    success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                             
                             # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
@@ -14366,13 +14415,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
                             
-                            # Format signal message
+                            # Format signal message with account details
+                            accounts_str = '\n'.join(f'  • {acc}' for acc in success_accounts) if success_accounts else f'  • Qty: {qty}'
                             signal_info = (
                                 f"🔥 *Elcaro* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"📊 {symbol}\n"
                                 f"💰 Entry: {spot_price:.6g}\n"
                                 f"🛑 SL: {actual_sl:.6g} ({sl_pct:.2f}%)\n"
-                                f"🎯 TP: {actual_tp:.6g} ({tp_pct:.2f}%)"
+                                f"🎯 TP: {actual_tp:.6g} ({tp_pct:.2f}%)\n\n"
+                                f"*Opened on:*\n{accounts_str}"
                             )
                             if elcaro_mode and elcaro_atr_periods:
                                 signal_info += f"\n📉 ATR: {elcaro_atr_periods} | ×{elcaro_atr_mult} | Trigger: {elcaro_atr_trigger}%"
@@ -14527,12 +14578,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Market order - price is in entry zone
                         try:
-                            await place_order_all_accounts(
+                            order_results = await place_order_all_accounts(
                                 uid, symbol, side, orderType="Market", qty=qty, 
                                 strategy="fibonacci", leverage=user_leverage,
                                 signal_id=signal_id, timeframe="1h",
                                 calc_qty_per_target=True, entry_price=spot_price
                             )
+                            
+                            # Build success summary from order results
+                            success_accounts = []
+                            for target_key, result in order_results.items():
+                                if result.get("success"):
+                                    exchange = result.get("exchange", "bybit")
+                                    target_qty = result.get("qty", qty)
+                                    acc_label = "Demo" if "paper" in target_key else "Real"
+                                    exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                    success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                             
                             # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                             hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct)
@@ -14554,7 +14615,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
                             
-                            # Format signal message
+                            # Format signal message with account details
+                            accounts_str = '\n'.join(f'  • {acc}' for acc in success_accounts) if success_accounts else f'  • Qty: {qty}'
                             signal_info = (
                                 f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"🪙 {symbol}\n"
@@ -14562,7 +14624,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
                                 f"🛑 SL: {actual_sl:.6g} ({fibo_sl_pct:.2f}%)\n"
                                 f"✅ TP: {actual_tp:.6g} ({fibo_tp_pct:.2f}%)\n"
-                                f"🟢 Quality: {quality_grade} ({quality_score}/100)"
+                                f"🟢 Quality: {quality_grade} ({quality_score}/100)\n\n"
+                                f"*Opened on:*\n{accounts_str}"
                             )
                             if trigger_info:
                                 signal_info += f"\n⚡ {trigger_info}"
@@ -14645,12 +14708,22 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         # Full market order
                         qty_mkt = q_qty(qty_total)
-                        await place_order_all_accounts(
+                        order_results = await place_order_all_accounts(
                             uid, symbol, side, orderType="Market", qty=qty_mkt, 
                             strategy="oi", leverage=user_leverage,
                             signal_id=signal_id, timeframe=timeframe,
                             calc_qty_per_target=True, entry_price=spot_price
                         )
+                        
+                        # Build success summary from order results
+                        success_accounts = []
+                        for target_key, result in order_results.items():
+                            if result.get("success"):
+                                exchange = result.get("exchange", "bybit")
+                                target_qty = result.get("qty", qty_mkt)
+                                acc_label = "Demo" if "paper" in target_key else "Real"
+                                exchange_label = "Bybit" if exchange == "bybit" else "HyperLiquid"
+                                success_accounts.append(f"{exchange_label} {acc_label}: {target_qty}")
                         
                         # Also place on HyperLiquid if enabled (when active exchange is Bybit)
                         hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
@@ -14664,10 +14737,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
+                        side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        accounts_str = '\n'.join(f'• {acc}' for acc in success_accounts) if success_accounts else f'• Qty: {qty_mkt}'
                         await ctx.bot.send_message(
                             uid,
-                            t.get('oi_market_ok', "📉 OI Market: {symbol} {side} qty={qty} (SL={sl_pct}%)")
-                             .format(symbol=symbol, side=side, price=spot_price, qty=qty_mkt, sl_pct=user_sl_pct),
+                            f"📉 *OI: {side_display}*\n"
+                            f"• {symbol} @ {spot_price:.6f}\n"
+                            f"• SL: {user_sl_pct}%\n\n"
+                            f"*Opened on:*\n{accounts_str}",
                             parse_mode="Markdown"
                         )
                         inc_pyramid(uid, symbol, side)
