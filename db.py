@@ -1378,16 +1378,19 @@ def get_effective_trading_mode(user_id: int) -> str:
     """
     Get effective trading mode based on enabled strategies' settings.
     
-    Looks at all enabled strategies (scryptomera, scalper, etc.) and returns:
-    - 'demo' if all enabled strategies are set to demo
-    - 'real' if all enabled strategies are set to real
-    - 'both' if strategies have mixed modes or any is set to 'both'
+    Uses get_strategy_account_types() to get actual account types each strategy trades on,
+    then determines what to display in positions.
+    
+    Returns:
+    - 'demo' if all enabled strategies trade only on demo
+    - 'real' if all enabled strategies trade only on real
+    - 'both' if strategies trade on mixed accounts
     
     Falls back to global trading_mode if no strategies are enabled.
     """
     with get_conn() as conn:
         row = conn.execute("""
-            SELECT trading_mode, strategy_settings,
+            SELECT trading_mode,
                    trade_scryptomera, trade_scalper, trade_elcaro, 
                    trade_fibonacci, trade_oi, trade_rsi_bb
             FROM users WHERE user_id=?
@@ -1397,51 +1400,48 @@ def get_effective_trading_mode(user_id: int) -> str:
         return "demo"
     
     global_mode = row[0] or "demo"
-    strategy_settings_json = row[1]
     
     # Check which strategies are enabled
     enabled_strategies = []
-    if row[2]:  # trade_scryptomera
+    if row[1]:  # trade_scryptomera
         enabled_strategies.append("scryptomera")
-    if row[3]:  # trade_scalper
+    if row[2]:  # trade_scalper
         enabled_strategies.append("scalper")
-    if row[4]:  # trade_elcaro
+    if row[3]:  # trade_elcaro
         enabled_strategies.append("elcaro")
-    if row[5]:  # trade_fibonacci
+    if row[4]:  # trade_fibonacci
         enabled_strategies.append("fibonacci")
-    if row[6]:  # trade_oi
+    if row[5]:  # trade_oi
         enabled_strategies.append("oi")
-    if row[7]:  # trade_rsi_bb
+    if row[6]:  # trade_rsi_bb
         enabled_strategies.append("rsi_bb")
     
     # If no strategies enabled, use global mode
     if not enabled_strategies:
         return global_mode
     
-    # Parse strategy settings
-    strategy_settings = {}
-    if strategy_settings_json:
-        try:
-            import json
-            strategy_settings = json.loads(strategy_settings_json)
-        except:
-            pass
-    
-    # Collect trading modes from enabled strategies
-    modes = set()
+    # Collect all account types from enabled strategies
+    all_accounts = set()
     for strat in enabled_strategies:
-        strat_mode = strategy_settings.get(strat, {}).get("trading_mode", "global")
-        if strat_mode == "global":
-            strat_mode = global_mode
-        modes.add(strat_mode)
+        accounts = get_strategy_account_types(user_id, strat)
+        all_accounts.update(accounts)
+    
+    # Normalize to demo/real (handle testnet/mainnet for HyperLiquid)
+    normalized = set()
+    for acc in all_accounts:
+        if acc in ("demo", "testnet"):
+            normalized.add("demo")
+        elif acc in ("real", "mainnet"):
+            normalized.add("real")
     
     # Determine effective mode
-    if len(modes) == 1:
-        return modes.pop()
-    elif "both" in modes:
-        return "both"
+    if not normalized:
+        return global_mode
+    elif normalized == {"demo"}:
+        return "demo"
+    elif normalized == {"real"}:
+        return "real"
     else:
-        # Mixed modes (demo + real) = both
         return "both"
 
 
