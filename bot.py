@@ -3746,12 +3746,12 @@ async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None, acco
         # Use HyperLiquid adapter for PnL
         try:
             creds = db.get_hl_credentials(user_id)
-            if creds and creds.get("private_key"):
+            if creds and creds.get("hl_private_key"):
                 from hl_adapter import HLAdapter
                 adapter = HLAdapter(
-                    private_key=creds["private_key"],
-                    testnet=bool(creds.get("testnet", False)),
-                    vault_address=creds.get("vault_address")
+                    private_key=creds["hl_private_key"],
+                    testnet=bool(creds.get("hl_testnet", False)),
+                    vault_address=creds.get("hl_vault_address")
                 )
                 await adapter.initialize()
                 
@@ -7888,12 +7888,12 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
         start_ts = end_ts - days * 24 * 60 * 60 * 1000
         try:
             creds = db.get_hl_credentials(uid)
-            if creds and creds.get("private_key"):
+            if creds and creds.get("hl_private_key"):
                 from hl_adapter import HLAdapter
                 adapter = HLAdapter(
-                    private_key=creds["private_key"],
-                    testnet=bool(creds.get("testnet", False)),
-                    vault_address=creds.get("vault_address")
+                    private_key=creds["hl_private_key"],
+                    testnet=bool(creds.get("hl_testnet", False)),
+                    vault_address=creds.get("hl_vault_address")
                 )
                 await adapter.initialize()
                 
@@ -20165,8 +20165,9 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         result = await adapter.fetch_positions()
         
-        if result.get("success"):
-            positions = result.get("data", [])
+        # fetch_positions returns Bybit-compatible format: retCode, result.list
+        if result.get("retCode") == 0:
+            positions = result.get("result", {}).get("list", [])
             if not positions:
                 await update.message.reply_text(t.get("hl_no_positions", "📭 No open positions on HyperLiquid."))
                 return
@@ -20178,11 +20179,11 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 symbol = pos.get("symbol", "?")
                 side = pos.get("side", "?")
                 size = float(pos.get("size", 0))
-                entry = float(pos.get("entry_price", 0))
-                pnl = float(pos.get("unrealized_pnl", 0))
+                entry = float(pos.get("entryPrice", 0))
+                pnl = float(pos.get("unrealisedPnl", 0))
                 leverage = pos.get("leverage", "?")
                 
-                side_emoji = "�� LONG" if side == "Buy" else "🔴 SHORT"
+                side_emoji = "🟢 LONG" if side == "Buy" else "🔴 SHORT"
                 pnl_emoji = "+" if pnl >= 0 else ""
                 
                 lines.append(
@@ -20194,7 +20195,7 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch positions: {result.get('error', 'Unknown error')}"),
+                t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch positions: {result.get('retMsg', 'Unknown error')}"),
                 parse_mode="Markdown"
             )
     except Exception as e:

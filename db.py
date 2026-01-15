@@ -5822,22 +5822,8 @@ def get_trade_logs(
         kwargs.get('days')
     )
 
-# Override signal functions
-def add_signal(
-    symbol: str,
-    side: str,
-    strategy: str,
-    **kwargs
-):
-    """PostgreSQL version: add signal"""
-    pg_add_signal(
-        symbol, side, strategy,
-        kwargs.get('entry_price'),
-        kwargs.get('sl_price'),
-        kwargs.get('tp_price'),
-        kwargs.get('timeframe'),
-        kwargs.get('raw_json')
-    )
+# NOTE: add_signal is already defined above with SQLite compatibility layer
+# Do NOT override it here - the original function works with PostgreSQL via compatibility layer
 
 # Override trading mode functions
 def get_trading_mode(user_id: int) -> str:

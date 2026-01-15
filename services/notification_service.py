@@ -1,5 +1,6 @@
 """
 Advanced Notification Service for ElCaro Bot
+PostgreSQL Multitenancy Architecture
 Sends personalized notifications about:
 - Position closed/opened
 - Daily PnL reports
@@ -14,12 +15,22 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import logging
 
+# Import PostgreSQL connection from core
+from core.db_postgres import get_conn, execute, execute_one
+
 logger = logging.getLogger(__name__)
 
 class NotificationService:
-    def __init__(self, bot, db):
+    def __init__(self, bot, db=None):
+        """
+        Initialize notification service.
+        
+        Args:
+            bot: Telegram bot instance
+            db: Legacy db module (optional, for backward compatibility)
+        """
         self.bot = bot
-        self.db = db
+        self.db = db  # Keep for backward compatibility
         self.news_cache = []
         self.last_news_update = None
         self.liquidations_sent = set()  # Track sent liquidations
@@ -46,12 +57,12 @@ class NotificationService:
 
 📊 <b>{symbol}</b> • {side}
 ━━━━━━━━━━━━━━━━
-📈 Entry: <code>${entry_price:.2f}</code>
-📉 Exit: <code>${exit_price:.2f}</code>
+📈 Entry: <code>\${entry_price:.2f}</code>
+📉 Exit: <code>\${exit_price:.2f}</code>
 💰 Size: <code>{quantity}</code>
 
 <b>{status}</b>
-💵 PnL: <b>${pnl:+.2f}</b> ({pnl_percent:+.2f}%)
+💵 PnL: <b>\${pnl:+.2f}</b> ({pnl_percent:+.2f}%)
 
 ⏰ {datetime.now().strftime('%H:%M:%S')}
 """
@@ -81,14 +92,14 @@ class NotificationService:
 
 📊 <b>{symbol}</b> • {side} • {leverage}x
 ━━━━━━━━━━━━━━━━
-📈 Entry: <code>${entry_price:.2f}</code>
+📈 Entry: <code>\${entry_price:.2f}</code>
 💰 Size: <code>{quantity}</code>
 """
             
             if tp:
-                message += f"🎯 TP: <code>${float(tp):.2f}</code>\n"
+                message += f"🎯 TP: <code>\${float(tp):.2f}</code>\n"
             if sl:
-                message += f"🛡 SL: <code>${float(sl):.2f}</code>\n"
+                message += f"🛡 SL: <code>\${float(sl):.2f}</code>\n"
                 
             message += f"\n⏰ {datetime.now().strftime('%H:%M:%S')}"
             
@@ -100,21 +111,20 @@ class NotificationService:
     async def send_daily_pnl_report(self, user_id: int, t: dict):
         """
         Send daily PnL summary report
+        Uses PostgreSQL via context manager
         """
         try:
-            # Get today's trades
-            conn = self.db.get_conn()
-            cur = conn.cursor()
-            
             today = datetime.now().date()
-            cur.execute("""
-                SELECT COUNT(*), SUM(pnl), AVG(pnl)
-                FROM trade_logs
-                WHERE user_id = ? AND DATE(created_at) = ?
-            """, (user_id, today.isoformat()))
             
-            row = cur.fetchone()
-            self.db.release_conn(conn)
+            # Use PostgreSQL with context manager
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT COUNT(*), COALESCE(SUM(pnl), 0), COALESCE(AVG(pnl), 0)
+                    FROM trade_logs
+                    WHERE user_id = %s AND DATE(ts) = %s
+                """, (user_id, today.isoformat()))
+                row = cur.fetchone()
             
             if not row or row[0] == 0:
                 return  # No trades today
@@ -131,8 +141,8 @@ class NotificationService:
 📅 {today.strftime('%d %B %Y')}
 ━━━━━━━━━━━━━━━━
 📊 Trades: <b>{trades_count}</b>
-💰 Total PnL: <b>${total_pnl:+.2f}</b>
-📈 Avg PnL: <b>${avg_pnl:+.2f}</b>
+💰 Total PnL: <b>\${total_pnl:+.2f}</b>
+📈 Avg PnL: <b>\${avg_pnl:+.2f}</b>
 
 Keep it up! 💪
 """
@@ -192,10 +202,6 @@ Keep it up! 💪
         """
         try:
             # This would connect to liquidation feed (e.g., from Binance, Bybit API)
-            # For now, this is a placeholder
-            # You would need to implement actual liquidation monitoring
-            
-            # Example structure:
             liquidations = []  # Get from API
             
             for liq in liquidations:
@@ -204,8 +210,6 @@ Keep it up! 💪
                     
                     if liq_id not in self.liquidations_sent:
                         self.liquidations_sent.add(liq_id)
-                        
-                        # Send to all subscribed users
                         await self.broadcast_liquidation_alert(liq)
                         
         except Exception as e:
@@ -214,6 +218,7 @@ Keep it up! 💪
     async def broadcast_liquidation_alert(self, liq_data: dict):
         """
         Broadcast large liquidation to all users
+        Uses PostgreSQL via context manager
         """
         try:
             symbol = liq_data.get('symbol', 'UNKNOWN')
@@ -229,20 +234,20 @@ Keep it up! 💪
 📊 <b>{symbol}</b>
 ━━━━━━━━━━━━━━━━
 🔻 Side: <b>{side}</b>
-💰 Value: <b>${value:,.0f}</b>
-📈 Price: <code>${price:.2f}</code>
+💰 Value: <b>\${value:,.0f}</b>
+📈 Price: <code>\${price:.2f}</code>
 
 ⚠️ Market volatility ahead!
 """
             
-            # Get all users who want notifications
-            conn = self.db.get_conn()
-            cur = conn.cursor()
-            cur.execute("SELECT user_id FROM users WHERE notification_enabled = 1")
-            users = cur.fetchall()
-            self.db.release_conn(conn)
+            # Get all users who want notifications using PostgreSQL
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT user_id FROM users WHERE is_allowed = 1")
+                users = cur.fetchall()
             
-            for (uid,) in users:
+            for row in users:
+                uid = row[0] if isinstance(row, (list, tuple)) else row.get('user_id')
                 try:
                     await self.bot.send_message(uid, message, parse_mode='HTML')
                     await asyncio.sleep(0.05)  # Rate limiting
@@ -259,10 +264,6 @@ Keep it up! 💪
         try:
             # Monitor major pairs for >5% moves
             major_pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
-            
-            # This would fetch current vs 1h ago prices
-            # And send alerts for significant moves
-            
             pass  # Implement based on your price data source
             
         except Exception as e:
@@ -274,18 +275,14 @@ Keep it up! 💪
         """
         while True:
             try:
-                # Check liquidations every 30 seconds
                 await self.check_large_liquidations()
-                
-                # Check market movements every minute
                 await self.check_market_movements()
                 
-                # Send daily reports at specific times
                 now = datetime.now()
                 if now.hour == 20 and now.minute == 0:  # 8 PM daily report
                     await self.send_daily_reports_to_all_users()
                     
-                await asyncio.sleep(30)  # Check every 30 seconds
+                await asyncio.sleep(30)
                 
             except Exception as e:
                 logger.error(f"Error in notification loop: {e}")
@@ -294,15 +291,17 @@ Keep it up! 💪
     async def send_daily_reports_to_all_users(self):
         """
         Send daily PnL reports to all active users
+        Uses PostgreSQL via context manager
         """
         try:
-            conn = self.db.get_conn()
-            cur = conn.cursor()
-            cur.execute("SELECT user_id FROM users WHERE is_allowed = 1")
-            users = cur.fetchall()
-            self.db.release_conn(conn)
+            # Get all users using PostgreSQL
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT user_id FROM users WHERE is_allowed = 1")
+                users = cur.fetchall()
             
-            for (uid,) in users:
+            for row in users:
+                uid = row[0] if isinstance(row, (list, tuple)) else row.get('user_id')
                 try:
                     t = {}  # Get translations
                     await self.send_daily_pnl_report(uid, t)
@@ -317,7 +316,7 @@ Keep it up! 💪
 # Global instance
 notification_service = None
 
-def init_notification_service(bot, db):
+def init_notification_service(bot, db=None):
     """Initialize global notification service"""
     global notification_service
     notification_service = NotificationService(bot, db)

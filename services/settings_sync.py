@@ -325,15 +325,20 @@ class StrategyDeploymentManager:
             db.set_user_field(user_id, "leverage", params["leverage"])
     
     def _save_deployment_to_db(self, deployment: StrategyDeployment):
-        """Save deployment to database"""
-        import db
+        """Save deployment to database - PostgreSQL version"""
+        from core.db_postgres import get_conn
         
-        conn = db.get_conn()
-        try:
-            conn.execute("""
-                INSERT OR REPLACE INTO strategy_deployments 
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO strategy_deployments 
                 (user_id, strategy, params, backtest_results, deployed_at, is_active)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (user_id, strategy) DO UPDATE SET
+                params = EXCLUDED.params,
+                backtest_results = EXCLUDED.backtest_results,
+                deployed_at = EXCLUDED.deployed_at,
+                is_active = EXCLUDED.is_active
             """, (
                 deployment.user_id,
                 deployment.strategy_name,
@@ -342,8 +347,7 @@ class StrategyDeploymentManager:
                 deployment.deployed_at.isoformat(),
                 1 if deployment.is_active else 0
             ))
-        finally:
-            db.release_conn(conn)
+            conn.commit()
     
     def get_active_deployment(self, user_id: int, strategy: str) -> Optional[StrategyDeployment]:
         """Get active deployment for user/strategy"""

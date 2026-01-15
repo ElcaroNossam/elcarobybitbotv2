@@ -810,7 +810,7 @@ def pg_set_user_field(user_id: int, field: str, value: Any):
         'demo_api_key', 'demo_api_secret', 'real_api_key', 'real_api_secret',
         'trading_mode', 'exchange_type', 'percent', 'tp_percent', 'sl_percent',
         'use_atr', 'coins', 'leverage', 'lang', 'is_allowed', 'is_banned',
-        'trade_scryptomera', 'trade_scalper', 'trade_elcaro', 'trade_fibonacci', 'trade_oi',
+        'trade_scryptomera', 'trade_scalper', 'trade_elcaro', 'trade_fibonacci', 'trade_oi', 'trade_rsi_bb',
         'dca_enabled', 'dca_pct_1', 'dca_pct_2', 'strategy_settings',
         'hl_enabled', 'hl_testnet', 'hl_private_key', 'hl_wallet_address',
         'hl_testnet_private_key', 'hl_testnet_wallet_address',
@@ -818,7 +818,10 @@ def pg_set_user_field(user_id: int, field: str, value: Any):
         'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct',
         'direction', 'global_order_type', 'spot_enabled', 'spot_settings',
         'limit_ladder_enabled', 'limit_ladder_count', 'limit_ladder_settings',
-        'username', 'first_name', 'last_name', 'terms_accepted', 'guide_sent'
+        'username', 'first_name', 'last_name', 'terms_accepted', 'guide_sent',
+        'payment_method', 'subscription_plan', 'referral_code', 'referred_by',
+        'license_expires', 'license_tier', 'premium_until',
+        'notification_enabled', 'last_active', 'created_at'
     }
     
     if field not in allowed_fields:
