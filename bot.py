@@ -7207,14 +7207,21 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         if strategy in STRATEGY_NAMES_MAP:
             # Get settings for current exchange/account_type context
             context = get_user_trading_context(uid)
-            strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+            
+            # Get account types where strategy trades - use first one for reading settings
+            account_types = db.get_strategy_account_types(uid, strategy)
+            if not account_types:
+                account_types = [context["account_type"]]
+            primary_account = account_types[0]
+            
+            strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
             display_name = STRATEGY_NAMES_MAP[strategy]
             
             # Show which context we're viewing
             if context["exchange"] == "hyperliquid":
-                ctx_label = "Testnet" if context["account_type"] == "testnet" else "Mainnet"
+                ctx_label = "Testnet" if primary_account == "testnet" else "Mainnet"
             else:
-                ctx_label = "Demo" if context["account_type"] == "demo" else "Real"
+                ctx_label = "Demo" if primary_account == "demo" else "Real"
             
             # Use unified build function for settings display
             lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -7387,8 +7394,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         }
         await query.answer(type_labels.get(new_type, new_type))
         
-        # Refresh the settings view
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        # Refresh the settings view - use primary account from strategy account_types
+        primary_account = account_types[0] if account_types else context["account_type"]
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -7530,7 +7538,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         strategy = data.split(":")[1]
         # Get context
         context = get_user_trading_context(uid)
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        
+        # Get account types where strategy trades - use first one for reading settings
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         # Use 'or 0' because get() returns None if key exists with None value
         current = strat_settings.get("use_atr") or 0
         new_value = 0 if current else 1
@@ -7538,9 +7553,6 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
         
         # Save to all account types where strategy trades
-        account_types = db.get_strategy_account_types(uid, strategy)
-        if not account_types:
-            account_types = [context["account_type"]]
         for acc_type in account_types:
             db.set_strategy_setting(uid, strategy, "use_atr", new_value,
                                     context["exchange"], acc_type)
@@ -7549,8 +7561,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
         
-        # Refresh settings using unified text builder
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        # Refresh settings from primary account
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         
         await query.message.edit_text(
             build_strategy_settings_text(strategy, strat_settings, t),
@@ -7621,8 +7633,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         }
         await query.answer(group_labels.get(group, group))
         
-        # Go back to strategy settings
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        # Go back to strategy settings - use primary account from strategy account_types
+        primary_account = account_types[0] if account_types else context["account_type"]
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
