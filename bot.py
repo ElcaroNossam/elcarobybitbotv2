@@ -1310,7 +1310,7 @@ async def cmd_spot_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     if not spot_settings:
         # Initialize default spot settings
         spot_settings = {
@@ -1343,7 +1343,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     action = data.split(":", 1)[1]
     cfg = db.get_user_config(uid)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     if not spot_settings:
         spot_settings = {
@@ -1368,7 +1368,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(status)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1472,7 +1472,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(t.get("spot_frequency_saved", "✅ Frequency set to {freq}").format(freq=freq_labels[new_freq]))
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1490,7 +1490,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(status_msg, show_alert=True)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1584,7 +1584,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(f"DCA executed! Spent: ${total_spent:.2f}", show_alert=True)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1613,7 +1613,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer()
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1624,7 +1624,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if action == "back_to_main":
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1644,7 +1644,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(f"Spot: {mode_labels.get(new_mode, new_mode)}")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1724,7 +1724,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(f"Portfolio: {portfolio_info['name']}")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1775,7 +1775,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(f"Strategy: {strategy_info['name']}")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1796,7 +1796,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(f"Dip threshold: -{new_threshold}%")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1817,7 +1817,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(f"Fear Index threshold: <{new_threshold}")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1835,7 +1835,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(status)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1853,7 +1853,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(status)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -1910,7 +1910,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer("TP levels reset to default")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -2059,7 +2059,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             msg_text = f"❌ <b>Sell Failed</b>\n\n{result.get('error', 'Unknown error')}"
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         
         try:
@@ -2107,7 +2107,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             msg_text = f"❌ <b>Rebalance Failed</b>\n\n{result.get('error', 'Unknown error')}"
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         
         try:
@@ -2152,7 +2152,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ])
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg_base = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         
@@ -2211,7 +2211,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             lines.append(f"{pnl_emoji} <b>P&L:</b> ${pnl:.2f} ({pnl_pct:+.2f}%)")
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg_base = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         
@@ -2238,7 +2238,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(f"📈 Trailing TP {status}!", show_alert=True)
         
         cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         msg = format_spot_settings_message(t, cfg, spot_settings)
         keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
         try:
@@ -2662,7 +2662,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
                 return True
             
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             spot_settings["dca_amount"] = amount
             db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
             
@@ -2672,7 +2672,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             
             # Show updated settings
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             msg = format_spot_settings_message(t, cfg, spot_settings)
             keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
             await update.message.reply_text(msg, reply_markup=keyboard, parse_mode="HTML")
@@ -2695,7 +2695,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             
             level_idx = ctx.user_data.get("spot_edit_tp_level", 0)
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
             
             if 0 <= level_idx < len(tp_levels):
@@ -2728,7 +2728,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             
             level_idx = ctx.user_data.pop("spot_edit_tp_level", 0)
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             tp_levels = spot_settings.get("tp_levels", DEFAULT_SPOT_TP_LEVELS.copy())
             
             if 0 <= level_idx < len(tp_levels):
@@ -2796,7 +2796,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             limit_price = ctx.user_data.pop("spot_limit_price", 0)
             
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             account_type = spot_settings.get("trading_mode", "demo")
             
             result = await place_spot_limit_order(
@@ -2860,7 +2860,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             coin = ctx.user_data.pop("spot_grid_coin", "BTC")
             
             cfg = db.get_user_config(uid)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             account_type = spot_settings.get("trading_mode", "demo")
             
             await update.message.reply_text(f"⏳ Setting up {coin} grid...")
@@ -6080,7 +6080,7 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     # Get spot status
     spot_enabled = cfg.get("spot_enabled", 0)
     spot_status = "✅" if spot_enabled else "❌"
-    spot_settings = cfg.get("spot_settings", {}) or {}
+    spot_settings = cfg.get("spot_settings") or {} or {}
     spot_mode = spot_settings.get("trading_mode", "demo")
     spot_mode_emoji = {"demo": "D", "real": "R"}.get(spot_mode, "D")
     
@@ -7035,7 +7035,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         # Handle Spot mode separately (only demo/real for Bybit, testnet/mainnet for HL)
         if strategy == "spot":
-            spot_settings = cfg.get("spot_settings", {}) or {}
+            spot_settings = cfg.get("spot_settings") or {} or {}
             current_mode = spot_settings.get("trading_mode", "demo")
             
             if active_exchange == "hyperliquid":
@@ -7206,7 +7206,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         # Handle Spot settings - open spot settings menu
         if strategy == "spot":
-            spot_settings = cfg.get("spot_settings", {}) or {}
+            spot_settings = cfg.get("spot_settings") or {} or {}
             if not spot_settings:
                 spot_settings = {
                     "coins": SPOT_DCA_COINS.copy() if isinstance(SPOT_DCA_COINS, list) else SPOT_DCA_COINS.split(","),
@@ -7335,7 +7335,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_reset:"):
         strategy = data.split(":")[1]
         # Reset all settings for this strategy
-        all_settings = cfg.get("strategy_settings", {})
+        all_settings = cfg.get("strategy_settings") or {}
         if strategy in all_settings:
             del all_settings[strategy]
             set_user_field(uid, "strategy_settings", json.dumps(all_settings))
@@ -8604,7 +8604,7 @@ async def execute_spot_dca_buy(
         # Update purchase history for TP tracking
         try:
             cfg = db.get_user_config(user_id)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             purchase_history = spot_settings.get("purchase_history", {})
             
             if coin not in purchase_history:
@@ -8726,7 +8726,7 @@ async def execute_spot_sell(
         # Update purchase history
         try:
             cfg = db.get_user_config(user_id)
-            spot_settings = cfg.get("spot_settings", {})
+            spot_settings = cfg.get("spot_settings") or {}
             purchase_history = spot_settings.get("purchase_history", {})
             
             if coin in purchase_history:
@@ -8772,7 +8772,7 @@ async def check_spot_tp_levels(
     Returns list of executed sells.
     """
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     if not spot_settings.get("tp_enabled"):
         return []
@@ -8862,7 +8862,7 @@ async def rebalance_spot_portfolio(
     Sells over-allocated coins and buys under-allocated coins.
     """
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     portfolio = spot_settings.get("portfolio", "custom")
     if portfolio == "custom":
@@ -8967,7 +8967,7 @@ async def check_spot_trailing_tp(
     Returns list of executed sells.
     """
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     trailing_config = spot_settings.get("trailing_tp", SPOT_TRAILING_TP_DEFAULTS)
     if not trailing_config.get("enabled"):
@@ -9117,7 +9117,7 @@ async def place_spot_limit_order(
         
         # Save pending limit order to track
         cfg = db.get_user_config(user_id)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         pending_orders = spot_settings.get("pending_limit_orders", [])
         
         order_id = result.get("orderId") or result.get("order_id")
@@ -9251,7 +9251,7 @@ async def setup_spot_grid(
         
         # Save grid config
         cfg = db.get_user_config(user_id)
-        spot_settings = cfg.get("spot_settings", {})
+        spot_settings = cfg.get("spot_settings") or {}
         
         grids = spot_settings.get("grids", {})
         grids[coin] = {
@@ -9295,7 +9295,7 @@ async def check_spot_grids(user_id: int, account_type: str = None) -> list:
     When a sell order fills -> place buy order at the same level
     """
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     grids = spot_settings.get("grids", {})
     
     if not grids:
@@ -9420,7 +9420,7 @@ async def check_spot_grids(user_id: int, account_type: str = None) -> list:
 async def stop_spot_grid(user_id: int, coin: str, account_type: str = None) -> dict:
     """Stop a grid bot and cancel all its orders."""
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     grids = spot_settings.get("grids", {})
     
     if coin not in grids:
@@ -9468,7 +9468,7 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
     - Comparison with HODL BTC
     """
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     purchase_history = spot_settings.get("purchase_history", {})
     total_invested = spot_settings.get("total_invested", 0)
     
@@ -9593,7 +9593,7 @@ async def execute_dca_plan(
     skipped = []
     
     cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     for coin in coins:
         # Calculate amount per coin
@@ -10847,8 +10847,8 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
         - pnl_pct: Percentage PnL
     """
     # Get stored DCA data from spot_settings
-    cfg = db.get_user_config(user_id)
-    spot_settings = cfg.get("spot_settings", {})
+    cfg = db.get_user_config(user_id) or {}
+    spot_settings = cfg.get("spot_settings") or {}
     total_invested = float(spot_settings.get("total_invested", 0.0))
     dca_coins = spot_settings.get("coins", [])  # Coins tracked by DCA
     
@@ -12445,7 +12445,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: str = "demo") -> str:
     """Format Spot DCA statistics."""
     cfg = db.get_user_config(uid)
-    spot_settings = cfg.get("spot_settings", {})
+    spot_settings = cfg.get("spot_settings") or {}
     
     total_invested = spot_settings.get("total_invested", 0.0)
     coins = spot_settings.get("coins", SPOT_DCA_COINS)
@@ -16063,7 +16063,7 @@ async def spot_tp_rebalance_loop(app: Application):
             for uid in get_all_users():
                 try:
                     cfg = get_user_config(uid)
-                    spot_settings = cfg.get("spot_settings", {})
+                    spot_settings = cfg.get("spot_settings") or {}
                     
                     # Skip if spot trading is disabled in strategy settings
                     if not cfg.get("spot_enabled", 0):
@@ -16348,7 +16348,7 @@ async def spot_auto_dca_loop(app: Application):
             for uid in get_all_users():
                 try:
                     cfg = get_user_config(uid)
-                    spot_settings = cfg.get("spot_settings", {})
+                    spot_settings = cfg.get("spot_settings") or {}
                     
                     # Skip if spot trading is disabled in strategy settings
                     if not cfg.get("spot_enabled", 0):
