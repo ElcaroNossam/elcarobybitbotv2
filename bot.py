@@ -1164,201 +1164,131 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ==============================================================================
 
 def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> InlineKeyboardMarkup:
-    """Build keyboard for Spot DCA settings - Professional version."""
-    coins = spot_settings.get("coins", SPOT_DCA_COINS)
-    amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
-    freq = spot_settings.get("frequency", "manual")
-    auto_dca = spot_settings.get("auto_dca", False)
+    """Build keyboard for Spot DCA settings - Compact & User-Friendly."""
+    # Get settings
+    spot_enabled = cfg.get("spot_enabled", 0)
     trading_mode = spot_settings.get("trading_mode", "demo")
     strategy = spot_settings.get("strategy", "fixed")
-    portfolio = spot_settings.get("portfolio", "custom")
+    amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
+    auto_dca = spot_settings.get("auto_dca", False)
     tp_enabled = spot_settings.get("tp_enabled", False)
-    rebalance_enabled = spot_settings.get("rebalance_enabled", False)
     
-    freq_labels = {
-        "manual": "⏸️ Manual",
-        "hourly": t.get("spot_freq_hourly", "⏰ Hourly"),
-        "daily": t.get("spot_freq_daily", "Daily"),
-        "weekly": t.get("spot_freq_weekly", "Weekly"),
-        "biweekly": t.get("spot_freq_biweekly", "Bi-Weekly"),
-        "monthly": t.get("spot_freq_monthly", "Monthly"),
-    }
-    freq_label = freq_labels.get(freq, "Manual")
-    
-    auto_emoji = "✅" if auto_dca else "❌"
-    tp_emoji = "✅" if tp_enabled else "❌"
-    rebalance_emoji = "✅" if rebalance_enabled else "❌"
-    mode_label = "Demo" if trading_mode == "demo" else "Real"
-    
-    # Get portfolio info
-    portfolio_info = SPOT_PORTFOLIOS.get(portfolio, SPOT_PORTFOLIOS["custom"])
-    portfolio_label = f"{portfolio_info['emoji']} {portfolio_info['name']}"
-    
-    # Get strategy info
+    # Strategy info
     strategy_info = SMART_DCA_STRATEGIES.get(strategy, SMART_DCA_STRATEGIES["fixed"])
     strategy_label = f"{strategy_info['emoji']} {strategy_info['name']}"
     
-    # Format coins display
-    if portfolio != "custom" and portfolio_info.get("coins"):
-        coins_display = portfolio_label
-    else:
-        coins_str = ", ".join(coins[:3]) if isinstance(coins, list) else str(coins)
-        if isinstance(coins, list) and len(coins) > 3:
-            coins_str += f" +{len(coins)-3}"
-        coins_display = coins_str
+    # Status emojis
+    enabled_emoji = "✅" if spot_enabled else "❌"
+    mode_emoji = "🧪" if trading_mode == "demo" else "💰"
+    auto_emoji = "✅" if auto_dca else "❌"
+    tp_emoji = "✅" if tp_enabled else "❌"
     
-    buttons = [
-        # Trading mode (demo/real)
-        [InlineKeyboardButton(
-            f"📍 Mode: {mode_label}",
-            callback_data="spot:mode"
-        )],
-        # Portfolio preset
-        [InlineKeyboardButton(
-            f"📁 Portfolio: {portfolio_label}",
-            callback_data="spot:portfolio"
-        )],
-        # Custom coins (if custom portfolio)
-        [InlineKeyboardButton(
-            f"🪙 Coins: {coins_display}",
-            callback_data="spot:coins"
-        )],
-        # DCA Strategy
-        [InlineKeyboardButton(
-            f"🎯 Strategy: {strategy_label}",
-            callback_data="spot:strategy"
-        )],
-        # DCA Amount
-        [InlineKeyboardButton(
-            f"💵 Amount: {amount} USDT",
-            callback_data="spot:amount"
-        )],
-        # Frequency
-        [InlineKeyboardButton(
-            f"⏰ Frequency: {freq_label}",
-            callback_data="spot:frequency"
-        )],
-        # Auto DCA toggle
-        [
-            InlineKeyboardButton(f"🔄 Auto DCA: {auto_emoji}", callback_data="spot:auto_toggle"),
-            InlineKeyboardButton(f"🎯 Auto TP: {tp_emoji}", callback_data="spot:tp_toggle"),
-        ],
-        # Trailing TP
-        [InlineKeyboardButton(
-            f"📈 Trailing TP: {'✅' if spot_settings.get('trailing_tp', {}).get('enabled') else '❌'}",
-            callback_data="spot:trailing_toggle"
-        )],
-        # Rebalancing
-        [InlineKeyboardButton(
-            f"⚖️ Auto Rebalance: {rebalance_emoji}",
-            callback_data="spot:rebalance_toggle"
-        )],
-        # Action buttons
-        [
+    buttons = []
+    
+    # Row 1: Enable/Disable + Mode
+    buttons.append([
+        InlineKeyboardButton(f"{enabled_emoji} Spot", callback_data="spot:enable_toggle"),
+        InlineKeyboardButton(f"{mode_emoji} {trading_mode.title()}", callback_data="spot:mode"),
+    ])
+    
+    # Row 2: Strategy + Amount
+    buttons.append([
+        InlineKeyboardButton(f"🎯 {strategy_label}", callback_data="spot:strategy"),
+        InlineKeyboardButton(f"💵 {amount}$", callback_data="spot:amount"),
+    ])
+    
+    # Row 3: Auto DCA + Auto TP (only if enabled)
+    if spot_enabled:
+        buttons.append([
+            InlineKeyboardButton(f"🔄 Auto: {auto_emoji}", callback_data="spot:auto_toggle"),
+            InlineKeyboardButton(f"📈 TP: {tp_emoji}", callback_data="spot:tp_toggle"),
+        ])
+    
+    # Strategy-specific settings
+    if strategy == "dip_buy":
+        dip_threshold = spot_settings.get("dip_threshold", 5.0)
+        buttons.append([
+            InlineKeyboardButton(f"📉 Dip: -{dip_threshold}%", callback_data="spot:dip_threshold"),
+        ])
+    elif strategy == "fear_greed":
+        fear_threshold = spot_settings.get("fear_threshold", 25)
+        buttons.append([
+            InlineKeyboardButton(f"😱 Fear Index: <{fear_threshold}", callback_data="spot:fear_threshold"),
+        ])
+    
+    # Row 4: Coins selection
+    portfolio = spot_settings.get("portfolio", "custom")
+    coins = spot_settings.get("coins", SPOT_DCA_COINS)
+    if portfolio != "custom":
+        portfolio_info = SPOT_PORTFOLIOS.get(portfolio, {})
+        coins_label = f"{portfolio_info.get('emoji', '📁')} {portfolio_info.get('name', portfolio)}"
+    else:
+        coins_label = ", ".join(coins[:2]) + (f"+{len(coins)-2}" if len(coins) > 2 else "")
+    buttons.append([
+        InlineKeyboardButton(f"🪙 {coins_label}", callback_data="spot:coins"),
+    ])
+    
+    # Action buttons (only if enabled)
+    if spot_enabled:
+        buttons.append([
             InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
-            InlineKeyboardButton("💸 Sell", callback_data="spot:sell_menu"),
-        ],
-        [
-            InlineKeyboardButton("📋 Limit Order", callback_data="spot:limit_order"),
-            InlineKeyboardButton("🔲 Grid Bot", callback_data="spot:grid_menu"),
-        ],
-        [
-            InlineKeyboardButton("⚖️ Rebalance Now", callback_data="spot:rebalance_now"),
-            InlineKeyboardButton("📊 Stats", callback_data="spot:portfolio_stats"),
-        ],
-        # Holdings / Stats
-        [
             InlineKeyboardButton("💎 Holdings", callback_data="spot:holdings"),
-            InlineKeyboardButton("📈 Performance", callback_data="spot:performance"),
-        ],
-        # TP Levels settings
-        [InlineKeyboardButton(
-            "⚙️ TP Settings",
-            callback_data="spot:tp_settings"
-        )],
-        # Back to strategies
-        [InlineKeyboardButton(
-            t.get("spot_btn_back", "⬅️ Back"),
-            callback_data="spot:back_to_strategies"
-        )],
-    ]
+        ])
+    
+    # Back button
+    buttons.append([
+        InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="spot:back_to_strategies"),
+    ])
+    
     return InlineKeyboardMarkup(buttons)
 
 
 def format_spot_settings_message(t: dict, cfg: dict, spot_settings: dict) -> str:
-    """Format Spot DCA settings message - Professional version."""
+    """Format Spot DCA settings message - Compact version."""
+    spot_enabled = cfg.get("spot_enabled", 0)
     coins = spot_settings.get("coins", SPOT_DCA_COINS)
     amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
-    freq = spot_settings.get("frequency", "manual")
-    auto_dca = spot_settings.get("auto_dca", False)
     total_invested = spot_settings.get("total_invested", 0.0)
     trading_mode = spot_settings.get("trading_mode", "demo")
     strategy = spot_settings.get("strategy", "fixed")
     portfolio = spot_settings.get("portfolio", "custom")
-    tp_enabled = spot_settings.get("tp_enabled", False)
-    rebalance_enabled = spot_settings.get("rebalance_enabled", False)
-    dip_threshold = spot_settings.get("dip_threshold", 5.0)  # % drop to trigger extra buy
-    fear_threshold = spot_settings.get("fear_threshold", 25)  # F&G index below this = buy more
-    
-    freq_labels = {
-        "manual": "⏸️ Manual",
-        "daily": t.get("spot_freq_daily", "Daily"),
-        "weekly": t.get("spot_freq_weekly", "Weekly"),
-        "biweekly": t.get("spot_freq_biweekly", "Bi-Weekly"),
-        "monthly": t.get("spot_freq_monthly", "Monthly"),
-    }
-    freq_label = freq_labels.get(freq, "Manual")
-    
-    # Get portfolio info
-    portfolio_info = SPOT_PORTFOLIOS.get(portfolio, SPOT_PORTFOLIOS["custom"])
-    portfolio_label = f"{portfolio_info['emoji']} {portfolio_info['name']}"
     
     # Get strategy info
     strategy_info = SMART_DCA_STRATEGIES.get(strategy, SMART_DCA_STRATEGIES["fixed"])
     strategy_label = f"{strategy_info['emoji']} {strategy_info['name']}"
     
-    # Coins allocation
-    if portfolio != "custom" and portfolio_info.get("coins"):
-        coins_lines = []
-        for coin, pct in portfolio_info["coins"].items():
-            coins_lines.append(f"  • {coin}: {pct}%")
-        coins_display = "\n" + "\n".join(coins_lines)
-    else:
-        coins_str = ", ".join(coins) if isinstance(coins, list) else str(coins)
-        coins_display = coins_str
+    # Get portfolio info
+    portfolio_info = SPOT_PORTFOLIOS.get(portfolio, SPOT_PORTFOLIOS.get("custom", {}))
     
-    auto_status = "✅" if auto_dca else "❌"
-    tp_status = "✅" if tp_enabled else "❌"
-    rebalance_status = "✅" if rebalance_enabled else "❌"
-    mode_label = "Demo" if trading_mode == "demo" else "Real"
+    # Status
+    enabled_label = "✅ Enabled" if spot_enabled else "❌ Disabled"
+    mode_label = "🧪 Demo" if trading_mode == "demo" else "💰 Real"
+    
+    # Coins display
+    if portfolio != "custom" and portfolio_info.get("coins"):
+        coins_list = [f"{c}: {p}%" for c, p in portfolio_info["coins"].items()]
+        coins_display = ", ".join(coins_list)
+    else:
+        coins_display = ", ".join(coins) if isinstance(coins, list) else str(coins)
     
     lines = [
-        "💹 <b>Professional Spot DCA</b>",
+        "💹 <b>Spot DCA Settings</b>",
         "",
-        f"📍 <b>Mode:</b> {mode_label}",
-        f"📁 <b>Portfolio:</b> {portfolio_label}",
-        f"<i>{portfolio_info.get('description', '')}</i>",
-        "",
-        f"🪙 <b>Coins:</b> {coins_display}",
-        "",
-        f"🎯 <b>Strategy:</b> {strategy_label}",
-        f"<i>{strategy_info.get('description', '')}</i>",
-        "",
-        f"💵 <b>Amount per DCA:</b> {amount} USDT",
-        f"⏰ <b>Frequency:</b> {freq_label}",
-        "",
-        f"🔄 <b>Auto DCA:</b> {auto_status}",
-        f"🎯 <b>Auto Take Profit:</b> {tp_status}",
-        f"⚖️ <b>Auto Rebalance:</b> {rebalance_status}",
-        "",
-        f"📊 <b>Total Invested:</b> {total_invested:.2f} USDT",
+        f"<b>Status:</b> {enabled_label}",
+        f"<b>Mode:</b> {mode_label}",
+        f"<b>Strategy:</b> {strategy_label}",
+        f"<b>Amount:</b> {amount} USDT",
+        f"<b>Coins:</b> {coins_display}",
     ]
     
-    # Add strategy-specific info
-    if strategy == "dip_buy":
-        lines.append(f"📉 <b>Dip Threshold:</b> -{dip_threshold}%")
-    elif strategy == "fear_greed":
-        lines.append(f"😱 <b>Fear Threshold:</b> {fear_threshold}")
+    if total_invested > 0:
+        lines.append(f"<b>Total Invested:</b> ${total_invested:.2f}")
+    
+    # Strategy description
+    lines.append("")
+    lines.append(f"<i>{strategy_info.get('description', '')}</i>")
+    
+    return "\n".join(lines)
     
     return "\n".join(lines)
 
@@ -1427,6 +1357,25 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "grids": {},
             "purchase_history": {},
         }
+    
+    # Handle enable/disable toggle
+    if action == "enable_toggle":
+        current = cfg.get("spot_enabled", 0)
+        new_value = 0 if current else 1
+        db.set_user_field(uid, "spot_enabled", new_value)
+        
+        status = "✅ Spot enabled" if new_value else "❌ Spot disabled"
+        await q.answer(status)
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        msg = format_spot_settings_message(t, cfg, spot_settings)
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        try:
+            await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
     
     # Handle actions
     if action == "coins":
@@ -1822,6 +1771,48 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             spot_settings["strategy"] = strategy_key
             db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
             await q.answer(f"Strategy: {strategy_info['name']}")
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        msg = format_spot_settings_message(t, cfg, spot_settings)
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        try:
+            await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    if action == "dip_threshold":
+        # Cycle through dip thresholds: 3%, 5%, 7%, 10%, 15%
+        thresholds = [3.0, 5.0, 7.0, 10.0, 15.0]
+        current = spot_settings.get("dip_threshold", 5.0)
+        idx = thresholds.index(current) if current in thresholds else 1
+        new_threshold = thresholds[(idx + 1) % len(thresholds)]
+        
+        spot_settings["dip_threshold"] = new_threshold
+        db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
+        await q.answer(f"Dip threshold: -{new_threshold}%")
+        
+        cfg = db.get_user_config(uid)
+        spot_settings = cfg.get("spot_settings", {})
+        msg = format_spot_settings_message(t, cfg, spot_settings)
+        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        try:
+            await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    if action == "fear_threshold":
+        # Cycle through fear thresholds: 15, 20, 25, 30, 35
+        thresholds = [15, 20, 25, 30, 35]
+        current = spot_settings.get("fear_threshold", 25)
+        idx = thresholds.index(current) if current in thresholds else 2
+        new_threshold = thresholds[(idx + 1) % len(thresholds)]
+        
+        spot_settings["fear_threshold"] = new_threshold
+        db.set_user_field(uid, "spot_settings", json.dumps(spot_settings))
+        await q.answer(f"Fear Index threshold: <{new_threshold}")
         
         cfg = db.get_user_config(uid)
         spot_settings = cfg.get("spot_settings", {})
