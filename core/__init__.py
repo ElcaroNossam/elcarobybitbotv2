@@ -30,8 +30,12 @@ from .config import Config, get_config
 # Caching
 from .cache import (
     LRUCache,
+    AsyncLRUCache,
+    UserPartitionedCache,
     cached,
     async_cached,
+    async_cached_with_lock,
+    user_cached,
     user_config_cache,
     price_cache,
     symbol_info_cache,
@@ -41,11 +45,52 @@ from .cache import (
     order_cache,
     market_data_cache,
     credentials_cache,
+    async_balance_cache,
+    async_position_cache,
+    user_strategy_cache,
+    user_context_cache,
     invalidate_user_caches,
     invalidate_position_cache,
     invalidate_balance_cache,
+    invalidate_on_trade_async,
     get_all_cache_stats,
     periodic_cache_cleanup,
+)
+
+# Pool Manager (unified connection pooling)
+from .pool_manager import (
+    UnifiedPoolManager,
+    CircuitBreaker,
+    CircuitState,
+    RetryConfig,
+    PoolMetrics,
+    get_pool_manager,
+)
+
+# User Context (thread/async-safe multitenancy)
+from .user_context import (
+    TradingContext,
+    user_context,
+    get_trading_context,
+    require_trading_context,
+    current_user_id,
+    current_exchange,
+    current_account_type,
+    with_user_context,
+    ContextLoggerAdapter,
+)
+
+# Batch Operations (high-performance bulk queries)
+from .batch_operations import (
+    BatchResult,
+    BatchSummary,
+    batch_fetch_positions,
+    batch_fetch_user_settings,
+    batch_fetch_active_users,
+    parallel_process_users,
+    chunked_process,
+    MonitoringCycleStats,
+    MonitoringStats,
 )
 
 # Rate limiting
@@ -188,8 +233,12 @@ __all__ = [
     
     # Caching
     "LRUCache",
+    "AsyncLRUCache",
+    "UserPartitionedCache",
     "cached",
     "async_cached",
+    "async_cached_with_lock",
+    "user_cached",
     "user_config_cache",
     "price_cache",
     "symbol_info_cache",
@@ -199,11 +248,46 @@ __all__ = [
     "order_cache",
     "market_data_cache",
     "credentials_cache",
+    "async_balance_cache",
+    "async_position_cache",
+    "user_strategy_cache",
+    "user_context_cache",
     "invalidate_user_caches",
     "invalidate_position_cache",
     "invalidate_balance_cache",
+    "invalidate_on_trade_async",
     "get_all_cache_stats",
     "periodic_cache_cleanup",
+    
+    # Pool Manager
+    "UnifiedPoolManager",
+    "CircuitBreaker",
+    "CircuitState",
+    "RetryConfig",
+    "PoolMetrics",
+    "get_pool_manager",
+    
+    # User Context
+    "TradingContext",
+    "user_context",
+    "get_trading_context",
+    "require_trading_context",
+    "current_user_id",
+    "current_exchange",
+    "current_account_type",
+    "with_user_context",
+    "ContextLoggerAdapter",
+    
+    # Batch Operations
+    "BatchResult",
+    "BatchSummary",
+    "batch_fetch_positions",
+    "batch_fetch_user_settings",
+    "batch_fetch_active_users",
+    "parallel_process_users",
+    "chunked_process",
+    "MonitoringCycleStats",
+    "MonitoringStats",
     
     # Rate limiting
     "TokenBucket",
