@@ -174,6 +174,15 @@ class SQLiteCompatCursor:
     
     def __iter__(self):
         return iter(self._cursor)
+    
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.close()
+        return False
 
 
 class SQLiteCompatConnection:
@@ -250,12 +259,18 @@ def get_conn():
 
 def execute(query: str, params: tuple = None) -> List[Dict]:
     """Execute query and return results as list of dicts"""
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(query, params)
+    pool = get_pool()
+    pg_conn = pool.getconn()
+    try:
+        with pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Convert SQLite style query to PostgreSQL
+            pg_query = _sqlite_to_pg(query)
+            cur.execute(pg_query, params)
             if cur.description:
                 return [dict(row) for row in cur.fetchall()]
             return []
+    finally:
+        pool.putconn(pg_conn)
 
 
 def execute_one(query: str, params: tuple = None) -> Optional[Dict]:
