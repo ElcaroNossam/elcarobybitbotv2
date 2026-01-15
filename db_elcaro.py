@@ -7,6 +7,8 @@ All database operations for ELCARO (ELC) token:
 - Transaction history
 - Global token statistics
 - Cold wallet connections
+
+PostgreSQL ONLY - No SQLite support
 """
 
 import json
@@ -15,9 +17,28 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
-from db import get_conn, invalidate_user_cache
+# PostgreSQL imports
+from core.db_postgres import get_pool, get_conn, execute, execute_one, execute_write
+
+import db
+from db import invalidate_user_cache
 
 logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATABASE HELPERS (PostgreSQL Only)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _get_conn():
+    """Get PostgreSQL connection from pool"""
+    pool = get_pool()
+    return pool.getconn()
+
+def _release_conn(conn):
+    """Release connection back to pool"""
+    pool = get_pool()
+    pool.putconn(conn)
 
 
 # ------------------------------------------------------------------------------------
@@ -36,27 +57,25 @@ def get_elc_balance(user_id: int) -> Dict[str, float]:
             "total": 6500.0
         }
     """
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT elc_balance, elc_staked, elc_locked 
-               FROM users WHERE user_id = ?""",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        
-        if not row:
-            return {"available": 0.0, "staked": 0.0, "locked": 0.0, "total": 0.0}
-        
-        available = row[0] or 0.0
-        staked = row[1] or 0.0
-        locked = row[2] or 0.0
-        
-        return {
-            "available": available,
-            "staked": staked,
-            "locked": locked,
-            "total": available + staked + locked
-        }
+    row = execute_one(
+        """SELECT elc_balance, elc_staked, elc_locked 
+           FROM users WHERE user_id = %s""",
+        (user_id,)
+    )
+    
+    if not row:
+        return {"available": 0.0, "staked": 0.0, "locked": 0.0, "total": 0.0}
+    
+    available = row.get("elc_balance") or 0.0
+    staked = row.get("elc_staked") or 0.0
+    locked = row.get("elc_locked") or 0.0
+    
+    return {
+        "available": available,
+        "staked": staked,
+        "locked": locked,
+        "total": available + staked + locked
+    }
 
 
 def update_elc_balance(
@@ -87,12 +106,12 @@ def update_elc_balance(
     }
     column = column_map[balance_type]
     
-    with get_conn() as conn:
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        
         # Get current balance
-        cur = conn.execute(
-            f"SELECT {column} FROM users WHERE user_id = ?",
-            (user_id,)
-        )
+        cur.execute(f"SELECT {column} FROM users WHERE user_id = %s", (user_id,))
         row = cur.fetchone()
         current = (row[0] or 0.0) if row else 0.0
         
@@ -102,10 +121,12 @@ def update_elc_balance(
             raise ValueError(f"Insufficient {balance_type} balance: {current} < {abs(amount)}")
         
         # Update balance
-        conn.execute(
-            f"UPDATE users SET {column} = ? WHERE user_id = ?",
+        cur.execute(
+            f"UPDATE users SET {column} = %s WHERE user_id = %s",
             (new_balance, user_id)
         )
+        
+        conn.commit()
         
         # Record transaction
         transaction_type = "adjustment" if not description else description
@@ -117,10 +138,14 @@ def update_elc_balance(
             description=description
         )
         
-        conn.commit()
         invalidate_user_cache(user_id)
-        
         return get_elc_balance(user_id)
+        
+    except Exception as e:
+        conn.rollback()
+        raise
+    finally:
+        _release_conn(conn)
 
 
 def add_elc_balance(user_id: int, amount: float, description: str = None) -> Dict[str, float]:
@@ -165,30 +190,33 @@ def create_elc_purchase(
     Returns:
         Purchase ID
     """
-    with get_conn() as conn:
-        cur = conn.execute(
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
             """INSERT INTO elc_purchases 
                (user_id, payment_id, usdt_amount, elc_amount, platform_fee, 
                 status, payment_method, created_at)
-               VALUES (?, ?, ?, ?, ?, 'pending', ?, CURRENT_TIMESTAMP)""",
+               VALUES (%s, %s, %s, %s, %s, 'pending', %s, NOW())
+               RETURNING id""",
             (user_id, payment_id, usdt_amount, elc_amount, platform_fee, payment_method)
         )
+        row = cur.fetchone()
         conn.commit()
-        return cur.lastrowid
+        return row[0] if row else 0
+    finally:
+        _release_conn(conn)
 
 
 def get_elc_purchase(payment_id: str) -> Optional[Dict[str, Any]]:
     """Get ELC purchase by payment ID."""
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT id, user_id, payment_id, usdt_amount, elc_amount, 
-                      platform_fee, status, payment_method, tx_hash, 
-                      created_at, completed_at
-               FROM elc_purchases WHERE payment_id = ?""",
-            (payment_id,)
-        )
-        row = cur.fetchone()
-        return dict(row) if row else None
+    return execute_one(
+        """SELECT id, user_id, payment_id, usdt_amount, elc_amount, 
+                  platform_fee, status, payment_method, tx_hash, 
+                  created_at, completed_at
+           FROM elc_purchases WHERE payment_id = %s""",
+        (payment_id,)
+    )
 
 
 def complete_elc_purchase(
@@ -217,84 +245,64 @@ def complete_elc_purchase(
     user_id = purchase["user_id"]
     elc_amount = purchase["elc_amount"]
     
-    with get_conn() as conn:
-        # SECURITY: Use EXCLUSIVE transaction to prevent TOCTOU race conditions
-        conn.execute("BEGIN EXCLUSIVE")
-        try:
-            # Update purchase status
-            conn.execute(
-                """UPDATE elc_purchases 
-                   SET status = 'completed', tx_hash = ?, completed_at = CURRENT_TIMESTAMP
-                   WHERE payment_id = ?""",
-                (tx_hash, payment_id)
-            )
-            
-            # Add ELC to user balance and get new balance atomically
-            # Note: SQLite 3.35+ supports RETURNING, but for compatibility we use SELECT after UPDATE
-            conn.execute(
-                "UPDATE users SET elc_balance = elc_balance + ? WHERE user_id = ?",
-                (elc_amount, user_id)
-            )
-            
-            # Get new balance (within same transaction for consistency)
-            cur = conn.execute(
-                "SELECT elc_balance FROM users WHERE user_id = ?",
-                (user_id,)
-            )
-            row = cur.fetchone()
-            new_balance = row[0] if row else elc_amount  # Fallback to elc_amount if user not found
-            
-            # Record transaction
-            add_elc_transaction(
-                user_id=user_id,
-                transaction_type="purchase",
-                amount=elc_amount,
-                balance_after=new_balance,
-                description=f"Purchased {elc_amount} ELC with USDT",
-                metadata=json.dumps({
-                    "payment_id": payment_id,
-                    "tx_hash": tx_hash,
-                    "usdt_amount": purchase["usdt_amount"]
-                })
-            )
-            
-            # Update global stats
-            update_elc_stats(total_purchases_delta=elc_amount)
-            
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            logger.error(f"Failed to complete ELC purchase {payment_id}: {e}")
-            raise
-        invalidate_user_cache(user_id)
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
         
-        logger.info(f"Completed ELC purchase: {payment_id} → {elc_amount} ELC to user {user_id}")
-        return True
-
-
-def fail_elc_purchase(payment_id: str) -> bool:
-    """Mark ELC purchase as failed."""
-    with get_conn() as conn:
-        conn.execute(
-            "UPDATE elc_purchases SET status = 'failed' WHERE payment_id = ?",
-            (payment_id,)
+        # Update purchase status
+        cur.execute(
+            """UPDATE elc_purchases 
+               SET status = 'completed', tx_hash = %s, completed_at = NOW()
+               WHERE payment_id = %s""",
+            (tx_hash, payment_id)
         )
+        
+        # Add ELC to user balance
+        cur.execute(
+            """UPDATE users 
+               SET elc_balance = COALESCE(elc_balance, 0) + %s 
+               WHERE user_id = %s
+               RETURNING elc_balance""",
+            (elc_amount, user_id)
+        )
+        row = cur.fetchone()
+        new_balance = row[0] if row else elc_amount
+        
         conn.commit()
-        return True
-
-
-def get_user_elc_purchases(user_id: int, limit: int = 50) -> List[Dict[str, Any]]:
-    """Get user's ELC purchase history."""
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT id, payment_id, usdt_amount, elc_amount, platform_fee,
-                      status, payment_method, tx_hash, created_at, completed_at
-               FROM elc_purchases 
-               WHERE user_id = ? 
-               ORDER BY created_at DESC LIMIT ?""",
-            (user_id, limit)
+        
+        # Record transaction
+        add_elc_transaction(
+            user_id=user_id,
+            transaction_type="purchase",
+            amount=elc_amount,
+            balance_after=new_balance,
+            tx_hash=tx_hash,
+            description=f"Purchase via {purchase.get('payment_method', 'ton_usdt')}"
         )
-        return [dict(row) for row in cur.fetchall()]
+        
+        invalidate_user_cache(user_id)
+        logger.info(f"ELC purchase completed: {payment_id}, user={user_id}, amount={elc_amount}")
+        return True
+        
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to complete purchase {payment_id}: {e}")
+        return False
+    finally:
+        _release_conn(conn)
+
+
+def get_user_purchases(user_id: int, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get user's purchase history."""
+    return execute(
+        """SELECT id, payment_id, usdt_amount, elc_amount, platform_fee,
+                  status, payment_method, tx_hash, created_at, completed_at
+           FROM elc_purchases 
+           WHERE user_id = %s
+           ORDER BY created_at DESC
+           LIMIT %s""",
+        (user_id, limit)
+    )
 
 
 # ------------------------------------------------------------------------------------
@@ -306,377 +314,387 @@ def add_elc_transaction(
     transaction_type: str,
     amount: float,
     balance_after: float,
+    tx_hash: str = None,
     description: str = None,
-    metadata: str = None
+    related_user_id: int = None
 ) -> int:
     """
     Record an ELC transaction.
     
     Args:
         user_id: User ID
-        transaction_type: purchase, subscription, marketplace, burn, stake, unstake, withdraw
-        amount: Transaction amount (negative for spending)
+        transaction_type: "purchase", "transfer_in", "transfer_out", "stake", "unstake", "reward", "fee"
+        amount: Transaction amount (positive or negative)
         balance_after: Balance after transaction
+        tx_hash: Blockchain transaction hash (if applicable)
         description: Human-readable description
-        metadata: JSON string with additional data
+        related_user_id: Related user (for transfers)
     
     Returns:
         Transaction ID
     """
-    with get_conn() as conn:
-        cur = conn.execute(
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
             """INSERT INTO elc_transactions 
-               (user_id, transaction_type, amount, balance_after, description, metadata, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-            (user_id, transaction_type, amount, balance_after, description, metadata)
+               (user_id, transaction_type, amount, balance_after, tx_hash, 
+                description, related_user_id, created_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+               RETURNING id""",
+            (user_id, transaction_type, amount, balance_after, tx_hash, 
+             description, related_user_id)
         )
+        row = cur.fetchone()
         conn.commit()
-        return cur.lastrowid
+        return row[0] if row else 0
+    finally:
+        _release_conn(conn)
 
 
-def get_elc_transactions(
-    user_id: int,
-    transaction_type: str = None,
-    limit: int = 100
+def get_user_transactions(
+    user_id: int, 
+    limit: int = 50,
+    transaction_type: str = None
 ) -> List[Dict[str, Any]]:
+    """Get user's transaction history."""
+    if transaction_type:
+        return execute(
+            """SELECT id, transaction_type, amount, balance_after, tx_hash,
+                      description, related_user_id, created_at
+               FROM elc_transactions 
+               WHERE user_id = %s AND transaction_type = %s
+               ORDER BY created_at DESC
+               LIMIT %s""",
+            (user_id, transaction_type, limit)
+        )
+    else:
+        return execute(
+            """SELECT id, transaction_type, amount, balance_after, tx_hash,
+                      description, related_user_id, created_at
+               FROM elc_transactions 
+               WHERE user_id = %s
+               ORDER BY created_at DESC
+               LIMIT %s""",
+            (user_id, limit)
+        )
+
+
+# ------------------------------------------------------------------------------------
+# ELC Staking
+# ------------------------------------------------------------------------------------
+
+def stake_elc(user_id: int, amount: float) -> Dict[str, float]:
     """
-    Get user's ELC transaction history.
+    Stake ELC tokens (move from available to staked).
     
     Args:
         user_id: User ID
-        transaction_type: Filter by type (optional)
-        limit: Max number of transactions
+        amount: Amount to stake
     
     Returns:
-        List of transaction dicts
+        New balance breakdown
     """
-    with get_conn() as conn:
-        if transaction_type:
-            cur = conn.execute(
-                """SELECT id, transaction_type, amount, balance_after, 
-                          description, metadata, created_at
-                   FROM elc_transactions 
-                   WHERE user_id = ? AND transaction_type = ?
-                   ORDER BY created_at DESC LIMIT ?""",
-                (user_id, transaction_type, limit)
-            )
-        else:
-            cur = conn.execute(
-                """SELECT id, transaction_type, amount, balance_after,
-                          description, metadata, created_at
-                   FROM elc_transactions 
-                   WHERE user_id = ?
-                   ORDER BY created_at DESC LIMIT ?""",
-                (user_id, limit)
-            )
-        return [dict(row) for row in cur.fetchall()]
+    if amount <= 0:
+        raise ValueError("Stake amount must be positive")
+    
+    balance = get_elc_balance(user_id)
+    if balance["available"] < amount:
+        raise ValueError(f"Insufficient available balance: {balance['available']} < {amount}")
+    
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        
+        # Move from available to staked
+        cur.execute(
+            """UPDATE users 
+               SET elc_balance = elc_balance - %s,
+                   elc_staked = COALESCE(elc_staked, 0) + %s
+               WHERE user_id = %s""",
+            (amount, amount, user_id)
+        )
+        
+        conn.commit()
+        
+        # Record transaction
+        new_balance = get_elc_balance(user_id)
+        add_elc_transaction(
+            user_id=user_id,
+            transaction_type="stake",
+            amount=-amount,
+            balance_after=new_balance["available"],
+            description=f"Staked {amount} ELC"
+        )
+        
+        invalidate_user_cache(user_id)
+        return new_balance
+        
+    except Exception as e:
+        conn.rollback()
+        raise
+    finally:
+        _release_conn(conn)
+
+
+def unstake_elc(user_id: int, amount: float) -> Dict[str, float]:
+    """
+    Unstake ELC tokens (move from staked to available).
+    
+    Args:
+        user_id: User ID
+        amount: Amount to unstake
+    
+    Returns:
+        New balance breakdown
+    """
+    if amount <= 0:
+        raise ValueError("Unstake amount must be positive")
+    
+    balance = get_elc_balance(user_id)
+    if balance["staked"] < amount:
+        raise ValueError(f"Insufficient staked balance: {balance['staked']} < {amount}")
+    
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        
+        # Move from staked to available
+        cur.execute(
+            """UPDATE users 
+               SET elc_balance = COALESCE(elc_balance, 0) + %s,
+                   elc_staked = elc_staked - %s
+               WHERE user_id = %s""",
+            (amount, amount, user_id)
+        )
+        
+        conn.commit()
+        
+        # Record transaction
+        new_balance = get_elc_balance(user_id)
+        add_elc_transaction(
+            user_id=user_id,
+            transaction_type="unstake",
+            amount=amount,
+            balance_after=new_balance["available"],
+            description=f"Unstaked {amount} ELC"
+        )
+        
+        invalidate_user_cache(user_id)
+        return new_balance
+        
+    except Exception as e:
+        conn.rollback()
+        raise
+    finally:
+        _release_conn(conn)
 
 
 # ------------------------------------------------------------------------------------
-# ELC Global Statistics
+# ELC Statistics
 # ------------------------------------------------------------------------------------
 
 def get_elc_stats() -> Dict[str, Any]:
-    """
-    Get global ELCARO token statistics.
+    """Get global ELC token statistics."""
+    row = execute_one(
+        """SELECT 
+              COUNT(DISTINCT user_id) as holders,
+              SUM(elc_balance) as total_available,
+              SUM(elc_staked) as total_staked,
+              SUM(elc_locked) as total_locked,
+              SUM(elc_balance + COALESCE(elc_staked, 0) + COALESCE(elc_locked, 0)) as total_supply
+           FROM users
+           WHERE elc_balance > 0 OR elc_staked > 0 OR elc_locked > 0"""
+    )
     
-    Returns:
-        {
-            "total_burned": 1500000.0,
-            "total_staked": 50000000.0,
-            "circulating_supply": 998500000.0,
-            "total_purchases": 10000000.0,
-            "total_subscriptions": 500000.0,
-            "last_burn_at": "2025-01-15 12:00:00",
-            "last_update": "2025-01-15 14:30:00"
-        }
-    """
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT total_burned, total_staked, circulating_supply,
-                      total_purchases, total_subscriptions, last_burn_at, last_update
-               FROM elc_stats WHERE id = 1"""
-        )
-        row = cur.fetchone()
-        
-        if not row:
-            return {
-                "total_burned": 0.0,
-                "total_staked": 0.0,
-                "circulating_supply": 1000000000.0,
-                "total_purchases": 0.0,
-                "total_subscriptions": 0.0,
-                "last_burn_at": None,
-                "last_update": None
-            }
-        
-        return dict(row)
+    purchases = execute_one(
+        """SELECT 
+              COUNT(*) as total_purchases,
+              SUM(usdt_amount) as total_usdt_volume,
+              SUM(elc_amount) as total_elc_purchased
+           FROM elc_purchases
+           WHERE status = 'completed'"""
+    )
+    
+    return {
+        "holders": row.get("holders") or 0 if row else 0,
+        "total_available": row.get("total_available") or 0 if row else 0,
+        "total_staked": row.get("total_staked") or 0 if row else 0,
+        "total_locked": row.get("total_locked") or 0 if row else 0,
+        "total_supply": row.get("total_supply") or 0 if row else 0,
+        "total_purchases": purchases.get("total_purchases") or 0 if purchases else 0,
+        "total_usdt_volume": purchases.get("total_usdt_volume") or 0 if purchases else 0,
+        "total_elc_purchased": purchases.get("total_elc_purchased") or 0 if purchases else 0
+    }
 
 
-def update_elc_stats(
-    total_burned_delta: float = 0.0,
-    total_staked_delta: float = 0.0,
-    circulating_supply_delta: float = 0.0,
-    total_purchases_delta: float = 0.0,
-    total_subscriptions_delta: float = 0.0,
-    record_burn: bool = False
-) -> Dict[str, Any]:
-    """
-    Update global ELC statistics.
-    
-    Args:
-        *_delta: Amount to add/subtract from each stat
-        record_burn: Set to True to update last_burn_at timestamp
-    
-    Returns:
-        Updated stats
-    """
-    with get_conn() as conn:
-        # Build update query
-        updates = []
-        params = []
-        
-        if total_burned_delta != 0:
-            updates.append("total_burned = total_burned + ?")
-            params.append(total_burned_delta)
-        
-        if total_staked_delta != 0:
-            updates.append("total_staked = total_staked + ?")
-            params.append(total_staked_delta)
-        
-        if circulating_supply_delta != 0:
-            updates.append("circulating_supply = circulating_supply + ?")
-            params.append(circulating_supply_delta)
-        
-        if total_purchases_delta != 0:
-            updates.append("total_purchases = total_purchases + ?")
-            params.append(total_purchases_delta)
-        
-        if total_subscriptions_delta != 0:
-            updates.append("total_subscriptions = total_subscriptions + ?")
-            params.append(total_subscriptions_delta)
-        
-        if record_burn:
-            updates.append("last_burn_at = CURRENT_TIMESTAMP")
-        
-        updates.append("last_update = CURRENT_TIMESTAMP")
-        
-        if updates:
-            query = f"UPDATE elc_stats SET {', '.join(updates)} WHERE id = 1"
-            conn.execute(query, tuple(params))
-            conn.commit()
-        
-        return get_elc_stats()
-
-
-def record_elc_burn(amount: float, description: str = None) -> Dict[str, Any]:
-    """
-    Record an ELC burn event (reduces circulating supply).
-    
-    Args:
-        amount: Amount of ELC burned
-        description: Burn reason
-    
-    Returns:
-        Updated stats
-    """
-    return update_elc_stats(
-        total_burned_delta=amount,
-        circulating_supply_delta=-amount,
-        record_burn=True
+def get_top_holders(limit: int = 100) -> List[Dict[str, Any]]:
+    """Get top ELC holders."""
+    return execute(
+        """SELECT 
+              user_id,
+              elc_balance as available,
+              elc_staked as staked,
+              elc_locked as locked,
+              (elc_balance + COALESCE(elc_staked, 0) + COALESCE(elc_locked, 0)) as total
+           FROM users
+           WHERE elc_balance > 0 OR elc_staked > 0 OR elc_locked > 0
+           ORDER BY total DESC
+           LIMIT %s""",
+        (limit,)
     )
 
 
 # ------------------------------------------------------------------------------------
-# Connected Wallets (Cold Wallet Trading)
+# Cold Wallet Connections
 # ------------------------------------------------------------------------------------
 
-def connect_wallet(
+def connect_cold_wallet(
     user_id: int,
     wallet_address: str,
-    wallet_type: str,
-    chain: str = "ethereum"
+    wallet_type: str = "ton",
+    signature: str = None
 ) -> bool:
     """
-    Connect a cold wallet to user account.
+    Connect a cold wallet for ELC operations.
     
     Args:
         user_id: User ID
-        wallet_address: Wallet address (0x... for Ethereum, UQC... for TON)
-        wallet_type: "metamask", "walletconnect", "tonkeeper"
-        chain: "ethereum", "ton", "polygon", "bsc"
+        wallet_address: Wallet address
+        wallet_type: "ton", "eth", "solana"
+        signature: Verification signature
     
     Returns:
         True if successful
     """
-    with get_conn() as conn:
-        conn.execute(
-            """INSERT OR REPLACE INTO connected_wallets
-               (user_id, wallet_address, wallet_type, chain, connected_at, last_used_at)
-               VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""",
-            (user_id, wallet_address, wallet_type, chain)
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO connected_wallets 
+               (user_id, wallet_address, wallet_type, signature, connected_at, is_active)
+               VALUES (%s, %s, %s, %s, NOW(), TRUE)
+               ON CONFLICT (user_id, wallet_address) DO UPDATE SET
+                   is_active = TRUE,
+                   signature = EXCLUDED.signature""",
+            (user_id, wallet_address, wallet_type, signature)
         )
         conn.commit()
         invalidate_user_cache(user_id)
         return True
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Failed to connect wallet: {e}")
+        return False
+    finally:
+        _release_conn(conn)
 
 
-def get_connected_wallet(user_id: int) -> Optional[Dict[str, Any]]:
-    """Get user's connected wallet info."""
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT wallet_address, wallet_type, chain, connected_at, last_used_at
-               FROM connected_wallets WHERE user_id = ?""",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        return dict(row) if row else None
-
-
-def disconnect_wallet(user_id: int) -> bool:
-    """Disconnect wallet from user account."""
-    with get_conn() as conn:
-        conn.execute("DELETE FROM connected_wallets WHERE user_id = ?", (user_id,))
-        conn.commit()
+def disconnect_cold_wallet(user_id: int, wallet_address: str) -> bool:
+    """Disconnect a cold wallet."""
+    count = execute_write(
+        """UPDATE connected_wallets 
+           SET is_active = FALSE 
+           WHERE user_id = %s AND wallet_address = %s""",
+        (user_id, wallet_address)
+    )
+    if count > 0:
         invalidate_user_cache(user_id)
-        return True
+    return count > 0
 
 
-def update_wallet_last_used(user_id: int) -> bool:
-    """Update last_used_at timestamp for wallet."""
-    with get_conn() as conn:
-        conn.execute(
-            "UPDATE connected_wallets SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = ?",
-            (user_id,)
-        )
-        conn.commit()
-        return True
+def get_connected_wallets(user_id: int) -> List[Dict[str, Any]]:
+    """Get user's connected cold wallets."""
+    return execute(
+        """SELECT wallet_address, wallet_type, connected_at, is_active
+           FROM connected_wallets
+           WHERE user_id = %s AND is_active = TRUE
+           ORDER BY connected_at DESC""",
+        (user_id,)
+    )
 
 
-# ------------------------------------------------------------------------------------
-# Subscription Payments with ELC
-# ------------------------------------------------------------------------------------
-
-def pay_subscription_with_elc(
-    user_id: int,
-    plan: str,
-    duration: str,
-    elc_amount: float,
-    burn_amount: float
-) -> bool:
-    """
-    Pay for subscription with ELCARO tokens and burn 10%.
-    
-    Args:
-        user_id: User ID
-        plan: "basic", "premium", "pro"
-        duration: "1m", "3m", "6m", "1y"
-        elc_amount: Total ELC cost
-        burn_amount: Amount to burn (10% of total)
-    
-    Returns:
-        True if successful
-    """
-    # Check balance
-    if not check_elc_balance(user_id, elc_amount):
-        raise ValueError(f"Insufficient ELC balance: need {elc_amount}")
-    
-    with get_conn() as conn:
-        # Deduct ELC from user balance
-        conn.execute(
-            "UPDATE users SET elc_balance = elc_balance - ? WHERE user_id = ?",
-            (elc_amount, user_id)
-        )
-        
-        # Get new balance
-        cur = conn.execute(
-            "SELECT elc_balance FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        row = cur.fetchone()
-        new_balance = row[0] if row else 0.0
-        
-        # Record transaction
-        add_elc_transaction(
-            user_id=user_id,
-            transaction_type="subscription",
-            amount=-elc_amount,
-            balance_after=new_balance,
-            description=f"Subscription: {plan} for {duration}",
-            metadata=json.dumps({
-                "plan": plan,
-                "duration": duration,
-                "total_elc": elc_amount,
-                "burned_elc": burn_amount
-            })
-        )
-        
-        # Record burn
-        record_elc_burn(
-            amount=burn_amount,
-            description=f"Subscription burn: {plan} {duration}"
-        )
-        
-        # Update global stats
-        update_elc_stats(total_subscriptions_delta=elc_amount)
-        
-        conn.commit()
-        invalidate_user_cache(user_id)
-        
-        logger.info(f"User {user_id} paid {elc_amount} ELC for {plan} subscription ({burn_amount} burned)")
-        return True
+def get_user_by_wallet(wallet_address: str) -> Optional[int]:
+    """Get user ID by connected wallet address."""
+    row = execute_one(
+        """SELECT user_id FROM connected_wallets 
+           WHERE wallet_address = %s AND is_active = TRUE""",
+        (wallet_address,)
+    )
+    return row.get("user_id") if row else None
 
 
 # ------------------------------------------------------------------------------------
-# Admin Functions
+# Initialize Tables
 # ------------------------------------------------------------------------------------
 
-def distribute_elc_to_users(
-    user_ids: List[int],
-    amount_per_user: float,
-    description: str = "Admin distribution"
-) -> Dict[str, int]:
-    """
-    Distribute ELC to multiple users (admin function).
-    
-    Returns:
-        {"success": 10, "failed": 0}
-    """
-    success = 0
-    failed = 0
-    
-    for user_id in user_ids:
-        try:
-            add_elc_balance(user_id, amount_per_user, description)
-            success += 1
-        except Exception as e:
-            logger.error(f"Failed to distribute {amount_per_user} ELC to user {user_id}: {e}")
-            failed += 1
-    
-    return {"success": success, "failed": failed}
-
-
-def get_total_elc_distributed() -> float:
-    """Get total ELC distributed to all users."""
+def ensure_elc_tables():
+    """Ensure all ELC-related tables exist."""
     with get_conn() as conn:
-        cur = conn.execute(
-            "SELECT SUM(elc_balance + elc_staked + elc_locked) FROM users"
-        )
-        row = cur.fetchone()
-        total = row[0] if row else None
-        return total or 0.0
+        with conn.cursor() as cur:
+            # ELC purchases table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS elc_purchases (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    payment_id TEXT UNIQUE NOT NULL,
+                    usdt_amount REAL NOT NULL,
+                    elc_amount REAL NOT NULL,
+                    platform_fee REAL DEFAULT 0,
+                    status TEXT DEFAULT 'pending',
+                    payment_method TEXT DEFAULT 'ton_usdt',
+                    tx_hash TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    completed_at TIMESTAMP
+                )
+            """)
+            
+            # ELC transactions table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS elc_transactions (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    transaction_type TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    balance_after REAL,
+                    tx_hash TEXT,
+                    description TEXT,
+                    related_user_id BIGINT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            
+            # Connected wallets table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS connected_wallets (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    wallet_address TEXT NOT NULL,
+                    wallet_type TEXT DEFAULT 'ton',
+                    signature TEXT,
+                    connected_at TIMESTAMP DEFAULT NOW(),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    UNIQUE(user_id, wallet_address)
+                )
+            """)
+            
+            # Add ELC columns to users if not exist
+            for col in ['elc_balance', 'elc_staked', 'elc_locked']:
+                try:
+                    cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} REAL DEFAULT 0")
+                except Exception:
+                    pass
+            
+            # Create indexes
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_user ON elc_purchases(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_transactions_user ON elc_transactions(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_connected_wallets_user ON connected_wallets(user_id)")
+    
+    logger.info("ELC tables initialized")
 
 
-def get_top_elc_holders(limit: int = 100) -> List[Dict[str, Any]]:
-    """Get top ELC holders."""
-    with get_conn() as conn:
-        cur = conn.execute(
-            """SELECT user_id, 
-                      (elc_balance + elc_staked + elc_locked) as total_elc,
-                      elc_balance, elc_staked, elc_locked
-               FROM users 
-               WHERE (elc_balance + elc_staked + elc_locked) > 0
-               ORDER BY total_elc DESC LIMIT ?""",
-            (limit,)
-        )
-        return [dict(row) for row in cur.fetchall()]
+# Initialize on module load
+try:
+    ensure_elc_tables()
+except Exception as e:
+    logger.warning(f"Could not initialize ELC tables: {e}")

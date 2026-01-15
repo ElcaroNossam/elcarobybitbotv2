@@ -1057,59 +1057,99 @@ async def get_trades(
 ) -> dict:
     """Get recent trades history from trade_logs table."""
     user_id = user["user_id"]
-    import sqlite3
+    import os
+    USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
     
     try:
-        conn = sqlite3.connect(db.DB_FILE)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        
-        # P0.9: Use trade_logs table (the correct one)
-        cur.execute("""
-            SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'
-        """)
-        if not cur.fetchone():
+        if USE_POSTGRES:
+            from core.db_postgres import execute
+            
+            # Query trade_logs with PostgreSQL
+            trades_data = execute("""
+                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                       ts, strategy, account_type, exit_reason
+                FROM trade_logs 
+                WHERE user_id = %s
+                ORDER BY ts DESC 
+                LIMIT %s
+            """, (user_id, limit))
+            
+            trades = []
+            for row in trades_data:
+                trades.append({
+                    "id": row.get("id"),
+                    "symbol": row.get("symbol"),
+                    "side": row.get("side"),
+                    "entry_price": row.get("entry_price"),
+                    "exit_price": row.get("exit_price"),
+                    "pnl": row.get("pnl"),
+                    "pnl_percent": row.get("pnl_pct"),
+                    "exchange": exchange,
+                    "strategy": row.get("strategy"),
+                    "created_at": str(row.get("ts")) if row.get("ts") else None,
+                    "closed_at": str(row.get("ts")) if row.get("ts") else None,
+                    "account_type": row.get("account_type"),
+                    "exit_reason": row.get("exit_reason"),
+                })
+            
+            # Get total count
+            from core.db_postgres import execute_scalar
+            total = execute_scalar(
+                "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s",
+                (user_id,)
+            ) or 0
+            
+            return {"trades": trades, "total": total}
+        else:
+            # SQLite fallback
+            import sqlite3
+            conn = sqlite3.connect(db.DB_FILE)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'
+            """)
+            if not cur.fetchone():
+                conn.close()
+                return {"trades": [], "total": 0}
+            
+            cur.execute("""
+                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                       ts, strategy, account_type, exit_reason
+                FROM trade_logs 
+                WHERE user_id = ?
+                ORDER BY ts DESC 
+                LIMIT ?
+            """, (user_id, limit))
+            
+            trades = []
+            for row in cur.fetchall():
+                trades.append({
+                    "id": row["id"],
+                    "symbol": row["symbol"],
+                    "side": row["side"],
+                    "entry_price": row["entry_price"],
+                    "exit_price": row["exit_price"],
+                    "pnl": row["pnl"],
+                    "pnl_percent": row["pnl_pct"],
+                    "exchange": exchange,
+                    "strategy": row["strategy"],
+                    "created_at": row["ts"],
+                    "closed_at": row["ts"],
+                    "account_type": row["account_type"],
+                    "exit_reason": row["exit_reason"],
+                })
+            
+            cur.execute("""
+                SELECT COUNT(*) FROM trade_logs 
+                WHERE user_id = ?
+            """, (user_id,))
+            row = cur.fetchone()
+            total = row[0] if row else 0
+            
             conn.close()
-            return {"trades": [], "total": 0}
-        
-        # Query trade_logs with exchange filter (account_type as proxy for exchange)
-        cur.execute("""
-            SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                   ts, strategy, account_type, exit_reason
-            FROM trade_logs 
-            WHERE user_id = ?
-            ORDER BY ts DESC 
-            LIMIT ?
-        """, (user_id, limit))
-        
-        trades = []
-        for row in cur.fetchall():
-            trades.append({
-                "id": row["id"],
-                "symbol": row["symbol"],
-                "side": row["side"],
-                "entry_price": row["entry_price"],
-                "exit_price": row["exit_price"],
-                "pnl": row["pnl"],
-                "pnl_percent": row["pnl_pct"],
-                "exchange": exchange,
-                "strategy": row["strategy"],
-                "created_at": row["ts"],
-                "closed_at": row["ts"],
-                "account_type": row["account_type"],
-                "exit_reason": row["exit_reason"],
-            })
-        
-        # Get total count
-        cur.execute("""
-            SELECT COUNT(*) FROM trade_logs 
-            WHERE user_id = ?
-        """, (user_id,))
-        row = cur.fetchone()
-        total = row[0] if row else 0
-        
-        conn.close()
-        return {"trades": trades, "total": total}
+            return {"trades": trades, "total": total}
         
     except Exception as e:
         logger.error(f"Trades fetch error: {e}")
@@ -1124,96 +1164,23 @@ async def get_trading_stats(
 ) -> dict:
     """Get trading statistics from trade_logs table."""
     user_id = user["user_id"]
-    import sqlite3
+    import os
     import time
+    USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
     
     try:
-        conn = sqlite3.connect(db.DB_FILE)
-        cur = conn.cursor()
-        
-        # Period filter - trade_logs uses ts as DATETIME, convert to timestamp comparison
-        now = int(time.time())
-        period_filter = ""
-        if period == "day":
-            period_filter = f" AND strftime('%s', ts) >= {now - 86400}"
-        elif period == "week":
-            period_filter = f" AND strftime('%s', ts) >= {now - 604800}"
-        elif period == "month":
-            period_filter = f" AND strftime('%s', ts) >= {now - 2592000}"
-        
-        # P0.9: Use trade_logs table (the correct one)
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'")
-        if not cur.fetchone():
-            conn.close()
-            return {
-                "total_trades": 0,
-                "winning_trades": 0,
-                "losing_trades": 0,
-                "win_rate": 0,
-                "total_pnl": 0,
-                "avg_pnl": 0,
-                "best_trade": 0,
-                "worst_trade": 0
-            }
-        
-        # Total trades
-        cur.execute(f"""
-            SELECT COUNT(*) FROM trade_logs 
-            WHERE user_id = ? {period_filter}
-        """, (user_id,))
-        row = cur.fetchone()
-        total_trades = row[0] if row else 0
-        
-        if total_trades == 0:
-            conn.close()
-            return {
-                "total_trades": 0,
-                "winning_trades": 0,
-                "losing_trades": 0,
-                "win_rate": 0,
-                "total_pnl": 0,
-                "avg_pnl": 0,
-                "best_trade": 0,
-                "worst_trade": 0
-            }
-        
-        # Win/loss counts
-        cur.execute(f"""
-            SELECT COUNT(*) FROM trade_logs 
-            WHERE user_id = ? AND pnl > 0 {period_filter}
-        """, (user_id,))
-        row = cur.fetchone()
-        winning = row[0] if row else 0
-        
-        cur.execute(f"""
-            SELECT COUNT(*) FROM trade_logs 
-            WHERE user_id = ? AND pnl < 0 {period_filter}
-        """, (user_id,))
-        row = cur.fetchone()
-        losing = row[0] if row else 0
-        
-        # PnL stats
-        cur.execute(f"""
-            SELECT SUM(pnl), AVG(pnl), MAX(pnl), MIN(pnl) FROM trade_logs 
-            WHERE user_id = ? {period_filter}
-        """, (user_id,))
-        row = cur.fetchone()
-        total_pnl = row[0] or 0
-        avg_pnl = row[1] or 0
-        best_trade = row[2] or 0
-        worst_trade = row[3] or 0
-        
-        conn.close()
+        # Use db module's get_trade_stats which works with both SQLite and PostgreSQL
+        stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=None)
         
         return {
-            "total_trades": total_trades,
-            "winning_trades": winning,
-            "losing_trades": losing,
-            "win_rate": (winning / total_trades * 100) if total_trades > 0 else 0,
-            "total_pnl": round(total_pnl, 2),
-            "avg_pnl": round(avg_pnl, 2),
-            "best_trade": round(best_trade, 2),
-            "worst_trade": round(worst_trade, 2)
+            "total_trades": stats.get("total_trades", 0),
+            "winning_trades": stats.get("wins", 0),
+            "losing_trades": stats.get("losses", 0),
+            "win_rate": stats.get("win_rate", 0),
+            "total_pnl": stats.get("total_pnl", 0),
+            "avg_pnl": stats.get("avg_pnl", 0),
+            "best_trade": stats.get("best_pnl", 0),
+            "worst_trade": stats.get("worst_pnl", 0)
         }
         
     except Exception as e:

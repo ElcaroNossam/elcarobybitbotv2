@@ -3148,7 +3148,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     if t is None:
         # Load translations for this user
         lang = db.get_user_lang(user_id) if user_id else 'en'
-        t = load_translations(lang)
+        t = LANGS.get(lang, LANGS[DEFAULT_LANG])
     
     # Try to get user_id from update if not provided
     if user_id is None and update is not None:
@@ -3793,8 +3793,14 @@ async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None, acco
 
 
 @log_calls
-async def fetch_last_closed_pnl(user_id: int, symbol: str) -> dict | None:
-    """Fetch last closed PnL record for a symbol. Returns None if no records found."""
+async def fetch_last_closed_pnl(user_id: int, symbol: str, account_type: str = None) -> dict | None:
+    """Fetch last closed PnL record for a symbol. Returns None if no records found.
+    
+    Args:
+        user_id: Telegram user ID
+        symbol: Trading pair symbol
+        account_type: 'demo', 'real', or None (auto-detect)
+    """
     try:
         data = await _bybit_request(
             user_id,
@@ -3804,7 +3810,8 @@ async def fetch_last_closed_pnl(user_id: int, symbol: str) -> dict | None:
                 "category": "linear",
                 "symbol":   symbol,
                 "limit":    1
-            }
+            },
+            account_type=account_type
         )
         recs = data.get("list", [])
         if not recs:
@@ -15314,14 +15321,16 @@ async def monitor_positions_loop(app: Application):
 
                         for ap in active:
                             sym = ap["symbol"]
-                            ap_account_type = ap.get("account_type", "demo")
+                            # CRITICAL: Use current_account_type from loop as fallback, not "demo"
+                            ap_account_type = ap.get("account_type") or current_account_type
 
                             if _skip_until.get((uid, sym), 0) > now:
                                 continue
 
                             if sym not in open_syms:
                                 logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
-                                rec = await fetch_last_closed_pnl(uid, sym)
+                                # CRITICAL: Pass account_type to get correct closed PnL from right account
+                                rec = await fetch_last_closed_pnl(uid, sym, account_type=ap_account_type)
                             
                                 if rec is None:
                                     # No closed PnL record - clean up silently
@@ -15565,7 +15574,8 @@ async def monitor_positions_loop(app: Application):
                         active = get_active_positions(uid, account_type=current_account_type)
                         tf_map = { ap['symbol']: ap.get('timeframe','15m') for ap in active }  # Default 15m
                         strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
-                        account_type_map = { ap['symbol']: ap.get('account_type', 'demo') for ap in active }
+                        # Use current_account_type as fallback instead of hardcoded 'demo'
+                        account_type_map = { ap['symbol']: ap.get('account_type') or current_account_type for ap in active }
                         db_syms = set(tf_map.keys())
 
                         for pos in open_positions:
@@ -16786,6 +16796,85 @@ async def show_users_page(ctx: ContextTypes.DEFAULT_TYPE, bot, chat_id: int, pag
         nav_row.append(InlineKeyboardButton(t['btn_next'], callback_data=f"users:page:{page+1}"))
     if nav_row:
         await bot.send_message(chat_id, t['nav_caption'], reply_markup=InlineKeyboardMarkup([nav_row]))
+
+
+@require_access
+@with_texts
+@log_calls
+async def cmd_sync_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    Sync trade history from Bybit API.
+    Usage: /sync_history [days] [account]
+    Example: /sync_history 30 real
+    """
+    uid = update.effective_user.id
+    t = ctx.t
+    args = ctx.args or []
+    
+    days = 30  # default
+    account = None  # auto-detect
+    
+    if len(args) >= 1:
+        try:
+            days = int(args[0])
+        except ValueError:
+            pass
+    
+    if len(args) >= 2 and args[1] in ("demo", "real", "both"):
+        account = args[1]
+    
+    await update.message.reply_text(
+        f"🔄 Syncing trade history for last {days} days...\nThis may take a moment.",
+        parse_mode="Markdown"
+    )
+    
+    try:
+        from sync_trade_history import sync_user_trades
+        
+        # Determine account types to sync
+        if account == "both":
+            account_types = ["demo", "real"]
+        elif account:
+            account_types = [account]
+        else:
+            trading_mode = db.get_trading_mode(uid) or "demo"
+            account_types = ["demo", "real"] if trading_mode == "both" else [trading_mode]
+        
+        total_imported = 0
+        total_skipped = 0
+        all_strategies = {}
+        
+        for acc_type in account_types:
+            stats = await sync_user_trades(uid, days, acc_type, dry_run=False)
+            total_imported += stats["imported"]
+            total_skipped += stats["skipped_exists"]
+            
+            for strat, count in stats.get("strategies_detected", {}).items():
+                all_strategies[strat] = all_strategies.get(strat, 0) + count
+        
+        # Format result
+        strategies_text = "\n".join([f"  • {s}: {c}" for s, c in all_strategies.items()]) or "  No strategies detected"
+        
+        result_text = f"""
+✅ *Sync Complete!*
+
+📊 *Results:*
+├─ Imported: {total_imported} trades
+├─ Skipped (exist): {total_skipped}
+└─ Accounts: {", ".join(account_types)}
+
+📈 *By Strategy:*
+{strategies_text}
+"""
+        await update.message.reply_text(result_text, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"[{uid}] Sync history error: {e}")
+        await update.message.reply_text(
+            f"❌ Sync failed: {str(e)}",
+            parse_mode="Markdown"
+        )
+
 
 @with_texts
 @log_calls
@@ -21523,6 +21612,7 @@ def main():
     app.add_handler(CommandHandler("positions",    cmd_positions))
     app.add_handler(CommandHandler("openpositions", cmd_open_positions))
     app.add_handler(CommandHandler("stats",        cmd_trade_stats))
+    app.add_handler(CommandHandler("sync_history", cmd_sync_history))  # Sync trade history from API
     app.add_handler(CommandHandler("select_coins", cmd_select_coins))
     app.add_handler(CommandHandler("set_percent",  cmd_set_percent))
     app.add_handler(CommandHandler("toggle_limit", cmd_toggle_limit))

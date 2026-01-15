@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.5.0 | Обновлено: 9 января 2026
+# Версия: 3.7.0 | Обновлено: 16 января 2026
 # =============================================
 
 ---
@@ -81,7 +81,7 @@
 ```
 ElCaro Trading Platform
 ├── bot.py                 # 🔥 Главный бот (20218 строк, 241 функция)
-├── db.py                  # 💾 SQLite database (6379 строк, 165 функций)
+├── db.py                  # 💾 Database layer (SQLite/PostgreSQL, 7K строк)
 ├── bot_unified.py         # 🔗 Unified API Bybit/HyperLiquid (530 строк)
 ├── exchange_router.py     # 🔀 Роутинг между биржами (1140 строк)
 ├── hl_adapter.py          # 🌐 HyperLiquid адаптер (716 строк)
@@ -120,6 +120,7 @@ ElCaro Trading Platform
 │   └── notification_service.py
 │
 ├── core/                  # Инфраструктура
+│   ├── db_postgres.py     # PostgreSQL layer (1.1K строк) ⭐ NEW
 │   ├── cache.py           # Кеширование (TTL 30s)
 │   ├── rate_limiter.py    # Rate limiting
 │   └── exceptions.py      # Кастомные исключения
@@ -139,76 +140,143 @@ ElCaro Trading Platform
 
 ---
 
-# 💾 БАЗА ДАННЫХ (SQLite)
+# 💾 БАЗА ДАННЫХ (PostgreSQL 14)
+
+> **ВАЖНО:** С января 2026 проект использует PostgreSQL вместо SQLite.
+> Для включения PostgreSQL установите `USE_POSTGRES=1` в окружении.
+
+## Connection Pool
+
+```python
+# core/db_postgres.py
+psycopg2.pool.ThreadedConnectionPool(minconn=5, maxconn=50)
+DATABASE_URL = "postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro"
+```
+
+## Multitenancy Architecture
+
+Система поддерживает полную изоляцию настроек по 4 измерениям:
+
+| Измерение | Значения | Описание |
+|-----------|----------|----------|
+| `user_id` | Telegram ID | Уникальный пользователь |
+| `strategy` | OI, Scryptomera, Scalper, ElCaro, Fibonacci | Торговая стратегия |
+| `exchange` | bybit, hyperliquid | Биржа |
+| `account_type` | demo, real, testnet, mainnet | Тип аккаунта |
+
+**Комбинации:**
+- **Bybit:** demo, real, both (торгует на обоих)
+- **HyperLiquid:** testnet, mainnet
 
 ## Основные таблицы
 
-### users (главная таблица пользователей)
+### users (главная таблица)
 ```sql
-user_id            INTEGER PRIMARY KEY   -- Telegram ID
--- API ключи
-demo_api_key       TEXT                  -- Bybit Demo API key
-demo_api_secret    TEXT                  -- Bybit Demo API secret
-real_api_key       TEXT                  -- Bybit Real API key
-real_api_secret    TEXT                  -- Bybit Real API secret
+user_id            BIGINT PRIMARY KEY    -- Telegram ID
+-- API Bybit
+demo_api_key       TEXT
+demo_api_secret    TEXT
+real_api_key       TEXT
+real_api_secret    TEXT
 trading_mode       TEXT DEFAULT 'demo'   -- 'demo' | 'real' | 'both'
--- Торговые настройки
-percent            REAL DEFAULT 1.0      -- Entry % от баланса
-tp_percent         REAL DEFAULT 8.0      -- Take Profit %
-sl_percent         REAL DEFAULT 3.0      -- Stop Loss %
-use_atr            INTEGER DEFAULT 1     -- 1=ATR trailing, 0=fixed
-coins              TEXT DEFAULT 'ALL'    -- Разрешённые монеты
--- Стратегии
-trade_scryptomera  INTEGER DEFAULT 0     -- Scryptomera вкл/выкл
-trade_scalper      INTEGER DEFAULT 0     -- Scalper вкл/выкл
-trade_elcaro       INTEGER DEFAULT 0     -- ElCaro AI вкл/выкл
-trade_fibonacci    INTEGER DEFAULT 0     -- Fibonacci вкл/выкл
-trade_oi           INTEGER DEFAULT 1     -- OI Strategy вкл/выкл
-strategy_settings  TEXT                  -- JSON с настройками по стратегиям
+-- API HyperLiquid
+hl_enabled         BOOLEAN DEFAULT FALSE
+hl_testnet         BOOLEAN DEFAULT FALSE -- TRUE=testnet, FALSE=mainnet
+hl_testnet_private_key     TEXT
+hl_testnet_wallet_address  TEXT
+hl_mainnet_private_key     TEXT
+hl_mainnet_wallet_address  TEXT
+-- Торговые настройки (глобальные, fallback)
+exchange_type      TEXT DEFAULT 'bybit'  -- 'bybit' | 'hyperliquid'
+percent            REAL DEFAULT 1.0
+tp_percent         REAL DEFAULT 8.0
+sl_percent         REAL DEFAULT 3.0
+use_atr            INTEGER DEFAULT 1
+leverage           REAL DEFAULT 10.0
 -- DCA
-dca_enabled        INTEGER DEFAULT 0     -- DCA вкл/выкл
-dca_pct_1          REAL DEFAULT 10.0     -- 1й добор при -10%
-dca_pct_2          REAL DEFAULT 25.0     -- 2й добор при -25%
+dca_enabled        INTEGER DEFAULT 0
+dca_pct_1          REAL DEFAULT 10.0
+dca_pct_2          REAL DEFAULT 25.0
 -- Доступ
-is_allowed         INTEGER DEFAULT 0     -- 1=одобрен админом
-is_banned          INTEGER DEFAULT 0     -- 1=забанен
-lang               TEXT DEFAULT 'en'     -- Язык интерфейса
+is_allowed         INTEGER DEFAULT 0
+is_banned          INTEGER DEFAULT 0
+lang               TEXT DEFAULT 'en'
+updated_at         TIMESTAMP DEFAULT NOW()
+```
+
+### user_strategy_settings (настройки по стратегиям) ⭐ MULTITENANCY
+```sql
+-- PRIMARY KEY: (user_id, strategy, exchange, account_type)
+user_id             BIGINT NOT NULL
+strategy            TEXT NOT NULL         -- 'OI', 'Scryptomera', etc.
+exchange            TEXT DEFAULT 'bybit'  -- 'bybit' | 'hyperliquid'
+account_type        TEXT DEFAULT 'demo'   -- 'demo' | 'real' | 'testnet' | 'mainnet'
+enabled             BOOLEAN DEFAULT FALSE
+percent             REAL                  -- Entry % для этой стратегии
+sl_percent          REAL
+tp_percent          REAL
+leverage            REAL
+use_atr             INTEGER
+atr_periods         INTEGER
+atr_multiplier_sl   REAL
+atr_trigger_pct     REAL
+order_type          TEXT DEFAULT 'market'
+direction           TEXT DEFAULT 'all'    -- 'all' | 'long' | 'short'
+-- Side-specific settings (Long/Short)
+long_percent        REAL
+long_sl_percent     REAL
+long_tp_percent     REAL
+short_percent       REAL
+short_sl_percent    REAL
+short_tp_percent    REAL
+-- Metadata
+created_at          TIMESTAMP DEFAULT NOW()
+updated_at          TIMESTAMP DEFAULT NOW()
 ```
 
 ### active_positions (открытые позиции)
 ```sql
-user_id       INTEGER NOT NULL
+-- PRIMARY KEY: (user_id, symbol, account_type)
+user_id       BIGINT NOT NULL
 symbol        TEXT NOT NULL
-account_type  TEXT DEFAULT 'demo'    -- 'demo' | 'real'
+account_type  TEXT DEFAULT 'demo'    -- 'demo' | 'real' | 'testnet' | 'mainnet'
 side          TEXT                   -- 'Buy' | 'Sell'
 entry_price   REAL
 size          REAL
-open_ts       DATETIME
-strategy      TEXT                   -- Название стратегии
-leverage      REAL                   -- Плечо (добавлено Jan 6, 2026)
-sl_price      REAL                   -- Стоп-лосс
-tp_price      REAL                   -- Тейк-профит
-dca_10_done   INTEGER DEFAULT 0      -- 1й добор выполнен
-dca_25_done   INTEGER DEFAULT 0      -- 2й добор выполнен
-PRIMARY KEY(user_id, symbol, account_type)
+strategy      TEXT
+leverage      REAL
+sl_price      REAL
+tp_price      REAL
+dca_10_done   INTEGER DEFAULT 0
+dca_25_done   INTEGER DEFAULT 0
+open_ts       TIMESTAMP DEFAULT NOW()
+-- Indexes
+idx_positions_user   (user_id)
+idx_positions_symbol (symbol)
 ```
 
 ### trade_logs (история сделок)
 ```sql
-id              INTEGER PRIMARY KEY AUTOINCREMENT
-user_id         INTEGER NOT NULL
-symbol          TEXT
-side            TEXT
-entry_price     REAL
-exit_price      REAL
-exit_reason     TEXT              -- 'TP', 'SL', 'MANUAL', 'ATR'
-pnl             REAL              -- Profit/Loss в USDT
-pnl_pct         REAL              -- Profit/Loss в %
-ts              DATETIME          -- Timestamp закрытия
-strategy        TEXT              -- Название стратегии
-sl_pct          REAL
-tp_pct          REAL
-timeframe       TEXT
+id            SERIAL PRIMARY KEY
+user_id       BIGINT NOT NULL
+symbol        TEXT
+side          TEXT
+entry_price   REAL
+exit_price    REAL
+exit_reason   TEXT              -- 'TP', 'SL', 'MANUAL', 'ATR'
+pnl           REAL
+pnl_pct       REAL
+strategy      TEXT
+account_type  TEXT DEFAULT 'demo'
+sl_pct        REAL
+tp_pct        REAL
+timeframe     TEXT
+ts            TIMESTAMP DEFAULT NOW()
+source        TEXT DEFAULT 'api'
+-- Indexes
+idx_trade_logs_user_ts      (user_id, ts DESC)
+idx_trade_logs_strategy     (strategy, ts DESC)
+idx_trade_logs_account      (account_type, ts DESC)
 ```
 
 ### Другие таблицы
@@ -219,9 +287,34 @@ timeframe       TEXT
 | user_licenses | Лицензии пользователей |
 | custom_strategies | Кастомные стратегии |
 | strategy_marketplace | Маркетплейс стратегий |
-| user_strategy_settings | Настройки стратегий по юзерам |
 | exchange_accounts | Подключённые биржи |
-| connected_wallets | Крипто кошельки (для ELC) |
+| elc_transactions | ELCARO token транзакции |
+
+## Использование в коде
+
+```python
+# Автоматическое переключение SQLite/PostgreSQL
+from db import get_user_field, set_user_field, add_active_position
+# При USE_POSTGRES=1 вызываются pg_* функции из core/db_postgres.py
+
+# Прямой доступ к PostgreSQL
+from core.db_postgres import get_pool, get_conn, execute, execute_one
+
+# Connection Pool (ThreadedConnectionPool)
+pool = get_pool()
+conn = pool.getconn()
+try:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE user_id = %s", (uid,))
+finally:
+    pool.putconn(conn)
+
+# Context manager (рекомендуется)
+from core.db_postgres import get_conn
+with get_conn() as conn:
+    cur = conn.cursor()
+    cur.execute("...")
+```
 
 ---
 
@@ -346,6 +439,39 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: Complete PostgreSQL Migration - SQLite Removed (Jan 16, 2026)
+- **Проблема:** Проект использовал SQLite с условным переключением на PostgreSQL
+- **Результат:** Полное удаление SQLite, PostgreSQL-ONLY архитектура
+- **Изменения:**
+  - `db.py` - удалено 1008 строк SQLite кода, `init_db()` теперь вызывает `pg_init_db()`
+  - `core/db_postgres.py` - добавлен **SQLite Compatibility Layer** для backward compatibility:
+    - `SQLiteCompatCursor` - конвертирует `?` → `%s` плейсхолдеры
+    - `SQLiteCompatConnection` - wrapper для seamless миграции
+    - `_sqlite_to_pg()` - автоматическая конвертация синтаксиса
+  - `blockchain/db_integration.py` - переведён на PostgreSQL (SERIAL вместо AUTOINCREMENT)
+  - Удалён `USE_POSTGRES` флаг - PostgreSQL теперь единственная БД
+- **Архитектура:**
+  1. `db.py` использует `get_conn()` из `core.db_postgres` 
+  2. Все SQLite-style запросы (`?` placeholders) автоматически конвертируются в PostgreSQL (`%s`)
+  3. `init_db()` делегирует на `pg_init_db()` с полной PostgreSQL схемой
+- **Тестирование:** `python3 -m py_compile db.py` ✅, `import db` ✅
+
+### ✅ MAJOR: SQLite → PostgreSQL Migration (Jan 15, 2026)
+- **Проблема:** SQLite не поддерживает высокую конкурентность для 10K+ юзеров
+- **Результат:** Полная миграция на PostgreSQL 14
+- **Файлы:**
+  - `core/db_postgres.py` - PostgreSQL layer (1.8K строк с compatibility layer)
+  - `db.py` - PostgreSQL-only (удалён SQLite код)
+  - `services/strategy_service.py` - PostgreSQL support
+  - `services/strategy_marketplace.py` - PostgreSQL support
+  - `webapp/api/trading.py` - PostgreSQL support
+  - `db_elcaro.py` - PostgreSQL support
+- **Fix:**
+  1. `psycopg2.pool.ThreadedConnectionPool(minconn=5, maxconn=50)`
+  2. SQLite Compatibility Layer для существующего кода
+  3. Multitenancy: PRIMARY KEY `(user_id, strategy, exchange, account_type)`
+- **Environment:** PostgreSQL обязателен (SQLite больше не поддерживается)
 
 ### ✅ Position Sizing: Equity vs Available (Jan 6, 2026)
 - **Проблема:** calc_qty использовал available (свободные средства) вместо equity
@@ -715,7 +841,8 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 
 ---
 
-*Last updated: 9 января 2026*
-*Version: 3.5.0*
+*Last updated: 15 января 2026*
+*Version: 3.6.0*
+*Database: PostgreSQL 14*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*

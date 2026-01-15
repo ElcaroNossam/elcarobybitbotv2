@@ -1,53 +1,52 @@
 """
 Database extensions for Web3 Integration
 Adds wallet addresses, NFT token IDs, blockchain transactions
+
+PostgreSQL Version (January 2026 Migration)
 """
-import sqlite3
 import json
 import time
 import logging
-from pathlib import Path
 from typing import Dict, Any, Optional, List
 
+# Use centralized PostgreSQL connection from core
+from core.db_postgres import get_conn
+
 logger = logging.getLogger(__name__)
-
-DB_FILE = Path("bot.db")
-
-
-def get_conn():
-    """Get database connection"""
-    conn = sqlite3.connect(DB_FILE, timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 def init_web3_tables():
     """
     Initialize Web3-specific tables.
     Call this during init_db() in db.py
+    
+    PostgreSQL version - uses SERIAL instead of AUTOINCREMENT
     """
     with get_conn() as conn:
         cur = conn.cursor()
         
-        # Add Web3 columns to users table
-        for col, type_ in [
+        # Add Web3 columns to users table (using PostgreSQL ALTER)
+        web3_columns = [
             ("wallet_address", "TEXT"),
             ("wallet_network", "TEXT"),  # 'polygon', 'bsc', etc.
             ("wallet_verified", "INTEGER DEFAULT 0"),
-            ("wallet_connected_at", "INTEGER"),
+            ("wallet_connected_at", "BIGINT"),
             ("elcaro_balance", "REAL DEFAULT 0"),  # Cached ELCARO token balance
-            ("balance_updated_at", "INTEGER"),
-        ]:
+            ("balance_updated_at", "BIGINT"),
+        ]
+        
+        for col, type_ in web3_columns:
             try:
-                cur.execute(f"ALTER TABLE users ADD COLUMN {col} {type_}")
+                cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {type_}")
                 logger.info(f"Added column {col} to users table")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
+            except Exception as e:
+                # Column might already exist
+                logger.debug(f"Column {col} may already exist: {e}")
         
         # Strategy NFTs - links strategies to blockchain NFTs
         cur.execute("""
             CREATE TABLE IF NOT EXISTS strategy_nfts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 strategy_id INTEGER NOT NULL UNIQUE,
                 token_id INTEGER,
                 contract_address TEXT NOT NULL,
@@ -56,7 +55,7 @@ def init_web3_tables():
                 creator_address TEXT NOT NULL,
                 metadata_uri TEXT,
                 mint_tx_hash TEXT,
-                minted_at INTEGER NOT NULL,
+                minted_at BIGINT NOT NULL,
                 is_listed INTEGER DEFAULT 0,
                 FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE
             )
@@ -67,8 +66,8 @@ def init_web3_tables():
         # Blockchain transactions - all on-chain activity
         cur.execute("""
             CREATE TABLE IF NOT EXISTS blockchain_transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
                 tx_hash TEXT NOT NULL UNIQUE,
                 network TEXT NOT NULL,
                 tx_type TEXT NOT NULL,  -- 'strategy_purchase', 'subscription', 'nft_mint', etc.
@@ -81,8 +80,8 @@ def init_web3_tables():
                 gas_price REAL,
                 block_number INTEGER,
                 data_json TEXT,  -- Additional data
-                created_at INTEGER NOT NULL,
-                confirmed_at INTEGER,
+                created_at BIGINT NOT NULL,
+                confirmed_at BIGINT,
                 FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
             )
         """)
@@ -93,7 +92,7 @@ def init_web3_tables():
         # Marketplace listings (blockchain version)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS blockchain_listings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 strategy_id INTEGER NOT NULL,
                 nft_token_id INTEGER NOT NULL,
                 listing_id INTEGER,  -- On-chain listing ID
@@ -103,8 +102,8 @@ def init_web3_tables():
                 status TEXT DEFAULT 'active',  -- 'active', 'sold', 'cancelled'
                 list_tx_hash TEXT,
                 sale_tx_hash TEXT,
-                listed_at INTEGER NOT NULL,
-                sold_at INTEGER,
+                listed_at BIGINT NOT NULL,
+                sold_at BIGINT,
                 buyer_address TEXT,
                 FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE
             )
@@ -115,17 +114,17 @@ def init_web3_tables():
         # Subscriptions paid with ELCARO tokens
         cur.execute("""
             CREATE TABLE IF NOT EXISTS blockchain_subscriptions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
                 wallet_address TEXT NOT NULL,
                 plan TEXT NOT NULL,  -- 'basic', 'premium'
                 months INTEGER NOT NULL,
                 price_elcaro REAL NOT NULL,
                 tx_hash TEXT NOT NULL,
                 status TEXT DEFAULT 'pending',
-                expires_at INTEGER,
-                created_at INTEGER NOT NULL,
-                confirmed_at INTEGER,
+                expires_at BIGINT,
+                created_at BIGINT NOT NULL,
+                confirmed_at BIGINT,
                 FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
             )
         """)
@@ -133,7 +132,7 @@ def init_web3_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sub_wallet ON blockchain_subscriptions(wallet_address)")
         
         conn.commit()
-        logger.info("Web3 tables initialized")
+        logger.info("Web3 tables initialized (PostgreSQL)")
 
 
 # ==========================================

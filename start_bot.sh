@@ -9,7 +9,15 @@ WEBAPP_PORT=8765
 mkdir -p "$PROJECT_DIR/logs"
 cd "$PROJECT_DIR"
 
-echo "[$(date)] Starting ElCaro services..." >> "$LOG_FILE"
+# Load environment variables
+source .env 2>/dev/null || true
+
+# PostgreSQL mode
+export USE_POSTGRES=1
+export DATABASE_URL="postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro"
+export REDIS_URL="redis://127.0.0.1:6379/0"
+
+echo "[$(date)] Starting ElCaro services (PostgreSQL mode)..." >> "$LOG_FILE"
 
 # Kill any existing uvicorn processes
 pkill -f "uvicorn webapp.app" 2>/dev/null || true
@@ -54,6 +62,6 @@ for i in {1..15}; do
     sleep 1
 done
 
-echo "[$(date)] Starting bot..." >> "$LOG_FILE"
+echo "[$(date)] Starting bot (PostgreSQL mode)..." >> "$LOG_FILE"
 # Start bot directly (main process)
 exec ./venv/bin/python bot.py

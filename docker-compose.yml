@@ -1,0 +1,299 @@
+# Docker Compose for ElCaro Trading Platform
+# ===========================================
+# Development and staging environment
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up -d postgres redis  # Start only DB and cache
+#   docker-compose logs -f api        # View API logs
+#   docker-compose down               # Stop all
+
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # PostgreSQL Database
+  # ═══════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:15-alpine
+    container_name: elcaro-postgres
+    environment:
+      POSTGRES_DB: elcaro
+      POSTGRES_USER: elcaro
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-elcaro_dev_2026}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elcaro -d elcaro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Redis Cache & Message Broker
+  # ═══════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: elcaro-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # FastAPI Web Application
+  # ═══════════════════════════════════════════════════════════════
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-api
+    command: uvicorn webapp.app:app --host 0.0.0.0 --port 8765 --workers 4
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID:-511692487}
+      - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8765}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Telegram Bot
+  # ═══════════════════════════════════════════════════════════════
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-bot
+    command: python bot.py
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID:-511692487}
+      - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8765}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Celery Worker - Signals Queue
+  # ═══════════════════════════════════════════════════════════════
+  celery_signals:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-celery-signals
+    command: celery -A tasks worker -Q signals -c 4 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Celery Worker - Position Monitoring (Scalable)
+  # ═══════════════════════════════════════════════════════════════
+  celery_positions:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-celery-positions
+    command: celery -A tasks worker -Q positions -c 8 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      replicas: 3  # 3 workers for position monitoring
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Celery Worker - Trade Execution
+  # ═══════════════════════════════════════════════════════════════
+  celery_trades:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-celery-trades
+    command: celery -A tasks worker -Q trades -c 4 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Celery Worker - Notifications
+  # ═══════════════════════════════════════════════════════════════
+  celery_notifications:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-celery-notifications
+    command: celery -A tasks worker -Q notifications -c 2 --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Celery Beat - Periodic Tasks
+  # ═══════════════════════════════════════════════════════════════
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-celery-beat
+    command: celery -A tasks beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Price Feed Service (WebSocket)
+  # ═══════════════════════════════════════════════════════════════
+  price_feed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-price-feed
+    command: python services/price_feed.py
+    environment:
+      - DATABASE_URL=postgresql://elcaro:${DB_PASSWORD:-elcaro_dev_2026}@postgres:5432/elcaro
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Flower - Celery Monitoring (Optional)
+  # ═══════════════════════════════════════════════════════════════
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elcaro-flower
+    command: celery -A tasks flower --port=5555
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "5555:5555"
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Prometheus (Optional Monitoring)
+  # ═══════════════════════════════════════════════════════════════
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: elcaro-prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════
+  # Grafana (Optional Monitoring)
+  # ═══════════════════════════════════════════════════════════════
+  grafana:
+    image: grafana/grafana:latest
+    container_name: elcaro-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: elcaro-network

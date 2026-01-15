@@ -2,38 +2,50 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import time
 import threading
-import queue
+import os
+import logging
 from pathlib import Path
 from typing import Any
-from queue import Queue
 
 from coin_params import DEFAULT_TP_PCT, DEFAULT_SL_PCT, DEFAULT_LANG
 
+# ═══════════════════════════════════════════════════════════════════════════════════
+# DATABASE: PostgreSQL ONLY (Full Migration - January 2026)
+# ═══════════════════════════════════════════════════════════════════════════════════
+_logger = logging.getLogger(__name__)
+_logger.info("🐘 Using PostgreSQL database (FULL MIGRATION)")
+
+# Import ALL PostgreSQL functions from core module
+from core.db_postgres import (
+    get_pool, get_conn, execute, execute_one, execute_scalar, execute_write,
+    pg_init_db,  # PostgreSQL schema initialization
+    pg_get_user, pg_ensure_user, pg_set_user_field, pg_get_user_field,
+    pg_get_all_users, pg_get_active_users, pg_get_allowed_users,
+    pg_add_active_position, pg_get_active_positions, pg_get_active_position,
+    pg_remove_active_position, pg_update_position_field,
+    pg_add_trade_log, pg_get_trade_logs, pg_get_pnl_stats,
+    pg_add_signal, pg_get_signals,
+    pg_get_user_strategy_settings, pg_set_user_strategy_settings,
+    pg_get_trading_mode, pg_get_active_trading_users,
+    pg_get_user_config,
+    pg_get_user_credentials, pg_get_all_user_credentials,
+    pg_get_exchange_type, pg_get_hl_credentials, pg_is_hl_enabled,
+    pg_is_bybit_enabled, pg_set_bybit_enabled,
+    pg_get_routing_policy, pg_set_routing_policy,
+    pg_get_user_trading_context, pg_get_active_account_types,
+    pg_get_strategy_account_types,
+    pg_get_strategy_settings_db, pg_get_strategy_settings,
+    pg_set_strategy_setting, pg_get_effective_settings,
+    pg_get_hl_strategy_settings, pg_set_hl_strategy_setting,
+    pg_get_hl_effective_settings, pg_should_show_account_switcher,
+    pg_update_user_info, pg_set_trading_mode, pg_set_hl_enabled,
+    pg_delete_user, pg_sync_position_entry_price, pg_set_user_credentials,
+)
+
+# Legacy compatibility - no longer used but kept for imports
 DB_FILE = Path("bot.db")
-
-# ------------------------------------------------------------------------------------
-# Connection Pool for multi-user optimization
-# ------------------------------------------------------------------------------------
-_pool: Queue = Queue(maxsize=10)
-_pool_lock = threading.Lock()
-
-def _create_connection() -> sqlite3.Connection:
-    """Create a new connection with optimal settings."""
-    # SECURITY: Use DEFERRED isolation for transaction safety (prevents race conditions)
-    # Previously was isolation_level=None (autocommit) which caused race conditions in financial ops
-    conn = sqlite3.connect(DB_FILE, timeout=30.0, isolation_level="DEFERRED", check_same_thread=False)
-    conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA temp_store=MEMORY")
-    conn.execute("PRAGMA busy_timeout=5000")
-    conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
-    conn.execute("PRAGMA mmap_size=268435456")  # 256MB mmap
-    return conn
 
 # ------------------------------------------------------------------------------------
 # In-memory caches for frequently accessed data
@@ -118,1093 +130,60 @@ USER_FIELDS_WHITELIST = {
 }
 
 # ------------------------------------------------------------------------------------
-# База / подключение с Connection Pool
+# PostgreSQL connection helpers (re-exported from core.db_postgres)
 # ------------------------------------------------------------------------------------
-def get_conn() -> sqlite3.Connection:
-    """
-    Получает соединение из пула или создаёт новое.
-    Оптимизировано для многопользовательской работы.
-    """
-    try:
-        conn = _pool.get_nowait()
-        # Проверяем, что соединение живое
-        try:
-            conn.execute("SELECT 1")
-            return conn
-        except sqlite3.Error:
-            pass  # Соединение мёртвое, создаём новое
-    except queue.Empty:
-        pass  # Пул пустой
-    return _create_connection()
+# get_conn() and release_conn() are now PostgreSQL-based from core.db_postgres
 
-def release_conn(conn: sqlite3.Connection):
-    """Возвращает соединение в пул для переиспользования."""
-    try:
-        _pool.put_nowait(conn)
-    except queue.Full:
-        # Пул полный - закрываем соединение
-        try:
-            conn.close()
-        except sqlite3.Error:
-            pass
+def release_conn(conn):
+    """Release connection back to pool (compatibility wrapper)."""
+    # In PostgreSQL mode, connections are managed via context manager
+    # This is kept for API compatibility
+    pass
 
 
-def _col_exists(conn: sqlite3.Connection, table: str, col: str) -> bool:
-    """Check if column exists in table - SAFE from SQL injection"""
-    # Security: Validate table and column names against whitelists
-    if table not in {'users', 'signals', 'active_positions', 'pending_limit_orders',
-                      'trade_logs', 'user_licenses', 'promo_codes', 'custom_strategies',
-                      'market_snapshots', 'payment_history', 'user_achievements',
-                      'user_strategy_settings', 'exchange_accounts', 'strategy_ratings',
-                      'strategy_marketplace', 'strategy_purchases', 'seller_payouts',
-                      'top_strategies', 'elc_purchases', 'elc_transactions', 'elc_stats'}:
-        raise ValueError(f"Invalid table name: {table}")
-    
-    if not col.replace('_', '').isalnum():
-        raise ValueError(f"Invalid column name: {col}")
-    
-    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
-    return any(r[1] == col for r in rows)
+def _col_exists_pg(table: str, col: str) -> bool:
+    """Check if column exists in PostgreSQL table."""
+    result = execute_one("""
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = %s AND column_name = %s
+    """, (table, col))
+    return result is not None
 
 
-def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-        (table,),
-    ).fetchone()
-    return bool(row)
+def _table_exists_pg(table: str) -> bool:
+    """Check if table exists in PostgreSQL."""
+    result = execute_one("""
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_name = %s
+    """, (table,))
+    return result is not None
+
+
+# Legacy aliases for compatibility
+def _col_exists(conn, table: str, col: str) -> bool:
+    """Legacy wrapper - conn parameter ignored in PostgreSQL."""
+    return _col_exists_pg(table, col)
+
+
+def _table_exists(conn, table: str) -> bool:
+    """Legacy wrapper - conn parameter ignored in PostgreSQL."""
+    return _table_exists_pg(table)
+
 
 # ------------------------------------------------------------------------------------
-# Schema & Migrations
+# Schema & Migrations (PostgreSQL)
 # ------------------------------------------------------------------------------------
 def init_db():
-    with get_conn() as conn:
-        cur = conn.cursor()
+    """Initialize PostgreSQL database schema.
+    
+    Delegates to pg_init_db() from core.db_postgres which contains
+    the complete PostgreSQL schema with proper syntax (SERIAL, TEXT, etc.).
+    """
+    _logger.info("🐘 Initializing PostgreSQL database via pg_init_db()...")
+    pg_init_db()
+    _logger.info("✅ PostgreSQL database initialized successfully")
 
-        # USERS — дефолты выровнены под логику бота (limit/rsi/oi/atr включены)
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS users (
-            user_id            INTEGER PRIMARY KEY,
-            api_key            TEXT,
-            api_secret         TEXT,
 
-            -- Demo/Real API keys
-            demo_api_key       TEXT,
-            demo_api_secret    TEXT,
-            real_api_key       TEXT,
-            real_api_secret    TEXT,
-            trading_mode       TEXT NOT NULL DEFAULT 'demo',  -- 'demo', 'real', 'both'
-
-            -- торговые настройки
-            percent            REAL    NOT NULL DEFAULT 1.0,
-            coins              TEXT    NOT NULL DEFAULT 'ALL',
-            limit_enabled      INTEGER NOT NULL DEFAULT 1,
-            trade_oi           INTEGER NOT NULL DEFAULT 1,
-            trade_rsi_bb       INTEGER NOT NULL DEFAULT 1,
-            tp_percent         REAL    NOT NULL DEFAULT 8.0,
-            sl_percent         REAL    NOT NULL DEFAULT 3.0,
-            use_atr            INTEGER NOT NULL DEFAULT 1,   -- 1=ATR, 0=fixed
-            lang               TEXT    NOT NULL DEFAULT 'en',
-
-            -- стратегии/пороги (опц.)
-            strategies_enabled TEXT,
-            strategies_order   TEXT,
-            rsi_lo             REAL,
-            rsi_hi             REAL,
-            bb_touch_k         REAL,
-            oi_min_pct         REAL,
-            price_min_pct      REAL,
-            limit_only_default INTEGER,
-
-            -- новая стратегия
-            trade_scryptomera  INTEGER NOT NULL DEFAULT 0,
-            trade_scalper      INTEGER NOT NULL DEFAULT 0,
-            trade_elcaro       INTEGER NOT NULL DEFAULT 0,
-            trade_fibonacci    INTEGER NOT NULL DEFAULT 0,
-
-            -- настройки по стратегиям (JSON: {"oi": {"percent": 1, "sl": 3, "tp": 8}, ...})
-            strategy_settings  TEXT,
-            -- DCA настройки для доборов (фьючерсы)
-            dca_enabled        INTEGER NOT NULL DEFAULT 0,   -- 0=выключено, 1=включено
-            dca_pct_1          REAL    NOT NULL DEFAULT 10.0,
-            dca_pct_2          REAL    NOT NULL DEFAULT 25.0,
-
-            -- доступ/модерация/согласие
-            is_allowed         INTEGER NOT NULL DEFAULT 0,   -- 1=одобрен админом
-            is_banned          INTEGER NOT NULL DEFAULT 0,   -- 1=бан
-            terms_accepted     INTEGER NOT NULL DEFAULT 0,   -- 1=принял правила
-            guide_sent         INTEGER NOT NULL DEFAULT 0,   -- 1=отправлен PDF гайд
-
-            -- совместимость с текущим кодом
-            first_seen_ts      INTEGER,
-            last_seen_ts       INTEGER
-        )
-        """
-        )
-
-        # Индексы для админ-листинга/фильтра/сортировки
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_flags ON users(is_banned, is_allowed)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_ts DESC)")
-
-        # Мягкие миграции на случай старой БД
-        for col, ddl in [
-            ("strategies_enabled", "ALTER TABLE users ADD COLUMN strategies_enabled TEXT"),
-            ("strategies_order",   "ALTER TABLE users ADD COLUMN strategies_order   TEXT"),
-            ("rsi_lo",             "ALTER TABLE users ADD COLUMN rsi_lo REAL"),
-            ("rsi_hi",             "ALTER TABLE users ADD COLUMN rsi_hi REAL"),
-            ("bb_touch_k",         "ALTER TABLE users ADD COLUMN bb_touch_k REAL"),
-            ("oi_min_pct",         "ALTER TABLE users ADD COLUMN oi_min_pct REAL"),
-            ("price_min_pct",      "ALTER TABLE users ADD COLUMN price_min_pct REAL"),
-            ("limit_only_default", "ALTER TABLE users ADD COLUMN limit_only_default INTEGER"),
-            ("trade_scryptomera",  "ALTER TABLE users ADD COLUMN trade_scryptomera  INTEGER NOT NULL DEFAULT 0"),
-            ("trade_scalper",      "ALTER TABLE users ADD COLUMN trade_scalper      INTEGER NOT NULL DEFAULT 0"),
-            ("trade_elcaro",       "ALTER TABLE users ADD COLUMN trade_elcaro       INTEGER NOT NULL DEFAULT 0"),
-            ("trade_fibonacci",    "ALTER TABLE users ADD COLUMN trade_fibonacci    INTEGER NOT NULL DEFAULT 0"),
-            ("strategy_settings",  "ALTER TABLE users ADD COLUMN strategy_settings  TEXT"),
-            ("dca_enabled",        "ALTER TABLE users ADD COLUMN dca_enabled        INTEGER NOT NULL DEFAULT 0"),
-            ("dca_pct_1",          "ALTER TABLE users ADD COLUMN dca_pct_1          REAL NOT NULL DEFAULT 10.0"),
-            ("dca_pct_2",          "ALTER TABLE users ADD COLUMN dca_pct_2          REAL NOT NULL DEFAULT 25.0"),
-            ("is_allowed",         "ALTER TABLE users ADD COLUMN is_allowed         INTEGER NOT NULL DEFAULT 0"),
-            ("is_banned",          "ALTER TABLE users ADD COLUMN is_banned          INTEGER NOT NULL DEFAULT 0"),
-            ("terms_accepted",     "ALTER TABLE users ADD COLUMN terms_accepted     INTEGER NOT NULL DEFAULT 0"),
-            ("first_seen_ts",      "ALTER TABLE users ADD COLUMN first_seen_ts      INTEGER"),
-            ("last_seen_ts",       "ALTER TABLE users ADD COLUMN last_seen_ts       INTEGER"),
-            # Demo/Real API keys migration
-            ("demo_api_key",       "ALTER TABLE users ADD COLUMN demo_api_key       TEXT"),
-            ("demo_api_secret",    "ALTER TABLE users ADD COLUMN demo_api_secret    TEXT"),
-            ("real_api_key",       "ALTER TABLE users ADD COLUMN real_api_key       TEXT"),
-            ("real_api_secret",    "ALTER TABLE users ADD COLUMN real_api_secret    TEXT"),
-            ("trading_mode",       "ALTER TABLE users ADD COLUMN trading_mode       TEXT NOT NULL DEFAULT 'demo'"),
-            # Global leverage
-            ("leverage",           "ALTER TABLE users ADD COLUMN leverage           INTEGER NOT NULL DEFAULT 10"),
-            # Spot trading
-            ("spot_enabled",       "ALTER TABLE users ADD COLUMN spot_enabled       INTEGER NOT NULL DEFAULT 0"),
-            ("spot_settings",      "ALTER TABLE users ADD COLUMN spot_settings      TEXT"),
-            # Guide sent flag
-            ("guide_sent",         "ALTER TABLE users ADD COLUMN guide_sent         INTEGER NOT NULL DEFAULT 0"),
-            # Limit ladder settings (for DCA entries)
-            ("limit_ladder_enabled",  "ALTER TABLE users ADD COLUMN limit_ladder_enabled  INTEGER NOT NULL DEFAULT 0"),
-            ("limit_ladder_count",    "ALTER TABLE users ADD COLUMN limit_ladder_count    INTEGER NOT NULL DEFAULT 3"),
-            ("limit_ladder_settings", "ALTER TABLE users ADD COLUMN limit_ladder_settings TEXT"),
-            # Global order type (market/limit) 
-            ("global_order_type",  "ALTER TABLE users ADD COLUMN global_order_type  TEXT NOT NULL DEFAULT 'market'"),
-            # HyperLiquid DEX columns
-            ("hl_private_key",     "ALTER TABLE users ADD COLUMN hl_private_key     TEXT"),
-            ("hl_wallet_address",  "ALTER TABLE users ADD COLUMN hl_wallet_address  TEXT"),
-            ("hl_vault_address",   "ALTER TABLE users ADD COLUMN hl_vault_address   TEXT"),
-            ("hl_testnet",         "ALTER TABLE users ADD COLUMN hl_testnet         INTEGER NOT NULL DEFAULT 0"),
-            ("hl_enabled",         "ALTER TABLE users ADD COLUMN hl_enabled         INTEGER NOT NULL DEFAULT 0"),
-            # Bybit enable/disable flag (default enabled for backward compatibility)
-            ("bybit_enabled",      "ALTER TABLE users ADD COLUMN bybit_enabled      INTEGER NOT NULL DEFAULT 1"),
-            # Separate HL testnet/mainnet credentials
-            ("hl_testnet_private_key",     "ALTER TABLE users ADD COLUMN hl_testnet_private_key     TEXT"),
-            ("hl_testnet_wallet_address",  "ALTER TABLE users ADD COLUMN hl_testnet_wallet_address  TEXT"),
-            ("hl_mainnet_private_key",     "ALTER TABLE users ADD COLUMN hl_mainnet_private_key     TEXT"),
-            ("hl_mainnet_wallet_address",  "ALTER TABLE users ADD COLUMN hl_mainnet_wallet_address  TEXT"),
-            ("exchange_mode",      "ALTER TABLE users ADD COLUMN exchange_mode      TEXT NOT NULL DEFAULT 'bybit'"),
-            ("exchange_type",      "ALTER TABLE users ADD COLUMN exchange_type      TEXT NOT NULL DEFAULT 'bybit'"),
-            # ELCARO Token balances
-            ("elc_balance",        "ALTER TABLE users ADD COLUMN elc_balance        REAL NOT NULL DEFAULT 0.0"),
-            ("elc_staked",         "ALTER TABLE users ADD COLUMN elc_staked         REAL NOT NULL DEFAULT 0.0"),
-            ("elc_locked",         "ALTER TABLE users ADD COLUMN elc_locked         REAL NOT NULL DEFAULT 0.0"),
-            # User info for webapp login
-            ("username",           "ALTER TABLE users ADD COLUMN username           TEXT"),
-            ("first_name",         "ALTER TABLE users ADD COLUMN first_name         TEXT"),
-            # Global ATR settings (for fallback when strategy setting is NULL)
-            ("atr_periods",        "ALTER TABLE users ADD COLUMN atr_periods        INTEGER NOT NULL DEFAULT 7"),
-            ("atr_multiplier_sl",  "ALTER TABLE users ADD COLUMN atr_multiplier_sl  REAL NOT NULL DEFAULT 1.0"),
-            ("atr_trigger_pct",    "ALTER TABLE users ADD COLUMN atr_trigger_pct    REAL NOT NULL DEFAULT 2.0"),
-            ("atr_step_pct",       "ALTER TABLE users ADD COLUMN atr_step_pct       REAL NOT NULL DEFAULT 0.5"),
-            # Global direction setting
-            ("direction",          "ALTER TABLE users ADD COLUMN direction          TEXT NOT NULL DEFAULT 'all'"),
-        ]:
-            if not _col_exists(conn, "users", col):
-                cur.execute(ddl)
-        
-        # Migrate old api_key/api_secret to demo_api_key/demo_api_secret if not migrated
-        cur.execute("""
-            UPDATE users 
-            SET demo_api_key = api_key, demo_api_secret = api_secret
-            WHERE api_key IS NOT NULL AND demo_api_key IS NULL
-        """)
-
-        # Доп. выравнивание NULL → дефолтов
-        cur.execute("UPDATE users SET trade_oi=1        WHERE trade_oi IS NULL")
-        cur.execute("UPDATE users SET use_atr=1         WHERE use_atr IS NULL")
-        cur.execute("UPDATE users SET trade_rsi_bb=1    WHERE trade_rsi_bb IS NULL")
-        cur.execute("UPDATE users SET limit_enabled=1   WHERE limit_enabled IS NULL")
-        cur.execute("UPDATE users SET is_allowed=0      WHERE is_allowed IS NULL")
-        cur.execute("UPDATE users SET is_banned=0       WHERE is_banned  IS NULL")
-        cur.execute("UPDATE users SET terms_accepted=0  WHERE terms_accepted IS NULL")
-
-        # MARKET SNAPSHOTS
-        if _table_exists(conn, "market_snapshots") and not _col_exists(
-            conn, "market_snapshots", "id"
-        ):
-            cur.execute("ALTER TABLE market_snapshots RENAME TO market_snapshots__old")
-
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS market_snapshots (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            ts          INTEGER NOT NULL,       -- unix ms
-            btc_dom     REAL,
-            btc_price   REAL,
-            btc_change  REAL,
-            alt_signal  TEXT CHECK(alt_signal IN ('LONG','SHORT','NEUTRAL'))
-        )
-        """
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_ms_ts ON market_snapshots(ts DESC)"
-        )
-
-        if _table_exists(conn, "market_snapshots__old"):
-            cur.execute(
-                """
-                INSERT INTO market_snapshots (ts, btc_dom, btc_price, btc_change, alt_signal)
-                SELECT CAST(strftime('%s', ts) AS INTEGER)*1000, btc_dom, btc_price, btc_change, alt_signal
-                  FROM market_snapshots__old
-            """
-            )
-            cur.execute("DROP TABLE market_snapshots__old")
-
-        # NEWS
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS news (
-            link        TEXT PRIMARY KEY,
-            title       TEXT,
-            description TEXT,
-            image_url   TEXT,
-            ts          DATETIME DEFAULT (CURRENT_TIMESTAMP),
-            signal      TEXT,
-            sentiment   TEXT
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_news_ts ON news(ts DESC)")
-
-        # PYRAMIDS
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS pyramids (
-            user_id   INTEGER NOT NULL,
-            symbol    TEXT    NOT NULL,
-            side      TEXT,
-            count     INTEGER NOT NULL DEFAULT 0,
-            PRIMARY KEY(user_id, symbol),
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_pyramids_user ON pyramids(user_id)")
-
-        # USER STRATEGY SETTINGS - per-user, per-strategy, per-exchange, per-account settings
-        # Replaces JSON-based strategy_settings field
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS user_strategy_settings (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id         INTEGER NOT NULL,
-            strategy        TEXT NOT NULL,  -- oi, rsi_bb, scryptomera, scalper, elcaro, fibonacci, manual
-            exchange        TEXT NOT NULL DEFAULT 'bybit',  -- bybit, hyperliquid
-            account_type    TEXT NOT NULL DEFAULT 'demo',   -- demo, real, testnet, mainnet
-            
-            -- Trading parameters
-            enabled         INTEGER DEFAULT 1,
-            percent         REAL,  -- Position size % of balance
-            sl_percent      REAL,  -- Stop loss %
-            tp_percent      REAL,  -- Take profit %
-            leverage        INTEGER,  -- 1-100 or NULL for default
-            
-            -- ATR parameters
-            use_atr         INTEGER,  -- 0=Fixed SL/TP, 1=ATR Trailing, NULL=use global
-            atr_periods     INTEGER,
-            atr_multiplier_sl REAL,
-            atr_trigger_pct REAL,
-            
-            -- Order settings
-            order_type      TEXT DEFAULT 'market',  -- market, limit
-            coins_group     TEXT,  -- ALL, TOP, VOLATILE, or NULL for global
-            direction       TEXT DEFAULT 'all',  -- all, long, short
-            
-            -- Side-specific settings (for scryptomera/scalper)
-            long_percent    REAL,
-            long_sl_percent REAL,
-            long_tp_percent REAL,
-            long_atr_periods INTEGER,
-            long_atr_multiplier_sl REAL,
-            long_atr_trigger_pct REAL,
-            
-            short_percent   REAL,
-            short_sl_percent REAL,
-            short_tp_percent REAL,
-            short_atr_periods INTEGER,
-            short_atr_multiplier_sl REAL,
-            short_atr_trigger_pct REAL,
-            
-            -- Fibonacci-specific
-            min_quality     INTEGER DEFAULT 50,
-            
-            -- Trading mode (per-strategy setting for this exchange/account)
-            trading_mode    TEXT DEFAULT 'global',  -- global, demo, real, both, testnet, mainnet
-            
-            -- Timestamps
-            created_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
-            updated_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
-            
-            UNIQUE(user_id, strategy, exchange, account_type),
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
-        
-        # Migration: add trading_mode column if not exists
-        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "trading_mode"):
-            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN trading_mode TEXT DEFAULT 'global'")
-
-        # ELC PURCHASES - track USDT → ELC purchases on TON
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS elc_purchases (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id         INTEGER NOT NULL,
-            payment_id      TEXT UNIQUE NOT NULL,
-            usdt_amount     REAL NOT NULL,
-            elc_amount      REAL NOT NULL,
-            platform_fee    REAL NOT NULL,
-            status          TEXT NOT NULL DEFAULT 'pending',  -- pending, completed, failed
-            payment_method  TEXT NOT NULL,  -- ton_usdt, direct_wallet
-            tx_hash         TEXT,
-            created_at      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            completed_at    DATETIME,
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_user ON elc_purchases(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_status ON elc_purchases(status)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_purchases_created ON elc_purchases(created_at DESC)")
-
-        # ELC TRANSACTIONS - track all ELC balance changes
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS elc_transactions (
-            id                INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id           INTEGER NOT NULL,
-            transaction_type  TEXT NOT NULL,  -- purchase, subscription, marketplace, burn, stake, unstake, withdraw
-            amount            REAL NOT NULL,  -- negative for spending, positive for receiving
-            balance_after     REAL NOT NULL,
-            description       TEXT,
-            metadata          TEXT,  -- JSON for additional data
-            created_at        DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_user ON elc_transactions(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_type ON elc_transactions(transaction_type)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_elc_txs_created ON elc_transactions(created_at DESC)")
-
-        # ELC STATS - global token statistics
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS elc_stats (
-            id                  INTEGER PRIMARY KEY DEFAULT 1,
-            total_burned        REAL NOT NULL DEFAULT 0.0,
-            total_staked        REAL NOT NULL DEFAULT 0.0,
-            circulating_supply  REAL NOT NULL DEFAULT 1000000000.0,  -- 1 billion initial
-            total_purchases     REAL NOT NULL DEFAULT 0.0,
-            total_subscriptions REAL NOT NULL DEFAULT 0.0,
-            last_burn_at        DATETIME,
-            last_update         DATETIME DEFAULT (CURRENT_TIMESTAMP)
-        )
-        """
-        )
-        # Insert initial row if not exists
-        cur.execute("""
-            INSERT OR IGNORE INTO elc_stats (id, total_burned, total_staked, circulating_supply) 
-            VALUES (1, 0.0, 0.0, 1000000000.0)
-        """)
-
-        # CONNECTED WALLETS - for cold wallet trading (MetaMask, WalletConnect)
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS connected_wallets (
-            user_id         INTEGER PRIMARY KEY,
-            wallet_address  TEXT NOT NULL,
-            wallet_type     TEXT NOT NULL,  -- metamask, walletconnect, tonkeeper
-            chain           TEXT NOT NULL DEFAULT 'ethereum',  -- ethereum, ton, polygon, bsc
-            connected_at    DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            last_used_at    DATETIME,
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-        """
-        )
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_connected_wallets_address ON connected_wallets(wallet_address)")
-
-        # META (k/v)
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS meta (
-            key   TEXT PRIMARY KEY,
-            value TEXT
-        )
-        """
-        )
-
-        # BTC DOM (исторический лог)
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS btc_dom (
-            ts   INTEGER PRIMARY KEY,
-            dom  REAL
-        )
-        """
-        )
-
-        # SIGNALS
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS signals (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            raw_message TEXT,
-            ts          DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            tf          TEXT,
-            side        TEXT,
-            symbol      TEXT,
-            price       REAL,
-            oi_prev     REAL,
-            oi_now      REAL,
-            oi_chg      REAL,
-            vol_from    REAL,
-            vol_to      REAL,
-            price_chg   REAL,
-            vol_delta   REAL,
-            rsi         REAL,
-            bb_hi       REAL,
-            bb_lo       REAL
-        )
-        """
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_signals_symbol_ts ON signals(symbol, ts DESC)"
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_signals_tf_ts     ON signals(tf, ts DESC)"
-        )
-
-        # ACTIVE POSITIONS
-        # Проверяем нужна ли миграция PRIMARY KEY (добавление account_type в PK)
-        needs_pk_migration = False
-        if _table_exists(conn, "active_positions"):
-            # Проверяем текущий PRIMARY KEY - если account_type нет в PK, нужна миграция
-            pk_info = cur.execute("PRAGMA table_info(active_positions)").fetchall()
-            pk_cols = [col[1] for col in pk_info if col[5] > 0]  # col[5] = pk flag
-            if "account_type" not in pk_cols:
-                needs_pk_migration = True
-        
-        if needs_pk_migration:
-            # Миграция: пересоздаём таблицу с новым PRIMARY KEY (user_id, symbol, account_type)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS active_positions_new (
-                    user_id      INTEGER NOT NULL,
-                    symbol       TEXT    NOT NULL,
-                    account_type TEXT    NOT NULL DEFAULT 'demo',
-                    side         TEXT,
-                    entry_price  REAL,
-                    size         REAL,
-                    open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-                    timeframe    TEXT,
-                    signal_id    INTEGER,
-                    dca_10_done  INTEGER NOT NULL DEFAULT 0,
-                    dca_25_done  INTEGER NOT NULL DEFAULT 0,
-                    strategy     TEXT,
-                    PRIMARY KEY(user_id, symbol, account_type),
-                    FOREIGN KEY(user_id)  REFERENCES users(user_id)   ON DELETE CASCADE,
-                    FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE SET NULL
-                )
-            """)
-            # Копируем данные из старой таблицы
-            cur.execute("""
-                INSERT OR IGNORE INTO active_positions_new 
-                    (user_id, symbol, account_type, side, entry_price, size, open_ts, timeframe, signal_id, dca_10_done, dca_25_done, strategy)
-                SELECT 
-                    user_id, symbol, COALESCE(account_type, 'demo'), side, entry_price, size, open_ts, timeframe, signal_id,
-                    COALESCE(dca_10_done, 0), COALESCE(dca_25_done, 0), strategy
-                FROM active_positions
-            """)
-            cur.execute("DROP TABLE active_positions")
-            cur.execute("ALTER TABLE active_positions_new RENAME TO active_positions")
-        else:
-            # Создание новой таблицы с правильным PRIMARY KEY
-            cur.execute(
-                """
-            CREATE TABLE IF NOT EXISTS active_positions (
-                user_id      INTEGER NOT NULL,
-                symbol       TEXT    NOT NULL,
-                account_type TEXT    NOT NULL DEFAULT 'demo',
-                side         TEXT,
-                entry_price  REAL,
-                size         REAL,
-                open_ts      DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-                timeframe    TEXT,
-                signal_id    INTEGER,
-                dca_10_done  INTEGER NOT NULL DEFAULT 0,
-                dca_25_done  INTEGER NOT NULL DEFAULT 0,
-                strategy     TEXT,
-                PRIMARY KEY(user_id, symbol, account_type),
-                FOREIGN KEY(user_id)  REFERENCES users(user_id)   ON DELETE CASCADE,
-                FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE SET NULL
-            )
-            """
-            )
-        
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)"
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_active_sig  ON active_positions(signal_id)"
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)"
-        )
-
-        # TRADE LOGS
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS trade_logs (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id         INTEGER NOT NULL,
-            signal_id       INTEGER,
-            symbol          TEXT,
-            side            TEXT,
-            entry_price     REAL,
-            exit_price      REAL,
-            exit_reason     TEXT,
-            pnl             REAL,
-            pnl_pct         REAL,
-            ts              DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-            signal_source   TEXT,
-            rsi             REAL,
-            bb_hi           REAL,
-            bb_lo           REAL,
-            oi_prev         REAL,
-            oi_now          REAL,
-            oi_chg          REAL,
-            vol_from        REAL,
-            vol_to          REAL,
-            price_chg       REAL,
-            vol_delta       REAL,
-            sl_pct          REAL,
-            tp_pct          REAL,
-            sl_price        REAL,
-            tp_price        REAL,
-            timeframe       TEXT,
-            entry_ts        INTEGER,
-            exit_ts         INTEGER,
-            exit_order_type TEXT,
-            FOREIGN KEY(user_id)   REFERENCES users(user_id) ON DELETE CASCADE,
-            FOREIGN KEY(signal_id) REFERENCES signals(id)    ON DELETE SET NULL
-        )
-        """
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_logs_user_ts   ON trade_logs(user_id, ts DESC)"
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_logs_symbol_ts ON trade_logs(symbol, ts DESC)"
-        )
-        # Миграция: добавляем strategy в trade_logs
-        if _table_exists(conn, "trade_logs") and not _col_exists(conn, "trade_logs", "strategy"):
-            cur.execute("ALTER TABLE trade_logs ADD COLUMN strategy TEXT DEFAULT NULL")
-        # Миграция: добавляем account_type в trade_logs
-        if _table_exists(conn, "trade_logs") and not _col_exists(conn, "trade_logs", "account_type"):
-            cur.execute("ALTER TABLE trade_logs ADD COLUMN account_type TEXT DEFAULT 'demo'")
-        # P1: Добавляем exchange в trade_logs для multi-exchange поддержки
-        if _table_exists(conn, "trade_logs") and not _col_exists(conn, "trade_logs", "exchange"):
-            cur.execute("ALTER TABLE trade_logs ADD COLUMN exchange TEXT DEFAULT 'bybit'")
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_logs_strategy ON trade_logs(user_id, strategy)"
-        )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_logs_account_type ON trade_logs(user_id, account_type)"
-        )
-
-        # PENDING LIMIT ORDERS (+ time_in_force)
-        cur.execute(
-            """
-        CREATE TABLE IF NOT EXISTS pending_limit_orders (
-            user_id       INTEGER NOT NULL,
-            order_id      TEXT    NOT NULL,
-            symbol        TEXT    NOT NULL,
-            side          TEXT    NOT NULL,
-            qty           REAL    NOT NULL,
-            price         REAL    NOT NULL,
-            signal_id     INTEGER NOT NULL,
-            created_ts    INTEGER NOT NULL,
-            time_in_force TEXT    NOT NULL DEFAULT 'GTC',
-            PRIMARY KEY(user_id, order_id),
-            FOREIGN KEY(user_id)   REFERENCES users(user_id)  ON DELETE CASCADE,
-            FOREIGN KEY(signal_id) REFERENCES signals(id)     ON DELETE CASCADE
-        )
-        """
-        )
-        # Миграция для существующих таблиц без time_in_force
-        if _table_exists(conn, "pending_limit_orders") and not _col_exists(conn, "pending_limit_orders", "time_in_force"):
-            cur.execute("ALTER TABLE pending_limit_orders ADD COLUMN time_in_force TEXT NOT NULL DEFAULT 'GTC'")
-        # Миграция: добавляем strategy в pending_limit_orders
-        if _table_exists(conn, "pending_limit_orders") and not _col_exists(conn, "pending_limit_orders", "strategy"):
-            cur.execute("ALTER TABLE pending_limit_orders ADD COLUMN strategy TEXT DEFAULT NULL")
-        # Миграция: добавляем account_type в pending_limit_orders для поддержки demo/real режимов
-        if _table_exists(conn, "pending_limit_orders") and not _col_exists(conn, "pending_limit_orders", "account_type"):
-            cur.execute("ALTER TABLE pending_limit_orders ADD COLUMN account_type TEXT DEFAULT 'demo'")
-
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_pending_user_created ON pending_limit_orders(user_id, created_ts DESC)"
-        )
-
-        # =====================================================
-        # LICENSING SYSTEM TABLES
-        # =====================================================
-        
-        # User licenses table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS user_licenses (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id         INTEGER NOT NULL,
-                license_type    TEXT NOT NULL,         -- 'premium', 'basic', 'trial'
-                start_date      INTEGER NOT NULL,      -- Unix timestamp
-                end_date        INTEGER NOT NULL,      -- Unix timestamp
-                is_active       INTEGER NOT NULL DEFAULT 1,
-                created_at      INTEGER NOT NULL,
-                updated_at      INTEGER,
-                created_by      INTEGER,               -- Admin who created/modified
-                notes           TEXT,
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_licenses_user ON user_licenses(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_licenses_active ON user_licenses(is_active, end_date)")
-        
-        # Payment history table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS payment_history (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id         INTEGER NOT NULL,
-                license_id      INTEGER,               -- Reference to user_licenses
-                payment_type    TEXT NOT NULL,         -- 'stars', 'ton', 'admin_grant', 'promo'
-                amount          REAL NOT NULL,         -- Amount paid (in stars or TON)
-                currency        TEXT NOT NULL,         -- 'XTR' (stars), 'TON', 'FREE'
-                license_type    TEXT NOT NULL,         -- 'premium', 'basic', 'trial'
-                period_days     INTEGER NOT NULL,      -- Duration in days
-                telegram_charge_id TEXT,               -- Telegram payment charge ID
-                status          TEXT NOT NULL DEFAULT 'completed', -- 'pending', 'completed', 'failed', 'refunded'
-                created_at      INTEGER NOT NULL,
-                metadata        TEXT,                  -- JSON with additional data
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY(license_id) REFERENCES user_licenses(id) ON DELETE SET NULL
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_user ON payment_history(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_status ON payment_history(status)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_charge ON payment_history(telegram_charge_id)")
-        
-        # Promo codes table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS promo_codes (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                code            TEXT NOT NULL UNIQUE,
-                license_type    TEXT NOT NULL,         -- 'premium', 'basic', 'trial'
-                period_days     INTEGER NOT NULL,
-                max_uses        INTEGER DEFAULT 1,     -- NULL = unlimited
-                current_uses    INTEGER NOT NULL DEFAULT 0,
-                is_active       INTEGER NOT NULL DEFAULT 1,
-                valid_until     INTEGER,               -- Unix timestamp, NULL = no expiry
-                created_at      INTEGER NOT NULL,
-                created_by      INTEGER,               -- Admin ID
-                notes           TEXT
-            )
-        """)
-        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_code ON promo_codes(code)")
-        
-        # Promo code usage tracking
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS promo_usage (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                promo_id        INTEGER NOT NULL,
-                user_id         INTEGER NOT NULL,
-                used_at         INTEGER NOT NULL,
-                FOREIGN KEY(promo_id) REFERENCES promo_codes(id) ON DELETE CASCADE,
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                UNIQUE(promo_id, user_id)              -- Each user can use promo only once
-            )
-        """)
-        
-        # Add license_type column to users table if not exists (for quick access)
-        if not _col_exists(conn, "users", "current_license"):
-            cur.execute("ALTER TABLE users ADD COLUMN current_license TEXT DEFAULT 'none'")
-        if not _col_exists(conn, "users", "license_expires"):
-            cur.execute("ALTER TABLE users ADD COLUMN license_expires INTEGER")
-
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # MARKETPLACE & CUSTOM STRATEGIES TABLES
-        # ═══════════════════════════════════════════════════════════════════════════════
-        
-        # Custom strategies created by users
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS custom_strategies (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id         INTEGER NOT NULL,
-                name            TEXT NOT NULL,
-                description     TEXT,
-                base_strategy   TEXT DEFAULT 'custom',   -- 'elcaro', 'rsibboi', 'fibonacci', etc.
-                config_json     TEXT NOT NULL,           -- Full strategy config as JSON
-                is_public       INTEGER DEFAULT 0,       -- Listed on marketplace
-                is_active       INTEGER DEFAULT 1,
-                win_rate        REAL DEFAULT 0,          -- Backtest win rate %
-                total_pnl       REAL DEFAULT 0,          -- Backtest total PnL %
-                total_trades    INTEGER DEFAULT 0,       -- Backtest trade count
-                backtest_score  REAL DEFAULT 0,          -- Composite score for ranking
-                created_at      INTEGER NOT NULL,
-                updated_at      INTEGER,
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_user ON custom_strategies(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_strategies_public ON custom_strategies(is_public, is_active)")
-        
-        # Add performance_stats column if not exists
-        if not _col_exists(conn, "custom_strategies", "performance_stats"):
-            cur.execute("ALTER TABLE custom_strategies ADD COLUMN performance_stats TEXT")
-        
-        # Marketplace listings (strategies for sale)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS strategy_marketplace (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                strategy_id     INTEGER NOT NULL UNIQUE,
-                seller_id       INTEGER NOT NULL,
-                price_ton       REAL DEFAULT 0,          -- Price in TON
-                price_stars     INTEGER DEFAULT 0,       -- Price in Telegram Stars
-                revenue_share   REAL DEFAULT 0.5,        -- Creator's share (0.5 = 50%)
-                rating          REAL DEFAULT 0,          -- Average rating 1-5
-                rating_count    INTEGER DEFAULT 0,
-                total_sales     INTEGER DEFAULT 0,
-                total_revenue   REAL DEFAULT 0,
-                is_active       INTEGER DEFAULT 1,
-                featured        INTEGER DEFAULT 0,       -- Featured on homepage
-                created_at      INTEGER NOT NULL,
-                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
-                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON strategy_marketplace(seller_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_rating ON strategy_marketplace(rating DESC)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_marketplace_active ON strategy_marketplace(is_active)")
-        
-        # Strategy purchases
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS strategy_purchases (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                buyer_id        INTEGER NOT NULL,
-                marketplace_id  INTEGER NOT NULL,
-                strategy_id     INTEGER NOT NULL,
-                seller_id       INTEGER NOT NULL,
-                amount_paid     REAL NOT NULL,
-                currency        TEXT NOT NULL,           -- 'ton' or 'stars'
-                seller_share    REAL NOT NULL,
-                platform_share  REAL NOT NULL,
-                is_active       INTEGER DEFAULT 1,       -- Access still valid
-                purchased_at    INTEGER NOT NULL,
-                FOREIGN KEY(buyer_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
-                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
-                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_purchases_buyer ON strategy_purchases(buyer_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_purchases_seller ON strategy_purchases(seller_id)")
-        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_unique ON strategy_purchases(buyer_id, marketplace_id)")
-        
-        # Strategy ratings
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS strategy_ratings (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                marketplace_id  INTEGER NOT NULL,
-                user_id         INTEGER NOT NULL,
-                rating          INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-                review          TEXT,
-                created_at      INTEGER NOT NULL,
-                FOREIGN KEY(marketplace_id) REFERENCES strategy_marketplace(id) ON DELETE CASCADE,
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                UNIQUE(marketplace_id, user_id)         -- One rating per user per strategy
-            )
-        """)
-        # Only create index if marketplace_id column exists
-        if _col_exists(conn, "strategy_ratings", "marketplace_id"):
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_ratings_marketplace ON strategy_ratings(marketplace_id)")
-        
-        # Seller payouts tracking
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS seller_payouts (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                seller_id       INTEGER NOT NULL,
-                amount          REAL NOT NULL,
-                currency        TEXT NOT NULL,
-                status          TEXT DEFAULT 'pending',  -- 'pending', 'processing', 'completed', 'failed'
-                tx_hash         TEXT,                    -- Blockchain transaction hash
-                requested_at    INTEGER NOT NULL,
-                processed_at    INTEGER,
-                FOREIGN KEY(seller_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_payouts_seller ON seller_payouts(seller_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_payouts_status ON seller_payouts(status)")
-        
-        # Top strategies view/table for rankings
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS top_strategies (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                strategy_type   TEXT NOT NULL,           -- 'system' or 'custom'
-                strategy_id     INTEGER,                 -- NULL for system strategies
-                strategy_name   TEXT NOT NULL,
-                win_rate        REAL DEFAULT 0,
-                total_pnl       REAL DEFAULT 0,
-                total_trades    INTEGER DEFAULT 0,
-                sharpe_ratio    REAL DEFAULT 0,
-                max_drawdown    REAL DEFAULT 0,
-                rank            INTEGER,
-                config_json     TEXT,
-                updated_at      INTEGER NOT NULL
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_top_rank ON top_strategies(rank)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_top_type ON top_strategies(strategy_type)")
-
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # STRATEGY VERSIONING - Track all versions of custom strategies
-        # ═══════════════════════════════════════════════════════════════════════════════
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS strategy_versions (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                strategy_id     INTEGER NOT NULL,
-                version         TEXT NOT NULL,           -- Semver: "1.0.0", "1.1.0", etc.
-                config_json     TEXT NOT NULL,           -- Full strategy config snapshot
-                change_log      TEXT,                    -- Description of changes
-                backtest_result TEXT,                    -- Backtest stats at this version
-                created_by      INTEGER NOT NULL,        -- User who created this version
-                created_at      INTEGER NOT NULL,
-                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
-                FOREIGN KEY(created_by) REFERENCES users(user_id) ON DELETE SET NULL
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_versions_strategy ON strategy_versions(strategy_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_versions_version ON strategy_versions(strategy_id, version)")
-        
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # STRATEGY LIVE STATE - Runtime state for strategies in live trading
-        # ═══════════════════════════════════════════════════════════════════════════════
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS strategy_live_state (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id         INTEGER NOT NULL,
-                strategy_id     INTEGER NOT NULL,
-                exchange        TEXT NOT NULL DEFAULT 'bybit',  -- 'bybit', 'hyperliquid'
-                account_type    TEXT NOT NULL DEFAULT 'demo',   -- 'demo', 'real'
-                
-                -- State
-                is_running      INTEGER DEFAULT 0,       -- Is strategy actively running?
-                is_paused       INTEGER DEFAULT 0,       -- Temporarily paused
-                
-                -- Current positions for this strategy
-                open_positions  TEXT,                    -- JSON: [{symbol, side, entry, size}]
-                pending_orders  TEXT,                    -- JSON: [{symbol, side, price, size}]
-                
-                -- Runtime stats
-                session_pnl     REAL DEFAULT 0,          -- PnL since last start
-                session_trades  INTEGER DEFAULT 0,       -- Trades since last start
-                total_pnl       REAL DEFAULT 0,          -- Lifetime PnL
-                total_trades    INTEGER DEFAULT 0,       -- Lifetime trades
-                win_rate        REAL DEFAULT 0,
-                
-                -- Daily limits tracking
-                daily_trades    INTEGER DEFAULT 0,
-                daily_pnl       REAL DEFAULT 0,
-                daily_reset_at  INTEGER,                 -- Unix timestamp of last daily reset
-                
-                -- Timestamps
-                started_at      INTEGER,                 -- When strategy was last started
-                stopped_at      INTEGER,                 -- When strategy was last stopped
-                last_signal_at  INTEGER,                 -- Last signal processed
-                updated_at      INTEGER,
-                
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY(strategy_id) REFERENCES custom_strategies(id) ON DELETE CASCADE,
-                UNIQUE(user_id, strategy_id, exchange, account_type)
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_user ON strategy_live_state(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_running ON strategy_live_state(is_running)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_live_strategy ON strategy_live_state(strategy_id)")
-
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # P0.1: EXCHANGE ACCOUNTS TABLE - Multi-exchange support with execution_targets
-        # ═══════════════════════════════════════════════════════════════════════════════
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS exchange_accounts (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id         INTEGER NOT NULL,
-                exchange        TEXT NOT NULL,           -- 'bybit', 'hyperliquid'
-                account_type    TEXT NOT NULL,           -- 'demo', 'real', 'testnet', 'mainnet'
-                label           TEXT,                    -- User-friendly label
-                is_enabled      INTEGER DEFAULT 1,       -- Is this account active for trading?
-                is_default      INTEGER DEFAULT 0,       -- Default account for this exchange
-                
-                -- API credentials (encrypted or plain for now)
-                api_key         TEXT,
-                api_secret      TEXT,
-                extra_json      TEXT,                    -- JSON for HL private_key, wallet, vault, etc.
-                
-                -- Account-specific settings
-                max_positions   INTEGER DEFAULT 10,      -- Max concurrent positions
-                max_leverage    INTEGER DEFAULT 100,     -- Max allowed leverage
-                risk_limit_pct  REAL DEFAULT 30.0,       -- Max effective_risk (sl_pct * leverage)
-                
-                -- Execution targeting
-                priority        INTEGER DEFAULT 0,       -- Order of execution (lower = first)
-                
-                -- Metadata
-                created_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
-                updated_at      DATETIME DEFAULT (CURRENT_TIMESTAMP),
-                last_sync_at    DATETIME,
-                
-                UNIQUE(user_id, exchange, account_type),
-                FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-            )
-        """)
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_user ON exchange_accounts(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_enabled ON exchange_accounts(user_id, is_enabled)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_exch_accounts_exchange ON exchange_accounts(user_id, exchange)")
-
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # P0.3: ACTIVE POSITIONS EXTENSIONS - source, manual_sltp_override, ATR state
-        # ═══════════════════════════════════════════════════════════════════════════════
-        
-        # Миграция: добавляем source (откуда создана позиция)
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "source"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN source TEXT DEFAULT 'bot'")
-        
-        # Миграция: добавляем opened_by (для WebApp интеграции)
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "opened_by"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN opened_by TEXT DEFAULT 'bot'")
-        
-        # Миграция: добавляем exchange (поддержка мульти-биржи)
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "exchange"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN exchange TEXT DEFAULT 'bybit'")
-        
-        # Миграция: SL/TP цены
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "sl_price"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN sl_price REAL")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "tp_price"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN tp_price REAL")
-        
-        # Миграция: manual_sltp_override - бот не будет перезаписывать ручные изменения
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "manual_sltp_override"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN manual_sltp_override INTEGER DEFAULT 0")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "manual_sltp_ts"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN manual_sltp_ts INTEGER")
-        
-        # P0.4: ATR trailing state - переживает рестарт бота
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_activated"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_activated INTEGER DEFAULT 0")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_activation_price"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_activation_price REAL")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_last_stop_price"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_stop_price REAL")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "atr_last_update_ts"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN atr_last_update_ts INTEGER")
-        # P0.5: use_atr - флаг включения ATR trailing для позиции
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "use_atr"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN use_atr INTEGER DEFAULT 0")
-        
-        # Миграция: leverage для позиции
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "leverage"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN leverage INTEGER")
-        
-        # P1: Сохраняем SL/TP % при открытии позиции (для правильного расчёта при закрытии)
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "applied_sl_pct"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN applied_sl_pct REAL")
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "applied_tp_pct"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN applied_tp_pct REAL")
-        
-        # Миграция: client_order_id для идемпотентности
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "client_order_id"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN client_order_id TEXT")
-        
-        # Миграция: exchange_order_id (ID ордера на бирже)
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "exchange_order_id"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN exchange_order_id TEXT")
-        
-        # Миграция: env (unified paper/live) для новой Target модели
-        if _table_exists(conn, "active_positions") and not _col_exists(conn, "active_positions", "env"):
-            cur.execute("ALTER TABLE active_positions ADD COLUMN env TEXT")
-            # Заполняем env на основе account_type
-            cur.execute("""
-                UPDATE active_positions 
-                SET env = CASE 
-                    WHEN account_type IN ('demo', 'testnet') THEN 'paper'
-                    WHEN account_type IN ('real', 'mainnet') THEN 'live'
-                    ELSE 'paper'
-                END
-                WHERE env IS NULL
-            """)
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_active_env ON active_positions(user_id, exchange, env)")
-
-        # ═══════════════════════════════════════════════════════════════════════════════
-        # ROUTING POLICY & MULTI-TARGET SUPPORT
-        # ═══════════════════════════════════════════════════════════════════════════════
-        
-        # Миграция: routing_policy для users - определяет как маршрутизировать сигналы
-        # Значения:
-        #   - 'active_only': только на выбранном таргете (UI)
-        #   - 'same_exchange_all_envs': текущая биржа, все включенные env (demo+real или testnet+mainnet)
-        #   - 'all_enabled': все включенные таргеты (до 4)
-        if not _col_exists(conn, "users", "routing_policy"):
-            cur.execute("ALTER TABLE users ADD COLUMN routing_policy TEXT DEFAULT 'same_exchange_all_envs'")
-        
-        # Миграция: live_enabled - отдельное подтверждение для live/mainnet трейдинга
-        # Пользователь должен явно подтвердить, что хочет торговать на реальные деньги
-        if not _col_exists(conn, "users", "live_enabled"):
-            cur.execute("ALTER TABLE users ADD COLUMN live_enabled INTEGER DEFAULT 0")
-        
-        # Миграция: добавляем env поле в user_strategy_settings для fallback логики
-        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "env"):
-            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN env TEXT")
-            # Заполняем env на основе account_type
-            cur.execute("""
-                UPDATE user_strategy_settings 
-                SET env = CASE 
-                    WHEN account_type IN ('demo', 'testnet') THEN 'paper'
-                    WHEN account_type IN ('real', 'mainnet') THEN 'live'
-                    ELSE NULL
-                END
-                WHERE env IS NULL
-            """)
-        
-        # Миграция: добавляем routing_policy в user_strategy_settings (per-strategy override)
-        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "routing_policy"):
-            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN routing_policy TEXT")
-        
-        # Миграция: добавляем explicit targets list (JSON) для CUSTOM_TARGET_LIST policy
-        if _table_exists(conn, "user_strategy_settings") and not _col_exists(conn, "user_strategy_settings", "targets_json"):
-            cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN targets_json TEXT")
-
-        conn.commit()
 
 # ------------------------------------------------------------------------------------
 # Helpers
@@ -2703,7 +1682,7 @@ def _enrich_with_routing(user_id: int, strategy: str, exchange: str, account_typ
             settings["routing_policy"] = None
             settings["targets_json"] = None
         return settings
-    except sqlite3.Error as e:
+    except Exception as e:
         logger.warning(f"Error enriching settings with routing: {e}")
         settings["routing_policy"] = None
         settings["targets_json"] = None
@@ -4864,8 +3843,11 @@ def create_promo_code(
             """, (code.upper(), license_type, period_days, max_uses, valid_until, now, admin_id, notes))
             conn.commit()
             return {"success": True, "code": code.upper()}
-        except sqlite3.IntegrityError:
-            return {"error": "Promo code already exists"}
+        except Exception as e:
+            # Handle unique constraint violation (promo code already exists)
+            if "unique" in str(e).lower() or "duplicate" in str(e).lower():
+                return {"error": "Promo code already exists"}
+            raise
 
 
 def use_promo_code(user_id: int, code: str) -> dict:
@@ -6533,11 +5515,11 @@ def save_trade(user_id: int, symbol: str, side: str, entry_price: float,
     now = int(time.time())
     
     with get_conn() as conn:
-        # Ensure table exists
+        # Ensure table exists (PostgreSQL syntax)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT,
                 symbol TEXT,
                 side TEXT,
                 entry_price REAL,
@@ -6547,8 +5529,8 @@ def save_trade(user_id: int, symbol: str, side: str, entry_price: float,
                 pnl_percent REAL,
                 exchange TEXT DEFAULT 'bybit',
                 strategy TEXT,
-                created_at INTEGER,
-                closed_at INTEGER
+                created_at BIGINT,
+                closed_at BIGINT
             )
         """)
         
@@ -6701,3 +5683,288 @@ def get_referral_stats(user_id: int) -> dict:
             "earnings": total_referrals * 5  # $5 per referral
         }
 
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# POSTGRESQL FUNCTION WRAPPERS (Full Migration - January 2026)
+# These wrap pg_* functions from core.db_postgres for API compatibility
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+_logger.info("🐘 PostgreSQL-only mode: setting up function wrappers")
+
+# Override core user functions
+def ensure_user(user_id: int):
+    """PostgreSQL version: ensure user exists"""
+    pg_ensure_user(user_id)
+
+def set_user_field(user_id: int, field: str, value):
+    """PostgreSQL version: set user field"""
+    pg_set_user_field(user_id, field, value)
+    invalidate_user_cache(user_id)
+
+def get_user_field(user_id: int, field: str, default=None):
+    """PostgreSQL version: get user field"""
+    return pg_get_user_field(user_id, field, default)
+
+def get_all_users() -> list[int]:
+    """PostgreSQL version: get all user IDs"""
+    return pg_get_all_users()
+
+def get_active_users() -> list[int]:
+    """PostgreSQL version: get users with API keys"""
+    return pg_get_active_users()
+
+def get_allowed_users() -> list[int]:
+    """PostgreSQL version: get users with is_allowed=1"""
+    return pg_get_allowed_users()
+
+# Override position functions
+def add_active_position(
+    user_id: int,
+    symbol: str,
+    side: str,
+    entry_price: float,
+    size: float,
+    strategy: str = None,
+    account_type: str = "demo",
+    leverage: float = None,
+    sl_price: float = None,
+    tp_price: float = None,
+    exchange: str = "bybit",
+    env: str = None,
+    **kwargs  # Accept additional params like timeframe, signal_id, etc.
+):
+    """PostgreSQL version: add active position"""
+    pg_add_active_position(
+        user_id, symbol, side, entry_price, size,
+        strategy, account_type, leverage, sl_price, tp_price, exchange, env
+    )
+
+def get_active_positions(
+    user_id: int,
+    account_type: str = None,
+    exchange: str = None,
+    env: str = None
+) -> list[dict]:
+    """PostgreSQL version: get active positions"""
+    return pg_get_active_positions(user_id, account_type, exchange, env)
+
+def get_active_position(
+    user_id: int,
+    symbol: str,
+    account_type: str = "demo"
+):
+    """PostgreSQL version: get single active position"""
+    return pg_get_active_position(user_id, symbol, account_type)
+
+def remove_active_position(
+    user_id: int,
+    symbol: str,
+    account_type: str = None,
+    entry_price: float = None,
+    entry_price_tolerance: float = 0.001
+):
+    """PostgreSQL version: remove active position"""
+    pg_remove_active_position(user_id, symbol, account_type or "demo")
+
+def update_position_field(
+    user_id: int,
+    symbol: str,
+    field: str,
+    value,
+    account_type: str = "demo"
+):
+    """PostgreSQL version: update position field"""
+    pg_update_position_field(user_id, symbol, field, value, account_type)
+
+# Override trade log functions
+def add_trade_log(
+    user_id: int,
+    symbol: str,
+    side: str,
+    entry_price: float,
+    exit_price: float,
+    exit_reason: str,
+    pnl: float,
+    pnl_pct: float = None,
+    strategy: str = None,
+    account_type: str = "demo",
+    **kwargs
+) -> bool:
+    """PostgreSQL version: add trade log"""
+    return pg_add_trade_log(
+        user_id, symbol, side, entry_price, exit_price, exit_reason,
+        pnl, pnl_pct or 0.0, strategy, account_type,
+        kwargs.get('sl_pct'), kwargs.get('tp_pct'), kwargs.get('timeframe')
+    )
+
+def get_trade_logs(
+    user_id: int,
+    account_type: str = None,
+    limit: int = 100,
+    **kwargs
+) -> list[dict]:
+    """PostgreSQL version: get trade logs"""
+    return pg_get_trade_logs(
+        user_id, account_type,
+        kwargs.get('strategy'),
+        limit,
+        kwargs.get('days')
+    )
+
+# Override signal functions
+def add_signal(
+    symbol: str,
+    side: str,
+    strategy: str,
+    **kwargs
+):
+    """PostgreSQL version: add signal"""
+    pg_add_signal(
+        symbol, side, strategy,
+        kwargs.get('entry_price'),
+        kwargs.get('sl_price'),
+        kwargs.get('tp_price'),
+        kwargs.get('timeframe'),
+        kwargs.get('raw_json')
+    )
+
+# Override trading mode functions
+def get_trading_mode(user_id: int) -> str:
+    """PostgreSQL version: get trading mode"""
+    return pg_get_trading_mode(user_id)
+
+def get_active_trading_users() -> list:
+    """PostgreSQL version: get active trading users"""
+    return pg_get_active_trading_users()
+
+# Override user config function (critical for monitoring loop)
+def get_user_config(user_id: int) -> dict:
+    """PostgreSQL version: get user config"""
+    return pg_get_user_config(user_id)
+
+# Override credentials functions
+def get_user_credentials(user_id: int, account_type: str = None) -> tuple:
+    """PostgreSQL version: get user credentials"""
+    return pg_get_user_credentials(user_id, account_type)
+
+def get_all_user_credentials(user_id: int) -> dict:
+    """PostgreSQL version: get all user credentials"""
+    return pg_get_all_user_credentials(user_id)
+
+def get_exchange_type(user_id: int) -> str:
+    """PostgreSQL version: get exchange type"""
+    return pg_get_exchange_type(user_id)
+
+def get_hl_credentials(user_id: int, account_type: str = None) -> dict:
+    """PostgreSQL version: get HyperLiquid credentials"""
+    return pg_get_hl_credentials(user_id, account_type)
+
+def is_hl_enabled(user_id: int) -> bool:
+    """PostgreSQL version: check if HL enabled"""
+    return pg_is_hl_enabled(user_id)
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# ADDITIONAL PostgreSQL WRAPPERS (Full Migration - January 2026)
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+def is_bybit_enabled(user_id: int) -> bool:
+    """PostgreSQL version: check if Bybit enabled"""
+    return pg_is_bybit_enabled(user_id)
+
+def set_bybit_enabled(user_id: int, enabled: bool):
+    """PostgreSQL version: set Bybit enabled"""
+    pg_set_bybit_enabled(user_id, enabled)
+    invalidate_user_cache(user_id)
+
+def get_routing_policy(user_id: int) -> str:
+    """PostgreSQL version: get routing policy"""
+    return pg_get_routing_policy(user_id)
+
+def set_routing_policy(user_id: int, policy: str):
+    """PostgreSQL version: set routing policy"""
+    pg_set_routing_policy(user_id, policy)
+    invalidate_user_cache(user_id)
+
+def get_user_trading_context(user_id: int) -> dict:
+    """PostgreSQL version: get user trading context"""
+    return pg_get_user_trading_context(user_id)
+
+def get_active_account_types(user_id: int) -> list:
+    """PostgreSQL version: get active account types"""
+    return pg_get_active_account_types(user_id)
+
+def get_strategy_account_types(user_id: int, strategy: str) -> list:
+    """PostgreSQL version: get strategy account types"""
+    return pg_get_strategy_account_types(user_id, strategy)
+
+def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:
+    """PostgreSQL version: get strategy settings from DB"""
+    return pg_get_strategy_settings_db(user_id, strategy, exchange, account_type)
+
+def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> dict:
+    """PostgreSQL version: get strategy settings with fallback"""
+    return pg_get_strategy_settings(user_id, strategy, exchange, account_type)
+
+def set_strategy_setting(user_id: int, strategy: str, field: str, value,
+                        exchange: str = None, account_type: str = None) -> bool:
+    """PostgreSQL version: set strategy setting"""
+    if exchange is None or account_type is None:
+        context = pg_get_user_trading_context(user_id)
+        exchange = exchange or context["exchange"]
+        account_type = account_type or context["account_type"]
+    return pg_set_strategy_setting(user_id, strategy, field, value, exchange, account_type)
+
+def get_effective_settings(user_id: int, strategy: str, exchange: str = None, 
+                          account_type: str = None, timeframe: str = "24h", 
+                          side: str = None) -> dict:
+    """PostgreSQL version: get effective settings"""
+    return pg_get_effective_settings(user_id, strategy, exchange, account_type, timeframe, side)
+
+def get_hl_strategy_settings(user_id: int, strategy: str) -> dict:
+    """PostgreSQL version: get HL strategy settings"""
+    return pg_get_hl_strategy_settings(user_id, strategy)
+
+def set_hl_strategy_setting(user_id: int, strategy: str, field: str, value) -> bool:
+    """PostgreSQL version: set HL strategy setting"""
+    result = pg_set_hl_strategy_setting(user_id, strategy, field, value)
+    invalidate_user_cache(user_id)
+    return result
+
+def get_hl_effective_settings(user_id: int, strategy: str) -> dict:
+    """PostgreSQL version: get HL effective settings"""
+    return pg_get_hl_effective_settings(user_id, strategy)
+
+def should_show_account_switcher(user_id: int) -> bool:
+    """PostgreSQL version: check if should show account switcher"""
+    return pg_should_show_account_switcher(user_id)
+
+def update_user_info(user_id: int, username: str = None, first_name: str = None):
+    """PostgreSQL version: update user info"""
+    pg_update_user_info(user_id, username, first_name)
+    invalidate_user_cache(user_id)
+
+def set_trading_mode(user_id: int, mode: str):
+    """PostgreSQL version: set trading mode"""
+    pg_set_trading_mode(user_id, mode)
+    invalidate_user_cache(user_id)
+
+def set_hl_enabled(user_id: int, enabled: bool):
+    """PostgreSQL version: set HL enabled"""
+    pg_set_hl_enabled(user_id, enabled)
+    invalidate_user_cache(user_id)
+
+def delete_user(user_id: int):
+    """PostgreSQL version: delete user"""
+    pg_delete_user(user_id)
+    invalidate_user_cache(user_id)
+
+def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo") -> bool:
+    """PostgreSQL version: sync position entry price"""
+    return pg_sync_position_entry_price(user_id, symbol, new_entry_price, account_type)
+
+def set_user_credentials(user_id: int, api_key: str, api_secret: str, account_type: str = "demo"):
+    """PostgreSQL version: set user credentials"""
+    pg_set_user_credentials(user_id, api_key, api_secret, account_type)
+    invalidate_user_cache(user_id)
+
+_logger.info("✅ PostgreSQL functions loaded successfully")
