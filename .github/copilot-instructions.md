@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.7.0 | Обновлено: 16 января 2026
+# Версия: 3.8.0 | Обновлено: 15 января 2026
 # =============================================
 
 ---
@@ -64,7 +64,7 @@
 
 # 📊 АРХИТЕКТУРА ПРОЕКТА
 
-## Статистика проекта (актуально на 06.01.2026)
+## Статистика проекта (актуально на 15.01.2026)
 
 | Метрика | Значение |
 |---------|----------|
@@ -75,13 +75,17 @@
 | Тестов | 664 |
 | Языков перевода | 15 |
 | Ключей перевода | 679 |
+| База данных | PostgreSQL 14 (ONLY) |
+| Users | 12 |
+| Active positions | 30 |
+| Trade logs | 11,691 |
 
 ## Структура проекта
 
 ```
 ElCaro Trading Platform
-├── bot.py                 # 🔥 Главный бот (20218 строк, 241 функция)
-├── db.py                  # 💾 Database layer (SQLite/PostgreSQL, 7K строк)
+├── bot.py                 # 🔥 Главный бот (21748 строк, 250+ функций)
+├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 6K строк)
 ├── bot_unified.py         # 🔗 Unified API Bybit/HyperLiquid (530 строк)
 ├── exchange_router.py     # 🔀 Роутинг между биржами (1140 строк)
 ├── hl_adapter.py          # 🌐 HyperLiquid адаптер (716 строк)
@@ -120,7 +124,7 @@ ElCaro Trading Platform
 │   └── notification_service.py
 │
 ├── core/                  # Инфраструктура
-│   ├── db_postgres.py     # PostgreSQL layer (1.1K строк) ⭐ NEW
+│   ├── db_postgres.py     # PostgreSQL layer (1.8K строк) ⭐ MAIN DB
 │   ├── cache.py           # Кеширование (TTL 30s)
 │   ├── rate_limiter.py    # Rate limiting
 │   └── exceptions.py      # Кастомные исключения
@@ -140,10 +144,10 @@ ElCaro Trading Platform
 
 ---
 
-# 💾 БАЗА ДАННЫХ (PostgreSQL 14)
+# 💾 БАЗА ДАННЫХ (PostgreSQL 14 - ONLY)
 
-> **ВАЖНО:** С января 2026 проект использует PostgreSQL вместо SQLite.
-> Для включения PostgreSQL установите `USE_POSTGRES=1` в окружении.
+> **⚠️ КРИТИЧНО:** SQLite полностью удалён! PostgreSQL - единственная БД.
+> Флаг `USE_POSTGRES` больше не существует - PostgreSQL используется всегда.
 
 ## Connection Pool
 
@@ -151,6 +155,17 @@ ElCaro Trading Platform
 # core/db_postgres.py
 psycopg2.pool.ThreadedConnectionPool(minconn=5, maxconn=50)
 DATABASE_URL = "postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro"
+```
+
+## SQLite Compatibility Layer
+
+Для backward compatibility существует layer который автоматически конвертирует SQLite синтаксис:
+
+```python
+# core/db_postgres.py
+class SQLiteCompatCursor:  # Конвертирует ? → %s плейсхолдеры
+class SQLiteCompatConnection:  # Wrapper для seamless миграции
+def _sqlite_to_pg(query):  # Автоматическая конвертация синтаксиса
 ```
 
 ## Multitenancy Architecture
@@ -293,27 +308,42 @@ idx_trade_logs_account      (account_type, ts DESC)
 ## Использование в коде
 
 ```python
-# Автоматическое переключение SQLite/PostgreSQL
+# Все функции из db.py теперь PostgreSQL-only:
 from db import get_user_field, set_user_field, add_active_position
-# При USE_POSTGRES=1 вызываются pg_* функции из core/db_postgres.py
+# Внутри вызываются pg_* функции из core/db_postgres.py
 
 # Прямой доступ к PostgreSQL
 from core.db_postgres import get_pool, get_conn, execute, execute_one
 
-# Connection Pool (ThreadedConnectionPool)
-pool = get_pool()
-conn = pool.getconn()
-try:
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE user_id = %s", (uid,))
-finally:
-    pool.putconn(conn)
-
-# Context manager (рекомендуется)
+# Context manager (РЕКОМЕНДУЕТСЯ)
 from core.db_postgres import get_conn
 with get_conn() as conn:
     cur = conn.cursor()
-    cur.execute("...")
+    cur.execute("SELECT * FROM users WHERE user_id = %s", (uid,))
+
+# Или через execute() helper
+from core.db_postgres import execute, execute_one
+rows = execute("SELECT * FROM users WHERE is_allowed = %s", (1,))
+user = execute_one("SELECT * FROM users WHERE user_id = %s", (uid,))
+```
+
+## Функции мультитенантности
+
+```python
+from core.db_postgres import (
+    pg_get_user_trading_context,  # Контекст: exchange + account_type
+    pg_get_active_account_types,  # Список аккаунтов для торговли
+    pg_get_strategy_settings,     # Настройки с 4D fallback
+    pg_get_effective_settings,    # Эффективные настройки с side-specific
+    pg_set_strategy_setting,      # UPSERT настройки
+)
+
+# Получить контекст пользователя
+ctx = pg_get_user_trading_context(uid)
+# {'exchange': 'bybit', 'account_type': 'demo', 'trading_mode': 'demo'}
+
+# Получить настройки стратегии с fallback
+settings = pg_get_strategy_settings(uid, 'oi', exchange='bybit', account_type='demo')
 ```
 
 ---
@@ -440,7 +470,33 @@ python3 utils/translation_sync.py --report
 
 # 🔧 RECENT FIXES (Январь 2026)
 
-### ✅ CRITICAL: Complete PostgreSQL Migration - SQLite Removed (Jan 16, 2026)
+### ✅ FIX: SQLiteCompatCursor Context Manager (Jan 15, 2026)
+- **Проблема:** `execute()` функция падала с `AttributeError: __enter__` при использовании `RealDictCursor`
+- **Причина:** `SQLiteCompatCursor` не имел методов `__enter__`/`__exit__` для context manager
+- **Файл:** `core/db_postgres.py` lines 171-180
+- **Fix:** Добавлены методы в `SQLiteCompatCursor`:
+  ```python
+  def __enter__(self):
+      return self
+  def __exit__(self, exc_type, exc_val, exc_tb):
+      self.close()
+      return False
+  ```
+- **Дополнительно:** Функция `execute()` теперь использует прямой доступ к pool для `RealDictCursor`
+
+### ✅ FIX: Missing DB Columns Migration (Jan 15, 2026)
+- **Проблема:** Production база имела устаревшую схему - отсутствовали колонки
+- **Результат:** Бот падал при запуске с `column "X" does not exist`
+- **Добавленные колонки:**
+  - `pending_limit_orders`: `order_id`, `signal_id`
+  - `user_licenses`: `is_active`, `end_date`, `start_date`, `license_type`, `created_by`, `notes`
+  - `signals`: 13 колонок
+  - `active_positions`: 15 колонок  
+  - `trade_logs`: 6 колонок
+  - `users`: 17 колонок
+- **Fix:** Инкрементальные миграции через `ALTER TABLE ADD COLUMN IF NOT EXISTS`
+
+### ✅ CRITICAL: Complete PostgreSQL Migration - SQLite Removed (Jan 15, 2026)
 - **Проблема:** Проект использовал SQLite с условным переключением на PostgreSQL
 - **Результат:** Полное удаление SQLite, PostgreSQL-ONLY архитектура
 - **Изменения:**
@@ -455,9 +511,9 @@ python3 utils/translation_sync.py --report
   1. `db.py` использует `get_conn()` из `core.db_postgres` 
   2. Все SQLite-style запросы (`?` placeholders) автоматически конвертируются в PostgreSQL (`%s`)
   3. `init_db()` делегирует на `pg_init_db()` с полной PostgreSQL схемой
-- **Тестирование:** `python3 -m py_compile db.py` ✅, `import db` ✅
+- **Environment:** PostgreSQL обязателен (SQLite больше не поддерживается)
 
-### ✅ MAJOR: SQLite → PostgreSQL Migration (Jan 15, 2026)
+### ✅ MAJOR: SQLite → PostgreSQL Full Schema Migration (Jan 15, 2026)
 - **Проблема:** SQLite не поддерживает высокую конкурентность для 10K+ юзеров
 - **Результат:** Полная миграция на PostgreSQL 14
 - **Файлы:**
@@ -842,7 +898,8 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 ---
 
 *Last updated: 15 января 2026*
-*Version: 3.6.0*
-*Database: PostgreSQL 14*
+*Version: 3.8.0*
+*Database: PostgreSQL 14 (SQLite removed)*
+*Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*
