@@ -15080,7 +15080,7 @@ async def monitor_positions_loop(app: Application):
                                 
                                 if sig:
                                     # Check signal source/strategy
-                                    raw_msg = sig.get("raw_message", "")
+                                    raw_msg = sig.get("raw_message") or ""
                                     raw_upper = raw_msg.upper()
                                     if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
                                         detected_strategy = "scryptomera"

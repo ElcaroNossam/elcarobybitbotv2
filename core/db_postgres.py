@@ -119,8 +119,16 @@ class SQLiteCompatCursor:
         """Execute query with automatic SQLite→PostgreSQL conversion."""
         pg_query = _sqlite_to_pg(query)
         
-        # Handle RETURNING id for INSERT statements
-        if 'INSERT' in pg_query.upper() and 'RETURNING' not in pg_query.upper():
+        # Handle RETURNING id for INSERT statements - but only for tables with 'id' column
+        # Skip for tables with composite primary keys: active_positions, user_strategy_settings
+        tables_without_id = ['active_positions', 'user_strategy_settings', 'pending_limit_orders']
+        has_id_column = True
+        for table in tables_without_id:
+            if table.lower() in pg_query.lower():
+                has_id_column = False
+                break
+        
+        if has_id_column and 'INSERT' in pg_query.upper() and 'RETURNING' not in pg_query.upper():
             # Check if it's not ON CONFLICT DO NOTHING (which might not insert)
             if 'ON CONFLICT DO NOTHING' not in pg_query.upper():
                 pg_query = pg_query.rstrip().rstrip(';') + ' RETURNING id'
@@ -136,8 +144,12 @@ class SQLiteCompatCursor:
                 if row:
                     self.lastrowid = row[0]
         except Exception as e:
-            # Retry without RETURNING if it fails
+            # Retry without RETURNING if it fails (rollback current transaction first)
             if 'RETURNING' in pg_query:
+                try:
+                    self._cursor.connection.rollback()
+                except:
+                    pass
                 pg_query_no_returning = pg_query.replace(' RETURNING id', '')
                 self._cursor.execute(pg_query_no_returning, params)
                 self.rowcount = self._cursor.rowcount
