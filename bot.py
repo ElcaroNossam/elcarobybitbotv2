@@ -1657,11 +1657,13 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Return to strategies menu
         cfg = get_user_config(uid)
         active_exchange = db.get_exchange_type(uid) or "bybit"
+        context = db.get_user_trading_context(uid)
+        account_type = context.get("account_type", "demo")
         global_use_atr = bool(cfg.get("use_atr", 1))
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
-            strat_settings_data = db.get_strategy_settings(uid, strat_key)
+            strat_settings_data = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
             status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange, global_use_atr)
             if status_parts:
                 lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
@@ -6393,6 +6395,8 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     cfg = get_user_config(uid)
     active_exchange = db.get_exchange_type(uid) or "bybit"
+    context = db.get_user_trading_context(uid)
+    account_type = context.get("account_type", "demo")
     global_use_atr = bool(cfg.get("use_atr", 1))
     
     # Build status message
@@ -6400,7 +6404,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     lines.append("")
     
     for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
-        strat_settings = db.get_strategy_settings(uid, strat_key)
+        strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
         status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
         if status_parts:
             lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
@@ -6622,12 +6626,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data == "strat_set:back":
         # Rebuild main strategy menu
         active_exchange = db.get_exchange_type(uid) or "bybit"
+        context = db.get_user_trading_context(uid)
+        account_type = context.get("account_type", "demo")
         global_use_atr = bool(cfg.get("use_atr", 1))
         lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
         lines.append("")
         
         for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
-            strat_settings = db.get_strategy_settings(uid, strat_key)
+            strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
             status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
             if status_parts:
                 lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
@@ -6902,7 +6908,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.answer(f"🔄 HyperLiquid settings reset for {STRATEGY_NAMES_MAP.get(strategy, strategy)}")
         
         # Refresh the strategy menu
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        context = db.get_user_trading_context(uid)
+        active_exchange = context.get("exchange", "bybit")
+        account_type = context.get("account_type", "demo")
+        strat_settings = db.get_strategy_settings(uid, strategy, active_exchange, account_type)
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         await query.message.edit_text(
@@ -6947,11 +6956,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             active_exchange = db.get_exchange_type(uid) or "bybit"
+            context = db.get_user_trading_context(uid)
+            account_type = context.get("account_type", "demo")
             global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
-                strat_settings = db.get_strategy_settings(uid, strat_key)
+                strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
                 status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
@@ -6989,11 +7000,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             active_exchange = db.get_exchange_type(uid) or "bybit"
+            context = db.get_user_trading_context(uid)
+            account_type = context.get("account_type", "demo")
             global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
-                strat_settings = db.get_strategy_settings(uid, strat_key)
+                strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
                 status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
@@ -7063,11 +7076,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             cfg = get_user_config(uid)
+            context = db.get_user_trading_context(uid)
+            account_type = context.get("account_type", "demo")
             global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
-                strat_set = db.get_strategy_settings(uid, strat_key)
+                strat_set = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
                 status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
@@ -7085,7 +7100,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             return
         
         if strategy in STRATEGY_NAMES_MAP:
-            strat_settings = db.get_strategy_settings(uid, strategy)
+            context = db.get_user_trading_context(uid)
+            account_type = context.get("account_type", "demo")
+            strat_settings = db.get_strategy_settings(uid, strategy, active_exchange, account_type)
             current_mode = strat_settings.get("trading_mode", "global")
             # Normalize legacy "all" value to "global"
             if current_mode == "all":
@@ -7161,11 +7178,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             
             # Refresh the strategies menu
             cfg = get_user_config(uid)
+            context = db.get_user_trading_context(uid)
+            account_type = context.get("account_type", "demo")
             global_use_atr = bool(cfg.get("use_atr", 1))
             lines = [t.get('strategy_settings_header', '⚙️ *Strategy Settings*')]
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
-                strat_set = db.get_strategy_settings(uid, strat_key)
+                strat_set = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
                 status_parts = _build_strategy_status_parts(strat_key, strat_set, active_exchange, global_use_atr)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
@@ -7573,7 +7592,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_coins:"):
         strategy = data.split(":")[1]
         # Show coins group selection for this strategy
-        strat_settings = db.get_strategy_settings(uid, strategy)
+        context = db.get_user_trading_context(uid)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         current_group = strat_settings.get("coins_group")
         
         buttons = [
@@ -8023,12 +8043,15 @@ async def cmd_show_config(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ]
     
     global_lbl = ctx.t.get('global_default', 'Global')
+    context = db.get_user_trading_context(uid)
+    active_exchange = context.get("exchange", "bybit")
+    account_type = context.get("account_type", "demo")
     
     for strat_key, strat_name, trade_field in strategy_info:
         is_enabled = cfg.get(trade_field, 0)
         status = on if is_enabled else off
         
-        strat_settings = db.get_strategy_settings(uid, strat_key)
+        strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
         order_type = strat_settings.get("order_type", "market")
         order_lbl = "🎯L" if order_type == "limit" else "⚡M"
         coins_group = strat_settings.get("coins_group") or global_lbl
@@ -11663,7 +11686,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         try:
             close_side = "Sell" if pos["side"] == "Buy" else "Buy"
-            size = float(pos["size"])
+            size = float(pos.get("size") or 0)
             entry_price = float(pos.get("avgPrice") or 0)
             mark_price = float(pos.get("markPrice") or 0)
             unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
@@ -12102,7 +12125,10 @@ async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", p
     
     # Add strategy settings if specific strategy is selected and uid is provided
     if uid and strategy_name != "all":
-        strat_settings = db.get_strategy_settings(uid, strategy_name)
+        context = db.get_user_trading_context(uid)
+        active_exchange = context.get("exchange", "bybit")
+        account_type = context.get("account_type", "demo")
+        strat_settings = db.get_strategy_settings(uid, strategy_name, active_exchange, account_type)
         if strat_settings:
             lines.append("")
             lines.append(f"*⚙️ {t.get('stats_strategy_settings', 'Strategy Settings')}*")
@@ -14925,8 +14951,8 @@ async def monitor_positions_loop(app: Application):
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
                         active = get_active_positions(uid, account_type=current_account_type)
                         
-                        existing_syms = {ap["symbol"] for ap in active}
-                        tf_map = {ap['symbol']: ap.get('timeframe', '24h') for ap in active}
+                        existing_syms = {ap.get("symbol") for ap in active if ap.get("symbol")}
+                        tf_map = {ap.get('symbol'): ap.get('timeframe', '24h') for ap in active if ap.get('symbol')}
                         now = int(time.time())
                         open_syms = {p["symbol"] for p in open_positions}
                         
@@ -14998,17 +15024,22 @@ async def monitor_positions_loop(app: Application):
 
                         # Refresh active positions for this account type
                         active = get_active_positions(uid, account_type=current_account_type)
-                        existing_syms = {ap["symbol"] for ap in active}
-                        tf_map = {ap["symbol"]: ap.get("timeframe", "24h") for ap in active}
+                        existing_syms = {ap.get("symbol") for ap in active if ap.get("symbol")}
+                        tf_map = {ap.get("symbol"): ap.get("timeframe", "24h") for ap in active if ap.get("symbol")}
                         
                         for ap in active:
-                            entry_ts = _parse_sqlite_ts_to_utc(ap["open_ts"])
+                            open_ts = ap.get("open_ts")
+                            if not open_ts:
+                                continue  # Skip positions without open_ts
+                            entry_ts = _parse_sqlite_ts_to_utc(open_ts)
                             elapsed = now - entry_ts 
                             tf = ap.get("timeframe", "24h")
                             secs = THRESHOLD_MAP.get(tf, THRESHOLD_MAP['24h'])
-                            pos = next((p for p in open_positions if p["symbol"] == ap["symbol"]), None)
+                            sym = ap.get("symbol")
+                            if not sym:
+                                continue  # Skip positions without symbol
+                            pos = next((p for p in open_positions if p["symbol"] == sym), None)
                             raw_tp = pos.get("takeProfit") if pos else None
-                            sym = ap["symbol"]
                             ap_account_type = ap.get("account_type", current_account_type)
                             if pos and elapsed >= secs and float(pos.get("unrealisedPnl", 0)) < 0:
                                 close_side = "Sell" if pos["side"] == "Buy" else "Buy"
@@ -15163,7 +15194,7 @@ async def monitor_positions_loop(app: Application):
                                     strategy = detected_strategy
                                 else:
                                     # Existing or unknown position - get from DB
-                                    ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                                    ap_for_sym = next((ap for ap in active if ap.get("symbol") == sym), None)
                                     strategy = ap_for_sym.get("strategy") if ap_for_sym else None
                             
                                 logger.debug(f"[{uid}] {sym}: SL/TP resolution with strategy={strategy}, side={side}")
@@ -15320,7 +15351,9 @@ async def monitor_positions_loop(app: Application):
                         active = get_active_positions(uid, account_type=current_account_type)
 
                         for ap in active:
-                            sym = ap["symbol"]
+                            sym = ap.get("symbol")
+                            if not sym:
+                                continue  # Skip invalid positions
                             # CRITICAL: Use current_account_type from loop as fallback, not "demo"
                             ap_account_type = ap.get("account_type") or current_account_type
 
@@ -15347,8 +15380,14 @@ async def monitor_positions_loop(app: Application):
                             
                                 logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
 
-                                entry_price = float(rec["avgEntryPrice"])
-                                exit_price  = float(rec["avgExitPrice"])
+                                # Safe extraction with validation
+                                raw_entry = rec.get("avgEntryPrice")
+                                raw_exit = rec.get("avgExitPrice")
+                                if not raw_entry or not raw_exit:
+                                    logger.warning(f"[{uid}] Skipping {sym} closed PnL - missing entry/exit price")
+                                    continue
+                                entry_price = float(raw_entry)
+                                exit_price  = float(raw_exit)
                                 pos_side = ap.get("side", "Buy")
                                 
                                 # CRITICAL: Validate that closed PnL record matches our position
@@ -15385,11 +15424,12 @@ async def monitor_positions_loop(app: Application):
                                 reason_text = exit_reason  
 
                                 try:
-                                    sig = fetch_signal_by_id(ap["signal_id"]) or {}
+                                    sig = fetch_signal_by_id(ap.get("signal_id")) or {}
                                     
                                     # Calculate PnL for deduplication check
                                     size_for_pnl = float(rec.get("closedSize") or ap.get("size") or 0.0)
-                                    pnl_for_check = (exit_price - entry_price) * size_for_pnl * (1 if ap["side"] == "Buy" else -1)
+                                    ap_side = ap.get("side") or "Buy"
+                                    pnl_for_check = (exit_price - entry_price) * size_for_pnl * (1 if ap_side == "Buy" else -1)
                                     
                                     # DEDUPLICATION: Check if this closure was already processed
                                     # Key includes entry_price and pnl to identify unique trades
@@ -15420,13 +15460,14 @@ async def monitor_positions_loop(app: Application):
                                     # Determine strategy: from position or fallback to signal detection
                                     if not position_strategy and sig:
                                         raw_msg = sig.get("raw_message") or ""
+                                        raw_upper = raw_msg.upper()
                                         if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
                                             position_strategy = "scryptomera"
                                         elif "⚡" in raw_msg and "Scalper" in raw_msg:
                                             position_strategy = "scalper"
                                         elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
                                             position_strategy = "elcaro"
-                                        elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_msg.upper():
+                                        elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_upper:
                                             position_strategy = "fibonacci"
                                 
                                     log_exit_and_remove_position(
@@ -15462,7 +15503,7 @@ async def monitor_positions_loop(app: Application):
                                     leverage = float(rec.get("leverage") or ap.get("leverage") or 10)
                                 
                                     size_for_calc = float(rec.get("closedSize") or ap.get("size") or 0.0)
-                                    pnl_calc, pct_calc = _calc_pnl(entry_price, exit_price, ap["side"], size_for_calc)
+                                    pnl_calc, pct_calc = _calc_pnl(entry_price, exit_price, ap_side, size_for_calc)
                                 
                                     # PnL value (prefer Bybit API)
                                     try:
@@ -15592,7 +15633,7 @@ async def monitor_positions_loop(app: Application):
                                 logger.debug(f"[{uid}] {sym}: Position not in active_positions DB, using default tf=15m")
                             
                             # Get DB entry for comparison
-                            ap_for_sym = next((ap for ap in active if ap["symbol"] == sym), None)
+                            ap_for_sym = next((ap for ap in active if ap.get("symbol") == sym), None)
                             db_entry = float(ap_for_sym.get("entry_price") or 0) if ap_for_sym else 0
                             
                             # Sync entry_price if changed (DCA/averaging)
@@ -15619,12 +15660,13 @@ async def monitor_positions_loop(app: Application):
                                 if ap_for_sym and ap_for_sym.get("signal_id"):
                                     sig = fetch_signal_by_id(ap_for_sym["signal_id"])
                                     if sig:
-                                        raw_msg = sig.get("raw_message", "")
-                                        if "SCRYPTOMERA" in raw_msg.upper() or "DROP CATCH" in raw_msg:
+                                        raw_msg = sig.get("raw_message") or ""
+                                        raw_upper = raw_msg.upper()
+                                        if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg:
                                             pos_strategy = "scryptomera"
-                                        elif "SCALPER" in raw_msg.upper() or "⚡" in raw_msg:
+                                        elif "SCALPER" in raw_upper or "⚡" in raw_msg:
                                             pos_strategy = "scalper"
-                                        elif "ELCARO" in raw_msg.upper() or "🔥" in raw_msg:
+                                        elif "ELCARO" in raw_upper or "🔥" in raw_msg:
                                             pos_strategy = "elcaro"
                                         elif sig.get("source"):
                                             source = sig.get("source", "").lower()

@@ -4896,16 +4896,27 @@ def get_user_strategies(user_id: int) -> list:
         return [dict(r) for r in rows] if rows else []
 
 
-def get_active_trading_strategies(user_id: int) -> list:
+def get_active_trading_strategies(user_id: int, exchange: str = None, account_type: str = None) -> list:
     """
     Get all active strategies for live trading.
     Includes: system strategies (elcaro, fibonacci, etc.) and custom/purchased strategies.
     Used by bot to determine which strategies to process signals for.
+    
+    Args:
+        user_id: User ID
+        exchange: Exchange type ('bybit', 'hyperliquid'). If None, uses user's default.
+        account_type: Account type ('demo', 'real', 'testnet', 'mainnet'). If None, uses user's default.
     """
     import json
     
     active_strategies = []
     cfg = get_user_config(user_id)
+    
+    # Get user's trading context if exchange/account_type not provided
+    if exchange is None or account_type is None:
+        context = get_user_trading_context(user_id)
+        exchange = exchange or context.get("exchange", "bybit")
+        account_type = account_type or context.get("account_type", "demo")
     
     # System strategies
     system_strats = [
@@ -4919,7 +4930,7 @@ def get_active_trading_strategies(user_id: int) -> list:
     
     for strat_name, field in system_strats:
         if cfg.get(field):
-            strat_settings = get_strategy_settings(user_id, strat_name)
+            strat_settings = get_strategy_settings(user_id, strat_name, exchange, account_type)
             active_strategies.append({
                 "type": "system",
                 "id": strat_name,
