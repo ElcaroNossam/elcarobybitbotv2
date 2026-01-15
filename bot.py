@@ -15431,9 +15431,9 @@ async def monitor_positions_loop(app: Application):
                                 
                                     log_exit_and_remove_position(
                                         user_id=uid,
-                                        signal_id=ap["signal_id"],
+                                        signal_id=ap.get("signal_id"),
                                         symbol=sym,
-                                        side=ap["side"],
+                                        side=ap.get("side") or side,
                                         entry_price=entry_price,
                                         exit_price=exit_price,
                                         exit_reason=exit_reason,
@@ -15446,7 +15446,7 @@ async def monitor_positions_loop(app: Application):
                                         sl_price=exit_price if exit_reason=="SL" else None,
                                         tp_price=exit_price if exit_reason=="TP" else None,
                                         timeframe=ap.get("timeframe"),
-                                        entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap["open_ts"]) * 1000),
+                                        entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap.get("open_ts")) * 1000) if ap.get("open_ts") else None,
                                         exit_order_type=exit_order_type,
                                         strategy=position_strategy,
                                         account_type=ap_account_type,
