@@ -13079,27 +13079,54 @@ def _to_mln_ext(v: float, u: str, *, bare_is_units: bool = False) -> float:
     return round(v / 1_000_000.0, 6) if bare_is_units else round(v, 2)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SCRYPTOMERA SIGNAL PARSER (NEW FORMAT)
-# Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
+# SCRYPTOMERA SIGNAL PARSER
+# Format 1 (legacy): SCRIPTOMER SHORT SOLUSDT @ 189.45
+# Format 2 (real):   🔴 SHORT BANKUSDT + 📊 Score: 52% + (BB:... RSI:... Vol:... OI:...)
 # ═══════════════════════════════════════════════════════════════════════════════
 BITK_RE_HDR = re.compile(r'^\s*SCRIPTOMER\s+(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I | re.M)
+# NEW: Real Scryptomera format - 🔴/🟢 + SIDE + SYMBOL, then 📊 Score: on next line
+BITK_RE_REAL = re.compile(r'^[🔴🟢]\s*(SHORT|LONG)\s+([A-Z0-9]+USDT)', re.I | re.M)
+# Also detect by unique Score + BB/RSI/Vol/OI pattern
+BITK_RE_SCORE = re.compile(r'📊\s*Score:\s*\d+%.*\n📈\s*\(BB:\d+\s+RSI:\d+', re.I)
+# Entry price pattern for Scryptomera
+BITK_RE_ENTRY = re.compile(r'💲\s*Entry:\s*([0-9]+(?:\.[0-9]+)?)', re.I)
 
 def is_bitk_signal(text: str) -> bool:
-    """Check if message is Scryptomera signal by unique SCRIPTOMER keyword."""
-    return bool(BITK_RE_HDR.search(text))
+    """Check if message is Scryptomera signal by SCRIPTOMER or Score+BB+RSI pattern."""
+    # Legacy format
+    if BITK_RE_HDR.search(text):
+        return True
+    # Real format: has emoji+SIDE+SYMBOL AND Score+BB+RSI pattern
+    if BITK_RE_REAL.search(text) and BITK_RE_SCORE.search(text):
+        return True
+    return False
 
 def parse_bitk_signal(text: str) -> dict | None:
     """
     Parse Scryptomera signal.
-    Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
+    Format 1: SCRIPTOMER SHORT SOLUSDT @ 189.45
+    Format 2: 🔴 SHORT BANKUSDT + 💲 Entry: 0.05282000
     """
+    # Try legacy format first
     m = BITK_RE_HDR.search(text)
-    if not m:
-        return None
-    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
-    symbol = m.group(2).upper()
-    price = _tof(m.group(3))
-    return {"symbol": symbol, "side": side, "price": price}
+    if m:
+        side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+        symbol = m.group(2).upper()
+        price = _tof(m.group(3))
+        return {"symbol": symbol, "side": side, "price": price}
+    
+    # Try real format: 🔴/🟢 SIDE SYMBOL
+    m = BITK_RE_REAL.search(text)
+    if m and BITK_RE_SCORE.search(text):
+        side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+        symbol = m.group(2).upper()
+        # Get entry price from 💲 Entry: line
+        m_entry = BITK_RE_ENTRY.search(text)
+        price = _tof(m_entry.group(1)) if m_entry else None
+        if price:
+            return {"symbol": symbol, "side": side, "price": price}
+    
+    return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SCALPER SIGNAL PARSER (NEW FORMAT)
@@ -15164,10 +15191,23 @@ async def monitor_positions_loop(app: Application):
                                         logger.debug(f"[{uid}] Found signal for {sym} via raw_message search: id={signal_id}")
                                 
                                 if sig:
-                                    # Check signal source/strategy
+                                    # Check signal source/strategy using parsers
                                     raw_msg = sig.get("raw_message") or ""
                                     raw_upper = raw_msg.upper()
-                                    if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
+                                    
+                                    # Use actual parsers to detect strategy (most reliable)
+                                    if is_fibonacci_signal(raw_msg):
+                                        detected_strategy = "fibonacci"
+                                    elif is_bitk_signal(raw_msg):  # Scryptomera
+                                        detected_strategy = "scryptomera"
+                                    elif is_scalper_signal(raw_msg):
+                                        detected_strategy = "scalper"
+                                    elif is_elcaro_signal(raw_msg):
+                                        detected_strategy = "elcaro"
+                                    elif is_oi_signal(raw_msg):
+                                        detected_strategy = "oi"
+                                    # Fallback to keyword detection for legacy signals
+                                    elif "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg or "DROPSBOT" in raw_upper or "TIGHTBTC" in raw_upper:
                                         detected_strategy = "scryptomera"
                                     elif "SCALPER" in raw_upper and "⚡" in raw_msg:
                                         detected_strategy = "scalper"
@@ -15175,6 +15215,8 @@ async def monitor_positions_loop(app: Application):
                                         detected_strategy = "elcaro"
                                     elif "FIBONACCI" in raw_upper or "FIBONACCI EXTENSION" in raw_upper:
                                         detected_strategy = "fibonacci"
+                                    elif "OI SIGNAL" in raw_upper or "🎯 OI" in raw_msg:
+                                        detected_strategy = "oi"
                                 
                                 # Use current_account_type from the loop
                                 # If strategy not detected, use "manual" (position opened externally)
@@ -15514,15 +15556,30 @@ async def monitor_positions_loop(app: Application):
                                     # Determine strategy: from position or fallback to signal detection
                                     if not position_strategy and sig:
                                         raw_msg = sig.get("raw_message") or ""
-                                        raw_upper = raw_msg.upper()
-                                        if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg:
-                                            position_strategy = "scryptomera"
-                                        elif "⚡" in raw_msg and "Scalper" in raw_msg:
-                                            position_strategy = "scalper"
-                                        elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg:
-                                            position_strategy = "elcaro"
-                                        elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_upper:
+                                        # Use parsers for reliable strategy detection
+                                        if is_fibonacci_signal(raw_msg):
                                             position_strategy = "fibonacci"
+                                        elif is_bitk_signal(raw_msg):
+                                            position_strategy = "scryptomera"
+                                        elif is_scalper_signal(raw_msg):
+                                            position_strategy = "scalper"
+                                        elif is_elcaro_signal(raw_msg):
+                                            position_strategy = "elcaro"
+                                        elif is_oi_signal(raw_msg):
+                                            position_strategy = "oi"
+                                        else:
+                                            # Fallback to legacy keyword detection
+                                            raw_upper = raw_msg.upper()
+                                            if "DropsBot" in raw_msg or "DROP CATCH" in raw_msg or "TIGHTBTC" in raw_msg or "SCRYPTOMERA" in raw_upper:
+                                                position_strategy = "scryptomera"
+                                            elif "⚡" in raw_msg and "Scalper" in raw_msg:
+                                                position_strategy = "scalper"
+                                            elif "🚀 Elcaro" in raw_msg or "ElCaro" in raw_msg or "ELCARO" in raw_upper:
+                                                position_strategy = "elcaro"
+                                            elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_upper:
+                                                position_strategy = "fibonacci"
+                                            elif "OI SIGNAL" in raw_upper or "🎯 OI" in raw_msg:
+                                                position_strategy = "oi"
                                 
                                     log_exit_and_remove_position(
                                         user_id=uid,

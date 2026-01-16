@@ -2144,7 +2144,13 @@ def get_last_signal_id(user_id: int, symbol: str, timeframe: str) -> int | None:
 def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
     """
     Search for most recent signal containing symbol in raw_message.
-    Useful when signal was saved without proper symbol parsing.
+    Searches all known signal formats:
+    - [SYMBOL] - legacy format
+    - 🔔 SYMBOL - Elcaro format  
+    - 🪙 SYMBOL - Fibonacci format
+    - SHORT/LONG SYMBOL - Scryptomera format
+    - @ SYMBOL - OI/Scalper format with price
+    - Just SYMBOL anywhere in message
     """
     cols = ["id", "raw_message", "ts", "tf", "side", "symbol", "price"]
     with get_conn() as conn:
@@ -2152,10 +2158,24 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
             """
             SELECT id, raw_message, ts, tf, side, symbol, price 
             FROM signals 
-            WHERE raw_message LIKE ? OR raw_message LIKE ? OR raw_message LIKE ?
+            WHERE raw_message LIKE %s 
+               OR raw_message LIKE %s 
+               OR raw_message LIKE %s
+               OR raw_message LIKE %s
+               OR raw_message LIKE %s
+               OR raw_message LIKE %s
+               OR raw_message LIKE %s
             ORDER BY ts DESC LIMIT 1
             """,
-            (f'%[{symbol}]%', f'%🔔 {symbol}%', f'%🔔{symbol}%'),
+            (
+                f'%[{symbol}]%',           # [SYMBOL]
+                f'%🔔 {symbol}%',          # 🔔 SYMBOL (Elcaro)
+                f'%🔔{symbol}%',           # 🔔SYMBOL (Elcaro no space)
+                f'%🪙 {symbol}%',          # 🪙 SYMBOL (Fibonacci)
+                f'%SHORT {symbol}%',       # SHORT SYMBOL (Scryptomera)
+                f'%LONG {symbol}%',        # LONG SYMBOL (Scryptomera)
+                f'%{symbol} @%',           # SYMBOL @ price (OI)
+            ),
         ).fetchone()
     return dict(zip(cols, row)) if row else None
 
