@@ -1945,7 +1945,9 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 def save_market_snapshot(dom: float, price: float, change: float, alt_signal: str):
-    ts = _now_ms()
+    # PostgreSQL: use datetime instead of Unix timestamp (bigint)
+    from datetime import datetime
+    ts = datetime.now()
     with get_conn() as conn:
         conn.execute(
             """
