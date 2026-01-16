@@ -482,7 +482,7 @@ async def get_strategy_report(
             "exchange": exchange
         }
     except Exception as e:
-        print(f"Strategy report error: {e}")
+        logger.error(f"Strategy report error: {e}")
         return {"success": False, "error": str(e), "strategies": []}
 
 
@@ -555,6 +555,6 @@ async def get_positions_summary(
             "summary": summary
         }
     except Exception as e:
-        print(f"Positions summary error: {e}")
+        logger.error(f"Positions summary error: {e}")
         return {"success": False, "error": str(e), "positions": [], "summary": {}}
 

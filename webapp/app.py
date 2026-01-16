@@ -2,7 +2,7 @@
 FastAPI Web Application for Trading Bot Management
 Full Trading Terminal with AI Agent, Backtesting, and Statistics
 """
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
