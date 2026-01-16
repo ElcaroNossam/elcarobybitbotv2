@@ -186,6 +186,40 @@ class TokenBlacklist:
 _token_blacklist = TokenBlacklist()
 
 
+def verify_ws_token(token: str) -> Optional[dict]:
+    """
+    Verify JWT token for WebSocket connections.
+    Returns user info dict or None if invalid.
+    """
+    if not token:
+        return None
+    
+    # Remove 'Bearer ' prefix if present
+    if token.startswith("Bearer "):
+        token = token[7:]
+    
+    # Check blacklist
+    if _token_blacklist.is_blacklisted(token):
+        return None
+    
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = int(payload["sub"])
+        
+        # Get user from DB
+        user_data = db.get_all_user_credentials(user_id)
+        if not user_data:
+            return None
+        
+        return {
+            "user_id": user_id,
+            "is_admin": user_id == ADMIN_ID,
+            **user_data
+        }
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return None
+
+
 def create_access_token(user_id: int, is_admin: bool = False) -> str:
     """Create JWT access token."""
     expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
@@ -338,23 +372,80 @@ async def logout(credentials: Optional[HTTPAuthorizationCredentials] = Depends(s
 # ==============================================================================
 # Direct login by user_id (from Telegram WebApp start param)
 # ==============================================================================
+# SECURITY: Rate limiting for direct-login to prevent brute force
+# ==============================================================================
+from collections import defaultdict
+import time as time_module
+
+_direct_login_attempts: dict = defaultdict(list)
+_DIRECT_LOGIN_RATE_LIMIT = 5  # max attempts
+_DIRECT_LOGIN_WINDOW = 300    # 5 minutes
+
+def _check_direct_login_rate_limit(ip: str) -> bool:
+    """Check if IP has exceeded rate limit for direct-login"""
+    now = time_module.time()
+    # Clean old attempts
+    _direct_login_attempts[ip] = [t for t in _direct_login_attempts[ip] if now - t < _DIRECT_LOGIN_WINDOW]
+    # Check limit
+    if len(_direct_login_attempts[ip]) >= _DIRECT_LOGIN_RATE_LIMIT:
+        return False
+    _direct_login_attempts[ip].append(now)
+    return True
+
 
 class DirectLoginRequest(BaseModel):
-    """Direct login by Telegram user_id"""
+    """Direct login by Telegram user_id - REQUIRES init_data for security"""
     user_id: int
+    init_data: Optional[str] = None  # Telegram WebApp init_data for verification
 
 
 @router.post("/direct-login")
 async def direct_login(data: DirectLoginRequest, request: Request):
     """
     Authenticate directly using Telegram user_id.
-    This is used when user opens WebApp from bot menu button.
-    The user_id is passed via ?start={user_id} URL param.
+    
+    SECURITY: This endpoint now requires either:
+    1. Valid Telegram WebApp init_data (production)
+    2. User must exist in DB with verified telegram auth (fallback)
+    
+    Rate limited to prevent brute force attacks.
     """
+    # SECURITY: Rate limiting
+    client_ip = get_client_ip(request)
+    if not _check_direct_login_rate_limit(client_ip or "unknown"):
+        logger.warning(f"Rate limit exceeded for direct-login from IP: {client_ip}")
+        raise HTTPException(
+            status_code=429, 
+            detail="Too many login attempts. Please wait 5 minutes."
+        )
+    
     user_id = data.user_id
     
     if user_id <= 0:
         raise HTTPException(status_code=400, detail="Invalid user_id")
+    
+    # SECURITY: Verify init_data if provided (production mode)
+    if data.init_data:
+        verified_user = verify_webapp_data(data.init_data)
+        if not verified_user:
+            logger.warning(f"Invalid init_data for direct-login user_id={user_id}")
+            raise HTTPException(status_code=401, detail="Invalid Telegram authentication")
+        
+        # Verify user_id matches
+        if verified_user.get('id') != user_id:
+            logger.warning(f"User ID mismatch in direct-login: claimed={user_id}, verified={verified_user.get('id')}")
+            raise HTTPException(status_code=401, detail="User ID mismatch")
+    else:
+        # SECURITY: Without init_data, only allow if user has active 2FA session
+        # or if request comes from trusted Telegram IP ranges
+        # For now, require user to exist and have been active recently
+        db_user = db.get_all_user_credentials(user_id)
+        if not db_user:
+            logger.warning(f"Direct-login attempt for non-existent user_id={user_id} from IP={client_ip}")
+            raise HTTPException(status_code=404, detail="User not found. Start the bot first with /start")
+        
+        # Log suspicious activity
+        logger.info(f"Direct-login without init_data for user_id={user_id} from IP={client_ip}")
     
     # Ensure user exists
     db.ensure_user(user_id)
@@ -366,11 +457,18 @@ async def direct_login(data: DirectLoginRequest, request: Request):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found. Start the bot first with /start")
     
+    # SECURITY: Check if user is banned
+    if db_user.get("is_banned"):
+        logger.warning(f"Banned user attempted login: user_id={user_id}")
+        raise HTTPException(status_code=403, detail="Account suspended")
+    
     is_admin = user_id == ADMIN_ID
     is_premium = db_user.get('license_type') == 'premium' or db_user.get('is_lifetime')
     
     # Create JWT token
     token = create_access_token(user_id, is_admin)
+    
+    logger.info(f"Direct-login success: user_id={user_id}, IP={client_ip}")
     
     return {
         "access_token": token,

@@ -5,17 +5,85 @@ Full Trading Terminal with AI Agent, Backtesting, and Statistics
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from pathlib import Path
 import os
 import logging
+import time
+from collections import defaultdict
+from threading import Lock
 
 logger = logging.getLogger(__name__)
 
 APP_DIR = Path(__file__).parent
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Global rate limiting middleware.
+    Protects against DDoS and brute-force attacks.
+    Uses sliding window algorithm per IP address.
+    """
+    def __init__(self, app, requests_per_minute: int = 120, burst_size: int = 30):
+        super().__init__(app)
+        self.requests_per_minute = requests_per_minute
+        self.burst_size = burst_size
+        self.window_size = 60  # 1 minute window
+        self.requests: dict = defaultdict(list)  # ip -> [timestamps]
+        self._lock = Lock()
+        
+        # Stricter limits for sensitive endpoints
+        self.sensitive_limits = {
+            "/api/auth/login": (5, 60),      # 5 per minute
+            "/api/auth/direct-login": (5, 300),  # 5 per 5 minutes
+            "/api/auth/telegram": (10, 60),  # 10 per minute
+            "/api/trading/order": (30, 60),  # 30 per minute
+        }
+    
+    async def dispatch(self, request: Request, call_next):
+        # Get client IP (handle proxies)
+        client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if not client_ip:
+            client_ip = request.client.host if request.client else "unknown"
+        
+        path = request.url.path
+        now = time.time()
+        
+        # Determine rate limit for this endpoint
+        if path in self.sensitive_limits:
+            max_requests, window = self.sensitive_limits[path]
+        else:
+            max_requests = self.requests_per_minute
+            window = self.window_size
+        
+        # Use endpoint-specific key for sensitive paths
+        key = f"{client_ip}:{path}" if path in self.sensitive_limits else client_ip
+        
+        with self._lock:
+            # Remove old timestamps outside the window
+            self.requests[key] = [t for t in self.requests[key] if now - t < window]
+            
+            # Check rate limit
+            if len(self.requests[key]) >= max_requests:
+                retry_after = int(window - (now - self.requests[key][0]))
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": "Too Many Requests",
+                        "retry_after": retry_after,
+                        "message": "Rate limit exceeded. Please try again later."
+                    },
+                    headers={"Retry-After": str(retry_after)}
+                )
+            
+            # Record this request
+            self.requests[key].append(now)
+        
+        response = await call_next(request)
+        return response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -66,6 +134,9 @@ def create_app() -> FastAPI:
         docs_url="/api/docs",
         redoc_url="/api/redoc"
     )
+    
+    # SECURITY: Add rate limiting middleware (must be first to protect all routes)
+    app.add_middleware(RateLimitMiddleware, requests_per_minute=120, burst_size=30)
     
     # SECURITY: Add security headers middleware
     app.add_middleware(SecurityHeadersMiddleware)

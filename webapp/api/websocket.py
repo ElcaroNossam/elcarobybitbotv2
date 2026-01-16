@@ -2,7 +2,7 @@
 WebSocket API for Real-Time Trade Streaming
 Enhanced with orderbook, trades feed, and advanced analytics
 """
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from typing import Dict, List, Set, Optional
 import json
 import asyncio
@@ -11,10 +11,38 @@ from datetime import datetime
 import logging
 
 from core.tasks import safe_create_task
+from webapp.api.auth import verify_ws_token
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def verify_ws_auth(websocket: WebSocket, user_id: int, token: Optional[str] = None) -> bool:
+    """
+    Verify WebSocket authentication.
+    Token can be passed as query param or in first message.
+    Returns True if user is authorized, False otherwise.
+    """
+    if not token:
+        # Try to get from query params
+        token = websocket.query_params.get("token")
+    
+    if not token:
+        await websocket.close(code=4001, reason="Missing authentication token")
+        return False
+    
+    user = verify_ws_token(token)
+    if not user:
+        await websocket.close(code=4002, reason="Invalid or expired token")
+        return False
+    
+    # Verify user_id matches token
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        await websocket.close(code=4003, reason="Access denied")
+        return False
+    
+    return True
 
 
 # ============================================================
@@ -395,8 +423,14 @@ analysis_sessions: Dict[int, dict] = {}
 
 
 @router.websocket("/trades/{user_id}")
-async def websocket_trades(websocket: WebSocket, user_id: int):
-    """WebSocket endpoint for user-specific trade streaming"""
+async def websocket_trades(websocket: WebSocket, user_id: int, token: Optional[str] = Query(None)):
+    """WebSocket endpoint for user-specific trade streaming - requires authentication"""
+    await websocket.accept()
+    
+    # SECURITY: Verify JWT token before allowing access
+    if not await verify_ws_auth(websocket, user_id, token):
+        return
+    
     await manager.connect(websocket, user_id)
     
     try:
@@ -500,8 +534,14 @@ async def websocket_terminal_anonymous(websocket: WebSocket):
 
 
 @router.websocket("/terminal/{user_id}")
-async def websocket_terminal(websocket: WebSocket, user_id: int):
-    """WebSocket for terminal - live data, analysis, and auto-trading"""
+async def websocket_terminal(websocket: WebSocket, user_id: int, token: Optional[str] = Query(None)):
+    """WebSocket for terminal - live data, analysis, and auto-trading - requires authentication"""
+    await websocket.accept()
+    
+    # SECURITY: Verify JWT token before allowing access
+    if not await verify_ws_auth(websocket, user_id, token):
+        return
+    
     await manager.connect(websocket, user_id)
     
     # Track subscriptions for this connection
@@ -979,11 +1019,18 @@ settings_sync_ws = SettingsSyncManager()
 
 
 @router.websocket("/settings-sync/{user_id}")
-async def settings_sync_websocket(websocket: WebSocket, user_id: int):
+async def settings_sync_websocket(websocket: WebSocket, user_id: int, token: Optional[str] = Query(None)):
     """
     WebSocket for real-time settings synchronization.
     Connect from terminal/webapp to receive instant updates when settings change.
+    Requires authentication.
     """
+    await websocket.accept()
+    
+    # SECURITY: Verify JWT token before allowing access
+    if not await verify_ws_auth(websocket, user_id, token):
+        return
+    
     await settings_sync_ws.connect(websocket, user_id)
     
     try:

@@ -2,7 +2,7 @@
 Backtest API - Connected to Real Strategy Analyzers
 Enhanced with Live Mode and Strategy Deployment
 """
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
@@ -17,6 +17,9 @@ from core.tasks import safe_create_task
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# Import auth
+from webapp.api.auth import get_current_user
 
 router = APIRouter()
 DB_FILE = Path(__file__).parent.parent.parent / "bot.db"
@@ -1319,8 +1322,16 @@ live_manager = LiveBacktestManager()
 # ============== EXCHANGE VALIDATION ENDPOINTS ==============
 
 @router.get("/validate-exchange/{user_id}")
-async def validate_user_exchange(user_id: int, exchange: str = None):
-    """Validate exchange API credentials for a user"""
+async def validate_user_exchange(
+    user_id: int, 
+    exchange: str = None,
+    user: dict = Depends(get_current_user)
+):
+    """Validate exchange API credentials for a user - requires authentication"""
+    # SECURITY: Users can only validate their own exchange credentials
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.exchange_validator import validate_user_exchange_setup
         return await validate_user_exchange_setup(user_id, exchange)
@@ -1377,8 +1388,15 @@ class DeploymentRequest(BaseModel):
 
 
 @router.post("/deploy-v2")
-async def deploy_strategy_v2(request: DeploymentRequest):
+async def deploy_strategy_v2(
+    request: DeploymentRequest,
+    user: dict = Depends(get_current_user)
+):
     """Deploy a backtested strategy to live trading with validation"""
+    # SECURITY: Users can only deploy for themselves
+    if user["user_id"] != request.user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.strategy_deployer import strategy_deployer
         return await strategy_deployer.deploy(
@@ -1393,8 +1411,16 @@ async def deploy_strategy_v2(request: DeploymentRequest):
 
 
 @router.post("/undeploy/{user_id}/{strategy}")
-async def undeploy_strategy(user_id: int, strategy: str):
+async def undeploy_strategy(
+    user_id: int, 
+    strategy: str,
+    user: dict = Depends(get_current_user)
+):
     """Undeploy a strategy from live trading"""
+    # SECURITY: Users can only undeploy their own strategies
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.strategy_deployer import strategy_deployer
         return await strategy_deployer.undeploy(user_id, strategy)
@@ -1403,8 +1429,15 @@ async def undeploy_strategy(user_id: int, strategy: str):
 
 
 @router.get("/deployments/{user_id}")
-async def get_user_deployments(user_id: int):
+async def get_user_deployments(
+    user_id: int,
+    user: dict = Depends(get_current_user)
+):
     """Get all active deployments for a user"""
+    # SECURITY: Users can only view their own deployments
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.strategy_deployer import strategy_deployer
         deployments = await strategy_deployer.get_active_deployments(user_id)
@@ -1414,8 +1447,16 @@ async def get_user_deployments(user_id: int):
 
 
 @router.get("/deployment-history/{user_id}")
-async def get_deployment_history(user_id: int, limit: int = 50):
+async def get_deployment_history(
+    user_id: int, 
+    limit: int = Query(50, ge=1, le=100),
+    user: dict = Depends(get_current_user)
+):
     """Get deployment history for a user"""
+    # SECURITY: Users can only view their own deployment history
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.strategy_deployer import strategy_deployer
         history = await strategy_deployer.get_deployment_history(user_id, limit)
@@ -1425,8 +1466,16 @@ async def get_deployment_history(user_id: int, limit: int = 50):
 
 
 @router.get("/compare-performance/{user_id}/{strategy}")
-async def compare_backtest_vs_live(user_id: int, strategy: str):
+async def compare_backtest_vs_live(
+    user_id: int, 
+    strategy: str,
+    user: dict = Depends(get_current_user)
+):
     """Compare backtest results vs live performance"""
+    # SECURITY: Users can only compare their own performance
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     try:
         from webapp.services.strategy_deployer import strategy_deployer
         return await strategy_deployer.compare_backtest_vs_live(user_id, strategy)
@@ -1873,8 +1922,11 @@ async def save_custom_strategy(request: SaveStrategyRequest):
 
 
 @router.get("/strategy-builder/my-strategies/{user_id}")
-async def get_user_strategies(user_id: int):
+async def get_user_strategies(user_id: int, user: dict = Depends(get_current_user)):
     """Get all strategies created by a user"""
+    # Security: Verify user owns this resource or is admin
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's strategies")
     try:
         conn = sqlite3.connect(str(DB_FILE))
         conn.row_factory = sqlite3.Row
@@ -1937,8 +1989,10 @@ async def get_user_strategies(user_id: int):
 
 
 @router.delete("/strategy-builder/{strategy_id}")
-async def delete_strategy(strategy_id: int, user_id: int):
+async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_user)):
     """Delete a custom strategy"""
+    # Security: Use authenticated user_id from JWT
+    user_id = user["user_id"]
     try:
         conn = sqlite3.connect(str(DB_FILE))
         cur = conn.cursor()
@@ -2294,8 +2348,11 @@ async def stop_live_trading(strategy_id: int, request: StopLiveRequest):
 
 
 @router.get("/live-status/{user_id}")
-async def get_live_status(user_id: int):
+async def get_live_status(user_id: int, user: dict = Depends(get_current_user)):
     """Get all active live deployments for a user"""
+    # Security: Verify user owns this resource or is admin
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's live status")
     try:
         conn = sqlite3.connect(str(DB_FILE))
         conn.row_factory = sqlite3.Row

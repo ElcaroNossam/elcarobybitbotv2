@@ -265,9 +265,36 @@ async def upgrade_subscription(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/history/me")
+async def get_my_payment_history(
+    limit: int = 50,
+    user: dict = Depends(get_current_user)
+):
+    """Get current user's payment history"""
+    try:
+        user_id = user["user_id"]
+        # This would query a payments table
+        # For now, return mock data
+        return {
+            "success": True,
+            "payments": []
+        }
+    except Exception as e:
+        logger.error(f"Failed to get payment history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/history/{user_id}")
-async def get_payment_history(user_id: int, limit: int = 50):
-    """Get user's payment history"""
+async def get_payment_history(
+    user_id: int, 
+    limit: int = 50,
+    user: dict = Depends(get_current_user)
+):
+    """Get user's payment history - requires authentication"""
+    # SECURITY: Users can only access their own payment history
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied. You can only view your own payment history.")
+    
     try:
         # This would query a payments table
         # For now, return mock data
@@ -283,15 +310,21 @@ async def get_payment_history(user_id: int, limit: int = 50):
 # Referral System
 @router.post("/referral/apply")
 async def apply_referral_code(
-    user_id: int = Body(...),
-    referral_code: str = Body(...)
+    referral_code: str = Body(..., embed=True),
+    user: dict = Depends(get_current_user)
 ):
-    """Apply referral code for discount"""
+    """Apply referral code for discount - requires authentication"""
+    # SECURITY: Use authenticated user_id from JWT, not from request body
+    user_id = user["user_id"]
     try:
         # Validate referral code
         referrer_id = db.get_user_by_referral_code(referral_code)
         if not referrer_id:
             raise HTTPException(status_code=404, detail="Invalid referral code")
+        
+        # Prevent self-referral
+        if referrer_id == user_id:
+            raise HTTPException(status_code=400, detail="Cannot use your own referral code")
         
         # Apply referral bonus
         db.add_referral_connection(user_id, referrer_id)

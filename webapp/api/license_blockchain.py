@@ -134,12 +134,50 @@ async def get_stats():
     return StatsResponse(**stats)
 
 
+@router.get("/user/me", response_model=List[BlockchainRecord])
+async def get_my_licenses(
+    active_only: bool = Query(False, description="Only return active licenses"),
+    user_id: int = Depends(verify_user_auth)
+):
+    """Get current user's blockchain license records"""
+    from services.license_blockchain_service import get_user_blockchain_licenses
+    
+    records = get_user_blockchain_licenses(user_id, active_only=active_only)
+    
+    result = []
+    now = int(time.time())
+    for r in records:
+        record = BlockchainRecord(
+            tx_hash=r.get("tx_hash", ""),
+            user_id=r.get("user_id", 0),
+            wallet_address=r.get("wallet_address", ""),
+            license_type=r.get("license_type", ""),
+            period_months=r.get("period_months", 0),
+            amount_paid=r.get("amount_paid", 0),
+            currency=r.get("currency", "ELC"),
+            start_timestamp=r.get("start_timestamp", 0),
+            end_timestamp=r.get("end_timestamp", 0),
+            nft_token_id=r.get("nft_token_id"),
+            block_number=r.get("block_number", 0),
+            created_at=r.get("created_at", 0),
+            is_active=r.get("end_timestamp", 0) > now
+        )
+        result.append(record)
+    
+    return result
+
+
 @router.get("/user/{user_id}", response_model=List[BlockchainRecord])
 async def get_user_licenses(
     user_id: int,
-    active_only: bool = Query(False, description="Only return active licenses")
+    active_only: bool = Query(False, description="Only return active licenses"),
+    auth_user_id: int = Depends(verify_user_auth)
 ):
-    """Get user's blockchain license records"""
+    """Get user's blockchain license records - requires authentication"""
+    # SECURITY: Users can only access their own licenses, admins can access any
+    if auth_user_id != user_id and auth_user_id != ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Access denied. You can only view your own licenses.")
+    
     from services.license_blockchain_service import get_user_blockchain_licenses
     
     records = get_user_blockchain_licenses(user_id, active_only=active_only)

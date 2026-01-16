@@ -213,11 +213,14 @@ async def get_specific_license_price(license_type: str, months: int):
 
 # ============================================
 # USER WALLET ENDPOINTS
+# SECURITY: All wallet endpoints now require authentication
+# and verify user can only access their own wallet
 # ============================================
 
-@router.get("/wallet/{user_id}", summary="Get user wallet")
-async def get_user_wallet(user_id: int):
-    """Get wallet information for user"""
+@router.get("/wallet/me", summary="Get current user wallet")
+async def get_my_wallet(user: dict = Depends(get_current_user)):
+    """Get wallet information for authenticated user"""
+    user_id = user["user_id"]
     wallet = await get_trc_wallet(user_id)
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
@@ -231,9 +234,45 @@ async def get_user_wallet(user_id: int):
     )
 
 
-@router.get("/wallet/{user_id}/balance", summary="Get user balance")
-async def get_user_balance(user_id: int):
-    """Get TRC balance for user"""
+@router.get("/wallet/{user_id}", summary="Get user wallet (admin only)")
+async def get_user_wallet(user_id: int, user: dict = Depends(get_current_user)):
+    """Get wallet information for user - requires authentication"""
+    # SECURITY: Users can only access their own wallet, admins can access any
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied. You can only view your own wallet.")
+    
+    wallet = await get_trc_wallet(user_id)
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    
+    return WalletResponse(
+        address=wallet.address,
+        balance=wallet.balance,
+        staked_balance=wallet.staked_balance,
+        pending_rewards=wallet.pending_rewards,
+        status=wallet.status.value if hasattr(wallet.status, 'value') else str(wallet.status)
+    )
+
+
+@router.get("/wallet/me/balance", summary="Get current user balance")
+async def get_my_balance(user: dict = Depends(get_current_user)):
+    """Get TRC balance for authenticated user"""
+    user_id = user["user_id"]
+    balance = await get_trc_balance(user_id)
+    return {
+        "user_id": user_id,
+        "balance_trc": balance,
+        "balance_usdt": trc_to_usdt(balance)
+    }
+
+
+@router.get("/wallet/{user_id}/balance", summary="Get user balance (admin only)")
+async def get_user_balance(user_id: int, user: dict = Depends(get_current_user)):
+    """Get TRC balance for user - requires authentication"""
+    # SECURITY: Users can only access their own balance, admins can access any
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied. You can only view your own balance.")
+    
     balance = await get_trc_balance(user_id)
     return {
         "user_id": user_id,
@@ -243,8 +282,12 @@ async def get_user_balance(user_id: int):
 
 
 @router.get("/wallet/{user_id}/deposit-address/{network}", summary="Get deposit address")
-async def get_user_deposit_address(user_id: int, network: str):
-    """Get deposit address for specific network"""
+async def get_user_deposit_address(user_id: int, network: str, user: dict = Depends(get_current_user)):
+    """Get deposit address for specific network - requires authentication"""
+    # SECURITY: Users can only get their own deposit address
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied.")
+    
     address_info = get_deposit_address(user_id, network)
     if not address_info:
         raise HTTPException(status_code=404, detail=f"Network {network} not supported")
@@ -256,8 +299,8 @@ async def get_user_deposit_address(user_id: int, network: str):
 # ============================================
 
 @router.post("/deposit", summary="Process deposit")
-async def process_deposit(request: DepositRequest):
-    """Process TRC deposit (admin/system use)"""
+async def process_deposit(request: DepositRequest, user: dict = Depends(require_admin)):
+    """Process TRC deposit (admin/system use only)"""
     success, message = await deposit_trc(request.user_id, request.amount)
     return {
         "success": success,
