@@ -264,13 +264,17 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
 async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     """Require admin access."""
     if not user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Admin access required")
+        logger.warning(f"🚫 Admin access denied for user {user.get('user_id')} - nice try!")
+        raise HTTPException(status_code=403, detail="Шо вы головы не раздуплились? Ты не админ 🤡")
     return user
 
 
 @router.post("/telegram", response_model=TokenResponse)
-async def telegram_auth(data: TelegramWebAppAuth):
+async def telegram_auth(data: TelegramWebAppAuth, request: Request):
     """Authenticate via Telegram WebApp init_data."""
+    
+    # Get client IP for logging
+    client_ip = get_client_ip(request)
     
     # Verify and extract user data
     user_data = verify_webapp_data(data.init_data)
@@ -285,11 +289,14 @@ async def telegram_auth(data: TelegramWebAppAuth):
             pass
     
     if not user_data or 'id' not in user_data:
+        logger.warning(f"🚨 Failed Telegram auth from {client_ip} - invalid init_data")
         raise HTTPException(status_code=401, detail="Invalid Telegram authentication")
     
     user_id = user_data['id']
     first_name = user_data.get('first_name', 'User')
     username = user_data.get('username')
+    
+    logger.info(f"✅ Telegram auth success: {user_id} ({first_name}) from {client_ip}")
     
     # Ensure user exists in DB
     db.ensure_user(user_id)

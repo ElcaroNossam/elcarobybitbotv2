@@ -13,6 +13,8 @@ from pathlib import Path
 import os
 import logging
 import time
+import re
+import random
 from collections import defaultdict
 from threading import Lock
 
@@ -21,12 +23,93 @@ logger = logging.getLogger(__name__)
 APP_DIR = Path(__file__).parent
 
 
+class HackerDetectionMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to detect and roast script kiddies trying common attacks.
+    Doesn't block anyone, just logs and returns funny messages for obvious attacks.
+    """
+    
+    # Паттерны атак которые ловим
+    ATTACK_PATTERNS = [
+        (r'\.\./', "Path traversal"),
+        (r'\.\.\\', "Path traversal"),
+        (r'%2e%2e', "Path traversal encoded"),
+        (r"['\"].*(?:OR|AND|UNION|SELECT|INSERT|DELETE|DROP|UPDATE).*['\"]", "SQL injection"),
+        (r'<script', "XSS attempt"),
+        (r'javascript:', "XSS attempt"),
+        (r'onerror\s*=', "XSS attempt"),
+        (r'onload\s*=', "XSS attempt"),
+        (r'/etc/passwd', "LFI attempt"),
+        (r'/proc/self', "LFI attempt"),
+        (r'\.env$', "Env file access"),
+        (r'\.git/', "Git access"),
+        (r'wp-admin', "WordPress scan"),
+        (r'phpmyadmin', "phpMyAdmin scan"),
+        (r'\.php$', "PHP scan"),
+        (r'/admin\.', "Admin scan"),
+    ]
+    
+    # Весёлые ответы для хакеров 😈
+    ROAST_MESSAGES = [
+        "Шо вы головы не раздуплились? Это не WordPress, дружок 🤡",
+        "Хахаха, {} detected! Иди учи матчасть 📚",
+        "Ты серьёзно? {} в 2026 году? Ну ты и динозавр 🦖",
+        "Мамкин хакер засечён! {} не прокатит 😂",
+        "Слышь, script kiddie, {} тут не работает 🎪",
+        "О, смотрите кто пришёл! {} мастер 🏆",
+        "Нашёл что искал? Спойлер: нет. {} blocked 🚫",
+        "Бро, это не тот сайт. {} попытка #999 провалена 💀",
+    ]
+    
+    def __init__(self, app):
+        super().__init__(app)
+        self.compiled_patterns = [(re.compile(p, re.IGNORECASE), name) for p, name in self.ATTACK_PATTERNS]
+    
+    async def dispatch(self, request: Request, call_next):
+        # Проверяем URL и query string
+        full_path = str(request.url)
+        
+        for pattern, attack_name in self.compiled_patterns:
+            if pattern.search(full_path):
+                # Логируем попытку атаки
+                client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+                if not client_ip:
+                    client_ip = request.client.host if request.client else "unknown"
+                
+                logger.warning(f"🚨 ATTACK DETECTED: {attack_name} from {client_ip} - {full_path}")
+                
+                # Возвращаем весёлый ответ
+                roast = random.choice(self.ROAST_MESSAGES).format(attack_name)
+                return JSONResponse(
+                    status_code=418,  # I'm a teapot 🫖
+                    content={
+                        "error": "Nice try, script kiddie",
+                        "message": roast,
+                        "tip": "Попробуй нормально пользоваться сервисом 😊"
+                    }
+                )
+        
+        return await call_next(request)
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Global rate limiting middleware.
     Protects against DDoS and brute-force attacks.
     Uses sliding window algorithm per IP address.
     """
+    
+    # Весёлые ответы для тех кто пытается брутфорсить 😈
+    HACKER_RESPONSES = [
+        "Шо вы головы не раздуплились? Иди погуляй, вернись через {} секунд 🤡",
+        "Э, полегче там! Подожди {} секунд и не тупи 🧠",
+        "Хакер, блин... Жди {} сек, потом попробуй нормально 😂",
+        "Тебя мама не учила терпению? {} секунд подожди 🍼",
+        "Too many requests, genius. Wait {} seconds 🎪",
+        "Полегче на поворотах! Cooldown: {} сек 🚦",
+        "Ты чё, DDoS-ить решил? {} секунд в бан 🔨",
+    ]
+    
     def __init__(self, app, requests_per_minute: int = 120, burst_size: int = 30):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
@@ -69,12 +152,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Check rate limit
             if len(self.requests[key]) >= max_requests:
                 retry_after = int(window - (now - self.requests[key][0]))
+                # Выбираем весёлое сообщение для хакеров 😈
+                import random
+                fun_message = random.choice(self.HACKER_RESPONSES).format(retry_after)
+                logger.warning(f"Rate limit hit: {client_ip} on {path} - {len(self.requests[key])} requests")
                 return JSONResponse(
                     status_code=429,
                     content={
                         "error": "Too Many Requests",
                         "retry_after": retry_after,
-                        "message": "Rate limit exceeded. Please try again later."
+                        "message": fun_message
                     },
                     headers={"Retry-After": str(retry_after)}
                 )
@@ -127,15 +214,21 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def create_app() -> FastAPI:
+    # SECURITY: Disable docs in production
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    
     app = FastAPI(
         title="Triacelo Trading Terminal",
         description="Professional Trading Terminal with AI Analysis, Backtesting & Statistics",
         version="2.0.0",
-        docs_url="/api/docs",
-        redoc_url="/api/redoc"
+        docs_url=None if is_production else "/api/docs",
+        redoc_url=None if is_production else "/api/redoc"
     )
     
-    # SECURITY: Add rate limiting middleware (must be first to protect all routes)
+    # SECURITY: Add hacker detection middleware (first - catches script kiddies)
+    app.add_middleware(HackerDetectionMiddleware)
+    
+    # SECURITY: Add rate limiting middleware
     app.add_middleware(RateLimitMiddleware, requests_per_minute=120, burst_size=30)
     
     # SECURITY: Add security headers middleware
