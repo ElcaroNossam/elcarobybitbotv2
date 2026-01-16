@@ -7,8 +7,16 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
+# SECURITY: SECRET_KEY must be set in production
+_secret_key = os.getenv("DJANGO_SECRET_KEY")
+if not _secret_key:
+    import warnings
+    if os.getenv("DJANGO_DEBUG", "True") != "True":
+        raise RuntimeError("DJANGO_SECRET_KEY must be set in production environment")
+    # Only use fallback in development
+    warnings.warn("DJANGO_SECRET_KEY not set - using insecure development key!", RuntimeWarning)
+    _secret_key = "INSECURE-DEV-KEY-DO-NOT-USE-IN-PRODUCTION"
+SECRET_KEY = _secret_key
 
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 

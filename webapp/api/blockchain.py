@@ -397,8 +397,11 @@ async def get_admin_treasury(user: dict = Depends(require_admin)):
 
 
 @router.get("/admin/networks/status", summary="Get all networks status")
-async def get_all_network_status():
-    """Admin: Get status of all networks"""
+async def get_all_network_status(user: dict = Depends(require_admin)):
+    """Admin: Get status of all networks (requires admin auth)"""
+    user_id = user["user_id"]
+    if not is_sovereign_owner(user_id):
+        raise HTTPException(status_code=403, detail="Access denied. Admin only.")
     return get_network_status()
 
 
@@ -540,10 +543,15 @@ async def convert_trc_to_usdt(amount: float = Query(gt=0)):
 
 
 @router.get("/is-sovereign/{user_id}", summary="Check if sovereign owner")
-async def check_sovereign(user_id: int):
-    """Check if user is sovereign owner"""
+async def check_sovereign(user_id: int, user: dict = Depends(get_current_user)):
+    """Check if user is sovereign owner (requires auth, can only check own status)"""
+    # SECURITY: Users can only check their own status to prevent enumeration
+    requesting_user_id = user["user_id"]
+    if user_id != requesting_user_id and not is_sovereign_owner(requesting_user_id):
+        raise HTTPException(status_code=403, detail="Can only check own status")
+    
     return {
         "user_id": user_id,
-        "is_sovereign": is_sovereign_owner(user_id),
-        "sovereign_id": SOVEREIGN_OWNER_ID
+        "is_sovereign": is_sovereign_owner(user_id)
+        # SECURITY: Don't expose SOVEREIGN_OWNER_ID
     }
