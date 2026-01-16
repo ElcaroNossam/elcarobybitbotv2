@@ -1021,26 +1021,26 @@ def get_api_settings_keyboard(t: dict, creds: dict) -> InlineKeyboardMarkup:
     real_secret_status = "✅" if real_secret else "❌"
     
     buttons = [
-        # Demo section
-        [InlineKeyboardButton(f"━━━ 🧪 DEMO ━━━", callback_data="api:noop")],
+        # ─── Demo Section ───
+        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 DEMO ══'), callback_data="api:noop")],
         [
             InlineKeyboardButton(f"{demo_key_status} API Key", callback_data="api:demo_key"),
             InlineKeyboardButton(f"{demo_secret_status} Secret", callback_data="api:demo_secret"),
         ],
-        [InlineKeyboardButton(f"🔄 Test Demo", callback_data="api:test_demo")],
+        [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Demo", callback_data="api:test_demo")],
         
-        # Real section  
-        [InlineKeyboardButton(f"━━━ 💼 REAL ━━━", callback_data="api:noop")],
+        # ─── Real Section ───
+        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 REAL ══'), callback_data="api:noop")],
         [
             InlineKeyboardButton(f"{real_key_status} API Key", callback_data="api:real_key"),
             InlineKeyboardButton(f"{real_secret_status} Secret", callback_data="api:real_secret"),
         ],
-        [InlineKeyboardButton(f"🔄 Test Real", callback_data="api:test_real")],
+        [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Real", callback_data="api:test_real")],
         
-        # Delete buttons
+        # ─── Actions ───
         [
-            InlineKeyboardButton(t.get("api_btn_delete_demo", "🗑 Delete Demo"), callback_data="api:delete_demo"),
-            InlineKeyboardButton(t.get("api_btn_delete_real", "🗑 Delete Real"), callback_data="api:delete_real"),
+            InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Demo", callback_data="api:delete_demo"),
+            InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Real", callback_data="api:delete_real"),
         ],
     ]
     
@@ -1315,8 +1315,8 @@ def format_spot_settings_message(t: dict, cfg: dict, spot_settings: dict) -> str
     portfolio_info = SPOT_PORTFOLIOS.get(portfolio, SPOT_PORTFOLIOS.get("custom", {}))
     
     # Status
-    enabled_label = "✅ Enabled" if spot_enabled else "❌ Disabled"
-    mode_label = "🧪 Demo" if trading_mode == "demo" else "💰 Real"
+    enabled_label = t.get('toggle_on', '✅ Enabled') if spot_enabled else t.get('toggle_off', '❌ Disabled')
+    mode_label = t.get('mode_demo', '🧪 Demo') if trading_mode == "demo" else t.get('mode_real', '💰 Real')
     
     # Coins display
     if portfolio != "custom" and portfolio_info.get("coins"):
@@ -3198,7 +3198,7 @@ async def reply_with_keyboard(update: Update, ctx: ContextTypes.DEFAULT_TYPE, te
 
 
 def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, update: Update = None):
-    """Generate main menu keyboard. Clean and user-friendly for each exchange."""
+    """Generate main menu keyboard. Modern, clean and compact design."""
     # Get translations - fallback to English if ctx.t not available
     t = getattr(ctx, 't', None)
     if t is None:
@@ -3218,44 +3218,51 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     
     if active_exchange == "hyperliquid":
         # ═══════════════════════════════════════════════════════════════
-        # ██  HYPERLIQUID - COMPACT MENU  ██
+        # ██  HYPERLIQUID - MODERN COMPACT MENU  ██
         # ═══════════════════════════════════════════════════════════════
         hl_creds = get_hl_credentials(user_id) if user_id else {}
         is_testnet = hl_creds.get("hl_testnet", False)
-        net_emoji = "🧪" if is_testnet else "🌐"
+        exchange_btn = t.get('exchange_hl_testnet', '🔷 HL 🧪') if is_testnet else t.get('exchange_hl_mainnet', '🔷 HL 🌐')
         
         keyboard = [
-            # ─── Row 1: Trading Info ───
-            [ t.get('button_balance', '💰 Balance'), t.get('button_positions', '📊 Positions'), t.get('button_orders', '📈 Orders') ],
-            # ─── Row 2: Actions ───
-            [ t.get('button_history', '📋 History'), t.get('button_market', '📉 Market'), t.get('button_strategies', '🤖 Strategies') ],
-            # ─── Row 3: Coins & Premium ───
-            [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
-            # ─── Row 4: Exchange & API (bottom) ───
-            [ f"🔷 HL {net_emoji}", t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔑 API Keys') ],
+            # ─── Row 1: Core Trading ───
+            [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
+            # ─── Row 2: AI & Market ───
+            [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
+            # ─── Row 3: Settings ───
+            [ t.get('button_coins', '🪙 Coins'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
+            # ─── Row 4: Exchange ───
+            [ exchange_btn, t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔗 Exchange') ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
-        # ██  BYBIT - COMPACT MENU  ██
+        # ██  BYBIT - MODERN COMPACT MENU  ██
         # ═══════════════════════════════════════════════════════════════
         creds = get_all_user_credentials(user_id) if user_id else {}
         trading_mode = creds.get("trading_mode", "demo")
-        mode_emoji = "🎮" if trading_mode == "demo" else ("💵" if trading_mode == "real" else "🔀")
+        
+        # Exchange button based on mode
+        if trading_mode == "demo":
+            exchange_btn = t.get('exchange_bybit_demo', '🟠 Bybit 🎮')
+        elif trading_mode == "real":
+            exchange_btn = t.get('exchange_bybit_real', '🟠 Bybit 💵')
+        else:  # both
+            exchange_btn = t.get('exchange_bybit_both', '🟠 Bybit 🔀')
         
         keyboard = [
-            # ─── Row 1: Trading Info ───
-            [ t.get('button_balance', '💰 Balance'), t.get('button_positions', '📊 Positions'), t.get('button_orders', '📈 Orders') ],
-            # ─── Row 2: Actions & Strategies ───
-            [ t.get('button_history', '📋 History'), t.get('button_market', '📉 Market'), t.get('button_strategies', '🤖 Strategies') ],
-            # ─── Row 3: Coins & Premium ───
-            [ t['button_coins'], t.get('button_subscribe', '💎 Premium'), t['button_lang'] ],
-            # ─── Row 4: Exchange & API (bottom) ───
-            [ f"🟠 Bybit {mode_emoji}", t.get('button_switch_hl', '🔄 HyperLiquid'), t.get('button_api_keys', '🔑 API Keys') ],
+            # ─── Row 1: Core Trading ───
+            [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
+            # ─── Row 2: AI & Market ───
+            [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
+            # ─── Row 3: Settings ───
+            [ t.get('button_coins', '🪙 Coins'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
+            # ─── Row 4: Exchange ───
+            [ exchange_btn, t.get('button_switch_hl', '🔄 HL'), t.get('button_api_keys', '🔗 Exchange') ],
         ]
     
     # Add admin row if user is admin
     if user_id == ADMIN_ID:
-        keyboard.append([ t.get('button_licenses', '🔑 Licenses'), t.get('button_admin', '👑 Admin') ])
+        keyboard.append([ t.get('button_licenses', '🎫 Licenses'), t.get('button_admin', '🛡️ Admin') ])
     
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
@@ -18275,7 +18282,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await cmd_api_settings(update, ctx)
     
     # Subscribe button
-    if text in [ctx.t.get('button_subscribe', '💎 Subscribe'), "💎 Premium", ctx.t.get('button_subscribe', '💎 Premium')]:
+    if text in [ctx.t.get('button_subscribe', '� PREMIUM'), 
+                "💎 Premium", "💎 Subscribe", "👑 PREMIUM", "👑 VIP",
+                "👑 ПРЕМИУМ"]:
         return await cmd_subscribe(update, ctx)
     
     # Exchange header button - shows exchange status/info (supports short 🔷 HL and full 🔷 HyperLiquid)
@@ -18325,7 +18334,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     active_exchange = get_exchange_type(uid)
     
     # Balance - works for current exchange, shows directly with switcher if needed
-    if text in ["💰 Balance", "💰 HL Balance", ctx.t.get('button_balance', '💰 Balance')]:
+    if text in ["💰 Balance", "💰 HL Balance", "💎 Portfolio", "💎 Портфель",
+                 ctx.t.get('button_balance', '💎 Portfolio')]:
         # Get effective mode for display
         effective_mode = get_effective_trading_mode(uid)
         
@@ -18340,7 +18350,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_balance_for_account(update, ctx, effective_mode)
     
     # Positions - works for current exchange, shows directly with switcher if needed
-    if text in ["📊 Positions", "📊 HL Positions", ctx.t.get('button_positions', '📊 Positions')]:
+    if text in ["📊 Positions", "📊 HL Positions", "🎯 Positions", 
+                 ctx.t.get('button_positions', '🎯 Positions')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
         else:
@@ -18349,7 +18360,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_positions_for_account(update, ctx, effective_mode)
     
     # Orders - works for current exchange, shows directly with switcher if needed
-    if text in ["📈 Orders", "📈 HL Orders", ctx.t.get('button_orders', '📈 Orders')]:
+    if text in ["📈 Orders", "📈 HL Orders", "📊 Orders",
+                 ctx.t.get('button_orders', '📊 Orders')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
         else:
@@ -18358,7 +18370,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_orders_for_account(update, ctx, effective_mode)
     
     # History - works for current exchange
-    if text in ["📋 History", "📋 HL History", ctx.t.get('button_history', '📋 History')]:
+    if text in ["📋 History", "📋 HL History", "📜 History",
+                 ctx.t.get('button_history', '📜 History')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_history(update, ctx)
         else:
@@ -18389,7 +18402,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await cmd_open_positions(update, ctx)
     
     # Market - Bybit only
-    if text in ["📉 Market", ctx.t.get('button_market', '📉 Market')]:
+    if text in ["📉 Market", "📈 Market", ctx.t.get('button_market', '📈 Market')]:
         return await cmd_market(update, ctx)
     
     # Settings - works for current exchange
@@ -18400,11 +18413,15 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await cmd_show_config(update, ctx)
     
     # API Keys - unified API management
-    if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API", ctx.t.get('button_api_keys', '🔑 API Keys')]:
+    if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API", 
+                "🔗 Exchange", "🔗 Биржа",
+                ctx.t.get('button_api_keys', '🔗 Exchange')]:
         return await cmd_api_settings(update, ctx)
     
     # Strategies button
-    if text in ["🤖 Strategies", ctx.t.get('button_strategies', '🤖 Strategies'), ctx.t.get('button_strategy_settings', '⚙️ Strategies')]:
+    if text in ["🤖 Strategies", "🤖 AI Bots", "🤖 AI Боты",
+                ctx.t.get('button_strategies', '🤖 AI Bots'), 
+                ctx.t.get('button_strategy_settings', '⚙️ Strategies')]:
         return await cmd_strategy_settings(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
@@ -18429,16 +18446,16 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_api", "🔑 API") or text == ctx.t.get("button_secret", "🔒 Secret"):
         return await cmd_api_settings(update, ctx)
 
-    if text == ctx.t["button_lang"]:
+    if text in [ctx.t.get("button_lang", "🌍 Lang"), "🌐 Language", "🌍 Lang"]:
         return await cmd_lang(update, ctx)
 
-    if text == ctx.t["button_balance"]:
+    if text in [ctx.t.get("button_balance", "💎 Portfolio"), "💰 Balance"]:
         return await cmd_account(update, ctx)
 
-    if text == ctx.t["button_orders"]:
+    if text in [ctx.t.get("button_orders", "📊 Orders"), "📈 Orders"]:
         return await cmd_openorders(update, ctx)
 
-    if text == ctx.t["button_positions"]:
+    if text in [ctx.t.get("button_positions", "🎯 Positions"), "📊 Positions"]:
         return await cmd_open_positions(update, ctx)
 
     if text == ctx.t.get("button_stats", "📊 Statistics"):
@@ -18477,16 +18494,16 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t["button_toggle_rsi_bb"]:
         return await cmd_toggle_rsi_bb(update, ctx)
 
-    if text == ctx.t["button_support"]:
+    if text in [ctx.t.get("button_support", "📞 Support"), "📞 Support"]:
         return await cmd_support(update, ctx)
 
-    if text == ctx.t["button_coins"]:
+    if text in [ctx.t.get("button_coins", "🪙 Coins"), "🎯 Coins"]:
         return await cmd_select_coin_group(update, ctx)
 
-    if text == ctx.t["button_toggle_atr"]:
+    if text in [ctx.t.get("button_toggle_atr", "📏 ATR"), "📏 ATR"]:
         return await cmd_toggle_atr(update, ctx)
 
-    if text == ctx.t["button_update_tpsl"]:
+    if text in [ctx.t.get("button_update_tpsl", "🎯 TP/SL"), "🎯 TP/SL"]:
         return await cmd_update_tpsl(update, ctx)
 
     # Handle new API key entry modes
