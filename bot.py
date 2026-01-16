@@ -17067,15 +17067,18 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         keyboard = []
         
-        # 3-column layout for each user: [Status+ID] [License] [Ban/Unban]
+        # 3-column layout for each user:
+        # [Status+ID] → opens user menu
+        # [License type] → info display  
+        # [❌ Delete] → quick delete action
         for u in users:
             status = "🚫" if u["is_banned"] else "✅" if u["is_allowed"] else "⏳"
             license_icon = {"premium": "💎", "basic": "🥈", "trial": "🎁", "enterprise": "👑"}.get(u["license_type"], "❌")
             days = f"{u['license_days_left']}d" if u.get("license_days_left") else ""
             
-            # Column 1: Status + User ID (clickable to view user)
-            # Column 2: License info (clickable to view user)  
-            # Column 3: Quick ban/unban action
+            # Column 1: Status + User ID → opens full user card with all actions
+            # Column 2: License type display  
+            # Column 3: Quick delete button
             keyboard.append([
                 InlineKeyboardButton(
                     f"{status} {u['user_id']}",
@@ -17086,8 +17089,8 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     callback_data=f"admin:user:{u['user_id']}"
                 ),
                 InlineKeyboardButton(
-                    "🔓" if u["is_banned"] else "❌",
-                    callback_data=f"admin:quick_unban:{u['user_id']}:{filter_type}:{page}" if u["is_banned"] else f"admin:quick_ban:{u['user_id']}:{filter_type}:{page}"
+                    "❌",
+                    callback_data=f"admin:quick_delete:{u['user_id']}:{filter_type}:{page}"
                 )
             ])
         
@@ -17117,6 +17120,41 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+    elif cmd.startswith("quick_delete:"):
+        # Quick delete confirmation
+        parts = cmd.split(":")
+        target_uid = int(parts[1])
+        filter_type = parts[2] if len(parts) > 2 else "all"
+        page = int(parts[3]) if len(parts) > 3 else 0
+        
+        await q.edit_message_text(
+            f"⚠️ *Delete user {target_uid}?*\n\nThis will remove all user data!",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Yes, Delete", callback_data=f"admin:confirm_delete:{target_uid}:{filter_type}:{page}"),
+                    InlineKeyboardButton("❌ Cancel", callback_data=f"admin:users_list:{filter_type}:{page}")
+                ]
+            ])
+        )
+
+    elif cmd.startswith("confirm_delete:"):
+        # Actually delete user
+        parts = cmd.split(":")
+        target_uid = int(parts[1])
+        filter_type = parts[2] if len(parts) > 2 else "all"
+        page = int(parts[3]) if len(parts) > 3 else 0
+        
+        try:
+            delete_user(target_uid)
+            await q.answer(f"🗑 User {target_uid} deleted!", show_alert=True)
+        except Exception as e:
+            await q.answer(f"❌ Error: {e}", show_alert=True)
+        
+        # Refresh the list
+        q.data = f"admin:users_list:{filter_type}:{page}"
+        await on_admin_cb(update, ctx)
+
     elif cmd.startswith("quick_ban:"):
         # Quick ban from list (stays on same page)
         parts = cmd.split(":")
@@ -17126,8 +17164,6 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ban_user(target_uid)
         await q.answer(f"🚫 User {target_uid} banned!", show_alert=True)
         # Refresh the list
-        users, total = get_users_paginated(page=page, per_page=8, filter_type=filter_type)
-        # Trigger refresh by simulating users_list callback
         q.data = f"admin:users_list:{filter_type}:{page}"
         await on_admin_cb(update, ctx)
 
