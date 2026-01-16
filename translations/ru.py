@@ -272,6 +272,20 @@ TEXTS = {
         "  • Stop Loss      : {sl}\n"
         "  • Unreal PnL     : {pnl:+.2f} ({pct:+.2f}%)"
     ),
+    'position_item_v2':            (
+        "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
+        "  • Размер         : {size}\n"
+        "  • Цена входа     : {avg:.8f}\n"
+        "  • Марк-цена      : {mark:.8f}\n"
+        "  • Ликвидация     : {liq}\n"
+        "  • Initial Margin : {im:.2f}\n"
+        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Take Profit    : {tp}\n"
+        "  • Stop Loss      : {sl}\n"
+        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+    ),
+    'pnl_by_strategy':             '📊 *PnL по стратегии:*',
+    'pnl_by_exchange':             '🏦 *PnL по бирже:*',
     'positions_overall':           'Итого Unreal PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Управление позициями (inline)

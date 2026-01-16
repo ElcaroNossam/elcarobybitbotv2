@@ -75,11 +75,8 @@ class SubscriptionPurchaseRequest(BaseModel):
 # DEPENDENCY: GET CURRENT USER
 # ==========================================
 
-async def get_current_user(authorization: Optional[str] = None) -> Dict:
-    """Get current user from JWT token (placeholder)"""
-    # TODO: Implement JWT auth
-    # For now, return test user
-    return {"user_id": 1, "username": "test_user"}
+# Import centralized authentication
+from webapp.api.auth import get_current_user
 
 
 # ==========================================
