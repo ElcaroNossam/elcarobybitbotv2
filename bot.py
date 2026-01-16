@@ -12917,6 +12917,7 @@ async def place_ladder_limit_orders(
     cfg = get_user_config(user_id)
     
     if not cfg.get('limit_ladder_enabled', 0):
+        logger.debug(f"[{user_id}] Ladder disabled for {symbol}")
         return {"skipped": True, "reason": "Ladder disabled"}
     
     ladder_count = cfg.get('limit_ladder_count', 3)
@@ -12933,7 +12934,26 @@ async def place_ladder_limit_orders(
     # Get balance for calculating qty
     account_types = get_strategy_account_types(user_id, strategy)
     if not account_types:
+        logger.warning(f"[{user_id}] No accounts configured for ladder on {symbol}")
         return {"skipped": True, "reason": "No accounts configured"}
+    
+    logger.info(f"[{user_id}] 📉 Placing ladder for {symbol}: {ladder_count} orders, accounts={account_types}")
+    
+    # Get instrument info for qty normalization
+    try:
+        inst = await _bybit_request(
+            user_id, "GET", "/v5/market/instruments-info",
+            params={"category": "linear", "symbol": symbol},
+            account_type=account_types[0]
+        )
+        lot = inst["list"][0]["lotSizeFilter"]
+        min_qty = float(lot["minOrderQty"])
+        step_qty = float(lot["qtyStep"])
+        raw_max = lot.get("maxMktOrderQty")
+        max_qty = float(raw_max) if raw_max not in (None, "", 0, "0") else float("inf")
+    except Exception as e:
+        logger.error(f"[{user_id}] Failed to get instrument info for {symbol}: {e}")
+        return {"skipped": True, "reason": f"Instrument info error: {e}"}
     
     results = {}
     placed_count = 0
@@ -12954,9 +12974,19 @@ async def place_ladder_limit_orders(
             for acc_type in account_types:
                 balance = await fetch_usdt_balance(user_id, account_type=acc_type)
                 qty_usdt = balance * (pct_of_deposit / 100)
-                qty = qty_usdt / ladder_price
+                raw_qty = qty_usdt / ladder_price
+                
+                # Normalize qty to exchange requirements
+                qty = math.floor(raw_qty / step_qty) * step_qty
+                qty = max(min_qty, qty)
+                qty = min(max_qty, qty)
+                
+                if qty < min_qty:
+                    logger.warning(f"[{user_id}] Ladder {i+1}: qty {raw_qty:.6f} < min_qty {min_qty}, skipping")
+                    continue
                 
                 if qty <= 0:
+                    logger.warning(f"[{user_id}] Ladder {i+1}: qty <= 0, skipping")
                     continue
                 
                 res = await place_limit_order(user_id, symbol, side, ladder_price, qty, account_type=acc_type)
@@ -12997,14 +13027,15 @@ async def place_ladder_limit_orders(
     if ctx and placed_count > 0:
         t = ctx.t if hasattr(ctx, 't') else {}
         try:
-            await ctx.bot.send_message(
-                user_id,
-                t.get('ladder_orders_placed', f"📉 Placed {placed_count} ladder limit orders for {symbol}")
-                .format(count=placed_count, symbol=symbol),
-                parse_mode="Markdown"
+            msg = t.get('ladder_orders_placed', "📉 Placed {count} ladder limit orders for {symbol}").format(
+                count=placed_count, symbol=symbol
             )
-        except Exception:
-            pass
+            await ctx.bot.send_message(user_id, msg, parse_mode="Markdown")
+            logger.info(f"[{user_id}] Sent ladder notification: {placed_count} orders for {symbol}")
+        except Exception as e:
+            logger.error(f"[{user_id}] Failed to send ladder notification: {e}")
+    elif placed_count == 0:
+        logger.warning(f"[{user_id}] No ladder orders placed for {symbol}")
     
     results["placed_count"] = placed_count
     return results
@@ -13019,17 +13050,44 @@ async def calc_qty(
     sl_pct: float,
     account_type: str = None
 ) -> float:
+    """
+    Calculate position size based on RISK-BASED position sizing.
+    
+    Formula: qty = (equity * risk_pct%) / (price * sl_pct%)
+    
+    This calculates how many contracts to buy so that if price moves
+    by SL%, we lose exactly risk_pct% of equity.
+    
+    Example:
+        equity = $1000, risk_pct = 1%, sl_pct = 3%, price = $100
+        risk_usdt = $10 (amount we're willing to lose)
+        price_move = $3 (how much 1 contract moves at SL)
+        qty = 10/3 = 3.33 contracts
+        If price drops 3%: loss = 3.33 * $3 = $10 = 1% of equity ✓
+    
+    NOTE: Leverage does NOT affect the risk calculation!
+    Leverage only affects required margin, not the P&L per contract.
+    """
     # Use equity (total capital) for consistent position sizing
     equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
-    logger.info(f"[calc_qty] uid={user_id} symbol={symbol} account_type={account_type} equity={equity:.2f}")
+    
     if equity <= 0:
         raise ValueError(f"Don't have USDT (equity={equity}, account_type={account_type})")
+    
     risk_usdt = equity * (risk_pct / 100)
     price_move = price * (sl_pct / 100)
+    
     if price_move <= 0:
         raise ValueError("Wrong sl_pct for price_move")
 
     raw_qty = risk_usdt / price_move
+    
+    # Log the calculation for debugging
+    logger.info(
+        f"[calc_qty] uid={user_id} {symbol}: "
+        f"equity=${equity:.2f}, risk%={risk_pct:.2f}%, sl%={sl_pct:.2f}% → "
+        f"risk_usdt=${risk_usdt:.2f}, price_move=${price_move:.4f}, raw_qty={raw_qty:.4f}"
+    )
 
     inst = await _bybit_request(
         user_id, "GET", "/v5/market/instruments-info",
@@ -13052,6 +13110,8 @@ async def calc_qty(
         logger.warning(
             f"raw_qty={raw_qty:.2f} > maxMktOrderQty={max_qty}, используем {qty:.2f}"
         )
+    
+    logger.info(f"[calc_qty] uid={user_id} {symbol}: final_qty={qty:.4f} (min={min_qty}, step={step_qty})")
 
     return qty
 
