@@ -16,6 +16,19 @@ except ImportError:
     TON_AVAILABLE = False
     logging.warning("TON libraries not available. Install: pip install pytoniq pytoniq-core")
 
+# Import db_elcaro functions for ELC balance management
+try:
+    from db_elcaro import (
+        create_elc_purchase,
+        complete_elc_purchase,
+        get_elc_purchase,
+        add_elc_balance,
+    )
+    DB_ELCARO_AVAILABLE = True
+except ImportError:
+    DB_ELCARO_AVAILABLE = False
+    logging.warning("db_elcaro module not available")
+
 logger = logging.getLogger(__name__)
 
 
@@ -177,8 +190,25 @@ class TONPaymentGateway:
             f"?text={payment_id}"
         )
         
+        # Create purchase record in database
+        purchase_id = None
+        if DB_ELCARO_AVAILABLE:
+            try:
+                purchase_id = create_elc_purchase(
+                    user_id=user_id,
+                    payment_id=payment_id,
+                    usdt_amount=calc["usdt_amount"],
+                    elc_amount=calc["elc_amount"],
+                    platform_fee=calc["platform_fee"],
+                    payment_method="ton_usdt"
+                )
+                logger.info(f"Created ELC purchase record: {payment_id} (id={purchase_id})")
+            except Exception as e:
+                logger.error(f"Failed to create purchase record: {e}")
+        
         return {
             "payment_id": payment_id,
+            "purchase_id": purchase_id,
             "user_id": user_id,
             "usdt_amount": calc["usdt_amount"],
             "elc_amount": calc["elc_amount"],
@@ -240,36 +270,68 @@ class TONPaymentGateway:
     
     async def process_elc_distribution(
         self,
-        user_wallet: str,
-        elc_amount: float,
-        tx_hash: str
+        user_id: int,
+        payment_id: str,
+        tx_hash: str = None
     ) -> Dict[str, Any]:
         """
-        Distribute ELC tokens to user after payment verified
+        Distribute ELC tokens to user after payment verified.
+        Uses db_elcaro to update user balance.
         
         Args:
-            user_wallet: User's wallet address (TON, MetaMask, etc.)
-            elc_amount: Amount of ELC to send
-            tx_hash: Original payment transaction hash
+            user_id: User ID
+            payment_id: Payment ID from create_payment_link
+            tx_hash: TON blockchain transaction hash
             
         Returns:
             Dict with distribution status
         """
         try:
-            # Here we would:
-            # 1. Send ELC tokens from platform wallet to user
-            # 2. Record transaction in database
-            # 3. Update user's ELC balance
+            if not DB_ELCARO_AVAILABLE:
+                logger.error("db_elcaro not available for ELC distribution")
+                return {
+                    "success": False,
+                    "error": "Database module not available",
+                    "status": "failed"
+                }
             
-            # For now, just return success (implement full distribution later)
-            return {
-                "success": True,
-                "elc_amount": elc_amount,
-                "user_wallet": user_wallet,
-                "tx_hash": tx_hash,
-                "status": "completed",
-                "message": f"Distributed {elc_amount} ELC to {user_wallet}"
-            }
+            # Get purchase details
+            purchase = get_elc_purchase(payment_id)
+            if not purchase:
+                return {
+                    "success": False,
+                    "error": f"Purchase not found: {payment_id}",
+                    "status": "failed"
+                }
+            
+            if purchase["status"] == "completed":
+                return {
+                    "success": True,
+                    "elc_amount": purchase["elc_amount"],
+                    "status": "already_completed",
+                    "message": "Purchase already completed"
+                }
+            
+            # Complete purchase and distribute ELC
+            success = complete_elc_purchase(payment_id, tx_hash)
+            
+            if success:
+                logger.info(f"ELC distributed: {purchase['elc_amount']} ELC to user {user_id}")
+                return {
+                    "success": True,
+                    "elc_amount": purchase["elc_amount"],
+                    "user_id": user_id,
+                    "payment_id": payment_id,
+                    "tx_hash": tx_hash,
+                    "status": "completed",
+                    "message": f"Distributed {purchase['elc_amount']} ELC to user {user_id}"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Failed to complete purchase",
+                    "status": "failed"
+                }
         except Exception as e:
             logger.error(f"ELC distribution error: {e}")
             return {
@@ -289,21 +351,27 @@ class ELCAROPaymentManager:
         self.testnet = testnet
         self.ton_gateway = None
         
-        # ELC prices for different items
+        # ELC prices for different items (synced with bot.py LICENSE_PRICES)
+        # All prices in ELC (1 ELC = 1 USD)
         self.prices = {
             "subscription": {
-                "basic_1m": 100,
-                "basic_3m": 270,
-                "basic_6m": 480,
-                "basic_1y": 840,
-                "premium_1m": 200,
-                "premium_3m": 540,
-                "premium_6m": 960,
-                "premium_1y": 1680,
-                "pro_1m": 500,
-                "pro_3m": 1350,
-                "pro_6m": 2400,
-                "pro_1y": 4200,
+                # Premium Plan: $100/mo, -10% 3mo, -20% 6mo, -30% 12mo
+                "premium_1m": 100,
+                "premium_3m": 270,
+                "premium_6m": 480,
+                "premium_1y": 840,
+                # Basic Plan: 50% of Premium
+                "basic_1m": 50,
+                "basic_3m": 135,
+                "basic_6m": 240,
+                "basic_1y": 420,
+                # Enterprise Plan: 5x Premium
+                "enterprise_1m": 500,
+                "enterprise_3m": 1350,
+                "enterprise_6m": 2400,
+                "enterprise_1y": 4200,
+                # Trial
+                "trial_1m": 0,
             },
             "marketplace": {
                 "listing_fee": 10,

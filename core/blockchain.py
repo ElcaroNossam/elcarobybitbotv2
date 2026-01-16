@@ -256,8 +256,9 @@ STAKING_POOL_ADDRESS = "0xTRC000000000000000000000000000000004"
 BURN_ADDRESS = "0xTRC000000000000000000000000000000DEAD"
 
 # ============================================
-# LICENSE PRICING (in TRC)
+# UNIFIED LICENSE PRICING (in TRC/ELC = USD)
 # ============================================
+# All tokens are 1:1 with USD: TRC, ELC (ELCARO)
 
 LICENSE_PRICES_TRC = {
     "premium": {1: 100, 3: 270, 6: 480, 12: 840},
@@ -265,6 +266,19 @@ LICENSE_PRICES_TRC = {
     "enterprise": {1: 500, 3: 1350, 6: 2400, 12: 4200},
     "trial": {1: 0}
 }
+
+# ELC prices mirror TRC prices (both are 1:1 with USD)
+LICENSE_PRICES_ELC = LICENSE_PRICES_TRC.copy()
+
+# Unified price getter
+def get_license_price(license_type: str, months: int, currency: str = "elc") -> float:
+    """
+    Get license price in specified currency (TRC or ELC).
+    Both are 1:1 with USD.
+    """
+    prices = LICENSE_PRICES_TRC if currency.lower() == "trc" else LICENSE_PRICES_ELC
+    plan_prices = prices.get(license_type.lower(), prices.get("basic", {1: 50}))
+    return float(plan_prices.get(months, plan_prices.get(1, 50)))
 
 
 # ============================================
@@ -1820,6 +1834,88 @@ async def pay_license(user_id: int, license_type: str, months: int) -> Tuple[boo
     
     success, message = await pay_with_trc(user_id, price, description)
     return success, message
+
+
+async def pay_license_elc(user_id: int, license_type: str, months: int) -> Tuple[bool, str, float]:
+    """
+    Pay for license with ELC (ELCARO tokens)
+    
+    Args:
+        user_id: User ID
+        license_type: 'basic', 'premium', or 'enterprise'
+        months: 1, 3, 6, or 12
+    
+    Returns:
+        (success, message, amount_paid)
+    """
+    try:
+        from db_elcaro import get_elc_balance, subtract_elc_balance
+        
+        price = get_license_price(license_type, months, "elc")
+        description = f"{license_type.capitalize()} License ({months} month{'s' if months > 1 else ''})"
+        
+        # Check balance
+        balance = get_elc_balance(user_id)
+        if balance.get("available", 0) < price:
+            return False, f"Insufficient ELC balance. Need {price} ELC, have {balance.get('available', 0)}", 0
+        
+        # Deduct ELC
+        subtract_elc_balance(user_id, price, description)
+        
+        return True, f"Paid {price} ELC for {description}", price
+    except Exception as e:
+        return False, str(e), 0
+
+
+def get_subscription_options() -> dict:
+    """
+    Get all subscription options with prices.
+    Used by both bot and webapp.
+    """
+    return {
+        "plans": {
+            "basic": {
+                "name": "Basic",
+                "description": "Demo trading + basic signals",
+                "prices": {
+                    1: {"elc": 50, "trc": 50, "usd": 50},
+                    3: {"elc": 135, "trc": 135, "usd": 135},
+                    6: {"elc": 240, "trc": 240, "usd": 240},
+                    12: {"elc": 420, "trc": 420, "usd": 420},
+                },
+                "features": ["Demo trading", "Basic signals", "Email support"]
+            },
+            "premium": {
+                "name": "Premium",
+                "description": "Full access to all features",
+                "prices": {
+                    1: {"elc": 100, "trc": 100, "usd": 100},
+                    3: {"elc": 270, "trc": 270, "usd": 270},
+                    6: {"elc": 480, "trc": 480, "usd": 480},
+                    12: {"elc": 840, "trc": 840, "usd": 840},
+                },
+                "features": ["Real trading", "All strategies", "Priority support", "AI Agent"]
+            },
+            "enterprise": {
+                "name": "Enterprise",
+                "description": "For professional traders",
+                "prices": {
+                    1: {"elc": 500, "trc": 500, "usd": 500},
+                    3: {"elc": 1350, "trc": 1350, "usd": 1350},
+                    6: {"elc": 2400, "trc": 2400, "usd": 2400},
+                    12: {"elc": 4200, "trc": 4200, "usd": 4200},
+                },
+                "features": ["Everything", "API access", "White-label", "VIP support"]
+            }
+        },
+        "currencies": ["ELC", "TRC"],
+        "discounts": {
+            1: 0,
+            3: 10,
+            6: 20,
+            12: 30
+        }
+    }
 
 
 # ============================================

@@ -3460,6 +3460,246 @@ def get_stats_by_strategy(user_id: int, period: str = "all", account_type: str |
 
 
 # =====================================================
+# LICENSE REQUEST SYSTEM (ADMIN APPROVAL)
+# =====================================================
+
+def create_license_request(
+    user_id: int,
+    license_type: str,
+    period_months: int = 1,
+    payment_method: str = "pending",
+    amount: float = 0.0,
+    currency: str = "TRC",
+    notes: str = None
+) -> dict:
+    """
+    Create a license request that needs admin approval.
+    
+    Returns:
+        {"success": True, "request_id": int} or {"error": str}
+    """
+    import time
+    now = int(time.time())
+    
+    ensure_user(user_id)
+    
+    with get_conn() as conn:
+        # Check for existing pending request
+        existing = conn.execute(
+            "SELECT id FROM license_requests WHERE user_id = ? AND status = 'pending'",
+            (user_id,)
+        ).fetchone()
+        
+        if existing:
+            return {"error": "pending_request_exists", "request_id": existing[0]}
+        
+        cur = conn.execute("""
+            INSERT INTO license_requests 
+            (user_id, license_type, period_months, payment_method, amount, currency, status, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+        """, (user_id, license_type, period_months, payment_method, amount, currency, notes, now))
+        
+        request_id = cur.lastrowid
+        conn.commit()
+        
+        return {"success": True, "request_id": request_id}
+
+
+def get_pending_license_requests(limit: int = 50) -> list[dict]:
+    """Get all pending license requests for admin review."""
+    import time
+    now = int(time.time())
+    
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT lr.id, lr.user_id, lr.license_type, lr.period_months, lr.payment_method,
+                   lr.amount, lr.currency, lr.status, lr.notes, lr.created_at,
+                   u.username, u.first_name, u.current_license, u.license_expires
+            FROM license_requests lr
+            LEFT JOIN users u ON lr.user_id = u.user_id
+            WHERE lr.status = 'pending'
+            ORDER BY lr.created_at DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+        
+        result = []
+        for r in rows:
+            days_ago = (now - r[9]) // 86400 if r[9] else 0
+            result.append({
+                "id": r[0],
+                "user_id": r[1],
+                "license_type": r[2],
+                "period_months": r[3],
+                "payment_method": r[4],
+                "amount": r[5],
+                "currency": r[6],
+                "status": r[7],
+                "notes": r[8],
+                "created_at": r[9],
+                "days_ago": days_ago,
+                "username": r[10],
+                "first_name": r[11],
+                "current_license": r[12] or "none",
+                "license_expires": r[13],
+            })
+        return result
+
+
+def get_license_request(request_id: int) -> dict | None:
+    """Get a specific license request."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT lr.id, lr.user_id, lr.license_type, lr.period_months, lr.payment_method,
+                   lr.amount, lr.currency, lr.status, lr.notes, lr.created_at,
+                   lr.approved_at, lr.approved_by, lr.rejection_reason,
+                   u.username, u.first_name
+            FROM license_requests lr
+            LEFT JOIN users u ON lr.user_id = u.user_id
+            WHERE lr.id = ?
+        """, (request_id,)).fetchone()
+        
+        if not row:
+            return None
+        
+        return {
+            "id": row[0],
+            "user_id": row[1],
+            "license_type": row[2],
+            "period_months": row[3],
+            "payment_method": row[4],
+            "amount": row[5],
+            "currency": row[6],
+            "status": row[7],
+            "notes": row[8],
+            "created_at": row[9],
+            "approved_at": row[10],
+            "approved_by": row[11],
+            "rejection_reason": row[12],
+            "username": row[13],
+            "first_name": row[14],
+        }
+
+
+def approve_license_request(request_id: int, admin_id: int, notes: str = None) -> dict:
+    """
+    Approve a license request and grant the license.
+    
+    Returns:
+        {"success": True, "license_info": dict} or {"error": str}
+    """
+    import time
+    now = int(time.time())
+    
+    request = get_license_request(request_id)
+    if not request:
+        return {"error": "request_not_found"}
+    
+    if request["status"] != "pending":
+        return {"error": f"request_already_{request['status']}"}
+    
+    # Grant the license
+    license_result = set_user_license(
+        user_id=request["user_id"],
+        license_type=request["license_type"],
+        period_months=request["period_months"],
+        admin_id=admin_id,
+        payment_type=request["payment_method"],
+        amount=request["amount"],
+        currency=request["currency"],
+        notes=f"Approved from request #{request_id}. {notes or ''}"
+    )
+    
+    if "error" in license_result:
+        return license_result
+    
+    # Update request status
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE license_requests 
+            SET status = 'approved', approved_at = ?, approved_by = ?, notes = COALESCE(notes || ' | ', '') || ?
+            WHERE id = ?
+        """, (now, admin_id, f"Approved: {notes or ''}", request_id))
+        conn.commit()
+    
+    return {"success": True, "license_info": license_result, "request": request}
+
+
+def reject_license_request(request_id: int, admin_id: int, reason: str = None) -> dict:
+    """Reject a license request."""
+    import time
+    now = int(time.time())
+    
+    request = get_license_request(request_id)
+    if not request:
+        return {"error": "request_not_found"}
+    
+    if request["status"] != "pending":
+        return {"error": f"request_already_{request['status']}"}
+    
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE license_requests 
+            SET status = 'rejected', approved_at = ?, approved_by = ?, rejection_reason = ?
+            WHERE id = ?
+        """, (now, admin_id, reason or "No reason provided", request_id))
+        conn.commit()
+    
+    return {"success": True, "request": request}
+
+
+def get_user_license_requests(user_id: int, limit: int = 10) -> list[dict]:
+    """Get user's license request history."""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT id, license_type, period_months, payment_method, amount, currency, 
+                   status, notes, created_at, approved_at, rejection_reason
+            FROM license_requests
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (user_id, limit)).fetchall()
+        
+        return [
+            {
+                "id": r[0],
+                "license_type": r[1],
+                "period_months": r[2],
+                "payment_method": r[3],
+                "amount": r[4],
+                "currency": r[5],
+                "status": r[6],
+                "notes": r[7],
+                "created_at": r[8],
+                "approved_at": r[9],
+                "rejection_reason": r[10],
+            }
+            for r in rows
+        ]
+
+
+def get_license_request_stats() -> dict:
+    """Get license request statistics for admin dashboard."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN status = 'approved' THEN amount ELSE 0 END) as total_approved_amount
+            FROM license_requests
+        """).fetchone()
+        
+        return {
+            "total": row[0] or 0,
+            "pending": row[1] or 0,
+            "approved": row[2] or 0,
+            "rejected": row[3] or 0,
+            "total_approved_amount": row[4] or 0.0,
+        }
+
+
+# =====================================================
 # LICENSING SYSTEM FUNCTIONS
 # =====================================================
 
@@ -3471,6 +3711,17 @@ LICENSE_TYPES = {
         "real_access": True,
         "all_strategies": True,
         "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
+    },
+    "enterprise": {
+        "name": "Enterprise",
+        "demo_access": True,
+        "real_access": True,
+        "all_strategies": True,
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
+        "priority_support": True,
+        "api_access": True,
+        "white_label": True,
+        "max_positions": 100,
     },
     "basic": {
         "name": "Basic", 

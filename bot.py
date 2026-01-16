@@ -130,6 +130,14 @@ from db import (
     get_expiring_licenses,
     LICENSE_TYPES,
     LICENSE_PERIODS,
+    # License request functions (admin approval)
+    create_license_request,
+    get_pending_license_requests,
+    get_license_request,
+    approve_license_request,
+    reject_license_request,
+    get_user_license_requests,
+    get_license_request_stats,
     # Admin functions
     get_user_full_info,
     get_users_paginated,
@@ -146,6 +154,16 @@ from db import (
     get_top_traders,
     get_user_usage_report,
 )
+
+# ELCARO Token functions
+from db_elcaro import (
+    get_elc_balance,
+    check_elc_balance,
+    subtract_elc_balance,
+    add_elc_balance,
+    get_user_transactions as get_elc_transactions,
+)
+
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -448,6 +466,9 @@ from core.blockchain import (
     blockchain, get_trc_balance, get_trc_wallet, pay_with_trc,
     deposit_trc, reward_trc, get_license_price_trc, pay_license,
     LICENSE_PRICES_TRC, TRC_SYMBOL, TRC_NAME,
+    # ELC payments (ELCARO Super Token)
+    pay_license_elc, get_license_price, get_subscription_options,
+    LICENSE_PRICES_ELC,
     # Sovereign owner operations
     is_sovereign_owner, emit_tokens, burn_tokens, set_monetary_policy,
     freeze_wallet, unfreeze_wallet, distribute_staking_rewards,
@@ -475,16 +496,34 @@ TRIAL_DAYS = 7   # Trial duration
 # TRC Payment wallet (platform master wallet)
 TRC_MASTER_WALLET = "0xTRC000000000000000000000000000000001"
 
-# License price mapping (TRC only - fully WEB3)
+# ELC/ELCARO Token - Our super token (1:1 with USD)
+# ELC will eventually replace TRC as the primary payment token
+ELC_PRICE_USD = 1.0  # 1 ELC = 1 USD
+
+# Enterprise plan pricing (5x Premium)
+ENTERPRISE_TRC_1M = 500.0     # $500
+ENTERPRISE_TRC_3M = 1350.0    # $1350 ($450/mo)
+ENTERPRISE_TRC_6M = 2400.0    # $2400 ($400/mo)
+ENTERPRISE_TRC_12M = 4200.0   # $4200 ($350/mo)
+
+# License price mapping (TRC + ELC - fully WEB3)
+# ELC prices are same as TRC (1:1 with USD)
 LICENSE_PRICES = {
     "premium": {
         "trc": {1: PREMIUM_TRC_1M, 3: PREMIUM_TRC_3M, 6: PREMIUM_TRC_6M, 12: PREMIUM_TRC_12M},
+        "elc": {1: PREMIUM_TRC_1M, 3: PREMIUM_TRC_3M, 6: PREMIUM_TRC_6M, 12: PREMIUM_TRC_12M},  # Same as TRC
     },
     "basic": {
         "trc": {1: BASIC_TRC_1M, 3: BASIC_TRC_3M, 6: BASIC_TRC_6M, 12: BASIC_TRC_12M},
+        "elc": {1: BASIC_TRC_1M, 3: BASIC_TRC_3M, 6: BASIC_TRC_6M, 12: BASIC_TRC_12M},  # Same as TRC
+    },
+    "enterprise": {
+        "trc": {1: ENTERPRISE_TRC_1M, 3: ENTERPRISE_TRC_3M, 6: ENTERPRISE_TRC_6M, 12: ENTERPRISE_TRC_12M},
+        "elc": {1: ENTERPRISE_TRC_1M, 3: ENTERPRISE_TRC_3M, 6: ENTERPRISE_TRC_6M, 12: ENTERPRISE_TRC_12M},
     },
     "trial": {
         "trc": {1: 0},
+        "elc": {1: 0},
     },
 }
 
@@ -17576,7 +17615,7 @@ async def show_user_card(q, ctx, target_uid: int):
     
     # License actions
     license_row = [
-        InlineKeyboardButton(t.get('admin_btn_grant_lic', '🎁 Grant'), callback_data=f"admin:grant_lic:{target_uid}"),
+        InlineKeyboardButton(t.get('admin_btn_grant_lic', '🎁 Grant'), callback_data=f"adm_lic:grant_to_user:{target_uid}"),
     ]
     if user["current_license"] != "none" and user["license_days_left"]:
         license_row.append(InlineKeyboardButton(t.get('admin_btn_extend', '⏳ Extend'), callback_data=f"admin:extend_lic:{target_uid}"))
@@ -17696,6 +17735,59 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except ValueError:
             await update.message.reply_text(
                 "❌ Invalid user ID. Enter a number.",
+                reply_markup=get_admin_license_keyboard(t)
+            )
+        return
+
+    # Handle admin license request rejection (reason input)
+    if mode == "admin_reject_request" and uid == ADMIN_ID:
+        ctx.user_data.pop("mode", None)
+        t = LANGS.get(ctx.user_data.get("lang", DEFAULT_LANG), LANGS[DEFAULT_LANG])
+        
+        request_id = ctx.user_data.pop("reject_request_id", None)
+        if not request_id:
+            await update.message.reply_text(
+                "❌ Request not found.",
+                reply_markup=get_admin_license_keyboard(t)
+            )
+            return
+        
+        reason = text.strip()
+        if len(reason) < 3:
+            await update.message.reply_text(
+                "❌ Reason too short. Please provide a valid reason.",
+                reply_markup=get_admin_license_keyboard(t)
+            )
+            return
+        
+        result = reject_license_request(request_id, uid, reason)
+        
+        if result.get("success"):
+            # Notify user about rejection
+            request = result.get("request", {})
+            target_uid = request.get("user_id")
+            if target_uid:
+                try:
+                    user_lang = db.get_user_field(target_uid, "lang") or DEFAULT_LANG
+                    user_t = LANGS.get(user_lang, LANGS[DEFAULT_LANG])
+                    await ctx.bot.send_message(
+                        target_uid,
+                        user_t.get("license_request_rejected", 
+                            "❌ Your license request has been rejected.\n\n"
+                            "**Reason:** {reason}"
+                        ).format(reason=reason),
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to notify user {target_uid} about rejection: {e}")
+            
+            await update.message.reply_text(
+                f"✅ Request #{request_id} rejected.\nReason: {reason}",
+                reply_markup=get_admin_license_keyboard(t)
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ Error: {result.get('error', 'Unknown')}",
                 reply_markup=get_admin_license_keyboard(t)
             )
         return
@@ -18495,6 +18587,7 @@ def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(t.get("btn_basic", "🥈 Basic"), callback_data="sub:plan:basic")],
         [InlineKeyboardButton(t.get("btn_trial", "🎁 Trial (Free)"), callback_data="sub:plan:trial")],
         [InlineKeyboardButton(t.get("btn_enter_promo", "🎟 Promo Code"), callback_data="sub:promo")],
+        [InlineKeyboardButton(t.get("btn_request_license", "📩 Request License"), callback_data="sub:request")],
         [InlineKeyboardButton(t.get("btn_my_subscription", "📋 My Subscription"), callback_data="sub:my")],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="back:main")],
     ])
@@ -18549,19 +18642,27 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboardMarkup:
-    """Payment method selection keyboard - TRC only (WEB3 native)."""
+    """Payment method selection keyboard - TRC + ELC (WEB3 native)."""
     prices = LICENSE_PRICES.get(plan, {})
     trc_price = prices.get("trc", {}).get(period, 0)
+    elc_price = prices.get("elc", {}).get(period, 0)
     
     buttons = [
+        # Primary: ELC (ELCARO Token - Super Token)
+        [InlineKeyboardButton(
+            f"⭐ Pay {elc_price:.0f} ELC (~${elc_price:.0f})",
+            callback_data=f"sub:elc:{plan}:{period}"
+        )],
+        # Secondary: TRC (Triacelo Coin)
         [InlineKeyboardButton(
             f"🪙 Pay {trc_price:.0f} TRC (~${trc_price:.0f})",
             callback_data=f"sub:trc:{plan}:{period}"
         )],
-        [InlineKeyboardButton(
-            f"💳 Buy TRC (Deposit)",
-            callback_data=f"wallet:deposit"
-        )],
+        # Deposit options
+        [
+            InlineKeyboardButton("💎 Buy ELC", callback_data="wallet:buy_elc"),
+            InlineKeyboardButton("💳 Buy TRC", callback_data="wallet:deposit"),
+        ],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:plan:{plan}")],
     ]
     return InlineKeyboardMarkup(buttons)
@@ -19159,6 +19260,139 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif action == "buy_soon":
         await q.answer("🚧 Coming soon! External TRC purchases will be available in the next update.", show_alert=True)
     
+    elif action == "buy_elc":
+        # Show ELC purchase options
+        elc_balance = get_elc_balance(uid)
+        trc_balance = await get_trc_balance(uid)
+        
+        text = t.get("wallet_buy_elc_header", "💎 *Buy ELCARO (ELC) Tokens*")
+        text += "\n\n⭐ *ELCARO is the Super Token!*"
+        text += "\n• 1 ELC = 1 USD (stable price)"
+        text += "\n• Use for all platform payments"
+        text += "\n• Future governance rights"
+        text += "\n• Exclusive holder benefits"
+        text += f"\n\n💰 *Your ELC Balance:* {elc_balance.get('available', 0):.2f} ELC"
+        text += f"\n🔒 *Staked:* {elc_balance.get('staked', 0):.2f} ELC"
+        text += f"\n💎 *Total:* {elc_balance.get('total', 0):.2f} ELC"
+        text += f"\n\n🪙 *TRC Balance:* {trc_balance:.2f} TRC"
+        text += "\n\n💡 *Ways to get ELC:*"
+        text += "\n1️⃣ Convert TRC to ELC (1:1)"
+        text += "\n2️⃣ Buy with USDT on TON"
+        text += "\n3️⃣ Earn through platform rewards"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔄 Convert TRC → ELC", callback_data="wallet:convert_trc_elc")],
+            [InlineKeyboardButton("💵 Buy with USDT (TON)", callback_data="wallet:buy_elc_usdt")],
+            [InlineKeyboardButton("🎁 Get Demo ELC", callback_data="wallet:demo_elc")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "convert_trc_elc":
+        # Convert TRC to ELC (1:1)
+        trc_balance = await get_trc_balance(uid)
+        
+        if trc_balance < 10:
+            await q.answer("❌ Minimum 10 TRC required for conversion", show_alert=True)
+            return
+        
+        text = t.get("wallet_convert_header", "🔄 *Convert TRC to ELC*")
+        text += f"\n\n💰 Your TRC Balance: {trc_balance:.2f} TRC"
+        text += "\n\n📊 *Conversion Rate:* 1 TRC = 1 ELC"
+        text += "\n💸 *Fee:* 0%"
+        text += "\n\n*Select amount to convert:*"
+        
+        # Quick convert buttons
+        amounts = [10, 50, 100, 500]
+        buttons = []
+        for amt in amounts:
+            if trc_balance >= amt:
+                buttons.append(InlineKeyboardButton(f"{amt} TRC → ELC", callback_data=f"wallet:do_convert:{amt}"))
+        
+        keyboard_buttons = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
+        if trc_balance >= 10:
+            keyboard_buttons.append([InlineKeyboardButton(f"🔄 All ({trc_balance:.0f} TRC)", callback_data=f"wallet:do_convert:{int(trc_balance)}")])
+        keyboard_buttons.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
+    
+    elif action == "do_convert":
+        # Execute TRC to ELC conversion
+        amount = int(parts[2]) if len(parts) > 2 else 0
+        
+        if amount < 10:
+            await q.answer("❌ Minimum 10 TRC required", show_alert=True)
+            return
+        
+        trc_balance = await get_trc_balance(uid)
+        if trc_balance < amount:
+            await q.answer("❌ Insufficient TRC balance", show_alert=True)
+            return
+        
+        # Deduct TRC
+        success, msg = await pay_with_trc(uid, amount, f"Convert to ELC")
+        
+        if success:
+            # Add ELC
+            new_elc_balance = add_elc_balance(uid, amount, f"Converted from {amount} TRC")
+            
+            await q.edit_message_text(
+                f"✅ *Conversion Successful!*\n\n"
+                f"🔄 Converted: {amount} TRC → {amount} ELC\n"
+                f"💎 New ELC Balance: {new_elc_balance.get('available', 0):.2f} ELC",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
+                ])
+            )
+        else:
+            await q.edit_message_text(
+                f"❌ Conversion failed: {msg}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
+                ])
+            )
+    
+    elif action == "demo_elc":
+        # Demo ELC deposit for testing
+        new_balance = add_elc_balance(uid, 100, "Demo ELC deposit")
+        
+        await q.edit_message_text(
+            f"✅ *Demo ELC Credited!*\n\n"
+            f"💎 +100 ELC added to your balance\n"
+            f"💰 New Balance: {new_balance.get('available', 0):.2f} ELC",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
+            ])
+        )
+    
+    elif action == "buy_elc_usdt":
+        # Buy ELC with USDT on TON
+        text = t.get("wallet_buy_elc_usdt", "💵 *Buy ELC with USDT*")
+        text += "\n\n🌐 *Network:* TON (The Open Network)"
+        text += "\n💰 *Rate:* 1 USDT = 1 ELC"
+        text += "\n💸 *Min:* 10 USDT"
+        text += "\n\n📝 *How to buy:*"
+        text += "\n1️⃣ Send USDT (jUSDT) to our TON address"
+        text += "\n2️⃣ Include your User ID in memo"
+        text += "\n3️⃣ ELC will be credited automatically"
+        text += f"\n\n📍 *Deposit Address:*"
+        text += f"\n`UQC-ELCARO-MASTER-WALLET-ADDRESS`"
+        text += f"\n\n🆔 *Your memo:* `{uid}`"
+        text += "\n\n⏱ Processing time: ~5 minutes"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📋 Copy Address", callback_data="wallet:copy_elc_address")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "copy_elc_address":
+        await q.answer("📋 Copied! Send USDT to this address with your User ID as memo.", show_alert=True)
+    
     elif action == "withdraw":
         balance = await get_trc_balance(uid)
         
@@ -19479,6 +19713,217 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ])
             )
     
+    elif action == "elc":
+        # ELC (ELCARO) payment flow - The Super Token
+        plan = parts[2] if len(parts) > 2 else ""
+        period = int(parts[3]) if len(parts) > 3 else 1
+        prices = LICENSE_PRICES.get(plan, {})
+        elc_price = prices.get("elc", {}).get(period, 0)
+        period_text = f"{period} month{'s' if period > 1 else ''}"
+        
+        # Check ELC balance
+        elc_balance = get_elc_balance(uid)
+        available_elc = elc_balance.get("available", 0)
+        
+        if available_elc < elc_price:
+            needed = elc_price - available_elc
+            await q.edit_message_text(
+                t.get("payment_insufficient_elc", 
+                    "❌ *Insufficient ELC Balance*\n\n"
+                    "You need {needed:.2f} more ELC.\n\n"
+                    "Your balance: {balance:.2f} ELC\n"
+                    "Required: {price:.0f} ELC\n\n"
+                    "💡 Buy ELC tokens to continue."
+                ).format(needed=needed, balance=available_elc, price=elc_price),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💎 Buy ELC", callback_data="wallet:buy_elc")],
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+                ])
+            )
+            return
+        
+        try:
+            # Deduct ELC from user balance
+            new_balance = subtract_elc_balance(uid, elc_price, f"License payment: {plan.title()} ({period_text})")
+            
+            # Activate license
+            result = set_user_license(
+                user_id=uid,
+                license_type=plan,
+                period_months=period,
+                payment_type="ELC",
+                amount=elc_price,
+                currency="ELC",
+                notes=f"Paid with ELCARO Token (Super Token)"
+            )
+            
+            if result.get("success"):
+                # Notify admin about payment
+                try:
+                    await q.get_bot().send_message(
+                        ADMIN_ID,
+                        f"💎 *ELC Payment Received*\n\n"
+                        f"👤 User: `{uid}`\n"
+                        f"📦 Plan: {plan.title()}\n"
+                        f"⏰ Period: {period_text}\n"
+                        f"💰 Amount: {elc_price:.0f} ELC",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+                
+                await q.edit_message_text(
+                    t.get("payment_success_elc", 
+                        "✅ *Payment Successful!*\n\n"
+                        "💎 Paid: {amount:.0f} ELC\n"
+                        "📦 Plan: {plan}\n"
+                        "⏰ Period: {period}\n\n"
+                        "💰 New Balance: {balance:.2f} ELC\n\n"
+                        "Thank you for using ELCARO!"
+                    ).format(
+                        amount=elc_price, 
+                        plan=plan.title(), 
+                        period=period_text, 
+                        balance=new_balance.get("available", 0)
+                    ),
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+            else:
+                # License activation failed - refund ELC
+                add_elc_balance(uid, elc_price, "License activation failed - refund")
+                await q.edit_message_text(
+                    t.get("payment_failed", "❌ Payment failed: {error}").format(error=result.get("error", "Unknown")),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+        except ValueError as e:
+            # Insufficient balance or other error
+            await q.edit_message_text(
+                t.get("payment_failed", "❌ Payment failed: {error}").format(error=str(e)),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+                ])
+            )
+    
+    elif action == "request":
+        # User wants to request a license (admin approval)
+        text = t.get("license_request_header", "📩 *Request a License*")
+        text += "\n\n" + t.get("license_request_info", 
+            "Don't have enough tokens? Request a license for admin approval!\n\n"
+            "Choose the plan you'd like to request:"
+        )
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💎 Premium 1 month", callback_data="sub:request_type:premium:1")],
+            [InlineKeyboardButton("💎 Premium 3 months", callback_data="sub:request_type:premium:3")],
+            [InlineKeyboardButton("🥈 Basic 1 month", callback_data="sub:request_type:basic:1")],
+            [InlineKeyboardButton("🥈 Basic 3 months", callback_data="sub:request_type:basic:3")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "request_type":
+        # User selected a request type
+        plan = parts[2] if len(parts) > 2 else "basic"
+        period = int(parts[3]) if len(parts) > 3 else 1
+        prices = LICENSE_PRICES.get(plan, {})
+        elc_price = prices.get("elc", {}).get(period, 0)
+        period_text = f"{period} month{'s' if period > 1 else ''}"
+        
+        # Check if user already has pending requests
+        user_requests = get_user_license_requests(uid, status="pending")
+        if user_requests:
+            await q.edit_message_text(
+                t.get("license_request_pending", 
+                    "⏳ You already have a pending request.\n\n"
+                    "Please wait for admin approval or contact support."
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+            return
+        
+        text = t.get("license_request_confirm", "📩 *Confirm License Request*")
+        text += f"\n\n📦 *Plan:* {plan.title()}"
+        text += f"\n⏰ *Period:* {period_text}"
+        text += f"\n💰 *Value:* ~${elc_price:.0f}"
+        text += "\n\n" + t.get("license_request_note",
+            "⚠️ After submitting, an admin will review your request.\n"
+            "You'll be notified once approved."
+        )
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ Submit Request", callback_data=f"sub:submit_request:{plan}:{period}")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:request")]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "submit_request":
+        # Submit the license request
+        plan = parts[2] if len(parts) > 2 else "basic"
+        period = int(parts[3]) if len(parts) > 3 else 1
+        prices = LICENSE_PRICES.get(plan, {})
+        elc_price = prices.get("elc", {}).get(period, 0)
+        
+        result = create_license_request(
+            user_id=uid,
+            license_type=plan,
+            period_months=period,
+            payment_method="admin_request",
+            amount=elc_price,
+            currency="ELC",
+            notes=f"User requested via bot"
+        )
+        
+        if result.get("success"):
+            request_id = result.get("request_id")
+            
+            # Notify admin
+            try:
+                username = update.effective_user.username or "N/A"
+                await q.get_bot().send_message(
+                    ADMIN_ID,
+                    f"📩 *New License Request*\n\n"
+                    f"👤 User: `{uid}` (@{username})\n"
+                    f"📦 Plan: {plan.title()}\n"
+                    f"⏰ Period: {period} month(s)\n"
+                    f"💰 Value: ~${elc_price:.0f}\n"
+                    f"🆔 Request ID: #{request_id}\n\n"
+                    f"Use /admin → Licenses → Pending to review.",
+                    parse_mode="Markdown"
+                )
+            except:
+                pass
+            
+            await q.edit_message_text(
+                t.get("license_request_submitted",
+                    "✅ *Request Submitted!*\n\n"
+                    "Your license request has been sent to admin for approval.\n"
+                    "You'll receive a notification once it's processed.\n\n"
+                    "🆔 Request ID: #{request_id}"
+                ).format(request_id=request_id),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+        else:
+            await q.edit_message_text(
+                t.get("license_request_failed", "❌ Request failed: {error}").format(error=result.get("error", "Unknown")),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+    
     elif action == "verify_ton":
         # TON payments deprecated - redirect to TRC
         await q.edit_message_text(
@@ -19779,7 +20224,13 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 def get_admin_license_keyboard(t: dict) -> InlineKeyboardMarkup:
     """Admin license management keyboard."""
+    # Get pending requests count
+    stats = get_license_request_stats()
+    pending_count = stats.get("pending", 0)
+    pending_label = f"🔔 Pending Requests ({pending_count})" if pending_count > 0 else "📬 Pending Requests"
+    
     return InlineKeyboardMarkup([
+        [InlineKeyboardButton(pending_label, callback_data="adm_lic:pending")],
         [InlineKeyboardButton(t.get("admin_users_management", "👥 Users"), callback_data="admin:users_menu")],
         [InlineKeyboardButton(t.get("admin_btn_grant_license", "🎁 Grant License"), callback_data="adm_lic:grant")],
         [InlineKeyboardButton(t.get("admin_btn_view_licenses", "📋 View Licenses"), callback_data="adm_lic:list")],
@@ -19928,6 +20379,251 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:menu")]
             ])
         )
+    
+    elif action == "pending":
+        # Show pending license requests
+        requests = get_pending_license_requests(limit=20)
+        stats = get_license_request_stats()
+        
+        text = f"📬 *Pending License Requests*\n\n"
+        text += f"📊 Stats: {stats['pending']} pending | {stats['approved']} approved | {stats['rejected']} rejected\n\n"
+        
+        if not requests:
+            text += "_No pending requests._"
+            keyboard = [[InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:menu")]]
+        else:
+            keyboard = []
+            for req in requests[:10]:
+                user_label = f"@{req['username']}" if req.get('username') else f"User {req['user_id']}"
+                req_label = f"🔔 {user_label}: {req['license_type'].title()} ({req['period_months']}m)"
+                keyboard.append([InlineKeyboardButton(req_label, callback_data=f"adm_lic:req_view:{req['id']}")])
+            keyboard.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:menu")])
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif action == "req_view":
+        # View a specific license request
+        request_id = int(parts[2]) if len(parts) > 2 else 0
+        request = get_license_request(request_id)
+        
+        if not request:
+            await q.edit_message_text(
+                "❌ Request not found.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:pending")]
+                ])
+            )
+            return
+        
+        import datetime
+        created_dt = datetime.datetime.fromtimestamp(request['created_at']).strftime("%Y-%m-%d %H:%M")
+        user_label = f"@{request['username']}" if request.get('username') else f"ID: {request['user_id']}"
+        
+        text = f"📋 *License Request #{request_id}*\n\n"
+        text += f"👤 User: {user_label}\n"
+        text += f"📦 Plan: *{request['license_type'].title()}*\n"
+        text += f"⏰ Period: *{request['period_months']} month(s)*\n"
+        text += f"💰 Amount: {request['amount']} {request['currency']}\n"
+        text += f"💳 Payment: {request['payment_method']}\n"
+        text += f"📅 Requested: {created_dt}\n"
+        text += f"📌 Status: *{request['status'].upper()}*\n"
+        if request.get('notes'):
+            text += f"📝 Notes: {request['notes']}\n"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Approve", callback_data=f"adm_lic:req_approve:{request_id}"),
+                InlineKeyboardButton("❌ Reject", callback_data=f"adm_lic:req_reject:{request_id}")
+            ],
+            [InlineKeyboardButton("👤 User Card", callback_data=f"admin:user:{request['user_id']}")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:pending")]
+        ]
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif action == "req_approve":
+        # Approve a license request
+        request_id = int(parts[2]) if len(parts) > 2 else 0
+        result = approve_license_request(request_id, admin_id=uid)
+        
+        if result.get("success"):
+            request = result.get("request", {})
+            await q.answer("✅ License request approved!", show_alert=True)
+            
+            # Notify user
+            try:
+                import datetime
+                expires_dt = datetime.datetime.fromtimestamp(result["license_info"]["expires"])
+                await ctx.bot.send_message(
+                    request["user_id"],
+                    f"🎉 *Your license request has been approved!*\n\n"
+                    f"📦 Plan: *{request['license_type'].title()}*\n"
+                    f"📅 Expires: {expires_dt.strftime('%Y-%m-%d')}\n\n"
+                    f"You can now use all features of your plan!",
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to notify user about approval: {e}")
+            
+            # Go back to pending list
+            await on_admin_license_cb(update, ctx)
+        else:
+            await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)
+    
+    elif action == "req_reject":
+        # Show rejection reason input
+        request_id = int(parts[2]) if len(parts) > 2 else 0
+        ctx.user_data["mode"] = "admin_reject_request"
+        ctx.user_data["reject_request_id"] = request_id
+        
+        await q.edit_message_text(
+            "❌ *Reject License Request*\n\nEnter rejection reason (or send 'skip' for no reason):",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Cancel", callback_data=f"adm_lic:req_view:{request_id}")]
+            ])
+        )
+    
+    elif action == "req_do_reject":
+        # Perform rejection (called after reason is entered)
+        request_id = int(parts[2]) if len(parts) > 2 else 0
+        reason = parts[3] if len(parts) > 3 else "No reason provided"
+        
+        result = reject_license_request(request_id, admin_id=uid, reason=reason)
+        
+        if result.get("success"):
+            request = result.get("request", {})
+            await q.answer("❌ License request rejected!", show_alert=True)
+            
+            # Notify user
+            try:
+                await ctx.bot.send_message(
+                    request["user_id"],
+                    f"❌ *Your license request has been rejected.*\n\n"
+                    f"📦 Plan: {request['license_type'].title()}\n"
+                    f"📝 Reason: {reason}\n\n"
+                    f"Contact support if you have questions.",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+            
+            # Go back to pending list
+            await on_admin_license_cb(update, ctx)
+        else:
+            await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)
+    
+    elif action == "grant_to_user":
+        # Direct grant to specific user (from user card)
+        target_uid = int(parts[2]) if len(parts) > 2 else 0
+        ctx.user_data["admin_grant_target_user"] = target_uid
+        
+        keyboard = [
+            [InlineKeyboardButton("💎 Premium", callback_data=f"adm_lic:grant_user_type:{target_uid}:premium")],
+            [InlineKeyboardButton("🥈 Basic", callback_data=f"adm_lic:grant_user_type:{target_uid}:basic")],
+            [InlineKeyboardButton("🎁 Trial", callback_data=f"adm_lic:grant_user_type:{target_uid}:trial")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"admin:user:{target_uid}")]
+        ]
+        
+        await q.edit_message_text(
+            f"🎁 *Grant License to User {target_uid}*\n\nSelect license type:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif action == "grant_user_type":
+        # Grant license type to specific user
+        target_uid = int(parts[2]) if len(parts) > 2 else 0
+        plan = parts[3] if len(parts) > 3 else "premium"
+        
+        if plan == "trial":
+            # Grant trial directly
+            result = set_user_license(
+                user_id=target_uid,
+                license_type="trial",
+                period_months=1,
+                admin_id=uid,
+                payment_type="admin_grant",
+                notes="Admin granted trial"
+            )
+            if result.get("success"):
+                await q.answer("✅ Trial license granted!", show_alert=True)
+                # Notify user
+                try:
+                    await ctx.bot.send_message(
+                        target_uid,
+                        "🎁 *Trial License Activated!*\n\n"
+                        "You have 7 days of full demo access.\n\n"
+                        "Use /subscribe to upgrade to Premium or Basic.",
+                        parse_mode="Markdown"
+                    )
+                except Exception:
+                    pass
+            else:
+                await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)
+            
+            # Go back to user card
+            await show_user_card(q, ctx, target_uid)
+        else:
+            # Show period selection
+            keyboard = [
+                [InlineKeyboardButton("1 Month", callback_data=f"adm_lic:grant_user_period:{target_uid}:{plan}:1")],
+                [InlineKeyboardButton("3 Months", callback_data=f"adm_lic:grant_user_period:{target_uid}:{plan}:3")],
+                [InlineKeyboardButton("6 Months", callback_data=f"adm_lic:grant_user_period:{target_uid}:{plan}:6")],
+                [InlineKeyboardButton("12 Months", callback_data=f"adm_lic:grant_user_period:{target_uid}:{plan}:12")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"adm_lic:grant_to_user:{target_uid}")]
+            ]
+            
+            await q.edit_message_text(
+                f"🎁 *Grant {plan.title()} to User {target_uid}*\n\nSelect period:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+    
+    elif action == "grant_user_period":
+        # Grant license with period to specific user
+        target_uid = int(parts[2]) if len(parts) > 2 else 0
+        plan = parts[3] if len(parts) > 3 else "premium"
+        period = int(parts[4]) if len(parts) > 4 else 1
+        
+        result = set_user_license(
+            user_id=target_uid,
+            license_type=plan,
+            period_months=period,
+            admin_id=uid,
+            payment_type="admin_grant",
+            notes=f"Admin granted {plan} {period}m"
+        )
+        
+        if result.get("success"):
+            import datetime
+            expires_dt = datetime.datetime.fromtimestamp(result["expires"])
+            await q.answer("✅ License granted!", show_alert=True)
+            
+            # Notify user
+            try:
+                await ctx.bot.send_message(
+                    target_uid,
+                    f"🎉 *{plan.title()} License Activated!*\n\n"
+                    f"📅 Expires: {expires_dt.strftime('%Y-%m-%d')}\n\n"
+                    f"Enjoy all your premium features!",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+        else:
+            await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)
+        
+        # Go back to user card
+        await show_user_card(q, ctx, target_uid)
 
 
 # ========================

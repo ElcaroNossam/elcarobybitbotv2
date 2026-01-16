@@ -2,6 +2,8 @@
 ELCARO Token Payment API
 Complete payment system using ELCARO token only
 Buy ELC with USDT on TON, use for all platform services
+
+Synchronized with bot.py LICENSE_PRICES
 """
 import os
 import sys
@@ -22,6 +24,21 @@ from cold_wallet_trading import (
     disconnect_metamask
 )
 import db
+from db import set_user_license
+from db_elcaro import (
+    get_elc_balance as get_elc_balance_db,
+    subtract_elc_balance,
+    add_elc_balance,
+    add_elc_transaction,
+    create_elc_purchase,
+    complete_elc_purchase,
+    get_user_transactions as get_elc_transactions_db,
+)
+from core.blockchain import (
+    get_license_price,
+    get_subscription_options,
+    LICENSE_PRICES_ELC,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -153,20 +170,11 @@ async def buy_elc_tokens(
                 platform_wallet="UQC..."  # Add real platform wallet
             )
         
-        # Create payment link
+        # Create payment link (this also creates purchase record via db_elcaro)
         payment_data = await payment_manager.ton_gateway.create_payment_link(
             user_id=user_id,
             usdt_amount=request.usdt_amount,
             purpose="buy_elc"
-        )
-        
-        # Save to database
-        db.execute(
-            """INSERT INTO elc_purchases 
-               (user_id, payment_id, usdt_amount, elc_amount, status, payment_method, created_at)
-               VALUES (?, ?, ?, ?, 'pending', ?, datetime('now'))""",
-            (user_id, payment_data["payment_id"], request.usdt_amount, 
-             payment_data["elc_amount"], request.payment_method)
         )
         
         return {
@@ -190,35 +198,17 @@ async def get_elc_balance(user: dict = Depends(get_current_user)):
     user_id = user["user_id"]
     
     try:
-        # Get balance from database
-        result = db.execute(
-            "SELECT elc_balance, elc_staked, elc_locked FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        row = result.fetchone()
-        
-        if not row:
-            return {
-                "elc_balance": 0,
-                "elc_staked": 0,
-                "elc_locked": 0,
-                "total_elc": 0,
-                "usd_value": 0
-            }
-        
-        elc_balance = row[0] or 0
-        elc_staked = row[1] or 0
-        elc_locked = row[2] or 0
-        total = elc_balance + elc_staked + elc_locked
+        # Get balance using db_elcaro function
+        balance = get_elc_balance_db(user_id)
         
         return {
-            "elc_balance": elc_balance,
-            "elc_staked": elc_staked,
-            "elc_locked": elc_locked,
-            "total_elc": total,
-            "usd_value": total * 1.0,  # $1 per ELC
-            "available_for_trading": elc_balance,
-            "staking_rewards_pending": 0  # Calculate actual rewards
+            "elc_balance": balance.get("available", 0),
+            "elc_staked": balance.get("staked", 0),
+            "elc_locked": balance.get("locked", 0),
+            "total_elc": balance.get("total", 0),
+            "usd_value": balance.get("total", 0) * 1.0,  # $1 per ELC
+            "available_for_trading": balance.get("available", 0),
+            "staking_rewards_pending": 0  # TODO: Calculate actual rewards
         }
     except Exception as e:
         logger.error(f"Get ELC balance error: {e}")
@@ -234,28 +224,21 @@ async def get_elc_transactions(
     user_id = user["user_id"]
     
     try:
-        result = db.execute(
-            """SELECT transaction_type, amount, balance_after, description, created_at
-               FROM elc_transactions 
-               WHERE user_id = ?
-               ORDER BY created_at DESC
-               LIMIT ?""",
-            (user_id, limit)
-        )
-        
-        transactions = []
-        for row in result.fetchall():
-            transactions.append({
-                "type": row[0],
-                "amount": row[1],
-                "balance_after": row[2],
-                "description": row[3],
-                "timestamp": row[4]
-            })
+        # Use db_elcaro function
+        transactions = get_elc_transactions_db(user_id, limit=limit)
         
         return {
             "success": True,
-            "transactions": transactions,
+            "transactions": [
+                {
+                    "type": tx.get("transaction_type"),
+                    "amount": tx.get("amount"),
+                    "balance_after": tx.get("balance_after"),
+                    "description": tx.get("description"),
+                    "timestamp": str(tx.get("created_at"))
+                }
+                for tx in transactions
+            ],
             "count": len(transactions)
         }
     except Exception as e:
@@ -269,43 +252,46 @@ async def get_elc_transactions(
 
 @router.get("/subscriptions/prices")
 async def get_subscription_prices():
-    """Get all subscription prices in ELC"""
-    return {
-        "currency": "ELC",
-        "note": "All prices in ELCARO tokens. 1 ELC ≈ $1 USD",
-        "plans": {
-            "basic": {
-                "name": "Basic Plan",
-                "features": ["1 strategy", "Basic signals", "Email support"],
-                "prices": {
-                    "1m": {"elc": 100, "usd_equivalent": 100, "discount": 0},
-                    "3m": {"elc": 270, "usd_equivalent": 270, "discount": 10},
-                    "6m": {"elc": 480, "usd_equivalent": 480, "discount": 20},
-                    "1y": {"elc": 840, "usd_equivalent": 840, "discount": 30}
-                }
-            },
-            "premium": {
-                "name": "Premium Plan",
-                "features": ["Unlimited strategies", "Premium signals", "Priority support", "AI Agent"],
-                "prices": {
-                    "1m": {"elc": 200, "usd_equivalent": 200, "discount": 0},
-                    "3m": {"elc": 540, "usd_equivalent": 540, "discount": 10},
-                    "6m": {"elc": 960, "usd_equivalent": 960, "discount": 20},
-                    "1y": {"elc": 1680, "usd_equivalent": 1680, "discount": 30}
-                }
-            },
-            "pro": {
-                "name": "Pro Plan",
-                "features": ["Everything", "HyperLiquid access", "API access", "VIP support"],
-                "prices": {
-                    "1m": {"elc": 500, "usd_equivalent": 500, "discount": 0},
-                    "3m": {"elc": 1350, "usd_equivalent": 1350, "discount": 10},
-                    "6m": {"elc": 2400, "usd_equivalent": 2400, "discount": 20},
-                    "1y": {"elc": 4200, "usd_equivalent": 4200, "discount": 30}
+    """Get all subscription prices in ELC - synced with bot.py LICENSE_PRICES"""
+    # Use unified function from core.blockchain
+    options = get_subscription_options()
+    
+    # Transform to API format
+    plans_data = {}
+    for plan_id, plan_info in options["plans"].items():
+        plans_data[plan_id] = {
+            "name": plan_info["name"],
+            "description": plan_info["description"],
+            "features": plan_info["features"],
+            "prices": {
+                "1m": {
+                    "elc": plan_info["prices"][1]["elc"],
+                    "usd_equivalent": plan_info["prices"][1]["usd"],
+                    "discount": options["discounts"][1]
+                },
+                "3m": {
+                    "elc": plan_info["prices"][3]["elc"],
+                    "usd_equivalent": plan_info["prices"][3]["usd"],
+                    "discount": options["discounts"][3]
+                },
+                "6m": {
+                    "elc": plan_info["prices"][6]["elc"],
+                    "usd_equivalent": plan_info["prices"][6]["usd"],
+                    "discount": options["discounts"][6]
+                },
+                "1y": {
+                    "elc": plan_info["prices"][12]["elc"],
+                    "usd_equivalent": plan_info["prices"][12]["usd"],
+                    "discount": options["discounts"][12]
                 }
             }
-        },
-        "payment_methods": ["ELC Token"],
+        }
+    
+    return {
+        "currency": "ELC",
+        "note": "All prices in ELCARO tokens. 1 ELC = $1 USD",
+        "plans": plans_data,
+        "payment_methods": options["currencies"],
         "how_to_buy_elc": "/api/payments/elc/buy"
     }
 
@@ -319,19 +305,23 @@ async def create_subscription_payment(
     user_id = user["user_id"]
     
     try:
-        # Get price in ELC
-        elc_price = payment_manager.get_subscription_price(request.plan, request.duration)
+        # Map duration to months
+        duration_months = {
+            "1m": 1,
+            "3m": 3,
+            "6m": 6,
+            "1y": 12
+        }.get(request.duration, 1)
         
-        if elc_price == 0:
+        # Get price using unified function
+        elc_price = get_license_price(request.plan, duration_months, "elc")
+        
+        if elc_price == 0 and request.plan != "trial":
             raise HTTPException(400, "Invalid plan or duration")
         
-        # Check user's ELC balance
-        user_balance_result = db.execute(
-            "SELECT elc_balance FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        row = user_balance_result.fetchone()
-        user_balance = row[0] if row else 0
+        # Check user's ELC balance using db_elcaro function
+        balance = get_elc_balance_db(user_id)
+        user_balance = balance.get("available", 0)
         
         if user_balance < elc_price:
             return {
@@ -344,10 +334,11 @@ async def create_subscription_payment(
                 "buy_elc_url": "/api/payments/elc/buy"
             }
         
-        # Deduct ELC from user balance
-        db.execute(
-            "UPDATE users SET elc_balance = elc_balance - ? WHERE user_id = ?",
-            (elc_price, user_id)
+        # Deduct ELC from user balance using db_elcaro function
+        new_balance = subtract_elc_balance(
+            user_id, 
+            elc_price, 
+            f"Subscription: {request.plan} {request.duration}"
         )
         
         # Calculate subscription duration in days
@@ -358,24 +349,21 @@ async def create_subscription_payment(
             "1y": 365
         }[request.duration]
         
-        # Activate subscription
-        db.set_user_license(user_id, request.plan, duration_days)
-        
-        # Record transaction
-        db.execute(
-            """INSERT INTO elc_transactions 
-               (user_id, transaction_type, amount, balance_after, description, created_at)
-               VALUES (?, 'subscription', ?, ?, ?, datetime('now'))""",
-            (user_id, -elc_price, user_balance - elc_price, 
-             f"Subscription: {request.plan} {request.duration}")
+        # Activate subscription using db.py function
+        result = set_user_license(
+            user_id=user_id,
+            license_type=request.plan,
+            period_months=duration_months,
+            payment_type="ELC",
+            amount=elc_price,
+            currency="ELC",
+            notes=f"Paid with ELCARO token via webapp"
         )
         
-        # Burn 10% of subscription fee (deflationary mechanism)
-        burn_amount = elc_price * 0.1
-        db.execute(
-            "UPDATE elc_stats SET total_burned = total_burned + ?, last_burn_at = datetime('now')",
-            (burn_amount,)
-        )
+        if not result.get("success"):
+            # Refund on failure
+            add_elc_balance(user_id, elc_price, "Subscription activation failed - refund")
+            raise HTTPException(500, result.get("error", "License activation failed"))
         
         return {
             "success": True,
@@ -383,11 +371,12 @@ async def create_subscription_payment(
             "plan": request.plan,
             "duration": request.duration,
             "elc_paid": elc_price,
-            "elc_burned": burn_amount,
-            "new_balance": user_balance - elc_price,
+            "new_balance": new_balance.get("available", 0),
             "expires_in_days": duration_days,
             "message": f"{request.plan.title()} subscription activated for {duration_days} days!"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Subscription creation error: {e}")
         raise HTTPException(500, str(e))
