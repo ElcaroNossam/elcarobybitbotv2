@@ -771,6 +771,44 @@ def pg_init_db():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_user ON payment_history(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_status ON payment_history(status)")
         
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # LICENSE REQUESTS TABLE (Admin Approval System)
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS license_requests (
+                id              SERIAL PRIMARY KEY,
+                user_id         BIGINT NOT NULL,
+                license_type    TEXT NOT NULL,
+                period_months   INTEGER NOT NULL DEFAULT 1,
+                payment_method  TEXT NOT NULL DEFAULT 'pending',
+                amount          REAL NOT NULL DEFAULT 0,
+                currency        TEXT NOT NULL DEFAULT 'TRC',
+                status          TEXT NOT NULL DEFAULT 'pending',
+                notes           TEXT,
+                created_at      BIGINT NOT NULL,
+                approved_at     BIGINT,
+                approved_by     BIGINT,
+                rejection_reason TEXT
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_lic_requests_user ON license_requests(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_lic_requests_status ON license_requests(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_lic_requests_pending ON license_requests(status, created_at) WHERE status = 'pending'")
+        
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # PROMO USAGE TABLE (Track promo code usage)
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS promo_usage (
+                id              SERIAL PRIMARY KEY,
+                promo_id        INTEGER NOT NULL,
+                user_id         BIGINT NOT NULL,
+                used_at         BIGINT NOT NULL,
+                UNIQUE(promo_id, user_id)
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_promo_usage_user ON promo_usage(user_id)")
+        
         logger.info("✅ PostgreSQL schema initialized successfully")
 
 

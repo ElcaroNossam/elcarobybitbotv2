@@ -218,6 +218,15 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"blockchain router not available: {e}")
     
+    # License Blockchain API (ELC license purchases, NFTs)
+    try:
+        from webapp.api import license_blockchain
+        app.include_router(license_blockchain.router, tags=["license", "blockchain"])
+        app.include_router(license_blockchain.nft_router, tags=["license", "nft"])
+        logger.info("✅ License Blockchain API loaded at /api/license/blockchain")
+    except ImportError as e:
+        logger.warning(f"license_blockchain router not available: {e}")
+    
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)
     async def landing(request: Request):

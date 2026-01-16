@@ -164,6 +164,21 @@ from db_elcaro import (
     get_user_transactions as get_elc_transactions,
 )
 
+# License Blockchain Service
+from services.license_blockchain_service import (
+    purchase_license_with_elc,
+    get_user_blockchain_licenses,
+    get_user_license_nfts,
+    verify_license_on_blockchain,
+    get_blockchain_license_stats,
+    calculate_final_price,
+    admin_mint_license_nft,
+    admin_revoke_nft,
+    get_all_license_nfts,
+    sync_database_to_blockchain,
+    LicenseNFTTier,
+)
+
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -17788,6 +17803,57 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
         return
 
+    # Handle admin NFT minting (user ID input)
+    if mode == "admin_mint_nft_user" and uid == ADMIN_ID:
+        ctx.user_data.pop("mode", None)
+        t = LANGS.get(ctx.user_data.get("lang", DEFAULT_LANG), LANGS[DEFAULT_LANG])
+        
+        try:
+            target_uid = int(text.strip())
+            tier = ctx.user_data.pop("admin_nft_tier", "bronze")
+            
+            result = admin_mint_license_nft(
+                admin_id=uid,
+                user_id=target_uid,
+                tier=tier,
+                valid_months=12
+            )
+            
+            if result.get("success"):
+                nft = result.get("nft", {})
+                await update.message.reply_text(
+                    f"✅ *NFT Minted Successfully!*\n\n"
+                    f"🎨 Tier: {tier.title()}\n"
+                    f"👤 User: `{target_uid}`\n"
+                    f"🆔 Token: `{nft.get('token_id', '')}`\n"
+                    f"🔗 TX: `{result.get('tx_hash', '')[:20]}...`",
+                    parse_mode="Markdown",
+                    reply_markup=get_admin_license_keyboard(t)
+                )
+                # Notify user
+                try:
+                    await ctx.bot.send_message(
+                        target_uid,
+                        f"🎉 *You received a License NFT!*\n\n"
+                        f"🎨 Tier: {tier.title()}\n"
+                        f"🆔 Token: `{nft.get('token_id', '')}`\n\n"
+                        f"This NFT represents your premium license on the blockchain!",
+                        parse_mode="Markdown"
+                    )
+                except:
+                    pass
+            else:
+                await update.message.reply_text(
+                    f"❌ Minting failed: {result.get('error', 'Unknown')}",
+                    reply_markup=get_admin_license_keyboard(t)
+                )
+        except ValueError:
+            await update.message.reply_text(
+                "❌ Invalid user ID. Enter a number.",
+                reply_markup=get_admin_license_keyboard(t)
+            )
+        return
+
     # Handle admin license grant (user ID input)
     if mode == "admin_grant_user" and uid == ADMIN_ID:
         ctx.user_data.pop("mode", None)
@@ -19802,27 +19868,32 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
     
     elif action == "elc":
-        # ELC (ELCARO) payment flow - The Super Token
+        # ELC (ELCARO) payment flow with blockchain integration
         plan = parts[2] if len(parts) > 2 else ""
         period = int(parts[3]) if len(parts) > 3 else 1
-        prices = LICENSE_PRICES.get(plan, {})
-        elc_price = prices.get("elc", {}).get(period, 0)
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        # Check ELC balance
+        # Get balance and calculate price with staking discount
         elc_balance = get_elc_balance(uid)
         available_elc = elc_balance.get("available", 0)
+        staked_elc = elc_balance.get("staked", 0)
         
-        if available_elc < elc_price:
-            needed = elc_price - available_elc
+        # Calculate final price with staking discount
+        price_info = calculate_final_price(plan, period, staked_elc)
+        final_price = price_info["final_price"]
+        discount_pct = price_info["discount_rate"] * 100
+        
+        if available_elc < final_price:
+            needed = final_price - available_elc
+            discount_text = f"\n💎 Staking discount: -{discount_pct:.0f}%" if discount_pct > 0 else ""
             await q.edit_message_text(
                 t.get("payment_insufficient_elc", 
                     "❌ *Insufficient ELC Balance*\n\n"
                     "You need {needed:.2f} more ELC.\n\n"
                     "Your balance: {balance:.2f} ELC\n"
-                    "Required: {price:.0f} ELC\n\n"
-                    "💡 Buy ELC tokens to continue."
-                ).format(needed=needed, balance=available_elc, price=elc_price),
+                    "Required: {price:.0f} ELC{discount}\n\n"
+                    "💡 Buy ELC tokens or stake more for discounts!"
+                ).format(needed=needed, balance=available_elc, price=final_price, discount=discount_text),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("💎 Buy ELC", callback_data="wallet:buy_elc")],
@@ -19831,72 +19902,149 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        try:
-            # Deduct ELC from user balance
-            new_balance = subtract_elc_balance(uid, elc_price, f"License payment: {plan.title()} ({period_text})")
+        # Show confirmation with blockchain details
+        discount_text = f"\n💎 *Staking Discount:* -{discount_pct:.0f}% ({staked_elc:.0f} ELC staked)" if discount_pct > 0 else ""
+        
+        text = t.get("payment_confirm_elc",
+            "🔗 *Confirm Blockchain Payment*\n\n"
+            "📦 *Plan:* {plan}\n"
+            "⏰ *Period:* {period}\n"
+            "💰 *Price:* {price:.0f} ELC (~${price:.0f}){discount}\n\n"
+            "🪙 *Your Balance:* {balance:.2f} ELC\n\n"
+            "✨ *Benefits:*\n"
+            "• Immutable blockchain record\n"
+            "• License NFT minted\n"
+            "• Verifiable on-chain\n\n"
+            "Proceed with payment?"
+        ).format(
+            plan=plan.title(),
+            period=period_text,
+            price=final_price,
+            discount=discount_text,
+            balance=available_elc
+        )
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Pay Now", callback_data=f"sub:elc_confirm:{plan}:{period}")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+            ])
+        )
+    
+    elif action == "elc_confirm":
+        # Execute blockchain payment
+        plan = parts[2] if len(parts) > 2 else ""
+        period = int(parts[3]) if len(parts) > 3 else 1
+        period_text = f"{period} month{'s' if period > 1 else ''}"
+        
+        await q.edit_message_text("⏳ Processing blockchain transaction...", parse_mode="Markdown")
+        
+        # Call blockchain service
+        result = purchase_license_with_elc(
+            user_id=uid,
+            license_type=plan,
+            months=period,
+            wallet_address=None,  # Will use default ELCARO_{uid}
+            mint_nft=True
+        )
+        
+        if result.get("success"):
+            # Success - show details
+            tx_hash = result.get("tx_hash", "")[:16] + "..."
+            nft_tier = result.get("nft_tier", "").title() if result.get("nft_tier") else "N/A"
+            valid_until = result.get("valid_until_str", "")
+            new_balance = result.get("new_elc_balance", 0)
+            discount = result.get("discount_applied", 0)
             
-            # Activate license
-            result = set_user_license(
-                user_id=uid,
-                license_type=plan,
-                period_months=period,
-                payment_type="ELC",
-                amount=elc_price,
-                currency="ELC",
-                notes=f"Paid with ELCARO Token (Super Token)"
-            )
+            discount_text = f"\n💎 Discount applied: {discount:.0f}%" if discount > 0 else ""
+            nft_text = f"\n🎨 NFT Tier: {nft_tier}" if result.get("nft_token_id") else ""
             
-            if result.get("success"):
-                # Notify admin about payment
-                try:
-                    await q.get_bot().send_message(
-                        ADMIN_ID,
-                        f"💎 *ELC Payment Received*\n\n"
-                        f"👤 User: `{uid}`\n"
-                        f"📦 Plan: {plan.title()}\n"
-                        f"⏰ Period: {period_text}\n"
-                        f"💰 Amount: {elc_price:.0f} ELC",
-                        parse_mode="Markdown"
-                    )
-                except:
-                    pass
-                
-                await q.edit_message_text(
-                    t.get("payment_success_elc", 
-                        "✅ *Payment Successful!*\n\n"
-                        "💎 Paid: {amount:.0f} ELC\n"
-                        "📦 Plan: {plan}\n"
-                        "⏰ Period: {period}\n\n"
-                        "💰 New Balance: {balance:.2f} ELC\n\n"
-                        "Thank you for using ELCARO!"
-                    ).format(
-                        amount=elc_price, 
-                        plan=plan.title(), 
-                        period=period_text, 
-                        balance=new_balance.get("available", 0)
-                    ),
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
+            # Notify admin
+            try:
+                await q.get_bot().send_message(
+                    ADMIN_ID,
+                    f"🔗 *Blockchain License Purchase*\n\n"
+                    f"👤 User: `{uid}`\n"
+                    f"📦 Plan: {plan.title()}\n"
+                    f"⏰ Period: {period_text}\n"
+                    f"💰 Amount: {result.get('amount_paid', 0):.0f} ELC\n"
+                    f"🔗 TX: `{result.get('tx_hash', '')}`\n"
+                    f"🎨 NFT: {result.get('nft_token_id', 'None')}",
+                    parse_mode="Markdown"
                 )
-            else:
-                # License activation failed - refund ELC
-                add_elc_balance(uid, elc_price, "License activation failed - refund")
-                await q.edit_message_text(
-                    t.get("payment_failed", "❌ Payment failed: {error}").format(error=result.get("error", "Unknown")),
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
-                )
-        except ValueError as e:
-            # Insufficient balance or other error
+            except:
+                pass
+            
             await q.edit_message_text(
-                t.get("payment_failed", "❌ Payment failed: {error}").format(error=str(e)),
+                t.get("payment_success_blockchain",
+                    "✅ *Blockchain Payment Successful!*\n\n"
+                    "💎 Paid: {amount:.0f} ELC\n"
+                    "📦 Plan: {plan}\n"
+                    "⏰ Valid Until: {valid_until}{discount}{nft}\n\n"
+                    "🔗 TX: `{tx_hash}`\n"
+                    "💰 New Balance: {balance:.2f} ELC\n\n"
+                    "Your license is now recorded on the blockchain! 🎉"
+                ).format(
+                    amount=result.get("amount_paid", 0),
+                    plan=plan.title(),
+                    valid_until=valid_until,
+                    discount=discount_text,
+                    nft=nft_text,
+                    tx_hash=tx_hash,
+                    balance=new_balance
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔗 View Blockchain Records", callback_data="sub:my_blockchain")],
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+        else:
+            # Payment failed
+            error_msg = result.get("message", result.get("error", "Unknown error"))
+            await q.edit_message_text(
+                t.get("payment_failed", "❌ Payment failed: {error}").format(error=error_msg),
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
                 ])
             )
+    
+    elif action == "my_blockchain":
+        # Show user's blockchain license records
+        records = get_user_blockchain_licenses(uid)
+        nfts = get_user_license_nfts(uid)
+        
+        if not records and not nfts:
+            text = "🔗 *Your Blockchain Records*\n\n_No blockchain records found._\n\n💡 Purchase a license with ELC to get blockchain verification!"
+        else:
+            text = "🔗 *Your Blockchain Records*\n\n"
+            
+            if records:
+                text += "📜 *License Purchases:*\n"
+                for r in records[:5]:
+                    import datetime
+                    valid = datetime.datetime.fromtimestamp(r.get('end_timestamp', 0)).strftime('%Y-%m-%d')
+                    status = "✅" if r.get('end_timestamp', 0) > time.time() else "⏰"
+                    text += f"{status} {r.get('license_type', '').title()} - {r.get('amount_paid', 0):.0f} ELC - Valid: {valid}\n"
+                    text += f"   TX: `{r.get('tx_hash', '')[:20]}...`\n"
+                text += "\n"
+            
+            if nfts:
+                text += "🎨 *License NFTs:*\n"
+                for n in nfts[:5]:
+                    text += f"• {n.get('tier', '').title()} NFT - {n.get('license_type', '')}\n"
+                    text += f"   Token: `{n.get('token_id', '')}`\n"
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Refresh", callback_data="sub:my_blockchain")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+            ])
+        )
     
     elif action == "request":
         # User wants to request a license (admin approval)
@@ -20311,19 +20459,27 @@ async def on_successful_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # =====================================================
 
 def get_admin_license_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Admin license management keyboard."""
+    """Admin license management keyboard with blockchain."""
     # Get pending requests count
     stats = get_license_request_stats()
     pending_count = stats.get("pending", 0)
-    pending_label = f"🔔 Pending Requests ({pending_count})" if pending_count > 0 else "📬 Pending Requests"
+    pending_label = f"🔔 Pending ({pending_count})" if pending_count > 0 else "📬 Pending"
+    
+    # Get blockchain stats
+    bc_stats = get_blockchain_license_stats()
+    nft_count = bc_stats.get("total_nfts", 0)
     
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(pending_label, callback_data="adm_lic:pending")],
         [InlineKeyboardButton(t.get("admin_users_management", "👥 Users"), callback_data="admin:users_menu")],
         [InlineKeyboardButton(t.get("admin_btn_grant_license", "🎁 Grant License"), callback_data="adm_lic:grant")],
         [InlineKeyboardButton(t.get("admin_btn_view_licenses", "📋 View Licenses"), callback_data="adm_lic:list")],
-        [InlineKeyboardButton(t.get("admin_btn_create_promo", "🎟 Create Promo"), callback_data="adm_lic:promo_create")],
-        [InlineKeyboardButton(t.get("admin_btn_view_promos", "📋 View Promos"), callback_data="adm_lic:promo_list")],
+        [
+            InlineKeyboardButton(f"🔗 Blockchain ({bc_stats.get('total_licenses', 0)})", callback_data="adm_lic:blockchain"),
+            InlineKeyboardButton(f"🎨 NFTs ({nft_count})", callback_data="adm_lic:nfts")
+        ],
+        [InlineKeyboardButton(t.get("admin_btn_create_promo", "🎟 Promo"), callback_data="adm_lic:promo_create"),
+         InlineKeyboardButton(t.get("admin_btn_view_promos", "📋 Promos"), callback_data="adm_lic:promo_list")],
         [InlineKeyboardButton(t.get("admin_btn_expiring_soon", "⚠️ Expiring Soon"), callback_data="adm_lic:expiring")],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="admin:menu")],
     ])
@@ -20350,6 +20506,170 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=get_admin_license_keyboard(t)
         )
+    
+    elif action == "blockchain":
+        # Show blockchain license statistics
+        stats = get_blockchain_license_stats()
+        
+        text = "🔗 *Blockchain License Statistics*\n\n"
+        text += f"📊 *Overview:*\n"
+        text += f"├ Total Licenses: *{stats.get('total_licenses', 0)}*\n"
+        text += f"├ Unique Users: *{stats.get('unique_users', 0)}*\n"
+        text += f"├ Active Licenses: *{stats.get('active_licenses', 0)}*\n"
+        text += f"└ Total Revenue: *{stats.get('total_revenue_elc', 0):.0f} ELC*\n\n"
+        
+        text += f"🎨 *NFT Breakdown:*\n"
+        nft = stats.get("nft_breakdown", {})
+        text += f"├ 💎 Diamond: {nft.get('diamond', 0)}\n"
+        text += f"├ 🏆 Platinum: {nft.get('platinum', 0)}\n"
+        text += f"├ 🥇 Gold: {nft.get('gold', 0)}\n"
+        text += f"├ 🥈 Silver: {nft.get('silver', 0)}\n"
+        text += f"└ 🥉 Bronze: {nft.get('bronze', 0)}\n"
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎨 Mint NFT", callback_data="adm_lic:mint_nft")],
+                [InlineKeyboardButton("📜 View All Records", callback_data="adm_lic:bc_records")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:menu")]
+            ])
+        )
+    
+    elif action == "bc_records":
+        # Show recent blockchain records
+        from core.db_postgres import execute
+        records = execute("""
+            SELECT * FROM license_blockchain_records
+            ORDER BY created_at DESC LIMIT 15
+        """)
+        
+        if not records:
+            text = "📜 *Blockchain Records*\n\n_No records found._"
+        else:
+            text = "📜 *Recent Blockchain Records*\n\n"
+            for r in records:
+                import datetime
+                dt = datetime.datetime.fromtimestamp(r.get('created_at', 0)).strftime('%m-%d %H:%M')
+                status = "✅" if r.get('end_timestamp', 0) > time.time() else "⏰"
+                text += f"{status} `{r.get('user_id')}` | {r.get('license_type', '')[:3]} | {r.get('amount_paid', 0):.0f} ELC | {dt}\n"
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔄 Refresh", callback_data="adm_lic:bc_records")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:blockchain")]
+            ])
+        )
+    
+    elif action == "nfts":
+        # Show all NFTs
+        nfts = get_all_license_nfts(limit=20)
+        
+        if not nfts:
+            text = "🎨 *License NFTs*\n\n_No NFTs minted yet._"
+        else:
+            text = "🎨 *License NFTs*\n\n"
+            tier_icons = {"diamond": "💎", "platinum": "🏆", "gold": "🥇", "silver": "🥈", "bronze": "🥉"}
+            for n in nfts:
+                icon = tier_icons.get(n.get('tier', ''), "🎨")
+                valid = "✅" if n.get('valid_until', 0) > time.time() else "⏰"
+                text += f"{icon} `{n.get('token_id', '')[:8]}` | User {n.get('owner_id')} | {valid}\n"
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎨 Mint NFT", callback_data="adm_lic:mint_nft")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:menu")]
+            ])
+        )
+    
+    elif action == "mint_nft":
+        # Show NFT minting options
+        text = "🎨 *Mint License NFT*\n\n"
+        text += "Select NFT tier to mint:\n\n"
+        text += "💎 *Diamond* - Lifetime/Special\n"
+        text += "🏆 *Platinum* - Enterprise tier\n"
+        text += "🥇 *Gold* - Premium 6-12 months\n"
+        text += "🥈 *Silver* - Premium 1-3 months\n"
+        text += "🥉 *Bronze* - Basic tier\n"
+        
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💎 Diamond", callback_data="adm_lic:mint_tier:diamond"),
+                 InlineKeyboardButton("🏆 Platinum", callback_data="adm_lic:mint_tier:platinum")],
+                [InlineKeyboardButton("🥇 Gold", callback_data="adm_lic:mint_tier:gold"),
+                 InlineKeyboardButton("🥈 Silver", callback_data="adm_lic:mint_tier:silver")],
+                [InlineKeyboardButton("🥉 Bronze", callback_data="adm_lic:mint_tier:bronze")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:nfts")]
+            ])
+        )
+    
+    elif action == "mint_tier":
+        # Store tier and ask for user ID
+        tier = parts[2] if len(parts) > 2 else "bronze"
+        ctx.user_data["admin_nft_tier"] = tier
+        ctx.user_data["mode"] = "admin_mint_nft_user"
+        
+        tier_names = {"diamond": "💎 Diamond", "platinum": "🏆 Platinum", "gold": "🥇 Gold", "silver": "🥈 Silver", "bronze": "🥉 Bronze"}
+        
+        await q.edit_message_text(
+            f"🎨 *Mint {tier_names.get(tier, tier)} NFT*\n\nEnter user ID to mint NFT for:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="adm_lic:mint_nft")]
+            ])
+        )
+    
+    elif action == "do_mint":
+        # Execute NFT minting
+        target_uid = int(parts[2]) if len(parts) > 2 else 0
+        tier = parts[3] if len(parts) > 3 else "bronze"
+        
+        result = admin_mint_license_nft(
+            admin_id=uid,
+            user_id=target_uid,
+            tier=tier,
+            valid_months=12
+        )
+        
+        if result.get("success"):
+            nft = result.get("nft", {})
+            await q.edit_message_text(
+                f"✅ *NFT Minted Successfully!*\n\n"
+                f"🎨 Tier: {tier.title()}\n"
+                f"👤 User: `{target_uid}`\n"
+                f"🆔 Token: `{nft.get('token_id', '')}`\n"
+                f"🔗 TX: `{result.get('tx_hash', '')[:20]}...`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:nfts")]
+                ])
+            )
+            
+            # Notify user
+            try:
+                await q.get_bot().send_message(
+                    target_uid,
+                    f"🎉 *You received a License NFT!*\n\n"
+                    f"🎨 Tier: {tier.title()}\n"
+                    f"🆔 Token: `{nft.get('token_id', '')}`\n\n"
+                    f"This NFT represents your premium license on the blockchain!",
+                    parse_mode="Markdown"
+                )
+            except:
+                pass
+        else:
+            await q.edit_message_text(
+                f"❌ Minting failed: {result.get('error', 'Unknown')}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="adm_lic:mint_nft")]
+                ])
+            )
     
     elif action == "grant":
         # Show license type selection
