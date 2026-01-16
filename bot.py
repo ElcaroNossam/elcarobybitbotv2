@@ -15958,7 +15958,8 @@ async def monitor_positions_loop(app: Application):
                                             # Check minimum order value (5 USDT for Bybit)
                                             order_value = add_qty * mark
                                             if order_value < 5.0:
-                                                logger.warning(f"{sym}: DCA order too small ({order_value:.2f} USDT < 5 USDT min), skipping")
+                                                logger.info(f"{sym}: DCA order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
+                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)  # Mark as done to avoid retry
                                             elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
@@ -16004,7 +16005,8 @@ async def monitor_positions_loop(app: Application):
                                             # Check minimum order value (5 USDT for Bybit)
                                             order_value = add_qty * mark
                                             if order_value < 5.0:
-                                                logger.warning(f"{sym}: DCA Leg2 order too small ({order_value:.2f} USDT < 5 USDT min), skipping")
+                                                logger.info(f"{sym}: DCA Leg2 order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
+                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)  # Mark as done to avoid retry
                                             elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
