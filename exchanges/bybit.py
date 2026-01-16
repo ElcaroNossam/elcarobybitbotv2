@@ -177,9 +177,9 @@ class BybitExchange(BaseExchange):
                     async with self._session.post(url, data=body, headers=headers) as resp:
                         data = await resp.json()
                 
-                # Handle None response
+                # Handle None response (common on testnet with no data)
                 if data is None:
-                    logger.warning(f"Bybit API returned None for {endpoint}")
+                    logger.debug(f"Bybit API returned None for {endpoint} (testnet or empty)")
                     if attempt < max_retries - 1:
                         await asyncio.sleep(1)
                         continue

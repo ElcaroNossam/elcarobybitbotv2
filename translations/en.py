@@ -1,20 +1,20 @@
 # translations/en.py
 TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
-    'welcome':                     '''🔥 *Welcome, Alpha Trader!*
+    'welcome':                     '''🔥 <b>Welcome, Alpha Trader!</b>
 
-While you're reading this — *847 traders* are already profiting with ElCaro.
+While you're reading this — <b>847 traders</b> are already profiting with ElCaro.
 
-⚡ *< 100ms* execution speed
-🛡️ *664 security tests* passed
-💎 *24/7* AI-powered trading
+⚡ <b>&lt; 100ms</b> execution speed
+🛡️ <b>664 security tests</b> passed
+💎 <b>24/7</b> AI-powered trading
 
-_Your competitors don't sleep. Neither does ElCaro._
+<i>Your competitors don't sleep. Neither does ElCaro.</i>
 
 Choose your path to financial freedom:''',
-    'no_strategies':               '❌ None — _You\'re losing money every second without active strategies_',
-    'guide_caption':               '📚 *ELITE Trading Secrets*\n\n⚠️ This information gave our top traders an *unfair advantage*.\n\n_Reading time: 3 min. Potential profit: unlimited._',
-    'privacy_caption':             '📜 *Your Security = Our Obsession*\n\n🔐 Bank-grade encryption\n✅ No data sharing. Ever.\n\n_You\'re in safe hands._',
+    'no_strategies':               '❌ None — <i>You\'re losing money every second without active strategies</i>',
+    'guide_caption':               '📚 <b>ELITE Trading Secrets</b>\n\n⚠️ This information gave our top traders an <b>unfair advantage</b>.\n\n<i>Reading time: 3 min. Potential profit: unlimited.</i>',
+    'privacy_caption':             '📜 <b>Your Security = Our Obsession</b>\n\n🔐 Bank-grade encryption\n✅ No data sharing. Ever.\n\n<i>You\'re in safe hands.</i>',
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive
