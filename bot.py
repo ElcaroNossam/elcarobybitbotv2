@@ -17039,13 +17039,13 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
 
     elif cmd.startswith("users_list:"):
-        # Show paginated users list
+        # Show paginated users list with 3-column layout (like positions)
         parts = cmd.split(":")
         filter_type = parts[1] if len(parts) > 1 else "all"
         page = int(parts[2]) if len(parts) > 2 else 0
         
         users, total = get_users_paginated(page=page, per_page=8, filter_type=filter_type)
-        total_pages = (total + 7) // 8
+        total_pages = max(1, (total + 7) // 8)
         
         if not users:
             await q.edit_message_text(
@@ -17056,40 +17056,92 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        # Build user list
-        lines = [f"👥 *Users ({filter_type})* — Page {page + 1}/{total_pages}\n"]
+        # Build user list header
+        filter_labels = {
+            "all": "all", "active": "✅ active", "banned": "🚫 banned",
+            "premium": "💎 premium", "basic": "🥈 basic", "trial": "🎁 trial",
+            "no_license": "❌ no license"
+        }
+        header = f"👥 *Users ({filter_labels.get(filter_type, filter_type)})* — Page {page + 1}/{total_pages}"
+        header += f"\n📊 Total: {total} users\n"
+        
         keyboard = []
         
+        # 3-column layout for each user: [Status+ID] [License] [Ban/Unban]
         for u in users:
             status = "🚫" if u["is_banned"] else "✅" if u["is_allowed"] else "⏳"
-            license_icon = {"premium": "💎", "basic": "🥈", "trial": "🎁"}.get(u["license_type"], "❌")
-            days = f"({u['license_days_left']}d)" if u["license_days_left"] else ""
+            license_icon = {"premium": "💎", "basic": "🥈", "trial": "🎁", "enterprise": "👑"}.get(u["license_type"], "❌")
+            days = f"{u['license_days_left']}d" if u.get("license_days_left") else ""
             
+            # Column 1: Status + User ID (clickable to view user)
+            # Column 2: License info (clickable to view user)  
+            # Column 3: Quick ban/unban action
             keyboard.append([
                 InlineKeyboardButton(
-                    f"{status} {u['user_id']} {license_icon}{days}",
+                    f"{status} {u['user_id']}",
                     callback_data=f"admin:user:{u['user_id']}"
+                ),
+                InlineKeyboardButton(
+                    f"{license_icon} {days}" if days else f"{license_icon}",
+                    callback_data=f"admin:user:{u['user_id']}"
+                ),
+                InlineKeyboardButton(
+                    "🔓" if u["is_banned"] else "❌",
+                    callback_data=f"admin:quick_unban:{u['user_id']}:{filter_type}:{page}" if u["is_banned"] else f"admin:quick_ban:{u['user_id']}:{filter_type}:{page}"
                 )
             ])
         
-        # Pagination
+        # Navigation row (Previous | Page/Total | Next)
         nav_row = []
         if page > 0:
-            nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"admin:users_list:{filter_type}:{page-1}"))
+            nav_row.append(InlineKeyboardButton("◀️ Prev", callback_data=f"admin:users_list:{filter_type}:{page-1}"))
         nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="noop"))
         if page < total_pages - 1:
-            nav_row.append(InlineKeyboardButton("➡️", callback_data=f"admin:users_list:{filter_type}:{page+1}"))
+            nav_row.append(InlineKeyboardButton("Next ▶️", callback_data=f"admin:users_list:{filter_type}:{page+1}"))
         
         if nav_row:
             keyboard.append(nav_row)
         
+        # Action row (refresh + search)
+        keyboard.append([
+            InlineKeyboardButton("🔄 Refresh", callback_data=f"admin:users_list:{filter_type}:{page}"),
+            InlineKeyboardButton("🔍 Search", callback_data="admin:search_user")
+        ])
+        
+        # Back to menu
         keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:users_menu")])
         
         await q.edit_message_text(
-            "\n".join(lines),
+            header,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
+    elif cmd.startswith("quick_ban:"):
+        # Quick ban from list (stays on same page)
+        parts = cmd.split(":")
+        target_uid = int(parts[1])
+        filter_type = parts[2] if len(parts) > 2 else "all"
+        page = int(parts[3]) if len(parts) > 3 else 0
+        ban_user(target_uid)
+        await q.answer(f"🚫 User {target_uid} banned!", show_alert=True)
+        # Refresh the list
+        users, total = get_users_paginated(page=page, per_page=8, filter_type=filter_type)
+        # Trigger refresh by simulating users_list callback
+        q.data = f"admin:users_list:{filter_type}:{page}"
+        await on_admin_cb(update, ctx)
+
+    elif cmd.startswith("quick_unban:"):
+        # Quick unban from list (stays on same page)
+        parts = cmd.split(":")
+        target_uid = int(parts[1])
+        filter_type = parts[2] if len(parts) > 2 else "all"
+        page = int(parts[3]) if len(parts) > 3 else 0
+        allow_user(target_uid)
+        await q.answer(f"✅ User {target_uid} unbanned!", show_alert=True)
+        # Refresh the list
+        q.data = f"admin:users_list:{filter_type}:{page}"
+        await on_admin_cb(update, ctx)
 
     elif cmd.startswith("user:"):
         # Show user card
