@@ -15955,7 +15955,11 @@ async def monitor_positions_loop(app: Application):
                                                 sl_pct=sl_pct,
                                                 account_type=pos_account_type
                                             )
-                                            if add_qty > 0:
+                                            # Check minimum order value (5 USDT for Bybit)
+                                            order_value = add_qty * mark
+                                            if order_value < 5.0:
+                                                logger.warning(f"{sym}: DCA order too small ({order_value:.2f} USDT < 5 USDT min), skipping")
+                                            elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
                                                     symbol=sym,
@@ -15997,7 +16001,11 @@ async def monitor_positions_loop(app: Application):
                                                 sl_pct=sl_pct,
                                                 account_type=pos_account_type
                                             )
-                                            if add_qty > 0:
+                                            # Check minimum order value (5 USDT for Bybit)
+                                            order_value = add_qty * mark
+                                            if order_value < 5.0:
+                                                logger.warning(f"{sym}: DCA Leg2 order too small ({order_value:.2f} USDT < 5 USDT min), skipping")
+                                            elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
                                                     symbol=sym,
