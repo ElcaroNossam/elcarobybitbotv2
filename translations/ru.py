@@ -1,20 +1,18 @@
 # translations/ru.py
 TEXTS = {
-    # Главное меню - ЧЁРНАЯ РИТОРИКА: FOMO + Авторитет + Эксклюзивность
-    'welcome':                     '''🔥 <b>Добро пожаловать, Альфа-Трейдер!</b>
+    # Главное меню - Профессионально + убедительно
+    'welcome':                     '''🔥 <b>ElCaro Trading Bot</b>
 
-Пока ты читаешь это — <b>847 трейдеров</b> уже зарабатывают с ElCaro.
+Автоматическая торговля на Bybit и HyperLiquid.
 
 ⚡ <b>&lt; 100мс</b> скорость исполнения
-🛡️ <b>664 теста безопасности</b> пройдено
-💎 <b>24/7</b> AI-торговля без сна
+🛡️ <b>Автоматический</b> риск-менеджмент
+💎 <b>24/7</b> мониторинг рынка
 
-<i>Твои конкуренты не спят. ElCaro тоже.</i>
-
-Выбери путь к финансовой свободе:''',
-    'no_strategies':               '❌ Нет — <i>Каждую секунду без стратегий ты теряешь деньги</i>',
-    'guide_caption':               '📚 <b>СЕКРЕТЫ ЭЛИТНЫХ ТРЕЙДЕРОВ</b>\n\n⚠️ Эта информация дала нашим топ-трейдерам <b>несправедливое преимущество</b>.\n\n<i>Время чтения: 3 мин. Потенциальный профит: безлимит.</i>',
-    'privacy_caption':             '📜 <b>Твоя безопасность = наша одержимость</b>\n\n🔐 Шифрование банковского уровня\n✅ Никаких утечек данных. Никогда.\n\n<i>Ты в надёжных руках.</i>',
+<i>Пока ты спишь — ElCaro торгует.</i>''',
+    'no_strategies':               '❌ Нет активных стратегий — <i>включите хотя бы одну</i>',
+    'guide_caption':               '📚 <b>Руководство пользователя</b>\n\n<i>Настройка API, стратегии, риск-менеджмент — всё в одном документе.</i>',
+    'privacy_caption':             '📜 <b>Политика конфиденциальности</b>\n\n🔐 Шифрование данных\n✅ API ключи хранятся локально\n\n<i>Ваши данные под защитой.</i>',
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive (RU)
@@ -418,23 +416,21 @@ TEXTS = {
         '📍 {exchange} • {market_type}\n\n'
         '_ElCaro AI нашёл возможность. Ты внутри._'
     ),
-    'sl_auto_set':                 '🛡️ *Защита активна:* SL @ {price:.6f}\n_Твой капитал под охраной._',
-    'auto_close_position':         '⚡ *Авто-выход:* {symbol} закрыт (TF={tf})\n_AI защитил тебя от дальнейших потерь._',
+    'sl_auto_set':                 '🛡️ *SL установлен:* @ {price:.6f}',
+    'auto_close_position':         '⚡ *Авто-выход:* {symbol} закрыт (TF={tf})',
     'position_closed': (
-        '🏆 *СДЕЛКА ЗАВЕРШЕНА!*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '✅ *СДЕЛКА ЗАКРЫТА*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `{strategy}`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_Каждая сделка — шаг к финансовой свободе._'
+        '📍 {exchange} • {market_type}'
     ),
 
     # ==================== УНИФИЦИРОВАННЫЕ ШАБЛОНЫ ВХОДА ====================
-    # Каждая стратегия имеет уникальный стиль чёрной риторики
     
-    # OI - Стиль Хищника (агрессивный охотник, отслеживание китов)
+    # OI - Open Interest анализ
     'oi_entry': (
         '🐋 *OI СИГНАЛ* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -445,10 +441,10 @@ TEXTS = {
         '*Открыто на:*\n{accounts}\n'
         '{atr_info}'
         '━━━━━━━━━━━━━━━━\n'
-        '_🦈 Кит обнаружен. Охота началась._'
+        '_Крупный объём обнаружен_'
     ),
     
-    # Scryptomera - Мистический стиль (пророчество, загадочные сигналы)
+    # Scryptomera - алгоритмический анализ
     'scryptomera_entry': (
         '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -459,10 +455,10 @@ TEXTS = {
         '*Открыто на:*\n{accounts}\n'
         '{atr_info}'
         '━━━━━━━━━━━━━━━━\n'
-        '_🌙 Оракул изрёк. Судьба ждёт._'
+        '_Алгоритмический сигнал_'
     ),
     
-    # Scalper - Стиль Молнии (скорость, точность)
+    # Scalper - быстрые сделки
     'scalper_entry': (
         '⚡ *SCALPER* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -473,10 +469,10 @@ TEXTS = {
         '*Открыто на:*\n{accounts}\n'
         '{atr_info}'
         '━━━━━━━━━━━━━━━━\n'
-        '_⚡ Бей быстро. Не оставляй следов._'
+        '_Быстрая сделка_'
     ),
     
-    # Elcaro - Огненный стиль (тепловая карта, зоны ликвидности)
+    # Elcaro - анализ ликвидности
     'elcaro_entry': (
         '🔥 *ELCARO* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -487,10 +483,10 @@ TEXTS = {
         '*Открыто на:*\n{accounts}\n'
         '{atr_info}'
         '━━━━━━━━━━━━━━━━\n'
-        '_🔥 Ликвидность горит. Мы собираем пепел._'
+        '_Зона ликвидности_'
     ),
     
-    # Fibonacci - Математический стиль (точность, золотое сечение)
+    # Fibonacci - уровни Фибоначчи
     'fibonacci_entry': (
         '📐 *FIBONACCI* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -501,7 +497,7 @@ TEXTS = {
         '*Открыто на:*\n{accounts}\n'
         '{atr_info}'
         '━━━━━━━━━━━━━━━━\n'
-        '_📐 Золотое сечение не врёт. Математика на стороне смелых._'
+        '_Уровень Фибоначчи_'
     ),
     
     # RSI+BB - Технический анализ
@@ -514,177 +510,161 @@ TEXTS = {
         '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
         '*Открыто на:*\n{accounts}\n'
         '━━━━━━━━━━━━━━━━\n'
-        '_📊 Индикаторы сошлись. Исполняй._'
+        '_Технический сигнал_'
     ),
 
     # ==================== УНИФИЦИРОВАННЫЕ ШАБЛОНЫ ЗАКРЫТИЯ ====================
-    # Стратегически специфичные сообщения о закрытии с чёрной риторикой
     
     'oi_closed': (
-        '🐋 *ОХОТА ЗАВЕРШЕНА*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '🐋 *OI ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `OI Signal`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_🦈 Кит пойман. Следующая добыча ждёт._'
+        '📍 {exchange} • {market_type}'
     ),
     
     'scryptomera_closed': (
-        '🔮 *ПРОРОЧЕСТВО ИСПОЛНЕНО*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '🔮 *SCRYPTOMERA ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `Scryptomera`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_🌙 Видение было истинным. Судьба свершилась._'
+        '📍 {exchange} • {market_type}'
     ),
     
     'scalper_closed': (
-        '⚡ *УДАР НАНЕСЁН*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '⚡ *SCALPER ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `Scalper`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_⚡ Быстрое убийство. Без пощады._'
+        '📍 {exchange} • {market_type}'
     ),
     
     'elcaro_closed': (
-        '🔥 *ПЛАМЯ УГАСЛО*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '🔥 *ELCARO ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `Elcaro`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_🔥 Ликвидность собрана. Огонь распространяется._'
+        '📍 {exchange} • {market_type}'
     ),
     
     'fibonacci_closed': (
-        '📐 *УРАВНЕНИЕ РЕШЕНО*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '📐 *FIBONACCI ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `Fibonacci`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_📐 Золотое сечение сработало. Идеальное исполнение._'
+        '📍 {exchange} • {market_type}'
     ),
     
     'rsi_bb_closed': (
-        '📊 *СИГНАЛ ЗАВЕРШЁН*\n\n'
-        '🪙 *{symbol}* закрыт по *{reason}*\n'
+        '📊 *RSI+BB ЗАКРЫТ*\n\n'
+        '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `RSI+BB`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
-        '📍 {exchange} • {market_type}\n\n'
-        '_📊 Индикаторы сработали. Точная торговля._'
+        '📍 {exchange} • {market_type}'
     ),
 
-    # Входы/ошибки - унифицированный формат с полной информацией
-    'oi_limit_entry':              '🐋 *OI Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🦈 Ордер установлен. Ждём добычу._',
+    # Входы/ошибки
+    'oi_limit_entry':              '🐋 *OI Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'oi_limit_error':              '❌ OI ошибка: {msg}',
     'oi_market_entry':             '🐋 *OI Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'oi_market_error':             '❌ OI ошибка\n🪙 {symbol} {side}\n\n{msg}',
     'oi_market_ok':                '🐋 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
 
-    'rsi_bb_limit_entry':          '📊 *RSI+BB Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📊 Ордер в очереди. Терпение — сила._',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'rsi_bb_market_entry':         '📊 *RSI+BB Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%\n_📊 Индикаторы сошлись. Исполнено._',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
     'rsi_bb_market_error':         '❌ RSI+BB ошибка\n🪙 {symbol} {side}\n\n{msg}',
 
-    'oi_analysis':                 '🐋 *Аналитика OI {symbol}* {side}\n_🦈 Активность китов обнаружена._',
+    'oi_analysis':                 '🐋 *Аналитика OI {symbol}* {side}',
 
-    # Scryptomera - Мистический стиль
-    'bitk_limit_entry':            '🔮 *Scryptomera Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 Заклинание брошено. Судьба раскрывается._',
+    # Scryptomera
+    'bitk_limit_entry':            '🔮 *Scryptomera Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'bitk_limit_error':            '❌ Scryptomera ошибка: {msg}',
     'bitk_market_entry':           '🔮 *Scryptomera Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 Оракул изрёк. Мы повиновались._',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'bitk_market_error':           '❌ Scryptomera ошибка\n🪙 {symbol} {side}\n\n{msg}',
-    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}\n_🌙 Древние сигналы обнаружены._',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
     'feature_scryptomera':         'Scryptomera',
 
-    # Insufficient balance error - ЧЁРНАЯ РИТОРИКА: Проблема + Решение + Срочность
-    'insufficient_balance_error':  '''🚨 <b>КАПИТАЛ ЗАБЛОКИРОВАН!</b>
+    # Insufficient balance error
+    'insufficient_balance_error':  '''🚨 <b>НЕДОСТАТОЧНО МАРЖИ</b>
 
-💰 Твоя маржа {account_type} застряла в позициях.
+💰 Маржа {account_type} занята в позициях.
 
-<b>🧠 Умный ход:</b>
-• Закрой убыточные позиции — _режь лосей быстро_
-• Уменьши entry % — _риск-менеджмент это ключ_
-• Уменьши плечо — _профи используют 5-10x max_
+<b>Решение:</b>
+• Закройте убыточные позиции
+• Уменьшите entry %
+• Уменьшите плечо
 
-<i>Рынок никого не ждёт. Освободи капитал СЕЙЧАС.</i>
-
-👉 /positions — <b>Возьми контроль</b>''',
-    'insufficient_balance_error_extended': '''🚨 <b>ВХОД ЗАБЛОКИРОВАН!</b>
+👉 /positions''',
+    'insufficient_balance_error_extended': '''🚨 <b>ВХОД ЗАБЛОКИРОВАН</b>
 
 📊 Стратегия <b>{strategy}</b> пыталась войти
 🪙 {symbol} {side}
 
-💰 Недостаточно FREE маржи на {account_type}.
+💰 Недостаточно маржи на {account_type}.
 
-<b>🧠 Что делают топ-трейдеры:</b>
-• Закрывают тонущие позиции сразу
-• Уменьшают размер для новых входов
-• Используют DCA лестницу для лучших входов
-
-<i>Капитал — твои патроны. Не трать их зря.</i>''',
+<b>Решение:</b>
+• Закройте убыточные позиции
+• Уменьшите размер входа
+• Используйте DCA''',
 
     # Leverage too high error
-    'leverage_too_high_error':     '''⚠️ <b>ПЛЕЧО ОТКЛОНЕНО!</b>
+    'leverage_too_high_error':     '''⚠️ <b>ПЛЕЧО ОТКЛОНЕНО</b>
 
-⚙️ {symbol} разрешает только <b>{max_leverage}x</b> максимум.
+⚙️ {symbol} максимум <b>{max_leverage}x</b>.
 
-<b>💡 Pro tip:</b> Меньше плечо = дольше живёшь.
-_Топ трейдеры редко используют больше 10x._
-
-<b>Решение:</b> Уменьши плечо в настройках стратегии.''',
+<b>Решение:</b> Уменьшите плечо в настройках стратегии.''',
     
     # Position limit exceeded error (110090)
-    'position_limit_error':        '''🛑 <b>ЛИМИТ ПОЗИЦИИ!</b>
+    'position_limit_error':        '''🛑 <b>ЛИМИТ ПОЗИЦИИ</b>
 
 📊 <b>{strategy}</b> на {symbol}
 
 ⚠️ Достигнут максимальный размер позиции.
 
-<b>🧠 Опции:</b>
-• Уменьши плечо (рекомендуется)
-• Уменьши entry % на сделку
-• Закрой другие позиции сначала
+<b>Опции:</b>
+• Уменьшите плечо
+• Уменьшите entry %
+• Закройте другие позиции''',
 
-<i>Дисциплина — то что отличает победителей от игроков.</i>''',
-
-    # Scalper - Стиль Молнии (скорость, точность, без следов)
-    'scalper_limit_entry':         '⚡ *Scalper Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Ордер установлен. Молния ждёт момент._',
+    # Scalper
+    'scalper_limit_entry':         '⚡ *Scalper Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper ошибка: {msg}',
     'scalper_market_entry':        '⚡ *Scalper Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Удар нанесён. Без пощады._',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'scalper_market_error':        '❌ Scalper ошибка\n🪙 {symbol} {side}\n\n{msg}',
-    'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Быстрые деньги для быстрых умов._',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap) - Огненный стиль (ликвидность, зоны пожара)
-    'elcaro_limit_entry':          '🔥 *Elcaro Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Ловушка установлена. Ликвидность сгорит._',
+    # Elcaro (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Elcaro Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'elcaro_limit_error':          '❌ Elcaro ошибка: {msg}',
     'elcaro_market_entry':         '🔥 *Elcaro Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Пепел ликвидности — наша добыча._',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'elcaro_market_error':         '❌ Elcaro ошибка\n🪙 {symbol} {side}\n\n{msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}\n_🔥 Зоны горят. Умные собирают пепел._',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
     'feature_elcaro':              'Elcaro',
 
-    # Fibonacci Extension Strategy - Математический стиль (золотое сечение)
-    'fibonacci_limit_entry':       '📐 *Fibonacci Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Уравнение запущено. Природа не ошибается._',
+    # Fibonacci Extension Strategy
+    'fibonacci_limit_entry':       '📐 *Fibonacci Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'fibonacci_limit_error':       '❌ Fibonacci ошибка: {msg}',
     'fibonacci_market_entry':      '📐 *Fibonacci Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Золотое сечение на твоей стороне._',
+    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
     'fibonacci_market_error':      '❌ Fibonacci ошибка\n🪙 {symbol} {side}\n\n{msg}',
-    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}\n_📐 Числа Фибоначчи правят рынком._',
+    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
     'feature_fibonacci':           'Fibonacci',
 
     # Админ-панель
@@ -1007,130 +987,97 @@ _Топ трейдеры редко используют больше 10x._
     # =====================================================
     
     # Сообщения о статусе лицензии - ЧЁРНАЯ РИТОРИКА: Страх потери + FOMO
-    'no_license': '''🚨 *ДОСТУП ЗАБЛОКИРОВАН*
+    'no_license': '''� *ТРЕБУЕТСЯ ПОДПИСКА*
 
-Пока ты сомневаешься — *847 трейдеров* уже зарабатывают.
+Для торговли необходима активная лицензия.
 
-💸 Каждая минута без ElCaro = упущенные возможности
-⏰ Рынок не ждёт. Ты тоже не должен.
+👉 /subscribe — выбрать план''',
+    'no_license_trading': '''🔒 *ТОРГОВЛЯ НЕДОСТУПНА*
 
-👉 /subscribe — _Разблокируй нечестное преимущество СЕЙЧАС_''',
-    'no_license_trading': '''🚨 *ТОРГОВЛЯ ЗАБЛОКИРОВАНА*
+Для автоматической торговли требуется подписка.
 
-Твои конкуренты зарабатывают ПРЯМО СЕЙЧАС с ElCaro.
+✅ AI-анализ рынка
+✅ Автоматический риск-менеджмент
+✅ 24/7 мониторинг
 
-❌ Ручная торговля = эмоциональные ошибки
-✅ ElCaro = холодная AI-точность
-
-_Хватит смотреть. Начинай зарабатывать._
-
-👉 /subscribe — *Присоединяйся к 847+ умным трейдерам*''',
+👉 /subscribe — активировать''',
     'license_required': '''🔒 *PREMIUM ФУНКЦИЯ*
 
-Требуется подписка {required} — _используется топ-3% трейдеров_.
+Требуется подписка {required}.
 
-🎯 Успех оставляет следы. Иди за победителями.
+👉 /subscribe — апгрейд''',
+    'trial_demo_only': '''⚠️ *Пробный период — только демо*
 
-👉 /subscribe — *Апгрейдни сейчас*''',
-    'trial_demo_only': '''⚠️ *Демо — для обучения, не для заработка.*
+Для реальной торговли требуется платная подписка.
 
-Реальные профиты требуют реального доступа.
+👉 /subscribe — выбрать план''',
+    'basic_strategy_limit': '''⚠️ *Ограничение Basic плана*
 
-🎁 Ты попробовал силу. Теперь *владей* ей.
+Доступные стратегии: {strategies}
 
-👉 /subscribe — *Разблокируй реальную торговлю*''',
-    'basic_strategy_limit': '''⚠️ *Basic = базовые результаты*
+Для доступа ко всем стратегиям — Premium.
 
-Ты ограничен: {strategies}
-
-Профи используют *ВСЕ* стратегии. Поэтому они профи.
-
-👉 /subscribe — *Go Premium. Go Pro.*''',
+👉 /subscribe — апгрейд''',
     
-    # Меню подписки - ЧЁРНАЯ РИТОРИКА: Срочность + Авторитет + Эксклюзивность
-    'subscribe_menu_header': '''💎 *РАЗБЛОКИРУЙ ТОРГОВУЮ ИМПЕРИЮ*
+    # Меню подписки
+    'subscribe_menu_header': '''💎 *ПОДПИСКА ElCaro*
 
-⚡ 847+ трейдеров уже зарабатывают
-🏆 97% удовлетворённость пользователей
-📈 $2.4M+ заработано в этом месяце''',
-    'subscribe_menu_info': '''_"Лучшая инвестиция в моей жизни"_ — Premium User
-
-Выбери свой уровень доминирования:''',
-    'btn_premium': '💎 PREMIUM — Полная мощь ⚡',
+🤖 AI-торговля 24/7
+📊 5 стратегий
+🛡️ Автоматический риск-менеджмент''',
+    'subscribe_menu_info': '''Выберите план:''',
+    'btn_premium': '💎 PREMIUM — Полный доступ',
     'btn_basic': '🥈 Basic — Старт',
-    'btn_trial': '🎁 Бесплатный пробный — 7 дней',
-    'btn_enter_promo': '🎟 Секретный промокод',
+    'btn_trial': '🎁 Пробный — 7 дней',
+    'btn_enter_promo': '🎟 Промокод',
     'btn_my_subscription': '📋 Мой статус',
     
-    # Premium план - ЧЁРНАЯ РИТОРИКА: Авторитет + Дефицит + Социальное доказательство
-    'premium_title': '''💎 *PREMIUM — ПОЛНОЕ ДОМИНИРОВАНИЕ*
+    # Premium план
+    'premium_title': '''💎 *PREMIUM — Полный доступ*''',
+    'premium_desc': '''*Включено:*
 
-_"Этот бот буквально печатает деньги"_ — @CryptoKing''',
-    'premium_desc': '''🔥 *ВСЁ РАЗБЛОКИРОВАНО:*
-
-✅ Все 5 AI Стратегий — _$100K+ сделок ежедневно_
-✅ Реал + Демо — _Без ограничений_
-✅ Приоритетная VIP поддержка — _Ответ < 1 час_
-✅ Динамический ATR SL/TP — _AI-оптимизация входов_
-✅ DCA Лимит Лестница — _Институциональный скейлинг_
-✅ Пожизненные обновления — _Всегда впереди рынка_
-
-⚡ *СТАТИСТИКА PREMIUM:*
-• Средний ROI: +47%/месяц
-• Win Rate: 78%
-• Активных пользователей: 312
-
-_Вопрос не "Могу ли я позволить Premium?"
-Вопрос — "Могу ли я позволить себе БЕЗ него?"_''',
-    'premium_1m': '💎 1 Месяц — {price} TRC ⚡',
-    'premium_3m': '💎 3 Месяца — {price} TRC 🔥 ЭКОНОМИЯ 10%',
-    'premium_6m': '💎 6 Месяцев — {price} TRC 🎯 ЭКОНОМИЯ 20%',
-    'premium_12m': '💎 12 Месяцев — {price} TRC 🏆 ЛУЧШАЯ ЦЕНА -30%',
+✅ Все 5 AI стратегий
+✅ Реал + Демо аккаунты
+✅ Приоритетная поддержка
+✅ Динамический ATR SL/TP
+✅ DCA лестница
+✅ Все обновления''',
+    'premium_1m': '💎 1 Месяц — {price} TRC',
+    'premium_3m': '💎 3 Месяца — {price} TRC (−10%)',
+    'premium_6m': '💎 6 Месяцев — {price} TRC (−20%)',
+    'premium_12m': '💎 12 Месяцев — {price} TRC (−30%)',
     
-    # Basic план - ЧЁРНАЯ РИТОРИКА: Ступенька к успеху
-    'basic_title': '''🥈 *BASIC — УМНЫЙ СТАРТ*
+    # Basic план
+    'basic_title': '''🥈 *BASIC — Старт*''',
+    'basic_desc': '''*Включено:*
 
-_Идеально чтобы проверить воду_''',
-    'basic_desc': '''✅ Полный доступ к демо — _Обучение без риска_
-✅ Реальный аккаунт: OI, RSI+BB, Scryptomera, Scalper
-⛔ Elcaro, Fibonacci, Spot — _Эксклюзив Premium_
+✅ Полный демо доступ
+✅ Реал: OI, RSI+BB, Scryptomera, Scalper
+⛔ Elcaro, Fibonacci, Spot — только Premium
 ✅ Стандартная поддержка
-✅ ATR динамический SL/TP
-
-💡 *87% Basic пользователей апгрейдятся до Premium за 2 недели*
-_Они видят результаты. Ты тоже увидишь._''',
+✅ ATR SL/TP''',
     'basic_1m': '🥈 1 Месяц — {price} TRC',
     
-    # Пробный план - ЧЁРНАЯ РИТОРИКА: Нулевой риск + Вкус силы
-    'trial_title': '''🎁 *БЕСПЛАТНЫЙ ПРОБНЫЙ — НУЛЕВОЙ РИСК*
+    # Пробный план
+    'trial_title': '''🎁 *Пробный период — 7 дней*''',
+    'trial_desc': '''*Включено:*
 
-_Увидеть — значит поверить_''',
-    'trial_desc': '''✅ Полный демо доступ — *Все 5 AI Стратегий*
-✅ 7 дней чистой мощи
-✅ Карта не нужна
-⚡ Активация в один клик
+✅ Полный демо доступ
+✅ Все 5 стратегий
+✅ 7 дней
+✅ Без оплаты''',
+    'trial_activate': '🎁 Активировать',
+    'trial_already_used': '''⚠️ Пробный период уже использован.
 
-⚠️ *ПРЕДУПРЕЖДЕНИЕ:* После ElCaro AI
-ручная торговля покажется... примитивной.
+👉 Выберите план для продолжения.''',
+    'trial_activated': '''✅ *Пробный период активирован!*
 
-_91% пробных пользователей становятся платными._
-_Сейчас поймёшь почему._''',
-    'trial_activate': '🎁 АКТИВИРОВАТЬ БЕСПЛАТНО ⚡',
-    'trial_already_used': '''⚠️ Пробный уже использован.
-
-Ты видел силу. Теперь *владей* ей.
-
-👉 Выбери план и присоединись к элите.''',
-    'trial_activated': '''🎉 *ДОБРО ПОЖАЛОВАТЬ В БУДУЩЕЕ ТРЕЙДИНГА!*
-
-⏰ У тебя 7 дней чтобы испытать:
-• AI-powered входы
+⏰ 7 дней доступа:
+• AI-анализ рынка
 • Автоматический риск-менеджмент
-• 24/7 мониторинг рынка
+• 24/7 мониторинг
 
-_Твой путь к финансовой свободе начинается СЕЙЧАС._
-
-💡 Pro tip: Включи все стратегии для максимума результатов!''',
+Включите стратегии в настройках для начала торговли.''',
     
     # Оплата
     'payment_select_method': '💳 *Выберите способ оплаты*',
@@ -1145,7 +1092,7 @@ _Твой путь к финансовой свободе начинается �
     'btn_check_again': '🔄 Проверить снова',
     'payment_processing': '⏳ Обработка платежа...',
     'payment_verifying': '⏳ Проверка платежа...',
-    'payment_success': '🎉 Оплата успешна!\n\n{plan} активирован до {expires}.',
+    'payment_success': '✅ Оплата успешна!\n\n{plan} активирован до {expires}.',
     'payment_failed': '❌ Ошибка оплаты: {error}',
     'payment_ton_not_configured': '❌ TON платежи устарели. Используйте TRC токены.',
     'payment_session_expired': '❌ Сессия оплаты истекла. Начните заново.',
@@ -1385,12 +1332,12 @@ _Твой путь к финансовой свободе начинается �
 
 
     # DCA and Deep Loss notifications
-    'fibonacci_desc': '_Вход, SL, TP — по уровням Фибоначчи из сигнала._',
-    'fibonacci_info': '📐 *Стратегия Fibonacci Extension*',
+    'fibonacci_desc': '_Вход, SL, TP — по уровням Фибоначчи._',
+    'fibonacci_info': '📐 *Стратегия Fibonacci*',
     'prompt_min_quality': 'Введите минимальное качество % (0-100):',
 
 
     # Hardcore trading phrase
-    'hardcore_mode': '💀 *ХАРДКОР РЕЖИМ*: Без пощады, без сожалений. Только профит или смерть! 🔥',
+    'hardcore_mode': '💀 *Агрессивный режим*: Высокий риск, высокая доходность.',
     'spot_freq_hourly': '⏰ Ежечасно',
 }
