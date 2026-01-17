@@ -48,6 +48,22 @@ from core.db_postgres import (
 DB_FILE = Path("bot.db")
 
 # ------------------------------------------------------------------------------------
+# JSON PARSING HELPER (PostgreSQL returns JSON as dict, not string)
+# ------------------------------------------------------------------------------------
+def _safe_json_loads(value, default=None):
+    """Safely parse JSON - handles both string and already-parsed dict/list from PostgreSQL."""
+    if value is None:
+        return default if default is not None else {}
+    if isinstance(value, (dict, list)):
+        return value  # Already parsed by psycopg2
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return default if default is not None else {}
+    return default if default is not None else {}
+
+# ------------------------------------------------------------------------------------
 # In-memory caches for frequently accessed data
 # ------------------------------------------------------------------------------------
 _user_config_cache: dict[int, tuple[float, dict]] = {}  # user_id -> (timestamp, config)
@@ -1133,7 +1149,7 @@ def get_user_config(user_id: int) -> dict:
         "trade_fibonacci": int(data.get("trade_fibonacci") or data.get("trade_wyckoff") or 0)
         if "trade_fibonacci" in data or "trade_wyckoff" in data
         else 0,
-        "strategy_settings": json.loads(data.get("strategy_settings") or "{}")
+        "strategy_settings": _safe_json_loads(data.get("strategy_settings"), {})
         if data.get("strategy_settings")
         else {},
         "dca_enabled": int(data.get("dca_enabled") or 0)
@@ -1149,7 +1165,7 @@ def get_user_config(user_id: int) -> dict:
         "spot_enabled": int(data.get("spot_enabled") or 0)
         if "spot_enabled" in data
         else 0,
-        "spot_settings": json.loads(data.get("spot_settings") or "{}")
+        "spot_settings": _safe_json_loads(data.get("spot_settings"), {})
         if data.get("spot_settings")
         else {},
         # Global leverage
@@ -1163,7 +1179,7 @@ def get_user_config(user_id: int) -> dict:
         "limit_ladder_count": int(data.get("limit_ladder_count") or 3)
         if "limit_ladder_count" in data
         else 3,
-        "limit_ladder_settings": json.loads(data.get("limit_ladder_settings") or "[]")
+        "limit_ladder_settings": _safe_json_loads(data.get("limit_ladder_settings"), [])
         if data.get("limit_ladder_settings")
         else [],
         # Global order type
