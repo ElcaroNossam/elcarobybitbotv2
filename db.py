@@ -3159,7 +3159,7 @@ def add_trade_log(
             WHERE user_id = ? AND symbol = ? AND side = ? 
               AND ABS(entry_price - ?) < 0.0001 
               AND ABS(exit_price - ?) < 0.0001
-              AND ts > datetime('now', '-24 hours')
+              AND ts > NOW() - INTERVAL '24 hours'
             LIMIT 1
             """,
             (user_id, symbol, side, entry_price, exit_price)
