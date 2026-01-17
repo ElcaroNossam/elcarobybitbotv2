@@ -1294,7 +1294,7 @@ async def _place_order_bybit(user_id: int, req: PlaceOrderRequest, side: str, or
                 size=req.size,
                 timeframe="24h",
                 signal_id=None,
-                strategy=req.strategy or "manual",
+                strategy=req.strategy if req.strategy else "webapp",  # Use 'webapp' for manual orders from web
                 account_type=req.account_type,
                 # P0.3: New fields
                 source="webapp",
@@ -1369,7 +1369,7 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
                     size=req.size,
                     timeframe="24h",
                     signal_id=None,
-                    strategy=req.strategy or "manual",
+                    strategy=req.strategy if req.strategy else "webapp",  # Use 'webapp' for manual orders from web
                     account_type=account_type,
                     # P0.3: New fields
                     source="webapp",

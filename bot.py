@@ -5181,8 +5181,21 @@ async def place_order_for_targets(
     - Unique client_order_id per target: {signal_id}-{exchange}-{env}
     
     Returns dict with results per target key (e.g., "bybit:paper": {...})
+    
+    IMPORTANT: strategy parameter is REQUIRED for auto-trading.
+    If strategy is None/empty, a warning will be logged and 'unknown' will be used as fallback.
     """
     from db import get_execution_targets, get_live_enabled
+    
+    # Validate and log strategy
+    if not strategy:
+        logger.warning(f"[{user_id}] place_order_for_targets called without strategy for {symbol} {side}! Using 'unknown' as fallback.")
+        strategy = "unknown"
+    
+    # Validate strategy is one of known strategies
+    KNOWN_STRATEGIES = {"oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb", "webapp", "manual", "unknown"}
+    if strategy.lower() not in KNOWN_STRATEGIES:
+        logger.warning(f"[{user_id}] Unknown strategy '{strategy}' for {symbol} {side}. This may cause issues with settings resolution.")
     
     # Determine targets
     if targets is None:
@@ -5947,6 +5960,7 @@ STRATEGY_NAMES_MAP = {
     "scalper": "Scalper",
     "elcaro": "Elcaro",
     "fibonacci": "Fibonacci",
+    "webapp": "WebApp",
 }
 
 
@@ -11807,6 +11821,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "oi": "OI",
                 "elcaro": "Elcaro",
                 "fibonacci": "Fibonacci",
+                "webapp": "WebApp",
             }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
             
             # Log the trade
@@ -12000,6 +12015,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         "oi": "OI",
                         "elcaro": "Elcaro",
                         "fibonacci": "Fibonacci",
+                        "webapp": "WebApp",
                     }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
                     if notification_service:
                         pnl_pct = 0.0
@@ -15843,6 +15859,7 @@ async def monitor_positions_loop(app: Application):
                                         "oi": "OI",
                                         "elcaro": "Elcaro",
                                         "fibonacci": "Fibonacci",
+                                        "webapp": "WebApp",
                                     }.get(strategy_name, strategy_name.title() if strategy_name and strategy_name != "manual" and strategy_name != "unknown" else "Unknown")
                                     
                                     # Format exchange and market type for display
