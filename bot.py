@@ -23306,13 +23306,22 @@ def main():
         app.run_polling(allowed_updates=["message", "channel_post", "callback_query"])
     finally:
         logger.info("Shutting down application and HTTP session")
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                logger.info("Event loop already closed, creating new one for cleanup")
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
         mon_task = app.bot_data.get("monitor_task")
         if mon_task:
             mon_task.cancel()
             try:
                 loop.run_until_complete(mon_task)
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, RuntimeError):
                 pass
         try:
             loop.run_until_complete(app.shutdown())
