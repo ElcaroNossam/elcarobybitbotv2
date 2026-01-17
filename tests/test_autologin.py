@@ -27,14 +27,15 @@ def test_user_id():
     db.set_user_field(user_id, 'username', 'testuser')
     db.set_user_field(user_id, 'first_name', 'Test User')
     yield user_id
-    # Cleanup
+    # Cleanup - use context manager
     try:
-        conn = db.get_conn()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
-        conn.commit()
-    finally:
-        db.release_conn(conn)
+        from core.db_postgres import get_conn
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+            conn.commit()
+    except Exception:
+        pass  # Ignore cleanup errors in tests
 
 
 class TestDirectLogin:

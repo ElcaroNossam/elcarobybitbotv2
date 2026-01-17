@@ -1,6 +1,8 @@
 """
 PyTest Configuration and Fixtures
 Shared fixtures for all tests
+
+Updated for PostgreSQL architecture (Jan 2026)
 """
 
 import asyncio
@@ -11,11 +13,13 @@ import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Generator, AsyncGenerator
+from contextlib import contextmanager
 
-# Test environment setup
+# Test environment setup - MUST be before any imports
 os.environ['TESTING'] = 'true'
 os.environ['JWT_SECRET'] = 'test_jwt_secret_key'
 os.environ['TELEGRAM_TOKEN'] = 'test:token'
+os.environ['DATABASE_URL'] = 'postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro_test'
 
 
 @pytest.fixture(scope="session")
@@ -28,7 +32,7 @@ def event_loop():
 
 @pytest.fixture
 def temp_db_path() -> Generator[str, None, None]:
-    """Create temporary database file"""
+    """Create temporary database file (legacy SQLite support)"""
     with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
         db_path = f.name
     yield db_path
@@ -40,8 +44,41 @@ def temp_db_path() -> Generator[str, None, None]:
 
 
 @pytest.fixture
+def mock_postgres_pool():
+    """Mock PostgreSQL pool for tests that don't need real DB"""
+    # Create a mock connection that acts like PostgreSQL
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_cursor.fetchall.return_value = []
+    mock_cursor.description = None
+    mock_conn.cursor.return_value = mock_cursor
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    
+    @contextmanager
+    def mock_get_conn():
+        yield mock_conn
+    
+    # Patch core.db_postgres functions
+    with patch('core.db_postgres.get_conn', mock_get_conn), \
+         patch('core.db_postgres.get_pool', return_value=MagicMock()), \
+         patch('core.db_postgres.execute', return_value=[]), \
+         patch('core.db_postgres.execute_one', return_value=None), \
+         patch('core.db_postgres.execute_scalar', return_value=None):
+        yield mock_conn
+
+
+# Mark tests requiring real PostgreSQL
+requires_postgres = pytest.mark.skipif(
+    os.environ.get('SKIP_POSTGRES_TESTS', '1') == '1',
+    reason="Requires PostgreSQL connection (set SKIP_POSTGRES_TESTS=0 to run)"
+)
+
+
+@pytest.fixture
 def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
-    """Create test database with schema matching production"""
+    """Create test database with schema matching production (SQLite for isolated tests)"""
     conn = sqlite3.connect(temp_db_path)
     conn.row_factory = sqlite3.Row
     
@@ -404,27 +441,12 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
     
     conn.commit()
     
-    # IMPORTANT: Patch db module to use this temporary database
-    import db as db_module
-    original_db_file = db_module.DB_FILE
-    db_module.DB_FILE = Path(temp_db_path)
-    
-    # Clear the connection pool to force new connections to temp db
-    while not db_module._pool.empty():
-        try:
-            old_conn = db_module._pool.get_nowait()
-            old_conn.close()
-        except:
-            pass
-    
-    # Run init_db() to apply all migrations and get production-like schema
-    # This ensures test schema matches production exactly
-    db_module.init_db()
+    # NOTE: We no longer patch db module directly as it uses PostgreSQL
+    # Tests that need real DB interaction should use the mock_postgres_pool fixture
+    # or connect to a test PostgreSQL database
     
     yield conn
     
-    # Restore original DB_FILE
-    db_module.DB_FILE = original_db_file
     conn.close()
 
 

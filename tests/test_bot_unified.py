@@ -123,10 +123,16 @@ class TestBotUnified(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["order_id"], "order-123")
     
+    @patch('bot_unified.db')
     @patch('bot_unified.get_positions_unified')
     @patch('core.exchange_client.get_exchange_client')
-    def test_close_position_bybit(self, mock_get_client, mock_get_positions):
+    def test_close_position_bybit(self, mock_get_client, mock_get_positions, mock_db):
         """Test close_position_unified for Bybit"""
+        # Mock database
+        mock_db.remove_active_position.return_value = None
+        mock_db.get_active_positions.return_value = [{'symbol': 'BTCUSDT', 'strategy': 'test'}]
+        mock_db.add_trade_log.return_value = None
+        
         # Mock get_positions to return existing position
         mock_get_positions.return_value = [
             Position(
