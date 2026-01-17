@@ -3292,7 +3292,9 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
                 SUM(CASE WHEN side = 'Sell' AND pnl > 0 THEN 1 ELSE 0 END) as short_wins,
                 SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) as gross_profit,
                 SUM(CASE WHEN pnl < 0 THEN pnl ELSE 0 END) as gross_loss,
-                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+                MAX(pnl) as best_pnl,
+                MIN(pnl) as worst_pnl
             FROM trade_logs
             WHERE {where_sql}
         """, params).fetchone()
@@ -3310,6 +3312,8 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         gross_profit = row[10] or 0.0
         gross_loss = row[11] or 0.0
         wins = row[12] or 0
+        best_pnl = row[13] or 0.0
+        worst_pnl = row[14] or 0.0
         
         # Винрейт - рассчитывается по победным сделкам (pnl > 0)
         winrate = (wins / total * 100) if total > 0 else 0.0
@@ -3351,6 +3355,8 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
             "gross_loss": gross_loss,
             "profit_factor": profit_factor,
             "open_count": open_count,
+            "best_pnl": best_pnl,
+            "worst_pnl": worst_pnl,
         }
 
 
@@ -3383,7 +3389,7 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
         
         cur = conn.execute(f"""
             SELECT id, signal_id, symbol, side, entry_price, exit_price, 
-                   exit_reason, pnl, pnl_pct, strategy, account_type, ts
+                   exit_reason, pnl, pnl_pct, strategy, account_type, ts, exchange
             FROM trade_logs
             WHERE {where_sql}
             ORDER BY ts DESC
@@ -3403,10 +3409,10 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
                 "exit_reason": row[6],
                 "pnl": row[7],
                 "pnl_percent": row[8],
-                "strategy": row[9],
-                "account_type": row[10],
+                "strategy": row[9] or "unknown",
+                "account_type": row[10] or "demo",
                 "time": row[11],
-                "exchange": "bybit",  # Default, can be expanded later
+                "exchange": row[12] or "bybit",
             })
         return result
 

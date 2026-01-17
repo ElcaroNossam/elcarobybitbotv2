@@ -122,7 +122,7 @@ async def get_dashboard_stats(
         # By strategy
         by_strategy = {}
         for t in filtered_trades:
-            strat = t.get("strategy", "manual")
+            strat = t.get("strategy") or "unknown"
             if strat not in by_strategy:
                 by_strategy[strat] = {"trades": 0, "wins": 0, "pnl": 0}
             by_strategy[strat]["trades"] += 1

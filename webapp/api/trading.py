@@ -1057,99 +1057,45 @@ async def get_trades(
 ) -> dict:
     """Get recent trades history from trade_logs table."""
     user_id = user["user_id"]
-    import os
-    USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
     
     try:
-        if USE_POSTGRES:
-            from core.db_postgres import execute
-            
-            # Query trade_logs with PostgreSQL
-            trades_data = execute("""
-                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                       ts, strategy, account_type, exit_reason
-                FROM trade_logs 
-                WHERE user_id = %s
-                ORDER BY ts DESC 
-                LIMIT %s
-            """, (user_id, limit))
-            
-            trades = []
-            for row in trades_data:
-                trades.append({
-                    "id": row.get("id"),
-                    "symbol": row.get("symbol"),
-                    "side": row.get("side"),
-                    "entry_price": row.get("entry_price"),
-                    "exit_price": row.get("exit_price"),
-                    "pnl": row.get("pnl"),
-                    "pnl_percent": row.get("pnl_pct"),
-                    "exchange": exchange,
-                    "strategy": row.get("strategy"),
-                    "created_at": str(row.get("ts")) if row.get("ts") else None,
-                    "closed_at": str(row.get("ts")) if row.get("ts") else None,
-                    "account_type": row.get("account_type"),
-                    "exit_reason": row.get("exit_reason"),
-                })
-            
-            # Get total count
-            from core.db_postgres import execute_scalar
-            total = execute_scalar(
-                "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s",
-                (user_id,)
-            ) or 0
-            
-            return {"trades": trades, "total": total}
-        else:
-            # SQLite fallback
-            import sqlite3
-            conn = sqlite3.connect(db.DB_FILE)
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            
-            cur.execute("""
-                SELECT name FROM sqlite_master WHERE type='table' AND name='trade_logs'
-            """)
-            if not cur.fetchone():
-                conn.close()
-                return {"trades": [], "total": 0}
-            
-            cur.execute("""
-                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                       ts, strategy, account_type, exit_reason
-                FROM trade_logs 
-                WHERE user_id = ?
-                ORDER BY ts DESC 
-                LIMIT ?
-            """, (user_id, limit))
-            
-            trades = []
-            for row in cur.fetchall():
-                trades.append({
-                    "id": row["id"],
-                    "symbol": row["symbol"],
-                    "side": row["side"],
-                    "entry_price": row["entry_price"],
-                    "exit_price": row["exit_price"],
-                    "pnl": row["pnl"],
-                    "pnl_percent": row["pnl_pct"],
-                    "exchange": exchange,
-                    "strategy": row["strategy"],
-                    "created_at": row["ts"],
-                    "closed_at": row["ts"],
-                    "account_type": row["account_type"],
-                    "exit_reason": row["exit_reason"],
-                })
-            
-            cur.execute("""
-                SELECT COUNT(*) FROM trade_logs 
-                WHERE user_id = ?
-            """, (user_id,))
-            row = cur.fetchone()
-            total = row[0] if row else 0
-            
-            conn.close()
-            return {"trades": trades, "total": total}
+        from core.db_postgres import execute, execute_scalar
+        
+        # Query trade_logs with PostgreSQL
+        trades_data = execute("""
+            SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                   ts, strategy, account_type, exit_reason, exchange
+            FROM trade_logs 
+            WHERE user_id = %s
+            ORDER BY ts DESC 
+            LIMIT %s
+        """, (user_id, limit))
+        
+        trades = []
+        for row in trades_data:
+            trades.append({
+                "id": row.get("id"),
+                "symbol": row.get("symbol"),
+                "side": row.get("side"),
+                "entry_price": row.get("entry_price"),
+                "exit_price": row.get("exit_price"),
+                "pnl": row.get("pnl"),
+                "pnl_percent": row.get("pnl_pct"),
+                "exchange": row.get("exchange") or exchange,
+                "strategy": row.get("strategy") or "unknown",
+                "created_at": str(row.get("ts")) if row.get("ts") else None,
+                "closed_at": str(row.get("ts")) if row.get("ts") else None,
+                "account_type": row.get("account_type") or "demo",
+                "exit_reason": row.get("exit_reason"),
+            })
+        
+        # Get total count
+        total = execute_scalar(
+            "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s",
+            (user_id,)
+        ) or 0
+        
+        return {"trades": trades, "total": total}
         
     except Exception as e:
         logger.error(f"Trades fetch error: {e}")
@@ -1164,23 +1110,44 @@ async def get_trading_stats(
 ) -> dict:
     """Get trading statistics from trade_logs table."""
     user_id = user["user_id"]
-    import os
-    import time
-    USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
     
     try:
-        # Use db module's get_trade_stats which works with both SQLite and PostgreSQL
+        # Use db module's get_trade_stats which works with PostgreSQL
         stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=None)
         
+        # Map database field names to API response field names
+        total = stats.get("total", 0)
+        tp_count = stats.get("tp_count", 0)
+        sl_count = stats.get("sl_count", 0)
+        eod_count = stats.get("eod_count", 0)
+        winrate = stats.get("winrate", 0.0)
+        total_pnl = stats.get("total_pnl", 0.0)
+        avg_pnl_pct = stats.get("avg_pnl_pct", 0.0)
+        gross_profit = stats.get("gross_profit", 0.0)
+        gross_loss = stats.get("gross_loss", 0.0)
+        
+        # Calculate wins/losses based on TP/SL counts
+        wins = tp_count
+        losses = sl_count
+        
         return {
-            "total_trades": stats.get("total_trades", 0),
-            "winning_trades": stats.get("wins", 0),
-            "losing_trades": stats.get("losses", 0),
-            "win_rate": stats.get("win_rate", 0),
-            "total_pnl": stats.get("total_pnl", 0),
-            "avg_pnl": stats.get("avg_pnl", 0),
-            "best_trade": stats.get("best_pnl", 0),
-            "worst_trade": stats.get("worst_pnl", 0)
+            "total_trades": total,
+            "winning_trades": wins,
+            "losing_trades": losses,
+            "eod_trades": eod_count,
+            "win_rate": round(winrate, 1),
+            "total_pnl": round(total_pnl, 2),
+            "avg_pnl": round(avg_pnl_pct, 2),
+            "gross_profit": round(gross_profit, 2),
+            "gross_loss": round(abs(gross_loss), 2),
+            "profit_factor": stats.get("profit_factor", 0.0),
+            "long_count": stats.get("long_count", 0),
+            "short_count": stats.get("short_count", 0),
+            "long_winrate": stats.get("long_winrate", 0.0),
+            "short_winrate": stats.get("short_winrate", 0.0),
+            "open_count": stats.get("open_count", 0),
+            "best_trade": stats.get("best_pnl", 0.0),
+            "worst_trade": stats.get("worst_pnl", 0.0),
         }
         
     except Exception as e:
@@ -1189,9 +1156,18 @@ async def get_trading_stats(
             "total_trades": 0,
             "winning_trades": 0,
             "losing_trades": 0,
+            "eod_trades": 0,
             "win_rate": 0,
             "total_pnl": 0,
             "avg_pnl": 0,
+            "gross_profit": 0,
+            "gross_loss": 0,
+            "profit_factor": 0,
+            "long_count": 0,
+            "short_count": 0,
+            "long_winrate": 0,
+            "short_winrate": 0,
+            "open_count": 0,
             "best_trade": 0,
             "worst_trade": 0,
             "error": str(e)
