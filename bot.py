@@ -3384,10 +3384,11 @@ async def set_leverage(
     symbol: str,
     leverage: int = 10,
     account_type: str = None
-) -> bool:
+) -> int:
     """
     Set leverage for a symbol. Uses cache to avoid redundant API calls.
-    Returns True if leverage was changed, False if already set.
+    Returns the actual leverage that was set (may differ from requested due to fallback).
+    Returns 0 if failed to set any leverage.
     """
     # Clamp leverage to reasonable bounds (Bybit max is typically 100-500 depending on symbol)
     leverage = max(1, min(leverage, 200))
@@ -3397,7 +3398,7 @@ async def set_leverage(
     
     if current_lev == leverage:
         logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x, skipping API call")
-        return False
+        return leverage  # Already set, return current
     
     body = {
         "category":    "linear",
@@ -3409,14 +3410,14 @@ async def set_leverage(
         await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
         _leverage_cache[cache_key] = leverage
         logger.info(f"[{user_id}] Leverage for {symbol} set to {leverage}x [{account_type or 'auto'}]")
-        return True
+        return leverage  # Success, return requested
     except Exception as e:
         err_str = str(e).lower()
         # If error contains "leverage not modified" - it's already set
         if "not modified" in err_str or "110043" in str(e):
             _leverage_cache[cache_key] = leverage
             logger.debug(f"[{user_id}] Leverage for {symbol} already {leverage}x (from API)")
-            return False
+            return leverage  # Already set
         # If error is "leverage invalid" (10001) - fallback through decreasing values
         if "10001" in str(e) or "leverage invalid" in err_str:
             logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, trying fallbacks")
@@ -3429,11 +3430,11 @@ async def set_leverage(
                         await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
                         _leverage_cache[cache_key] = fallback_lev
                         logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
-                        return True
+                        return fallback_lev  # Return actual fallback leverage
                     except Exception:
                         continue
             logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
-            return False
+            return 0  # Failed to set any leverage
         # 110013: leverage exceeds maxLeverage by risk limit - try to extract and use max
         if "110013" in str(e) or "cannot set leverage" in err_str or "maxleverage" in err_str:
             # Try to extract maxLeverage from error message: "gt maxLeverage [500]"
@@ -3450,10 +3451,10 @@ async def set_leverage(
                         await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
                         _leverage_cache[cache_key] = max_lev
                         logger.info(f"[{user_id}] Leverage for {symbol} set to max {max_lev}x [{account_type or 'auto'}]")
-                        return True
+                        return max_lev  # Return actual max leverage
                     except Exception as e2:
                         logger.warning(f"[{user_id}] Failed to set max leverage for {symbol}: {e2}")
-                        return False
+                        return 0
             else:
                 # Can't extract max, try common values: 100, 50, 25, 10
                 for fallback_lev in [100, 50, 25, 10, 5, 3, 2, 1]:
@@ -3464,11 +3465,11 @@ async def set_leverage(
                             await _bybit_request(user_id, "POST", "/v5/position/set-leverage", body=body, account_type=account_type)
                             _leverage_cache[cache_key] = fallback_lev
                             logger.info(f"[{user_id}] Leverage for {symbol} set to fallback {fallback_lev}x [{account_type or 'auto'}]")
-                            return True
+                            return fallback_lev  # Return actual fallback leverage
                         except Exception:
                             continue
                 logger.warning(f"[{user_id}] Could not set any leverage for {symbol}")
-                return False
+                return 0  # Failed
         raise
 
 def _calc_pnl(entry: float, exit_: float, side: str, size: float) -> tuple[float, float]:
@@ -5060,11 +5061,11 @@ async def place_order(
             logger.info(f"{symbol}: leverage error → trying to set {target_lev}x")
             lev_success = await set_leverage(user_id, symbol, leverage=target_lev, account_type=account_type)
             
-            # If set_leverage failed, try progressively lower values
-            if not lev_success:
+            # If set_leverage failed (returned 0), try progressively lower values
+            if lev_success == 0:
                 for fallback in [5, 3, 2, 1]:
                     logger.info(f"{symbol}: trying fallback leverage {fallback}x")
-                    if await set_leverage(user_id, symbol, leverage=fallback, account_type=account_type):
+                    if await set_leverage(user_id, symbol, leverage=fallback, account_type=account_type) > 0:
                         break
             
             res = await _bybit_request(user_id, "POST", "/v5/order/create", body=body, account_type=account_type)
@@ -5415,15 +5416,16 @@ async def place_order_for_targets(
                 # ═══════════════════════════════════════════════════════════
                 acc_type = target_account_type or ("demo" if target_env == "paper" else "real")
                 
-                # Set leverage first with target-specific value
+                # Set leverage first with target-specific value, get actual leverage applied
+                actual_leverage = target_leverage or leverage
                 try:
-                    await set_leverage(user_id, symbol, leverage=target_leverage or leverage, account_type=acc_type)
+                    actual_leverage = await set_leverage(user_id, symbol, leverage=target_leverage or leverage, account_type=acc_type) or (target_leverage or leverage)
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set Bybit leverage for {symbol}: {lev_err}")
                 
                 # Place order with target-specific qty
                 res = await place_order(user_id, symbol, side, orderType, target_qty, price, timeInForce, account_type=acc_type)
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty}
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "actual_leverage": actual_leverage}
                 logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side} qty={target_qty}")
             
             # Store position in DB with correct target info
@@ -5465,6 +5467,9 @@ async def place_order_for_targets(
                 pos_sl_pct = trade_params.get("sl_pct")
                 pos_tp_pct = trade_params.get("tp_pct")
                 
+                # Get actual leverage (may differ from requested due to fallback)
+                pos_leverage = results.get(target_key, {}).get("actual_leverage", target_leverage or leverage)
+                
                 add_active_position(
                     user_id=user_id,
                     signal_id=signal_id,
@@ -5479,12 +5484,12 @@ async def place_order_for_targets(
                     env=target_env,
                     client_order_id=client_order_id,
                     use_atr=pos_use_atr,  # P0.5: Pass ATR setting
-                    leverage=target_leverage or leverage,  # Save target-specific leverage
+                    leverage=pos_leverage,  # Save actual leverage (after fallback)
                     # Fix #2: Save SL/TP % at position open time
                     applied_sl_pct=pos_sl_pct,
                     applied_tp_pct=pos_tp_pct,
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={target_leverage or leverage})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -13156,6 +13161,14 @@ async def calc_qty(
     qty = math.floor(raw_qty / step_qty) * step_qty
     qty = max(min_qty, qty)
     qty = min(max_qty, qty)
+    
+    # Round to avoid floating point precision issues (e.g., 1293.1000000000001 → 1293.1)
+    # Calculate decimals from step_qty (e.g., step 0.1 → 1 decimal, step 0.01 → 2 decimals)
+    if step_qty >= 1:
+        decimals = 0
+    else:
+        decimals = len(str(step_qty).split('.')[-1].rstrip('0'))
+    qty = round(qty, decimals)
 
     if qty < min_qty:
         raise RuntimeError(f"qty < minOrderQty={min_qty}")
