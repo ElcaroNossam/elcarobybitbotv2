@@ -5910,30 +5910,8 @@ def add_referral_connection(user_id: int, referrer_id: int):
         extend_license(referrer_id, 7)
 
 
-def get_user_payments(user_id: int, limit: int = 50) -> list:
-    """Get user's payment history"""
-    with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT 
-                amount, payment_method, plan_type, 
-                transaction_id, created_at, status
-            FROM payment_history
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT ?
-        """, (user_id, limit)).fetchall()
-        
-        return [
-            {
-                "amount": r[0],
-                "method": r[1],
-                "plan": r[2],
-                "transaction_id": r[3],
-                "date": r[4],
-                "status": r[5]
-            }
-            for r in rows
-        ]
+# NOTE: get_user_payments is defined earlier in this file (line ~4244)
+# with correct column names matching payment_history schema
 
 
 def get_referral_stats(user_id: int) -> dict:
