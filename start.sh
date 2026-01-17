@@ -226,10 +226,10 @@ start_webapp() {
         if [ -z "$JWT_SECRET" ]; then
             # Generate secure random secret if not set (for development only)
             export JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex(32))")
-            warning "JWT_SECRET not set - generated random secret (not persistent across restarts!)"
+            warn "JWT_SECRET not set - generated random secret (not persistent across restarts!)"
         fi
         
-        nohup $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT >> "$WEBAPP_LOG" 2>&1 &
+        nohup $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT --workers 4 --limit-concurrency 100 >> "$WEBAPP_LOG" 2>&1 &
         echo $! > "$WEBAPP_PID_FILE"
         sleep 4
         
@@ -259,7 +259,7 @@ start_webapp() {
         # SECURITY: JWT_SECRET must be set - no hardcoded fallback
         if [ -z "$JWT_SECRET" ]; then
             export JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex(32))")
-            warning "JWT_SECRET not set - generated random secret (not persistent!)"
+            warn "JWT_SECRET not set - generated random secret (not persistent!)"
         fi
         $PYTHON_CMD -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT --reload 2>&1 | tee -a "$WEBAPP_LOG"
     fi

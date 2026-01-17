@@ -931,9 +931,54 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 
 ---
 
+# 💎 TON PAYMENT INTEGRATION (IN PROGRESS)
+
+## Текущий статус: ЗАГЛУШКИ
+
+**Файлы:**
+- `webapp/api/ton_payments.py` - API endpoints (готово)
+- `ton_payment_gateway.py` - verify функции (заглушки)
+- `bot.py` - UI кнопки оплаты (готово)
+- `core/db_postgres.py` - таблица ton_payments (готово)
+
+## TODO (ожидаем ответ от разработчиков TON):
+
+### 1. Настроить реальные кошельки
+```python
+# webapp/api/ton_payments.py, строка 32-33
+"mainnet_wallet": "UQ_REAL_WALLET_HERE",  # <-- Заменить
+"testnet_wallet": "kQ_TESTNET_WALLET_HERE",  # <-- Заменить
+```
+
+### 2. Реализовать verify_usdt_jetton_transfer()
+```python
+# ton_payment_gateway.py
+async def verify_usdt_jetton_transfer(...)
+    # TODO: Интеграция с TONAPI
+    # Ждём от разработчиков: формат webhook, API ключ
+```
+
+### 3. Настроить webhook secret
+```python
+# webapp/api/ton_payments.py, строка 48
+"webhook_secret": "your_webhook_secret_here",  # <-- Из .env
+```
+
+### 4. Переключить на mainnet
+```python
+# webapp/api/ton_payments.py, строка 45
+"use_testnet": False,  # <-- Для продакшена
+```
+
+## Документация для разработчиков TON:
+Файл: `docs/TON_INTEGRATION_ANSWERS.txt`
+
+---
+
 *Last updated: 17 января 2026*
-*Version: 3.9.0*
+*Version: 3.10.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*
+*TON Integration: In Progress (stubs)*
