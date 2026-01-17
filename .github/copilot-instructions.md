@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.8.0 | Обновлено: 15 января 2026
+# Версия: 3.9.0 | Обновлено: 17 января 2026
 # =============================================
 
 ---
@@ -470,6 +470,40 @@ python3 utils/translation_sync.py --report
 
 # 🔧 RECENT FIXES (Январь 2026)
 
+### ✅ CRITICAL: Duplicate get_user_payments Function Removed (Jan 17, 2026)
+- **Проблема:** Кнопка "Моя подписка" не работала - ошибка `column "payment_method" does not exist`
+- **Причина:** Дублирующая функция `get_user_payments` в db.py:
+  - Line ~4244: Правильная версия с колонками `payment_type`, `license_type`
+  - Line ~5913: **СЛОМАННАЯ** версия с колонками `payment_method`, `plan_type` (не существуют!)
+  - Python использует последнее определение → вызывалась сломанная версия
+- **Файл:** `db.py` - удалена дублирующая функция (lines 5913-5936)
+- **Fix:** Оставлена только правильная версия функции на line ~4244
+- **Commit:** 2da097f
+
+### ✅ FIX: Trading Statistics API Field Mapping (Jan 17, 2026)
+- **Проблема:** Статистика торговли в WebApp показывала некорректные данные
+- **Причина:** API `/stats` endpoint использовал неправильные имена полей:
+  - `total_trades` вместо `total`
+  - `win_rate` вместо `winrate`
+- **Файлы:**
+  - `webapp/api/trading.py` - исправлен маппинг полей в `/stats` endpoint
+  - `db.py` - добавлены `best_pnl` и `worst_pnl` в `get_trade_stats()`
+  - `db.py` - исправлен `get_trade_logs_list()` для получения exchange из БД
+- **Fix:** Корректный маппинг полей + добавлены недостающие поля статистики
+- **Commit:** 6aa2367
+
+### ✅ FIX: SQLite Fallback Code Removed from WebApp (Jan 17, 2026)
+- **Проблема:** В `/trades` endpoint остался obsolete SQLite fallback код
+- **Файл:** `webapp/api/trading.py`
+- **Fix:** Удалён SQLite fallback, оставлен только PostgreSQL код
+- **Commit:** 6aa2367
+
+### ✅ FIX: Strategy Validation Fallback (Jan 17, 2026)
+- **Проблема:** Стратегии использовали "manual" как fallback вместо "unknown"
+- **Файл:** `webapp/api/stats.py`
+- **Fix:** Изменён fallback с "manual" на "unknown" для консистентности
+- **Commit:** 6aa2367
+
 ### ✅ FIX: SQLiteCompatCursor Context Manager (Jan 15, 2026)
 - **Проблема:** `execute()` функция падала с `AttributeError: __enter__` при использовании `RealDictCursor`
 - **Причина:** `SQLiteCompatCursor` не имел методов `__enter__`/`__exit__` для context manager
@@ -897,8 +931,8 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 
 ---
 
-*Last updated: 15 января 2026*
-*Version: 3.8.0*
+*Last updated: 17 января 2026*
+*Version: 3.9.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
