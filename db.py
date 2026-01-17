@@ -1924,7 +1924,7 @@ def get_active_trading_users() -> list[int]:
             AND (
                 demo_api_key IS NOT NULL 
                 OR real_api_key IS NOT NULL
-                OR (hl_private_key IS NOT NULL AND hl_enabled = 1)
+                OR (hl_private_key IS NOT NULL AND hl_enabled = TRUE)
             )
         """).fetchall()
     users = [r[0] for r in rows]
@@ -4845,7 +4845,7 @@ def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None
                     hl_testnet_private_key = ?,
                     hl_testnet_wallet_address = ?,
                     hl_vault_address = ?,
-                    hl_testnet = 1,
+                    hl_testnet = TRUE,
                     hl_private_key = ?,
                     hl_wallet_address = ?
                 WHERE user_id = ?
@@ -4857,7 +4857,7 @@ def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None
                     hl_mainnet_private_key = ?,
                     hl_mainnet_wallet_address = ?,
                     hl_vault_address = ?,
-                    hl_testnet = 0,
+                    hl_testnet = FALSE,
                     hl_private_key = ?,
                     hl_wallet_address = ?
                 WHERE user_id = ?
@@ -5034,7 +5034,7 @@ def clear_hl_credentials(user_id: int, account_type: str = None):
                     hl_private_key = NULL,
                     hl_wallet_address = NULL,
                     hl_vault_address = NULL,
-                    hl_testnet = 0,
+                    hl_testnet = FALSE,
                     hl_testnet_private_key = NULL,
                     hl_testnet_wallet_address = NULL,
                     hl_mainnet_private_key = NULL,
