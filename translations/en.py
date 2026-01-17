@@ -431,27 +431,171 @@ Choose your path to financial freedom:''',
         '_Every trade is a step toward financial freedom._'
     ),
 
-    # Entries & errors - unified format with full info
-    'oi_limit_entry':              '📉 *OI Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'oi_limit_error':              '❌ OI Limit error: {msg}',
-    'oi_market_entry':             '📉 *OI Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'oi_market_error':             '❌ OI error\n🪙 {symbol} {side}\n\n{msg}',
-    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    # ==================== UNIFIED ENTRY TEMPLATES ====================
+    # Each strategy has unique black rhetoric style
+    
+    # OI - Predator Style (aggressive hunter, whale tracking)
+    'oi_entry': (
+        '🐋 *OI SIGNAL* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🦈 Whale detected. Hunt initiated._'
+    ),
+    
+    # Scryptomera - Mystic Style (prophecy, cryptic signals)
+    'scryptomera_entry': (
+        '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🌙 The oracle has spoken. Destiny awaits._'
+    ),
+    
+    # Scalper - Lightning Style (speed, precision)
+    'scalper_entry': (
+        '⚡ *SCALPER* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_⚡ Strike fast. Leave no trace._'
+    ),
+    
+    # Elcaro - Fire Style (heatmap, liquidity zones)
+    'elcaro_entry': (
+        '🔥 *ELCARO* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🔥 Liquidity burns. We collect the ashes._'
+    ),
+    
+    # Fibonacci - Mathematics Style (precision, golden ratio)
+    'fibonacci_entry': (
+        '📐 *FIBONACCI* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_📐 Golden ratio never lies. Mathematics favors the bold._'
+    ),
+    
+    # RSI+BB - Technical Analysis Style
+    'rsi_bb_entry': (
+        '📊 *RSI+BB* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Entry: `{price:.6f}`\n'
+        '📈 RSI: `{rsi}` ({rsi_zone})\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
+        '*Opened on:*\n{accounts}\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '_📊 Indicators aligned. Execute._'
+    ),
 
-    'rsi_bb_limit_entry':          '📊 *RSI+BB Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    # ==================== UNIFIED CLOSE TEMPLATES ====================
+    # Strategy-specific close messages with black rhetoric
+    
+    'oi_closed': (
+        '🐋 *HUNT COMPLETED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `OI Signal`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🦈 The whale was caught. Next prey awaits._'
+    ),
+    
+    'scryptomera_closed': (
+        '🔮 *PROPHECY FULFILLED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `Scryptomera`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🌙 The vision was true. Fate delivered._'
+    ),
+    
+    'scalper_closed': (
+        '⚡ *STRIKE EXECUTED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `Scalper`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_⚡ Swift kill. Zero mercy._'
+    ),
+    
+    'elcaro_closed': (
+        '🔥 *FLAMES SETTLED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `Elcaro`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🔥 Liquidity harvested. The fire spreads._'
+    ),
+    
+    'fibonacci_closed': (
+        '📐 *EQUATION SOLVED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `Fibonacci`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_📐 Golden ratio delivered. Perfect execution._'
+    ),
+
+    # Entries & errors - unified format with full info
+    'oi_limit_entry':              '🐋 *OI Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🦈 Order placed. Waiting for prey._',
+    'oi_limit_error':              '❌ OI Limit error: {msg}',
+    'oi_market_entry':             '🐋 *OI Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI error\n🪙 {symbol} {side}\n\n{msg}',
+    'oi_market_ok':                '🐋 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📊 Order queued. Patience is power._',
     'rsi_bb_market_entry':         '📊 *RSI+BB Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%\n_📊 Indicators aligned. Execution complete._',
     'rsi_bb_market_error':         '❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}',
 
-    'oi_analysis':                 '📊 *OI {symbol} analysis* {side}',
+    'oi_analysis':                 '🐋 *OI {symbol} analysis* {side}\n_🦈 Whale activity detected._',
 
-    # Scryptomera
-    'bitk_limit_entry':            '🔮 *Scryptomera Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'bitk_limit_error':            '❌ Scryptomera Limit error: {msg}',
-    'bitk_market_entry':           '🔮 *Scryptomera Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_error':           '❌ Scryptomera Market error: {msg}',
-    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    # Scryptomera - Mystic Style
+    'bitk_limit_entry':            '🔮 *Scryptomera Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 Spell cast. Destiny unfolds._',
+    'bitk_limit_error':            '❌ Scryptomera error: {msg}',
+    'bitk_market_entry':           '🔮 *Scryptomera Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 The oracle spoke. We obeyed._',
+    'bitk_market_error':           '❌ Scryptomera error\n🪙 {symbol} {side}\n\n{msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}\n_🌙 Ancient signals detected._',
     'feature_scryptomera':         'Scryptomera',
 
     # Insufficient balance error - BLACK RHETORIC: Problem + Solution + Urgency
@@ -505,31 +649,31 @@ _Top traders rarely exceed 10x._
 
 <i>Discipline is what separates winners from gamblers.</i>''',
 
-    # Scalper
-    'scalper_limit_entry':         '⚡ *Scalper Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_limit_error':         '❌ Scalper Limit error: {msg}',
-    'scalper_market_entry':        '⚡ *Scalper Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_error':        '❌ Scalper Market error: {msg}',
-    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    # Scalper - Lightning Style
+    'scalper_limit_entry':         '⚡ *Scalper Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Trap set. Lightning waits._',
+    'scalper_limit_error':         '❌ Scalper error: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Instant strike. Maximum impact._',
+    'scalper_market_error':        '❌ Scalper error\n🪙 {symbol} {side}\n\n{msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Speed is profit._',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit error: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market error: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    # Elcaro (Heatmap) - Fire Style
+    'elcaro_limit_entry':          '🔥 *Elcaro Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Liquidity zone locked. Burn incoming._',
+    'elcaro_limit_error':          '❌ Elcaro error: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Heatmap confirmed. We burn with precision._',
+    'elcaro_market_error':         '❌ Elcaro error\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}\n_🔥 Liquidity concentration detected._',
     'feature_elcaro':              'Elcaro',
 
-    # Fibonacci Extension Strategy
-    'fibonacci_limit_entry':       '📐 *Fibonacci Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_limit_error':       '❌ Fibonacci Limit error: {msg}',
-    'fibonacci_market_entry':      '📐 *Fibonacci Market Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    # Fibonacci - Mathematics Style
+    'fibonacci_limit_entry':       '📐 *Fibonacci Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Golden level engaged. Mathematics never fails._',
+    'fibonacci_limit_error':       '❌ Fibonacci error: {msg}',
+    'fibonacci_market_entry':      '📐 *Fibonacci Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Phi ratio confirmed. Perfect entry._',
     'fibonacci_market_error':      '❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}',
-    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}',
+    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}\n_📐 Golden ratio aligned._',
     'feature_fibonacci':           'Fibonacci',
     'stats_fibonacci':             '📐 Fibonacci',
 

@@ -275,40 +275,183 @@ TEXTS = {
         '📍 {exchange} • {market_type}\n\n'
         '<i>AI ElCaro працює для вас 24/7</i>'
     ),
-    'sl_auto_set':                 '🛑 SL виставлено автоматично: {price:.6f}',
-    'auto_close_position':         '⏱ Позицію {symbol} (TF={tf}) відкрито > {tf} та вона збиткова — закрито автоматично.',
+    'sl_auto_set':                 '�️ *Захист активний:* SL @ {price:.6f}\n_Твій капітал під охороною._',
+    'auto_close_position':         '⚡ *Авто-вихід:* {symbol} закрито (TF={tf})\n_AI захистив тебе від подальших втрат._',
     'position_closed': (
-        '🎯 <b>ПОЗИЦІЮ ЗАКРИТО!</b>\n\n'
-        '📊 {symbol} через *{reason}*\n'
-        '🤖 Стратегія: `{strategy}`\n'
+        '🏆 *УГОДА ЗАВЕРШЕНА!*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `{strategy}`\n'
         '📈 Вхід: `{entry:.8f}`\n'
         '📉 Вихід: `{exit:.8f}`\n'
-        '💰 PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
         '📍 {exchange} • {market_type}\n\n'
-        '<i>Ваші гроші працюють поки ви спите.</i>'
+        '_Кожна угода — крок до фінансової свободи._'
+    ),
+
+    # ==================== УНІФІКОВАНІ ШАБЛОНИ ВХОДУ ====================
+    # Кожна стратегія має унікальний стиль чорної риторики
+    
+    # OI - Стиль Хижака (агресивний мисливець, відстеження китів)
+    'oi_entry': (
+        '🐋 *OI СИГНАЛ* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🦈 Кит виявлено. Полювання почалося._'
+    ),
+    
+    # Scryptomera - Містичний стиль (пророцтво, загадкові сигнали)
+    'scryptomera_entry': (
+        '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🌙 Оракул промовив. Доля чекає._'
+    ),
+    
+    # Scalper - Стиль Блискавки (швидкість, точність)
+    'scalper_entry': (
+        '⚡ *SCALPER* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_⚡ Бий швидко. Не залишай слідів._'
+    ),
+    
+    # Elcaro - Вогняний стиль (теплова карта, зони ліквідності)
+    'elcaro_entry': (
+        '🔥 *ELCARO* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_🔥 Ліквідність горить. Ми збираємо попіл._'
+    ),
+    
+    # Fibonacci - Математичний стиль (точність, золотий переріз)
+    'fibonacci_entry': (
+        '📐 *FIBONACCI* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '{atr_info}'
+        '━━━━━━━━━━━━━━━━\n'
+        '_📐 Золотий переріз не бреше. Математика на боці сміливих._'
+    ),
+    
+    # RSI+BB - Технічний аналіз
+    'rsi_bb_entry': (
+        '📊 *RSI+BB* {side_emoji} *{side}*\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '🪙 `{symbol}`\n'
+        '💰 Вхід: `{price:.6f}`\n'
+        '📈 RSI: `{rsi}` ({rsi_zone})\n'
+        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
+        '*Відкрито на:*\n{accounts}\n'
+        '━━━━━━━━━━━━━━━━\n'
+        '_📊 Індикатори зійшлися. Виконуй._'
+    ),
+
+    # ==================== УНІФІКОВАНІ ШАБЛОНИ ЗАКРИТТЯ ====================
+    
+    'oi_closed': (
+        '🐋 *ПОЛЮВАННЯ ЗАВЕРШЕНО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `OI Signal`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🦈 Кит спійманий. Наступна здобич чекає._'
+    ),
+    
+    'scryptomera_closed': (
+        '🔮 *ПРОРОЦТВО ЗДІЙСНЕНО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `Scryptomera`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🌙 Бачення було істинним. Доля звершилася._'
+    ),
+    
+    'scalper_closed': (
+        '⚡ *УДАР НАНЕСЕНО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `Scalper`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_⚡ Швидке вбивство. Без пощади._'
+    ),
+    
+    'elcaro_closed': (
+        '🔥 *ПОЛУМЯ ЗГАСЛО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `Elcaro`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_🔥 Ліквідність зібрано. Вогонь поширюється._'
+    ),
+    
+    'fibonacci_closed': (
+        '📐 *РІВНЯННЯ РОЗВЯЗАНО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `Fibonacci`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_📐 Золотий переріз спрацював. Ідеальне виконання._'
     ),
 
     # Entries & errors - уніфікований формат з повною інформацією
-    'oi_limit_entry':              '📉 *OI Лiміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'oi_limit_error':              '❌ OI Limit помилка: {msg}',
-    'oi_market_entry':             '📉 *OI Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'oi_market_error':             '❌ OI Market помилка: {msg}',
-    'oi_market_ok':                '📉 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
+    'oi_limit_entry':              '🐋 *OI Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🦈 Ордер встановлено. Чекаємо здобич._',
+    'oi_limit_error':              '❌ OI помилка: {msg}',
+    'oi_market_entry':             '🐋 *OI Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
+    'oi_market_error':             '❌ OI помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'oi_market_ok':                '🐋 *OI: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%\n_🦈 Кит у прицілі. Полювання почалося._',
 
-    'rsi_bb_limit_entry':          '📊 *RSI+BB Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'rsi_bb_market_entry':         '📊 *RSI+BB Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%',
-    'rsi_bb_market_error':         '❌ RSI+BB Market помилка: {msg}',
+    'rsi_bb_limit_entry':          '📊 *RSI+BB Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%\n_📊 Ордер у черзі. Терпіння — сила._',
+    'rsi_bb_market_entry':         '📊 *RSI+BB Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
+    'rsi_bb_market_ok':            '📊 *RSI+BB: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• RSI: {rsi} ({zone})\n• SL: {sl_pct}%\n_📊 Індикатори зійшлися. Виконано._',
+    'rsi_bb_market_error':         '❌ RSI+BB помилка\n🪙 {symbol} {side}\n\n{msg}',
 
-    'oi_analysis':                 '📊 *Аналіз OI {symbol}* {side}',
+    'oi_analysis':                 '🐋 *Аналіз OI {symbol}* {side}\n_🦈 Активність китів виявлено._',
 
-    # Scryptomera
-    'bitk_limit_entry':            '🔮 *Scryptomera Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'bitk_limit_error':            '❌ Scryptomera Limit помилка: {msg}',
-    'bitk_market_entry':           '🔮 *Scryptomera Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_error':           '❌ Scryptomera Market помилка: {msg}',
-    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}',
+    # Scryptomera - Містичний стиль
+    'bitk_limit_entry':            '🔮 *Scryptomera Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%\n_🌙 Заклинання закинуто. Доля розкривається._',
+    'bitk_limit_error':            '❌ Scryptomera помилка: {msg}',
+    'bitk_market_entry':           '🔮 *Scryptomera Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Кіл-ть: {qty}\n• SL: {sl_pct}%\n_🌙 Оракул промовив. Ми підкорилися._',
+    'bitk_market_error':           '❌ Scryptomera помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}\n_🌙 Стародавні сигнали виявлено._',
     'feature_scryptomera':         'Scryptomera',
 
     # Insufficient balance error
@@ -323,31 +466,31 @@ TEXTS = {
     
 
 
-    # Scalper
-    'scalper_limit_entry':         '⚡ *Scalper Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_limit_error':         '❌ Scalper Limit помилка: {msg}',
-    'scalper_market_entry':        '⚡ *Scalper Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_error':        '❌ Scalper Market помилка: {msg}',
-    'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
+    # Scalper - Стиль Блискавки (швидкість, точність)
+    'scalper_limit_entry':         '⚡ *Scalper Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Ордер встановлено. Блискавка чекає мить._',
+    'scalper_limit_error':         '❌ Scalper помилка: {msg}',
+    'scalper_market_entry':        '⚡ *Scalper Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Удар нанесено. Без пощади._',
+    'scalper_market_error':        '❌ Scalper помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Швидкі гроші для швидких розумів._',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit помилка: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market помилка: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
+    # Elcaro (Heatmap) - Вогняний стиль (ліквідність, зони пожежі)
+    'elcaro_limit_entry':          '🔥 *Elcaro Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Пастка встановлена. Ліквідність згорить._',
+    'elcaro_limit_error':          '❌ Elcaro помилка: {msg}',
+    'elcaro_market_entry':         '🔥 *Elcaro Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Попіл ліквідності — наша здобич._',
+    'elcaro_market_error':         '❌ Elcaro помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}\n_🔥 Зони горять. Розумні збирають попіл._',
     'feature_elcaro':              'Elcaro',
 
-    # Fibonacci (Fibonacci Extension)
-    'fibonacci_limit_entry':         '📐 *Fibonacci Ліміт Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_limit_error':         '❌ Fibonacci Limit помилка: {msg}',
-    'fibonacci_market_entry':        '📐 *Fibonacci Маркет Вхід*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_ok':           '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_error':        '❌ Fibonacci Market помилка: {msg}',
-    'fibonacci_analysis':            '📐 Fibonacci: {side} @ {price}',
+    # Fibonacci - Математичний стиль (золотий переріз)
+    'fibonacci_limit_entry':         '📐 *Fibonacci Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Рівняння запущено. Природа не помиляється._',
+    'fibonacci_limit_error':         '❌ Fibonacci помилка: {msg}',
+    'fibonacci_market_entry':        '📐 *Fibonacci Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok':           '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Золотий переріз на твоєму боці._',
+    'fibonacci_market_error':        '❌ Fibonacci помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'fibonacci_analysis':            '📐 Fibonacci: {side} @ {price}\n_📐 Числа Фібоначчі правлять ринком._',
     'feature_fibonacci':             'Fibonacci',
 
     # Admin panel
