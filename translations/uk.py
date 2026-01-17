@@ -430,6 +430,17 @@ TEXTS = {
         '📍 {exchange} • {market_type}\n\n'
         '_📐 Золотий переріз спрацював. Ідеальне виконання._'
     ),
+    
+    'rsi_bb_closed': (
+        '📊 *СИГНАЛ ЗАВЕРШЕНО*\n\n'
+        '🪙 *{symbol}* закрито по *{reason}*\n'
+        '📊 Стратегія: `RSI+BB`\n'
+        '📈 Вхід: `{entry:.8f}`\n'
+        '📉 Вихід: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_📊 Індикатори спрацювали. Точна торгівля._'
+    ),
 
     # Entries & errors - уніфікований формат з повною інформацією
     'oi_limit_entry':              '🐋 *OI Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🦈 Ордер встановлено. Чекаємо здобич._',

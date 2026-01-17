@@ -574,6 +574,17 @@ Choose your path to financial freedom:''',
         '📍 {exchange} • {market_type}\n\n'
         '_📐 Golden ratio delivered. Perfect execution._'
     ),
+    
+    'rsi_bb_closed': (
+        '📊 *SIGNAL COMPLETED*\n\n'
+        '🪙 *{symbol}* closed by *{reason}*\n'
+        '📊 Strategy: `RSI+BB`\n'
+        '📈 Entry: `{entry:.8f}`\n'
+        '📉 Exit: `{exit:.8f}`\n'
+        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_📊 Indicators delivered. Precision trading._'
+    ),
 
     # Entries & errors - unified format with full info
     'oi_limit_entry':              '🐋 *OI Limit Entry*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🦈 Order placed. Waiting for prey._',

@@ -14146,15 +14146,29 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                         accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                         
-                        await ctx.bot.send_message(
-                            uid,
-                            f"📊 *RSI+BB: {side_display}*\n"
-                            f"• {symbol} @ {spot_price:.6f}\n"
-                            f"• RSI: {rv} ({rsi_zone})\n"
-                            f"• SL: {user_sl_pct}%\n\n"
-                            f"*Opened on:*\n{accounts_str}",
-                            parse_mode="Markdown"
+                        # Calculate SL price
+                        sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
+                        side_emoji = '📈' if side == 'Buy' else '📉'
+                        
+                        signal_info = t.get('rsi_bb_entry', (
+                            '📊 *RSI+BB* {side_emoji} *{side}*\n'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '🪙 `{symbol}`\n'
+                            '💰 Entry: `{price:.6f}`\n'
+                            '📈 RSI: `{rsi}` ({rsi_zone})\n'
+                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
+                            '*Opened on:*\n{accounts}\n'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '_📊 Indicators aligned. Execute._'
+                        )).format(
+                            side_emoji=side_emoji, side=side_display,
+                            symbol=symbol, price=spot_price,
+                            rsi=rv, rsi_zone=rsi_zone,
+                            sl_price=sl_price, sl_pct=user_sl_pct,
+                            accounts=accounts_str
                         )
+                        
+                        await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                         
                         # Place ladder limit orders if enabled
                         try:
@@ -14253,6 +14267,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        side_emoji = '📈' if side == 'Buy' else '📉'
                         
                         # Build accounts display string
                         accounts_lines = []
@@ -14262,14 +14277,30 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                         accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                         
-                        await ctx.bot.send_message(
-                            uid,
-                            f"🔮 *Scryptomera: {side_display}*\n"
-                            f"• {symbol} @ {spot_price:.6f}\n"
-                            f"• SL: {user_sl_pct}%\n\n"
-                            f"*Opened on:*\n{accounts_str}",
-                            parse_mode="Markdown"
+                        # Calculate SL/TP prices
+                        sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
+                        tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
+                        
+                        signal_info = t.get('scryptomera_entry', (
+                            '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '🪙 `{symbol}`\n'
+                            '💰 Entry: `{price:.6f}`\n'
+                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '*Opened on:*\n{accounts}\n'
+                            '{atr_info}'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '_🌙 The oracle has spoken. Destiny awaits._'
+                        )).format(
+                            side_emoji=side_emoji, side=side_display,
+                            symbol=symbol, price=spot_price,
+                            sl_price=sl_price, sl_pct=user_sl_pct,
+                            tp_price=tp_price, tp_pct=user_tp_pct,
+                            accounts=accounts_str, atr_info=""
                         )
+                        
+                        await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                         
                         # Place ladder limit orders if enabled
                         try:
@@ -14387,6 +14418,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        side_emoji = '📈' if side == 'Buy' else '📉'
                         
                         # Build accounts display string
                         accounts_lines = []
@@ -14396,14 +14428,30 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                         accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                         
-                        await ctx.bot.send_message(
-                            uid,
-                            f"⚡ *Scalper: {side_display}*\n"
-                            f"• {symbol} @ {spot_price:.6f}\n"
-                            f"• SL: {user_sl_pct}%\n\n"
-                            f"*Opened on:*\n{accounts_str}",
-                            parse_mode="Markdown"
+                        # Calculate SL/TP prices
+                        sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
+                        tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
+                        
+                        signal_info = t.get('scalper_entry', (
+                            '⚡ *SCALPER* {side_emoji} *{side}*\n'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '🪙 `{symbol}`\n'
+                            '💰 Entry: `{price:.6f}`\n'
+                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '*Opened on:*\n{accounts}\n'
+                            '{atr_info}'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '_⚡ Strike fast. Leave no trace._'
+                        )).format(
+                            side_emoji=side_emoji, side=side_display,
+                            symbol=symbol, price=spot_price,
+                            sl_price=sl_price, sl_pct=user_sl_pct,
+                            tp_price=tp_price, tp_pct=user_tp_pct,
+                            accounts=accounts_str, atr_info=""
                         )
+                        
+                        await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                         
                         # Place ladder limit orders if enabled
                         try:
@@ -14601,21 +14649,37 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             # Format signal message with account details
                             accounts_lines = []
                             if success_accounts:
-                                accounts_lines.extend(f'  • {acc}' for acc in success_accounts)
+                                accounts_lines.extend(f'• {acc}' for acc in success_accounts)
                             if skipped_accounts:
-                                accounts_lines.extend(f'  • {acc}' for acc in skipped_accounts)
-                            accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'  • Qty: {qty}'
+                                accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
+                            accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                             
-                            signal_info = (
-                                f"🔥 *Elcaro* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
-                                f"📊 {symbol}\n"
-                                f"💰 Entry: {spot_price:.6g}\n"
-                                f"🛑 SL: {actual_sl:.6g} ({sl_pct:.2f}%)\n"
-                                f"🎯 TP: {actual_tp:.6g} ({tp_pct:.2f}%)\n\n"
-                                f"*Opened on:*\n{accounts_str}"
-                            )
+                            # ATR info line
+                            atr_info = ""
                             if elcaro_mode and elcaro_atr_periods:
-                                signal_info += f"\n📉 ATR: {elcaro_atr_periods} | ×{elcaro_atr_mult} | Trigger: {elcaro_atr_trigger}%"
+                                atr_info = f"📉 ATR: {elcaro_atr_periods} | ×{elcaro_atr_mult} | Trigger: {elcaro_atr_trigger}%\n"
+                            
+                            side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                            side_emoji = '📈' if side == 'Buy' else '📉'
+                            
+                            signal_info = t.get('elcaro_entry', (
+                                '🔥 *ELCARO* {side_emoji} *{side}*\n'
+                                '━━━━━━━━━━━━━━━━\n'
+                                '🪙 `{symbol}`\n'
+                                '💰 Entry: `{price:.6f}`\n'
+                                '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+                                '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                                '*Opened on:*\n{accounts}\n'
+                                '{atr_info}'
+                                '━━━━━━━━━━━━━━━━\n'
+                                '_🔥 Liquidity burns. We collect the ashes._'
+                            )).format(
+                                side_emoji=side_emoji, side=side_display,
+                                symbol=symbol, price=spot_price,
+                                sl_price=actual_sl, sl_pct=sl_pct,
+                                tp_price=actual_tp, tp_pct=tp_pct,
+                                accounts=accounts_str, atr_info=atr_info
+                            )
                             
                             await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                             
@@ -14939,6 +15003,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
                         side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                        side_emoji = '📈' if side == 'Buy' else '📉'
                         
                         # Build accounts display string
                         accounts_lines = []
@@ -14948,14 +15013,30 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                         accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty_mkt}'
                         
-                        await ctx.bot.send_message(
-                            uid,
-                            f"📉 *OI: {side_display}*\n"
-                            f"• {symbol} @ {spot_price:.6f}\n"
-                            f"• SL: {user_sl_pct}%\n\n"
-                            f"*Opened on:*\n{accounts_str}",
-                            parse_mode="Markdown"
+                        # Calculate SL/TP prices
+                        sl_price = spot_price * (1 - user_sl_pct/100) if side == 'Buy' else spot_price * (1 + user_sl_pct/100)
+                        tp_price = spot_price * (1 + user_tp_pct/100) if side == 'Buy' else spot_price * (1 - user_tp_pct/100)
+                        
+                        signal_info = t.get('oi_entry', (
+                            '🐋 *OI SIGNAL* {side_emoji} *{side}*\n'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '🪙 `{symbol}`\n'
+                            '💰 Entry: `{price:.6f}`\n'
+                            '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+                            '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+                            '*Opened on:*\n{accounts}\n'
+                            '{atr_info}'
+                            '━━━━━━━━━━━━━━━━\n'
+                            '_🦈 Whale detected. Hunt initiated._'
+                        )).format(
+                            side_emoji=side_emoji, side=side_display,
+                            symbol=symbol, price=spot_price,
+                            sl_price=sl_price, sl_pct=user_sl_pct,
+                            tp_price=tp_price, tp_pct=user_tp_pct,
+                            accounts=accounts_str, atr_info=""
                         )
+                        
+                        await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                         inc_pyramid(uid, symbol, side)
                         
                         # Place ladder limit orders if enabled
@@ -15789,19 +15870,32 @@ async def monitor_positions_loop(app: Application):
                                     else:
                                         _close_notified[close_notify_key] = now
                                         logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
+                                        
+                                        # Select strategy-specific close template
+                                        close_template_key = {
+                                            "oi": "oi_closed",
+                                            "scryptomera": "scryptomera_closed",
+                                            "scalper": "scalper_closed",
+                                            "elcaro": "elcaro_closed",
+                                            "fibonacci": "fibonacci_closed",
+                                            "rsi_bb": "rsi_bb_closed",
+                                        }.get(strategy_name, "position_closed")
+                                        
+                                        close_message = t.get(close_template_key, t['position_closed']).format(
+                                            symbol=sym,
+                                            reason=reason_text,
+                                            strategy=strategy_display,
+                                            entry=float(entry_price),
+                                            exit=float(exit_price),
+                                            pnl=pnl_value,
+                                            pct=pct_value,
+                                            exchange=exchange_display,
+                                            market_type=market_type_display,
+                                        )
+                                        
                                         await safe_send_notification(
                                             bot, uid,
-                                            t['position_closed'].format(
-                                                symbol=sym,
-                                                reason=reason_text,
-                                                strategy=strategy_display,
-                                                entry=float(entry_price),
-                                                exit=float(exit_price),
-                                                pnl=pnl_value,
-                                                pct=pct_value,
-                                                exchange=exchange_display,
-                                                market_type=market_type_display,
-                                            ),
+                                            close_message,
                                             parse_mode="Markdown"
                                         )
 
