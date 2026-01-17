@@ -2556,3 +2556,207 @@ async def get_market_overview():
                 
     except Exception as e:
         return {"error": str(e)}
+
+
+# ==================== CHART MARKERS API ====================
+
+@router.get("/chart-markers/{symbol}")
+async def get_chart_markers(
+    symbol: str,
+    days: int = Query(default=30, le=365),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Get chart markers for TradingView visualization.
+    Returns entries, exits, SL/TP levels for the specified symbol.
+    
+    Marker types:
+    - entry_long: Green arrow up (▲)
+    - entry_short: Red arrow down (▼)
+    - exit_tp: Star (★) - Take Profit
+    - exit_sl: Cross (✖) - Stop-Loss (fixed)
+    - exit_atr_sl: Diamond (◆) - ATR Trailing Stop
+    - exit_manual: Circle (●) - Manual close
+    - exit_liq: Skull (💀) - Liquidation
+    """
+    try:
+        user_id = user.get("user_id") or user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        markers = []
+        
+        # Get trade logs for this symbol
+        from core.db_postgres import execute
+        
+        # Query trade_logs for this user and symbol
+        query = """
+            SELECT 
+                id, symbol, side, entry_price, exit_price, exit_reason,
+                pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct,
+                sl_price, tp_price, entry_ts, exit_ts, exit_order_type
+            FROM trade_logs
+            WHERE user_id = %s AND symbol = %s
+            AND exit_ts >= EXTRACT(EPOCH FROM (NOW() - INTERVAL '%s days')) * 1000
+            ORDER BY exit_ts DESC
+            LIMIT 500
+        """
+        
+        trades = execute(query, (user_id, symbol.upper(), days))
+        
+        for trade in trades:
+            trade_id = trade.get("id")
+            side = trade.get("side", "Buy")
+            entry_price = trade.get("entry_price")
+            exit_price = trade.get("exit_price")
+            exit_reason = trade.get("exit_reason", "UNKNOWN")
+            pnl = trade.get("pnl", 0)
+            pnl_pct = trade.get("pnl_pct", 0)
+            strategy = trade.get("strategy", "")
+            entry_ts = trade.get("entry_ts", 0)
+            exit_ts = trade.get("exit_ts", 0)
+            sl_price = trade.get("sl_price")
+            tp_price = trade.get("tp_price")
+            
+            # Entry marker
+            if entry_price and entry_ts:
+                markers.append({
+                    "id": f"entry_{trade_id}",
+                    "time": int(entry_ts / 1000),  # TradingView uses seconds
+                    "type": "entry_long" if side == "Buy" else "entry_short",
+                    "price": float(entry_price),
+                    "text": f"{'LONG' if side == 'Buy' else 'SHORT'} {strategy}",
+                    "color": "#26a69a" if side == "Buy" else "#ef5350",
+                    "shape": "arrowUp" if side == "Buy" else "arrowDown",
+                    "size": "small",
+                })
+            
+            # Exit marker
+            if exit_price and exit_ts:
+                # Determine marker style based on exit reason
+                marker_configs = {
+                    "TP": {"color": "#00c853", "shape": "star", "label": "TP"},
+                    "SL": {"color": "#ff1744", "shape": "cross", "label": "SL"},
+                    "ATR_SL": {"color": "#ff9800", "shape": "diamond", "label": "ATR"},
+                    "TRAILING": {"color": "#ff9800", "shape": "diamond", "label": "TRAIL"},
+                    "MANUAL": {"color": "#9c27b0", "shape": "circle", "label": "MAN"},
+                    "LIQ": {"color": "#000000", "shape": "skull", "label": "LIQ"},
+                    "ADL": {"color": "#607d8b", "shape": "cross", "label": "ADL"},
+                    "UNKNOWN": {"color": "#9e9e9e", "shape": "circle", "label": "?"},
+                }
+                
+                config = marker_configs.get(exit_reason, marker_configs["UNKNOWN"])
+                
+                markers.append({
+                    "id": f"exit_{trade_id}",
+                    "time": int(exit_ts / 1000),
+                    "type": f"exit_{exit_reason.lower()}",
+                    "price": float(exit_price),
+                    "text": f"{config['label']} {pnl:+.2f}$",
+                    "color": config["color"],
+                    "shape": config["shape"],
+                    "size": "small",
+                    "pnl": float(pnl),
+                    "pnl_pct": float(pnl_pct),
+                })
+            
+            # SL/TP level lines (for open positions or last trade)
+            if sl_price:
+                markers.append({
+                    "id": f"sl_level_{trade_id}",
+                    "time": int(entry_ts / 1000) if entry_ts else int(time.time()),
+                    "type": "sl_level",
+                    "price": float(sl_price),
+                    "text": "SL",
+                    "color": "#ff1744",
+                    "lineStyle": "dashed",
+                })
+            
+            if tp_price:
+                markers.append({
+                    "id": f"tp_level_{trade_id}",
+                    "time": int(entry_ts / 1000) if entry_ts else int(time.time()),
+                    "type": "tp_level", 
+                    "price": float(tp_price),
+                    "text": "TP",
+                    "color": "#00c853",
+                    "lineStyle": "dashed",
+                })
+        
+        # Also get active positions for current SL/TP levels
+        from db import get_active_position, get_trading_mode
+        
+        trading_mode = get_trading_mode(user_id)
+        account_types = ["demo"] if trading_mode == "demo" else ["real"] if trading_mode == "real" else ["demo", "real"]
+        
+        for acc_type in account_types:
+            active_pos = get_active_position(user_id, symbol.upper(), account_type=acc_type)
+            if active_pos:
+                entry_price = active_pos.get("entry_price")
+                sl_price = active_pos.get("sl_price")
+                tp_price = active_pos.get("tp_price")
+                side = active_pos.get("side", "Buy")
+                strategy = active_pos.get("strategy", "")
+                open_ts = active_pos.get("open_ts")
+                
+                # Parse timestamp if string
+                if isinstance(open_ts, str):
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(open_ts.replace('Z', '+00:00'))
+                        open_ts = int(dt.timestamp())
+                    except:
+                        open_ts = int(time.time())
+                elif open_ts is None:
+                    open_ts = int(time.time())
+                
+                # Active position entry
+                if entry_price:
+                    markers.append({
+                        "id": f"active_entry_{acc_type}",
+                        "time": int(open_ts),
+                        "type": "active_entry",
+                        "price": float(entry_price),
+                        "text": f"{'LONG' if side == 'Buy' else 'SHORT'} {strategy} (active)",
+                        "color": "#26a69a" if side == "Buy" else "#ef5350",
+                        "shape": "arrowUp" if side == "Buy" else "arrowDown",
+                        "size": "normal",
+                        "isActive": True,
+                    })
+                
+                # Active SL level
+                if sl_price:
+                    markers.append({
+                        "id": f"active_sl_{acc_type}",
+                        "time": int(open_ts),
+                        "type": "active_sl",
+                        "price": float(sl_price),
+                        "text": "Active SL",
+                        "color": "#ff1744",
+                        "lineStyle": "solid",
+                        "isActive": True,
+                    })
+                
+                # Active TP level
+                if tp_price:
+                    markers.append({
+                        "id": f"active_tp_{acc_type}",
+                        "time": int(open_ts),
+                        "type": "active_tp",
+                        "price": float(tp_price),
+                        "text": "Active TP",
+                        "color": "#00c853",
+                        "lineStyle": "solid",
+                        "isActive": True,
+                    })
+        
+        return {
+            "symbol": symbol.upper(),
+            "markers": markers,
+            "count": len(markers),
+            "timestamp": int(time.time() * 1000)
+        }
+        
+    except Exception as e:
+        logger.exception(f"Error getting chart markers for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

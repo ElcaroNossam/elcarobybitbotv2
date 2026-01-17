@@ -3486,19 +3486,26 @@ async def detect_exit_reason(
     exit_price: float = None, 
     side: str = None,
     sl_pct: float = None,
-    tp_pct: float = None
+    tp_pct: float = None,
+    atr_activated: bool = False,
+    account_type: str = "demo"
 ) -> tuple[str, str]:
     """
     Detect exit reason by checking execution list and order history.
     If Bybit API doesn't provide clear reason, uses price comparison as fallback.
     Returns tuple of (reason, order_type) where reason is one of:
     - "TP" - Take Profit triggered
-    - "SL" - Stop Loss triggered  
-    - "TRAILING" - Trailing Stop triggered
+    - "SL" - Stop Loss triggered (fixed %)
+    - "ATR_SL" - ATR Trailing Stop triggered
+    - "TRAILING" - Trailing Stop triggered (native Bybit)
     - "LIQ" - Liquidation
     - "ADL" - Auto-Deleveraging
     - "MANUAL" - Manual close by user
     - "UNKNOWN" - Could not determine
+    
+    Args:
+        atr_activated: If True and SL detected, will return "ATR_SL" instead of "SL"
+        account_type: For logging purposes
     """
     reason = "UNKNOWN"
     order_type = ""
@@ -3649,18 +3656,43 @@ async def detect_exit_reason(
             if pnl_pct >= tp_threshold * 0.8:  # At least 80% of TP target
                 return "TP", order_type or "Market"
             elif pnl_pct <= -sl_threshold * 0.8:  # At least 80% of SL target
-                return "SL", order_type or "Market"
+                # Check if ATR trailing was activated - means dynamic SL was used
+                sl_reason = "ATR_SL" if atr_activated else "SL"
+                return sl_reason, order_type or "Market"
         else:
             # For SHORT: profit if exit < entry
             if pnl_pct >= tp_threshold * 0.8:
                 return "TP", order_type or "Market"
             elif pnl_pct <= -sl_threshold * 0.8:
-                return "SL", order_type or "Market"
+                sl_reason = "ATR_SL" if atr_activated else "SL"
+                return sl_reason, order_type or "Market"
         
         # If small profit/loss, likely manual
         return "MANUAL", order_type or "Market"
     
+    # Final step: If we detected SL from API and ATR was activated, upgrade to ATR_SL
+    if reason == "SL" and atr_activated:
+        reason = "ATR_SL"
+    
     return reason, order_type
+
+
+# Exit reason labels with emojis for user notifications
+EXIT_REASON_LABELS = {
+    "TP":       "🎯 Take Profit",
+    "SL":       "🛡️ Stop-Loss", 
+    "ATR_SL":   "📉 ATR Trailing Stop",
+    "TRAILING": "📈 Trailing Stop",
+    "LIQ":      "💀 Liquidation",
+    "ADL":      "⚡ Auto-Deleverage",
+    "MANUAL":   "👆 Manual Close",
+    "UNKNOWN":  "❓ Unknown",
+}
+
+def format_exit_reason(reason: str) -> str:
+    """Format exit reason with emoji and readable label for user notifications."""
+    return EXIT_REASON_LABELS.get(reason, f"❓ {reason}")
+
 
 @log_calls
 async def fetch_candles(symbol: str, interval: str, limit: int) -> list[list]:
@@ -15574,6 +15606,9 @@ async def monitor_positions_loop(app: Application):
                                 else:
                                     strat_sl = float(cfg.get("sl_percent") or DEFAULT_SL_PCT)
                                     strat_tp = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
+                                
+                                # Check if ATR trailing was activated for this position
+                                atr_was_activated = bool(ap.get("atr_activated", 0))
                             
                                 exit_reason, exit_order_type = await detect_exit_reason(
                                     uid, sym, 
@@ -15581,10 +15616,12 @@ async def monitor_positions_loop(app: Application):
                                     exit_price=exit_price, 
                                     side=pos_side,
                                     sl_pct=strat_sl,
-                                    tp_pct=strat_tp
+                                    tp_pct=strat_tp,
+                                    atr_activated=atr_was_activated,
+                                    account_type=ap_account_type
                                 )
-                                logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type})")
-                                reason_text = exit_reason  
+                                logger.info(f"[{uid}] Exit reason for {sym}: {exit_reason} (order_type={exit_order_type}, atr_activated={atr_was_activated})")
+                                reason_text = format_exit_reason(exit_reason)  # Use formatted label with emoji
 
                                 try:
                                     sig = fetch_signal_by_id(ap.get("signal_id")) or {}
@@ -15662,7 +15699,7 @@ async def monitor_positions_loop(app: Application):
                                         oi_prev=sig.get("oi_prev"), oi_now=sig.get("oi_now"), oi_chg=sig.get("oi_chg"),
                                         vol_from=sig.get("vol_from"), vol_to=sig.get("vol_to"),
                                         price_chg=sig.get("price_chg"), vol_delta=sig.get("vol_delta"),
-                                        sl_price=exit_price if exit_reason=="SL" else None,
+                                        sl_price=exit_price if exit_reason in ("SL", "ATR_SL") else None,
                                         tp_price=exit_price if exit_reason=="TP" else None,
                                         timeframe=ap.get("timeframe"),
                                         entry_ts_ms=int(_parse_sqlite_ts_to_utc(ap.get("open_ts")) * 1000) if ap.get("open_ts") else None,
