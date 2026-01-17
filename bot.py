@@ -20622,11 +20622,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     expires_str = "N/A"
                 plan_name = (license_info.get("license_type") or "unknown").title()
                 days_left = license_info.get("days_left", 0)
-                text = t.get("my_subscription_active", "📋 *Current Plan:* {plan}\n⏰ *Expires:* {expires}\n📅 *Days Left:* {days}").format(
-                    plan=plan_name,
-                    expires=expires_str,
-                    days=days_left
-                )
+                # Use HTML to avoid Markdown parsing issues with underscores
+                text = f"📋 <b>Current Plan:</b> {plan_name}\n⏰ <b>Expires:</b> {expires_str}\n📅 <b>Days Left:</b> {days_left}"
             else:
                 text = t.get("my_subscription_none", "❌ No active subscription.\n\nUse /subscribe to purchase a plan.")
             
@@ -20643,13 +20640,14 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         date_str = "N/A"
                     license_type = (p.get('license_type') or 'unknown').title()
-                    payment_type = p.get('payment_type') or 'unknown'
+                    # Replace underscores to avoid Markdown issues
+                    payment_type = (p.get('payment_type') or 'unknown').replace('_', ' ').title()
                     history_lines.append(f"• {date_str}: {license_type} ({payment_type})")
-                text += f"\n\n{t.get('my_subscription_history', '📜 *Payment History:*')}\n" + "\n".join(history_lines)
+                text += f"\n\n📜 <b>Payment History:</b>\n" + "\n".join(history_lines)
             
             await q.edit_message_text(
                 text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                 ])
