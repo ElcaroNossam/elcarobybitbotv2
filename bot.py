@@ -20609,36 +20609,59 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     elif action == "my":
         # Show user's subscription status
-        license_info = get_user_license(uid)
-        
-        if license_info["is_active"]:
-            import datetime
-            expires_dt = datetime.datetime.fromtimestamp(license_info["expires"])
-            text = t.get("my_subscription_active", "📋 *Current Plan:* {plan}\n⏰ *Expires:* {expires}\n📅 *Days Left:* {days}").format(
-                plan=license_info["license_type"].title(),
-                expires=expires_dt.strftime("%Y-%m-%d"),
-                days=license_info["days_left"]
-            )
-        else:
-            text = t.get("my_subscription_none", "❌ No active subscription.\n\nUse /subscribe to purchase a plan.")
-        
-        # Get payment history
-        payments = get_user_payments(uid, limit=5)
-        if payments:
-            history_lines = []
-            for p in payments:
+        try:
+            license_info = get_user_license(uid)
+            
+            if license_info and license_info.get("is_active"):
                 import datetime
-                dt = datetime.datetime.fromtimestamp(p["created_at"])
-                history_lines.append(f"• {dt.strftime('%Y-%m-%d')}: {p['license_type'].title()} ({p['payment_type']})")
-            text += f"\n\n{t.get('my_subscription_history', '📜 *Payment History:*')}\n" + "\n".join(history_lines)
-        
-        await q.edit_message_text(
-            text,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-            ])
-        )
+                expires_ts = license_info.get("expires", 0)
+                if expires_ts:
+                    expires_dt = datetime.datetime.fromtimestamp(expires_ts)
+                    expires_str = expires_dt.strftime("%Y-%m-%d")
+                else:
+                    expires_str = "N/A"
+                plan_name = (license_info.get("license_type") or "unknown").title()
+                days_left = license_info.get("days_left", 0)
+                text = t.get("my_subscription_active", "📋 *Current Plan:* {plan}\n⏰ *Expires:* {expires}\n📅 *Days Left:* {days}").format(
+                    plan=plan_name,
+                    expires=expires_str,
+                    days=days_left
+                )
+            else:
+                text = t.get("my_subscription_none", "❌ No active subscription.\n\nUse /subscribe to purchase a plan.")
+            
+            # Get payment history
+            payments = get_user_payments(uid, limit=5)
+            if payments:
+                history_lines = []
+                for p in payments:
+                    import datetime
+                    created_at = p.get("created_at", 0)
+                    if created_at:
+                        dt = datetime.datetime.fromtimestamp(created_at)
+                        date_str = dt.strftime('%Y-%m-%d')
+                    else:
+                        date_str = "N/A"
+                    license_type = (p.get('license_type') or 'unknown').title()
+                    payment_type = p.get('payment_type') or 'unknown'
+                    history_lines.append(f"• {date_str}: {license_type} ({payment_type})")
+                text += f"\n\n{t.get('my_subscription_history', '📜 *Payment History:*')}\n" + "\n".join(history_lines)
+            
+            await q.edit_message_text(
+                text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+        except Exception as e:
+            logger.error(f"[{uid}] Error in my subscription: {e}")
+            await q.edit_message_text(
+                t.get("my_subscription_error", "❌ Error loading subscription info. Please try again."),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
     
     elif action == "promo":
         # Ask user to enter promo code
