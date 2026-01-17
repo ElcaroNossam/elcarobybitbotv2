@@ -1375,8 +1375,7 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
     if strategy not in STRATEGY_NAMES:
         return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
     
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT enabled, percent, sl_percent, tp_percent, leverage,
@@ -1398,7 +1397,7 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
             json_row = cur.fetchone()
             if json_row and json_row[0]:
                 try:
-                    json_settings = json.loads(json_row[0])
+                    json_settings = _safe_json_loads(json_row[0], {})
                     if json_settings and strategy in json_settings:
                         # Migrate this strategy's settings from JSON to DB
                         strat_json = json_settings.get(strategy, {})
@@ -1420,7 +1419,7 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
                                 WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
                             """, (user_id, strategy, exchange, account_type))
                             row = cur.fetchone()
-                except (json.JSONDecodeError, Exception):
+                except Exception:
                     pass
         
         if not row:
@@ -1457,8 +1456,6 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
             "min_quality": row[25] if row[25] is not None else 50,
         }
         return result
-    finally:
-        release_conn(conn)
 
 
 def set_strategy_setting_db(user_id: int, strategy: str, field: str, value, 
@@ -1472,38 +1469,36 @@ def set_strategy_setting_db(user_id: int, strategy: str, field: str, value,
     if field not in _STRATEGY_DB_COLUMNS:
         return False
     
-    conn = get_conn()
     try:
-        cur = conn.cursor()
-        # Check if row exists
-        cur.execute("""
-            SELECT 1 FROM user_strategy_settings
-            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-        """, (user_id, strategy, exchange, account_type))
-        exists = cur.fetchone()
-        
-        if exists:
-            # Update existing row
-            cur.execute(f"""
-                UPDATE user_strategy_settings 
-                SET {field} = ?
+        with get_conn() as conn:
+            cur = conn.cursor()
+            # Check if row exists
+            cur.execute("""
+                SELECT 1 FROM user_strategy_settings
                 WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-            """, (value, user_id, strategy, exchange, account_type))
-        else:
-            # Insert new row
-            cur.execute(f"""
-                INSERT INTO user_strategy_settings (user_id, strategy, exchange, account_type, {field})
-                VALUES (?, ?, ?, ?, ?)
-            """, (user_id, strategy, exchange, account_type, value))
-        
-        conn.commit()
-        invalidate_user_cache(user_id)
-        return True
+            """, (user_id, strategy, exchange, account_type))
+            exists = cur.fetchone()
+            
+            if exists:
+                # Update existing row
+                cur.execute(f"""
+                    UPDATE user_strategy_settings 
+                    SET {field} = ?
+                    WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+                """, (value, user_id, strategy, exchange, account_type))
+            else:
+                # Insert new row
+                cur.execute(f"""
+                    INSERT INTO user_strategy_settings (user_id, strategy, exchange, account_type, {field})
+                    VALUES (?, ?, ?, ?, ?)
+                """, (user_id, strategy, exchange, account_type, value))
+            
+            conn.commit()
+            invalidate_user_cache(user_id)
+            return True
     except Exception as e:
         print(f"[DB ERROR] set_strategy_setting_db: {e}")
         return False
-    finally:
-        release_conn(conn)
 
 
 def set_strategy_settings_db(user_id: int, strategy: str, settings: dict,
@@ -1519,47 +1514,45 @@ def set_strategy_settings_db(user_id: int, strategy: str, settings: dict,
     if not valid_settings:
         return False
     
-    conn = get_conn()
     try:
-        cur = conn.cursor()
-        # Check if row exists
-        cur.execute("""
-            SELECT id FROM user_strategy_settings
-            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-        """, (user_id, strategy, exchange, account_type))
-        exists = cur.fetchone()
-        
-        if exists:
-            # Build UPDATE query
-            set_parts = [f"{k} = ?" for k in valid_settings.keys()]
-            set_parts.append("updated_at = CURRENT_TIMESTAMP")
-            values = list(valid_settings.values())
-            values.extend([user_id, strategy, exchange, account_type])
-            
-            cur.execute(f"""
-                UPDATE user_strategy_settings 
-                SET {', '.join(set_parts)}
+        with get_conn() as conn:
+            cur = conn.cursor()
+            # Check if row exists
+            cur.execute("""
+                SELECT 1 FROM user_strategy_settings
                 WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-            """, values)
-        else:
-            # Build INSERT query
-            columns = ["user_id", "strategy", "exchange", "account_type"] + list(valid_settings.keys())
-            placeholders = ["?"] * len(columns)
-            values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
+            """, (user_id, strategy, exchange, account_type))
+            exists = cur.fetchone()
             
-            cur.execute(f"""
-                INSERT INTO user_strategy_settings ({', '.join(columns)})
-                VALUES ({', '.join(placeholders)})
-            """, values)
-        
-        conn.commit()
-        invalidate_user_cache(user_id)
-        return True
+            if exists:
+                # Build UPDATE query
+                set_parts = [f"{k} = ?" for k in valid_settings.keys()]
+                set_parts.append("updated_at = CURRENT_TIMESTAMP")
+                values = list(valid_settings.values())
+                values.extend([user_id, strategy, exchange, account_type])
+                
+                cur.execute(f"""
+                    UPDATE user_strategy_settings 
+                    SET {', '.join(set_parts)}
+                    WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+                """, values)
+            else:
+                # Build INSERT query
+                columns = ["user_id", "strategy", "exchange", "account_type"] + list(valid_settings.keys())
+                placeholders = ["?"] * len(columns)
+                values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
+                
+                cur.execute(f"""
+                    INSERT INTO user_strategy_settings ({', '.join(columns)})
+                    VALUES ({', '.join(placeholders)})
+                """, values)
+            
+            conn.commit()
+            invalidate_user_cache(user_id)
+            return True
     except Exception as e:
         print(f"[DB ERROR] set_strategy_settings_db: {e}")
         return False
-    finally:
-        release_conn(conn)
 
 
 def get_all_strategy_settings_db(user_id: int, exchange: str = "bybit", account_type: str = "demo") -> dict:
@@ -1584,39 +1577,37 @@ def migrate_json_to_db_settings(user_id: int) -> bool:
     if not json_settings:
         return True  # Nothing to migrate
     
-    conn = get_conn()
     try:
-        cur = conn.cursor()
-        
-        # Check for new format (with exchange keys) or legacy format
-        if any(k in json_settings for k in ["bybit", "hyperliquid"]):
-            # New format: { "bybit": { "demo": { "scryptomera": {...} } } }
-            for exchange, exchange_data in json_settings.items():
-                if not isinstance(exchange_data, dict):
-                    continue
-                for account_type, account_data in exchange_data.items():
-                    if not isinstance(account_data, dict):
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Check for new format (with exchange keys) or legacy format
+            if any(k in json_settings for k in ["bybit", "hyperliquid"]):
+                # New format: { "bybit": { "demo": { "scryptomera": {...} } } }
+                for exchange, exchange_data in json_settings.items():
+                    if not isinstance(exchange_data, dict):
                         continue
-                    for strategy, strat_settings in account_data.items():
-                        if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
-                            set_strategy_settings_db(user_id, strategy, strat_settings, exchange, account_type)
-        else:
-            # Legacy format: { "scryptomera": {...}, "scalper": {...} }
-            # Migrate to bybit/demo by default
-            for strategy, strat_settings in json_settings.items():
-                if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
-                    set_strategy_settings_db(user_id, strategy, strat_settings, "bybit", "demo")
-        
-        # Clear the JSON field after migration
-        cur.execute("UPDATE users SET strategy_settings = NULL WHERE user_id = ?", (user_id,))
-        conn.commit()
-        invalidate_user_cache(user_id)
-        return True
+                    for account_type, account_data in exchange_data.items():
+                        if not isinstance(account_data, dict):
+                            continue
+                        for strategy, strat_settings in account_data.items():
+                            if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
+                                set_strategy_settings_db(user_id, strategy, strat_settings, exchange, account_type)
+            else:
+                # Legacy format: { "scryptomera": {...}, "scalper": {...} }
+                # Migrate to bybit/demo by default
+                for strategy, strat_settings in json_settings.items():
+                    if strategy in STRATEGY_NAMES and isinstance(strat_settings, dict):
+                        set_strategy_settings_db(user_id, strategy, strat_settings, "bybit", "demo")
+            
+            # Clear the JSON field after migration
+            cur.execute("UPDATE users SET strategy_settings = NULL WHERE user_id = ?", (user_id,))
+            conn.commit()
+            invalidate_user_cache(user_id)
+            return True
     except Exception as e:
         print(f"[DB ERROR] migrate_json_to_db_settings for user {user_id}: {e}")
         return False
-    finally:
-        release_conn(conn)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1682,29 +1673,27 @@ def _merge_settings(target: dict, source: dict) -> dict:
 
 def _enrich_with_routing(user_id: int, strategy: str, exchange: str, account_type: str, settings: dict) -> dict:
     """Enrich settings with routing_policy and targets_json if available."""
-    conn = get_conn()
     try:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT routing_policy, targets_json
-            FROM user_strategy_settings
-            WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-        """, (user_id, strategy, exchange, account_type))
-        row = cur.fetchone()
-        if row:
-            settings["routing_policy"] = row[0]
-            settings["targets_json"] = row[1]
-        else:
-            settings["routing_policy"] = None
-            settings["targets_json"] = None
-        return settings
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT routing_policy, targets_json
+                FROM user_strategy_settings
+                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+            """, (user_id, strategy, exchange, account_type))
+            row = cur.fetchone()
+            if row:
+                settings["routing_policy"] = row[0]
+                settings["targets_json"] = row[1]
+            else:
+                settings["routing_policy"] = None
+                settings["targets_json"] = None
+            return settings
     except Exception as e:
         logger.warning(f"Error enriching settings with routing: {e}")
         settings["routing_policy"] = None
         settings["targets_json"] = None
         return settings
-    finally:
-        release_conn(conn)
 
 
 def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None,

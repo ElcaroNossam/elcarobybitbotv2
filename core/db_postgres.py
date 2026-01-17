@@ -250,6 +250,7 @@ class SQLiteCompatConnection:
 
 
 @contextmanager
+@contextmanager
 def get_conn():
     """Get connection from pool with automatic return.
     
