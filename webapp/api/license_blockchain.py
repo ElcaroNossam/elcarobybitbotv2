@@ -3,12 +3,15 @@ License Blockchain API
 ======================
 REST API endpoints for blockchain-integrated license management.
 
+SECURITY: All user-specific endpoints require JWT authentication.
+user_id is extracted from verified JWT token, not from URL params.
+
 Endpoints:
 - GET /api/license/blockchain/stats - Get blockchain license statistics
-- GET /api/license/blockchain/user/{user_id} - Get user's blockchain licenses
+- GET /api/license/blockchain/user/me - Get current user's blockchain licenses
 - GET /api/license/blockchain/verify/{tx_hash} - Verify license on blockchain
 - POST /api/license/blockchain/purchase - Purchase license with ELC
-- GET /api/license/nft/user/{user_id} - Get user's license NFTs
+- GET /api/license/nft/me - Get current user's license NFTs
 - POST /api/license/nft/mint - Admin mint NFT (requires admin auth)
 - GET /api/license/price - Calculate license price with discounts
 """
@@ -19,6 +22,8 @@ from typing import Optional, List
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Header, Query
 from pydantic import BaseModel
+
+from webapp.api.auth import get_current_user, require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -91,16 +96,19 @@ class StatsResponse(BaseModel):
 
 
 # ============================================
-# AUTH HELPERS
+# AUTH HELPERS (deprecated - use get_current_user from auth.py)
 # ============================================
 
 def verify_user_auth(authorization: str = Header(None)) -> int:
-    """Extract and verify user ID from authorization header"""
+    """
+    DEPRECATED: Use get_current_user from webapp.api.auth instead.
+    Kept for backward compatibility only.
+    """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization required")
     
     # Simple token format: "Bearer user_id:signature"
-    # In production, use proper JWT validation
+    # SECURITY WARNING: This is weak auth, prefer JWT via get_current_user
     try:
         if authorization.startswith("Bearer "):
             token = authorization[7:]
@@ -114,7 +122,9 @@ def verify_user_auth(authorization: str = Header(None)) -> int:
 
 
 def verify_admin_auth(authorization: str = Header(None)) -> int:
-    """Verify admin authorization"""
+    """
+    DEPRECATED: Use require_admin from webapp.api.auth instead.
+    """
     user_id = verify_user_auth(authorization)
     if user_id != ADMIN_ID:
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -137,9 +147,10 @@ async def get_stats():
 @router.get("/user/me", response_model=List[BlockchainRecord])
 async def get_my_licenses(
     active_only: bool = Query(False, description="Only return active licenses"),
-    user_id: int = Depends(verify_user_auth)
+    user: dict = Depends(get_current_user)
 ):
-    """Get current user's blockchain license records"""
+    """Get current user's blockchain license records - requires JWT authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from verified JWT
     from services.license_blockchain_service import get_user_blockchain_licenses
     
     records = get_user_blockchain_licenses(user_id, active_only=active_only)
@@ -277,9 +288,39 @@ async def purchase_license(
 nft_router = APIRouter(prefix="/api/license/nft", tags=["License NFT"])
 
 
+@nft_router.get("/me", response_model=List[LicenseNFT])
+async def get_my_nfts(user: dict = Depends(get_current_user)):
+    """Get current user's license NFTs - requires JWT authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from verified JWT
+    from services.license_blockchain_service import get_user_license_nfts
+    
+    nfts = get_user_license_nfts(user_id)
+    
+    result = []
+    for n in nfts:
+        nft = LicenseNFT(
+            token_id=n.get("token_id", ""),
+            owner_id=n.get("owner_id", 0),
+            owner_wallet=n.get("owner_wallet", ""),
+            tier=n.get("tier", ""),
+            license_type=n.get("license_type", ""),
+            valid_until=n.get("valid_until", 0),
+            metadata_uri=n.get("metadata_uri", ""),
+            minted_at=n.get("minted_at", 0),
+            tx_hash=n.get("tx_hash", "")
+        )
+        result.append(nft)
+    
+    return result
+
+
 @nft_router.get("/user/{user_id}", response_model=List[LicenseNFT])
-async def get_user_nfts(user_id: int):
-    """Get user's license NFTs"""
+async def get_user_nfts(user_id: int, current_user: dict = Depends(get_current_user)):
+    """Get user's license NFTs - only admin or user themselves can access"""
+    # SECURITY: Only admin or the user themselves can access
+    if current_user["user_id"] != user_id and not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     from services.license_blockchain_service import get_user_license_nfts
     
     nfts = get_user_license_nfts(user_id)
@@ -305,7 +346,7 @@ async def get_user_nfts(user_id: int):
 @nft_router.get("/all")
 async def get_all_nfts(
     limit: int = Query(50, le=100),
-    admin_id: int = Depends(verify_admin_auth)
+    admin: dict = Depends(require_admin)
 ):
     """Get all license NFTs (admin only)"""
     from services.license_blockchain_service import get_all_license_nfts

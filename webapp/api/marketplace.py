@@ -4,8 +4,11 @@ Strategy Marketplace API
 - Marketplace listing & purchasing
 - Strategy ratings & rankings
 - Market data integration
+
+SECURITY: All user-specific endpoints require JWT authentication.
+user_id is extracted from verified JWT token, not from query params.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sqlite3
@@ -13,6 +16,8 @@ import json
 import time
 import asyncio
 from pathlib import Path
+
+from webapp.api.auth import get_current_user, get_current_user_optional
 
 router = APIRouter()
 DB_FILE = Path("bot.db")
@@ -133,8 +138,9 @@ async def get_available_indicators():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/strategies/create")
-async def create_strategy(user_id: int, request: CreateStrategyRequest):
-    """Create a new custom strategy"""
+async def create_strategy(request: CreateStrategyRequest, user: dict = Depends(get_current_user)):
+    """Create a new custom strategy - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT, not request
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -163,8 +169,9 @@ async def create_strategy(user_id: int, request: CreateStrategyRequest):
 
 
 @router.get("/strategies/my")
-async def get_my_strategies(user_id: int):
-    """Get all strategies for a user"""
+async def get_my_strategies(user: dict = Depends(get_current_user)):
+    """Get all strategies for authenticated user"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -189,8 +196,9 @@ async def get_my_strategies(user_id: int):
 
 
 @router.get("/strategies/{strategy_id}")
-async def get_strategy(strategy_id: int, user_id: int = None):
+async def get_strategy(strategy_id: int, user: Optional[dict] = Depends(get_current_user_optional)):
     """Get strategy details (only owner can see full config)"""
+    user_id = user["user_id"] if user else None  # SECURITY: user_id from JWT if authenticated
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -232,8 +240,9 @@ async def get_strategy(strategy_id: int, user_id: int = None):
 
 
 @router.put("/strategies/{strategy_id}")
-async def update_strategy(strategy_id: int, user_id: int, request: CreateStrategyRequest):
-    """Update a custom strategy (owner only)"""
+async def update_strategy(strategy_id: int, request: CreateStrategyRequest, user: dict = Depends(get_current_user)):
+    """Update a custom strategy (owner only) - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -263,8 +272,9 @@ async def update_strategy(strategy_id: int, user_id: int, request: CreateStrateg
 
 
 @router.delete("/strategies/{strategy_id}")
-async def delete_strategy(strategy_id: int, user_id: int):
-    """Delete a custom strategy (owner only)"""
+async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_user)):
+    """Delete a custom strategy (owner only) - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -288,8 +298,9 @@ async def delete_strategy(strategy_id: int, user_id: int):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/marketplace/list")
-async def list_on_marketplace(user_id: int, request: ListStrategyRequest):
-    """List a strategy on the marketplace (50/50 revenue share)"""
+async def list_on_marketplace(request: ListStrategyRequest, user: dict = Depends(get_current_user)):
+    """List a strategy on the marketplace (50/50 revenue share) - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -391,8 +402,9 @@ async def get_marketplace(
 
 
 @router.post("/marketplace/purchase")
-async def purchase_strategy(user_id: int, request: PurchaseRequest):
-    """Purchase a strategy from marketplace"""
+async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_current_user)):
+    """Purchase a strategy from marketplace - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -462,8 +474,9 @@ async def purchase_strategy(user_id: int, request: PurchaseRequest):
 
 
 @router.get("/marketplace/purchased")
-async def get_purchased_strategies(user_id: int):
-    """Get strategies purchased by user"""
+async def get_purchased_strategies(user: dict = Depends(get_current_user)):
+    """Get strategies purchased by authenticated user"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -489,9 +502,9 @@ async def get_purchased_strategies(user_id: int):
 
 # Alias for frontend compatibility
 @router.get("/purchases")
-async def get_purchases_alias(user_id: int):
+async def get_purchases_alias(user: dict = Depends(get_current_user)):
     """Alias for /marketplace/purchased"""
-    return await get_purchased_strategies(user_id)
+    return await get_purchased_strategies(user)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -499,8 +512,9 @@ async def get_purchases_alias(user_id: int):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/marketplace/rate")
-async def rate_strategy(user_id: int, request: RatingRequest):
-    """Rate a purchased strategy"""
+async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current_user)):
+    """Rate a purchased strategy - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     if not 1 <= request.rating <= 5:
         raise HTTPException(status_code=400, detail="Rating must be 1-5")
     
@@ -763,8 +777,9 @@ async def get_symbol_data(symbol: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/seller/stats")
-async def get_seller_stats(user_id: int):
-    """Get seller statistics and earnings"""
+async def get_seller_stats(user: dict = Depends(get_current_user)):
+    """Get seller statistics and earnings - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     conn = get_db()
     try:
         cur = conn.cursor()

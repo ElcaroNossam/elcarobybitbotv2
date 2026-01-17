@@ -2163,8 +2163,9 @@ async def browse_marketplace(
 
 
 @router.post("/marketplace/copy/{strategy_id}")
-async def copy_strategy(strategy_id: int, user_id: int):
-    """Copy a public strategy to your account"""
+async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)):
+    """Copy a public strategy to your account - requires authentication"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT
     try:
         conn = sqlite3.connect(str(DB_FILE))
         conn.row_factory = sqlite3.Row

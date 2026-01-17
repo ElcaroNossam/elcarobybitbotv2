@@ -261,6 +261,36 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[dict]:
+    """
+    Get current user if authenticated, otherwise return None.
+    Use for endpoints that work both with and without auth.
+    """
+    if not credentials:
+        return None
+    
+    # Check if token is blacklisted (logged out)
+    if _token_blacklist.is_blacklisted(credentials.credentials):
+        return None
+    
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = int(payload["sub"])
+        
+        # Get user from DB
+        user_data = db.get_all_user_credentials(user_id)
+        if not user_data:
+            return None
+        
+        return {
+            "user_id": user_id,
+            "is_admin": user_id == ADMIN_ID,
+            **user_data
+        }
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        return None
+
+
 async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     """Require admin access."""
     if not user.get("is_admin"):

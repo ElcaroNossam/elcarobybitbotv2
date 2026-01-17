@@ -1,11 +1,14 @@
 """
 Strategy Sync API - Bidirectional sync between WebApp and Bot
 Live visualization, real-time backtest updates, and strategy rankings
+
+SECURITY: All user-specific endpoints require JWT authentication.
 """
 import os
 import sys
 import json
 import asyncio
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect
@@ -14,12 +17,13 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 
+logger = logging.getLogger(__name__)
+
 # Import services with error handling
 try:
     from services.strategy_service import StrategySyncService
     STRATEGY_SERVICE_AVAILABLE = True
 except ImportError as e:
-    logger = logging.getLogger(__name__)
     logger.warning(f"Strategy service not available: {e}")
     STRATEGY_SERVICE_AVAILABLE = False
     StrategySyncService = None
@@ -27,7 +31,7 @@ except ImportError as e:
 router = APIRouter()
 
 # Import auth
-from webapp.api.auth import get_current_user
+from webapp.api.auth import get_current_user, verify_ws_token
 
 
 # ============ REQUEST/RESPONSE MODELS ============
@@ -409,8 +413,28 @@ manager = ConnectionManager()
 
 
 @router.websocket("/ws/backtest/{user_id}")
-async def websocket_backtest(websocket: WebSocket, user_id: int):
-    """WebSocket endpoint for live backtest updates."""
+async def websocket_backtest(websocket: WebSocket, user_id: int, token: Optional[str] = Query(None)):
+    """WebSocket endpoint for live backtest updates - requires JWT authentication."""
+    await websocket.accept()
+    
+    # SECURITY: Verify JWT token before allowing access
+    if not token:
+        token = websocket.query_params.get("token")
+    
+    if not token:
+        await websocket.close(code=4001, reason="Missing authentication token")
+        return
+    
+    user = verify_ws_token(token)
+    if not user:
+        await websocket.close(code=4002, reason="Invalid or expired token")
+        return
+    
+    # Verify user_id matches token
+    if user["user_id"] != user_id and not user.get("is_admin"):
+        await websocket.close(code=4003, reason="Access denied")
+        return
+    
     await manager.connect(websocket, user_id)
     
     try:
