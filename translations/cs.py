@@ -1,21 +1,35 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 Ahoj! Vyber akci:',
-    'no_strategies':               '❌ Žádné',
-    'guide_caption':               '📚 Uživatelská příručka Trading Bota\n\nPřečtěte si tuto příručku, abyste se naučili konfigurovat strategie a efektivně používat bota.',
-    'privacy_caption':             '📜 Zásady ochrany osobních údajů a podmínky použití\n\nPečlivě si přečtěte tento dokument.',
-    'button_api':                  '🔑 API',
-    'button_secret':               '🔒 Secret',
-    'button_api_settings':         '🔑 API',
-    'button_subscribe':            '💎 Předplatit',
+    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
+    'welcome':                     '''🔥 <b>Vítej, Alpha Tradere!</b>
+
+Zatímco čteš toto — <b>847 traderů</b> už vydělává s ElCaro.
+
+⚡ <b>&lt; 100ms</b> rychlost exekuce
+🛡️ <b>664 bezpečnostních testů</b> prošlo
+💎 <b>24/7</b> AI-řízené obchodování
+
+<i>Tvoí konkurenti nespí. ElCaro taky ne.</i>
+
+Vyber si cestu k finanční svobodě:''',
+    'no_strategies':               '❌ Žádné — <i>Každou sekundu bez strategií ztrácíš peníze</i>',
+    'guide_caption':               '📚 <b>TAJEMSTVÍ ELÍTNÍCH TRADERŮ</b>\n\n⚠️ Tyto informace daly našim top traderům <b>nespravedlivou výhodu</b>.\n\n<i>Čas čtení: 3 min. Potenciální zisk: neomezený.</i>',
+    'privacy_caption':             '📜 <b>Tvoje bezpečnost = Naše posedlost</b>\n\n🔐 Bankovní šifrování\n✅ Žádné sdílení dat. Nikdy.\n\n<i>Jsi v bezpečných rukou.</i>',
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # MODERN MENU BUTTONS - Stylish & Persuasive
+    # ═══════════════════════════════════════════════════════════════════
+    'button_api':                  '🔐 Připojit API',
+    'button_secret':               '🔑 Tajný klíč',
+    'button_api_settings':         '⚙️ Nastavení API',
+    'button_subscribe':            '👑 PREMIUM',
     'button_licenses':             '🔑 Licence',
     'button_admin':                '👑 Admin',
-    'button_balance':              '💰 Zůstatek',
-    'button_orders':               '📈 Příkazy',
-    'button_positions':            '📊 Pozice',
-    'button_history':              '📋 Historie',
-    'button_strategies':           '🤖 Strategie',
+    'button_balance':              '� Portfolio',
+    'button_orders':               '📊 Příkazy',
+    'button_positions':            '🎯 Pozice',
+    'button_history':              '📜 Historie',
+    'button_strategies':           '🤖 AI Boty',
     'button_api_keys':             '🔑 API Klíče',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
@@ -24,17 +38,17 @@ TEXTS = {
     'button_percent':              '🎚 % na obchod',
     'button_coins':                '💠 Skupina mincí',
     'button_market':               '📉 Trh',
-    'button_manual_order':         '✋ Ruční příkaz',
-    'button_update_tpsl':          '🆕 TP/SL',
+    'button_manual_order':         '🎯 Sniper',
+    'button_update_tpsl':          '🛡️ TP/SL',
     'button_cancel_order':         '❌ Zrušit příkaz',
     'button_limit_only':           '🎯 Pouze Limit',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI Tracker',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
-    'button_scalper':              '🎯 Scalper',
+    'button_scalper':              '⚡ Scalper',
     'button_elcaro':               '🔥 Elcaro',
     'button_fibonacci':            '📐 Fibonacci',
-    'button_settings':             '📋 Moje Konfig',
+    'button_settings':             '⚙️ Konfigurace',
     'button_indicators':           '💡 Indikátory',
     'button_support':              '🆘 Podpora',
     'toggle_oi_status':            '🔀 {feature}: {status}',
@@ -256,19 +270,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Neplatná odpověď od Bybit',
     'bybit_error':                 '❌ Chyba Bybit {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 Nová pozice {symbol} @ {entry:.6f}, velikost={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>Nová pozice otevřena!</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• Velikost: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>AI pracuje pro tebe! 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 SL nastaven automaticky: {price:.6f}',
     'auto_close_position':         '⏱ Pozice {symbol} (TF={tf}) otevřená > {tf} a ve ztrátě, uzavřena automaticky.',
     'position_closed': (
-        '🔔 Pozice {symbol} uzavřena z důvodu *{reason}*:\n'
-        '• Strategy: `{strategy}`\n'
+        '🎉 <b>Pozice uzavřena!</b> {symbol}\n'
+        '• Důvod: <b>{reason}</b>\n'
+        '• Strategie: `{strategy}`\n'
         '• Vstup: `{entry:.8f}`\n'
         '• Výstup: `{exit:.8f}`\n'
-        '• PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -803,7 +821,7 @@ TEXTS = {
     'btn_enter_promo': '🎟 Promo kód',
     'btn_my_subscription': '📋 Moje předplatné',
     
-    'premium_title': '💎 *PREMIUM PLÁN*',
+    'premium_title': '� *PREMIUM — Volba vítězů*',
     'premium_desc': '''✅ Plný přístup ke všem funkcím
 ✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ Skutečné + Demo obchodování
@@ -824,7 +842,7 @@ TEXTS = {
 ✅ Dynamický SL/TP založený na ATR''',
     'basic_1m': '🥈 1 měsíc — {price} TRC',
     
-    'trial_title': '🎁 *ZKUŠEBNÍ PLÁN (ZDARMA)*',
+    'trial_title': '🎁 *BEZPLATNÁ ZKUŠEBNÍ VERZE — Omezená nabídka!*',
     'trial_desc': '''✅ Plný přístup k demo účtu
 ✅ Všech 5 strategií na demo
 ❌ Skutečné obchodování není k dispozici

@@ -1,36 +1,53 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 היי! בחר פעולה:',
-    'no_strategies':               '❌ אין',
-    'guide_caption':               '📚 מדריך למשתמש בוט מסחר\n\nקרא מדריך זה כדי ללמוד כיצד להגדיר אסטרטגיות ולהשתמש בבוט ביעילות.',
-    'privacy_caption':             '📜 מדיניות פרטיות ותנאי שימוש\n\nאנא קרא מסמך זה בעיון.',
-    'button_api':                  '🔑 API',
-    'button_secret':               '🔒 סוד',
-    'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 יתרה',
-    'button_orders':               '📜 ההזמנות שלי',
-    'button_positions':            '📊 פוזיציות',
-'button_history':              '📋 היסטוריה',
-    'button_strategies':           '🤖 אסטרטגיות',
+    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
+    'welcome':                     '''🔥 <b>שלום, סוחר אלפא!</b>
+
+בזמן שאתה קורא את זה — <b>847 סוחרים</b> כבר מרוויחים עם ElCaro.
+
+⚡ <b>&lt; 100ms</b> מהירות ביצוע
+🛡️ <b>664 בדיקות אבטחה</b> עברו
+💎 <b>24/7</b> מסחר מונחה בינה מלאכותית
+
+<i>המתחרים שלך לא ישנים. גם ElCaro לא.</i>
+
+בחר את הדרך שלך לחופש פיננסי:''',
+    'no_strategies':               '❌ אין — <i>אתה מפסיד כסף כל שנייה ללא אסטרטגיות פעילות</i>',
+    'guide_caption':               '📚 <b>סודות מסחר האליטות</b>\n\n⚠️ המידע הזה נתן לסוחרים המובילים שלנו <b>יתרון לא הוגן</b>.\n\n<i>זמן קריאה: 3 דקות. רווח פוטנציאלי: אין סוף.</i>',
+    'privacy_caption':             '📜 <b>האבטחה שלך = האובססיה שלנו</b>\n\n🔐 הצפנה ברמת בנק\n✅ אין שיתוף נתונים. אף פעם.\n\n<i>אתה בידיים בטוחות.</i>',
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # MODERN MENU BUTTONS - Stylish & Persuasive
+    # ═══════════════════════════════════════════════════════════════════
+    'button_api':                  '🔐 חיבור API',
+    'button_secret':               '🔑 מפתח סודי',
+    'button_api_settings':         '⚙️ הגדרות API',
+    'button_balance':              '💎 תיק השקעות',
+    'button_orders':               '📊 הזמנות',
+    'button_positions':            '🎯 פוזיציות',
+    'button_history':              '📜 היסטוריה',
+    'button_strategies':           '🤖 בוטי AI',
     'button_api_keys':             '🔑 מפתחות API',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_switch_bybit':         '🔄 Bybit',
-    'button_switch_hl':            '🔄 HyperLiquid',
-    'button_subscribe':            '💎 הרשמה',
-    'button_licenses':             '🔑 רישיונות',
+    'button_switch_hl':            '🔄 HL',
+    'button_subscribe':            '👑 PREMIUM',
+    'button_licenses':             '🎫 רישיונות',
     'button_admin':                '👑 מנהל',
     'button_percent':              '🎚 % לעסקה',
     'button_coins':                '💠 קבוצת מטבעות',
     'button_market':               '📈 שוק',
-    'button_manual_order':         '✋ פקודה ידנית',
-    'button_update_tpsl':          '🆕 TP/SL',
+    'button_manual_order':         '🎯 Sniper',
+    'button_update_tpsl':          '🛡️ TP/SL',
     'button_cancel_order':         '❌ ביטול פקודה',
     'button_limit_only':           '🎯 Limit בלבד',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI Tracker',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
+    'button_scalper':              '⚡ Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ הגדרות',
     'button_indicators':           '💡 אינדיקטורים',
     'button_support':              '🆘 תמיכה',
@@ -250,19 +267,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ תגובה לא תקינה מ-Bybit',
     'bybit_error':                 '❌ שגיאת Bybit {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 פוזיציה חדשה {symbol} @ {entry:.6f}, גודל={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>פוזיציה חדשה נפתחה!</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• גודל: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>ה-AI עובד בשבילך! 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 SL הוגדר אוטומטית: {price:.6f}',
     'auto_close_position':         '⏱ פוזיציה {symbol} (TF={tf}) פתוחה > {tf} ומפסידה, נסגרה אוטומטית.',
     'position_closed': (
-        '🔔 פוזיציה {symbol} נסגרה בגלל *{reason}*:\n'
-        '• Strategy: `{strategy}`\n'
+        '🎉 <b>פוזיציה נסגרה!</b> {symbol}\n'
+        '• סיבה: <b>{reason}</b>\n'
+        '• אסטרטגיה: `{strategy}`\n'
         '• כניסה: `{entry:.8f}`\n'
         '• יציאה: `{exit:.8f}`\n'
-        '• PnL  : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -783,13 +804,48 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ אתה צריך מנוי פעיל כדי להשתמש בתכונה זו.\n\nהשתמש ב-/subscribe כדי לרכוש רישיון.',
-    'no_license_trading': '⚠️ אתה צריך מנוי פעיל כדי לסחור.\n\nהשתמש ב-/subscribe כדי לרכוש רישיון.',
-    'license_required': '⚠️ תכונה זו דורשת מנוי {required}.\n\nהשתמש ב-/subscribe לשדרוג.',
-    'trial_demo_only': '⚠️ רישיון ניסיון מאפשר רק מסחר דמו.\n\nשדרג ל-Premium או Basic למסחר אמיתי: /subscribe',
-    'basic_strategy_limit': '⚠️ רישיון Basic בחשבון אמיתי מאפשר רק: {strategies}\n\nשדרג ל-Premium לכל האסטרטגיות: /subscribe',
+    # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
+    'no_license': '''🚨 <b>גישה נדחתה</b>
+
+בזמן שאתה מהסס, <b>847 סוחרים</b> כבר מרוויחים.
+
+💸 כל דקה ללא ElCaro = הזדמנויות שהוחמצו
+⏰ השווקים לא מחכים. גם אתה לא צריך.
+
+👉 /subscribe — <i>פתח את היתרון שלך עכשיו</i>''',
+    'no_license_trading': '''🚨 <b>המסחר נעול</b>
+
+⚠️ 847 סוחרים מרוויחים עכשיו עם ElCaro.
+
+❌ מסחר ידני = טעויות רגשיות
+✅ ElCaro = דיוק AI קר
+
+<i>תפסיק לצפות. תתחיל להרוויח.</i>
+
+👉 /subscribe — <b>הצטרף ל-847+ סוחרים חכמים</b>''',
+    'license_required': '''🔒 <b>תכונה PREMIUM</b>
+
+זה דורש מנוי {required} — <i>משמש את 3% הסוחרים המובילים</i>.
+
+🎯 הצלחה משאירה רמזים. עקוב אחרי המנצחים.
+
+👉 /subscribe — <b>שדרג עכשיו</b>''',
+    'trial_demo_only': '''⚠️ <b>מצב דמו ללימוד, לא להרווחה.</b>
+
+רווחים אמיתיים דורשים גישה אמיתית.
+
+🎁 טעמת את הכוח. עכשיו <b>החזק בו</b>.
+
+👉 /subscribe — <b>פתח מסחר אמיתי</b>''',
+    'basic_strategy_limit': '''⚠️ <b>Basic = תוצאות Basic</b>
+
+אתה מוגבל ל-: {strategies}
+
+המקצוענים משתמשים ב<b>כל</b> האסטרטגיות. לכן הם מקצוענים.
+
+👉 /subscribe — <b>לך ל-Premium. היה מקצועני.</b>''',
     
-    'subscribe_menu_header': '💎 *תוכניות מנוי*',
+    'subscribe_menu_header': '👑 *גישת VIP למועדון סוחרים מובילים*',
     'subscribe_menu_info': 'בחר תוכנית לפתיחת תכונות מסחר:',
     'btn_premium': '💎 פרימיום',
     'btn_basic': '🥈 בסיסי', 
@@ -797,7 +853,7 @@ TEXTS = {
     'btn_enter_promo': '🎟 קוד פרומו',
     'btn_my_subscription': '📋 המנוי שלי',
     
-    'premium_title': '💎 *תוכנית PREMIUM*',
+    'premium_title': '� *PREMIUM — הבחירה של המנצחים*',
     'premium_desc': '''✅ גישה מלאה לכל התכונות
 ✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ מסחר אמיתי + דמו
@@ -818,7 +874,7 @@ TEXTS = {
 ✅ SL/TP דינמי מבוסס ATR''',
     'basic_1m': '🥈 חודש 1 — {price} TRC',
     
-    'trial_title': '🎁 *תוכנית ניסיון (חינם)*',
+    'trial_title': '🎁 *ניסיון חינם — הצעה מוגבלת!*',
     'trial_desc': '''✅ גישה מלאה לחשבון דמו
 ✅ כל 5 האסטרטגיות בדמו
 ❌ מסחר אמיתי לא זמין

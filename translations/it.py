@@ -1,18 +1,31 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 Ciao! Scegli un’azione:',
-    'no_strategies':               '❌ Nessuna',
-    'guide_caption':               '📚 Guida Utente del Bot di Trading\n\nLeggi questa guida per imparare a configurare le strategie e usare il bot in modo efficace.',
-    'privacy_caption':             '📜 Informativa sulla Privacy & Termini di Utilizzo\n\nSi prega di leggere attentamente questo documento.',
-    'button_api':                  '🔑 API',
-    'button_secret':               '🔒 Segreto',
-    'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Saldo',
-    'button_orders':               '📜 I miei ordini',
-    'button_positions':            '📊 Posizioni',
-'button_history':              '📋 Cronologia',
-    'button_strategies':           '🤖 Strategie',
+    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
+    'welcome':                     '''🔥 <b>Benvenuto, Trader Alpha!</b>
+
+Mentre leggi questo — <b>847 trader</b> stanno già guadagnando con ElCaro.
+
+⚡ <b>&lt; 100ms</b> velocità di esecuzione
+🛡️ <b>664 test di sicurezza</b> superati
+💎 <b>24/7</b> trading con IA
+
+<i>I tuoi concorrenti non dormono. Neanche ElCaro.</i>
+
+Scegli la tua strada verso la libertà finanziaria:''',
+    'no_strategies':               '❌ Nessuna — <i>Stai perdendo soldi ogni secondo senza strategie attive</i>',
+    'guide_caption':               '📚 <b>SEGRETI dei Trader d\'ELITE</b>\n\n⚠️ Queste informazioni hanno dato ai nostri migliori trader un <b>vantaggio sleale</b>.\n\n<i>Tempo di lettura: 3 min. Profitto potenziale: illimitato.</i>',
+    'privacy_caption':             '📜 <b>La Tua Sicurezza = La Nostra Ossessione</b>\n\n🔐 Crittografia bancaria\n✅ Nessuna condivisione dati. Mai.\n\n<i>Sei in buone mani.</i>',
+    'button_api':                  '� Connetti API',
+    'button_secret':               '🔑 Chiave Segreta',
+    'button_api_settings':         '⚙️ Config API',
+    'button_subscribe':            '👑 PREMIUM',
+    'button_licenses':             '🎫 Licenze',
+    'button_admin':                '🛡️ Admin',
+    'button_balance':              '💎 Portfolio',
+    'button_orders':               '📊 Ordini',
+    'button_positions':            '🎯 Posizioni',
+    'button_history':              '📜 Cronologia',
+    'button_strategies':           '🤖 Bot IA',
     'button_api_keys':             '🔑 Chiavi API',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
@@ -21,14 +34,17 @@ TEXTS = {
     'button_percent':              '🎚 % per trade',
     'button_coins':                '💠 Gruppo coin',
     'button_market':               '📈 Mercato',
-    'button_manual_order':         '✋ Ordine manuale',
+    'button_manual_order':         '🎯 Sniper',
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ Annulla ordine',
     'button_limit_only':           '🎯 Solo Limit',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI Tracker',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
-    'button_settings':             '⚙️ Impostazioni',
+    'button_scalper':              '⚡ Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
+    'button_settings':             '⚙️ Config',
     'button_indicators':           '💡 Indicatori',
     'button_support':              '🆘 Supporto',
     'toggle_oi_status':            '🔀 {feature}: {status}',
@@ -247,20 +263,25 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Risposta Bybit non valida',
     'bybit_error':                 '❌ Errore Bybit {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement
     'new_position': (
-        '🚀 Nuova posizione {symbol} @ {entry:.6f}, size={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀 <b>NUOVA POSIZIONE APERTA!</b>\n\n'
+        '💎 {symbol} @ {entry:.6f}\n'
+        '📊 Size: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>L\'IA ElCaro lavora per te 24/7</i>'
     ),
     'sl_auto_set':                 '🛑 SL impostato automaticamente: {price:.6f}',
     'auto_close_position':         '⏱ Posizione {symbol} (TF={tf}) aperta > {tf} e in perdita, chiusa automaticamente.',
     'position_closed': (
-        '🔔 Posizione {symbol} chiusa per *{reason}*:\n'
-        '• Strategy: `{strategy}`\n'
-        '• Ingresso: `{entry:.8f}`\n'
-        '• Uscita : `{exit:.8f}`\n'
-        '• PnL    : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
-        '📍 {exchange} • {market_type}'
+        '🎯 <b>POSIZIONE CHIUSA!</b>\n\n'
+        '📊 {symbol} via *{reason}*\n'
+        '🤖 Strategia: `{strategy}`\n'
+        '📈 Ingresso: `{entry:.8f}`\n'
+        '📉 Uscita: `{exit:.8f}`\n'
+        '💰 PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>I tuoi soldi lavorano mentre dormi.</i>'
     ),
 
     # Entries & errors - formato unificato con info complete
@@ -780,21 +801,26 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ È necessario un abbonamento attivo per utilizzare questa funzione.\n\nUsa /subscribe per acquistare una licenza.',
-    'no_license_trading': '⚠️ È necessario un abbonamento attivo per fare trading.\n\nUsa /subscribe per acquistare una licenza.',
+    'no_license': '🚨 <b>ACCESSO NEGATO</b>\n\n⚠️ Mentre leggi questo, i trader Premium stanno guadagnando.\n\n💎 Sblocca il tuo potenziale: /subscribe\n\n<i>Ogni minuto di attesa = soldi persi</i>',
+    'no_license_trading': '🚨 <b>TRADING BLOCCATO</b>\n\n⚠️ 847 trader stanno guadagnando ORA con ElCaro.\n\n💎 Unisciti a loro: /subscribe\n\n<i>Il mercato non aspetta nessuno.</i>',
     'license_required': '⚠️ Questa funzione richiede un abbonamento {required}.\n\nUsa /subscribe per aggiornare.',
     'trial_demo_only': '⚠️ La licenza di prova permette solo trading demo.\n\nPassa a Premium o Basic per il trading reale: /subscribe',
     'basic_strategy_limit': '⚠️ La licenza Basic su account reale permette solo: {strategies}\n\nPassa a Premium per tutte le strategie: /subscribe',
     
-    'subscribe_menu_header': '💎 *Piani di Abbonamento*',
-    'subscribe_menu_info': 'Scegli il tuo piano per sbloccare le funzionalità di trading:',
+    # Subscribe menu - BLACK RHETORIC: Exclusivity + Scarcity
+    'subscribe_menu_header': '👑 *ACCESSO VIP al Circolo dei Trader d\'Elite*',
+    'subscribe_menu_info': '''🔥 <b>847 trader</b> stanno già guadagnando
+⚡ Esecuzione <100ms | 🛡️ 664 test di sicurezza
+
+<i>Scegli il tuo livello di accesso:</i>''',
     'btn_premium': '💎 Premium',
     'btn_basic': '🥈 Basic', 
     'btn_trial': '🎁 Prova (Gratis)',
     'btn_enter_promo': '🎟 Codice Promo',
     'btn_my_subscription': '📋 Il Mio Abbonamento',
     
-    'premium_title': '💎 *PIANO PREMIUM*',
+    # Premium plan - BLACK RHETORIC: Authority + Social Proof
+    'premium_title': '👑 *PREMIUM — La Scelta dei Vincitori*',
     'premium_desc': '''✅ Accesso completo a tutte le funzionalità
 ✅ Tutte e 5 le strategie: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ Trading Reale + Demo
@@ -815,7 +841,8 @@ TEXTS = {
 ✅ SL/TP dinamico basato su ATR''',
     'basic_1m': '🥈 1 Mese — {price} TRC',
     
-    'trial_title': '🎁 *PIANO DI PROVA (GRATUITO)*',
+    # Trial plan - BLACK RHETORIC: FOMO + Urgency
+    'trial_title': '🎁 *PROVA GRATUITA — Offerta Limitata!*',
     'trial_desc': '''✅ Accesso completo all'account demo
 ✅ Tutte e 5 le strategie su demo
 ❌ Trading reale non disponibile

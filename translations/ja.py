@@ -1,36 +1,53 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 こんにちは！ 操作を選んでください:',
-    'no_strategies':               '❌ なし',
-    'guide_caption':               '📚 トレーディングボットユーザーガイド\n\nこのガイドを読んで、戦略の設定方法とボットの効果的な使い方を学んでください。',
-    'privacy_caption':             '📜 プライバシーポリシーと利用規約\n\nこの文書をよくお読みください。',
-    'button_api':                  '🔑 API',
-    'button_secret':               '🔒 シークレット',
-    'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 残高',
-    'button_orders':               '📜 注文一覧',
-    'button_positions':            '📊 建玉',
-'button_history':              '📋 履歴',
-    'button_strategies':           '🤖 戦略',
+    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
+    'welcome':                     '''🔥 <b>ようこそ、アルファトレーダー！</b>
+
+あなたがこれを読んでいる間に — <b>847人のトレーダー</b>がすでにElCaroで利益を上げています。
+
+⚡ <b>&lt; 100ms</b> 実行速度
+🛡️ <b>664のセキュリティテスト</b>に合格
+💎 <b>24/7</b> AI駆動トレード
+
+<i>ライバルは眠りません。ElCaroも。</i>
+
+経済的自由への道を選んでください：''',
+    'no_strategies':               '❌ なし — <i>アクティブな戦略がないと毎秒お金を失っています</i>',
+    'guide_caption':               '📚 <b>エリートトレードの秘密</b>\n\n⚠️ この情報はトップトレーダーに<b>不当な優位性</b>を与えました。\n\n<i>読了時間：3分。潜在的利益：無限大。</i>',
+    'privacy_caption':             '📜 <b>あなたのセキュリティ = 私たちの執念</b>\n\n🔐 銀行級の暗号化\n✅ データ共有なし。永遠に。\n\n<i>あなたは安全な手の中にいます。</i>',
+    
+    # ═══════════════════════════════════════════════════════════════════
+    # MODERN MENU BUTTONS - Stylish & Persuasive
+    # ═══════════════════════════════════════════════════════════════════
+    'button_api':                  '🔐 API接続',
+    'button_secret':               '🔑 シークレットキー',
+    'button_api_settings':         '⚙️ API設定',
+    'button_balance':              '💎 ポートフォリオ',
+    'button_orders':               '📊 注文',
+    'button_positions':            '🎯 建玉',
+    'button_history':              '📜 履歴',
+    'button_strategies':           '🤖 AIボット',
     'button_api_keys':             '🔑 APIキー',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_switch_bybit':         '🔄 Bybit',
-    'button_switch_hl':            '🔄 HyperLiquid',
-    'button_subscribe':            '💎 購読',
-    'button_licenses':             '🔑 ライセンス',
+    'button_switch_hl':            '🔄 HL',
+    'button_subscribe':            '👑 PREMIUM',
+    'button_licenses':             '🎫 ライセンス',
     'button_admin':                '👑 管理者',
     'button_percent':              '🎚 取引ごとの％',
     'button_coins':                '💠 コイングループ',
     'button_market':               '📈 マーケット',
-    'button_manual_order':         '✋ 手動注文',
-    'button_update_tpsl':          '🆕 TP/SL',
+    'button_manual_order':         '🎯 スナイパー',
+    'button_update_tpsl':          '🛡️ TP/SL',
     'button_cancel_order':         '❌ 注文を取消',
     'button_limit_only':           '🎯 Limitのみ',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OIトラッカー',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
+    'button_scalper':              '⚡ スキャルパー',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 フィボナッチ',
     'button_settings':             '⚙️ 設定',
     'button_indicators':           '💡 インジケーター',
     'button_support':              '🆘 サポート',
@@ -250,19 +267,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Bybitから不正な応答',
     'bybit_error':                 '❌ Bybit エラー {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 新規建玉 {symbol} @ {entry:.6f}, サイズ={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>新規ポジションオープン！</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• サイズ: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>AIがあなたのために働いています！ 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 SL を自動設定: {price:.6f}',
     'auto_close_position':         '⏱ 建玉 {symbol} (TF={tf}) が {tf}超かつ損失のため自動クローズ。',
     'position_closed': (
-        '🔔 建玉 {symbol} は *{reason}* でクローズ:\n'
-        '• Strategy: `{strategy}`\n'
+        '🎉 <b>ポジションクローズ！</b> {symbol}\n'
+        '• 理由: <b>{reason}</b>\n'
+        '• 戦略: `{strategy}`\n'
         '• エントリー: `{entry:.8f}`\n'
-        '• エグジット : `{exit:.8f}`\n'
-        '• PnL        : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '• エグジット: `{exit:.8f}`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -783,13 +804,48 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ この機能を使用するにはアクティブなサブスクリプションが必要です。\n\n/subscribe でライセンスを購入してください。',
-    'no_license_trading': '⚠️ 取引するにはアクティブなサブスクリプションが必要です。\n\n/subscribe でライセンスを購入してください。',
-    'license_required': '⚠️ この機能には{required}サブスクリプションが必要です。\n\n/subscribe でアップグレードしてください。',
-    'trial_demo_only': '⚠️ トライアルライセンスはデモ取引のみ可能です。\n\n実取引にはPremiumまたはBasicにアップグレード: /subscribe',
-    'basic_strategy_limit': '⚠️ Basicライセンスの実口座では以下のみ可能: {strategies}\n\n全戦略にはPremiumにアップグレード: /subscribe',
+    # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
+    'no_license': '''🚨 <b>アクセス拒否</b>
+
+迷っている間に、<b>847人のトレーダー</b>がすでに利益を上げています。
+
+💸 ElCaroなしの毎分 = 逃したチャンス
+⏰ 市場は待ってくれません。あなたも待つべきではない。
+
+👉 /subscribe — <i>今すぐ不当な優位性を解除</i>''',
+    'no_license_trading': '''🚨 <b>取引ロック</b>
+
+⚠️ 847人のトレーダーが今まさにElCaroで稼いでいます。
+
+❌ 手動取引 = 感情的なミス
+✅ ElCaro = 冷静なAIの精度
+
+<i>見ているだけをやめて。稼ぎ始めよう。</i>
+
+👉 /subscribe — <b>847+の賢いトレーダーに参加</b>''',
+    'license_required': '''🔒 <b>PREMIUM機能</b>
+
+これには{required}サブスクリプションが必要です — <i>トップ3%のトレーダーが使用</i>。
+
+🎯 成功は手がかりを残す。勝者に従え。
+
+👉 /subscribe — <b>今すぐアップグレード</b>''',
+    'trial_demo_only': '''⚠️ <b>デモモードは学習用で、稼ぎ用ではありません。</b>
+
+本当の利益には本当のアクセスが必要です。
+
+🎁 その力を味わった。今度は<b>自分のもの</b>にしよう。
+
+👉 /subscribe — <b>リアル取引を解除</b>''',
+    'basic_strategy_limit': '''⚠️ <b>Basic = Basicの結果</b>
+
+制限: {strategies}
+
+プロは<b>すべて</b>の戦略を使う。だからプロなのだ。
+
+👉 /subscribe — <b>Premiumへ。プロへ。</b>''',
     
-    'subscribe_menu_header': '💎 *サブスクリプションプラン*',
+    'subscribe_menu_header': '👑 *エリートトレーダーサークルへのVIPアクセス*',
     'subscribe_menu_info': '取引機能をアンロックするプランを選択:',
     'btn_premium': '💎 プレミアム',
     'btn_basic': '🥈 ベーシック', 
@@ -797,7 +853,7 @@ TEXTS = {
     'btn_enter_promo': '🎟 プロモコード',
     'btn_my_subscription': '📋 マイサブスクリプション',
     
-    'premium_title': '💎 *プレミアムプラン*',
+    'premium_title': '� *PREMIUM — 勝者の選択*',
     'premium_desc': '''✅ 全機能へのフルアクセス
 ✅ 5つの戦略すべて: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ 実取引 + デモ取引
@@ -818,7 +874,7 @@ TEXTS = {
 ✅ ATRベースの動的SL/TP''',
     'basic_1m': '🥈 1ヶ月 — {price} TRC',
     
-    'trial_title': '🎁 *トライアルプラン（無料）*',
+    'trial_title': '🎁 *無料トライアル — 期間限定オファー！*',
     'trial_desc': '''✅ デモ口座へのフルアクセス
 ✅ デモで5つの戦略すべて
 ❌ 実取引は利用不可

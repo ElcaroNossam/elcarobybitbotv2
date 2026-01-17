@@ -12,11 +12,11 @@ TEXTS = {
     'button_subscribe':            '💎 Prenumerata',
     'button_licenses':             '🔑 Licencijos',
     'button_admin':                '👑 Administratorius',
-    'button_balance':              '💰 Balansas',
-    'button_orders':               '📈 Įsakymai',
-    'button_positions':            '📊 Pozicijos',
-    'button_history':              '📋 Istorija',
-    'button_strategies':           '🤖 Strategijos',
+    'button_balance':              '� Portfelis',
+    'button_orders':               '📊 Įsakymai',
+    'button_positions':            '🎯 Pozicijos',
+    'button_history':              '📜 Istorija',
+    'button_strategies':           '🤖 AI Botai',
     'button_api_keys':             '🔑 API raktai',
     'button_bybit':                '🟠 Bybit',
     'button_switch_bybit':         '🔄 Bybit',
@@ -24,13 +24,16 @@ TEXTS = {
     'button_percent':              '🎚 % vienam sandoriui',
     'button_coins':                '💠 Monetų grupė',
     'button_market':               '📈 Rinka',
-    'button_manual_order':         '✋ Rankinis įsakymas',
-    'button_update_tpsl':          '🆕 TP/SL',
+    'button_manual_order':         '🎯 Sniper',
+    'button_update_tpsl':          '🛡️ TP/SL',
     'button_cancel_order':         '❌ Atšaukti įsakymą',
     'button_limit_only':           '🎯 Tik Limit',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI Sekiklis',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
+    'button_scalper':              '⚡ Scalper',
+    'button_elcaro':               '🔥 Elcaro',
+    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Nustatymai',
     'button_indicators':           '💡 Indikatoriai',
     'button_support':              '🆘 Pagalba',
@@ -250,19 +253,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Bybit pateikė netinkamą atsakymą',
     'bybit_error':                 '❌ Bybit klaida {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 Nauja pozicija {symbol} @ {entry:.6f}, dydis={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>Nauja pozicija atidaryta!</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• Dydis: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>AI dirba jums! 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 SL nustatytas automatiškai: {price:.6f}',
     'auto_close_position':         '⏱ Pozicija {symbol} (TF={tf}) atvira > {tf} ir nuostolinga — uždaryta automatiškai.',
     'position_closed': (
-        '🔔 Pozicija {symbol} uždaryta dėl *{reason}*:\n'
-        '• Strategy: `{strategy}`\n'
+        '🎉 <b>Pozicija uždaryta!</b> {symbol}\n'
+        '• Priežastis: <b>{reason}</b>\n'
+        '• Strategija: `{strategy}`\n'
         '• Įėjimas: `{entry:.8f}`\n'
         '• Išėjimas: `{exit:.8f}`\n'
-        '• PnL    : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -783,13 +790,48 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ Jums reikia aktyvios prenumeratos, kad galėtumėte naudoti šią funkciją.\n\nNaudokite /subscribe, kad įsigytumėte licenciją.',
-    'no_license_trading': '⚠️ Jums reikia aktyvios prenumeratos, kad galėtumėte prekiauti.\n\nNaudokite /subscribe, kad įsigytumėte licenciją.',
-    'license_required': '⚠️ Šiai funkcijai reikia {required} prenumeratos.\n\nNaudokite /subscribe, kad atnaujintumėte.',
-    'trial_demo_only': '⚠️ Bandomoji licencija leidžia tik demo prekybą.\n\nAtnaujinkite į Premium arba Basic realiai prekybai: /subscribe',
-    'basic_strategy_limit': '⚠️ Basic licencija realioje sąskaitoje leidžia tik: {strategies}\n\nAtnaujinkite į Premium visoms strategijoms: /subscribe',
+    # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
+    'no_license': '''🚨 <b>PRIEIGA ATMESTA</b>
+
+Kol dvejojate, <b>847 prekiautojai</b> jau uždirba.
+
+💸 Kiekviena minutė be ElCaro = praleistos galimybės
+⏰ Rinkos nelaukia. Jūs taip pat neturėtumėte.
+
+👉 /subscribe — <i>Atrakinkite savo nesąžiningą pranašumą DABAR</i>''',
+    'no_license_trading': '''🚨 <b>PREKYBA UŽRAKINTA</b>
+
+⚠️ 847 prekiautojai uždirba ŠIUO METU su ElCaro.
+
+❌ Rankinė prekyba = emocionės klaidos
+✅ ElCaro = šaltas AI tikslumas
+
+<i>Nustokite žiūrėti. Pradėkite uždirbti.</i>
+
+👉 /subscribe — <b>Prisijunkite prie 847+ išmaningų prekiautojų</b>''',
+    'license_required': '''🔒 <b>PREMIUM FUNKCIJA</b>
+
+Tam reikia {required} prenumeratos — <i>naudoja top 3% prekiautojų</i>.
+
+🎯 Sėkmė palieka pėdsakus. Sekite laimėtojus.
+
+👉 /subscribe — <b>Atnaujinkite dabar</b>''',
+    'trial_demo_only': '''⚠️ <b>Demo režimas mokymui, ne uždarbiui.</b>
+
+Tikram pelnui reikia tikros prieigos.
+
+🎁 Paragavote galios. Dabar <b>vald</b>ykite ją.
+
+👉 /subscribe — <b>Atrakinkite realią prekybą</b>''',
+    'basic_strategy_limit': '''⚠️ <b>Basic = Basic rezultatai</b>
+
+Apribota: {strategies}
+
+Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
+
+👉 /subscribe — <b>Eikite į Premium. Eikite į Pro.</b>''',
     
-    'subscribe_menu_header': '💎 *Prenumeratos planai*',
+    'subscribe_menu_header': '👑 *VIP PRIEIGA prie Elitinių Prekiautojų Klubo*',
     'subscribe_menu_info': 'Pasirinkite planą, kad atrakintumėte prekybos funkcijas:',
     'btn_premium': '💎 Premium',
     'btn_basic': '🥈 Basic', 
@@ -797,7 +839,7 @@ TEXTS = {
     'btn_enter_promo': '🎟 Promo kodas',
     'btn_my_subscription': '📋 Mano prenumerata',
     
-    'premium_title': '💎 *PREMIUM PLANAS*',
+    'premium_title': '� *PREMIUM — Laimėtojų pasirinkimas*',
     'premium_desc': '''✅ Pilna prieiga prie visų funkcijų
 ✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ Reali + Demo prekyba
@@ -818,7 +860,7 @@ TEXTS = {
 ✅ Dinaminis SL/TP pagal ATR''',
     'basic_1m': '🥈 1 mėnuo — {price} TRC',
     
-    'trial_title': '🎁 *BANDOMASIS PLANAS (NEMOKAMA)*',
+    'trial_title': '🎁 *NEMOKAMA BANDOMOJI — Ribota pasiūla!*',
     'trial_desc': '''✅ Pilna prieiga prie demo sąskaitos
 ✅ Visos 5 strategijos demo
 ❌ Reali prekyba nepasiekiama

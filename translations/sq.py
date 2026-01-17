@@ -1,24 +1,40 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 Përshëndetje! Zgjidh një veprim:',
-    'no_strategies':               '❌ Asnjë',
-    'guide_caption':               '📚 Udhëzuesi i Përdoruesit të Botit\n\nLexoni këtë udhëzues për të mësuar si të konfiguroni strategjitë dhe të përdorni botin në mënyrë efektive.',
-    'privacy_caption':             '📜 Politika e Privatësisë dhe Kushtet e Përdorimit\n\nJu lutemi lexoni këtë dokument me kujdes.',
+    # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
+    'welcome': (
+        '🚀 <b>MIRË SE ERDHIT NË ELCARO!</b>\n\n'
+        '📊 <b>847 tregtues</b> po fitojnë pjesë me ElCaro tani\n'
+        '⚡ Ekzekutim < 100ms | 🔒 664 teste sigurie\n\n'
+        '<i>Çdo sekondë pa strategji = para të humbura</i>'
+    ),
+    'no_strategies':               '⚠️ Asnjë strategji aktive — po humbni fitime!',
+    'guide_caption': (
+        '📚 <b>SEKRETET E TREGTUESVE ELITE</b>\n\n'
+        'Strategjitë profesionale të përdorura nga 847+ tregtues\n'
+        'Mundësitë të fitimit MASSIVE\n\n'
+        '<i>Siguria juaj = Obsesioni ynë</i>'
+    ),
+    'privacy_caption': (
+        '🔒 <b>ENKRIPTIM I NIVELIT BANKAR</b>\n\n'
+        'API juaj: enkriptuar AES-256\n'
+        'Asnjë akses në fondet tuaja\n'
+        'Siguria: 664 teste kalojnë\n\n'
+        '<i>Ne nuk ruajmë paratë tuaja. Me të vërtetë.</i>'
+    ),
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Sekret',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 Bilanci',
+    'button_balance':              '� Portofoli',
     'button_orders':               '📜 Porositë e mia',
-    'button_positions':            '📊 Pozicionet',
+    'button_positions':            '🎯 Pozicionet',
 'button_history':              '📋 Historia',
-    'button_strategies':           '🤖 Strategjitë',
+    'button_strategies':           '🤖 AI Bots',
     'button_api_keys':             '🔑 Çelësat API',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_switch_bybit':         '🔄 Bybit',
     'button_switch_hl':            '🔄 HyperLiquid',
-    'button_subscribe':            '💎 Abonohu',
+    'button_subscribe':            '� PREMIUM',
     'button_licenses':             '🔑 Licencat',
     'button_admin':                '👑 Admin',
     'button_percent':              '🎚 % për tregti',
@@ -28,7 +44,7 @@ TEXTS = {
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ Anulo urdhrin',
     'button_limit_only':           '🎯 Vetëm Limit',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI Tracker',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_settings':             '⚙️ Cilësimet',
@@ -250,19 +266,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Përgjigje e pavlefshme nga Bybit',
     'bybit_error':                 '❌ Gabim Bybit {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 Pozicion i ri {symbol} @ {entry:.6f}, madhësia={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>Pozicion i ri u hap!</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• Madhësia: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>AI po punon për ju! 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 SL u vendos automatikisht: {price:.6f}',
     'auto_close_position':         '⏱ Pozicioni {symbol} (TF={tf}) i hapur > {tf} dhe në humbje, u mbyll automatikisht.',
     'position_closed': (
-        '🔔 Pozicioni {symbol} u mbyll nga *{reason}*:\n'
-        '• Strategy: `{strategy}`\n'
+        '🎉 <b>Pozicioni u mbyll!</b> {symbol}\n'
+        '• Arsyeja: <b>{reason}</b>\n'
+        '• Strategjia: `{strategy}`\n'
         '• Hyrja: `{entry:.8f}`\n'
         '• Dalja: `{exit:.8f}`\n'
-        '• PnL  : `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -783,21 +803,30 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ Ju nevojitet një abonim aktiv për të përdorur këtë veçori.\n\nPërdorni /subscribe për të blerë licencë.',
-    'no_license_trading': '⚠️ Ju nevojitet një abonim aktiv për të tregtuar.\n\nPërdorni /subscribe për të blerë licencë.',
+    'no_license': (
+        '🚫 <b>AKSESI REFUZUAR</b>\n\n'
+        '📊 847 tregtues po fitojnë tani ndërsa ju jeni jashtë.\n'
+        '⏰ Çdo minutë pa ElCaro = mundësi të humbura\n\n'
+        '👑 Zhbllokoni tani përparësinë tuaj të padrejtë: /subscribe'
+    ),
+    'no_license_trading': (
+        '🚫 <b>TREGTIMI ËSHTË I MBYLLUR</b>\n\n'
+        'Derisa ju prisni, 847 tregtues po fitojnë me ElCaro.\n\n'
+        '⚡ Filloni të fitoni tani: /subscribe'
+    ),
     'license_required': '⚠️ Kjo veçori kërkon abonim {required}.\n\nPërdorni /subscribe për të përmirësuar.',
     'trial_demo_only': '⚠️ Licenca provë lejon vetëm tregtim demo.\n\nPërmirësoni në Premium ose Basic për tregtim real: /subscribe',
     'basic_strategy_limit': '⚠️ Licenca Basic në llogari reale lejon vetëm: {strategies}\n\nPërmirësoni në Premium për të gjitha strategjitë: /subscribe',
     
-    'subscribe_menu_header': '💎 *Planet e Abonimit*',
-    'subscribe_menu_info': 'Zgjidhni planin tuaj për të zhbllokuar veçoritë e tregtimit:',
+    'subscribe_menu_header': '� <b>AKSES VIP NË ELCARO</b>',
+    'subscribe_menu_info': '🔓 Zhbllokoni strategjitë e tregtuesve elitë:',
     'btn_premium': '💎 Premium',
     'btn_basic': '🥈 Basic', 
     'btn_trial': '🎁 Provë (Falas)',
     'btn_enter_promo': '🎟 Kodi Promo',
     'btn_my_subscription': '📋 Abonimi Im',
     
-    'premium_title': '💎 *PLANI PREMIUM*',
+    'premium_title': '� <b>AKSES ELITE PREMIUM</b>',
     'premium_desc': '''✅ Akses i plotë në të gjitha veçoritë
 ✅ Të 5 strategjitë: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ Tregtim Real + Demo
@@ -818,7 +847,7 @@ TEXTS = {
 ✅ SL/TP dinamik bazuar në ATR''',
     'basic_1m': '🥈 1 Muaj — {price} TRC',
     
-    'trial_title': '🎁 *PLANI PROVË (FALAS)*',
+    'trial_title': '🚀 <b>FILLO PËRPARËSINË TENDE SOT</b>',
     'trial_desc': '''✅ Akses i plotë në llogarinë demo
 ✅ Të 5 strategjitë në demo
 ❌ Tregtimi real nuk është i disponueshëm

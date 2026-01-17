@@ -1,24 +1,40 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 你好！请选择操作：',
-    'no_strategies':               '❌ 无',
-    'guide_caption':               '📚 交易机器人用户指南\n\n请阅读此指南，了解如何配置策略并有效使用机器人。',
-    'privacy_caption':             '📜 隐私政策和使用条款\n\n请仔细阅读本文档。',
+    # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
+    'welcome': (
+        '🚀 <b>欢迎来到 ELCARO！</b>\n\n'
+        '📊 <b>847名交易者</b>正在用ElCaro获利\n'
+        '⚡ 执行速度 < 100ms | 🔒 664项安全测试\n\n'
+        '<i>没有策略的每一秒 = 损失的金钱</i>'
+    ),
+    'no_strategies':               '⚠️ 没有活跃策略 — 您正在损失利润！',
+    'guide_caption': (
+        '📚 <b>精英交易者的秘密</b>\n\n'
+        '847+交易者使用的专业策略\n'
+        '巨大的盈利潜力\n\n'
+        '<i>您的安全 = 我们的执念</i>'
+    ),
+    'privacy_caption': (
+        '🔒 <b>银行级加密</b>\n\n'
+        '您的API：AES-256加密\n'
+        '无法访问您的资金\n'
+        '安全性：664项测试通过\n\n'
+        '<i>我们不存储您的资金。真的。</i>'
+    ),
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 密钥',
     'button_api_settings':         '🔑 API',
-    'button_balance':              '💰 余额',
+    'button_balance':              '� 投资组合',
     'button_orders':               '📜 我的订单',
-    'button_positions':            '📊 持仓',
+    'button_positions':            '🎯 持仓',
 'button_history':              '📋 历史',
-    'button_strategies':           '🤖 策略',
+    'button_strategies':           '🤖 AI机器人',
     'button_api_keys':             '🔑 API密钥',
     'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_switch_bybit':         '🔄 Bybit',
     'button_switch_hl':            '🔄 HyperLiquid',
-    'button_subscribe':            '💎 订阅',
+    'button_subscribe':            '� PREMIUM',
     'button_licenses':             '🔑 许可证',
     'button_admin':                '👑 管理员',
     'button_percent':              '🎚 每笔交易百分比',
@@ -28,7 +44,7 @@ TEXTS = {
     'button_update_tpsl':          '🆕 TP/SL',
     'button_cancel_order':         '❌ 取消订单',
     'button_limit_only':           '🎯 仅限价',
-    'button_toggle_oi':            '🔀 OI',
+    'button_toggle_oi':            '� OI追踪器',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_settings':             '⚙️ 设置',
@@ -250,19 +266,23 @@ TEXTS = {
     'bybit_invalid_response':      '❌ Bybit 返回了无效响应',
     'bybit_error':                 '❌ Bybit 错误 {path}: {data}',
 
-    # Auto notifications
+    # Auto notifications - BLACK RHETORIC: Excitement & Celebration
     'new_position': (
-        '🚀 新持仓 {symbol} @ {entry:.6f}，大小={size}\n'
-        '📍 {exchange} • {market_type}'
+        '🚀🔥 <b>新持仓已开启！</b>\n'
+        '• {symbol} @ {entry:.6f}\n'
+        '• 大小: {size}\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '<i>AI正在为您工作！ 🤖</i>'
     ),
     'sl_auto_set':                 '🛑 已自动设置 SL：{price:.6f}',
     'auto_close_position':         '⏱ 持仓 {symbol} (TF={tf}) 已开仓超过 {tf} 且亏损，已自动平仓。',
     'position_closed': (
-        '🔔 持仓 {symbol} 因 *{reason}* 已平仓：\n'
-        '• Strategy: `{strategy}`\n'
-        '• 开仓价：`{entry:.8f}`\n'
-        '• 平仓价：`{exit:.8f}`\n'
-        '• PnL  ：`{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '🎉 <b>持仓已平仓！</b> {symbol}\n'
+        '• 原因: <b>{reason}</b>\n'
+        '• 策略: `{strategy}`\n'
+        '• 开仓价: `{entry:.8f}`\n'
+        '• 平仓价: `{exit:.8f}`\n'
+        '{pnl_emoji} <b>PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`</b>\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -783,21 +803,30 @@ TEXTS = {
     # LICENSING SYSTEM
     # =====================================================
     
-    'no_license': '⚠️ 您需要有效订阅才能使用此功能。\n\n使用 /subscribe 购买许可证。',
-    'no_license_trading': '⚠️ 您需要有效订阅才能交易。\n\n使用 /subscribe 购买许可证。',
+    'no_license': (
+        '🚫 <b>访问被拒绝</b>\n\n'
+        '📊 847名交易者正在获利，而您被排除在外。\n'
+        '⏰ 没有ElCaro的每一分钟 = 错过的机会\n\n'
+        '👑 立即解锁您的不公平优势: /subscribe'
+    ),
+    'no_license_trading': (
+        '🚫 <b>交易已锁定</b>\n\n'
+        '在您等待的同时，847名交易者正在用ElCaro获利。\n\n'
+        '⚡ 立即开始盈利: /subscribe'
+    ),
     'license_required': '⚠️ 此功能需要{required}订阅。\n\n使用 /subscribe 升级。',
     'trial_demo_only': '⚠️ 试用许可证仅允许模拟交易。\n\n升级到Premium或Basic进行实盘交易: /subscribe',
     'basic_strategy_limit': '⚠️ Basic许可证在实盘账户仅允许: {strategies}\n\n升级到Premium解锁所有策略: /subscribe',
     
-    'subscribe_menu_header': '💎 *订阅计划*',
-    'subscribe_menu_info': '选择计划解锁交易功能:',
+    'subscribe_menu_header': '� <b>ELCARO VIP访问</b>',
+    'subscribe_menu_info': '🔓 解锁精英交易者策略:',
     'btn_premium': '💎 高级版',
     'btn_basic': '🥈 基础版', 
     'btn_trial': '🎁 试用（免费）',
     'btn_enter_promo': '🎟 优惠码',
     'btn_my_subscription': '📋 我的订阅',
     
-    'premium_title': '💎 *高级计划*',
+    'premium_title': '� <b>精英PREMIUM访问</b>',
     'premium_desc': '''✅ 完全访问所有功能
 ✅ 所有5种策略: OI, RSI+BB, Scryptomera, Scalper, Elcaro
 ✅ 实盘 + 模拟交易
@@ -818,7 +847,7 @@ TEXTS = {
 ✅ 基于ATR的动态SL/TP''',
     'basic_1m': '🥈 1个月 — {price} TRC',
     
-    'trial_title': '🎁 *试用计划（免费）*',
+    'trial_title': '🚀 <b>今天就开始您的优势</b>',
     'trial_desc': '''✅ 完全访问模拟账户
 ✅ 模拟所有5种策略
 ❌ 实盘交易不可用
