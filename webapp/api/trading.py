@@ -1595,7 +1595,7 @@ async def modify_position_tpsl(
 
 
 @router.post("/cancel")
-async def cancel_order(
+async def cancel_order_by_id(
     req: CancelOrderRequest,
     user: dict = Depends(get_current_user)
 ):
