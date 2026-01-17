@@ -10218,7 +10218,7 @@ def build_pnl_summary_by_strategy_and_exchange(
         
         # Get strategy and exchange from DB
         db_pos = db_by_symbol.get(sym, {})
-        strategy = db_pos.get("strategy") or "manual"
+        strategy = db_pos.get("strategy") or "unknown"
         exchange = db_pos.get("exchange") or "bybit"
         
         # Aggregate by strategy
@@ -10372,7 +10372,7 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             im = float(p.get("positionIM") or 0)
             
             db_pos = db_by_symbol.get(sym, {})
-            strategy = db_pos.get("strategy") or "manual"
+            strategy = db_pos.get("strategy") or "unknown"
             
             pct = (pnl_i / im * 100) if im else 0.0
             total_pnl += pnl_i
@@ -10402,7 +10402,7 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             im = float(p.get("positionIM") or 0)
             
             db_pos = db_by_symbol.get(sym, {})
-            strategy = db_pos.get("strategy") or "manual"
+            strategy = db_pos.get("strategy") or "unknown"
             
             pct = (pnl_i / im * 100) if im else 0.0
             total_pnl += pnl_i
@@ -11807,8 +11807,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "oi": "OI",
                 "elcaro": "Elcaro",
                 "fibonacci": "Fibonacci",
-                "manual": "Manual",
-            }.get(strategy, "Manual" if not strategy else strategy.title())
+            }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
             
             # Log the trade
             try:
@@ -12001,8 +12000,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         "oi": "OI",
                         "elcaro": "Elcaro",
                         "fibonacci": "Fibonacci",
-                        "manual": "Manual",
-                    }.get(strategy, strategy.title() if strategy else "Manual")
+                    }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
                     if notification_service:
                         pnl_pct = 0.0
                         try:
@@ -15240,7 +15238,7 @@ async def monitor_positions_loop(app: Application):
                                         pos = next((p for p in open_positions if p["symbol"] == sym), None)
                                         if pos:
                                             # P0.5: Get use_atr from strategy settings
-                                            strat_name = po.get("strategy") or "manual"
+                                            strat_name = po.get("strategy") or "unknown"
                                             cfg_pending = get_user_config(uid) or {}
                                             trade_params_pending = get_strategy_trade_params(
                                                 uid, cfg_pending, sym, strat_name,
@@ -15399,8 +15397,8 @@ async def monitor_positions_loop(app: Application):
                                         detected_strategy = "oi"
                                 
                                 # Use current_account_type from the loop
-                                # If strategy not detected, use "manual" (position opened externally)
-                                final_strategy = detected_strategy or "manual"
+                                # If strategy not detected, use "unknown" (position opened externally)
+                                final_strategy = detected_strategy or "unknown"
                                 
                                 # P0.5: Get use_atr from strategy settings
                                 cfg_detected = get_user_config(uid) or {}
@@ -15845,8 +15843,7 @@ async def monitor_positions_loop(app: Application):
                                         "oi": "OI",
                                         "elcaro": "Elcaro",
                                         "fibonacci": "Fibonacci",
-                                        "manual": "Manual",
-                                    }.get(strategy_name, strategy_name.title() if strategy_name else "Unknown")
+                                    }.get(strategy_name, strategy_name.title() if strategy_name and strategy_name != "manual" and strategy_name != "unknown" else "Unknown")
                                     
                                     # Format exchange and market type for display
                                     exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
