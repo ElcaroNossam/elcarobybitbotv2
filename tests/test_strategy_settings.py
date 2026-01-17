@@ -46,16 +46,13 @@ def ensure_test_users_exist():
 
 def cleanup_test_users():
     """Remove test users before tests"""
-    conn = db.get_conn()
-    try:
+    with db.get_conn() as conn:
         cur = conn.cursor()
         for uid in TEST_USERS:
-            cur.execute("DELETE FROM user_strategy_settings WHERE user_id = ?", (uid,))
-            cur.execute("DELETE FROM users WHERE user_id = ?", (uid,))
+            cur.execute("DELETE FROM user_strategy_settings WHERE user_id = %s", (uid,))
+            cur.execute("DELETE FROM users WHERE user_id = %s", (uid,))
         conn.commit()
         print(f"✅ Cleaned up {len(TEST_USERS)} test users")
-    finally:
-        db.release_conn(conn)
 
 
 def setup_test_users():

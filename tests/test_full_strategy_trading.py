@@ -36,7 +36,6 @@ from db import (
     invalidate_user_cache,
     ensure_user,
     get_conn,
-    release_conn,
 )
 
 
@@ -65,26 +64,25 @@ STRATEGIES = ['oi', 'rsi_bb', 'scryptomera', 'scalper', 'elcaro', 'fibonacci']
 @pytest.fixture(scope="module")
 def test_db_setup():
     """Setup test database with all required columns"""
-    conn = get_conn()
-    cursor = conn.cursor()
-    
-    # Ensure all columns exist
-    required_columns = [
-        ("atr_periods", "INTEGER NOT NULL DEFAULT 7"),
-        ("atr_multiplier_sl", "REAL NOT NULL DEFAULT 1.0"),
-        ("atr_trigger_pct", "REAL NOT NULL DEFAULT 2.0"),
-        ("atr_step_pct", "REAL NOT NULL DEFAULT 0.5"),
-        ("direction", "TEXT NOT NULL DEFAULT 'all'"),
-    ]
-    
-    for col_name, col_def in required_columns:
-        try:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
-        except:
-            pass  # Column already exists
-    
-    conn.commit()
-    release_conn(conn)
+    with get_conn() as conn:
+        cursor = conn.cursor()
+        
+        # Ensure all columns exist
+        required_columns = [
+            ("atr_periods", "INTEGER NOT NULL DEFAULT 7"),
+            ("atr_multiplier_sl", "REAL NOT NULL DEFAULT 1.0"),
+            ("atr_trigger_pct", "REAL NOT NULL DEFAULT 2.0"),
+            ("atr_step_pct", "REAL NOT NULL DEFAULT 0.5"),
+            ("direction", "TEXT NOT NULL DEFAULT 'all'"),
+        ]
+        
+        for col_name, col_def in required_columns:
+            try:
+                cursor.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
+            except:
+                pass  # Column already exists
+        
+        conn.commit()
     yield
     
     # Cleanup
@@ -102,17 +100,14 @@ def setup_and_cleanup(test_db_setup):
 
 def cleanup_test_users():
     """Remove all test users"""
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         cursor = conn.cursor()
         for uid in TEST_USERS.values():
-            cursor.execute("DELETE FROM user_strategy_settings WHERE user_id = ?", (uid,))
-            cursor.execute("DELETE FROM active_positions WHERE user_id = ?", (uid,))
-            cursor.execute("DELETE FROM trade_logs WHERE user_id = ?", (uid,))
-            cursor.execute("DELETE FROM users WHERE user_id = ?", (uid,))
+            cursor.execute("DELETE FROM user_strategy_settings WHERE user_id = %s", (uid,))
+            cursor.execute("DELETE FROM active_positions WHERE user_id = %s", (uid,))
+            cursor.execute("DELETE FROM trade_logs WHERE user_id = %s", (uid,))
+            cursor.execute("DELETE FROM users WHERE user_id = %s", (uid,))
         conn.commit()
-    finally:
-        release_conn(conn)
 
 
 def create_test_users():
