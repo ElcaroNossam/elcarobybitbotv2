@@ -19085,16 +19085,23 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboardMarkup:
-    """Payment method selection keyboard - TRC + ELC (WEB3 native)."""
+    """Payment method selection keyboard - TRC + ELC + TON (WEB3 native)."""
     prices = LICENSE_PRICES.get(plan, {})
     trc_price = prices.get("trc", {}).get(period, 0)
     elc_price = prices.get("elc", {}).get(period, 0)
+    # TON/USDT price = ELC price (1:1)
+    ton_price = elc_price
     
     buttons = [
         # Primary: ELC (ELCARO Token - Super Token)
         [InlineKeyboardButton(
             f"⭐ Pay {elc_price:.0f} ELC (~${elc_price:.0f})",
             callback_data=f"sub:elc:{plan}:{period}"
+        )],
+        # TON/USDT (TON Blockchain)
+        [InlineKeyboardButton(
+            f"💎 Pay ${ton_price:.0f} USDT (TON)",
+            callback_data=f"sub:ton:{plan}:{period}"
         )],
         # Secondary: TRC (Triacelo Coin)
         [InlineKeyboardButton(
@@ -20297,6 +20304,134 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 t.get("payment_failed", "❌ Payment failed: {error}").format(error=error_msg),
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+                ])
+            )
+    
+    elif action == "ton":
+        # TON blockchain payment flow (USDT Jetton on TON)
+        plan = parts[2] if len(parts) > 2 else ""
+        period = int(parts[3]) if len(parts) > 3 else 1
+        period_text = f"{period} month{'s' if period > 1 else ''}"
+        
+        # Get price
+        prices = LICENSE_PRICES.get(plan, {})
+        elc_price = prices.get("elc", {}).get(period, 0)
+        usdt_amount = elc_price  # 1:1 ELC = USD
+        
+        # Generate payment ID
+        payment_id = f"TON-{uid}-{plan}_{period}m-{int(time.time())}"
+        
+        # Platform wallet address (testnet for now)
+        platform_wallet = "kQD_your_testnet_wallet_address_here"  # TODO: Set from config
+        
+        # Create payment links
+        ton_link = f"ton://transfer/{platform_wallet}?text={payment_id}"
+        tonkeeper_link = f"https://app.tonkeeper.com/transfer/{platform_wallet}?text={payment_id}"
+        
+        # Save pending payment in DB
+        try:
+            from core.db_postgres import get_conn
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO ton_payments (user_id, payment_id, plan_id, amount_usdt, platform_wallet, expires_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW() + INTERVAL '1 hour')
+                    ON CONFLICT (payment_id) DO NOTHING
+                """, (uid, payment_id, f"{plan}_{period}m", usdt_amount, platform_wallet))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save TON payment: {e}")
+        
+        text = t.get("ton_payment_instructions",
+            "💎 *Pay with TON/USDT*\n\n"
+            "📦 *Plan:* {plan}\n"
+            "⏰ *Period:* {period}\n"
+            "💰 *Price:* ${amount:.0f} USDT\n\n"
+            "📋 *Instructions:*\n"
+            "1️⃣ Open Tonkeeper or any TON wallet\n"
+            "2️⃣ Send exactly **${amount:.0f} USDT (jUSDT)** to:\n"
+            "`{wallet}`\n\n"
+            "3️⃣ Add this comment/memo:\n"
+            "`{payment_id}`\n\n"
+            "4️⃣ After payment, click 'Verify Payment'\n\n"
+            "⏳ Payment expires in 1 hour"
+        ).format(
+            plan=plan.title(),
+            period=period_text,
+            amount=usdt_amount,
+            wallet=platform_wallet,
+            payment_id=payment_id
+        )
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📱 Open Tonkeeper", url=tonkeeper_link)],
+            [InlineKeyboardButton("✅ Verify Payment", callback_data=f"sub:ton_verify:{payment_id}")],
+            [InlineKeyboardButton("📋 Copy Wallet", callback_data=f"sub:ton_copy:{platform_wallet}")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+        ])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "ton_verify":
+        # Verify TON payment
+        payment_id = parts[2] if len(parts) > 2 else ""
+        
+        await q.edit_message_text("⏳ Verifying payment on TON blockchain...", parse_mode="Markdown")
+        
+        try:
+            from core.db_postgres import execute_one, get_conn
+            
+            # Get payment record
+            payment = execute_one(
+                "SELECT * FROM ton_payments WHERE payment_id = %s",
+                (payment_id,)
+            )
+            
+            if not payment:
+                await q.edit_message_text(
+                    "❌ Payment not found. Please try again.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+                return
+            
+            if payment["status"] == "completed":
+                await q.edit_message_text(
+                    "✅ Payment already verified and subscription active!",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+                return
+            
+            # For now, show instructions to contact admin with tx_hash
+            # TODO: Implement automatic TON transaction verification
+            text = t.get("ton_verification_manual",
+                "📩 *Manual Verification Required*\n\n"
+                "Please send your TON transaction hash to @ElCaroSupport\n\n"
+                "Include:\n"
+                "• Payment ID: `{payment_id}`\n"
+                "• Transaction Hash: (from your wallet)\n\n"
+                "Our team will verify and activate your subscription within minutes."
+            ).format(payment_id=payment_id)
+            
+            await q.edit_message_text(
+                text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💬 Contact Support", url="https://t.me/ElCaroSupport")],
+                    [InlineKeyboardButton("🔄 Check Again", callback_data=f"sub:ton_verify:{payment_id}")],
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
+            
+        except Exception as e:
+            logger.error(f"TON verification error: {e}")
+            await q.edit_message_text(
+                f"❌ Verification error: {e}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                 ])
             )
     

@@ -771,6 +771,34 @@ def pg_init_db():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_user ON payment_history(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_payments_status ON payment_history(status)")
         
+        # Add tx_hash column to payment_history if not exists
+        cur.execute("ALTER TABLE payment_history ADD COLUMN IF NOT EXISTS tx_hash TEXT")
+        
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # TON PAYMENTS TABLE (TON blockchain subscription purchases)
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ton_payments (
+                id              SERIAL PRIMARY KEY,
+                user_id         BIGINT NOT NULL,
+                payment_id      TEXT UNIQUE NOT NULL,
+                plan_id         TEXT NOT NULL,
+                amount_usdt     REAL NOT NULL,
+                amount_ton      REAL,
+                status          TEXT DEFAULT 'pending',
+                platform_wallet TEXT NOT NULL,
+                from_wallet     TEXT,
+                tx_hash         TEXT,
+                created_at      TIMESTAMP DEFAULT NOW(),
+                expires_at      TIMESTAMP,
+                confirmed_at    TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ton_payments_user ON ton_payments(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ton_payments_status ON ton_payments(status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_ton_payments_payment_id ON ton_payments(payment_id)")
+        
         # ═══════════════════════════════════════════════════════════════════════════════════
         # LICENSE REQUESTS TABLE (Admin Approval System)
         # ═══════════════════════════════════════════════════════════════════════════════════

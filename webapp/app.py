@@ -374,6 +374,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"payments router not available: {e}")
     
+    # TON Payments API (subscription purchases via TON blockchain)
+    try:
+        from webapp.api import ton_payments
+        app.include_router(ton_payments.router, prefix="/api/payments", tags=["ton", "payments"])
+        logger.info("✅ TON Payments API loaded at /api/payments/ton/*")
+    except ImportError as e:
+        logger.warning(f"ton_payments router not available: {e}")
+    
     # TRC Blockchain API (wallets, deposits, withdrawals, sovereign operations)
     try:
         from webapp.api import blockchain
