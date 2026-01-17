@@ -405,9 +405,10 @@ async def connect_wallet(
         if result.get("success"):
             # Save to database
             db.execute(
-                """INSERT OR REPLACE INTO connected_wallets 
+                """INSERT INTO connected_wallets 
                    (user_id, wallet_address, wallet_type, connected_at)
-                   VALUES (?, ?, ?, datetime('now'))""",
+                   VALUES (?, ?, ?, NOW())
+                   ON CONFLICT (user_id, wallet_address) DO UPDATE SET connected_at = NOW()""",
                 (user_id, request.wallet_address, request.wallet_type)
             )
         

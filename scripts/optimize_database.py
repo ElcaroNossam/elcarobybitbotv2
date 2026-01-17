@@ -187,7 +187,7 @@ def benchmark_queries(conn):
          "SELECT * FROM active_positions WHERE user_id = ?", (511692487,)),
         
         ("Trade logs last 24h", 
-         "SELECT * FROM trade_logs WHERE user_id = ? AND ts > datetime('now', '-1 day')", 
+         "SELECT * FROM trade_logs WHERE user_id = ? AND ts > NOW() - INTERVAL '1 day'", 
          (511692487,)),
         
         ("License check", 
