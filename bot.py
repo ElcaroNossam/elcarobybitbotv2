@@ -13810,23 +13810,23 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             existing_positions = await fetch_open_positions(uid)
             if any(p.get("symbol") == symbol for p in existing_positions):
-                logger.debug(f"[{uid}] {symbol}: already has open position → skip")
+                logger.info(f"[{uid}] {symbol}: already has open position → skip signal")
                 continue
 
             # CRITICAL: Check if position was recently closed (prevent re-entry on repeated signals)
             # This handles cases where strategies like FIBONACCI send repeated signals
             if was_position_recently_closed(uid, symbol, spot_price, seconds=120):
-                logger.debug(f"[{uid}] {symbol}: position was recently closed at similar price → skip")
+                logger.info(f"[{uid}] {symbol}: position was recently closed at similar price → skip signal")
                 continue
 
             existing_orders = await fetch_open_orders(uid, symbol)
             if existing_orders:
-                logger.debug(f"[{uid}] {symbol}: has active order(s) → skip")
+                logger.info(f"[{uid}] {symbol}: has active order(s) → skip signal")
                 continue
 
             pending = get_pending_limit_orders(uid)
             if any(po.get("symbol") == symbol for po in pending):
-                logger.debug(f"[{uid}] {symbol}: pending limit in DB → skip")
+                logger.info(f"[{uid}] {symbol}: pending limit order in DB → skip signal")
                 continue
 
             # Global coins filter (used as fallback if strategy doesn't have own setting)
@@ -13838,7 +13838,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             cnt = get_pyramid(uid, symbol)["count"]
             if cnt > 0:
-                logger.debug(f"[{uid}] {symbol}: pyramid count={cnt} → skip")
+                logger.info(f"[{uid}] {symbol}: pyramid count={cnt} → skip signal")
                 continue
 
             limit_enabled = bool(cfg.get("limit_enabled", 0))  # Legacy, kept for compatibility
@@ -13872,7 +13872,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 coins_group = strat_settings.get("coins_group") or global_coins_mode
                 filter_fn = SYMBOL_FILTER.get(coins_group, SYMBOL_FILTER["ALL"])
                 if not filter_fn(symbol):
-                    logger.debug(f"[{uid}] {symbol}: filtered by {strat_name} coins group {coins_group}")
+                    # Log on INFO level so admins can see why signals are skipped
+                    logger.info(f"[{uid}] {symbol}: filtered by {strat_name} coins_group={coins_group} → skip signal")
                     return False
                 return True
 
