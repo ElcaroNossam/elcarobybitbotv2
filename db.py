@@ -315,6 +315,10 @@ def get_user_credentials(user_id: int, account_type: str = None) -> tuple[str | 
     
     demo_key, demo_secret, real_key, real_secret, trading_mode = row
     
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since API needs specific mode
+    if account_type == 'both':
+        account_type = 'demo'
+    
     # If account_type specified, use that
     if account_type == "real":
         return (real_key, real_secret)

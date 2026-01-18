@@ -3917,6 +3917,11 @@ async def _bybit_request(user_id: int, method: str, path: str,
         retries: Number of retry attempts
         account_type: 'demo', 'real', or None (auto-detect from trading_mode)
     """
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # 'both' is a trading config that means "trade on demo AND real", but API needs specific mode
+    if account_type == 'both':
+        account_type = 'demo'
+    
     # Check if API key is known to be expired/invalid - skip API call
     cache_key = (user_id, account_type or "auto")
     now = time.time()
@@ -9903,6 +9908,11 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    if account_type == 'both':
+        account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for orders display")
+    
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
         
@@ -10245,6 +10255,11 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
+    
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    if account_type == 'both':
+        account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for positions display")
     
     # Save account type to user_data for callbacks
     ctx.user_data['positions_account_type'] = account_type
@@ -11090,6 +11105,13 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # 'both' is a trading config that means "trade on demo AND real", but for display
+    # we need to pick one. Default to 'demo' - user can switch via buttons.
+    if account_type == 'both':
+        account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for balance display")
+    
     try:
         # OPTIMIZED: Fetch ALL data in parallel (was sequential = slow!)
         tz_str = get_user_tz(uid)
@@ -11212,6 +11234,11 @@ async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, 
     uid = update.effective_user.id
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
+    
+    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    if account_type == 'both':
+        account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for positions display")
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
