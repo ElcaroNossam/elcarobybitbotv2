@@ -399,6 +399,22 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"license_blockchain router not available: {e}")
     
+    # Finance & Accounting API (admin dashboard, reports, exports)
+    try:
+        from webapp.api import finance
+        app.include_router(finance.router, prefix="/api/finance", tags=["finance", "accounting"])
+        logger.info("✅ Finance & Accounting API loaded at /api/finance")
+    except ImportError as e:
+        logger.warning(f"finance router not available: {e}")
+    
+    # Mobile API (Android/iOS specific endpoints with multitenancy)
+    try:
+        from webapp.api import mobile
+        app.include_router(mobile.router, prefix="/api/mobile", tags=["mobile", "multitenancy"])
+        logger.info("✅ Mobile API loaded at /api/mobile")
+    except ImportError as e:
+        logger.warning(f"mobile router not available: {e}")
+    
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)
     async def landing(request: Request):

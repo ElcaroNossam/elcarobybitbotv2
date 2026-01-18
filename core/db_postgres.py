@@ -837,6 +837,41 @@ def pg_init_db():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_promo_usage_user ON promo_usage(user_id)")
         
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # USER DEVICES TABLE (Mobile app multitenancy - Android/iOS)
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_devices (
+                id              SERIAL PRIMARY KEY,
+                user_id         BIGINT NOT NULL,
+                device_id       TEXT NOT NULL,
+                platform        TEXT DEFAULT 'android',
+                device_model    TEXT,
+                os_version      TEXT,
+                app_version     TEXT,
+                push_token      TEXT,
+                language        TEXT DEFAULT 'en',
+                timezone        TEXT DEFAULT 'UTC',
+                last_active     TIMESTAMP DEFAULT NOW(),
+                created_at      TIMESTAMP DEFAULT NOW(),
+                UNIQUE(user_id, device_id)
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_user ON user_devices(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_push ON user_devices(push_token) WHERE push_token IS NOT NULL")
+        
+        # Add notification_settings column to users if not exists
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                               WHERE table_name = 'users' AND column_name = 'notification_settings') THEN
+                    ALTER TABLE users ADD COLUMN notification_settings JSONB DEFAULT '{}';
+                END IF;
+            END
+            $$
+        """)
+        
         logger.info("✅ PostgreSQL schema initialized successfully")
 
 

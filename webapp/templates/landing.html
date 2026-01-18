@@ -593,6 +593,105 @@
         </a>
     </section>
     
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing" style="padding: 80px 40px; background: var(--bg-secondary);">
+        <div class="section-header" style="text-align: center; margin-bottom: 50px;">
+            <h2 class="section-title" style="font-size: 2.5rem; margin-bottom: 1rem;">Subscription Plans</h2>
+            <p class="section-subtitle" style="color: var(--text-secondary);">Pay with TRC Tokens (1 TRC = 1 USDT)</p>
+        </div>
+        
+        <!-- TRC Purchase Widget -->
+        <div class="trc-widget" style="max-width: 800px; margin: 0 auto 50px; background: linear-gradient(135deg, rgba(220,38,38,0.1), rgba(34,197,94,0.1)); border: 1px solid rgba(220,38,38,0.3); border-radius: 16px; padding: 30px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">💎 Buy TRC Tokens</h3>
+                    <p style="color: var(--text-secondary);">Basket-pegged stable token • 12% APY staking</p>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div style="text-align: center;">
+                        <input type="number" id="trcAmount" value="100" min="10" max="10000" 
+                               style="width: 120px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(220,38,38,0.5); border-radius: 8px; color: white; font-size: 1.25rem; text-align: center;">
+                        <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 4px;">TRC</p>
+                    </div>
+                    <span style="font-size: 1.5rem; color: var(--text-secondary);">=</span>
+                    <div style="text-align: center;">
+                        <div style="padding: 12px 24px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); border-radius: 8px;">
+                            <span id="usdtEquivalent" style="color: var(--green); font-size: 1.25rem; font-weight: 700;">$100</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 4px;">USDT</p>
+                    </div>
+                    <button onclick="purchaseTRC()" class="btn-primary" style="padding: 12px 30px;">
+                        <i class="fas fa-shopping-cart"></i> Buy Now
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pricing Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto;">
+            <!-- Free -->
+            <div style="background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; text-align: center;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 10px;">⭐ Free</h3>
+                <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">0 TRC</div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">forever</p>
+                <ul style="text-align: left; list-style: none; margin-bottom: 25px;">
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ Basic terminal</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ 3 AI signals/day</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ 1 backtest/day</li>
+                    <li style="padding: 8px 0; color: #666;">❌ Copy trading</li>
+                    <li style="padding: 8px 0; color: #666;">❌ Custom strategies</li>
+                </ul>
+                <a href="/terminal" style="display: block; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; color: white; text-decoration: none;">Get Started</a>
+            </div>
+            
+            <!-- Premium (Featured) -->
+            <div style="background: linear-gradient(135deg, rgba(220,38,38,0.1), rgba(220,38,38,0.05)); border: 2px solid var(--accent); border-radius: 16px; padding: 30px; text-align: center; position: relative; transform: scale(1.05);">
+                <span style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">MOST POPULAR</span>
+                <h3 style="font-size: 1.5rem; margin-bottom: 10px;">💎 Premium</h3>
+                <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">100 TRC</div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">/month</p>
+                <ul style="text-align: left; list-style: none; margin-bottom: 25px;">
+                    <li style="padding: 8px 0;">✅ Advanced terminal</li>
+                    <li style="padding: 8px 0;">✅ Unlimited AI signals</li>
+                    <li style="padding: 8px 0;">✅ Unlimited backtesting</li>
+                    <li style="padding: 8px 0;">✅ Copy 5 traders</li>
+                    <li style="padding: 8px 0;">✅ Priority support</li>
+                </ul>
+                <button onclick="subscribePlan('premium')" style="display: block; width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-crown"></i> Subscribe
+                </button>
+            </div>
+            
+            <!-- Basic -->
+            <div style="background: var(--bg-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; text-align: center;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 10px;">🚀 Basic</h3>
+                <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">50 TRC</div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">/month</p>
+                <ul style="text-align: left; list-style: none; margin-bottom: 25px;">
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ Standard terminal</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ 20 AI signals/day</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ 10 backtests/day</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ Copy 2 traders</li>
+                    <li style="padding: 8px 0; color: var(--text-secondary);">✅ Email support</li>
+                </ul>
+                <button onclick="subscribePlan('basic')" style="display: block; width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;">
+                    <i class="fas fa-rocket"></i> Subscribe
+                </button>
+            </div>
+        </div>
+        
+        <!-- Subscription Status -->
+        <div id="subscriptionStatus" style="display: none; max-width: 600px; margin: 40px auto 0; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h4 style="margin-bottom: 5px;"><span id="subPlanIcon">💎</span> Your Plan: <span id="subPlanName" style="color: var(--green);">Loading...</span></h4>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;" id="subExpiryText">Checking...</p>
+                </div>
+                <a href="/dashboard" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem;">Go to Dashboard</a>
+            </div>
+        </div>
+    </section>
+
     <script>
         // ========================================
         // AUTH HANDLING - Telegram WebApp + Token auto-login
@@ -793,6 +892,152 @@
         });
         
         observer.observe(document.querySelector('.stats'));
+        
+        // ================================
+        // TRC PURCHASE & SUBSCRIPTION
+        // ================================
+        
+        // Update USDT equivalent
+        document.getElementById('trcAmount')?.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            document.getElementById('usdtEquivalent').textContent = '$' + amount.toFixed(0);
+        });
+
+        async function purchaseTRC() {
+            const amount = parseFloat(document.getElementById('trcAmount').value) || 0;
+            if (amount < 10) { alert('Minimum: 10 TRC'); return; }
+            
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) {
+                if (confirm('Please login to purchase. Redirect to login?')) window.location.href = '/login';
+                return;
+            }
+            showPaymentModal(amount, 'trc_purchase');
+        }
+
+        function subscribePlan(plan) {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) {
+                if (confirm('Please login to subscribe. Redirect to login?')) window.location.href = '/login';
+                return;
+            }
+            const prices = { 'basic': 50, 'premium': 100 };
+            showPaymentModal(prices[plan] || 100, 'subscription', plan);
+        }
+
+        function showPaymentModal(amount, type, plan = null) {
+            const existing = document.getElementById('paymentModal');
+            if (existing) existing.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border:1px solid rgba(220,38,38,0.3);border-radius:16px;padding:30px;max-width:400px;width:90%;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <h3 style="font-size:1.25rem;font-weight:700;">${type === 'subscription' ? `Subscribe ${plan}` : 'Buy TRC'}</h3>
+                        <button onclick="closePaymentModal()" style="color:#666;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
+                    </div>
+                    <div style="text-align:center;margin-bottom:25px;">
+                        <p style="font-size:2.5rem;font-weight:700;color:#dc2626;">${amount} TRC</p>
+                        <p style="color:#666;">≈ $${amount} USDT</p>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <button onclick="processPayment('${type}',${amount},'${plan}','trc_balance')" 
+                                style="padding:15px;background:linear-gradient(135deg,#dc2626,#991b1b);border:none;border-radius:8px;color:white;cursor:pointer;font-weight:600;">
+                            💎 Pay with TRC Balance
+                        </button>
+                        <button onclick="processPayment('${type}',${amount},'${plan}','usdt_trc20')" 
+                                style="padding:15px;background:#222;border:1px solid #333;border-radius:8px;color:white;cursor:pointer;">
+                            💵 USDT (TRC20)
+                        </button>
+                        <button onclick="processPayment('${type}',${amount},'${plan}','ton')" 
+                                style="padding:15px;background:#222;border:1px solid #333;border-radius:8px;color:white;cursor:pointer;">
+                            💠 TON
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closePaymentModal() { document.getElementById('paymentModal')?.remove(); }
+
+        async function processPayment(type, amount, plan, method) {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) { alert('Please login first'); return; }
+            closePaymentModal();
+            
+            try {
+                let endpoint = type === 'subscription' ? '/api/payments/create' : '/api/blockchain/wallet/deposit';
+                let body = type === 'subscription' 
+                    ? { plan_name: plan, period: 'monthly', payment_method: method }
+                    : { amount: amount, network: method === 'usdt_trc20' ? 'trc20' : method };
+                
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                
+                if (data.success || data.payment_address) {
+                    if (method === 'trc_balance' && type === 'subscription') {
+                        alert(`🎉 ${plan} subscription activated!`);
+                        loadSubscriptionStatus();
+                    } else if (data.payment_address) {
+                        showAddressModal(data.payment_address, amount, data.network || method);
+                    } else {
+                        alert('Payment initiated!');
+                    }
+                } else {
+                    alert(data.error || data.detail || 'Payment failed');
+                }
+            } catch (err) { console.error(err); alert('Payment error'); }
+        }
+
+        function showAddressModal(address, amount, network) {
+            closePaymentModal();
+            const modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:30px;max-width:450px;width:90%;">
+                    <h3 style="margin-bottom:20px;">Send Payment</h3>
+                    <p style="text-align:center;margin-bottom:15px;"><span style="font-size:2rem;font-weight:700;color:#22c55e;">$${amount}</span> ${network.toUpperCase()}</p>
+                    <div style="background:#0a0a0a;padding:15px;border-radius:8px;margin-bottom:15px;">
+                        <p style="color:#666;font-size:0.75rem;margin-bottom:8px;">Address:</p>
+                        <p style="font-family:monospace;font-size:0.875rem;word-break:break-all;">${address}</p>
+                        <button onclick="navigator.clipboard.writeText('${address}').then(()=>alert('Copied!'))" 
+                                style="width:100%;margin-top:10px;padding:8px;background:#333;border:none;border-radius:4px;color:#fff;cursor:pointer;">📋 Copy</button>
+                    </div>
+                    <p style="color:#f59e0b;font-size:0.75rem;text-align:center;">⚠️ Auto-detected in 1-5 min</p>
+                    <button onclick="closePaymentModal()" style="width:100%;margin-top:15px;padding:12px;background:#dc2626;border:none;border-radius:8px;color:#fff;cursor:pointer;">Close</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function loadSubscriptionStatus() {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) return;
+            try {
+                const res = await fetch('/api/finance/user/subscription', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success && data.subscription) {
+                    const s = data.subscription;
+                    const el = document.getElementById('subscriptionStatus');
+                    if (el) {
+                        el.style.display = 'block';
+                        const icons = { 'free':'⭐', 'trial':'🎁', 'basic':'🚀', 'premium':'💎' };
+                        document.getElementById('subPlanIcon').textContent = icons[s.plan] || '💎';
+                        document.getElementById('subPlanName').textContent = s.plan.charAt(0).toUpperCase() + s.plan.slice(1);
+                        document.getElementById('subExpiryText').textContent = s.is_lifetime ? 'Lifetime' : (s.days_left !== null ? `${s.days_left} days left` : 'Active');
+                    }
+                }
+            } catch (e) { console.warn(e); }
+        }
+        loadSubscriptionStatus();
     </script>
 </body>
 </html>

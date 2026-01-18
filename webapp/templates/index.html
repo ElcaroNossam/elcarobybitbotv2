@@ -956,6 +956,51 @@
                 </p>
             </div>
             
+            <!-- TRC Purchase Widget -->
+            <div class="trc-purchase-widget glass-card mb-8" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.1)); border: 1px solid rgba(139,92,246,0.3); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">
+                            💎 Buy TRC Tokens
+                        </h3>
+                        <p style="color: #9ca3af;">
+                            1 TRC = 1 USDT | Basket-pegged stable token
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div style="text-align: center;">
+                            <input type="number" id="trcAmount" value="100" min="10" max="10000" 
+                                   style="width: 120px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(139,92,246,0.5); border-radius: 0.5rem; color: white; font-size: 1.25rem; text-align: center;">
+                            <p style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">TRC Amount</p>
+                        </div>
+                        <span style="font-size: 1.5rem;">=</span>
+                        <div style="text-align: center;">
+                            <div style="padding: 0.75rem 1.5rem; background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.5); border-radius: 0.5rem;">
+                                <span id="usdtEquivalent" style="color: #10b981; font-size: 1.25rem; font-weight: bold;">$100</span>
+                            </div>
+                            <p style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">USDT</p>
+                        </div>
+                        <button onclick="purchaseTRC()" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1rem;">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 2rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #9ca3af;">
+                        <i class="fas fa-shield-alt" style="color: #8b5cf6;"></i>
+                        <span>Basket-pegged: 50% USD, 20% EUR, 10% GBP</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #9ca3af;">
+                        <i class="fas fa-percentage" style="color: #10b981;"></i>
+                        <span>12% APY Staking Rewards</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #9ca3af;">
+                        <i class="fas fa-bolt" style="color: #f59e0b;"></i>
+                        <span>3-second finality</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="pricing-grid">
                 <div class="pricing-card">
                     <h3 class="pricing-name">Free</h3>
@@ -990,9 +1035,9 @@
                         <li><i class="fas fa-check"></i> Custom strategies</li>
                         <li><i class="fas fa-check"></i> Priority support</li>
                     </ul>
-                    <a href="https://t.me/triacelo_bybit_bot" class="btn btn-primary pricing-cta btn-glow" target="_blank">
-                        <i class="fas fa-wallet"></i> Pay with TRC
-                    </a>
+                    <button onclick="subscribePlan('premium')" class="btn btn-primary pricing-cta btn-glow">
+                        <i class="fas fa-crown"></i> Subscribe Premium
+                    </button>
                 </div>
                 
                 <div class="pricing-card">
@@ -1009,15 +1054,37 @@
                         <li><i class="fas fa-check"></i> Basic strategies</li>
                         <li><i class="fas fa-check"></i> Email support</li>
                     </ul>
-                    <a href="https://t.me/triacelo_bybit_bot" class="btn btn-secondary pricing-cta" target="_blank">
-                        <i class="fas fa-wallet"></i> Pay with TRC
-                    </a>
+                    <button onclick="subscribePlan('basic')" class="btn btn-secondary pricing-cta">
+                        <i class="fas fa-rocket"></i> Subscribe Basic
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Current Subscription Status -->
+            <div id="subscriptionStatus" class="subscription-status glass-card mt-8" style="display: none; background: rgba(17,24,39,0.8); padding: 1.5rem; border-radius: 1rem; border: 1px solid rgba(139,92,246,0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h4 style="font-weight: bold; margin-bottom: 0.25rem;">
+                            <span id="subPlanIcon">💎</span> Your Subscription: <span id="subPlanName" style="color: #8b5cf6;">Loading...</span>
+                        </h4>
+                        <p style="color: #9ca3af; font-size: 0.875rem;">
+                            <span id="subExpiryText">Checking status...</span>
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="/dashboard" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                        <button onclick="showUpgradeOptions()" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                            <i class="fas fa-arrow-up"></i> Upgrade
+                        </button>
+                    </div>
                 </div>
             </div>
             
             <div class="pricing-note">
                 <i class="fas fa-info-circle"></i>
-                <span>TRC tokens can be purchased directly in the Telegram bot or earned through staking & trading rewards</span>
+                <span>TRC tokens can be purchased directly above or earned through staking & trading rewards. All payments are processed on the TRC blockchain.</span>
             </div>
         </div>
     </section>
@@ -1443,6 +1510,251 @@
                 }
             });
         });
+
+        // ================================
+        // TRC PURCHASE & SUBSCRIPTION
+        // ================================
+        
+        // Update USDT equivalent when TRC amount changes
+        document.getElementById('trcAmount')?.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            document.getElementById('usdtEquivalent').textContent = '$' + amount.toFixed(0);
+        });
+
+        // Purchase TRC tokens
+        async function purchaseTRC() {
+            const amount = parseFloat(document.getElementById('trcAmount').value) || 0;
+            if (amount < 10) {
+                alert('Minimum purchase is 10 TRC');
+                return;
+            }
+
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) {
+                // Redirect to login if not authenticated
+                if (confirm('Please login to purchase TRC tokens. Redirect to login?')) {
+                    window.location.href = '/login';
+                }
+                return;
+            }
+
+            try {
+                // Show payment method selection modal
+                showPaymentModal(amount, 'trc_purchase');
+            } catch (err) {
+                console.error('Purchase error:', err);
+                alert('Error initiating purchase. Please try again.');
+            }
+        }
+
+        // Subscribe to a plan
+        async function subscribePlan(plan) {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) {
+                if (confirm('Please login to subscribe. Redirect to login?')) {
+                    window.location.href = '/login';
+                }
+                return;
+            }
+
+            const planPrices = {
+                'basic': 50,
+                'premium': 100
+            };
+
+            const amount = planPrices[plan] || 100;
+            showPaymentModal(amount, 'subscription', plan);
+        }
+
+        // Show payment method selection modal
+        function showPaymentModal(amount, type, plan = null) {
+            const existingModal = document.getElementById('paymentModal');
+            if (existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1f2937,#111827);border:1px solid rgba(139,92,246,0.3);border-radius:1rem;padding:2rem;max-width:400px;width:90%;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                        <h3 style="font-size:1.25rem;font-weight:bold;">
+                            ${type === 'subscription' ? `Subscribe to ${plan.charAt(0).toUpperCase() + plan.slice(1)}` : 'Purchase TRC Tokens'}
+                        </h3>
+                        <button onclick="closePaymentModal()" style="color:#9ca3af;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="text-align:center;margin-bottom:1.5rem;">
+                        <p style="font-size:2rem;font-weight:bold;color:#8b5cf6;">${amount} TRC</p>
+                        <p style="color:#9ca3af;">≈ $${amount} USDT</p>
+                    </div>
+                    
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                        <button onclick="processPayment('${type}', ${amount}, '${plan}', 'trc_balance')" 
+                                style="padding:1rem;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;border-radius:0.5rem;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                            <span style="font-size:1.25rem;">💎</span> Pay with TRC Balance
+                        </button>
+                        <button onclick="processPayment('${type}', ${amount}, '${plan}', 'usdt_trc20')" 
+                                style="padding:1rem;background:#374151;border:1px solid #4b5563;border-radius:0.5rem;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                            <span style="font-size:1.25rem;">💵</span> USDT (TRC20)
+                        </button>
+                        <button onclick="processPayment('${type}', ${amount}, '${plan}', 'ton')" 
+                                style="padding:1rem;background:#374151;border:1px solid #4b5563;border-radius:0.5rem;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                            <span style="font-size:1.25rem;">💠</span> TON
+                        </button>
+                    </div>
+                    
+                    <p style="color:#6b7280;font-size:0.75rem;text-align:center;margin-top:1rem;">
+                        All payments are processed securely on the blockchain
+                    </p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            if (modal) modal.remove();
+        }
+
+        async function processPayment(type, amount, plan, method) {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) {
+                alert('Please login first');
+                return;
+            }
+
+            closePaymentModal();
+
+            try {
+                let endpoint, body;
+                
+                if (type === 'subscription') {
+                    endpoint = '/api/payments/create';
+                    body = {
+                        plan_name: plan,
+                        period: 'monthly',
+                        payment_method: method
+                    };
+                } else {
+                    endpoint = '/api/blockchain/wallet/deposit';
+                    body = {
+                        amount: amount,
+                        network: method === 'usdt_trc20' ? 'trc20' : method
+                    };
+                }
+
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+                
+                if (data.success || data.payment_address) {
+                    if (method === 'trc_balance' && type === 'subscription') {
+                        alert(`🎉 Subscription activated! You now have ${plan} access.`);
+                        loadSubscriptionStatus();
+                    } else if (data.payment_address) {
+                        showPaymentAddressModal(data.payment_address, amount, data.network || method);
+                    } else {
+                        alert('Payment initiated! Please complete the transaction.');
+                    }
+                } else {
+                    alert(data.error || data.detail || 'Payment failed. Please try again.');
+                }
+            } catch (err) {
+                console.error('Payment error:', err);
+                alert('Payment processing error. Please try again.');
+            }
+        }
+
+        function showPaymentAddressModal(address, amount, network) {
+            const existingModal = document.getElementById('paymentModal');
+            if (existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'paymentModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1f2937,#111827);border:1px solid rgba(139,92,246,0.3);border-radius:1rem;padding:2rem;max-width:450px;width:90%;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                        <h3 style="font-size:1.25rem;font-weight:bold;">Send Payment</h3>
+                        <button onclick="closePaymentModal()" style="color:#9ca3af;font-size:1.5rem;background:none;border:none;cursor:pointer;">&times;</button>
+                    </div>
+                    
+                    <div style="text-align:center;margin-bottom:1.5rem;">
+                        <p style="color:#9ca3af;margin-bottom:0.5rem;">Send exactly</p>
+                        <p style="font-size:2rem;font-weight:bold;color:#10b981;">$${amount} ${network.toUpperCase()}</p>
+                    </div>
+                    
+                    <div style="background:#0f172a;padding:1rem;border-radius:0.5rem;margin-bottom:1rem;">
+                        <p style="color:#9ca3af;font-size:0.75rem;margin-bottom:0.5rem;">Payment Address (${network.toUpperCase()})</p>
+                        <p style="font-family:monospace;font-size:0.875rem;word-break:break-all;color:#fff;">${address}</p>
+                        <button onclick="copyAddress('${address}')" 
+                                style="width:100%;margin-top:0.75rem;padding:0.5rem;background:#374151;border:none;border-radius:0.25rem;color:#fff;cursor:pointer;">
+                            📋 Copy Address
+                        </button>
+                    </div>
+                    
+                    <p style="color:#f59e0b;font-size:0.75rem;text-align:center;">
+                        ⚠️ Payment will be automatically detected. This may take 1-5 minutes.
+                    </p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function copyAddress(address) {
+            navigator.clipboard.writeText(address).then(() => {
+                alert('Address copied!');
+            });
+        }
+
+        // Load and display subscription status
+        async function loadSubscriptionStatus() {
+            const token = localStorage.getItem('triacelo_token');
+            if (!token) return;
+
+            try {
+                const res = await fetch('/api/finance/user/subscription', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.success && data.subscription) {
+                    const sub = data.subscription;
+                    const statusDiv = document.getElementById('subscriptionStatus');
+                    if (statusDiv) {
+                        statusDiv.style.display = 'block';
+                        
+                        const planIcons = { 'free': '⭐', 'trial': '🎁', 'basic': '🚀', 'premium': '💎' };
+                        document.getElementById('subPlanIcon').textContent = planIcons[sub.plan] || '💎';
+                        document.getElementById('subPlanName').textContent = sub.plan.charAt(0).toUpperCase() + sub.plan.slice(1);
+                        
+                        if (sub.is_lifetime) {
+                            document.getElementById('subExpiryText').textContent = 'Lifetime access';
+                        } else if (sub.days_left !== null) {
+                            document.getElementById('subExpiryText').textContent = `${sub.days_left} days remaining`;
+                        } else {
+                            document.getElementById('subExpiryText').textContent = sub.is_active ? 'Active' : 'Inactive';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not load subscription status:', err);
+            }
+        }
+
+        function showUpgradeOptions() {
+            document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Load subscription status on page load
+        loadSubscriptionStatus();
     </script>
     
     <!-- Mobile Navigation & Utilities -->
