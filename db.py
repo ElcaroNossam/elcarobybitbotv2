@@ -3422,6 +3422,55 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
         return result
 
 
+def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange: str | None = None) -> float:
+    """
+    Get realized PnL for the last 24 hours (rolling window) from trade_logs.
+    
+    This is more accurate than Bybit API calendar-day PnL because:
+    1. Uses rolling 24h window instead of calendar day (midnight reset)
+    2. Works even after midnight when today's calendar day has no trades yet
+    3. Includes all exchanges (Bybit + HyperLiquid)
+    
+    Args:
+        user_id: Telegram user ID
+        account_type: 'demo', 'real', 'testnet', 'mainnet', or None (all)
+        exchange: 'bybit', 'hyperliquid', or None (all)
+    
+    Returns:
+        Total realized PnL in USDT for last 24 hours
+    """
+    import datetime
+    from zoneinfo import ZoneInfo
+    
+    with get_conn() as conn:
+        where_clauses = ["user_id = ?", "ts >= ?"]
+        now = datetime.datetime.now(ZoneInfo("UTC"))
+        start = now - datetime.timedelta(hours=24)
+        params = [user_id, start.strftime("%Y-%m-%d %H:%M:%S")]
+        
+        if account_type:
+            where_clauses.append("(account_type = ? OR account_type IS NULL)")
+            params.append(account_type)
+        
+        if exchange and _col_exists(conn, "trade_logs", "exchange"):
+            where_clauses.append("exchange = ?")
+            params.append(exchange)
+        
+        where_sql = " AND ".join(where_clauses)
+        
+        row = conn.execute(f"""
+            SELECT COALESCE(SUM(pnl), 0) as total_pnl, COUNT(*) as trade_count
+            FROM trade_logs
+            WHERE {where_sql}
+        """, params).fetchone()
+        
+        total_pnl = float(row[0]) if row and row[0] else 0.0
+        trade_count = row[1] if row else 0
+        
+        logger.debug(f"[{user_id}] Rolling 24h PnL from DB: {total_pnl:+.2f} USDT ({trade_count} trades)")
+        return total_pnl
+
+
 def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None) -> dict:
     """Get stats for trades with NULL/unknown strategy."""
     import datetime

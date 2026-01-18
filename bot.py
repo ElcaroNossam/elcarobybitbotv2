@@ -112,6 +112,7 @@ from db import (
     get_trade_stats,
     get_stats_by_strategy,
     was_position_recently_closed,
+    get_rolling_24h_pnl,
     # License functions
     get_user_license,
     set_user_license,
@@ -3812,79 +3813,29 @@ def get_user_tz(user_id: int) -> str:
 @log_calls
 async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None, account_type: str | None = None, exchange: str | None = None) -> float:
     """
-    Fetch today's realized PnL for user.
+    Fetch today's realized PnL for user using database (rolling 24h window).
+    
+    Changed from Bybit API to database for more accurate results:
+    - Bybit API uses calendar day (resets at midnight) → shows $0 after midnight
+    - Database uses rolling 24h window → always shows recent profits correctly
     
     Args:
         user_id: Telegram user ID
-        tz_str: Timezone string (defaults to user's timezone)
+        tz_str: Timezone string (ignored, kept for API compatibility)
         account_type: 'demo' or 'real' (defaults to user's trading_mode)
         exchange: 'bybit' or 'hyperliquid' (defaults to user's active exchange)
     
     Returns:
-        Total realized PnL for today in USDT
+        Total realized PnL for last 24 hours in USDT
     """
-    tz = ZoneInfo(tz_str or get_user_tz(user_id))
-    now_local   = datetime.datetime.now(tz)
-    start_local = datetime.datetime(year=now_local.year, month=now_local.month, day=now_local.day, tzinfo=tz)
-    end_local   = start_local + datetime.timedelta(days=1)
-    start_ts = int(start_local.timestamp() * 1000)
-    end_ts   = int(end_local.timestamp() * 1000)
-    
-    # Determine exchange
+    # Determine exchange if not specified
     if exchange is None:
         exchange = db.get_exchange_type(user_id) or 'bybit'
     
-    total = 0.0
+    # Use database rolling 24h PnL (more accurate than API calendar day)
+    total = db.get_rolling_24h_pnl(user_id, account_type=account_type, exchange=exchange)
     
-    if exchange == 'hyperliquid':
-        # Use HyperLiquid adapter for PnL
-        try:
-            creds = db.get_hl_credentials(user_id)
-            if creds and creds.get("hl_private_key"):
-                from hl_adapter import HLAdapter
-                adapter = HLAdapter(
-                    private_key=creds["hl_private_key"],
-                    testnet=bool(creds.get("hl_testnet", False)),
-                    vault_address=creds.get("hl_vault_address")
-                )
-                await adapter.initialize()
-                
-                # Get fills for today
-                fills = await adapter.get_fills_by_time(start_ts, end_ts)
-                for fill in fills:
-                    try:
-                        total += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
-                    except Exception:
-                        pass
-                
-                await adapter.close()
-        except Exception as e:
-            logger.warning(f"[{user_id}] HL realized PnL fetch error: {e}")
-    else:
-        # Bybit - use account_type for API request
-        cursor = None
-        while True:
-            params = {
-                "category":  "linear",
-                "startTime": start_ts,
-                "endTime":   end_ts,
-                "limit":     100,
-            }
-            if cursor:
-                params["cursor"] = cursor
-
-            res = await _bybit_request(user_id, "GET", "/v5/position/closed-pnl", params=params, account_type=account_type)
-            items = res.get("list", []) or []
-            for it in items:
-                try:
-                    total += float(it.get("closedPnl") or 0.0)
-                except Exception:
-                    pass
-
-            cursor = res.get("nextPageCursor")
-            if not cursor:
-                break
-
+    logger.debug(f"[{user_id}] Rolling 24h PnL: {total:+.4f} USDT (from trade_logs DB)")
     return total
 
 
