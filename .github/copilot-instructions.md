@@ -511,8 +511,14 @@ python3 utils/translation_sync.py --report
     - `get_rolling_24h_pnl()` (line 3476)
     - `get_trade_stats_unknown()` (line 3513)
     - `get_active_positions()` (line 2328)
+  - `webapp/api/trading.py` - нормализация 'both' → 'demo' в:
+    - `/balance`, `/positions`, `/orders`, `/trades`, `/stats`
+    - `/execution-history`, `/cancel-all-orders`, `/strategy-settings`
+  - `webapp/api/users.py` - нормализация в `/api-keys/bybit/test`, `/strategy-settings`
+  - `webapp/services_integration.py` - `get_positions_service()`, `get_balance_service()`
+  - `bot_unified.py` - `get_balance_unified()`, `get_positions_unified()`
 - **Fix:** Теперь при `trading_mode='both'` показывается Demo по умолчанию с корректным label
-- **Commits:** e87c1d8, ee48fce
+- **Commits:** e87c1d8, ee48fce, 431c61f
 
 ### ✅ FIX: NameError in get_rolling_24h_pnl (Jan 18, 2026)
 - **Проблема:** Today PnL показывал +0.00 USDT при наличии сделок
