@@ -453,19 +453,26 @@ db.invalidate_user_cache(uid)  # Обязательно!
 # Когда trading_mode='both', функции API и DB получают account_type='both'
 # НО 'both' - это КОНФИГУРАЦИЯ торговли, не валидный тип аккаунта для API!
 
-# ВСЕГДА нормализуй 'both' → 'demo' перед API/DB запросами:
+# ВСЕГДА нормализуй 'both' с учётом биржи:
 from db import _normalize_both_account_type
-account_type = _normalize_both_account_type(account_type)  # 'both' → 'demo'
+account_type = _normalize_both_account_type(account_type, exchange='bybit')
+# Bybit: 'both' → 'demo'
+# HyperLiquid: 'both' → 'testnet'
 
 # Уже применено в:
 # - bot.py: _bybit_request(), show_balance_for_account(), show_positions_for_account()
 # - db.py: get_trade_stats(), get_rolling_24h_pnl(), get_active_positions()
+# - webapp/api/trading.py: все 9 endpoints
+# - webapp/api/users.py: test_bybit_api, get_strategy_settings
+# - webapp/services_integration.py: get_positions_service, get_balance_service
+# - bot_unified.py: get_balance_unified, get_positions_unified
 ```
 
 ⚠️ **При `trading_mode='both'`:**
-- По умолчанию показывается Demo аккаунт
-- Юзер переключает на Real через кнопки Demo/Real
-- API Bybit не поддерживает mode='both' - только demo/real URL
+- **Bybit:** По умолчанию показывается Demo аккаунт
+- **HyperLiquid:** По умолчанию показывается Testnet
+- Юзер переключает через кнопки Demo/Real (или Testnet/Mainnet)
+- API не поддерживает mode='both' - только конкретный account_type
 
 ## Leverage Fallback
 
@@ -489,6 +496,21 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: HyperLiquid 'both' Mode Support (Jan 18, 2026)
+- **Проблема:** `_normalize_both_account_type()` не учитывал HyperLiquid (testnet/mainnet)
+- **Причина:** Функция всегда нормализовала 'both' → 'demo', но HL использует 'testnet'/'mainnet'
+- **Файлы:**
+  - `db.py` - обновлена `_normalize_both_account_type(account_type, exchange)`:
+    - Bybit: 'both' → 'demo'
+    - HyperLiquid: 'both' → 'testnet'
+  - Все 5 вызовов в db.py обновлены для передачи exchange
+  - `webapp/api/trading.py` - добавлен helper, обновлены 9 endpoints
+  - `webapp/api/users.py` - добавлен helper, обновлены 2 endpoints
+  - `webapp/services_integration.py` - добавлен helper, обновлены 2 сервиса
+  - `bot_unified.py` - добавлен helper, обновлены 2 функции
+- **Fix:** Теперь 'both' корректно нормализуется с учётом биржи
+- **Commit:** cc580fa
 
 ### ✅ CRITICAL: 'both' Account Type Normalization (Jan 18, 2026)
 - **Проблема:** При `trading_mode='both'` баланс показывал "💎 Real" но с данными Demo аккаунта!
