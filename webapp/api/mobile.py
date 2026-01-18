@@ -325,7 +325,8 @@ async def get_user_profile(
             cur.execute("""
                 SELECT COUNT(*) FROM active_positions WHERE user_id = %s
             """, (user_id,))
-            positions_count = cur.fetchone()[0] or 0
+            row = cur.fetchone()
+            positions_count = (row[0] if row else 0) or 0
             
             # Get TRC balance
             cur.execute("""
@@ -334,7 +335,8 @@ async def get_user_profile(
                                          ELSE 0 END), 0)
                 FROM elc_transactions WHERE user_id = %s
             """, (user_id,))
-            trc_balance = cur.fetchone()[0] or 0
+            row = cur.fetchone()
+            trc_balance = (row[0] if row else 0) or 0
         
         # Subscription status
         license_type = user[4] or "free"

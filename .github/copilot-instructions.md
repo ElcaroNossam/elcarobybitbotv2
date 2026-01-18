@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.12.0 | Обновлено: 18 января 2026
+# Версия: 3.13.0 | Обновлено: 19 января 2026
 # =============================================
 
 ---
@@ -750,7 +750,94 @@ python3 utils/translation_sync.py --report
 
 ---
 
-# 🔒 SECURITY FIXES (Январь 2026)
+# � PRODUCTION SCALABILITY (10k+ Users)
+
+## Архитектура для высокой нагрузки (Jan 19, 2026)
+
+### ✅ Готовые компоненты
+
+| Компонент | Настройка | Описание |
+|-----------|-----------|----------|
+| **PostgreSQL Pool** | `minconn=5, maxconn=50` | ThreadedConnectionPool достаточно для 10k+ |
+| **Redis** | `max_connections=100` | Распределённый кеш и rate limiting |
+| **Rate Limiting** | Token Bucket | Per-IP и per-endpoint лимиты |
+| **Security Middleware** | HackerDetection | XSS, SQL injection, path traversal защита |
+| **HTTP Sessions** | aiohttp | Connection pooling (100/30 per host) |
+| **WebSocket** | Bybit/HL workers | Real-time data broadcasting |
+
+### Uvicorn Workers Configuration
+
+```bash
+# Авто-определение по CPU (config/settings.py, start_bot.sh)
+WORKERS = min(2 * CPU_CORES + 1, 8)
+
+# Явная настройка через environment:
+WEBAPP_WORKERS=8 ./start.sh
+```
+
+### Redis для Verification Codes
+
+```python
+# webapp/api/email_auth.py теперь использует Redis:
+from core.redis_client import get_redis
+
+# Verification codes хранятся в Redis (TTL 15 мин)
+await redis.set_verification_code(email, data, ttl=900)
+
+# С fallback на in-memory для single-worker режима
+```
+
+### Production Checklist (10k+ users)
+
+```bash
+# 1. Redis обязателен
+redis-server --daemonize yes
+
+# 2. PostgreSQL connection pool
+DATABASE_URL="postgresql://user:pass@host:5432/db?pool_size=50"
+
+# 3. Environment переменные
+export ENV=production
+export WEBAPP_WORKERS=8
+export CORS_ORIGINS="https://yourdomain.com"
+export SECRET_KEY=$(openssl rand -hex 32)
+export REDIS_URL="redis://localhost:6379"
+
+# 4. Uvicorn с workers
+uvicorn webapp.app:app --host 0.0.0.0 --port 8765 \
+  --workers 8 --limit-concurrency 500 --timeout-keep-alive 60
+```
+
+### WebSocket Connections (multi-worker issue)
+
+⚠️ **Важно:** При multiple workers каждый worker имеет свой набор WebSocket соединений.
+
+**Решение для production:**
+1. Использовать Redis Pub/Sub для синхронизации между workers
+2. Или использовать отдельный сервис для WebSocket (например, socket.io)
+
+```python
+# webapp/realtime/__init__.py уже использует:
+# - _active_connections в памяти каждого worker
+# - Для full production нужен Redis broadcaster (TODO)
+```
+
+### Мониторинг производительности
+
+```bash
+# Health check
+curl http://localhost:8765/health
+
+# PostgreSQL connections
+SELECT count(*) FROM pg_stat_activity WHERE datname='elcaro';
+
+# Redis info
+redis-cli INFO clients
+```
+
+---
+
+# �🔒 SECURITY FIXES (Январь 2026)
 
 ### 🔐 Security Audit Round 1 (Jan 9, 2026)
 

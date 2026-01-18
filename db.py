@@ -2328,8 +2328,8 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
     - exchange: 'bybit', 'hyperliquid'  
     - env: 'paper', 'live' (unified env)
     """
-    # Normalize 'both' -> 'demo' since we need specific account type for queries
-    account_type = _normalize_both_account_type(account_type)
+    # Normalize 'both' -> 'demo' or 'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
         # Build query based on filters
@@ -3254,18 +3254,19 @@ def add_trade_log(
         conn.commit()
 
 
-def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "all", account_type: str | None = None) -> dict:
+def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "all", account_type: str | None = None, exchange: str | None = None) -> dict:
     """
     Получает статистику сделок пользователя.
     period: 'today', 'week', 'month', 'all'
     strategy: None = все стратегии, иначе конкретная
     account_type: 'demo', 'real', or None = все
+    exchange: 'bybit', 'hyperliquid' or None = все
     """
     import datetime
     from zoneinfo import ZoneInfo
     
-    # Normalize 'both' -> 'demo' since we need specific account type for queries
-    account_type = _normalize_both_account_type(account_type)
+    # Normalize 'both' -> 'demo' or 'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
         # Базовый запрос

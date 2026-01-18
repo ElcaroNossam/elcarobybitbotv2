@@ -403,6 +403,97 @@ class RedisClient:
             return {}
     
     # ═══════════════════════════════════════════════════════════════
+    # EMAIL VERIFICATION CODES (for multi-worker support)
+    # ═══════════════════════════════════════════════════════════════
+    
+    async def set_verification_code(
+        self, 
+        email: str, 
+        data: dict, 
+        ttl: int = 900  # 15 minutes
+    ):
+        """Store email verification code with TTL"""
+        if not self._connected:
+            return False
+        
+        try:
+            key = f"verify:{email.lower()}"
+            await self.client.setex(key, ttl, json.dumps(data))
+            return True
+        except Exception as e:
+            logger.warning(f"Redis set_verification_code error: {e}")
+            return False
+    
+    async def get_verification_code(self, email: str) -> Optional[dict]:
+        """Get pending verification data"""
+        if not self._connected:
+            return None
+        
+        try:
+            key = f"verify:{email.lower()}"
+            data = await self.client.get(key)
+            return json.loads(data) if data else None
+        except Exception as e:
+            logger.warning(f"Redis get_verification_code error: {e}")
+            return None
+    
+    async def delete_verification_code(self, email: str):
+        """Delete verification code after use"""
+        if not self._connected:
+            return
+        
+        try:
+            key = f"verify:{email.lower()}"
+            await self.client.delete(key)
+        except Exception as e:
+            logger.warning(f"Redis delete_verification_code error: {e}")
+    
+    async def set_password_reset_code(
+        self, 
+        email: str, 
+        data: dict, 
+        ttl: int = 3600  # 1 hour
+    ):
+        """Store password reset code with TTL"""
+        if not self._connected:
+            return False
+        
+        try:
+            key = f"reset:{email.lower()}"
+            await self.client.setex(key, ttl, json.dumps(data))
+            return True
+        except Exception as e:
+            logger.warning(f"Redis set_password_reset_code error: {e}")
+            return False
+    
+    async def get_password_reset_code(self, email: str) -> Optional[dict]:
+        """Get password reset data"""
+        if not self._connected:
+            return None
+        
+        try:
+            key = f"reset:{email.lower()}"
+            data = await self.client.get(key)
+            return json.loads(data) if data else None
+        except Exception as e:
+            logger.warning(f"Redis get_password_reset_code error: {e}")
+            return None
+    
+    async def delete_password_reset_code(self, email: str):
+        """Delete password reset code after use"""
+        if not self._connected:
+            return
+        
+        try:
+            key = f"reset:{email.lower()}"
+            await self.client.delete(key)
+        except Exception as e:
+            logger.warning(f"Redis delete_password_reset_code error: {e}")
+        except Exception as e:
+            logger.warning(f"Redis get_user_positions error: {e}")
+            return {}
+    
+    # ═══════════════════════════════════════════════════════════════
     # METRICS / STATS
     # ═══════════════════════════════════════════════════════════════
     

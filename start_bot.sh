@@ -23,9 +23,15 @@ echo "[$(date)] Starting ElCaro services (PostgreSQL mode)..." >> "$LOG_FILE"
 pkill -f "uvicorn webapp.app" 2>/dev/null || true
 sleep 1
 
-# Start webapp (uvicorn) in background
-echo "[$(date)] Starting webapp on port $WEBAPP_PORT..." >> "$LOG_FILE"
-./venv/bin/python -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT >> "$WEBAPP_LOG" 2>&1 &
+# Detect CPU cores for optimal workers
+CPU_CORES=$(nproc 2>/dev/null || echo 2)
+WORKERS=$((CPU_CORES * 2 + 1))
+[ $WORKERS -gt 8 ] && WORKERS=8
+echo "[$(date)] Detected $CPU_CORES cores, using $WORKERS workers" >> "$LOG_FILE"
+
+# Start webapp (uvicorn) in background with multiple workers
+echo "[$(date)] Starting webapp on port $WEBAPP_PORT with $WORKERS workers..." >> "$LOG_FILE"
+./venv/bin/python -m uvicorn webapp.app:app --host 0.0.0.0 --port $WEBAPP_PORT --workers $WORKERS --limit-concurrency 500 >> "$WEBAPP_LOG" 2>&1 &
 WEBAPP_PID=$!
 echo "[$(date)] Webapp started with PID $WEBAPP_PID" >> "$LOG_FILE"
 

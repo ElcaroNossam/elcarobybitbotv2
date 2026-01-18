@@ -567,6 +567,10 @@ def get_marketplace() -> StrategyMarketplace:
     return _marketplace_instance
 
 
+# Alias for backward compatibility
+marketplace = get_marketplace()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONVENIENCE FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════

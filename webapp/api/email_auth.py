@@ -52,9 +52,104 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "noreply@triacelo.com")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
-# Verification codes storage (in production use Redis)
+# Redis for verification codes (multi-worker support)
+from core.redis_client import get_redis
+_redis_available = False  # Set to True when Redis connected
+
+# Fallback in-memory storage (single worker only)
 _verification_codes: dict = {}  # email -> {code, expires, user_data}
 _password_reset_codes: dict = {}  # email -> {code, expires}
+
+
+async def _get_verification_code(email: str) -> Optional[dict]:
+    """Get verification code from Redis or fallback to memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            data = await redis.get_verification_code(email)
+            if data:
+                return data
+    except Exception:
+        pass
+    # Fallback to in-memory
+    pending = _verification_codes.get(email)
+    if pending:
+        if datetime.utcnow() > pending.get('expires', datetime.min):
+            del _verification_codes[email]
+            return None
+        return pending
+    return None
+
+
+async def _set_verification_code(email: str, data: dict):
+    """Store verification code in Redis and fallback memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            await redis.set_verification_code(email, data, ttl=900)  # 15 min
+    except Exception:
+        pass
+    # Also store in memory as fallback
+    _verification_codes[email] = data
+
+
+async def _delete_verification_code(email: str):
+    """Delete verification code from Redis and memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            await redis.delete_verification_code(email)
+    except Exception:
+        pass
+    _verification_codes.pop(email, None)
+
+
+async def _get_password_reset_code(email: str) -> Optional[dict]:
+    """Get password reset code from Redis or fallback to memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            data = await redis.get_password_reset_code(email)
+            if data:
+                return data
+    except Exception:
+        pass
+    # Fallback to in-memory
+    pending = _password_reset_codes.get(email)
+    if pending:
+        if datetime.utcnow() > pending.get('expires', datetime.min):
+            del _password_reset_codes[email]
+            return None
+        return pending
+    return None
+
+
+async def _set_password_reset_code(email: str, data: dict):
+    """Store password reset code in Redis and fallback memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            await redis.set_password_reset_code(email, data, ttl=3600)  # 1 hour
+    except Exception:
+        pass
+    _password_reset_codes[email] = data
+
+
+async def _delete_password_reset_code(email: str):
+    """Delete password reset code from Redis and memory"""
+    email = email.lower()
+    try:
+        redis = await get_redis()
+        if redis._connected:
+            await redis.delete_password_reset_code(email)
+    except Exception:
+        pass
+    _password_reset_codes.pop(email, None)
 
 
 # =============================================================================
@@ -264,14 +359,14 @@ async def email_register(data: EmailRegisterRequest, background_tasks: Backgroun
     # Hash password
     password_hash, password_salt = hash_password(data.password)
     
-    # Store pending registration
-    _verification_codes[email] = {
+    # Store pending registration (Redis + fallback memory)
+    await _set_verification_code(email, {
         'code': code,
-        'expires': expires,
+        'expires': expires.isoformat(),
         'password_hash': password_hash,
         'password_salt': password_salt,
         'name': data.name
-    }
+    })
     
     # Send verification email
     html = f"""
@@ -303,12 +398,17 @@ async def email_verify(data: EmailVerifyRequest):
     """
     email = data.email.lower()
     
-    pending = _verification_codes.get(email)
+    pending = await _get_verification_code(email)
     if not pending:
         raise HTTPException(400, "No pending verification for this email")
     
-    if datetime.utcnow() > pending['expires']:
-        del _verification_codes[email]
+    # Parse expires from ISO format (Redis stores as string)
+    expires = pending.get('expires')
+    if isinstance(expires, str):
+        expires = datetime.fromisoformat(expires)
+    
+    if datetime.utcnow() > expires:
+        await _delete_verification_code(email)
         raise HTTPException(400, "Verification code expired")
     
     if pending['code'] != data.code:
@@ -319,14 +419,14 @@ async def email_verify(data: EmailVerifyRequest):
         email=email,
         password_hash=pending['password_hash'],
         password_salt=pending['password_salt'],
-        name=pending['name']
+        name=pending.get('name')
     )
     
     if not user_id:
         raise HTTPException(500, "Failed to create user")
     
     # Clean up
-    del _verification_codes[email]
+    await _delete_verification_code(email)
     
     # Create token
     token = create_access_token(user_id, is_admin=False)
@@ -397,10 +497,11 @@ async def forgot_password(data: PasswordResetRequest, background_tasks: Backgrou
     code = generate_verification_code()
     expires = datetime.utcnow() + timedelta(minutes=15)
     
-    _password_reset_codes[email] = {
+    # Store in Redis + fallback memory
+    await _set_password_reset_code(email, {
         'code': code,
-        'expires': expires
-    }
+        'expires': expires.isoformat()
+    })
     
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -427,12 +528,17 @@ async def reset_password(data: PasswordResetConfirmRequest):
     """
     email = data.email.lower()
     
-    pending = _password_reset_codes.get(email)
+    pending = await _get_password_reset_code(email)
     if not pending:
         raise HTTPException(400, "No pending reset for this email")
     
-    if datetime.utcnow() > pending['expires']:
-        del _password_reset_codes[email]
+    # Parse expires from ISO format (Redis stores as string)
+    expires = pending.get('expires')
+    if isinstance(expires, str):
+        expires = datetime.fromisoformat(expires)
+    
+    if datetime.utcnow() > expires:
+        await _delete_password_reset_code(email)
         raise HTTPException(400, "Reset code expired")
     
     if pending['code'] != data.code:
@@ -447,7 +553,7 @@ async def reset_password(data: PasswordResetConfirmRequest):
     if not update_email_user_password(email, password_hash, password_salt):
         raise HTTPException(500, "Failed to update password")
     
-    del _password_reset_codes[email]
+    await _delete_password_reset_code(email)
     
     return {"success": True, "message": "Password updated successfully"}
 

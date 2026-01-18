@@ -47,13 +47,36 @@ class TelegramConfig:
     webhook_url: Optional[str] = field(default_factory=lambda: os.getenv("WEBHOOK_URL"))
 
 
+def _get_workers_count() -> int:
+    """
+    Get optimal worker count for production.
+    Formula: min(2 * CPU cores + 1, max_workers) for I/O bound apps.
+    Override via WEBAPP_WORKERS env var.
+    """
+    import multiprocessing
+    
+    workers_env = os.getenv("WEBAPP_WORKERS")
+    if workers_env:
+        return max(1, int(workers_env))
+    
+    # Production: auto-detect based on CPU cores
+    if os.getenv("ENV") == "production":
+        cores = multiprocessing.cpu_count()
+        # 2 * cores + 1 is optimal for I/O bound apps
+        # Cap at 8 to avoid memory issues
+        return min(2 * cores + 1, 8)
+    
+    # Development: single worker for easier debugging
+    return 1
+
+
 @dataclass
 class WebAppConfig:
     """FastAPI WebApp settings"""
     host: str = "0.0.0.0"
     port: int = 8765
     reload: bool = field(default_factory=lambda: os.getenv("ENV", "dev") == "dev")
-    workers: int = 1
+    workers: int = field(default_factory=_get_workers_count)
     
     # CORS - Secure default, configure via CORS_ORIGINS env var
     allow_origins: list = field(default_factory=lambda: _get_cors_origins())

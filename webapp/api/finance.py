@@ -209,7 +209,8 @@ async def get_finance_dashboard(
                 SELECT COUNT(*) FROM users 
                 WHERE created_at >= %s
             """, (period_start,))
-            new_users = cur.fetchone()[0] or 0
+            row = cur.fetchone()
+            new_users = (row[0] if row else 0) or 0
             
             # Calculate MRR from active subscriptions
             cur.execute("""
@@ -310,7 +311,8 @@ async def get_transactions(
             cur.execute(f"""
                 SELECT COUNT(*) FROM payment_history ph WHERE {where_sql}
             """, params)
-            total = cur.fetchone()[0]
+            row = cur.fetchone()
+            total = row[0] if row else 0
             
             # Get transactions
             offset = (page - 1) * limit
@@ -408,7 +410,8 @@ async def get_subscription_analytics(
                 WHERE is_allowed = 0 
                 AND created_at >= NOW() - INTERVAL '30 days'
             """)
-            churned = cur.fetchone()[0] or 0
+            row = cur.fetchone()
+            churned = (row[0] if row else 0) or 0
             
             total_active = sum(by_plan.values())
             churn_rate = (churned / (total_active + churned) * 100) if (total_active + churned) > 0 else 0
