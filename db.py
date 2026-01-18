@@ -145,6 +145,26 @@ USER_FIELDS_WHITELIST = {
     "hl_mainnet_wallet_address",  # HL mainnet wallet address
 }
 
+
+def _normalize_both_account_type(account_type: str | None) -> str | None:
+    """
+    Normalize 'both' account_type to 'demo' for API and DB queries.
+    
+    'both' is a trading configuration (trade on demo AND real),
+    but for API calls and DB queries we need specific account type.
+    Default fallback is 'demo' since it's safer for new users.
+    
+    Args:
+        account_type: 'demo', 'real', 'both', or None
+    
+    Returns:
+        'demo', 'real', or None (if input was None)
+    """
+    if account_type == 'both':
+        return 'demo'
+    return account_type
+
+
 # ------------------------------------------------------------------------------------
 # PostgreSQL connection helpers (re-exported from core.db_postgres)
 # ------------------------------------------------------------------------------------
@@ -2303,6 +2323,9 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
     - exchange: 'bybit', 'hyperliquid'  
     - env: 'paper', 'live' (unified env)
     """
+    # Normalize 'both' -> 'demo' since we need specific account type for queries
+    account_type = _normalize_both_account_type(account_type)
+    
     with get_conn() as conn:
         # Build query based on filters
         base_query = """
@@ -3236,6 +3259,9 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
     import datetime
     from zoneinfo import ZoneInfo
     
+    # Normalize 'both' -> 'demo' since we need specific account type for queries
+    account_type = _normalize_both_account_type(account_type)
+    
     with get_conn() as conn:
         # Базовый запрос
         where_clauses = ["user_id = ?"]
@@ -3376,6 +3402,9 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
     Returns list of dicts with trade data from trade_logs table.
     Used by webapp stats API.
     """
+    # Normalize 'both' -> 'demo' since we need specific account type for queries
+    account_type = _normalize_both_account_type(account_type)
+    
     with get_conn() as conn:
         where_clauses = ["user_id = ?"]
         params = [user_id]
@@ -3446,6 +3475,9 @@ def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange:
     import datetime
     from zoneinfo import ZoneInfo
     
+    # Normalize 'both' -> 'demo' since we need specific account type for queries
+    account_type = _normalize_both_account_type(account_type)
+    
     with get_conn() as conn:
         where_clauses = ["user_id = ?", "ts >= ?"]
         now = datetime.datetime.now(ZoneInfo("UTC"))
@@ -3479,6 +3511,9 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
     """Get stats for trades with NULL/unknown strategy."""
     import datetime
     from zoneinfo import ZoneInfo
+    
+    # Normalize 'both' -> 'demo' since we need specific account type for queries
+    account_type = _normalize_both_account_type(account_type)
     
     with get_conn() as conn:
         where_clauses = ["user_id = ?", "strategy IS NULL"]
