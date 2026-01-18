@@ -48,6 +48,21 @@ BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
 
 
+def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
+    """
+    Normalize 'both' account_type to a valid single account type.
+    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
+    
+    For Bybit: 'both' -> 'demo' (safer default)
+    For HyperLiquid: 'both' -> 'testnet' (safer default)
+    """
+    if account_type == 'both':
+        if exchange == 'hyperliquid':
+            return 'testnet'
+        return 'demo'
+    return account_type
+
+
 # ==================== POSITION CALCULATOR MODELS ====================
 
 class CalculatePositionRequest(BaseModel):
@@ -220,9 +235,8 @@ async def get_balance(
     """Get account balance for specified exchange."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -320,9 +334,8 @@ async def get_positions(
         elif env == "live":
             account_type = "real" if exchange == "bybit" else "mainnet"
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -465,9 +478,8 @@ async def get_orders(
     """Get open orders for specified exchange."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -1005,9 +1017,8 @@ async def get_execution_history(
     """Get execution history from exchange API (fills/executions)."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     if exchange == "hyperliquid":
         # HyperLiquid execution history
@@ -1075,9 +1086,8 @@ async def get_trades(
     """Get recent trades history from trade_logs table."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     try:
         from core.db_postgres import execute, execute_scalar
@@ -1143,9 +1153,8 @@ async def get_trading_stats(
     """Get trading statistics from trade_logs table."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     try:
         # Use db module's get_trade_stats which works with PostgreSQL
@@ -1700,9 +1709,8 @@ async def cancel_all_orders(
     """Cancel all open orders"""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     if exchange == "hyperliquid":
         # HyperLiquid cancel all - would need implementation
@@ -2314,9 +2322,8 @@ async def get_all_strategy_settings(
     """
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     try:
         # Get global user config for defaults
@@ -2381,9 +2388,8 @@ async def get_single_strategy_settings(
     """Get settings for a specific strategy."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     if strategy not in STRATEGY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy}")

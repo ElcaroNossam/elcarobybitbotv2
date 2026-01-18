@@ -11,6 +11,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
+    """
+    Normalize 'both' account_type to a valid single account type.
+    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
+    
+    For Bybit: 'both' -> 'demo' (safer default)
+    For HyperLiquid: 'both' -> 'testnet' (safer default)
+    """
+    if account_type == 'both':
+        if exchange == 'hyperliquid':
+            return 'testnet'
+        return 'demo'
+    return account_type
+
+
 async def get_positions_service(user_id: int, exchange: str = 'bybit', account_type: str = 'demo', symbol: Optional[str] = None) -> Dict[str, Any]:
     """
     Get positions using services layer
@@ -25,9 +40,8 @@ async def get_positions_service(user_id: int, exchange: str = 'bybit', account_t
     Returns:
         Dict with {"success": bool, "data": List[dict]}
     """
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     try:
         import db
@@ -94,9 +108,8 @@ async def get_balance_service(user_id: int, exchange: str = 'bybit', account_typ
     Returns:
         Dict with {"success": bool, "data": dict}
     """
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     try:
         from bot_unified import get_balance_unified

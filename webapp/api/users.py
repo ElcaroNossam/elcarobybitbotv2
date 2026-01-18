@@ -17,6 +17,21 @@ logger = logging.getLogger(__name__)
 from webapp.api.auth import get_current_user
 
 
+def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
+    """
+    Normalize 'both' account_type to a valid single account type.
+    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
+    
+    For Bybit: 'both' -> 'demo' (safer default)
+    For HyperLiquid: 'both' -> 'testnet' (safer default)
+    """
+    if account_type == 'both':
+        if exchange == 'hyperliquid':
+            return 'testnet'
+        return 'demo'
+    return account_type
+
+
 class ExchangeSwitch(BaseModel):
     exchange: str
     reconnect: bool = True
@@ -501,9 +516,8 @@ async def test_bybit_api(
     """Test Bybit API connection."""
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo' (this is bybit-specific endpoint)
+    account_type = _normalize_both_account_type(account_type, 'bybit')
     
     creds = db.get_all_user_credentials(user_id)
     
@@ -817,9 +831,8 @@ async def get_strategy_settings(
     """
     user_id = user["user_id"]
     
-    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
-    if account_type == 'both':
-        account_type = 'demo'
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
     
     result = {}
     for strategy in VALID_STRATEGIES:

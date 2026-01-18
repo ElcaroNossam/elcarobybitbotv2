@@ -146,21 +146,26 @@ USER_FIELDS_WHITELIST = {
 }
 
 
-def _normalize_both_account_type(account_type: str | None) -> str | None:
+def _normalize_both_account_type(account_type: str | None, exchange: str = 'bybit') -> str | None:
     """
-    Normalize 'both' account_type to 'demo' for API and DB queries.
+    Normalize 'both' account_type for API and DB queries.
     
-    'both' is a trading configuration (trade on demo AND real),
+    'both' is a trading configuration (trade on demo+real or testnet+mainnet),
     but for API calls and DB queries we need specific account type.
-    Default fallback is 'demo' since it's safer for new users.
+    
+    For Bybit: 'both' → 'demo' (safer default)
+    For HyperLiquid: 'both' → 'testnet' (safer default)
     
     Args:
-        account_type: 'demo', 'real', 'both', or None
+        account_type: 'demo', 'real', 'both', 'testnet', 'mainnet', or None
+        exchange: 'bybit' or 'hyperliquid'
     
     Returns:
-        'demo', 'real', or None (if input was None)
+        Normalized account_type or None (if input was None)
     """
     if account_type == 'both':
+        if exchange == 'hyperliquid':
+            return 'testnet'
         return 'demo'
     return account_type
 
@@ -3402,8 +3407,8 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
     Returns list of dicts with trade data from trade_logs table.
     Used by webapp stats API.
     """
-    # Normalize 'both' -> 'demo' since we need specific account type for queries
-    account_type = _normalize_both_account_type(account_type)
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
         where_clauses = ["user_id = ?"]
@@ -3475,8 +3480,8 @@ def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange:
     import datetime
     from zoneinfo import ZoneInfo
     
-    # Normalize 'both' -> 'demo' since we need specific account type for queries
-    account_type = _normalize_both_account_type(account_type)
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
         where_clauses = ["user_id = ?", "ts >= ?"]
@@ -3507,13 +3512,13 @@ def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange:
         return total_pnl
 
 
-def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None) -> dict:
+def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None, exchange: str | None = None) -> dict:
     """Get stats for trades with NULL/unknown strategy."""
     import datetime
     from zoneinfo import ZoneInfo
     
-    # Normalize 'both' -> 'demo' since we need specific account type for queries
-    account_type = _normalize_both_account_type(account_type)
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
         where_clauses = ["user_id = ?", "strategy IS NULL"]
