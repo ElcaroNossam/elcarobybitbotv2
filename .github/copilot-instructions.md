@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.11.0 | Обновлено: 18 января 2026
+# Версия: 3.12.0 | Обновлено: 18 января 2026
 # =============================================
 
 ---
@@ -447,6 +447,26 @@ db.set_user_field(uid, "some_field", value)
 db.invalidate_user_cache(uid)  # Обязательно!
 ```
 
+## Account Type Normalization (CRITICAL!)
+
+```python
+# Когда trading_mode='both', функции API и DB получают account_type='both'
+# НО 'both' - это КОНФИГУРАЦИЯ торговли, не валидный тип аккаунта для API!
+
+# ВСЕГДА нормализуй 'both' → 'demo' перед API/DB запросами:
+from db import _normalize_both_account_type
+account_type = _normalize_both_account_type(account_type)  # 'both' → 'demo'
+
+# Уже применено в:
+# - bot.py: _bybit_request(), show_balance_for_account(), show_positions_for_account()
+# - db.py: get_trade_stats(), get_rolling_24h_pnl(), get_active_positions()
+```
+
+⚠️ **При `trading_mode='both'`:**
+- По умолчанию показывается Demo аккаунт
+- Юзер переключает на Real через кнопки Demo/Real
+- API Bybit не поддерживает mode='both' - только demo/real URL
+
 ## Leverage Fallback
 
 ```python
@@ -469,6 +489,37 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: 'both' Account Type Normalization (Jan 18, 2026)
+- **Проблема:** При `trading_mode='both'` баланс показывал "💎 Real" но с данными Demo аккаунта!
+- **Причина:** 
+  1. `get_effective_trading_mode()` возвращал `'both'`
+  2. UI: `if account_type == "demo"` → FALSE → показывал "💎 Real"
+  3. API: `if account_type == "real"` → FALSE → fallback на Demo URL
+  4. Результат: Demo данные с Real label!
+- **Файлы:**
+  - `bot.py` - нормализация 'both' → 'demo' в:
+    - `_bybit_request()` (line 3909)
+    - `show_balance_for_account()` (line 11094)
+    - `show_positions_for_account()` (line 10258)
+    - `show_positions_direct()` (line 11222)
+    - `show_orders_for_account()` (line 9910)
+  - `db.py` - добавлена функция `_normalize_both_account_type()` и применена в:
+    - `get_user_credentials()` (line 318)
+    - `get_trade_stats()` (line 3260)
+    - `get_trade_logs_list()` (line 3403)
+    - `get_rolling_24h_pnl()` (line 3476)
+    - `get_trade_stats_unknown()` (line 3513)
+    - `get_active_positions()` (line 2328)
+- **Fix:** Теперь при `trading_mode='both'` показывается Demo по умолчанию с корректным label
+- **Commits:** e87c1d8, ee48fce
+
+### ✅ FIX: NameError in get_rolling_24h_pnl (Jan 18, 2026)
+- **Проблема:** Today PnL показывал +0.00 USDT при наличии сделок
+- **Причина:** `logger` не был определён → NameError → exception → return 0
+- **Файл:** `db.py` line 3470
+- **Fix:** `logger` → `_logger`
+- **Commit:** 4847bf7
 
 ### ✅ FIX: Signal Skip Logging + Missing Coins in TOP_LIST (Jan 18, 2026)
 - **Проблема:** Пользователи жаловались что сделки не открываются, но не было видно причину в логах
@@ -994,7 +1045,7 @@ async def verify_usdt_jetton_transfer(...)
 ---
 
 *Last updated: 18 января 2026*
-*Version: 3.11.0*
+*Version: 3.12.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
