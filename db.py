@@ -3467,7 +3467,7 @@ def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange:
         total_pnl = float(row[0]) if row and row[0] else 0.0
         trade_count = row[1] if row else 0
         
-        logger.debug(f"[{user_id}] Rolling 24h PnL from DB: {total_pnl:+.2f} USDT ({trade_count} trades)")
+        _logger.debug(f"[{user_id}] Rolling 24h PnL from DB: {total_pnl:+.2f} USDT ({trade_count} trades)")
         return total_pnl
 
 
