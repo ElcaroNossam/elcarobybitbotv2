@@ -220,6 +220,10 @@ async def get_balance(
     """Get account balance for specified exchange."""
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
         try:
@@ -315,6 +319,10 @@ async def get_positions(
             account_type = "demo" if exchange == "bybit" else "testnet"
         elif env == "live":
             account_type = "real" if exchange == "bybit" else "mainnet"
+    
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
     
     # NEW: Use services integration if available
     if SERVICES_AVAILABLE:
@@ -456,6 +464,10 @@ async def get_orders(
 ) -> List[dict]:
     """Get open orders for specified exchange."""
     user_id = user["user_id"]
+    
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
     
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
@@ -993,6 +1005,10 @@ async def get_execution_history(
     """Get execution history from exchange API (fills/executions)."""
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     if exchange == "hyperliquid":
         # HyperLiquid execution history
         hl_creds = db.get_hl_credentials(user_id)
@@ -1052,24 +1068,39 @@ async def get_execution_history(
 @router.get("/trades")
 async def get_trades(
     exchange: str = Query("bybit"),
+    account_type: str = Query(None),  # 'demo', 'real', or None for all
     limit: int = Query(20, ge=1, le=100),
     user: dict = Depends(get_current_user)
 ) -> dict:
     """Get recent trades history from trade_logs table."""
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     try:
         from core.db_postgres import execute, execute_scalar
         
-        # Query trade_logs with PostgreSQL
-        trades_data = execute("""
-            SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
-                   ts, strategy, account_type, exit_reason, exchange
-            FROM trade_logs 
-            WHERE user_id = %s
-            ORDER BY ts DESC 
-            LIMIT %s
-        """, (user_id, limit))
+        # Build query with optional account_type filter
+        if account_type:
+            trades_data = execute("""
+                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                       ts, strategy, account_type, exit_reason, exchange
+                FROM trade_logs 
+                WHERE user_id = %s AND account_type = %s
+                ORDER BY ts DESC 
+                LIMIT %s
+            """, (user_id, account_type, limit))
+        else:
+            trades_data = execute("""
+                SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
+                       ts, strategy, account_type, exit_reason, exchange
+                FROM trade_logs 
+                WHERE user_id = %s
+                ORDER BY ts DESC 
+                LIMIT %s
+            """, (user_id, limit))
         
         trades = []
         for row in trades_data:
@@ -1106,14 +1137,19 @@ async def get_trades(
 async def get_trading_stats(
     exchange: str = Query("bybit"),
     period: str = Query("all"),  # all, day, week, month
+    account_type: str = Query(None),  # 'demo', 'real', or None for all
     user: dict = Depends(get_current_user)
 ) -> dict:
     """Get trading statistics from trade_logs table."""
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     try:
         # Use db module's get_trade_stats which works with PostgreSQL
-        stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=None)
+        stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=account_type)
         
         # Map database field names to API response field names
         total = stats.get("total", 0)
@@ -1663,6 +1699,10 @@ async def cancel_all_orders(
 ):
     """Cancel all open orders"""
     user_id = user["user_id"]
+    
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
     
     if exchange == "hyperliquid":
         # HyperLiquid cancel all - would need implementation
@@ -2274,6 +2314,10 @@ async def get_all_strategy_settings(
     """
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     try:
         # Get global user config for defaults
         user_cfg = db.get_user_config(user_id)
@@ -2336,6 +2380,10 @@ async def get_single_strategy_settings(
 ):
     """Get settings for a specific strategy."""
     user_id = user["user_id"]
+    
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
+    if account_type == 'both':
+        account_type = 'demo'
     
     if strategy not in STRATEGY_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy}")

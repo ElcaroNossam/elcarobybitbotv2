@@ -25,6 +25,10 @@ async def get_positions_service(user_id: int, exchange: str = 'bybit', account_t
     Returns:
         Dict with {"success": bool, "data": List[dict]}
     """
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     try:
         import db
         from bot_unified import get_positions_unified
@@ -90,6 +94,10 @@ async def get_balance_service(user_id: int, exchange: str = 'bybit', account_typ
     Returns:
         Dict with {"success": bool, "data": dict}
     """
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     try:
         from bot_unified import get_balance_unified
         

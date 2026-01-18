@@ -501,6 +501,10 @@ async def test_bybit_api(
     """Test Bybit API connection."""
     user_id = user["user_id"]
     
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     creds = db.get_all_user_credentials(user_id)
     
     if account_type == "demo":
@@ -812,6 +816,10 @@ async def get_strategy_settings(
     Returns settings with features based on STRATEGY_FEATURES config.
     """
     user_id = user["user_id"]
+    
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type)
+    if account_type == 'both':
+        account_type = 'demo'
     
     result = {}
     for strategy in VALID_STRATEGIES:

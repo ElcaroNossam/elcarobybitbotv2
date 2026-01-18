@@ -33,6 +33,10 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
     Returns:
         Balance object or None if error
     """
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     client = None
     try:
         from core.exchange_client import get_exchange_client
@@ -107,6 +111,10 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
     Returns:
         List of Position objects
     """
+    # Normalize 'both' -> 'demo' (both is trading config, not valid account_type for API)
+    if account_type == 'both':
+        account_type = 'demo'
+    
     client = None
     try:
         from core.exchange_client import get_exchange_client
