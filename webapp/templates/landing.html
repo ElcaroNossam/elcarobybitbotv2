@@ -474,12 +474,15 @@
             <span>Triacelo</span>
         </div>
         <div class="nav-links">
+            <a href="#pricing">Pricing</a>
             <a href="#features">Features</a>
             <a href="#strategies">Strategies</a>
             <a href="/terminal">Terminal</a>
-            <a href="#pricing">Pricing</a>
         </div>
-        <a href="/terminal" class="nav-btn">Launch App</a>
+        <div class="nav-auth-buttons" style="display: flex; gap: 12px;">
+            <button onclick="showAuthModal('login')" class="nav-btn" style="background: transparent; border: 1px solid var(--accent);">Login</button>
+            <a href="#pricing" class="nav-btn">Get Started Free</a>
+        </div>
     </nav>
     
     <!-- Hero Section -->
@@ -495,10 +498,12 @@
                 AI-powered strategies, real-time analytics, and seamless execution.
             </p>
             <div class="hero-buttons">
-                <a href="/terminal" class="btn-primary">
-                    <i class="fas fa-rocket"></i> Start Trading
+                <a href="#pricing" class="btn-primary">
+                    <i class="fas fa-rocket"></i> Start Free Now
                 </a>
-                <a href="#features" class="btn-secondary">Learn More</a>
+                <button onclick="showAuthModal('register')" class="btn-secondary">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
             </div>
         </div>
         
@@ -521,6 +526,100 @@
         <div class="floating-coin" style="top: 20%; left: 10%;">₿</div>
         <div class="floating-coin" style="top: 60%; left: 5%;">Ξ</div>
         <div class="floating-coin" style="top: 40%; right: 5%;">◎</div>
+    </section>
+    
+    <!-- Quick Start Pricing (Immediately visible) -->
+    <section id="pricing" style="padding: 60px 40px; background: linear-gradient(180deg, #0a0a12 0%, #12121a 100%);">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;">Start Trading Today</h2>
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">No credit card required • Free plan available</p>
+            </div>
+            
+            <!-- Quick Start Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 40px;">
+                
+                <!-- Free Card -->
+                <div onclick="startWithPlan('free')" 
+                     style="background: var(--bg-primary); border: 2px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 35px; cursor: pointer; transition: all 0.3s; text-align: center;"
+                     onmouseover="this.style.borderColor='var(--green)';this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.transform='none'">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">⭐</div>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Free</h3>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--green); margin-bottom: 15px;">$0</div>
+                    <ul style="text-align: left; list-style: none; margin-bottom: 25px; font-size: 0.95rem;">
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Demo trading</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> 3 AI signals/day</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Basic terminal</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> 1 backtest/day</li>
+                    </ul>
+                    <button style="width: 100%; padding: 14px; background: rgba(34,197,94,0.2); border: 2px solid var(--green); border-radius: 12px; color: var(--green); font-weight: 600; font-size: 1rem; cursor: pointer;">
+                        Start Free →
+                    </button>
+                </div>
+                
+                <!-- Premium Card (Featured) -->
+                <div onclick="startWithPlan('premium')" 
+                     style="background: linear-gradient(135deg, rgba(220,38,38,0.15), rgba(220,38,38,0.05)); border: 2px solid var(--accent); border-radius: 20px; padding: 35px; cursor: pointer; transition: all 0.3s; text-align: center; position: relative; transform: scale(1.03);"
+                     onmouseover="this.style.transform='scale(1.08) translateY(-5px)'"
+                     onmouseout="this.style.transform='scale(1.03)'">
+                    <span style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); padding: 5px 18px; border-radius: 25px; font-size: 0.75rem; font-weight: 700;">MOST POPULAR</span>
+                    <div style="font-size: 3rem; margin-bottom: 15px;">💎</div>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Premium</h3>
+                    <div style="margin-bottom: 15px;">
+                        <span style="font-size: 2.5rem; font-weight: 800; color: var(--accent);">$100</span>
+                        <span style="color: var(--text-secondary);">/mo</span>
+                    </div>
+                    <ul style="text-align: left; list-style: none; margin-bottom: 25px; font-size: 0.95rem;">
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> <strong>Unlimited</strong> AI signals</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> <strong>Unlimited</strong> backtesting</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Copy 5 traders</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Priority support</li>
+                    </ul>
+                    <button style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #991b1b); border: none; border-radius: 12px; color: white; font-weight: 600; font-size: 1rem; cursor: pointer;">
+                        <i class="fas fa-crown"></i> Get Premium →
+                    </button>
+                </div>
+                
+                <!-- Basic Card -->
+                <div onclick="startWithPlan('basic')" 
+                     style="background: var(--bg-primary); border: 2px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 35px; cursor: pointer; transition: all 0.3s; text-align: center;"
+                     onmouseover="this.style.borderColor='#3b82f6';this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.transform='none'">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">🚀</div>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 8px;">Basic</h3>
+                    <div style="margin-bottom: 15px;">
+                        <span style="font-size: 2.5rem; font-weight: 800; color: #3b82f6;">$50</span>
+                        <span style="color: var(--text-secondary);">/mo</span>
+                    </div>
+                    <ul style="text-align: left; list-style: none; margin-bottom: 25px; font-size: 0.95rem;">
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> 20 AI signals/day</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> 10 backtests/day</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Copy 2 traders</li>
+                        <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;"><span style="color: var(--green);">✓</span> Email support</li>
+                    </ul>
+                    <button style="width: 100%; padding: 14px; background: rgba(59,130,246,0.2); border: 2px solid #3b82f6; border-radius: 12px; color: #3b82f6; font-weight: 600; font-size: 1rem; cursor: pointer;">
+                        Get Basic →
+                    </button>
+                </div>
+            </div>
+            
+            <!-- TRC Token Info -->
+            <div style="background: linear-gradient(135deg, rgba(220,38,38,0.1), rgba(34,197,94,0.1)); border: 1px solid rgba(220,38,38,0.3); border-radius: 16px; padding: 25px; display: flex; flex-wrap: wrap; gap: 30px; align-items: center; justify-content: space-between;">
+                <div>
+                    <h4 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 5px;">💎 Pay with TRC Tokens & Earn 12% APY</h4>
+                    <p style="color: var(--text-secondary);">1 TRC = 1 USDT • Basket-pegged stablecoin • Stake and earn</p>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <input type="number" id="quickTrcAmount" value="100" min="10" max="10000" 
+                           style="width: 100px; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(220,38,38,0.5); border-radius: 8px; color: white; font-size: 1.1rem; text-align: center;">
+                    <span style="color: var(--text-secondary);">TRC</span>
+                    <button onclick="purchaseTRC()" style="padding: 12px 25px; background: linear-gradient(135deg, var(--accent), #991b1b); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer;">
+                        Buy TRC →
+                    </button>
+                </div>
+            </div>
+        </div>
     </section>
     
     <!-- Stats -->
@@ -1034,10 +1133,289 @@
                         document.getElementById('subPlanName').textContent = s.plan.charAt(0).toUpperCase() + s.plan.slice(1);
                         document.getElementById('subExpiryText').textContent = s.is_lifetime ? 'Lifetime' : (s.days_left !== null ? `${s.days_left} days left` : 'Active');
                     }
+                    // Update nav buttons for logged-in user
+                    updateNavForLoggedInUser(s);
                 }
             } catch (e) { console.warn(e); }
         }
+        
+        // ================================
+        // AUTH MODAL (Email + Telegram + Guest)
+        // ================================
+        function showAuthModal(mode = 'login') {
+            const existing = document.getElementById('authModal');
+            if (existing) existing.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'authModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            
+            const isLogin = mode === 'login';
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1a2e,#0a0a0f);border:1px solid rgba(220,38,38,0.3);border-radius:20px;padding:40px;max-width:420px;width:90%;position:relative;">
+                    <button onclick="closeAuthModal()" style="position:absolute;top:15px;right:15px;background:none;border:none;color:#666;font-size:1.5rem;cursor:pointer;">&times;</button>
+                    
+                    <div style="text-align:center;margin-bottom:30px;">
+                        <div style="font-size:3rem;margin-bottom:10px;">🚀</div>
+                        <h2 style="font-size:1.5rem;margin-bottom:5px;">${isLogin ? 'Welcome Back!' : 'Create Account'}</h2>
+                        <p style="color:#666;">Start trading in seconds</p>
+                    </div>
+                    
+                    <!-- Auth Tabs -->
+                    <div style="display:flex;gap:10px;margin-bottom:25px;">
+                        <button id="authTabLogin" onclick="switchAuthTab('login')" 
+                                style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:600;
+                                       ${isLogin ? 'background:var(--accent);color:white;' : 'background:#222;color:#888;'}">
+                            Login
+                        </button>
+                        <button id="authTabRegister" onclick="switchAuthTab('register')" 
+                                style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:600;
+                                       ${!isLogin ? 'background:var(--accent);color:white;' : 'background:#222;color:#888;'}">
+                            Sign Up
+                        </button>
+                    </div>
+                    
+                    <!-- Email Form -->
+                    <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                        <div id="nameField" style="margin-bottom:15px;display:${isLogin ? 'none' : 'block'};">
+                            <input type="text" id="authName" placeholder="Your Name" 
+                                   style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <input type="email" id="authEmail" placeholder="Email address" required
+                                   style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <input type="password" id="authPassword" placeholder="Password" required minlength="8"
+                                   style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1rem;">
+                        </div>
+                        <div id="confirmField" style="margin-bottom:20px;display:${isLogin ? 'none' : 'block'};">
+                            <input type="password" id="authConfirm" placeholder="Confirm password"
+                                   style="width:100%;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1rem;">
+                        </div>
+                        <button type="submit" id="authSubmitBtn"
+                                style="width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#991b1b);border:none;border-radius:10px;color:white;font-size:1rem;font-weight:600;cursor:pointer;">
+                            ${isLogin ? 'Login' : 'Create Account'}
+                        </button>
+                    </form>
+                    
+                    <div id="verifySection" style="display:none;text-align:center;">
+                        <p style="margin-bottom:15px;">Enter verification code sent to your email:</p>
+                        <input type="text" id="verifyCode" placeholder="000000" maxlength="6"
+                               style="width:150px;padding:14px;background:#111;border:1px solid #333;border-radius:10px;color:white;font-size:1.5rem;text-align:center;letter-spacing:8px;">
+                        <button onclick="verifyEmailCode()" 
+                                style="display:block;width:100%;margin-top:15px;padding:14px;background:var(--green);border:none;border-radius:10px;color:white;font-weight:600;cursor:pointer;">
+                            Verify Email
+                        </button>
+                    </div>
+                    
+                    <div style="text-align:center;margin-top:20px;">
+                        <p style="color:#666;margin-bottom:15px;">or continue with</p>
+                        <div style="display:flex;gap:10px;justify-content:center;">
+                            <button onclick="loginWithTelegram()" 
+                                    style="flex:1;padding:12px;background:#0088cc;border:none;border-radius:10px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <i class="fab fa-telegram"></i> Telegram
+                            </button>
+                            <button onclick="continueAsGuest()" 
+                                    style="flex:1;padding:12px;background:#333;border:none;border-radius:10px;color:white;cursor:pointer;">
+                                👁️ View Demo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p style="text-align:center;color:#666;font-size:0.75rem;margin-top:20px;">
+                        By continuing, you agree to our <a href="/terms" style="color:var(--accent);">Terms</a> 
+                        and <a href="/privacy" style="color:var(--accent);">Privacy Policy</a>
+                    </p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function closeAuthModal() { document.getElementById('authModal')?.remove(); }
+        
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('authTabLogin').style.background = isLogin ? 'var(--accent)' : '#222';
+            document.getElementById('authTabLogin').style.color = isLogin ? 'white' : '#888';
+            document.getElementById('authTabRegister').style.background = !isLogin ? 'var(--accent)' : '#222';
+            document.getElementById('authTabRegister').style.color = !isLogin ? 'white' : '#888';
+            document.getElementById('nameField').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('confirmField').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('authSubmitBtn').textContent = isLogin ? 'Login' : 'Create Account';
+            window._authMode = tab;
+        }
+        
+        window._authMode = 'login';
+        window._pendingEmail = '';
+        
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const name = document.getElementById('authName')?.value;
+            const confirm = document.getElementById('authConfirm')?.value;
+            const isLogin = window._authMode === 'login';
+            
+            if (!isLogin && password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            try {
+                const endpoint = isLogin ? '/api/auth/email/login' : '/api/auth/email/register';
+                const body = isLogin ? { email, password } : { email, password, name };
+                
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                
+                if (isLogin) {
+                    if (data.success && data.token) {
+                        localStorage.setItem('triacelo_token', data.token);
+                        localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                        closeAuthModal();
+                        window.location.href = '/dashboard';
+                    } else {
+                        alert(data.detail || data.error || 'Login failed');
+                    }
+                } else {
+                    if (data.success) {
+                        window._pendingEmail = email;
+                        document.getElementById('authForm').style.display = 'none';
+                        document.getElementById('verifySection').style.display = 'block';
+                    } else {
+                        alert(data.detail || data.error || 'Registration failed');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection error');
+            }
+        }
+        
+        async function verifyEmailCode() {
+            const code = document.getElementById('verifyCode').value;
+            if (code.length !== 6) {
+                alert('Please enter 6-digit code');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/email/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: window._pendingEmail, code })
+                });
+                const data = await res.json();
+                
+                if (data.success && data.token) {
+                    localStorage.setItem('triacelo_token', data.token);
+                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    closeAuthModal();
+                    alert('🎉 Welcome to Triacelo!');
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(data.detail || 'Invalid code');
+                }
+            } catch (err) {
+                alert('Verification failed');
+            }
+        }
+        
+        function loginWithTelegram() {
+            // Open Telegram bot link
+            window.open('https://t.me/triacelo_bybit_bot?start=web', '_blank');
+            closeAuthModal();
+        }
+        
+        async function continueAsGuest() {
+            try {
+                const res = await fetch('/api/auth/email/guest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                
+                if (data.success && data.token) {
+                    localStorage.setItem('triacelo_token', data.token);
+                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    closeAuthModal();
+                    window.location.href = '/terminal';
+                }
+            } catch (err) {
+                // Just go to terminal as unauthenticated guest
+                window.location.href = '/terminal';
+            }
+        }
+        
+        function updateNavForLoggedInUser(subscription) {
+            const navAuth = document.querySelector('.nav-auth-buttons');
+            if (navAuth && localStorage.getItem('triacelo_token')) {
+                const user = JSON.parse(localStorage.getItem('triacelo_user') || '{}');
+                navAuth.innerHTML = `
+                    <span style="color:#888;margin-right:10px;">Welcome, ${user.name || user.first_name || 'Trader'}!</span>
+                    <a href="/dashboard" class="nav-btn">Dashboard</a>
+                `;
+            }
+        }
+        
+        // Check if already logged in on page load
+        if (localStorage.getItem('triacelo_token')) {
+            updateNavForLoggedInUser({});
+        }
         loadSubscriptionStatus();
+        
+        // ================================
+        // QUICK START WITH PLAN
+        // ================================
+        function startWithPlan(plan) {
+            const token = localStorage.getItem('triacelo_token');
+            
+            if (plan === 'free') {
+                // Free plan - just go to terminal (works for everyone)
+                if (token) {
+                    window.location.href = '/dashboard';
+                } else {
+                    // Show auth modal with option to continue as guest
+                    showAuthModal('register');
+                }
+                return;
+            }
+            
+            // Paid plans require auth
+            if (!token) {
+                // Store selected plan for after auth
+                localStorage.setItem('pendingPlan', plan);
+                showAuthModal('register');
+                return;
+            }
+            
+            // Already logged in - go to payment
+            subscribePlan(plan);
+        }
+        
+        // Check for pending plan after auth
+        (function() {
+            const pendingPlan = localStorage.getItem('pendingPlan');
+            const token = localStorage.getItem('triacelo_token');
+            if (pendingPlan && token) {
+                localStorage.removeItem('pendingPlan');
+                // Auto-trigger subscription after 1s
+                setTimeout(() => subscribePlan(pendingPlan), 1000);
+            }
+        })();
+        
+        // Update TRC input sync
+        document.getElementById('quickTrcAmount')?.addEventListener('input', function() {
+            const amount = parseFloat(this.value) || 0;
+            const mainInput = document.getElementById('trcAmount');
+            if (mainInput) mainInput.value = amount;
+        });
     </script>
 </body>
 </html>

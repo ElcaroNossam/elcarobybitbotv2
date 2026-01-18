@@ -415,6 +415,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"mobile router not available: {e}")
     
+    # Email Authentication API (registration, login, password reset)
+    try:
+        from webapp.api import email_auth
+        app.include_router(email_auth.router, prefix="/api/auth/email", tags=["auth", "email"])
+        logger.info("✅ Email Auth API loaded at /api/auth/email")
+    except ImportError as e:
+        logger.warning(f"email_auth router not available: {e}")
+    
     # Landing page (epic dynamic)
     @app.get("/", response_class=HTMLResponse)
     async def landing(request: Request):
