@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.9.0 | Обновлено: 17 января 2026
+# Версия: 3.11.0 | Обновлено: 18 января 2026
 # =============================================
 
 ---
@@ -469,6 +469,24 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FIX: Signal Skip Logging + Missing Coins in TOP_LIST (Jan 18, 2026)
+- **Проблема:** Пользователи жаловались что сделки не открываются, но не было видно причину в логах
+- **Причина:** 
+  1. Логирование фильтрации сигналов было на уровне DEBUG (не видно в production)
+  2. Многие активно торгуемые монеты (IPUSDT, AXSUSDT, WLDUSDT) отсутствовали в `symbols.txt`
+  3. `coins_group` в настройках стратегии переопределял глобальный `coins` фильтр
+- **Файлы:**
+  - `bot.py` - изменено логирование с DEBUG на INFO для:
+    - already has open position
+    - position was recently closed  
+    - has active orders
+    - pending limit order
+    - pyramid count
+    - coins_group filter
+  - `symbols.txt` - добавлено 20+ монет: IPUSDT, AXSUSDT, WLDUSDT, ZKUSDT, FILUSDT, etc.
+- **Fix:** Теперь в логах чётко видно почему сигнал пропущен
+- **Commit:** da091eb
 
 ### ✅ CRITICAL: Duplicate get_user_payments Function Removed (Jan 17, 2026)
 - **Проблема:** Кнопка "Моя подписка" не работала - ошибка `column "payment_method" does not exist`
@@ -975,8 +993,8 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 17 января 2026*
-*Version: 3.10.0*
+*Last updated: 18 января 2026*
+*Version: 3.11.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
