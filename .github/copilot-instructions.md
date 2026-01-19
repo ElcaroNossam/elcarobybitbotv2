@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.13.0 | Обновлено: 19 января 2026
+# Версия: 3.14.0 | Обновлено: 19 января 2026
 # =============================================
 
 ---
@@ -496,6 +496,34 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FIX: Legacy Routing Missing live_enabled Check (Jan 19, 2026)
+- **Проблема:** При `trading_mode='both'` сделки открывались ТОЛЬКО на Demo, хотя Real был настроен
+- **Причина:** 
+  1. `place_order_all_accounts()` использует `use_legacy_routing=True`
+  2. Legacy routing формировал targets БЕЗ проверки `live_enabled`
+  3. Но даже с `live_enabled=1`, стратегии имели `trading_mode='demo'` в `user_strategy_settings`
+- **Файлы:**
+  - `bot.py` (line ~5170) - добавлена проверка `live_enabled` в legacy routing:
+    ```python
+    live_enabled = get_live_enabled(user_id)
+    if env == "live" and not live_enabled:
+        continue  # Skip Real targets
+    ```
+- **Данные:** Обновлено 19 записей в `user_strategy_settings`:
+  ```sql
+  UPDATE user_strategy_settings SET trading_mode='global' 
+  WHERE trading_mode IN ('demo', 'real') AND user.trading_mode='both';
+  ```
+- **Fix:** Теперь legacy routing корректно проверяет `live_enabled` и стратегии используют глобальный `trading_mode`
+- **Commit:** 3e5b53d
+
+### ✅ DATA: live_enabled Flag for Users (Jan 19, 2026)
+- **Проблема:** Юзеры 511692487, 1240338409 имели `live_enabled=0` → Real не торговался
+- **Fix SQL:**
+  ```sql
+  UPDATE users SET live_enabled=1 WHERE user_id IN (511692487, 1240338409);
+  ```
 
 ### ✅ FEAT: HyperLiquid 'both' Mode Support (Jan 18, 2026)
 - **Проблема:** `_normalize_both_account_type()` не учитывал HyperLiquid (testnet/mainnet)
