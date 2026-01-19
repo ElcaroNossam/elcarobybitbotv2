@@ -22699,9 +22699,11 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     uid = q.from_user.id
     data = q.data
+    t = ctx.t
     
     if data == "bybit:mode_demo":
         set_trading_mode(uid, "demo")
+        # Demo doesn't need live_enabled, but we keep it unchanged
         await q.edit_message_text(
             "🎮 *Demo mode activated*\n\n"
             "All trades will execute on your Demo account.\n"
@@ -22715,6 +22717,34 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "bybit:mode_real":
+        # Check if live_enabled - if not, ask for confirmation
+        if not get_live_enabled(uid):
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ " + t.get('confirm_real', "Yes, I understand the risks"), callback_data="bybit:confirm_real"),
+                    InlineKeyboardButton("❌ " + t.get('cancel', "Cancel"), callback_data="bybit:cancel_real")
+                ]
+            ])
+            await q.edit_message_text(
+                t.get('real_trading_warning', 
+                    "⚠️ *REAL TRADING WARNING*\n\n"
+                    "🔴 You are about to enable *REAL* trading mode.\n\n"
+                    "*This means:*\n"
+                    "• All trades will use your REAL funds\n"
+                    "• Losses are REAL and cannot be reversed\n"
+                    "• Profits are REAL and withdrawable\n\n"
+                    "💡 Make sure you have:\n"
+                    "• Tested your strategy on Demo first\n"
+                    "• Set proper SL/TP percentages\n"
+                    "• Only risking money you can afford to lose\n\n"
+                    "*Are you sure you want to proceed?*"
+                ),
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            return
+        
+        # Already confirmed before, just switch mode
         set_trading_mode(uid, "real")
         await q.edit_message_text(
             "💵 *Real mode activated*\n\n"
@@ -22728,11 +22758,83 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
     
+    elif data == "bybit:confirm_real":
+        # User confirmed real trading
+        set_live_enabled(uid, True)
+        set_trading_mode(uid, "real")
+        logger.info(f"[{uid}] User confirmed REAL trading mode - live_enabled=True")
+        await q.edit_message_text(
+            "💵 *Real mode activated*\n\n"
+            "✅ Live trading confirmation saved.\n"
+            "⚠️ All trades will execute with real funds!\n"
+            "Trade responsibly.",
+            parse_mode="Markdown"
+        )
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 Bybit 💵 Real",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "bybit:cancel_real":
+        # User cancelled
+        await q.edit_message_text(
+            "❌ *Cancelled*\n\n"
+            "Real trading was NOT enabled.\n"
+            "You remain on your current mode.",
+            parse_mode="Markdown"
+        )
+    
     elif data == "bybit:mode_both":
+        # Check if live_enabled - if not, ask for confirmation
+        if not get_live_enabled(uid):
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ " + t.get('confirm_both', "Yes, enable Both mode"), callback_data="bybit:confirm_both"),
+                    InlineKeyboardButton("❌ " + t.get('cancel', "Cancel"), callback_data="bybit:cancel_real")
+                ]
+            ])
+            await q.edit_message_text(
+                t.get('both_trading_warning',
+                    "⚠️ *BOTH MODE WARNING*\n\n"
+                    "🔴 You are about to enable *BOTH* trading mode.\n\n"
+                    "*This means:*\n"
+                    "• Every signal executes on BOTH Demo AND Real\n"
+                    "• Real trades use your REAL funds\n"
+                    "• Losses on Real account are REAL\n\n"
+                    "💡 This mode is useful for:\n"
+                    "• Comparing Demo vs Real execution\n"
+                    "• Running live while testing new settings\n\n"
+                    "*Are you sure you want to proceed?*"
+                ),
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+            return
+        
+        # Already confirmed before, just switch mode
         set_trading_mode(uid, "both")
         await q.edit_message_text(
             "🔀 *Both mode activated*\n\n"
             "⚠️ All signals will be executed on BOTH Demo and Real accounts!\n"
+            "Use with caution.",
+            parse_mode="Markdown"
+        )
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🟠 Bybit 🔀 Both",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+    
+    elif data == "bybit:confirm_both":
+        # User confirmed both mode
+        set_live_enabled(uid, True)
+        set_trading_mode(uid, "both")
+        logger.info(f"[{uid}] User confirmed BOTH trading mode - live_enabled=True")
+        await q.edit_message_text(
+            "🔀 *Both mode activated*\n\n"
+            "✅ Live trading confirmation saved.\n"
+            "⚠️ All signals will execute on BOTH Demo and Real!\n"
             "Use with caution.",
             parse_mode="Markdown"
         )
