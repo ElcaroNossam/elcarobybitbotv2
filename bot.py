@@ -13192,51 +13192,62 @@ def _to_mln_ext(v: float, u: str, *, bare_is_units: bool = False) -> float:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SCRYPTOMERA SIGNAL PARSER
-# Format 1 (legacy): SCRIPTOMER SHORT SOLUSDT @ 189.45
-# Format 2 (real):   🔴 SHORT BANKUSDT + 📊 Score: 52% + (BB:... RSI:... Vol:... OI:...)
+# Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
 # ═══════════════════════════════════════════════════════════════════════════════
 BITK_RE_HDR = re.compile(r'^\s*SCRIPTOMER\s+(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I | re.M)
-# NEW: Real Scryptomera format - 🔴/🟢 + SIDE + SYMBOL, then 📊 Score: on next line
-BITK_RE_REAL = re.compile(r'^[🔴🟢]\s*(SHORT|LONG)\s+([A-Z0-9]+USDT)', re.I | re.M)
-# Also detect by unique Score + BB/RSI/Vol/OI pattern
-BITK_RE_SCORE = re.compile(r'📊\s*Score:\s*\d+%.*\n📈\s*\(BB:\d+\s+RSI:\d+', re.I)
-# Entry price pattern for Scryptomera
-BITK_RE_ENTRY = re.compile(r'💲\s*Entry:\s*([0-9]+(?:\.[0-9]+)?)', re.I)
 
 def is_bitk_signal(text: str) -> bool:
-    """Check if message is Scryptomera signal by SCRIPTOMER or Score+BB+RSI pattern."""
-    # Legacy format
-    if BITK_RE_HDR.search(text):
-        return True
-    # Real format: has emoji+SIDE+SYMBOL AND Score+BB+RSI pattern
-    if BITK_RE_REAL.search(text) and BITK_RE_SCORE.search(text):
-        return True
-    return False
+    """Check if message is Scryptomera signal by SCRIPTOMER keyword."""
+    return bool(BITK_RE_HDR.search(text))
 
 def parse_bitk_signal(text: str) -> dict | None:
     """
     Parse Scryptomera signal.
-    Format 1: SCRIPTOMER SHORT SOLUSDT @ 189.45
-    Format 2: 🔴 SHORT BANKUSDT + 💲 Entry: 0.05282000
+    Format: SCRIPTOMER SHORT SOLUSDT @ 189.45
     """
-    # Try legacy format first
     m = BITK_RE_HDR.search(text)
-    if m:
-        side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
-        symbol = m.group(2).upper()
-        price = _tof(m.group(3))
-        return {"symbol": symbol, "side": side, "price": price}
+    if not m:
+        return None
+    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+    symbol = m.group(2).upper()
+    price = _tof(m.group(3))
+    return {"symbol": symbol, "side": side, "price": price}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RSI_BB SIGNAL PARSER
+# Format: 🟢 LONG MERLUSDT\n📊 Score: 51% ⭐ C\n📈 (BB:15 RSI:12 Vol:0 OI:0)...
+# ═══════════════════════════════════════════════════════════════════════════════
+RSI_BB_RE_HDR = re.compile(r'^[🔴🟢]\s*(SHORT|LONG)\s+([A-Z0-9]+USDT)', re.I | re.M)
+RSI_BB_RE_SCORE = re.compile(r'📊\s*Score:\s*\d+%', re.I)
+RSI_BB_RE_INDICATORS = re.compile(r'📈\s*\(BB:\d+\s+RSI:\d+', re.I)
+RSI_BB_RE_ENTRY = re.compile(r'💲\s*Entry:\s*([0-9]+(?:\.[0-9]+)?)', re.I)
+
+def is_rsi_bb_signal(text: str) -> bool:
+    """Check if message is RSI_BB signal by unique Score + BB + RSI pattern."""
+    # RSI_BB format: emoji+SIDE+SYMBOL AND Score AND BB/RSI indicators
+    return bool(RSI_BB_RE_HDR.search(text) and RSI_BB_RE_SCORE.search(text) and RSI_BB_RE_INDICATORS.search(text))
+
+def parse_rsi_bb_signal(text: str) -> dict | None:
+    """
+    Parse RSI_BB signal.
+    Format: 🟢 LONG MERLUSDT + 📊 Score: 51% + 📈 (BB:15 RSI:12...) + 💲 Entry: 0.17049
+    """
+    if not is_rsi_bb_signal(text):
+        return None
     
-    # Try real format: 🔴/🟢 SIDE SYMBOL
-    m = BITK_RE_REAL.search(text)
-    if m and BITK_RE_SCORE.search(text):
-        side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
-        symbol = m.group(2).upper()
-        # Get entry price from 💲 Entry: line
-        m_entry = BITK_RE_ENTRY.search(text)
-        price = _tof(m_entry.group(1)) if m_entry else None
-        if price:
-            return {"symbol": symbol, "side": side, "price": price}
+    m = RSI_BB_RE_HDR.search(text)
+    if not m:
+        return None
+        
+    side = "Buy" if m.group(1).upper() == "LONG" else "Sell"
+    symbol = m.group(2).upper()
+    
+    # Get entry price from 💲 Entry: line
+    m_entry = RSI_BB_RE_ENTRY.search(text)
+    price = _tof(m_entry.group(1)) if m_entry else None
+    
+    if price:
+        return {"symbol": symbol, "side": side, "price": price}
     
     return None
 
@@ -13687,6 +13698,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     parsed_bitk = parse_bitk_signal(txt)
     is_bitk = parsed_bitk is not None
     
+    # NEW: Parse RSI_BB signal - MUST be before Scryptomera check
+    parsed_rsi_bb = parse_rsi_bb_signal(txt)
+    is_rsi_bb = parsed_rsi_bb is not None
+    
     parsed_scalper = parse_scalper_signal(txt)
     is_scalper = parsed_scalper is not None
     
@@ -13700,12 +13715,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     parsed_oi = parse_oi_signal(txt)
     is_oi = parsed_oi is not None
     
-    logger.debug(f"Raw signal (bitk={is_bitk}, scalper={is_scalper}, elcaro={is_elcaro}, fibonacci={is_fibonacci}, oi={is_oi}): {txt!r}")
+    logger.debug(f"Raw signal (bitk={is_bitk}, rsi_bb={is_rsi_bb}, scalper={is_scalper}, elcaro={is_elcaro}, fibonacci={is_fibonacci}, oi={is_oi}): {txt!r}")
 
     parsed = parse_signal(txt)
     
     # Override parsed with specific parser data to ensure symbol is saved correctly
-    if is_bitk and parsed_bitk:
+    # RSI_BB must be checked FIRST to prevent Scryptomera from catching it
+    if is_rsi_bb and parsed_rsi_bb:
+        parsed["symbol"] = parsed_rsi_bb.get("symbol")
+        parsed["side"] = parsed_rsi_bb.get("side")
+        parsed["price"] = parsed_rsi_bb.get("price")
+    elif is_bitk and parsed_bitk:
         parsed["symbol"] = parsed_bitk.get("symbol")
         parsed["side"] = parsed_bitk.get("side")
         parsed["price"] = parsed_bitk.get("price")
@@ -13754,7 +13774,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     timeframe = parsed.get("tf") or "24h"
 
     try:
-        if is_bitk:
+        # RSI_BB must be checked FIRST to prevent Scryptomera from catching it
+        if is_rsi_bb:
+            symbol     = parsed_rsi_bb["symbol"]
+            side       = parsed_rsi_bb["side"]
+            spot_price = float(parsed_rsi_bb["price"])
+        elif is_bitk:
             symbol     = parsed_bitk["symbol"]
             side       = parsed_bitk["side"]
             spot_price = float(parsed_bitk["price"])
@@ -13879,7 +13904,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             limit_enabled = bool(cfg.get("limit_enabled", 0))  # Legacy, kept for compatibility
             use_atr       = bool(cfg.get("use_atr", 0))
 
-            rsi_bb_trigger  = (cfg.get("trade_rsi_bb", 0) and rsi_val is not None and bb_hi is not None and bb_lo is not None)
+            # RSI_BB now uses its own parser flag instead of just checking parsed values
+            rsi_bb_trigger  = (cfg.get("trade_rsi_bb", 0) and is_rsi_bb)
             bitk_trigger    = (cfg.get("trade_scryptomera", 0) and is_bitk)
             scalper_trigger = (cfg.get("trade_scalper", 0) and is_scalper)
             elcaro_trigger  = (cfg.get("trade_elcaro", 0) and is_elcaro)
@@ -13887,6 +13913,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             oi_trigger      = (cfg.get("trade_oi", 0) and is_oi)  # NEW: Use is_oi flag from new parser
             
             # Log strategy triggers for debugging
+            if is_rsi_bb:
+                logger.info(f"[{uid}] RSI_BB signal detected: trade_rsi_bb={cfg.get('trade_rsi_bb', 0)}, rsi_bb_trigger={rsi_bb_trigger}, symbol={symbol}")
             if is_bitk:
                 logger.info(f"[{uid}] Scryptomera signal detected: trade_scryptomera={cfg.get('trade_scryptomera', 0)}, bitk_trigger={bitk_trigger}, symbol={symbol}")
             if is_scalper:
