@@ -4362,10 +4362,11 @@ async def set_trading_stop(
         if "no open positions" in err_str or "position not exists" in err_str:
             logger.debug(f"[{uid}] Position for {symbol} closed during set_trading_stop")
             return False
-        # Handle invalid SL/TP price errors - position in deep loss
-        if "should lower than" in err_str or "should higher than" in err_str:
-            logger.warning(f"[{uid}] {symbol}: SL/TP price invalid (position in deep loss)")
-            return "deep_loss"  # Special return value to indicate deep loss
+        # Handle invalid SL/TP price errors - position in deep loss or price moved too fast
+        # Bybit returns: "should lower than", "should higher than", "should greater", "should less"
+        if any(x in err_str for x in ["should lower", "should higher", "should greater", "should less"]):
+            logger.warning(f"[{uid}] {symbol}: SL/TP price invalid - price moved too fast, skipping update")
+            return False  # Return False instead of raising - price moved, retry next cycle
         raise
 
 async def _position_idx_for_cached(uid: int, symbol: str, side: str) -> int:
