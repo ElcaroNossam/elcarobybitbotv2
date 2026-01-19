@@ -5175,9 +5175,16 @@ async def place_order_for_targets(
             if exchange == "hyperliquid" and not db.is_hl_enabled(user_id):
                 raise ValueError("HyperLiquid trading is disabled for this user")
             
+            # Get live_enabled to filter out Real targets if not enabled
+            live_enabled = get_live_enabled(user_id)
+            
             targets = []
             for acc_type in account_types:
                 env = "paper" if acc_type in ("demo", "testnet") else "live"
+                # Safety check: skip live if not enabled (same as get_execution_targets)
+                if env == "live" and not live_enabled:
+                    logger.info(f"[{user_id}] Legacy routing: skipping {acc_type} because live_enabled=False")
+                    continue
                 targets.append({
                     "exchange": exchange,
                     "env": env,
