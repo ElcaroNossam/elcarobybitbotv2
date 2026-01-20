@@ -13732,10 +13732,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parsed["oi_now"] = parsed_oi.get("oi_now")
         parsed["oi_chg"] = parsed_oi.get("oi_chg")
     
-    # CRITICAL FIX: Skip non-signal messages (info messages like "Fibo Bot Started")
-    # These have no symbol or side and should not be saved to signals table
-    if not parsed.get("symbol") and not parsed.get("side"):
-        logger.info(f"Skip non-signal message (no symbol/side): {txt[:100]!r}")
+    # CRITICAL FIX: Skip non-signal messages (info messages from Fibo Bot etc)
+    # Both symbol AND side are required for a valid trading signal
+    # Messages with only symbol but no side (like "🪙 AAVEUSDT 💭 Жду ЛОНГ") are status updates, not signals
+    if not parsed.get("symbol") or not parsed.get("side"):
+        logger.info(f"Skip non-signal message (missing symbol or side): {txt[:100]!r}")
         return
     
     try:
