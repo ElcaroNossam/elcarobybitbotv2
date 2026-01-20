@@ -6358,35 +6358,48 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     features = STRATEGY_FEATURES.get(strategy, {})
     settings = settings or {}
     use_atr = settings.get("use_atr", 0)
+    side_prefix = side  # 'long' or 'short'
+    not_set = "—"
     
     buttons = []
     
-    # Always show percent (every strategy has side-specific percent)
+    # Get current values for this side
+    entry_val = settings.get(f"{side_prefix}_percent")
+    sl_val = settings.get(f"{side_prefix}_sl_percent")
+    tp_val = settings.get(f"{side_prefix}_tp_percent")
+    atr_trigger_val = settings.get(f"{side_prefix}_atr_trigger_pct")
+    atr_step_val = settings.get(f"{side_prefix}_atr_step_pct")
+    
+    # Always show percent with current value
+    entry_display = f"{entry_val}%" if entry_val else not_set
     buttons.append([InlineKeyboardButton(
-        f"{emoji} {t.get('param_percent', 'Entry %')}", 
+        f"{emoji} {t.get('param_percent', 'Entry %')}: {entry_display}", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
     # SL/TP - show for all strategies except Elcaro (which uses signal data)
-    # Fibonacci allows manual SL/TP override, so include it
     if strategy != "elcaro":
+        sl_display = f"{sl_val}%" if sl_val else not_set
+        tp_display = f"{tp_val}%" if tp_val else not_set
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_sl', 'Stop-Loss %')}", 
+            f"{emoji} {t.get('param_sl', 'Stop-Loss %')}: {sl_display}", 
             callback_data=f"strat_param:{strategy}:{side}_sl_percent"
         )])
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_tp', 'Take-Profit %')}", 
+            f"{emoji} {t.get('param_tp', 'Take-Profit %')}: {tp_display}", 
             callback_data=f"strat_param:{strategy}:{side}_tp_percent"
         )])
     
-    # Simplified ATR params: only Trigger and Step (for strategies that support ATR AND have ATR enabled)
+    # ATR params with current values (for strategies that support ATR AND have ATR enabled)
     if features.get("use_atr") and use_atr:
+        trigger_display = f"{atr_trigger_val}%" if atr_trigger_val else "Auto"
+        step_display = f"{atr_step_val}%" if atr_step_val else "Auto"
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_trigger', 'Trigger %')}", 
+            f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger')}: {trigger_display}", 
             callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
         )])
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_step', 'Step %')}", 
+            f"{emoji} {t.get('param_atr_step', 'ATR Step')}: {step_display}", 
             callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
         )])
     
@@ -18944,9 +18957,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             value = float(text.replace(",", ".").strip())
             
             # Different validation for different params
-            if param in ("percent", "sl_percent", "tp_percent", "atr_trigger_pct",
-                         "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_trigger_pct",
-                         "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_trigger_pct"):
+            if param in ("percent", "sl_percent", "tp_percent", "atr_trigger_pct", "atr_step_pct",
+                         "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_trigger_pct", "long_atr_step_pct",
+                         "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_trigger_pct", "short_atr_step_pct"):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
             elif param == "min_quality":
@@ -18990,6 +19003,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "atr_periods": "ATR Periods",
                 "atr_multiplier_sl": "ATR Multiplier",
                 "atr_trigger_pct": "ATR Trigger %",
+                "atr_step_pct": "ATR Step %",
                 "leverage": "Leverage",
                 "min_quality": "Min Quality %",
                 # LONG
@@ -18999,6 +19013,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "long_atr_periods": "LONG ATR Periods",
                 "long_atr_multiplier_sl": "LONG ATR Multiplier",
                 "long_atr_trigger_pct": "LONG ATR Trigger %",
+                "long_atr_step_pct": "LONG ATR Step %",
                 # SHORT
                 "short_percent": "SHORT Entry %",
                 "short_sl_percent": "SHORT SL %",
@@ -19006,6 +19021,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "short_atr_periods": "SHORT ATR Periods",
                 "short_atr_multiplier_sl": "SHORT ATR Multiplier",
                 "short_atr_trigger_pct": "SHORT ATR Trigger %",
+                "short_atr_step_pct": "SHORT ATR Step %",
             }.get(param, param)
             
             # Determine which keyboard to return to based on param

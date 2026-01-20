@@ -34,6 +34,7 @@ class NotificationService:
         self.news_cache = []
         self.last_news_update = None
         self.liquidations_sent = set()  # Track sent liquidations
+        self.last_daily_report_date = None  # Track last daily report date to prevent duplicates
         
     async def send_position_closed_notification(self, user_id: int, position_data: dict, t: dict):
         """
@@ -279,7 +280,10 @@ Keep it up! 💪
                 await self.check_market_movements()
                 
                 now = datetime.now()
-                if now.hour == 20 and now.minute == 0:  # 8 PM daily report
+                today = now.date()
+                # Send daily report at 8 PM, but only once per day
+                if now.hour == 20 and now.minute == 0 and self.last_daily_report_date != today:
+                    self.last_daily_report_date = today
                     await self.send_daily_reports_to_all_users()
                     
                 await asyncio.sleep(30)
