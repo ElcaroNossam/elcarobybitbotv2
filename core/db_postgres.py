@@ -523,13 +523,17 @@ def pg_init_db():
                 timeframe       TEXT,
                 entry_ts        BIGINT,
                 exit_ts         BIGINT,
-                exit_order_type TEXT
+                exit_order_type TEXT,
+                fee             REAL DEFAULT 0
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_logs_user_ts ON trade_logs(user_id, ts DESC)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_logs_symbol_ts ON trade_logs(symbol, ts DESC)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_logs_strategy ON trade_logs(user_id, strategy)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_logs_account_type ON trade_logs(user_id, account_type)")
+        
+        # Add fee column to existing trade_logs if missing
+        cur.execute("ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS fee REAL DEFAULT 0")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # USER STRATEGY SETTINGS TABLE (MULTITENANCY)
@@ -553,6 +557,7 @@ def pg_init_db():
                 atr_periods     INTEGER,
                 atr_multiplier_sl REAL,
                 atr_trigger_pct REAL,
+                atr_step_pct    REAL,
                 
                 -- Order settings
                 order_type      TEXT DEFAULT 'market',
@@ -567,6 +572,7 @@ def pg_init_db():
                 long_atr_periods INTEGER,
                 long_atr_multiplier_sl REAL,
                 long_atr_trigger_pct REAL,
+                long_atr_step_pct REAL,
                 
                 short_percent   REAL,
                 short_sl_percent REAL,
@@ -574,6 +580,7 @@ def pg_init_db():
                 short_atr_periods INTEGER,
                 short_atr_multiplier_sl REAL,
                 short_atr_trigger_pct REAL,
+                short_atr_step_pct REAL,
                 
                 -- Fibonacci
                 min_quality     INTEGER DEFAULT 50,
@@ -593,6 +600,11 @@ def pg_init_db():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
+        
+        # Add atr_step_pct columns to user_strategy_settings if missing
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS atr_step_pct REAL")
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_atr_step_pct REAL")
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_atr_step_pct REAL")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # PENDING LIMIT ORDERS TABLE
@@ -1252,7 +1264,8 @@ def pg_add_trade_log(
     account_type: str = "demo",
     sl_pct: float = None,
     tp_pct: float = None,
-    timeframe: str = None
+    timeframe: str = None,
+    fee: float = 0.0
 ) -> bool:
     """Add trade log entry with duplicate protection"""
     with get_conn() as conn:
@@ -1272,10 +1285,10 @@ def pg_add_trade_log(
             cur.execute("""
                 INSERT INTO trade_logs 
                     (user_id, symbol, side, entry_price, exit_price, exit_reason,
-                     pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, ts)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                     pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee, ts)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (user_id, symbol, side, entry_price, exit_price, exit_reason,
-                  pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe))
+                  pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee))
             return True
 
 

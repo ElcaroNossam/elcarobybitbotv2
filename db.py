@@ -3170,7 +3170,8 @@ def add_trade_log(
     exit_order_type: str | None = None,
     strategy: str | None = None,
     account_type: str = "demo",
-    exchange: str = "bybit",  # Fix #4: Add exchange column support
+    exchange: str = "bybit",
+    fee: float = 0.0,  # Trading fee (commission) from exchange
 ):
     ensure_user(user_id)
     
@@ -3214,8 +3215,8 @@ def add_trade_log(
             rsi, bb_hi, bb_lo,
             oi_prev, oi_now, oi_chg, vol_from, vol_to, price_chg,
             vol_delta, sl_pct, tp_pct, sl_price, tp_price,
-            timeframe, entry_ts, exit_ts, exit_order_type, strategy, account_type, exchange
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            timeframe, entry_ts, exit_ts, exit_order_type, strategy, account_type, exchange, fee
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 user_id,
@@ -3249,6 +3250,7 @@ def add_trade_log(
                 strategy,
                 account_type,
                 exchange,
+                fee,
             ),
         )
         conn.commit()

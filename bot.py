@@ -6260,23 +6260,18 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         )])
     
     if features.get("atr_params"):
-        # Full ATR control (only when ATR is enabled and for simple strategies)
+        # Simplified ATR control: only Trigger and Step
         use_atr = strat_settings.get("use_atr") or 0
         if use_atr:
-            atr_periods = strat_settings.get("atr_periods")
-            atr_mult = strat_settings.get("atr_multiplier_sl")
             atr_trigger = strat_settings.get("atr_trigger_pct")
+            atr_step = strat_settings.get("atr_step_pct")
             buttons.append([InlineKeyboardButton(
-                f"📈 ATR Periods: {atr_periods or 'Auto'}",
-                callback_data=f"strat_param:{strategy}:atr_periods"
-            )])
-            buttons.append([InlineKeyboardButton(
-                f"📉 ATR Multiplier: {atr_mult or 'Auto'}",
-                callback_data=f"strat_param:{strategy}:atr_multiplier_sl"
-            )])
-            buttons.append([InlineKeyboardButton(
-                f"🎯 ATR Trigger %: {atr_trigger or 'Auto'}",
+                f"🎯 Trigger %: {atr_trigger or 'Auto'}",
                 callback_data=f"strat_param:{strategy}:atr_trigger_pct"
+            )])
+            buttons.append([InlineKeyboardButton(
+                f"📏 Step %: {atr_step or 'Auto'}",
+                callback_data=f"strat_param:{strategy}:atr_step_pct"
             )])
     
     # ─── 4. FILTERS ───
@@ -6362,19 +6357,15 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
             callback_data=f"strat_param:{strategy}:{side}_tp_percent"
         )])
     
-    # ATR params only for strategies that support ATR AND have ATR enabled
+    # Simplified ATR params: only Trigger and Step (for strategies that support ATR AND have ATR enabled)
     if features.get("use_atr") and use_atr:
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_periods', 'ATR Periods')}", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_periods"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_mult', 'ATR Multiplier')}", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_multiplier_sl"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger %')}", 
+            f"{emoji} {t.get('param_atr_trigger', 'Trigger %')}", 
             callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
+        )])
+        buttons.append([InlineKeyboardButton(
+            f"{emoji} {t.get('param_atr_step', 'Step %')}", 
+            callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
         )])
     
     # Back button
@@ -6507,13 +6498,11 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     # ATR mode (trailing vs fixed)
     use_atr = cfg.get('use_atr', 1)
     atr_status = "✅" if use_atr else "❌"
-    atr_label = "ATR Trailing" if use_atr else "Fixed SL/TP"
+    atr_label = "Trailing Stop" if use_atr else "Fixed SL/TP"
     
-    # ATR parameters (global defaults)
+    # ATR parameters (simplified: only trigger and step)
     atr_trigger = cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
     atr_step = cfg.get('atr_step_pct', 0.5)  # Default 0.5%
-    atr_period = cfg.get('atr_period', 14)   # Default 14 candles
-    atr_mult = cfg.get('atr_multiplier', 1.5)  # Default 1.5x ATR
     
     # Limit ladder info
     ladder_enabled = cfg.get('limit_ladder_enabled', 0)
@@ -6540,13 +6529,11 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     lines.append(f"{order_emoji} Order type: *{order_label}*")
     lines.append(f"{mode_emoji} Account: *{mode_label}*")
     lines.append("")
-    # ATR Settings section
+    # Trailing Stop Settings section (simplified)
     if use_atr:
-        lines.append(f"📈 *ATR Settings:*")
-        lines.append(f"  🎯 Trigger: *{atr_trigger}%* (activate trailing)")
-        lines.append(f"  📏 Step: *{atr_step}%* (SL move step)")
-        lines.append(f"  🕐 Period: *{atr_period}* candles")
-        lines.append(f"  ✖️ Multiplier: *{atr_mult}x* ATR")
+        lines.append(f"📈 *Trailing Stop:*")
+        lines.append(f"  🎯 Trigger: *{atr_trigger}%* (activate at profit)")
+        lines.append(f"  📏 Step: *{atr_step}%* (SL distance from price)")
         lines.append("")
     lines.append(f"📈 {t.get('limit_ladder', 'Limit Ladder')}: {ladder_status} (*{ladder_count}* orders)")
     lines.append("")
@@ -6560,7 +6547,7 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
         [InlineKeyboardButton(f"{atr_status} 📉 {atr_label}", callback_data="global_param:use_atr")],
         [InlineKeyboardButton(f"{order_emoji} Order: {order_label}", callback_data="global_param:order_type")],
         [InlineKeyboardButton(f"{mode_emoji} Account: {mode_label}", callback_data="global_param:trading_mode")],
-        [InlineKeyboardButton("⚙️ ATR Settings", callback_data="global_atr:settings")],
+        [InlineKeyboardButton("⚙️ Trailing Stop Settings", callback_data="global_atr:settings")],
         [InlineKeyboardButton(f"{ladder_status} {t.get('limit_ladder', '📈 Limit Ladder')}", callback_data="global_ladder:toggle")],
         [InlineKeyboardButton(t.get('limit_ladder_settings', '⚙️ Ladder Settings'), callback_data="global_ladder:settings")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
@@ -6581,38 +6568,37 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
 
 
 async def _show_global_atr_settings_menu(query, uid: int, t: dict):
-    """Helper to display Global ATR Settings menu."""
+    """Helper to display Global ATR Settings menu.
+    
+    SIMPLIFIED: Only 2 parameters:
+    - Trigger %: Price movement % to activate trailing stop
+    - Step %: SL follows price at this distance %
+    """
     cfg = get_user_config(uid)
     
     atr_trigger = cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
     atr_step = cfg.get('atr_step_pct', 0.5)
-    atr_period = cfg.get('atr_periods', 14)  # Note: column is atr_periods (with s)
-    atr_mult = cfg.get('atr_multiplier_sl', 1.5)  # Note: column is atr_multiplier_sl
     use_atr = cfg.get('use_atr', 1)
     
-    lines = [t.get('atr_settings_header', '📈 *Global ATR Settings*')]
+    lines = [t.get('atr_settings_header', '📈 *Trailing Stop Settings*')]
     lines.append("")
-    lines.append(f"📊 ATR Mode: {'✅ Enabled' if use_atr else '❌ Disabled'}")
+    lines.append(f"📊 Mode: {'✅ Enabled' if use_atr else '❌ Disabled'}")
     lines.append("")
-    lines.append(t.get('atr_settings_desc', '_ATR (Average True Range) is used for dynamic trailing stop-loss._'))
+    lines.append(t.get('atr_settings_desc', '_Dynamic trailing stop-loss that follows price._'))
     lines.append("")
     lines.append(f"🎯 *Trigger %*: {atr_trigger}%")
-    lines.append(t.get('atr_trigger_desc', '   _Profit % to activate trailing_'))
+    lines.append("   _Price moves this % in profit → trailing activates_")
     lines.append("")
     lines.append(f"📏 *Step %*: {atr_step}%")
-    lines.append(t.get('atr_step_desc', '   _Min % move to update SL_'))
+    lines.append("   _SL follows price at this distance_")
     lines.append("")
-    lines.append(f"🕐 *Period*: {atr_period} candles")
-    lines.append(t.get('atr_period_desc', '   _Candles for ATR calculation_'))
-    lines.append("")
-    lines.append(f"✖️ *Multiplier*: {atr_mult}x ATR")
-    lines.append(t.get('atr_mult_desc', '   _Distance from price for SL_'))
+    lines.append("_Example: Trigger=2%, Step=1%_")
+    lines.append("_→ Price moves +2% → SL set at +1%_")
+    lines.append("_→ Price moves +3% → SL moves to +2%_")
     
     buttons = [
         [InlineKeyboardButton(f"🎯 Trigger: {atr_trigger}%", callback_data="global_atr:trigger")],
         [InlineKeyboardButton(f"📏 Step: {atr_step}%", callback_data="global_atr:step")],
-        [InlineKeyboardButton(f"🕐 Period: {atr_period}", callback_data="global_atr:period")],
-        [InlineKeyboardButton(f"✖️ Multiplier: {atr_mult}x", callback_data="global_atr:mult")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:global")],
     ]
     
@@ -7379,25 +7365,22 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "percent": t.get('prompt_entry_pct', 'Enter Entry % (risk per trade):'),
             "sl_percent": t.get('prompt_sl_pct', 'Enter Stop-Loss %:'),
             "tp_percent": t.get('prompt_tp_pct', 'Enter Take-Profit %:'),
-            "atr_periods": t.get('prompt_atr_periods', 'Enter ATR Periods (e.g., 7):'),
-            "atr_multiplier_sl": t.get('prompt_atr_mult', 'Enter ATR Multiplier for SL step (e.g., 1.0):'),
-            "atr_trigger_pct": t.get('prompt_atr_trigger', 'Enter ATR Trigger % (e.g., 2.0):'),
+            "atr_trigger_pct": t.get('prompt_atr_trigger', 'Enter Trigger % (profit to activate trailing):'),
+            "atr_step_pct": t.get('prompt_atr_step', 'Enter Step % (SL distance from price):'),
             "leverage": t.get('prompt_leverage', 'Enter Leverage (1-100):'),
             "min_quality": t.get('prompt_min_quality', 'Enter Min Quality % (0-100):'),
             # LONG settings
             "long_percent": t.get('prompt_long_entry_pct', '📈 LONG Entry % (risk per trade):'),
             "long_sl_percent": t.get('prompt_long_sl_pct', '📈 LONG Stop-Loss %:'),
             "long_tp_percent": t.get('prompt_long_tp_pct', '📈 LONG Take-Profit %:'),
-            "long_atr_periods": t.get('prompt_long_atr_periods', '📈 LONG ATR Periods (e.g., 7):'),
-            "long_atr_multiplier_sl": t.get('prompt_long_atr_mult', '📈 LONG ATR Multiplier (e.g., 1.0):'),
-            "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG ATR Trigger % (e.g., 2.0):'),
+            "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG Trigger % (profit to activate):'),
+            "long_atr_step_pct": t.get('prompt_long_atr_step', '📈 LONG Step % (SL distance):'),
             # SHORT settings
             "short_percent": t.get('prompt_short_entry_pct', '📉 SHORT Entry % (risk per trade):'),
             "short_sl_percent": t.get('prompt_short_sl_pct', '📉 SHORT Stop-Loss %:'),
             "short_tp_percent": t.get('prompt_short_tp_pct', '📉 SHORT Take-Profit %:'),
-            "short_atr_periods": t.get('prompt_short_atr_periods', '📉 SHORT ATR Periods (e.g., 7):'),
-            "short_atr_multiplier_sl": t.get('prompt_short_atr_mult', '📉 SHORT ATR Multiplier (e.g., 1.0):'),
-            "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT ATR Trigger % (e.g., 2.0):'),
+            "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT Trigger % (profit to activate):'),
+            "short_atr_step_pct": t.get('prompt_short_atr_step', '📉 SHORT Step % (SL distance):'),
         }
         
         await query.message.edit_text(
@@ -15132,6 +15115,7 @@ def log_exit_and_remove_position(
     applied_sl_pct: float | None = None,  # Fix #2: SL% at position open time
     applied_tp_pct: float | None = None,  # Fix #2: TP% at position open time
     exchange: str = "bybit",  # Fix #4: Exchange for trade log
+    fee: float = 0.0,  # Trading fee/commission from exchange
 ) -> None:
     cfg = get_user_config(user_id) or {}
     
@@ -15164,6 +15148,7 @@ def log_exit_and_remove_position(
         timeframe=timeframe, entry_ts=int(entry_ts_ms or 0),
         exit_ts=int(time.time()*1000), exit_order_type=exit_order_type,
         strategy=strategy, account_type=account_type, exchange=exchange,
+        fee=fee,
     )
     # Pass entry_price to prevent race condition where a NEW position (opened by signal)
     # gets deleted when closing OLD position (detected by monitor)
@@ -15807,6 +15792,14 @@ async def monitor_positions_loop(app: Application):
                                                 position_strategy = "fibonacci"
                                             elif "OI SIGNAL" in raw_upper or "🎯 OI" in raw_msg:
                                                 position_strategy = "oi"
+                                    
+                                    # Calculate trading fee (commission)
+                                    # Bybit linear futures fee: taker 0.055%, maker 0.02%
+                                    # We assume taker for both entry and exit (market orders)
+                                    FEE_RATE = 0.00055  # 0.055% taker fee
+                                    entry_value = entry_price * size_for_pnl
+                                    exit_value = exit_price * size_for_pnl
+                                    fee_paid = (entry_value + exit_value) * FEE_RATE
                                 
                                     log_exit_and_remove_position(
                                         user_id=uid,
@@ -15834,6 +15827,8 @@ async def monitor_positions_loop(app: Application):
                                         applied_tp_pct=ap.get("applied_tp_pct"),
                                         # Fix #4: Save exchange
                                         exchange=ap.get("exchange") or current_exchange or "bybit",
+                                        # Trading fee (commission)
+                                        fee=fee_paid,
                                     )
 
                                     pnl_from_exch = rec.get("closedPnl")
@@ -15911,7 +15906,7 @@ async def monitor_positions_loop(app: Application):
                                         logger.debug(f"[{uid}] Skipping close notification for {sym} (already sent {now - last_close_notify}s ago)")
                                     else:
                                         _close_notified[close_notify_key] = now
-                                        logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}")
+                                        logger.info(f"[{uid}] Sending close notification for {sym}: reason={reason_text}, strategy={strategy_display}, pnl={pnl_value:.2f}, fee={fee_paid:.4f}")
                                         
                                         # Select strategy-specific close template
                                         close_template_key = {
@@ -15923,6 +15918,9 @@ async def monitor_positions_loop(app: Application):
                                             "rsi_bb": "rsi_bb_closed",
                                         }.get(strategy_name, "position_closed")
                                         
+                                        # Calculate net PnL (after fee)
+                                        net_pnl = pnl_value - fee_paid
+                                        
                                         close_message = t.get(close_template_key, t['position_closed']).format(
                                             symbol=sym,
                                             reason=reason_text,
@@ -15933,6 +15931,8 @@ async def monitor_positions_loop(app: Application):
                                             pct=pct_value,
                                             exchange=exchange_display,
                                             market_type=market_type_display,
+                                            fee=fee_paid,
+                                            net_pnl=net_pnl,
                                         )
                                         
                                         await safe_send_notification(
