@@ -421,24 +421,58 @@ PRIVACY_PATH = os.path.join(os.path.dirname(__file__), "privacy.txt")
 _last_notice: dict[tuple[int, str, str], int] = {}  
 _skip_until:  dict[tuple[int, str], int] = {} 
 
+# ============================================================================
+# CACHES WITH SIZE LIMITS (prevent memory leaks)
+# Using cachetools.TTLCache for automatic expiration and size limits
+# ============================================================================
+try:
+    from cachetools import TTLCache
+    _USE_TTLCACHE = True
+except ImportError:
+    _USE_TTLCACHE = False
+    logger.warning("cachetools not installed, using dict caches (install with: pip install cachetools)")
+
 # Cache for leverage per user+symbol to avoid redundant API calls
-# Key: (user_id, symbol), Value: current leverage
-_leverage_cache: dict[tuple[int, str], int] = {}
+# Key: (user_id, symbol, account_type), Value: current leverage
+# Max 10k entries (10k users * 1 symbol avg), TTL 1 hour
+if _USE_TTLCACHE:
+    _leverage_cache: TTLCache = TTLCache(maxsize=10000, ttl=3600)
+else:
+    _leverage_cache: dict[tuple[int, str], int] = {}
 
 # Cache for symbol filters (tick_size, min_qty, etc) - shared across all users
 # Key: symbol, Value: (timestamp, filter_dict)
-_symbol_filters_cache: dict[str, tuple[float, dict]] = {}
+# Max 500 symbols, TTL 1 hour
+if _USE_TTLCACHE:
+    _symbol_filters_cache: TTLCache = TTLCache(maxsize=500, ttl=3600)
+else:
+    _symbol_filters_cache: dict[str, tuple[float, dict]] = {}
 SYMBOL_FILTERS_CACHE_TTL = 3600  # 1 hour - filters rarely change
 
 # Cache for "no API keys" message - only show once per day per user
 # Key: user_id, Value: timestamp of last notification
-_last_api_keys_notice: dict[int, float] = {}
+# Max 1k users
+if _USE_TTLCACHE:
+    _last_api_keys_notice: TTLCache = TTLCache(maxsize=1000, ttl=86400)
+else:
+    _last_api_keys_notice: dict[int, float] = {}
 API_KEYS_NOTICE_INTERVAL = 86400  # 24 hours in seconds
 
 # Cache for expired/invalid API keys - skip monitoring for these users
 # Key: (user_id, account_type), Value: timestamp when error occurred
-_expired_api_keys_cache: dict[tuple[int, str], float] = {}
+# Max 1k entries
+if _USE_TTLCACHE:
+    _expired_api_keys_cache: TTLCache = TTLCache(maxsize=1000, ttl=3600)
+else:
+    _expired_api_keys_cache: dict[tuple[int, str], float] = {}
 EXPIRED_API_KEYS_CACHE_TTL = 3600  # 1 hour - don't retry for 1 hour after auth error
+
+# Cache for position mode per user (one-way vs hedge)
+# Max 1k users, TTL 1 hour
+if _USE_TTLCACHE:
+    _position_mode_cache: TTLCache = TTLCache(maxsize=1000, ttl=3600)
+else:
+    _position_mode_cache: dict[tuple[int, str], str] = {}
 
 
 def clear_expired_api_cache(user_id: int, account_type: str = None):

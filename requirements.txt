@@ -49,6 +49,11 @@ asyncpg>=0.29.0
 psycopg2-binary>=2.9.9
 
 # =====================================================
+# CACHING & DATA STRUCTURES
+# =====================================================
+cachetools>=5.3.0  # TTLCache, LRUCache for memory-safe caching
+
+# =====================================================
 # DISTRIBUTED CACHE & MESSAGE BROKER
 # =====================================================
 redis>=5.0.0

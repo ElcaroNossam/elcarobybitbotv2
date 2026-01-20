@@ -1401,17 +1401,48 @@ def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit
     """
     Get strategy settings from user_strategy_settings table.
     
-    WEBAPP WRAPPER: Uses get_strategy_settings() with full fallback logic:
-    1. Exact match (user, strategy, exchange, account_type)
-    2. Exchange default (user, strategy, exchange, 'default')
-    3. Global default (user, strategy, 'default', 'default')
-    4. User global settings
-    5. System defaults
+    WEBAPP WRAPPER: Delegates to get_strategy_settings() with full fallback logic.
     
-    Returns dict with all strategy parameters including _source indicator.
+    For direct DB access without fallback, use _get_strategy_settings_raw().
     """
-    # Use the unified function with fallback logic
     return get_strategy_settings(user_id, strategy, exchange, account_type)
+
+
+def _get_strategy_settings_raw(user_id: int, strategy: str, exchange: str, account_type: str) -> dict:
+    """
+    LOW-LEVEL: Read strategy settings directly from DB without fallback logic.
+    
+    Returns raw dict from database or empty dict with defaults if not found.
+    Used internally by get_strategy_settings() for each fallback level.
+    
+    DO NOT use directly - use get_strategy_settings() for proper fallback handling.
+    """
+    if strategy not in STRATEGY_NAMES:
+        return {}
+    
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT * FROM user_strategy_settings
+                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
+            """, (user_id, strategy, exchange, account_type))
+            row = cur.fetchone()
+            
+            if row:
+                # Get column names from cursor
+                columns = [desc[0] for desc in cur.description]
+                result = dict(zip(columns, row))
+                # Remove metadata columns
+                for key in ["user_id", "strategy", "exchange", "account_type", "created_at", "updated_at"]:
+                    result.pop(key, None)
+                return result
+            
+            # Not found - return empty dict (caller will handle defaults)
+            return {}
+    except Exception as e:
+        logger.warning(f"Error reading strategy settings: {e}")
+        return {}
 
 
 def set_strategy_setting_db(user_id: int, strategy: str, field: str, value, 
@@ -1540,19 +1571,20 @@ def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, acc
     source = "default"  # Track where settings came from
     
     # 1. Try exact match (exchange + account_type) - for per-account overrides
-    settings = get_strategy_settings_db(user_id, strategy, exchange, account_type)
+    # Use _get_strategy_settings_raw to avoid recursion!
+    settings = _get_strategy_settings_raw(user_id, strategy, exchange, account_type)
     
     if not _is_empty_settings(settings):
         source = f"{exchange}:{account_type}"  # Per-account settings
     else:
         # 2. Try exchange + 'default' (main storage for strategy settings)
-        exchange_settings = get_strategy_settings_db(user_id, strategy, exchange, "default")
+        exchange_settings = _get_strategy_settings_raw(user_id, strategy, exchange, "default")
         if not _is_empty_settings(exchange_settings):
             settings = _merge_settings(settings, exchange_settings)
             source = f"{exchange}:default"  # Exchange-level settings
         else:
             # 3. Try global strategy defaults (exchange='global', account_type='default')
-            global_settings = get_strategy_settings_db(user_id, strategy, "global", "default")
+            global_settings = _get_strategy_settings_raw(user_id, strategy, "global", "default")
             if not _is_empty_settings(global_settings):
                 settings = _merge_settings(settings, global_settings)
                 source = "global:default"  # Global strategy settings

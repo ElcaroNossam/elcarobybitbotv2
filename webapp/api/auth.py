@@ -92,7 +92,12 @@ class TwoFACheckRequest(BaseModel):
 def verify_webapp_data(init_data: str) -> Optional[dict]:
     """Verify Telegram WebApp init_data and extract user info."""
     if not TELEGRAM_BOT_TOKEN:
-        # Dev mode - parse without verification
+        # Dev mode - ONLY allowed in development environment
+        env = os.getenv("ENV", "development").lower()
+        if env in ("production", "prod"):
+            logger.error("CRITICAL: TELEGRAM_BOT_TOKEN not set in production! Rejecting auth.")
+            return None
+        
         logger.warning("TELEGRAM_BOT_TOKEN not set! Running in dev mode (no verification)")
         try:
             parsed = parse_qs(init_data)
