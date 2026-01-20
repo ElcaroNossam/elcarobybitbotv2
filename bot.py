@@ -5993,9 +5993,10 @@ def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -
         min_quality = strat_settings.get("min_quality", 50)
         lines.append(f"⭐ Min Quality: {min_quality}%")
     
-    # Side-specific summary
+    # Side-specific summary (THIS IS THE PRIMARY SETTINGS NOW)
     if features.get("side_settings"):
         lines.append("")
+        lines.append("*━━━ LONG / SHORT Settings ━━━*")
         l_pct = strat_settings.get("long_percent")
         l_sl = strat_settings.get("long_sl_percent")
         l_tp = strat_settings.get("long_tp_percent")
@@ -6003,17 +6004,18 @@ def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -
         s_sl = strat_settings.get("short_sl_percent")
         s_tp = strat_settings.get("short_tp_percent")
         
+        not_set = t.get('not_set', '—')
+        
         if strategy in ("elcaro", "fibonacci"):
-            # Only show percent for these strategies
-            if l_pct is not None:
-                lines.append(f"📈 LONG: Entry={l_pct}%")
-            if s_pct is not None:
-                lines.append(f"📉 SHORT: Entry={s_pct}%")
+            # Only show percent for these strategies (SL/TP from signal)
+            lines.append(f"📈 *LONG*: Entry = {l_pct or not_set}%")
+            lines.append(f"📉 *SHORT*: Entry = {s_pct or not_set}%")
         else:
-            if any(v is not None for v in [l_pct, l_sl, l_tp]):
-                lines.append(f"📈 LONG: Entry={l_pct or global_lbl}, SL={l_sl or global_lbl}, TP={l_tp or global_lbl}")
-            if any(v is not None for v in [s_pct, s_sl, s_tp]):
-                lines.append(f"📉 SHORT: Entry={s_pct or global_lbl}, SL={s_sl or global_lbl}, TP={s_tp or global_lbl}")
+            # Full settings: Entry/SL/TP
+            lines.append(f"📈 *LONG*:")
+            lines.append(f"   Entry: {l_pct or not_set}% | SL: {l_sl or not_set}% | TP: {l_tp or not_set}%")
+            lines.append(f"📉 *SHORT*:")
+            lines.append(f"   Entry: {s_pct or not_set}% | SL: {s_sl or not_set}% | TP: {s_tp or not_set}%")
     
     return "\n".join(lines)
 
@@ -6028,8 +6030,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,         # ATR trailing toggle
         "direction": True,       # LONG/SHORT/ALL filter
         "side_settings": True,   # Separate LONG/SHORT settings
-        "percent": True,         # Global percent
-        "sl_tp": True,           # SL/TP on main screen
+        "percent": False,        # Use side-specific percent only
+        "sl_tp": False,          # Use side-specific SL/TP only
         "atr_params": True,      # ATR params on main screen  
         "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
@@ -6041,8 +6043,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,
-        "percent": True,
-        "sl_tp": True,
+        "percent": False,        # Use side-specific percent only
+        "sl_tp": False,          # Use side-specific SL/TP only
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
@@ -6054,7 +6056,7 @@ STRATEGY_FEATURES = {
         "use_atr": False,        # ATR managed by signal
         "direction": True,
         "side_settings": True,   # Only percent per side
-        "percent": True,         # Global percent for this strategy
+        "percent": False,        # Use side-specific percent only (LONG/SHORT)
         "sl_tp": False,          # From signal
         "atr_params": False,     # From signal
         "hl_settings": True,
@@ -6067,8 +6069,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,         # ATR trailing option
         "direction": True,
         "side_settings": True,
-        "percent": True,
-        "sl_tp": True,           # Manual SL/TP override
+        "percent": False,        # Use side-specific percent only
+        "sl_tp": False,          # Use side-specific SL/TP only
         "atr_params": True,      # ATR params
         "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
@@ -6080,8 +6082,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,   # LONG/SHORT separate settings
-        "percent": True,
-        "sl_tp": True,           # Manual SL/TP
+        "percent": False,        # Use side-specific percent only
+        "sl_tp": False,          # Use side-specific SL/TP only
         "atr_params": True,      # Full ATR control
         "hl_settings": True,
         "min_quality": False,
@@ -6093,8 +6095,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,   # LONG/SHORT separate settings
-        "percent": True,
-        "sl_tp": True,
+        "percent": False,        # Use side-specific percent only
+        "sl_tp": False,          # Use side-specific SL/TP only
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
@@ -6303,9 +6305,29 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     
     # ─── 5. SIDE-SPECIFIC SETTINGS ───
     if features.get("side_settings"):
+        # Show current values summary for LONG and SHORT
+        l_pct = strat_settings.get("long_percent")
+        l_sl = strat_settings.get("long_sl_percent")
+        l_tp = strat_settings.get("long_tp_percent")
+        s_pct = strat_settings.get("short_percent")
+        s_sl = strat_settings.get("short_sl_percent")
+        s_tp = strat_settings.get("short_tp_percent")
+        
+        # Format LONG button with values
+        if strategy in ("elcaro", "fibonacci"):
+            # These strategies only use Entry % (SL/TP from signal)
+            long_info = f"{l_pct}%" if l_pct else "—"
+            short_info = f"{s_pct}%" if s_pct else "—"
+        else:
+            # Full info: Entry/SL/TP
+            long_info = f"E:{l_pct or '—'} SL:{l_sl or '—'} TP:{l_tp or '—'}"
+            short_info = f"E:{s_pct or '—'} SL:{s_sl or '—'} TP:{s_tp or '—'}"
+        
         buttons.append([
-            InlineKeyboardButton(f"📈 {t.get('long_settings', 'LONG')}", callback_data=f"{strategy}_side:long"),
-            InlineKeyboardButton(f"📉 {t.get('short_settings', 'SHORT')}", callback_data=f"{strategy}_side:short"),
+            InlineKeyboardButton(f"📈 LONG [{long_info}]", callback_data=f"{strategy}_side:long"),
+        ])
+        buttons.append([
+            InlineKeyboardButton(f"📉 SHORT [{short_info}]", callback_data=f"{strategy}_side:short"),
         ])
     
     # ─── 6. ADVANCED ───
@@ -6345,9 +6367,9 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
-    # SL/TP only if strategy supports manual SL/TP OR has side settings
-    # But Elcaro uses signal data - skip SL/TP for Elcaro
-    if strategy not in ("elcaro", "fibonacci"):
+    # SL/TP - show for all strategies except Elcaro (which uses signal data)
+    # Fibonacci allows manual SL/TP override, so include it
+    if strategy != "elcaro":
         buttons.append([InlineKeyboardButton(
             f"{emoji} {t.get('param_sl', 'Stop-Loss %')}", 
             callback_data=f"strat_param:{strategy}:{side}_sl_percent"
