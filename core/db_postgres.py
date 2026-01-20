@@ -605,6 +605,11 @@ def pg_init_db():
         cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS atr_step_pct REAL")
         cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_atr_step_pct REAL")
         cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_atr_step_pct REAL")
+        # Add side-specific leverage and use_atr columns
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_leverage REAL")
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_leverage REAL")
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_use_atr INTEGER")
+        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_use_atr INTEGER")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # PENDING LIMIT ORDERS TABLE

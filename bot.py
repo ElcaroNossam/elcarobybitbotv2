@@ -6221,7 +6221,11 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         )])
     
     # ─── 2. POSITION SETTINGS ───
-    if features.get("percent"):
+    # NOTE: percent, leverage, SL/TP, ATR settings moved to LONG/SHORT submenus
+    # Only showing global settings that don't have side-specific versions
+    
+    if features.get("percent") and not features.get("side_settings"):
+        # Only show global percent if strategy doesn't have side-specific settings
         pct = strat_settings.get("percent")
         pct_label = f"{pct}%" if pct else t.get('global_default', 'Global')
         buttons.append([InlineKeyboardButton(
@@ -6229,7 +6233,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             callback_data=f"strat_param:{strategy}:percent"
         )])
     
-    if features.get("leverage"):
+    if features.get("leverage") and not features.get("side_settings"):
+        # Only show global leverage if strategy doesn't have side-specific settings
         leverage = strat_settings.get("leverage")
         lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
         buttons.append([InlineKeyboardButton(
@@ -6238,7 +6243,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         )])
     
     # ─── 3. RISK SETTINGS (ATR) ───
-    if features.get("use_atr"):
+    # ATR toggle moved to LONG/SHORT submenus when side_settings enabled
+    if features.get("use_atr") and not features.get("side_settings"):
         use_atr = strat_settings.get("use_atr") or 0
         atr_status = "✅" if use_atr else "❌"
         buttons.append([InlineKeyboardButton(
@@ -6246,7 +6252,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             callback_data=f"strat_atr_toggle:{strategy}"
         )])
     
-    if features.get("sl_tp"):
+    if features.get("sl_tp") and not features.get("side_settings"):
         # SL/TP buttons (only for simple strategies without side-specific)
         sl = strat_settings.get("sl_percent")
         tp = strat_settings.get("tp_percent")
@@ -6261,8 +6267,8 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             callback_data=f"strat_param:{strategy}:tp_percent"
         )])
     
-    if features.get("atr_params"):
-        # Simplified ATR control: only Trigger and Step
+    if features.get("atr_params") and not features.get("side_settings"):
+        # Simplified ATR control: only Trigger and Step (when not using side-specific)
         use_atr = strat_settings.get("use_atr") or 0
         if use_atr:
             atr_trigger = strat_settings.get("atr_trigger_pct")
@@ -6349,59 +6355,84 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
 def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None) -> InlineKeyboardMarkup:
     """Build inline keyboard for ANY strategy's LONG or SHORT settings.
     
-    Uses STRATEGY_FEATURES to show only relevant parameters for each strategy.
-    - Elcaro: Only percent (signals provide SL/TP)
-    - Scryptomera/Scalper: Full settings with ATR params
-    - OI/RSI_BB: SL/TP (ATR params on main screen)
+    Shows ALL relevant settings for this side:
+    - Entry % (all strategies)
+    - Stop-Loss % (except Elcaro - uses signals)
+    - Take-Profit % (except Elcaro - uses signals)
+    - Leverage (strategies with leverage support)
+    - ATR Trailing toggle (strategies with ATR support)
+    - ATR Trigger % (when ATR enabled)
+    - ATR Step % (when ATR enabled)
     """
     emoji = "📈" if side == "long" else "📉"
+    side_label = t.get(f'side_{side}', side.upper())
     features = STRATEGY_FEATURES.get(strategy, {})
     settings = settings or {}
-    use_atr = settings.get("use_atr", 0)
     side_prefix = side  # 'long' or 'short'
     not_set = "—"
     
     buttons = []
     
+    # Header with side name
+    # (optional - could add as text before keyboard)
+    
     # Get current values for this side
     entry_val = settings.get(f"{side_prefix}_percent")
     sl_val = settings.get(f"{side_prefix}_sl_percent")
     tp_val = settings.get(f"{side_prefix}_tp_percent")
+    leverage_val = settings.get(f"{side_prefix}_leverage")
+    use_atr_val = settings.get(f"{side_prefix}_use_atr")
     atr_trigger_val = settings.get(f"{side_prefix}_atr_trigger_pct")
     atr_step_val = settings.get(f"{side_prefix}_atr_step_pct")
     
-    # Always show percent with current value
+    # 1. Entry % - always show
     entry_display = f"{entry_val}%" if entry_val else not_set
     buttons.append([InlineKeyboardButton(
         f"{emoji} {t.get('param_percent', 'Entry %')}: {entry_display}", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
-    # SL/TP - show for all strategies except Elcaro (which uses signal data)
+    # 2. SL/TP - show for all strategies except Elcaro (which uses signal data)
     if strategy != "elcaro":
         sl_display = f"{sl_val}%" if sl_val else not_set
         tp_display = f"{tp_val}%" if tp_val else not_set
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_sl', 'Stop-Loss %')}: {sl_display}", 
+            f"🔻 {t.get('param_sl', 'Stop-Loss %')}: {sl_display}", 
             callback_data=f"strat_param:{strategy}:{side}_sl_percent"
         )])
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_tp', 'Take-Profit %')}: {tp_display}", 
+            f"🎯 {t.get('param_tp', 'Take-Profit %')}: {tp_display}", 
             callback_data=f"strat_param:{strategy}:{side}_tp_percent"
         )])
     
-    # ATR params with current values (for strategies that support ATR AND have ATR enabled)
-    if features.get("use_atr") and use_atr:
-        trigger_display = f"{atr_trigger_val}%" if atr_trigger_val else "Auto"
-        step_display = f"{atr_step_val}%" if atr_step_val else "Auto"
+    # 3. Leverage - show for strategies that support it
+    if features.get("leverage"):
+        lev_display = f"{int(leverage_val)}x" if leverage_val else t.get('auto_default', 'Auto')
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_trigger', 'ATR Trigger')}: {trigger_display}", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
+            f"⚡ {t.get('leverage', 'Leverage')}: {lev_display}", 
+            callback_data=f"strat_param:{strategy}:{side}_leverage"
         )])
+    
+    # 4. ATR Trailing toggle - show for strategies that support it
+    if features.get("use_atr"):
+        atr_status = "✅" if use_atr_val else "❌"
         buttons.append([InlineKeyboardButton(
-            f"{emoji} {t.get('param_atr_step', 'ATR Step')}: {step_display}", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
+            f"📊 {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
+            callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
         )])
+        
+        # 5. ATR params - show when ATR is enabled for this side
+        if use_atr_val:
+            trigger_display = f"{atr_trigger_val}%" if atr_trigger_val else "Auto"
+            step_display = f"{atr_step_val}%" if atr_step_val else "Auto"
+            buttons.append([InlineKeyboardButton(
+                f"🎯 {t.get('param_atr_trigger', 'ATR Trigger')}: {trigger_display}", 
+                callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
+            )])
+            buttons.append([InlineKeyboardButton(
+                f"📏 {t.get('param_atr_step', 'ATR Step')}: {step_display}", 
+                callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
+            )])
     
     # Back button
     buttons.append([InlineKeyboardButton(
@@ -7408,12 +7439,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "long_percent": t.get('prompt_long_entry_pct', '📈 LONG Entry % (risk per trade):'),
             "long_sl_percent": t.get('prompt_long_sl_pct', '📈 LONG Stop-Loss %:'),
             "long_tp_percent": t.get('prompt_long_tp_pct', '📈 LONG Take-Profit %:'),
+            "long_leverage": t.get('prompt_long_leverage', '📈 LONG Leverage (1-100):'),
             "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG Trigger % (profit to activate):'),
             "long_atr_step_pct": t.get('prompt_long_atr_step', '📈 LONG Step % (SL distance):'),
             # SHORT settings
             "short_percent": t.get('prompt_short_entry_pct', '📉 SHORT Entry % (risk per trade):'),
             "short_sl_percent": t.get('prompt_short_sl_pct', '📉 SHORT Stop-Loss %:'),
             "short_tp_percent": t.get('prompt_short_tp_pct', '📉 SHORT Take-Profit %:'),
+            "short_leverage": t.get('prompt_short_leverage', '📉 SHORT Leverage (1-100):'),
             "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT Trigger % (profit to activate):'),
             "short_atr_step_pct": t.get('prompt_short_atr_step', '📉 SHORT Step % (SL distance):'),
         }
@@ -7679,6 +7712,48 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             build_strategy_settings_text(strategy, strat_settings, t),
             parse_mode="Markdown",
             reply_markup=get_strategy_param_keyboard(strategy, t, strat_settings)
+        )
+        return
+    
+    # Side-specific ATR toggle (LONG/SHORT)
+    if data.startswith("strat_side_atr_toggle:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        param_name = f"{side}_use_atr"
+        current = strat_settings.get(param_name) or 0
+        new_value = 0 if current else 1
+        
+        logger.info(f"[{uid}] {side.upper()} ATR toggle for {strategy}: {current} -> {new_value}")
+        
+        # Save to all account types where strategy trades
+        for acc_type in account_types:
+            db.set_strategy_setting(uid, strategy, param_name, new_value,
+                                    context["exchange"], acc_type)
+        
+        status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
+        await query.answer(f"{side.upper()}: {status}")
+        
+        # Refresh settings and show side menu
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        side_emoji = "📈" if side == "long" else "📉"
+        side_label = t.get(f'side_{side}', side.upper())
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
+            t.get('side_settings_hint', 'Configure settings for this direction:'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings)
         )
         return
     
@@ -18973,7 +19048,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             elif param in ("atr_multiplier_sl", "long_atr_multiplier_sl", "short_atr_multiplier_sl"):
                 if value <= 0 or value > 10:
                     raise ValueError("ATR multiplier must be between 0 and 10")
-            elif param == "leverage":
+            elif param in ("leverage", "long_leverage", "short_leverage"):
                 if value < 1 or value > 100 or int(value) != value:
                     raise ValueError("Leverage must be integer between 1 and 100")
                 value = int(value)
@@ -19010,6 +19085,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "long_percent": "LONG Entry %",
                 "long_sl_percent": "LONG SL %",
                 "long_tp_percent": "LONG TP %",
+                "long_leverage": "LONG Leverage",
                 "long_atr_periods": "LONG ATR Periods",
                 "long_atr_multiplier_sl": "LONG ATR Multiplier",
                 "long_atr_trigger_pct": "LONG ATR Trigger %",
@@ -19018,6 +19094,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "short_percent": "SHORT Entry %",
                 "short_sl_percent": "SHORT SL %",
                 "short_tp_percent": "SHORT TP %",
+                "short_leverage": "SHORT Leverage",
                 "short_atr_periods": "SHORT ATR Periods",
                 "short_atr_multiplier_sl": "SHORT ATR Multiplier",
                 "short_atr_trigger_pct": "SHORT ATR Trigger %",
@@ -23439,7 +23516,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}
