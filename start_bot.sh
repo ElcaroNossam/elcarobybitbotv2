@@ -52,8 +52,9 @@ echo "[$(date)] Cloudflare tunnel started with PID $TUNNEL_PID" >> "$LOG_FILE"
 
 # Wait for tunnel URL and update .env
 echo "[$(date)] Waiting for Cloudflare tunnel URL..." >> "$LOG_FILE"
+CF_URL=""
 for i in {1..15}; do
-    CF_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$PROJECT_DIR/logs/cloudflared.log" 2>/dev/null | head -1 || echo "")
+    CF_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$PROJECT_DIR/logs/cloudflared.log" 2>/dev/null | tail -1 || echo "")
     if [ -n "$CF_URL" ]; then
         echo "[$(date)] Got tunnel URL: $CF_URL" >> "$LOG_FILE"
         # Update .env with new URL
@@ -68,6 +69,9 @@ for i in {1..15}; do
     sleep 1
 done
 
-echo "[$(date)] Starting bot (PostgreSQL mode)..." >> "$LOG_FILE"
+# Export the URL so bot gets it at startup
+export WEBAPP_URL="$CF_URL"
+
+echo "[$(date)] Starting bot (PostgreSQL mode) with WEBAPP_URL=$WEBAPP_URL..." >> "$LOG_FILE"
 # Start bot directly (main process)
 exec ./venv/bin/python bot.py
