@@ -46,6 +46,8 @@ done
 
 # Start Cloudflare tunnel in background
 echo "[$(date)] Starting Cloudflare tunnel..." >> "$LOG_FILE"
+# Clear old cloudflared log to avoid reading stale URLs
+> "$PROJECT_DIR/logs/cloudflared.log"
 cloudflared tunnel --url "http://localhost:$WEBAPP_PORT" >> "$PROJECT_DIR/logs/cloudflared.log" 2>&1 &
 TUNNEL_PID=$!
 echo "[$(date)] Cloudflare tunnel started with PID $TUNNEL_PID" >> "$LOG_FILE"
