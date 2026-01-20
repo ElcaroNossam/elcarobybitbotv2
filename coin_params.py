@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Callable
 
-DEFAULT_TP_PCT = 8.0
+DEFAULT_TP_PCT = 9.0
 DEFAULT_SL_PCT = 3.0
 
 # ─── Dynamic symbols loading from symbols.txt ───────────────────────────────

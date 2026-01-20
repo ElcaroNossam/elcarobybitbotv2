@@ -7310,11 +7310,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             # Get current context for saving
             context = get_user_trading_context(uid)
             
-            # Save new trading_mode to BOTH account types for consistency
-            for acc_type in ["demo", "real"]:
-                db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
-                                       context["exchange"], acc_type)
-            logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}, saved to demo+real")
+            # Save new trading_mode to 'default' (applies to all accounts via fallback)
+            db.set_strategy_setting(uid, strategy, "trading_mode", new_mode,
+                                   context["exchange"])  # account_type='default' by default
+            logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}, saved to default")
             
             # Check credentials
             warning = ""
@@ -7561,14 +7560,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Get context
         context = get_user_trading_context(uid)
         
-        # Toggle order type - save to all account types where strategy trades
+        # Toggle order type - save to 'default' (applies to all accounts via fallback)
         new_type = "limit" if current_type == "market" else "market"
-        account_types = db.get_strategy_account_types(uid, strategy)
-        if not account_types:
-            account_types = [context["account_type"]]
-        for acc_type in account_types:
-            db.set_strategy_setting(uid, strategy, "order_type", new_type,
-                                   context["exchange"], acc_type)
+        db.set_strategy_setting(uid, strategy, "order_type", new_type,
+                               context["exchange"])  # account_type='default' by default
         
         type_labels = {
             "market": t.get('order_type_market', '⚡ Market orders'),
@@ -7642,13 +7637,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             # Get context
             context = get_user_trading_context(uid)
             
-            # Save new direction to all account types where strategy trades
-            account_types = db.get_strategy_account_types(uid, strat_name)
-            if not account_types:
-                account_types = [context["account_type"]]
-            for acc_type in account_types:
-                db.set_strategy_setting(uid, strat_name, "direction", next_dir,
-                                       context["exchange"], acc_type)
+            # Save new direction to 'default' (applies to all accounts via fallback)
+            db.set_strategy_setting(uid, strat_name, "direction", next_dir,
+                                   context["exchange"])  # account_type='default' by default
             
             dir_labels = {
                 "all": t.get('dir_all', '🔄 ALL (LONG + SHORT)'),
@@ -7735,11 +7726,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         logger.info(f"[{uid}] ATR toggle for {strategy}: {current} -> {new_value}")
         
-        # Save to all account types where strategy trades
-        for acc_type in account_types:
-            db.set_strategy_setting(uid, strategy, "use_atr", new_value,
-                                    context["exchange"], acc_type)
-        logger.info(f"[{uid}] ATR toggle saved to: {account_types}")
+        # Save to 'default' (applies to all accounts via fallback)
+        db.set_strategy_setting(uid, strategy, "use_atr", new_value,
+                                context["exchange"])  # account_type='default' by default
+        logger.info(f"[{uid}] ATR toggle saved to default (fallback for all accounts)")
         
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(status)
@@ -7774,10 +7764,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         logger.info(f"[{uid}] {side.upper()} ATR toggle for {strategy}: {current} -> {new_value}")
         
-        # Save to all account types where strategy trades
-        for acc_type in account_types:
-            db.set_strategy_setting(uid, strategy, param_name, new_value,
-                                    context["exchange"], acc_type)
+        # Save to 'default' (applies to all accounts via fallback)
+        db.set_strategy_setting(uid, strategy, param_name, new_value,
+                                context["exchange"])  # account_type='default' by default
         
         status = t.get('atr_enabled', '✅ ATR Trailing enabled') if new_value else t.get('atr_disabled', '❌ ATR Trailing disabled')
         await query.answer(f"{side.upper()}: {status}")
@@ -7842,14 +7831,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Get context
         context = get_user_trading_context(uid)
         
-        # Set coins_group (None for global) - save to all account types
+        # Set coins_group (None for global) - save to 'default' (applies to all accounts via fallback)
         new_value = None if group == "GLOBAL" else group
-        account_types = db.get_strategy_account_types(uid, strategy)
-        if not account_types:
-            account_types = [context["account_type"]]
-        for acc_type in account_types:
-            db.set_strategy_setting(uid, strategy, "coins_group", new_value,
-                                   context["exchange"], acc_type)
+        db.set_strategy_setting(uid, strategy, "coins_group", new_value,
+                               context["exchange"])  # account_type='default' by default
         
         group_labels = {
             "GLOBAL": t.get('group_global', '📊 Global'),
@@ -7860,9 +7845,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         }
         await query.answer(group_labels.get(group, group))
         
-        # Go back to strategy settings - use primary account from strategy account_types
-        primary_account = account_types[0] if account_types else context["account_type"]
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        # Go back to strategy settings - use current context
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -19096,18 +19080,14 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
             
-            # Get context for saving - save to ALL account types where strategy trades
+            # Get context for saving - save to 'default' (applies to all accounts via fallback)
             context = get_user_trading_context(uid)
-            account_types = db.get_strategy_account_types(uid, strategy)
-            if not account_types:
-                account_types = [context["account_type"]]  # Fallback to current context
             
-            # Save setting for all account types
-            for acc_type in account_types:
-                db.set_strategy_setting(uid, strategy, param, value,
-                                       context["exchange"], acc_type)
+            # Save setting to 'default' account_type
+            db.set_strategy_setting(uid, strategy, param, value,
+                                   context["exchange"])  # account_type='default' by default
             
-            logger.info(f"[{uid}] Strategy {strategy} param {param}={value} saved to: {account_types}")
+            logger.info(f"[{uid}] Strategy {strategy} param {param}={value} saved to default (fallback for all accounts)")
             ctx.user_data.pop("strat_setting_mode", None)
             
             display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
