@@ -6022,6 +6022,7 @@ def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -
 
 # Define which features each strategy supports for cleaner UI
 # This controls which settings are shown in the strategy settings menu
+# General settings (percent, sl_tp) serve as FALLBACK for side-specific settings
 STRATEGY_FEATURES = {
     "scryptomera": {
         "order_type": True,      # Market/Limit toggle
@@ -6029,9 +6030,9 @@ STRATEGY_FEATURES = {
         "leverage": True,        # Leverage setting
         "use_atr": True,         # ATR trailing toggle
         "direction": True,       # LONG/SHORT/ALL filter
-        "side_settings": True,   # Separate LONG/SHORT settings
-        "percent": False,        # Use side-specific percent only
-        "sl_tp": False,          # Use side-specific SL/TP only
+        "side_settings": True,   # Separate LONG/SHORT settings (overrides general)
+        "percent": True,         # General percent (fallback for side-specific)
+        "sl_tp": True,           # General SL/TP (fallback for side-specific)
         "atr_params": True,      # ATR params on main screen  
         "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
@@ -6043,8 +6044,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,
-        "percent": False,        # Use side-specific percent only
-        "sl_tp": False,          # Use side-specific SL/TP only
+        "percent": True,         # General percent (fallback)
+        "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
@@ -6056,8 +6057,8 @@ STRATEGY_FEATURES = {
         "use_atr": False,        # ATR managed by signal
         "direction": True,
         "side_settings": True,   # Only percent per side
-        "percent": False,        # Use side-specific percent only (LONG/SHORT)
-        "sl_tp": False,          # From signal
+        "percent": True,         # General percent (fallback)
+        "sl_tp": False,          # From signal - no SL/TP settings
         "atr_params": False,     # From signal
         "hl_settings": True,
         "min_quality": False,
@@ -6069,8 +6070,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,         # ATR trailing option
         "direction": True,
         "side_settings": True,
-        "percent": False,        # Use side-specific percent only
-        "sl_tp": False,          # Use side-specific SL/TP only
+        "percent": True,         # General percent (fallback)
+        "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,      # ATR params
         "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
@@ -6082,8 +6083,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,   # LONG/SHORT separate settings
-        "percent": False,        # Use side-specific percent only
-        "sl_tp": False,          # Use side-specific SL/TP only
+        "percent": True,         # General percent (fallback)
+        "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,      # Full ATR control
         "hl_settings": True,
         "min_quality": False,
@@ -6095,8 +6096,8 @@ STRATEGY_FEATURES = {
         "use_atr": True,
         "direction": True,
         "side_settings": True,   # LONG/SHORT separate settings
-        "percent": False,        # Use side-specific percent only
-        "sl_tp": False,          # Use side-specific SL/TP only
+        "percent": True,         # General percent (fallback)
+        "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
@@ -6221,11 +6222,10 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         )])
     
     # ─── 2. POSITION SETTINGS ───
-    # NOTE: percent, leverage, SL/TP, ATR settings moved to LONG/SHORT submenus
-    # Only showing global settings that don't have side-specific versions
+    # Show general settings that serve as fallback for LONG/SHORT
+    # When side_settings enabled: general = fallback, side-specific = override
     
-    if features.get("percent") and not features.get("side_settings"):
-        # Only show global percent if strategy doesn't have side-specific settings
+    if features.get("percent"):
         pct = strat_settings.get("percent")
         pct_label = f"{pct}%" if pct else t.get('global_default', 'Global')
         buttons.append([InlineKeyboardButton(
@@ -6233,8 +6233,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             callback_data=f"strat_param:{strategy}:percent"
         )])
     
-    if features.get("leverage") and not features.get("side_settings"):
-        # Only show global leverage if strategy doesn't have side-specific settings
+    if features.get("leverage"):
         leverage = strat_settings.get("leverage")
         lev_label = f"{leverage}x" if leverage else t.get('auto_default', 'Auto')
         buttons.append([InlineKeyboardButton(
@@ -6243,8 +6242,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         )])
     
     # ─── 3. RISK SETTINGS (ATR) ───
-    # ATR toggle moved to LONG/SHORT submenus when side_settings enabled
-    if features.get("use_atr") and not features.get("side_settings"):
+    if features.get("use_atr"):
         use_atr = strat_settings.get("use_atr") or 0
         atr_status = "✅" if use_atr else "❌"
         buttons.append([InlineKeyboardButton(
@@ -6252,23 +6250,25 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
             callback_data=f"strat_atr_toggle:{strategy}"
         )])
     
-    if features.get("sl_tp") and not features.get("side_settings"):
-        # SL/TP buttons (only for simple strategies without side-specific)
+    if features.get("sl_tp") or features.get("side_settings"):
+        # SL/TP buttons - show as general fallback
         sl = strat_settings.get("sl_percent")
         tp = strat_settings.get("tp_percent")
         sl_label = f"{sl}%" if sl else t.get('global_default', 'Global')
         tp_label = f"{tp}%" if tp else t.get('global_default', 'Global')
-        buttons.append([InlineKeyboardButton(
-            f"🔻 {t.get('stop_loss', 'Stop-Loss')}: {sl_label}",
-            callback_data=f"strat_param:{strategy}:sl_percent"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"🔺 {t.get('take_profit', 'Take-Profit')}: {tp_label}",
-            callback_data=f"strat_param:{strategy}:tp_percent"
-        )])
+        # Skip for elcaro which gets SL/TP from signals
+        if strategy != "elcaro":
+            buttons.append([InlineKeyboardButton(
+                f"🔻 {t.get('stop_loss', 'Stop-Loss')}: {sl_label}",
+                callback_data=f"strat_param:{strategy}:sl_percent"
+            )])
+            buttons.append([InlineKeyboardButton(
+                f"🔺 {t.get('take_profit', 'Take-Profit')}: {tp_label}",
+                callback_data=f"strat_param:{strategy}:tp_percent"
+            )])
     
-    if features.get("atr_params") and not features.get("side_settings"):
-        # Simplified ATR control: only Trigger and Step (when not using side-specific)
+    if features.get("atr_params"):
+        # ATR control: Trigger and Step
         use_atr = strat_settings.get("use_atr") or 0
         if use_atr:
             atr_trigger = strat_settings.get("atr_trigger_pct")
