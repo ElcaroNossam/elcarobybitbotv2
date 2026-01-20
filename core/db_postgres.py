@@ -1762,27 +1762,40 @@ def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value,
 
 # ATR defaults by timeframe
 ATR_DEFAULTS = {
-    "24h": {"atr_periods": 14, "atr_multiplier_sl": 1.5, "atr_trigger_pct": 0.5},
-    "4h": {"atr_periods": 14, "atr_multiplier_sl": 1.2, "atr_trigger_pct": 0.4},
-    "1h": {"atr_periods": 14, "atr_multiplier_sl": 1.0, "atr_trigger_pct": 0.3},
+    "24h": {"atr_periods": 14, "atr_multiplier_sl": 1.5, "atr_trigger_pct": 0.5, "atr_step_pct": 0.3},
+    "4h": {"atr_periods": 14, "atr_multiplier_sl": 1.2, "atr_trigger_pct": 0.4, "atr_step_pct": 0.25},
+    "1h": {"atr_periods": 14, "atr_multiplier_sl": 1.0, "atr_trigger_pct": 0.3, "atr_step_pct": 0.2},
 }
 
 
 def pg_get_effective_settings(user_id: int, strategy: str, exchange: str = None, 
                              account_type: str = None, timeframe: str = "24h", 
                              side: str = None) -> Dict:
-    """Get effective settings for a strategy with FULL FALLBACK logic."""
+    """Get effective settings for a strategy with FULL FALLBACK logic.
+    
+    Fallback chain:
+    1. Side-specific settings (long_percent, short_sl_percent, etc.)
+    2. Strategy general settings (percent, sl_percent, etc.)
+    3. Global user settings (from users table)
+    4. ATR defaults / hardcoded defaults
+    """
     # Get strategy-specific settings first
     settings = pg_get_strategy_settings(user_id, strategy, exchange, account_type)
     
     # Get global user config for fallback
     config = pg_get_user_config(user_id)
     
-    # Handle side-specific settings
+    # Handle side-specific settings with proper fallback
     if side:
         prefix = "long_" if side.upper() in ("BUY", "LONG") else "short_"
-        for field in ["percent", "sl_percent", "tp_percent", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct"]:
+        # Extended list of side-specific fields
+        side_fields = [
+            "percent", "sl_percent", "tp_percent", "leverage", "use_atr",
+            "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct"
+        ]
+        for field in side_fields:
             side_field = f"{prefix}{field}"
+            # If side-specific value exists, use it instead of general
             if settings.get(side_field) is not None:
                 settings[field] = settings[side_field]
     
@@ -1796,6 +1809,7 @@ def pg_get_effective_settings(user_id: int, strategy: str, exchange: str = None,
         "atr_periods": settings.get("atr_periods") or ATR_DEFAULTS.get(timeframe, {}).get("atr_periods", 14),
         "atr_multiplier_sl": settings.get("atr_multiplier_sl") or ATR_DEFAULTS.get(timeframe, {}).get("atr_multiplier_sl", 1.5),
         "atr_trigger_pct": settings.get("atr_trigger_pct") or ATR_DEFAULTS.get(timeframe, {}).get("atr_trigger_pct", 0.5),
+        "atr_step_pct": settings.get("atr_step_pct") or ATR_DEFAULTS.get(timeframe, {}).get("atr_step_pct", 0.3),
         "order_type": settings.get("order_type") or "market",
         "direction": settings.get("direction") or "all",
         "min_quality": settings.get("min_quality") or 50,

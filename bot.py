@@ -6352,7 +6352,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     return InlineKeyboardMarkup(buttons)
 
 
-def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None) -> InlineKeyboardMarkup:
+def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None, global_cfg: dict = None) -> InlineKeyboardMarkup:
     """Build inline keyboard for ANY strategy's LONG or SHORT settings.
     
     Shows ALL relevant settings for this side:
@@ -6363,18 +6363,45 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     - ATR Trailing toggle (strategies with ATR support)
     - ATR Trigger % (when ATR enabled)
     - ATR Step % (when ATR enabled)
+    
+    If side-specific value is not set, shows fallback from strategy general or global settings.
     """
     emoji = "📈" if side == "long" else "📉"
     side_label = t.get(f'side_{side}', side.upper())
     features = STRATEGY_FEATURES.get(strategy, {})
     settings = settings or {}
+    global_cfg = global_cfg or {}
     side_prefix = side  # 'long' or 'short'
-    not_set = "—"
     
     buttons = []
     
-    # Header with side name
-    # (optional - could add as text before keyboard)
+    def get_display(side_val, general_key, default=None):
+        """Get display value with fallback indication."""
+        if side_val is not None:
+            return f"{side_val}%", False  # value, is_fallback
+        # Fallback to strategy general setting
+        general_val = settings.get(general_key)
+        if general_val is not None:
+            return f"({general_val}%)", True  # parentheses = fallback
+        # Fallback to global
+        global_val = global_cfg.get(general_key)
+        if global_val is not None:
+            return f"[{global_val}%]", True  # brackets = global fallback
+        if default is not None:
+            return f"[{default}%]", True
+        return "—", True
+    
+    def get_display_leverage(side_val, default=10):
+        """Get leverage display with fallback."""
+        if side_val is not None:
+            return f"{int(side_val)}x", False
+        general_val = settings.get("leverage")
+        if general_val is not None:
+            return f"({int(general_val)}x)", True
+        global_val = global_cfg.get("leverage")
+        if global_val is not None:
+            return f"[{int(global_val)}x]", True
+        return f"[{default}x]", True
     
     # Get current values for this side
     entry_val = settings.get(f"{side_prefix}_percent")
@@ -6386,7 +6413,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     atr_step_val = settings.get(f"{side_prefix}_atr_step_pct")
     
     # 1. Entry % - always show
-    entry_display = f"{entry_val}%" if entry_val else not_set
+    entry_display, _ = get_display(entry_val, "percent", 1.0)
     buttons.append([InlineKeyboardButton(
         f"{emoji} {t.get('param_percent', 'Entry %')}: {entry_display}", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
@@ -6394,8 +6421,8 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     
     # 2. SL/TP - show for all strategies except Elcaro (which uses signal data)
     if strategy != "elcaro":
-        sl_display = f"{sl_val}%" if sl_val else not_set
-        tp_display = f"{tp_val}%" if tp_val else not_set
+        sl_display, _ = get_display(sl_val, "sl_percent", 3.0)
+        tp_display, _ = get_display(tp_val, "tp_percent", 8.0)
         buttons.append([InlineKeyboardButton(
             f"🔻 {t.get('param_sl', 'Stop-Loss %')}: {sl_display}", 
             callback_data=f"strat_param:{strategy}:{side}_sl_percent"
@@ -6407,7 +6434,7 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     
     # 3. Leverage - show for strategies that support it
     if features.get("leverage"):
-        lev_display = f"{int(leverage_val)}x" if leverage_val else t.get('auto_default', 'Auto')
+        lev_display, _ = get_display_leverage(leverage_val)
         buttons.append([InlineKeyboardButton(
             f"⚡ {t.get('leverage', 'Leverage')}: {lev_display}", 
             callback_data=f"strat_param:{strategy}:{side}_leverage"
@@ -6415,16 +6442,27 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     
     # 4. ATR Trailing toggle - show for strategies that support it
     if features.get("use_atr"):
-        atr_status = "✅" if use_atr_val else "❌"
+        # Check side-specific ATR first, then fallback to general
+        if use_atr_val is not None:
+            atr_status = "✅" if use_atr_val else "❌"
+        else:
+            general_atr = settings.get("use_atr")
+            if general_atr is not None:
+                atr_status = "(✅)" if general_atr else "(❌)"
+            else:
+                global_atr = global_cfg.get("use_atr", 1)
+                atr_status = "[✅]" if global_atr else "[❌]"
+        
         buttons.append([InlineKeyboardButton(
             f"📊 {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
             callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
         )])
         
-        # 5. ATR params - show when ATR is enabled for this side
-        if use_atr_val:
-            trigger_display = f"{atr_trigger_val}%" if atr_trigger_val else "Auto"
-            step_display = f"{atr_step_val}%" if atr_step_val else "Auto"
+        # 5. ATR params - show when ATR is enabled for this side (or fallback)
+        effective_atr = use_atr_val if use_atr_val is not None else (settings.get("use_atr") or global_cfg.get("use_atr", 1))
+        if effective_atr:
+            trigger_display, _ = get_display(atr_trigger_val, "atr_trigger_pct", 0.5)
+            step_display, _ = get_display(atr_step_val, "atr_step_pct", 0.3)
             buttons.append([InlineKeyboardButton(
                 f"🎯 {t.get('param_atr_trigger', 'ATR Trigger')}: {trigger_display}", 
                 callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
@@ -7670,10 +7708,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
                 lines.append(f"ATR Multiplier: {atr_mult if atr_mult is not None else global_lbl}")
                 lines.append(f"ATR Trigger %: {atr_trigger if atr_trigger is not None else global_lbl}")
             
+            global_cfg = db.get_user_config(uid)  # For fallback display
             await query.message.edit_text(
                 "\n".join(lines),
                 parse_mode="Markdown",
-                reply_markup=get_strategy_side_keyboard(strat_name, side, t, strat_settings)
+                reply_markup=get_strategy_side_keyboard(strat_name, side, t, strat_settings, global_cfg)
             )
             return
     
@@ -7745,6 +7784,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         # Refresh settings and show side menu
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        global_cfg = db.get_user_config(uid)  # For fallback display
         side_emoji = "📈" if side == "long" else "📉"
         side_label = t.get(f'side_{side}', side.upper())
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
@@ -7753,7 +7793,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
             t.get('side_settings_hint', 'Configure settings for this direction:'),
             parse_mode="Markdown",
-            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings)
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
         )
         return
     
@@ -19102,12 +19142,13 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             }.get(param, param)
             
             # Determine which keyboard to return to based on param
+            global_cfg = db.get_user_config(uid)  # For fallback display
             if param.startswith("long_"):
                 strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
-                reply_kb = get_strategy_side_keyboard(strategy, "long", ctx.t, strat_settings)
+                reply_kb = get_strategy_side_keyboard(strategy, "long", ctx.t, strat_settings, global_cfg)
             elif param.startswith("short_"):
                 strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
-                reply_kb = get_strategy_side_keyboard(strategy, "short", ctx.t, strat_settings)
+                reply_kb = get_strategy_side_keyboard(strategy, "short", ctx.t, strat_settings, global_cfg)
             else:
                 strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
                 reply_kb = get_strategy_param_keyboard(strategy, ctx.t, strat_settings)
