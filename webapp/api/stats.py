@@ -17,6 +17,38 @@ from .auth import get_current_user
 router = APIRouter(tags=["statistics"])
 
 
+def _get_date_str(value) -> str:
+    """Convert datetime or string to date string YYYY-MM-DD."""
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, str):
+        return value[:10] if len(value) >= 10 else value
+    return str(value)[:10] if value else ""
+
+
+def _get_datetime(value) -> datetime:
+    """Convert value to datetime object."""
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            pass
+    return datetime.now()
+
+
+def _serialize_trade(t: dict) -> dict:
+    """Convert trade dict with datetime to JSON-serializable dict."""
+    result = {}
+    for k, v in t.items():
+        if isinstance(v, datetime):
+            result[k] = v.isoformat()
+        else:
+            result[k] = v
+    return result
+
+
 @router.get("/dashboard")
 async def get_dashboard_stats(
     user = Depends(get_current_user),
@@ -49,16 +81,7 @@ async def get_dashboard_stats(
         # Filter by period
         filtered_trades = []
         for t in trades:
-            trade_time_str = t.get("time", "2024-01-01")
-            try:
-                if isinstance(trade_time_str, str):
-                    trade_time = datetime.fromisoformat(trade_time_str.replace("Z", "+00:00"))
-                else:
-                    trade_time = datetime.now()
-            except (ValueError, TypeError) as e:
-                logger.debug(f"Failed to parse trade time '{trade_time_str}': {e}")
-                trade_time = datetime.now()
-            
+            trade_time = _get_datetime(t.get("time"))
             if trade_time >= start_date:
                 filtered_trades.append(t)
         
@@ -103,10 +126,10 @@ async def get_dashboard_stats(
         cumulative = 0
         daily_pnl = {}
         
-        for t in sorted(filtered_trades, key=lambda x: x.get("time", "")):
+        for t in sorted(filtered_trades, key=lambda x: _get_datetime(x.get("time"))):
             pnl = float(t.get("pnl", 0))
             cumulative += pnl
-            date_str = t.get("time", "")[:10]
+            date_str = _get_date_str(t.get("time"))
             
             pnl_history.append({
                 "time": date_str,
@@ -163,11 +186,11 @@ async def get_dashboard_stats(
         for sym in by_symbol:
             by_symbol[sym]["winRate"] = (by_symbol[sym]["wins"] / by_symbol[sym]["trades"] * 100) if by_symbol[sym]["trades"] else 0
         
-        # Top trades
+        # Top trades - serialize datetime for JSON
         sorted_by_pnl = sorted(filtered_trades, key=lambda x: float(x.get("pnl", 0)), reverse=True)
         top_trades = {
-            "best": sorted_by_pnl[:5],
-            "worst": sorted_by_pnl[-5:][::-1]
+            "best": [_serialize_trade(t) for t in sorted_by_pnl[:5]],
+            "worst": [_serialize_trade(t) for t in sorted_by_pnl[-5:][::-1]]
         }
         
         # Calculate maxDrawdown and streaks properly
@@ -193,7 +216,7 @@ async def get_dashboard_stats(
         worst_streak = 0
         current_win_streak = 0
         current_loss_streak = 0
-        for trade in sorted(filtered_trades, key=lambda x: x.get("time", x.get("created_at", ""))):
+        for trade in sorted(filtered_trades, key=lambda x: _get_datetime(x.get("time"))):
             pnl = float(trade.get("pnl", 0))
             if pnl > 0:
                 current_win_streak += 1
