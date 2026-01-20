@@ -424,7 +424,9 @@ TEXTS = {
         '📊 Стратегия: `{strategy}`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
 
@@ -521,7 +523,9 @@ TEXTS = {
         '📊 Стратегия: `OI Signal`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
     
@@ -531,7 +535,9 @@ TEXTS = {
         '📊 Стратегия: `Scryptomera`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
     
@@ -541,7 +547,9 @@ TEXTS = {
         '📊 Стратегия: `Scalper`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
     
@@ -551,7 +559,9 @@ TEXTS = {
         '📊 Стратегия: `Elcaro`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
     
@@ -561,7 +571,9 @@ TEXTS = {
         '📊 Стратегия: `Fibonacci`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
     
@@ -571,7 +583,9 @@ TEXTS = {
         '📊 Стратегия: `RSI+BB`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
-        '💰 *PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
+        '💸 Комиссия: `{fee:.4f} USDT`\n'
+        '💵 *Нетто PnL: `{net_pnl:+.2f} USDT`*\n'
         '📍 {exchange} • {market_type}'
     ),
 
