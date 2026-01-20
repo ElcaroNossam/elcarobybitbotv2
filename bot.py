@@ -13732,6 +13732,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parsed["oi_now"] = parsed_oi.get("oi_now")
         parsed["oi_chg"] = parsed_oi.get("oi_chg")
     
+    # CRITICAL FIX: Skip non-signal messages (info messages like "Fibo Bot Started")
+    # These have no symbol or side and should not be saved to signals table
+    if not parsed.get("symbol") and not parsed.get("side"):
+        logger.info(f"Skip non-signal message (no symbol/side): {txt[:100]!r}")
+        return
+    
     try:
         signal_id = db.add_signal(
             raw_message = txt,
@@ -13791,7 +13797,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             else:
                 m_tr = re.search(r'\b(LONG|SHORT|UP|DOWN|BUY|SELL)\b', txt, re.I)
                 if not m_tr:
-                    logger.error(f"Side not found: {txt!r}")
+                    logger.info(f"Non-trading message (no side): {txt[:100]!r}")
                     return
                 raw_side = m_tr.group(1).upper()
                 side = "Buy" if raw_side in ("LONG", "UP", "BUY") else "Sell"
