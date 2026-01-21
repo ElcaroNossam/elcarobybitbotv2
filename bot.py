@@ -23505,6 +23505,12 @@ def main():
     except Exception as e:
         logger.error(f"Failed to initialize notification service: {e}")
     
+    # DEBUG: Log ALL incoming updates
+    from telegram.ext import TypeHandler
+    async def log_all_updates(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+        logger.info(f"[RAW-UPDATE] type={type(update).__name__}, update_id={update.update_id}, message={update.message is not None}, callback_query={update.callback_query is not None}")
+    app.add_handler(TypeHandler(Update, log_all_updates), group=-1)
+    
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
     app.add_handler(CallbackQueryHandler(on_stats_callback, pattern=r"^stats:"))
