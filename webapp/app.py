@@ -234,15 +234,24 @@ def create_app() -> FastAPI:
     # SECURITY: Add security headers middleware
     app.add_middleware(SecurityHeadersMiddleware)
     
-    # SECURITY: Restrict CORS origins in production
-    # allow_credentials=True requires specific origins, not "*"
-    allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8765").split(",")
+    # SECURITY: CORS configuration
+    # If CORS_ORIGINS=* allow all origins (for mobile/Telegram WebApp)
+    # Otherwise use specific origins list
+    cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8765")
+    if cors_env.strip() == "*":
+        # Allow all origins - needed for Telegram WebApp and mobile
+        allowed_origins = ["*"]
+        allow_credentials = False  # Can't use credentials with wildcard
+    else:
+        allowed_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+        allow_credentials = True
+    
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
-        allow_credentials=True,
+        allow_credentials=allow_credentials,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Telegram-Init-Data"],
     )
     
     static_path = APP_DIR / "static"
