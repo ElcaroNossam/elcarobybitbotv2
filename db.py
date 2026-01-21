@@ -1589,10 +1589,18 @@ def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, acc
                 settings = _merge_settings(settings, global_settings)
                 source = "global:default"  # Global strategy settings
     
+    # 4. ALWAYS merge with user's global settings as final fallback
+    # This ensures percent/sl/tp are never None if user has global settings
+    user_global = _get_user_global_settings(user_id)
+    if user_global:
+        settings = _merge_settings(settings, user_global)
+        if source == "default":
+            source = "user:global"
+    
     # Add source indicator for UI
     settings["_source"] = source
     
-    # 4. Merge with routing_policy and targets_json from extended query
+    # 5. Merge with routing_policy and targets_json from extended query
     settings = _enrich_with_routing(user_id, strategy, exchange, account_type, settings)
     
     return settings
@@ -1602,6 +1610,32 @@ def _is_empty_settings(settings: dict) -> bool:
     """Check if all relevant settings are None/empty (no customization)."""
     key_fields = ["percent", "sl_percent", "tp_percent", "leverage"]
     return all(settings.get(k) is None for k in key_fields)
+
+
+def _get_user_global_settings(user_id: int) -> dict:
+    """
+    Get user's global trading settings from users table.
+    These serve as final fallback when strategy-specific settings are not set.
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT percent, sl_percent, tp_percent, leverage, use_atr
+                FROM users WHERE user_id = ?
+            """, (user_id,))
+            row = cur.fetchone()
+            if row:
+                return {
+                    "percent": row[0],
+                    "sl_percent": row[1],
+                    "tp_percent": row[2],
+                    "leverage": row[3],
+                    "use_atr": row[4]
+                }
+    except Exception as e:
+        _logger.warning(f"Error getting user global settings: {e}")
+    return {}
 
 
 def _merge_settings(target: dict, source: dict) -> dict:

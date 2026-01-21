@@ -55,8 +55,13 @@ echo "[$(date)] Cloudflare tunnel started with PID $TUNNEL_PID" >> "$LOG_FILE"
 # Wait for tunnel URL and update .env
 echo "[$(date)] Waiting for Cloudflare tunnel URL..." >> "$LOG_FILE"
 CF_URL=""
-for i in {1..15}; do
-    CF_URL=$(grep -oP 'https://[a-z0-9-]+\.trycloudflare\.com' "$PROJECT_DIR/logs/cloudflared.log" 2>/dev/null | tail -1 || echo "")
+for i in {1..30}; do
+    # Try multiple grep patterns for compatibility
+    CF_URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$PROJECT_DIR/logs/cloudflared.log" 2>/dev/null | tail -1)
+    if [ -z "$CF_URL" ]; then
+        # Fallback pattern
+        CF_URL=$(cat "$PROJECT_DIR/logs/cloudflared.log" 2>/dev/null | grep -o 'https://[^|]*trycloudflare.com' | head -1 | tr -d ' |')
+    fi
     if [ -n "$CF_URL" ]; then
         echo "[$(date)] Got tunnel URL: $CF_URL" >> "$LOG_FILE"
         # Update .env with new URL
