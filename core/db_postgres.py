@@ -923,6 +923,18 @@ def pg_init_db():
             $$
         """)
         
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # USER PENDING INPUTS TABLE (for persistence across bot restarts)
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_pending_inputs (
+                user_id         BIGINT PRIMARY KEY,
+                input_type      TEXT NOT NULL,
+                input_data      TEXT,
+                created_at      TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        
         logger.info("✅ PostgreSQL schema initialized successfully")
 
 
@@ -1961,6 +1973,35 @@ def pg_set_user_credentials(user_id: int, api_key: str, api_secret: str, account
             "UPDATE users SET real_api_key = %s, real_api_secret = %s WHERE user_id = %s",
             (api_key, api_secret, user_id)
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# USER PENDING INPUTS (for persistence across bot restarts)
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+def pg_set_pending_input(user_id: int, input_type: str, input_data: str = None):
+    """Set pending input for user (survives bot restarts)."""
+    execute_write("""
+        INSERT INTO user_pending_inputs (user_id, input_type, input_data, created_at)
+        VALUES (%s, %s, %s, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET 
+            input_type = EXCLUDED.input_type,
+            input_data = EXCLUDED.input_data,
+            created_at = NOW()
+    """, (user_id, input_type, input_data))
+
+
+def pg_get_pending_input(user_id: int) -> Optional[Dict]:
+    """Get pending input for user."""
+    return execute_one(
+        "SELECT input_type, input_data, created_at FROM user_pending_inputs WHERE user_id = %s",
+        (user_id,)
+    )
+
+
+def pg_clear_pending_input(user_id: int):
+    """Clear pending input for user."""
+    execute_write("DELETE FROM user_pending_inputs WHERE user_id = %s", (user_id,))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════

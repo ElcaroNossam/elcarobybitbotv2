@@ -42,6 +42,7 @@ from core.db_postgres import (
     pg_get_hl_effective_settings, pg_should_show_account_switcher,
     pg_update_user_info, pg_set_trading_mode, pg_set_hl_enabled,
     pg_delete_user, pg_sync_position_entry_price, pg_set_user_credentials,
+    pg_set_pending_input, pg_get_pending_input, pg_clear_pending_input,
 )
 
 # Legacy compatibility - no longer used but kept for imports
@@ -6011,3 +6012,22 @@ def get_referral_stats(user_id: int) -> dict:
             "total_referrals": total_referrals,
             "earnings": total_referrals * 5  # $5 per referral
         }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# USER PENDING INPUTS (Persistent across bot restarts)
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+def set_pending_input(user_id: int, input_type: str, input_data: str = None):
+    """Set pending input for user (survives bot restarts)."""
+    return pg_set_pending_input(user_id, input_type, input_data)
+
+
+def get_pending_input(user_id: int) -> dict | None:
+    """Get pending input for user."""
+    return pg_get_pending_input(user_id)
+
+
+def clear_pending_input(user_id: int):
+    """Clear pending input for user."""
+    return pg_clear_pending_input(user_id)

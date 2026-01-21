@@ -6854,6 +6854,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         return
     
     if data == "strat_set:global":
+        # Clear any pending input when going back to settings menu
+        db.clear_pending_input(uid)
         # Show global trading settings using helper
         return await _show_global_settings_menu(query, uid, t)
     
@@ -7497,7 +7499,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         strategy = parts[1]
         param = parts[2]
         
+        # Store in BOTH user_data and DB (DB survives bot restarts)
         ctx.user_data["strat_setting_mode"] = {"strategy": strategy, "param": param}
+        db.set_pending_input(uid, "strat_setting", f"{strategy}:{param}")
         
         param_names = {
             "percent": t.get('prompt_entry_pct', 'Enter Entry % (risk per trade):'),
@@ -19084,6 +19088,18 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     # Handle strategy setting input
     strat_mode = ctx.user_data.get("strat_setting_mode")
+    
+    # If not in user_data, try to recover from DB (survives bot restarts)
+    if not strat_mode:
+        pending = db.get_pending_input(uid)
+        if pending and pending.get("input_type") == "strat_setting":
+            data = pending.get("input_data", "")
+            if ":" in data:
+                parts = data.split(":", 1)
+                strat_mode = {"strategy": parts[0], "param": parts[1]}
+                ctx.user_data["strat_setting_mode"] = strat_mode  # Restore to user_data
+                logger.info(f"[TEXT_HANDLER] Recovered strat_setting_mode from DB: uid={uid}, data={data}")
+    
     if strat_mode:
         strategy = strat_mode.get("strategy")
         param = strat_mode.get("param")
@@ -19125,6 +19141,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             logger.info(f"[{uid}] Strategy {strategy} param {param}={value} saved to default (fallback for all accounts)")
             ctx.user_data.pop("strat_setting_mode", None)
+            db.clear_pending_input(uid)  # Clear from DB too
             
             display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
             param_name = {
