@@ -536,80 +536,43 @@ def pg_init_db():
         cur.execute("ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS fee REAL DEFAULT 0")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
-        # USER STRATEGY SETTINGS TABLE (MULTITENANCY)
+        # USER STRATEGY SETTINGS TABLE (SIMPLIFIED - Only LONG/SHORT per strategy)
         # ═══════════════════════════════════════════════════════════════════════════════════
+        # Each strategy has LONG and SHORT settings independently
+        # No complex fallback - settings are stored with defaults from ENV
         cur.execute("""
             CREATE TABLE IF NOT EXISTS user_strategy_settings (
                 user_id         BIGINT NOT NULL,
                 strategy        TEXT NOT NULL,
-                exchange        TEXT NOT NULL DEFAULT 'bybit',
-                account_type    TEXT NOT NULL DEFAULT 'demo',
+                side            TEXT NOT NULL,  -- 'long' or 'short'
+                
+                -- Strategy enabled
+                enabled         BOOLEAN DEFAULT TRUE,
                 
                 -- Trading parameters
-                enabled         BOOLEAN DEFAULT TRUE,
-                percent         REAL,
-                sl_percent      REAL,
-                tp_percent      REAL,
-                leverage        INTEGER,
+                percent         REAL NOT NULL,          -- Entry % (risk per trade)
+                sl_percent      REAL NOT NULL,          -- Stop-Loss %
+                tp_percent      REAL NOT NULL,          -- Take-Profit %
+                leverage        INTEGER NOT NULL,       -- Leverage
                 
-                -- ATR parameters
-                use_atr         INTEGER,
-                atr_periods     INTEGER,
-                atr_multiplier_sl REAL,
-                atr_trigger_pct REAL,
-                atr_step_pct    REAL,
+                -- ATR Trailing parameters
+                use_atr         BOOLEAN DEFAULT TRUE,   -- ATR Trailing enabled
+                atr_trigger_pct REAL NOT NULL,          -- Trigger % (profit to activate)
+                atr_step_pct    REAL NOT NULL,          -- Step % (SL distance from price)
                 
-                -- Order settings
-                order_type      TEXT DEFAULT 'market',
-                coins_group     TEXT,
-                direction       TEXT DEFAULT 'all',
-                trading_mode    TEXT DEFAULT 'global',
-                
-                -- Side-specific settings
-                long_percent    REAL,
-                long_sl_percent REAL,
-                long_tp_percent REAL,
-                long_atr_periods INTEGER,
-                long_atr_multiplier_sl REAL,
-                long_atr_trigger_pct REAL,
-                long_atr_step_pct REAL,
-                
-                short_percent   REAL,
-                short_sl_percent REAL,
-                short_tp_percent REAL,
-                short_atr_periods INTEGER,
-                short_atr_multiplier_sl REAL,
-                short_atr_trigger_pct REAL,
-                short_atr_step_pct REAL,
-                
-                -- Fibonacci
-                min_quality     INTEGER DEFAULT 50,
-                
-                -- Routing
-                routing_policy  TEXT,
-                targets_json    TEXT,
-                env             TEXT,
+                -- Order type
+                order_type      TEXT DEFAULT 'market',  -- 'market' or 'limit'
                 
                 -- Timestamps
                 created_at      TIMESTAMP DEFAULT NOW(),
                 updated_at      TIMESTAMP DEFAULT NOW(),
                 
-                PRIMARY KEY(user_id, strategy, exchange, account_type)
+                PRIMARY KEY(user_id, strategy, side)
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
-        
-        # Add atr_step_pct columns to user_strategy_settings if missing
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS atr_step_pct REAL")
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_atr_step_pct REAL")
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_atr_step_pct REAL")
-        # Add side-specific leverage and use_atr columns
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_leverage REAL")
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_leverage REAL")
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS long_use_atr INTEGER")
-        cur.execute("ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS short_use_atr INTEGER")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # PENDING LIMIT ORDERS TABLE
@@ -1693,149 +1656,227 @@ def pg_get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "by
 
 
 def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> Dict:
-    """Get settings for a specific strategy with FALLBACK logic."""
-    # Auto-detect context if not provided
-    if exchange is None or account_type is None:
-        context = pg_get_user_trading_context(user_id)
-        exchange = exchange or context["exchange"]
-        account_type = account_type or context["account_type"]
+    """
+    Get settings for a specific strategy.
+    SIMPLIFIED: Returns both LONG and SHORT settings as long_* and short_* fields.
+    """
+    from coin_params import STRATEGY_DEFAULTS
     
-    # 1. Try exact match (exchange + account_type)
-    settings = pg_get_strategy_settings_db(user_id, strategy, exchange, account_type)
+    result = {}
     
-    # 2. If settings are empty, try exchange-level fallback
-    if _pg_is_empty_settings(settings):
-        exchange_settings = pg_get_strategy_settings_db(user_id, strategy, exchange, "default")
-        if not _pg_is_empty_settings(exchange_settings):
-            settings = _pg_merge_settings(settings, exchange_settings)
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT * FROM user_strategy_settings 
+                WHERE user_id = %s AND strategy = %s
+            """, (user_id, strategy))
+            rows = cur.fetchall()
+            
+            for row in rows:
+                side = row.get('side', 'long')
+                prefix = f"{side}_"
+                
+                result[f"{prefix}enabled"] = row.get('enabled', True)
+                result[f"{prefix}percent"] = row.get('percent')
+                result[f"{prefix}sl_percent"] = row.get('sl_percent')
+                result[f"{prefix}tp_percent"] = row.get('tp_percent')
+                result[f"{prefix}leverage"] = row.get('leverage')
+                result[f"{prefix}use_atr"] = row.get('use_atr')
+                result[f"{prefix}atr_trigger_pct"] = row.get('atr_trigger_pct')
+                result[f"{prefix}atr_step_pct"] = row.get('atr_step_pct')
+                result["order_type"] = row.get('order_type', 'market')
     
-    # 3. Try global strategy defaults
-    if _pg_is_empty_settings(settings):
-        global_settings = pg_get_strategy_settings_db(user_id, strategy, "global", "default")
-        if not _pg_is_empty_settings(global_settings):
-            settings = _pg_merge_settings(settings, global_settings)
+    # Fill missing sides with defaults
+    for side in ["long", "short"]:
+        prefix = f"{side}_"
+        defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
+        
+        if f"{prefix}percent" not in result or result[f"{prefix}percent"] is None:
+            result[f"{prefix}enabled"] = defaults.get("enabled", True)
+            result[f"{prefix}percent"] = defaults.get("percent")
+            result[f"{prefix}sl_percent"] = defaults.get("sl_percent")
+            result[f"{prefix}tp_percent"] = defaults.get("tp_percent")
+            result[f"{prefix}leverage"] = defaults.get("leverage")
+            result[f"{prefix}use_atr"] = defaults.get("use_atr")
+            result[f"{prefix}atr_trigger_pct"] = defaults.get("atr_trigger_pct")
+            result[f"{prefix}atr_step_pct"] = defaults.get("atr_step_pct")
     
-    # 4. Add routing info
-    settings["routing_policy"] = None
-    settings["targets_json"] = None
+    if "order_type" not in result:
+        result["order_type"] = "market"
     
-    return settings
-
-
-def _pg_is_empty_settings(settings: dict) -> bool:
-    """Check if all relevant settings are None/empty."""
-    # Include use_atr and enabled - these are important toggle settings
-    key_fields = ["percent", "sl_percent", "tp_percent", "leverage", "use_atr", "enabled"]
-    return all(settings.get(k) is None for k in key_fields)
-
-
-def _pg_merge_settings(target: dict, source: dict) -> dict:
-    """Merge source settings into target, only filling None values."""
-    result = target.copy()
-    for key, value in source.items():
-        if result.get(key) is None and value is not None:
-            result[key] = value
+    return result
     return result
 
 
-def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value, 
-                           exchange: str = "bybit", account_type: str = "demo") -> bool:
-    """Set a single field for a strategy in user_strategy_settings table."""
+def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value) -> bool:
+    """
+    Set a single field for a strategy in user_strategy_settings table.
+    
+    SIMPLIFIED: Field name determines side (long_* or short_*)
+    If field starts with 'long_' or 'short_', extracts side and stores in correct row.
+    """
+    from coin_params import STRATEGY_DEFAULTS
+    
+    # Determine side from field name
+    if field.startswith("long_"):
+        side = "long"
+        db_field = field[5:]  # Remove 'long_' prefix
+    elif field.startswith("short_"):
+        side = "short"
+        db_field = field[6:]  # Remove 'short_' prefix
+    else:
+        # Non-side field like 'direction', 'order_type', 'coins_group'
+        # Apply to both sides
+        for s in ["long", "short"]:
+            _pg_set_side_setting(user_id, strategy, s, field, value)
+        return True
+    
+    return _pg_set_side_setting(user_id, strategy, side, db_field, value)
+
+
+def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, value) -> bool:
+    """Set a field for a specific side (long/short)."""
+    from coin_params import STRATEGY_DEFAULTS
+    
     ALLOWED_FIELDS = {
-        # General settings
         'enabled', 'percent', 'sl_percent', 'tp_percent', 'leverage',
-        'use_atr', 'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct',
-        'order_type', 'coins_group', 'direction', 'trading_mode',
-        'min_quality', 'routing_policy', 'targets_json',
-        # LONG side-specific settings
-        'long_percent', 'long_sl_percent', 'long_tp_percent', 'long_leverage',
-        'long_use_atr', 'long_atr_periods', 'long_atr_multiplier_sl', 
-        'long_atr_trigger_pct', 'long_atr_step_pct',
-        # SHORT side-specific settings
-        'short_percent', 'short_sl_percent', 'short_tp_percent', 'short_leverage',
-        'short_use_atr', 'short_atr_periods', 'short_atr_multiplier_sl',
-        'short_atr_trigger_pct', 'short_atr_step_pct',
+        'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
+        'direction', 'coins_group'
     }
     
     if field not in ALLOWED_FIELDS:
         return False
     
+    defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
+    
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # Try UPDATE first
-            cur.execute(f"""
-                UPDATE user_strategy_settings SET {field} = %s
-                WHERE user_id = %s AND strategy = %s AND exchange = %s AND account_type = %s
-            """, (value, user_id, strategy, exchange, account_type))
+            # Check if row exists
+            cur.execute("""
+                SELECT 1 FROM user_strategy_settings 
+                WHERE user_id = %s AND strategy = %s AND side = %s
+            """, (user_id, strategy, side))
             
-            if cur.rowcount == 0:
-                # INSERT if not exists
+            if cur.fetchone():
+                # UPDATE existing
                 cur.execute(f"""
-                    INSERT INTO user_strategy_settings (user_id, strategy, exchange, account_type, {field})
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (user_id, strategy, exchange, account_type) 
-                    DO UPDATE SET {field} = EXCLUDED.{field}
-                """, (user_id, strategy, exchange, account_type, value))
+                    UPDATE user_strategy_settings SET {field} = %s, updated_at = NOW()
+                    WHERE user_id = %s AND strategy = %s AND side = %s
+                """, (value, user_id, strategy, side))
+            else:
+                # INSERT new row with all defaults
+                cur.execute("""
+                    INSERT INTO user_strategy_settings 
+                    (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
+                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    user_id, strategy, side,
+                    defaults.get("enabled", True),
+                    defaults.get("percent"),
+                    defaults.get("sl_percent"),
+                    defaults.get("tp_percent"),
+                    defaults.get("leverage"),
+                    defaults.get("use_atr"),
+                    defaults.get("atr_trigger_pct"),
+                    defaults.get("atr_step_pct"),
+                    defaults.get("order_type", "market")
+                ))
+                # Now update the specific field
+                cur.execute(f"""
+                    UPDATE user_strategy_settings SET {field} = %s
+                    WHERE user_id = %s AND strategy = %s AND side = %s
+                """, (value, user_id, strategy, side))
     
     return True
 
 
-# ATR defaults by timeframe
+def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None) -> bool:
+    """Reset strategy settings to defaults. If side is None, resets both."""
+    from coin_params import STRATEGY_DEFAULTS
+    
+    sides = [side] if side else ["long", "short"]
+    
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            for s in sides:
+                defaults = STRATEGY_DEFAULTS.get(s, STRATEGY_DEFAULTS["long"])
+                cur.execute("""
+                    INSERT INTO user_strategy_settings 
+                    (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
+                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, strategy, side) DO UPDATE SET
+                        enabled = EXCLUDED.enabled,
+                        percent = EXCLUDED.percent,
+                        sl_percent = EXCLUDED.sl_percent,
+                        tp_percent = EXCLUDED.tp_percent,
+                        leverage = EXCLUDED.leverage,
+                        use_atr = EXCLUDED.use_atr,
+                        atr_trigger_pct = EXCLUDED.atr_trigger_pct,
+                        atr_step_pct = EXCLUDED.atr_step_pct,
+                        order_type = EXCLUDED.order_type,
+                        updated_at = NOW()
+                """, (
+                    user_id, strategy, s,
+                    defaults.get("enabled", True),
+                    defaults.get("percent"),
+                    defaults.get("sl_percent"),
+                    defaults.get("tp_percent"),
+                    defaults.get("leverage"),
+                    defaults.get("use_atr"),
+                    defaults.get("atr_trigger_pct"),
+                    defaults.get("atr_step_pct"),
+                    defaults.get("order_type", "market")
+                ))
+    return True
+
+
+# ATR defaults by timeframe (kept for compatibility)
 ATR_DEFAULTS = {
-    "24h": {"atr_periods": 14, "atr_multiplier_sl": 1.5, "atr_trigger_pct": 0.5, "atr_step_pct": 0.3},
-    "4h": {"atr_periods": 14, "atr_multiplier_sl": 1.2, "atr_trigger_pct": 0.4, "atr_step_pct": 0.25},
-    "1h": {"atr_periods": 14, "atr_multiplier_sl": 1.0, "atr_trigger_pct": 0.3, "atr_step_pct": 0.2},
+    "24h": {"atr_trigger_pct": 0.5, "atr_step_pct": 0.3},
+    "4h": {"atr_trigger_pct": 0.4, "atr_step_pct": 0.25},
+    "1h": {"atr_trigger_pct": 0.3, "atr_step_pct": 0.2},
 }
 
 
 def pg_get_effective_settings(user_id: int, strategy: str, exchange: str = None, 
                              account_type: str = None, timeframe: str = "24h", 
                              side: str = None) -> Dict:
-    """Get effective settings for a strategy with FULL FALLBACK logic.
-    
-    Fallback chain:
-    1. Side-specific settings (long_percent, short_sl_percent, etc.)
-    2. Strategy general settings (percent, sl_percent, etc.)
-    3. Global user settings (from users table)
-    4. ATR defaults / hardcoded defaults
     """
-    # Get strategy-specific settings first
-    settings = pg_get_strategy_settings(user_id, strategy, exchange, account_type)
+    Get effective settings for a strategy.
+    SIMPLIFIED: Read side-specific settings from DB, fallback to STRATEGY_DEFAULTS.
+    """
+    from coin_params import STRATEGY_DEFAULTS
     
-    # Get global user config for fallback
-    config = pg_get_user_config(user_id)
+    settings = pg_get_strategy_settings(user_id, strategy)
     
-    # Handle side-specific settings with proper fallback
+    # Determine side prefix
+    side_prefix = "long"
     if side:
-        prefix = "long_" if side.upper() in ("BUY", "LONG") else "short_"
-        # Extended list of side-specific fields
-        side_fields = [
-            "percent", "sl_percent", "tp_percent", "leverage", "use_atr",
-            "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct"
-        ]
-        for field in side_fields:
-            side_field = f"{prefix}{field}"
-            # If side-specific value exists, use it instead of general
-            if settings.get(side_field) is not None:
-                settings[field] = settings[side_field]
+        side_upper = str(side).upper()
+        if side_upper in ("SELL", "SHORT"):
+            side_prefix = "short"
     
-    # Fallback chain: strategy settings -> global config -> ATR defaults -> hardcoded
-    result = {
-        "percent": settings.get("percent") or config.get("percent") or 1.0,
-        "sl_percent": settings.get("sl_percent") or config.get("sl_percent") or 3.0,
-        "tp_percent": settings.get("tp_percent") or config.get("tp_percent") or 8.0,
-        "leverage": settings.get("leverage") or config.get("leverage") or 10,
-        "use_atr": settings.get("use_atr") if settings.get("use_atr") is not None else config.get("use_atr", 1),
-        "atr_periods": settings.get("atr_periods") or ATR_DEFAULTS.get(timeframe, {}).get("atr_periods", 14),
-        "atr_multiplier_sl": settings.get("atr_multiplier_sl") or ATR_DEFAULTS.get(timeframe, {}).get("atr_multiplier_sl", 1.5),
-        "atr_trigger_pct": settings.get("atr_trigger_pct") or ATR_DEFAULTS.get(timeframe, {}).get("atr_trigger_pct", 0.5),
-        "atr_step_pct": settings.get("atr_step_pct") or ATR_DEFAULTS.get(timeframe, {}).get("atr_step_pct", 0.3),
-        "order_type": settings.get("order_type") or "market",
-        "direction": settings.get("direction") or "all",
-        "min_quality": settings.get("min_quality") or 50,
+    defaults = STRATEGY_DEFAULTS.get(side_prefix, STRATEGY_DEFAULTS["long"])
+    
+    def _get(key):
+        val = settings.get(f"{side_prefix}_{key}")
+        return val if val is not None else defaults.get(key)
+    
+    return {
+        "enabled": bool(settings.get(f"{side_prefix}_enabled", defaults.get("enabled", True))),
+        "percent": _get("percent"),
+        "sl_percent": _get("sl_percent"),
+        "tp_percent": _get("tp_percent"),
+        "leverage": _get("leverage"),
+        "use_atr": bool(_get("use_atr")),
+        "atr_trigger_pct": _get("atr_trigger_pct"),
+        "atr_step_pct": _get("atr_step_pct"),
+        "order_type": settings.get("order_type") or defaults.get("order_type", "market"),
+        "direction": "all",
+        "side": side_prefix,
     }
-    
-    return result
 
 
 def pg_get_hl_strategy_settings(user_id: int, strategy: str) -> Dict:

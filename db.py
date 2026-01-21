@@ -1539,282 +1539,85 @@ def migrate_json_to_db_settings(user_id: int) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# UNIFIED STRATEGY SETTINGS API (no more _v2 wrappers - use main functions)
+# SIMPLIFIED STRATEGY SETTINGS API
+# Only LONG/SHORT per strategy, no complex fallbacks
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> dict:
     """
-    Get settings for a specific strategy with FALLBACK logic.
+    Get settings for a specific strategy.
     
-    Fallback priority (most specific → least specific):
-    1. (exchange + account_type) - per-account override (if user wants different settings)
-    2. (exchange + 'default') - exchange-level settings (normal case)
-    3. ('global' + 'default') - global strategy defaults (rarely used)
-    
-    This allows:
-    - Most users: one set of settings for all accounts (stored in 'default')
-    - Power users: different settings per account (stored in specific account_type)
-    
-    If exchange and account_type are not provided, automatically detects from user's current context.
-    
-    Returns dict with all strategy parameters. None values mean 'use global user defaults'.
-    Also includes '_source' key indicating where settings came from.
+    SIMPLIFIED: Just reads from DB, no complex fallbacks.
+    Returns settings with long_* and short_* fields.
     """
-    # Auto-detect context if not provided
-    if exchange is None or account_type is None:
-        context = get_user_trading_context(user_id)
-        exchange = exchange or context["exchange"]
-        account_type = account_type or context["account_type"]
-    
-    source = "default"  # Track where settings came from
-    
-    # 1. Try exact match (exchange + account_type) - for per-account overrides
-    # Use _get_strategy_settings_raw to avoid recursion!
-    settings = _get_strategy_settings_raw(user_id, strategy, exchange, account_type)
-    
-    if not _is_empty_settings(settings):
-        source = f"{exchange}:{account_type}"  # Per-account settings
-    else:
-        # 2. Try exchange + 'default' (main storage for strategy settings)
-        exchange_settings = _get_strategy_settings_raw(user_id, strategy, exchange, "default")
-        if not _is_empty_settings(exchange_settings):
-            settings = _merge_settings(settings, exchange_settings)
-            source = f"{exchange}:default"  # Exchange-level settings
-        else:
-            # 3. Try global strategy defaults (exchange='global', account_type='default')
-            global_settings = _get_strategy_settings_raw(user_id, strategy, "global", "default")
-            if not _is_empty_settings(global_settings):
-                settings = _merge_settings(settings, global_settings)
-                source = "global:default"  # Global strategy settings
-    
-    # 4. ALWAYS merge with user's global settings as final fallback
-    # This ensures percent/sl/tp are never None if user has global settings
-    user_global = _get_user_global_settings(user_id)
-    if user_global:
-        settings = _merge_settings(settings, user_global)
-        if source == "default":
-            source = "user:global"
-    
-    # Add source indicator for UI
-    settings["_source"] = source
-    
-    # 5. Merge with routing_policy and targets_json from extended query
-    settings = _enrich_with_routing(user_id, strategy, exchange, account_type, settings)
-    
-    return settings
+    from core.db_postgres import pg_get_strategy_settings
+    return pg_get_strategy_settings(user_id, strategy)
 
 
-def _is_empty_settings(settings: dict) -> bool:
-    """Check if all relevant settings are None/empty (no customization)."""
-    # Include use_atr and enabled - these are important toggle settings
-    key_fields = ["percent", "sl_percent", "tp_percent", "leverage", "use_atr", "enabled"]
-    return all(settings.get(k) is None for k in key_fields)
-
-
-def _get_user_global_settings(user_id: int) -> dict:
-    """
-    Get user's global trading settings from users table.
-    These serve as final fallback when strategy-specific settings are not set.
-    """
-    try:
-        with get_conn() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT percent, sl_percent, tp_percent, leverage, use_atr
-                FROM users WHERE user_id = ?
-            """, (user_id,))
-            row = cur.fetchone()
-            if row:
-                return {
-                    "percent": row[0],
-                    "sl_percent": row[1],
-                    "tp_percent": row[2],
-                    "leverage": row[3],
-                    "use_atr": row[4]
-                }
-    except Exception as e:
-        _logger.warning(f"Error getting user global settings: {e}")
-    return {}
-
-
-def _merge_settings(target: dict, source: dict) -> dict:
-    """Merge source settings into target, only filling None values."""
-    result = target.copy()
-    for key, value in source.items():
-        if result.get(key) is None and value is not None:
-            result[key] = value
-    return result
-
-
-def _enrich_with_routing(user_id: int, strategy: str, exchange: str, account_type: str, settings: dict) -> dict:
-    """Enrich settings with routing_policy and targets_json if available."""
-    try:
-        with get_conn() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT routing_policy, targets_json
-                FROM user_strategy_settings
-                WHERE user_id = ? AND strategy = ? AND exchange = ? AND account_type = ?
-            """, (user_id, strategy, exchange, account_type))
-            row = cur.fetchone()
-            if row:
-                settings["routing_policy"] = row[0]
-                settings["targets_json"] = row[1]
-            else:
-                settings["routing_policy"] = None
-                settings["targets_json"] = None
-            return settings
-    except Exception as e:
-        logger.warning(f"Error enriching settings with routing: {e}")
-        settings["routing_policy"] = None
-        settings["targets_json"] = None
-        return settings
-
-
-def set_strategy_setting(user_id: int, strategy: str, field: str, value: float | None,
+def set_strategy_setting(user_id: int, strategy: str, field: str, value,
                          exchange: str = None, account_type: str = None,
                          sync_all_accounts: bool = True) -> bool:
     """
     Set a specific field for a strategy.
-    NOW USES DATABASE TABLE instead of JSON.
-    
-    SMART WRITE LOGIC:
-    - If sync_all_accounts=True (default): writes to account_type='default' which applies to all accounts
-    - If sync_all_accounts=False: writes to specific account_type (for per-account overrides)
-    
-    If exchange is not provided, automatically detects from user's current context.
-    
-    field must be one of: percent, sl_percent, tp_percent, atr_mult, etc.
-    value can be None to reset to global default
+    SIMPLIFIED: Direct write to DB.
     """
-    # Auto-detect exchange if not provided
-    if exchange is None:
-        context = get_user_trading_context(user_id)
-        exchange = exchange or context["exchange"]
-    
-    # Smart account_type handling
-    if sync_all_accounts:
-        # Write to 'default' - applies to all accounts via fallback
-        account_type = "default"
-    elif account_type is None:
-        # Write to current account only
-        context = get_user_trading_context(user_id)
-        account_type = context["account_type"]
-    
-    return set_strategy_setting_db(user_id, strategy, field, value, exchange, account_type)
+    return pg_set_strategy_setting(user_id, strategy, field, value)
 
 
-def get_effective_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None, timeframe: str = "24h", side: str = None) -> dict:
+def get_effective_settings(user_id: int, strategy: str, exchange: str = None, 
+                          account_type: str = None, timeframe: str = "24h", 
+                          side: str = None) -> dict:
     """
-    Get effective settings for a strategy with FULL FALLBACK logic.
+    Get effective settings for a strategy.
     
-    Falls back: Strategy Setting → Global Config → Timeframe Defaults → Hardcoded Defaults
-    
-    For side-specific settings (side='Buy' or 'Sell'):
-    Falls back: long_*/short_* → general strategy → global → default
+    SIMPLIFIED: 
+    - Read side-specific settings (long_* or short_*) from DB
+    - Fall back to STRATEGY_DEFAULTS from coin_params.py
     
     Args:
         user_id: User ID
         strategy: Strategy name (oi, scalper, scryptomera, etc.)
-        exchange: Exchange name (bybit, hyperliquid). Auto-detected if None.
-        account_type: Account type (demo, real). Auto-detected if None.
-        timeframe: Timeframe for ATR defaults (24h, 4h, 1h)
-        side: Trade side ('Buy'/'LONG' or 'Sell'/'SHORT'). If provided, tries side-specific settings first.
+        side: Trade side ('Buy'/'LONG' or 'Sell'/'SHORT'). REQUIRED for trading!
     
     Returns dict with: enabled, percent, sl_percent, tp_percent, leverage, 
-                       atr_periods, atr_multiplier_sl, atr_trigger_pct, direction, order_type
+                       use_atr, atr_trigger_pct, atr_step_pct, order_type
     """
-    from coin_params import TIMEFRAME_PARAMS
+    from coin_params import STRATEGY_DEFAULTS
     
-    global_cfg = get_user_config(user_id)
-    strat_settings = get_strategy_settings(user_id, strategy, exchange, account_type)
-    tf_cfg = TIMEFRAME_PARAMS.get(timeframe, TIMEFRAME_PARAMS.get("24h", {}))
+    strat_settings = get_strategy_settings(user_id, strategy)
     
-    # Determine side prefix for side-specific settings
-    side_prefix = None
+    # Determine side prefix
+    side_prefix = "long"  # default
     if side:
         side_upper = str(side).upper()
-        if side_upper in ("BUY", "LONG"):
-            side_prefix = "long"
-        elif side_upper in ("SELL", "SHORT"):
+        if side_upper in ("SELL", "SHORT"):
             side_prefix = "short"
     
-    def _get(key, default):
-        """Get value: side_specific → strategy → global → default"""
-        # Try side-specific first (e.g., long_percent, short_sl_percent)
-        if side_prefix:
-            side_key = f"{side_prefix}_{key}"
-            side_val = strat_settings.get(side_key)
-            if side_val is not None:
-                return side_val
-        # Then general strategy setting
-        val = strat_settings.get(key)
+    # Get defaults for this side
+    defaults = STRATEGY_DEFAULTS.get(side_prefix, STRATEGY_DEFAULTS["long"])
+    
+    def _get(key):
+        """Get value: DB side-specific → default"""
+        side_key = f"{side_prefix}_{key}"
+        val = strat_settings.get(side_key)
         if val is not None:
             return val
-        # Then global config
-        global_val = global_cfg.get(key)
-        if global_val is not None:
-            return global_val
-        return default
-    
-    def _get_atr(key, default):
-        """Get ATR value: side_specific → strategy → global → timeframe → default"""
-        # Try side-specific first
-        if side_prefix:
-            side_key = f"{side_prefix}_{key}"
-            side_val = strat_settings.get(side_key)
-            if side_val is not None:
-                return side_val
-        # Then general strategy setting
-        val = strat_settings.get(key)
-        if val is not None:
-            return val
-        global_val = global_cfg.get(key)
-        if global_val is not None:
-            return global_val
-        tf_val = tf_cfg.get(key)
-        if tf_val is not None:
-            return tf_val
-        return default
-    
-    # direction and order_type also use global fallback
-    def _get_text(key, default):
-        """Get text value: strategy → global → default"""
-        val = strat_settings.get(key)
-        if val is not None:
-            return val
-        # Map global field names (coins → coins_group, global_order_type → order_type)
-        global_key = {"coins_group": "coins", "order_type": "global_order_type"}.get(key, key)
-        global_val = global_cfg.get(global_key)
-        if global_val is not None:
-            return global_val
-        return default
-    
-    # Get use_atr and convert to bool
-    use_atr_val = _get("use_atr", 0)  # ATR disabled by default
-    use_atr_bool = bool(use_atr_val) if use_atr_val is not None else False
+        return defaults.get(key)
     
     return {
-        "enabled": bool(strat_settings.get("enabled", False)),
-        "percent": _get("percent", 1.0),
-        "sl_percent": _get("sl_percent", DEFAULT_SL_PCT),
-        "tp_percent": _get("tp_percent", DEFAULT_TP_PCT),
-        "leverage": _get("leverage", 10),
-        "atr_periods": _get_atr("atr_periods", 7),
-        "atr_multiplier_sl": _get_atr("atr_multiplier_sl", 1.0),
-        "atr_trigger_pct": _get_atr("atr_trigger_pct", 2.0),
-        # Strategy-specific fields with global fallback
-        "direction": _get_text("direction", "all"),
-        "order_type": _get_text("order_type", "market"),
-        "use_atr": use_atr_bool,
-        "trading_mode": strat_settings.get("trading_mode", "global"),
-        "coins_group": _get_text("coins_group", "TOP"),  # TOP coins by default
-        # Pass through any extra fields (long_*/short_* settings, etc.)
-        **{k: v for k, v in strat_settings.items() if k not in [
-            "enabled", "percent", "sl_percent", "tp_percent", "leverage",
-            "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "direction", "order_type",
-            "use_atr", "trading_mode", "coins_group"
-        ]}
+        "enabled": bool(strat_settings.get(f"{side_prefix}_enabled", defaults.get("enabled", True))),
+        "percent": _get("percent"),
+        "sl_percent": _get("sl_percent"),
+        "tp_percent": _get("tp_percent"),
+        "leverage": _get("leverage"),
+        "use_atr": bool(_get("use_atr")),
+        "atr_trigger_pct": _get("atr_trigger_pct"),
+        "atr_step_pct": _get("atr_step_pct"),
+        "order_type": strat_settings.get("order_type") or defaults.get("order_type", "market"),
+        # Extra fields for compatibility
+        "direction": strat_settings.get("direction", "all"),
+        "coins_group": strat_settings.get("coins_group", "TOP"),
+        "side": side_prefix,
     }
 
 
@@ -6029,3 +5832,54 @@ def get_pending_input(user_id: int) -> dict | None:
 def clear_pending_input(user_id: int):
     """Clear pending input for user."""
     return pg_clear_pending_input(user_id)
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# SIMPLIFIED STRATEGY SETTINGS API (NEW - uses core/strategy_settings.py)
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+from core.strategy_settings import (
+    get_strategy_side_settings as _get_strategy_side_settings,
+    set_strategy_side_setting as _set_strategy_side_setting,
+    reset_strategy_side_to_defaults as _reset_strategy_side_to_defaults,
+    get_effective_settings as _get_effective_settings_new,
+    get_all_strategy_settings as _get_all_strategy_settings,
+    get_strategy_enabled as _get_strategy_enabled,
+    get_default_settings as _get_default_settings,
+    STRATEGY_NAMES as STRATEGY_NAMES_NEW,
+    STRATEGY_DISPLAY_NAMES,
+)
+
+
+def get_strategy_side_settings(user_id: int, strategy: str, side: str) -> dict:
+    """Get settings for strategy + side (LONG/SHORT). Simple, no fallback."""
+    return _get_strategy_side_settings(user_id, strategy, side)
+
+
+def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str, value) -> bool:
+    """Set a single field for strategy + side."""
+    return _set_strategy_side_setting(user_id, strategy, side, field, value)
+
+
+def reset_strategy_side(user_id: int, strategy: str, side: str) -> bool:
+    """Reset strategy + side to ENV defaults."""
+    return _reset_strategy_side_to_defaults(user_id, strategy, side)
+
+
+def get_trade_settings(user_id: int, strategy: str, side: str) -> dict:
+    """Get effective settings for trading. Direct, simple."""
+    return _get_effective_settings_new(user_id, strategy, side)
+
+
+def get_both_side_settings(user_id: int, strategy: str) -> dict:
+    """Get LONG and SHORT settings for a strategy."""
+    return _get_all_strategy_settings(user_id, strategy)
+
+
+def is_strategy_enabled(user_id: int, strategy: str) -> bool:
+    """Check if strategy is enabled."""
+    return _get_strategy_enabled(user_id, strategy)
+
+
+def get_defaults() -> dict:
+    """Get default settings from ENV."""
+    return _get_default_settings()

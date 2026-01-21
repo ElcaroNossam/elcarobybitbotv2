@@ -3,8 +3,57 @@ import os
 from pathlib import Path
 from typing import Callable
 
-DEFAULT_TP_PCT = 9.0
-DEFAULT_SL_PCT = 3.0
+# ═══════════════════════════════════════════════════════════════════════════════
+# STRATEGY DEFAULTS - Used for all strategies when user hasn't customized
+# Can be overridden via environment variables
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Trading parameters defaults
+DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "5.0"))        # Entry % (risk per trade)
+DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "30.0"))         # Stop-Loss %
+DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "25.0"))         # Take-Profit %
+DEFAULT_LEVERAGE = int(os.getenv("DEFAULT_LEVERAGE", "10"))         # Leverage
+
+# ATR Trailing defaults
+DEFAULT_USE_ATR = os.getenv("DEFAULT_USE_ATR", "1") == "1"          # ATR Trailing enabled
+DEFAULT_ATR_TRIGGER_PCT = float(os.getenv("DEFAULT_ATR_TRIGGER_PCT", "0.5"))  # Trigger %
+DEFAULT_ATR_STEP_PCT = float(os.getenv("DEFAULT_ATR_STEP_PCT", "0.3"))        # Step %
+
+# Order type default
+DEFAULT_ORDER_TYPE = os.getenv("DEFAULT_ORDER_TYPE", "market")      # market/limit
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STRATEGY DEFAULTS - Per-strategy defaults for LONG and SHORT
+# All strategies use the same defaults, user can customize per strategy+side
+# ═══════════════════════════════════════════════════════════════════════════════
+STRATEGY_DEFAULTS = {
+    "long": {
+        "enabled": True,
+        "percent": DEFAULT_PERCENT,
+        "sl_percent": DEFAULT_SL_PCT,
+        "tp_percent": DEFAULT_TP_PCT,
+        "leverage": DEFAULT_LEVERAGE,
+        "use_atr": 1 if DEFAULT_USE_ATR else 0,
+        "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
+        "atr_step_pct": DEFAULT_ATR_STEP_PCT,
+        "order_type": DEFAULT_ORDER_TYPE,
+    },
+    "short": {
+        "enabled": True,
+        "percent": DEFAULT_PERCENT,
+        "sl_percent": DEFAULT_SL_PCT,
+        "tp_percent": DEFAULT_TP_PCT,
+        "leverage": DEFAULT_LEVERAGE,
+        "use_atr": 1 if DEFAULT_USE_ATR else 0,
+        "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
+        "atr_step_pct": DEFAULT_ATR_STEP_PCT,
+        "order_type": DEFAULT_ORDER_TYPE,
+    },
+}
+
+# Legacy compatibility
+DEFAULT_TP_PCT_LEGACY = DEFAULT_TP_PCT
+DEFAULT_SL_PCT_LEGACY = DEFAULT_SL_PCT
 
 # ─── Dynamic symbols loading from symbols.txt ───────────────────────────────
 def _load_top_symbols() -> set[str]:
