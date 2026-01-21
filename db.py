@@ -1497,6 +1497,41 @@ def get_all_strategy_settings_db(user_id: int, exchange: str = "bybit", account_
     return result
 
 
+def get_strategy_trading_mode(user_id: int, strategy: str) -> str:
+    """Get trading mode for a specific strategy.
+    
+    Returns 'demo', 'real', or 'both'. Default is 'demo'.
+    """
+    strategy_normalized = strategy.lower().replace("-", "_").replace(" ", "_")
+    if strategy_normalized == "rsi_bb":
+        strategy_normalized = "rsi_bb"
+    
+    # Get from DB
+    settings = _get_strategy_settings_raw(user_id, strategy_normalized, "bybit", "demo")
+    return settings.get("trading_mode") or "demo"
+
+
+def set_strategy_trading_mode(user_id: int, strategy: str, mode: str) -> bool:
+    """Set trading mode for a specific strategy.
+    
+    Args:
+        user_id: User's Telegram ID
+        strategy: Strategy name (oi, scryptomera, etc.)
+        mode: 'demo', 'real', or 'both'
+    
+    Returns True if successful.
+    """
+    if mode not in ("demo", "real", "both"):
+        return False
+    
+    strategy_normalized = strategy.lower().replace("-", "_").replace(" ", "_")
+    if strategy_normalized == "rsi_bb":
+        strategy_normalized = "rsi_bb"
+    
+    # Set in DB - trading_mode is a strategy-level setting, not exchange-specific
+    return set_strategy_setting_db(user_id, strategy_normalized, "trading_mode", mode)
+
+
 def migrate_json_to_db_settings(user_id: int) -> bool:
     """
     Migrate user's JSON strategy_settings to new database table.
