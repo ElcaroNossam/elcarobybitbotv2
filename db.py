@@ -1447,18 +1447,15 @@ def _get_strategy_settings_raw(user_id: int, strategy: str, exchange: str, accou
 
 
 def set_strategy_setting_db(user_id: int, strategy: str, field: str, value, 
-                            exchange: str = "bybit", account_type: str = "demo") -> bool:
+                            exchange: str = "bybit", account_type: str = "default") -> bool:
     """
     Set a single field for a strategy in user_strategy_settings table.
     
-    WEBAPP WRAPPER: Uses new set_strategy_setting() with 'default' fallback logic.
-    When account_type is 'demo'/'real'/'testnet'/'mainnet', writes to 'default' 
-    so the setting applies to all accounts via fallback.
-    
-    For per-account override, use set_strategy_setting() directly with sync_all_accounts=False.
+    Low-level function that directly writes to DB.
+    For smart fallback logic use set_strategy_setting() wrapper.
     """
-    # Use the new unified function with 'default' logic
-    return set_strategy_setting(user_id, strategy, field, value, exchange, account_type)
+    # Call the PostgreSQL function directly (NOT the wrapper to avoid recursion!)
+    return pg_set_strategy_setting(user_id, strategy, field, value, exchange, account_type)
 
 
 def set_strategy_settings_db(user_id: int, strategy: str, settings: dict,
