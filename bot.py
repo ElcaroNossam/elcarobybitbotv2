@@ -6387,15 +6387,22 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
 def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None, global_cfg: dict = None) -> InlineKeyboardMarkup:
     """Build inline keyboard for strategy LONG or SHORT settings.
     
-    Shows ALL settings for this side (no feature restrictions):
+    Shows ALL settings for this side:
     - Enabled toggle
     - Entry %
     - Stop-Loss %
     - Take-Profit %
     - Leverage
+    - Order Type (Market/Limit)
+    - Limit Offset % (when Limit selected)
     - ATR Trailing toggle
     - ATR Trigger % (when ATR enabled)
     - ATR Step % (when ATR enabled)
+    - DCA toggle
+    - DCA Leg 1 % (when DCA enabled)
+    - DCA Leg 2 % (when DCA enabled)
+    - Max Positions
+    - Coins Filter
     """
     from coin_params import STRATEGY_DEFAULTS
     
@@ -6409,66 +6416,132 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     enabled = settings.get(f"{side}_enabled")
     if enabled is None:
         enabled = defaults.get("enabled", True)
-    entry = settings.get(f"{side}_percent") or defaults.get("percent", 1)
-    sl = settings.get(f"{side}_sl_percent") or defaults.get("sl_percent", 3)
-    tp = settings.get(f"{side}_tp_percent") or defaults.get("tp_percent", 8)
+    entry = settings.get(f"{side}_percent") or defaults.get("percent", 5)
+    sl = settings.get(f"{side}_sl_percent") or defaults.get("sl_percent", 30)
+    tp = settings.get(f"{side}_tp_percent") or defaults.get("tp_percent", 25)
     leverage = settings.get(f"{side}_leverage") or defaults.get("leverage", 10)
+    
+    # Order type
+    order_type = settings.get(f"{side}_order_type") or defaults.get("order_type", "market")
+    limit_offset = settings.get(f"{side}_limit_offset_pct") or defaults.get("limit_offset_pct", 0.1)
+    
+    # ATR settings
     use_atr = settings.get(f"{side}_use_atr")
     if use_atr is None:
-        use_atr = defaults.get("use_atr", True)
+        use_atr = defaults.get("use_atr", 0)
+    use_atr = bool(use_atr)
     atr_trigger = settings.get(f"{side}_atr_trigger_pct") or defaults.get("atr_trigger_pct", 0.5)
     atr_step = settings.get(f"{side}_atr_step_pct") or defaults.get("atr_step_pct", 0.3)
     
-    # 1. Enabled toggle
+    # DCA settings  
+    dca_enabled = settings.get(f"{side}_dca_enabled")
+    if dca_enabled is None:
+        dca_enabled = defaults.get("dca_enabled", 0)
+    dca_enabled = bool(dca_enabled)
+    dca_pct_1 = settings.get(f"{side}_dca_pct_1") or defaults.get("dca_pct_1", 10.0)
+    dca_pct_2 = settings.get(f"{side}_dca_pct_2") or defaults.get("dca_pct_2", 25.0)
+    
+    # Position limits and coins
+    max_positions = settings.get(f"{side}_max_positions") or defaults.get("max_positions", 0)
+    coins_group = settings.get(f"{side}_coins_group") or defaults.get("coins_group", "ALL")
+    
+    # ─── 1. ENABLED TOGGLE ───
     enabled_status = "✅" if enabled else "❌"
     buttons.append([InlineKeyboardButton(
         f"{enabled_status} {emoji} {side.upper()} {t.get('enabled', 'Enabled')}", 
         callback_data=f"strat_side_toggle:{strategy}:{side}"
     )])
     
-    # 2. Entry %
+    # ─── 2. ENTRY % ───
     buttons.append([InlineKeyboardButton(
-        f"📊 {emoji} {t.get('param_percent', 'Entry %')}: {entry}%", 
+        f"📊 {t.get('param_percent', 'Entry %')}: {entry}%", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
-    # 3. Stop-Loss %
+    # ─── 3. STOP-LOSS % ───
     buttons.append([InlineKeyboardButton(
-        f"🔻 {emoji} {t.get('param_sl', 'Stop-Loss %')}: {sl}%", 
+        f"🔻 {t.get('param_sl', 'Stop-Loss %')}: {sl}%", 
         callback_data=f"strat_param:{strategy}:{side}_sl_percent"
     )])
     
-    # 4. Take-Profit %
+    # ─── 4. TAKE-PROFIT % ───
     buttons.append([InlineKeyboardButton(
-        f"🎯 {emoji} {t.get('param_tp', 'Take-Profit %')}: {tp}%", 
+        f"🎯 {t.get('param_tp', 'Take-Profit %')}: {tp}%", 
         callback_data=f"strat_param:{strategy}:{side}_tp_percent"
     )])
     
-    # 5. Leverage
+    # ─── 5. LEVERAGE ───
     buttons.append([InlineKeyboardButton(
-        f"⚡ {emoji} {t.get('leverage', 'Leverage')}: {int(leverage)}x", 
+        f"⚡ {t.get('leverage', 'Leverage')}: {int(leverage)}x", 
         callback_data=f"strat_param:{strategy}:{side}_leverage"
     )])
     
-    # 6. ATR Trailing toggle
+    # ─── 6. ORDER TYPE ───
+    order_emoji = "🎯" if order_type == "limit" else "⚡"
+    order_label = "Limit" if order_type == "limit" else "Market"
+    buttons.append([InlineKeyboardButton(
+        f"📤 {t.get('order_type', 'Order Type')}: {order_emoji} {order_label}", 
+        callback_data=f"strat_side_order_type:{strategy}:{side}"
+    )])
+    
+    # ─── 7. LIMIT OFFSET % (only when limit order) ───
+    if order_type == "limit":
+        buttons.append([InlineKeyboardButton(
+            f"📏 {t.get('limit_offset', 'Limit Offset %')}: {limit_offset}%", 
+            callback_data=f"strat_param:{strategy}:{side}_limit_offset_pct"
+        )])
+    
+    # ─── 8. ATR TRAILING TOGGLE ───
     atr_status = "✅" if use_atr else "❌"
     buttons.append([InlineKeyboardButton(
-        f"📊 {emoji} {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
+        f"📊 {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
         callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
     )])
     
-    # 7. ATR params - show when ATR is enabled
+    # ─── 9. ATR PARAMS (only when ATR enabled) ───
     if use_atr:
         buttons.append([InlineKeyboardButton(
-            f"🎯 {emoji} {t.get('param_atr_trigger', 'ATR Trigger')}: {atr_trigger}%", 
+            f"🎯 {t.get('param_atr_trigger', 'ATR Trigger')}: {atr_trigger}%", 
             callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
         )])
         buttons.append([InlineKeyboardButton(
-            f"📏 {emoji} {t.get('param_atr_step', 'ATR Step')}: {atr_step}%", 
+            f"📏 {t.get('param_atr_step', 'ATR Step')}: {atr_step}%", 
             callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
         )])
     
-    # Back button
+    # ─── 10. DCA TOGGLE ───
+    dca_status = "✅" if dca_enabled else "❌"
+    buttons.append([InlineKeyboardButton(
+        f"📉 {t.get('dca_enabled', 'DCA')}: {dca_status}", 
+        callback_data=f"strat_side_dca_toggle:{strategy}:{side}"
+    )])
+    
+    # ─── 11. DCA PARAMS (only when DCA enabled) ───
+    if dca_enabled:
+        buttons.append([InlineKeyboardButton(
+            f"📉 {t.get('dca_leg1', 'DCA Leg 1')}: -{dca_pct_1}%", 
+            callback_data=f"strat_param:{strategy}:{side}_dca_pct_1"
+        )])
+        buttons.append([InlineKeyboardButton(
+            f"📉 {t.get('dca_leg2', 'DCA Leg 2')}: -{dca_pct_2}%", 
+            callback_data=f"strat_param:{strategy}:{side}_dca_pct_2"
+        )])
+    
+    # ─── 12. MAX POSITIONS ───
+    max_pos_label = str(max_positions) if max_positions > 0 else t.get('unlimited', '∞')
+    buttons.append([InlineKeyboardButton(
+        f"📊 {t.get('max_positions', 'Max Positions')}: {max_pos_label}", 
+        callback_data=f"strat_param:{strategy}:{side}_max_positions"
+    )])
+    
+    # ─── 13. COINS FILTER ───
+    coins_emoji = {"ALL": "🌐", "TOP100": "💎", "VOLATILE": "🔥"}.get(coins_group, "🌐")
+    buttons.append([InlineKeyboardButton(
+        f"🪙 {t.get('coins_filter', 'Coins')}: {coins_emoji} {coins_group}", 
+        callback_data=f"strat_side_coins:{strategy}:{side}"
+    )])
+    
+    # ─── BACK BUTTON ───
     buttons.append([InlineKeyboardButton(
         t.get('btn_back', '⬅️ Back'), 
         callback_data=f"strat_set:{strategy}"
@@ -7879,6 +7952,172 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Refresh settings and show side menu
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         global_cfg = db.get_user_config(uid)  # For fallback display
+        side_emoji = "📈" if side == "long" else "📉"
+        side_label = t.get(f'side_{side}', side.upper())
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
+            t.get('side_settings_hint', 'Configure settings for this direction:'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
+        )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Side-specific Order Type toggle (LONG/SHORT Market/Limit)
+    # ─────────────────────────────────────────────────────────────────────────────
+    if data.startswith("strat_side_order_type:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        param_name = f"{side}_order_type"
+        current = strat_settings.get(param_name) or "market"
+        new_value = "limit" if current == "market" else "market"
+        
+        logger.info(f"[{uid}] {side.upper()} Order Type toggle for {strategy}: {current} -> {new_value}")
+        
+        # Save to database
+        db.set_strategy_setting(uid, strategy, param_name, new_value, context["exchange"])
+        
+        status = "🎯 Limit" if new_value == "limit" else "⚡ Market"
+        await query.answer(f"{side.upper()}: {status}")
+        
+        # Refresh settings and show side menu
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        global_cfg = db.get_user_config(uid)
+        side_emoji = "📈" if side == "long" else "📉"
+        side_label = t.get(f'side_{side}', side.upper())
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
+            t.get('side_settings_hint', 'Configure settings for this direction:'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
+        )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Side-specific DCA toggle (LONG/SHORT)
+    # ─────────────────────────────────────────────────────────────────────────────
+    if data.startswith("strat_side_dca_toggle:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        param_name = f"{side}_dca_enabled"
+        current = strat_settings.get(param_name) or 0
+        new_value = 0 if current else 1
+        
+        logger.info(f"[{uid}] {side.upper()} DCA toggle for {strategy}: {current} -> {new_value}")
+        
+        # Save to database
+        db.set_strategy_setting(uid, strategy, param_name, new_value, context["exchange"])
+        
+        status = "✅ DCA enabled" if new_value else "❌ DCA disabled"
+        await query.answer(f"{side.upper()}: {status}")
+        
+        # Refresh settings and show side menu
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        global_cfg = db.get_user_config(uid)
+        side_emoji = "📈" if side == "long" else "📉"
+        side_label = t.get(f'side_{side}', side.upper())
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
+            t.get('side_settings_hint', 'Configure settings for this direction:'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
+        )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Side-specific Coins selection (LONG/SHORT)
+    # ─────────────────────────────────────────────────────────────────────────────
+    if data.startswith("strat_side_coins:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        param_name = f"{side}_coins_group"
+        current_group = strat_settings.get(param_name) or "ALL"
+        
+        buttons = [
+            [InlineKeyboardButton(
+                ("✓ " if current_group == "ALL" else "") + "🌐 ALL",
+                callback_data=f"strat_side_coins_set:{strategy}:{side}:ALL"
+            )],
+            [InlineKeyboardButton(
+                ("✓ " if current_group in ("TOP", "TOP100") else "") + "💎 TOP",
+                callback_data=f"strat_side_coins_set:{strategy}:{side}:TOP"
+            )],
+            [InlineKeyboardButton(
+                ("✓ " if current_group == "VOLATILE" else "") + "🔥 VOLATILE",
+                callback_data=f"strat_side_coins_set:{strategy}:{side}:VOLATILE"
+            )],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"strat_side:{strategy}:{side}")],
+        ]
+        
+        side_emoji = "📈" if side == "long" else "📉"
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} {side.upper()}*\n\n" +
+            t.get('select_coins_for_side', '🪙 Select coins group:'),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Side-specific Coins selection SET
+    # ─────────────────────────────────────────────────────────────────────────────
+    if data.startswith("strat_side_coins_set:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        group = parts[3]  # 'ALL', 'TOP', 'VOLATILE'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        param_name = f"{side}_coins_group"
+        
+        logger.info(f"[{uid}] {side.upper()} Coins group set for {strategy}: {group}")
+        
+        # Save to database
+        db.set_strategy_setting(uid, strategy, param_name, group, context["exchange"])
+        
+        await query.answer(f"{side.upper()}: {group}")
+        
+        # Refresh settings and show side menu
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        global_cfg = db.get_user_config(uid)
         side_emoji = "📈" if side == "long" else "📉"
         side_label = t.get(f'side_{side}', side.upper())
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
@@ -23656,7 +23895,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

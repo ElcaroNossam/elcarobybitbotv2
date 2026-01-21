@@ -21,6 +21,18 @@ DEFAULT_ATR_STEP_PCT = float(os.getenv("DEFAULT_ATR_STEP_PCT", "0.3"))        # 
 
 # Order type default
 DEFAULT_ORDER_TYPE = os.getenv("DEFAULT_ORDER_TYPE", "market")      # market/limit
+DEFAULT_LIMIT_OFFSET_PCT = float(os.getenv("DEFAULT_LIMIT_OFFSET_PCT", "0.1"))  # Limit order offset %
+
+# DCA defaults
+DEFAULT_DCA_ENABLED = os.getenv("DEFAULT_DCA_ENABLED", "0") == "1"  # DCA disabled by default
+DEFAULT_DCA_PCT_1 = float(os.getenv("DEFAULT_DCA_PCT_1", "10.0"))    # First DCA level %
+DEFAULT_DCA_PCT_2 = float(os.getenv("DEFAULT_DCA_PCT_2", "25.0"))    # Second DCA level %
+
+# Position limits
+DEFAULT_MAX_POSITIONS = int(os.getenv("DEFAULT_MAX_POSITIONS", "0"))  # 0 = unlimited
+
+# Coins filter
+DEFAULT_COINS_GROUP = os.getenv("DEFAULT_COINS_GROUP", "ALL")  # ALL, TOP100, VOLATILE
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STRATEGY DEFAULTS - Per-strategy defaults for LONG and SHORT
@@ -33,10 +45,16 @@ STRATEGY_DEFAULTS = {
         "sl_percent": DEFAULT_SL_PCT,
         "tp_percent": DEFAULT_TP_PCT,
         "leverage": DEFAULT_LEVERAGE,
-        "use_atr": 1 if DEFAULT_USE_ATR else 0,
+        "use_atr": 0,  # ATR disabled by default
         "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "order_type": DEFAULT_ORDER_TYPE,
+        "limit_offset_pct": DEFAULT_LIMIT_OFFSET_PCT,
+        "dca_enabled": 1 if DEFAULT_DCA_ENABLED else 0,
+        "dca_pct_1": DEFAULT_DCA_PCT_1,
+        "dca_pct_2": DEFAULT_DCA_PCT_2,
+        "max_positions": DEFAULT_MAX_POSITIONS,
+        "coins_group": DEFAULT_COINS_GROUP,
     },
     "short": {
         "enabled": True,
@@ -44,10 +62,16 @@ STRATEGY_DEFAULTS = {
         "sl_percent": DEFAULT_SL_PCT,
         "tp_percent": DEFAULT_TP_PCT,
         "leverage": DEFAULT_LEVERAGE,
-        "use_atr": 1 if DEFAULT_USE_ATR else 0,
+        "use_atr": 0,  # ATR disabled by default
         "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "order_type": DEFAULT_ORDER_TYPE,
+        "limit_offset_pct": DEFAULT_LIMIT_OFFSET_PCT,
+        "dca_enabled": 1 if DEFAULT_DCA_ENABLED else 0,
+        "dca_pct_1": DEFAULT_DCA_PCT_1,
+        "dca_pct_2": DEFAULT_DCA_PCT_2,
+        "max_positions": DEFAULT_MAX_POSITIONS,
+        "coins_group": DEFAULT_COINS_GROUP,
     },
 }
 

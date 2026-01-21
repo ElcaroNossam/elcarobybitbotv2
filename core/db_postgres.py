@@ -556,12 +556,22 @@ def pg_init_db():
                 leverage        INTEGER NOT NULL,       -- Leverage
                 
                 -- ATR Trailing parameters
-                use_atr         BOOLEAN DEFAULT TRUE,   -- ATR Trailing enabled
+                use_atr         BOOLEAN DEFAULT FALSE,  -- ATR Trailing disabled by default
                 atr_trigger_pct REAL NOT NULL,          -- Trigger % (profit to activate)
                 atr_step_pct    REAL NOT NULL,          -- Step % (SL distance from price)
                 
-                -- Order type
+                -- Order type and limit offset
                 order_type      TEXT DEFAULT 'market',  -- 'market' or 'limit'
+                limit_offset_pct REAL DEFAULT 0.1,      -- Limit order offset %
+                
+                -- DCA settings
+                dca_enabled     BOOLEAN DEFAULT FALSE,  -- DCA disabled by default
+                dca_pct_1       REAL DEFAULT 10.0,      -- First DCA level %
+                dca_pct_2       REAL DEFAULT 25.0,      -- Second DCA level %
+                
+                -- Position limits and coins filter
+                max_positions   INTEGER DEFAULT 0,      -- 0 = unlimited
+                coins_group     TEXT DEFAULT 'ALL',     -- ALL, TOP100, VOLATILE
                 
                 -- Timestamps
                 created_at      TIMESTAMP DEFAULT NOW(),
@@ -573,6 +583,20 @@ def pg_init_db():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strategy ON user_strategy_settings(user_id, strategy)")
+        
+        # Add new columns to existing table (for migration)
+        for col, col_def in [
+            ("limit_offset_pct", "REAL DEFAULT 0.1"),
+            ("dca_enabled", "BOOLEAN DEFAULT FALSE"),
+            ("dca_pct_1", "REAL DEFAULT 10.0"),
+            ("dca_pct_2", "REAL DEFAULT 25.0"),
+            ("max_positions", "INTEGER DEFAULT 0"),
+            ("coins_group", "TEXT DEFAULT 'ALL'"),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS {col} {col_def}")
+            except Exception:
+                pass  # Column already exists
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # PENDING LIMIT ORDERS TABLE
@@ -1684,7 +1708,13 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                 result[f"{prefix}use_atr"] = row.get('use_atr')
                 result[f"{prefix}atr_trigger_pct"] = row.get('atr_trigger_pct')
                 result[f"{prefix}atr_step_pct"] = row.get('atr_step_pct')
-                result["order_type"] = row.get('order_type', 'market')
+                result[f"{prefix}order_type"] = row.get('order_type', 'market')
+                result[f"{prefix}limit_offset_pct"] = row.get('limit_offset_pct', 0.1)
+                result[f"{prefix}dca_enabled"] = row.get('dca_enabled', False)
+                result[f"{prefix}dca_pct_1"] = row.get('dca_pct_1', 10.0)
+                result[f"{prefix}dca_pct_2"] = row.get('dca_pct_2', 25.0)
+                result[f"{prefix}max_positions"] = row.get('max_positions', 0)
+                result[f"{prefix}coins_group"] = row.get('coins_group', 'ALL')
     
     # Fill missing sides with defaults
     for side in ["long", "short"]:
@@ -1697,14 +1727,17 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             result[f"{prefix}sl_percent"] = defaults.get("sl_percent")
             result[f"{prefix}tp_percent"] = defaults.get("tp_percent")
             result[f"{prefix}leverage"] = defaults.get("leverage")
-            result[f"{prefix}use_atr"] = defaults.get("use_atr")
+            result[f"{prefix}use_atr"] = defaults.get("use_atr", 0)
             result[f"{prefix}atr_trigger_pct"] = defaults.get("atr_trigger_pct")
             result[f"{prefix}atr_step_pct"] = defaults.get("atr_step_pct")
+            result[f"{prefix}order_type"] = defaults.get("order_type", "market")
+            result[f"{prefix}limit_offset_pct"] = defaults.get("limit_offset_pct", 0.1)
+            result[f"{prefix}dca_enabled"] = defaults.get("dca_enabled", 0)
+            result[f"{prefix}dca_pct_1"] = defaults.get("dca_pct_1", 10.0)
+            result[f"{prefix}dca_pct_2"] = defaults.get("dca_pct_2", 25.0)
+            result[f"{prefix}max_positions"] = defaults.get("max_positions", 0)
+            result[f"{prefix}coins_group"] = defaults.get("coins_group", "ALL")
     
-    if "order_type" not in result:
-        result["order_type"] = "market"
-    
-    return result
     return result
 
 
@@ -1741,10 +1774,12 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
     ALLOWED_FIELDS = {
         'enabled', 'percent', 'sl_percent', 'tp_percent', 'leverage',
         'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
-        'direction', 'coins_group'
+        'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
+        'max_positions', 'coins_group'
     }
     
     if field not in ALLOWED_FIELDS:
+        logger.warning(f"Field '{field}' not in allowed fields for _pg_set_side_setting")
         return False
     
     defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
@@ -1768,8 +1803,9 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                 cur.execute("""
                     INSERT INTO user_strategy_settings 
                     (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
-                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
+                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     user_id, strategy, side,
                     defaults.get("enabled", True),
@@ -1777,10 +1813,16 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                     defaults.get("sl_percent"),
                     defaults.get("tp_percent"),
                     defaults.get("leverage"),
-                    defaults.get("use_atr"),
+                    defaults.get("use_atr", 0),
                     defaults.get("atr_trigger_pct"),
                     defaults.get("atr_step_pct"),
-                    defaults.get("order_type", "market")
+                    defaults.get("order_type", "market"),
+                    defaults.get("limit_offset_pct", 0.1),
+                    defaults.get("dca_enabled", 0),
+                    defaults.get("dca_pct_1", 10.0),
+                    defaults.get("dca_pct_2", 25.0),
+                    defaults.get("max_positions", 0),
+                    defaults.get("coins_group", "ALL")
                 ))
                 # Now update the specific field
                 cur.execute(f"""
@@ -1804,8 +1846,9 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                 cur.execute("""
                     INSERT INTO user_strategy_settings 
                     (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
-                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
+                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (user_id, strategy, side) DO UPDATE SET
                         enabled = EXCLUDED.enabled,
                         percent = EXCLUDED.percent,
@@ -1816,6 +1859,12 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                         atr_trigger_pct = EXCLUDED.atr_trigger_pct,
                         atr_step_pct = EXCLUDED.atr_step_pct,
                         order_type = EXCLUDED.order_type,
+                        limit_offset_pct = EXCLUDED.limit_offset_pct,
+                        dca_enabled = EXCLUDED.dca_enabled,
+                        dca_pct_1 = EXCLUDED.dca_pct_1,
+                        dca_pct_2 = EXCLUDED.dca_pct_2,
+                        max_positions = EXCLUDED.max_positions,
+                        coins_group = EXCLUDED.coins_group,
                         updated_at = NOW()
                 """, (
                     user_id, strategy, s,
@@ -1824,10 +1873,16 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                     defaults.get("sl_percent"),
                     defaults.get("tp_percent"),
                     defaults.get("leverage"),
-                    defaults.get("use_atr"),
+                    defaults.get("use_atr", 0),
                     defaults.get("atr_trigger_pct"),
                     defaults.get("atr_step_pct"),
-                    defaults.get("order_type", "market")
+                    defaults.get("order_type", "market"),
+                    defaults.get("limit_offset_pct", 0.1),
+                    defaults.get("dca_enabled", 0),
+                    defaults.get("dca_pct_1", 10.0),
+                    defaults.get("dca_pct_2", 25.0),
+                    defaults.get("max_positions", 0),
+                    defaults.get("coins_group", "ALL")
                 ))
     return True
 
