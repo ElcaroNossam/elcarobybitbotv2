@@ -358,14 +358,15 @@ def get_user_credentials(user_id: int, account_type: str = None) -> tuple[str | 
         return (demo_key, demo_secret)
 
 def get_all_user_credentials(user_id: int) -> dict:
-    """Get all API credentials and trading mode for a user.
+    """Get all API credentials, trading mode and exchange type for a user.
     
     Returns:
-        Dict with demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode
+        Dict with demo_api_key, demo_api_secret, real_api_key, real_api_secret, 
+        trading_mode, exchange_type
     """
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode FROM users WHERE user_id=?",
+            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode, exchange_type FROM users WHERE user_id=?",
             (user_id,),
         ).fetchone()
     
@@ -373,7 +374,8 @@ def get_all_user_credentials(user_id: int) -> dict:
         return {
             "demo_api_key": None, "demo_api_secret": None,
             "real_api_key": None, "real_api_secret": None,
-            "trading_mode": "demo"
+            "trading_mode": "demo",
+            "exchange_type": "bybit"
         }
     
     return {
@@ -381,7 +383,8 @@ def get_all_user_credentials(user_id: int) -> dict:
         "demo_api_secret": row[1],
         "real_api_key": row[2],
         "real_api_secret": row[3],
-        "trading_mode": row[4] or "demo"
+        "trading_mode": row[4] or "demo",
+        "exchange_type": row[5] or "bybit"
     }
 
 def set_trading_mode(user_id: int, mode: str):

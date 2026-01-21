@@ -1042,22 +1042,56 @@ def _mask_key(key: str | None) -> str:
         return "••••"
     return f"••••••••{key[-4:]}"
 
-def get_api_settings_keyboard(t: dict, creds: dict) -> InlineKeyboardMarkup:
-    """Build API settings keyboard with current state."""
+def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKeyboardMarkup:
+    """Build API settings keyboard with current state.
+    
+    Includes:
+    - Exchange selection (Bybit / HyperLiquid)
+    - Trading mode (Demo / Real / Both)
+    - API keys management
+    """
     demo_key = creds.get("demo_api_key")
     demo_secret = creds.get("demo_api_secret")
     real_key = creds.get("real_api_key")
     real_secret = creds.get("real_api_secret")
     
-    # Status indicators
+    # Get current exchange and trading mode
+    active_exchange = creds.get("exchange_type", "bybit")
+    trading_mode = creds.get("trading_mode", "demo")
+    
+    # Exchange indicators
+    bybit_active = "✅" if active_exchange == "bybit" else "⚪"
+    hl_active = "✅" if active_exchange == "hyperliquid" else "⚪"
+    
+    # Trading mode indicators
+    demo_mode_active = "✅" if trading_mode == "demo" else "⚪"
+    real_mode_active = "✅" if trading_mode == "real" else "⚪"
+    both_mode_active = "✅" if trading_mode == "both" else "⚪"
+    
+    # Status indicators for API keys
     demo_key_status = "✅" if demo_key else "❌"
     demo_secret_status = "✅" if demo_secret else "❌"
     real_key_status = "✅" if real_key else "❌"
     real_secret_status = "✅" if real_secret else "❌"
     
     buttons = [
+        # ─── Exchange Selection ───
+        [InlineKeyboardButton(t.get('menu_section_exchange', '══ 🔄 EXCHANGE ══'), callback_data="api:noop")],
+        [
+            InlineKeyboardButton(f"{bybit_active} 🟠 Bybit", callback_data="api:exchange:bybit"),
+            InlineKeyboardButton(f"{hl_active} 🔷 HyperLiquid", callback_data="api:exchange:hyperliquid"),
+        ],
+        
+        # ─── Trading Mode ───
+        [InlineKeyboardButton(t.get('menu_section_mode', '══ 📊 TRADING MODE ══'), callback_data="api:noop")],
+        [
+            InlineKeyboardButton(f"{demo_mode_active} 🎮 Demo", callback_data="api:mode:demo"),
+            InlineKeyboardButton(f"{real_mode_active} 💵 Real", callback_data="api:mode:real"),
+            InlineKeyboardButton(f"{both_mode_active} 🔀 Both", callback_data="api:mode:both"),
+        ],
+        
         # ─── Demo Section ───
-        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 DEMO ══'), callback_data="api:noop")],
+        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 DEMO API ══'), callback_data="api:noop")],
         [
             InlineKeyboardButton(f"{demo_key_status} API Key", callback_data="api:demo_key"),
             InlineKeyboardButton(f"{demo_secret_status} Secret", callback_data="api:demo_secret"),
@@ -1065,18 +1099,25 @@ def get_api_settings_keyboard(t: dict, creds: dict) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Demo", callback_data="api:test_demo")],
         
         # ─── Real Section ───
-        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 REAL ══'), callback_data="api:noop")],
+        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 REAL API ══'), callback_data="api:noop")],
         [
             InlineKeyboardButton(f"{real_key_status} API Key", callback_data="api:real_key"),
             InlineKeyboardButton(f"{real_secret_status} Secret", callback_data="api:real_secret"),
         ],
         [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Real", callback_data="api:test_real")],
         
+        # ─── HyperLiquid ───
+        [InlineKeyboardButton(t.get('menu_section_hl', '══ 🔷 HYPERLIQUID ══'), callback_data="api:noop")],
+        [InlineKeyboardButton(t.get('menu_hl_settings', '⚙️ HyperLiquid Settings'), callback_data="api:hl_settings")],
+        
         # ─── Actions ───
         [
             InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Demo", callback_data="api:delete_demo"),
             InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Real", callback_data="api:delete_real"),
         ],
+        
+        # Close
+        [InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="api:close")],
     ]
     
     return InlineKeyboardMarkup(buttons)
@@ -1088,13 +1129,23 @@ def format_api_settings_message(t: dict, creds: dict) -> str:
     real_key = creds.get("real_api_key")
     real_secret = creds.get("real_api_secret")
     
+    # Get current exchange and mode
+    exchange = creds.get("exchange_type", "bybit")
+    trading_mode = creds.get("trading_mode", "demo")
+    
+    exchange_label = "🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid"
+    mode_label = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}.get(trading_mode, "🎮 Demo")
+    
     # Format status
     demo_key_display = _mask_key(demo_key) if demo_key else t.get("api_key_not_set", "❌ Not set")
     demo_secret_display = _mask_key(demo_secret) if demo_secret else t.get("api_key_not_set", "❌ Not set")
     real_key_display = _mask_key(real_key) if real_key else t.get("api_key_not_set", "❌ Not set")
     real_secret_display = _mask_key(real_secret) if real_secret else t.get("api_key_not_set", "❌ Not set")
     
-    msg = f"""{t.get("api_settings_title", "🔑 <b>API Settings</b>")}
+    msg = f"""{t.get("api_settings_title", "🔑 <b>Exchange & API Settings</b>")}
+
+<b>🔄 Active Exchange:</b> {exchange_label}
+<b>📊 Trading Mode:</b> {mode_label}
 
 {t.get("api_demo_title", "🧪 Demo Account")}
 ├ API Key: <code>{demo_key_display}</code>
@@ -1136,6 +1187,14 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer()
         return
     
+    if action == "close":
+        await q.answer()
+        try:
+            await q.message.delete()
+        except Exception:
+            pass
+        return
+    
     # Helper to safely edit message (ignores "not modified" error)
     async def safe_edit(text, reply_markup=None, parse_mode="HTML"):
         try:
@@ -1143,6 +1202,80 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except BadRequest as e:
             if "not modified" not in str(e).lower():
                 raise
+    
+    # ─── Exchange Selection ───
+    if action.startswith("exchange:"):
+        exchange = action.split(":")[1]  # 'bybit' or 'hyperliquid'
+        db.set_user_field(uid, "exchange_type", exchange)
+        db.invalidate_user_cache(uid)
+        
+        creds = get_all_user_credentials(uid)
+        creds["exchange_type"] = exchange  # Update for keyboard
+        msg = format_api_settings_message(t, creds)
+        keyboard = get_api_settings_keyboard(t, creds)
+        
+        exchange_name = "🟠 Bybit" if exchange == "bybit" else "🔷 HyperLiquid"
+        await q.answer(f"✅ {exchange_name}")
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Trading Mode Selection ───
+    if action.startswith("mode:"):
+        mode = action.split(":")[1]  # 'demo', 'real', or 'both'
+        db.set_user_field(uid, "trading_mode", mode)
+        db.invalidate_user_cache(uid)
+        
+        creds = get_all_user_credentials(uid)
+        creds["trading_mode"] = mode  # Update for keyboard
+        msg = format_api_settings_message(t, creds)
+        keyboard = get_api_settings_keyboard(t, creds)
+        
+        mode_name = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}.get(mode, mode)
+        await q.answer(f"✅ {mode_name}")
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── HyperLiquid Settings ───
+    if action == "hl_settings":
+        await q.answer()
+        # Redirect to HL settings
+        from db import get_hl_credentials
+        hl_creds = get_hl_credentials(uid)
+        
+        # Build HL settings message and keyboard
+        is_testnet = hl_creds.get("hl_testnet", False)
+        network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+        wallet = hl_creds.get("hl_testnet_wallet_address" if is_testnet else "hl_mainnet_wallet_address", "")
+        wallet_display = f"{wallet[:8]}...{wallet[-6:]}" if wallet and len(wallet) > 14 else (wallet or "Not set")
+        
+        hl_msg = f"""🔷 <b>HyperLiquid Settings</b>
+
+<b>Network:</b> {network}
+<b>Wallet:</b> <code>{wallet_display}</code>
+
+Use the buttons below to configure:"""
+        
+        hl_buttons = [
+            [
+                InlineKeyboardButton("🧪 Testnet" if not is_testnet else "✅ Testnet", callback_data="hl_api:testnet"),
+                InlineKeyboardButton("🌐 Mainnet" if is_testnet else "✅ Mainnet", callback_data="hl_api:mainnet"),
+            ],
+            [InlineKeyboardButton("🔑 Set Private Key", callback_data="hl_api:set_key")],
+            [InlineKeyboardButton("🔄 Test Connection", callback_data="hl_api:test")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        
+        await safe_edit(hl_msg, reply_markup=InlineKeyboardMarkup(hl_buttons))
+        return
+    
+    # ─── Back to main API menu ───
+    if action == "back":
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds)
+        keyboard = get_api_settings_keyboard(t, creds)
+        await q.answer()
+        await safe_edit(msg, reply_markup=keyboard)
+        return
     
     # Enter API key/secret
     if action in ("demo_key", "demo_secret", "real_key", "real_secret"):
@@ -3264,10 +3397,10 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
             # ─── Row 2: AI & Market ───
             [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
-            # ─── Row 3: Settings ───
-            [ t.get('button_coins', '🪙 Coins'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
+            # ─── Row 3: Settings & Dashboard ───
+            [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
             # ─── Row 4: Exchange ───
-            [ exchange_btn, t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔗 Exchange') ],
+            [ exchange_btn, t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔗 API Keys') ],
         ]
     else:
         # ═══════════════════════════════════════════════════════════════
@@ -3289,10 +3422,10 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
             [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
             # ─── Row 2: AI & Market ───
             [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
-            # ─── Row 3: Settings ───
-            [ t.get('button_coins', '🪙 Coins'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
+            # ─── Row 3: Settings & Dashboard ───
+            [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
             # ─── Row 4: Exchange ───
-            [ exchange_btn, t.get('button_switch_hl', '🔄 HL'), t.get('button_api_keys', '🔗 Exchange') ],
+            [ exchange_btn, t.get('button_switch_hl', '🔄 HL'), t.get('button_api_keys', '🔗 API Keys') ],
         ]
     
     # Add admin row if user is admin
@@ -6153,90 +6286,40 @@ STRATEGY_FEATURES = {
 }
 
 def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -> InlineKeyboardMarkup:
-    """Build inline keyboard for strategy selection with enable/disable status and trading mode."""
-    cfg = cfg or {}
+    """Build inline keyboard for strategy selection with enable/disable status.
     
-    # Get user's trading context (exchange + account_type)
-    if uid:
-        context = get_user_trading_context(uid)
-        active_exchange = context["exchange"]
-        account_type = context["account_type"]
-    else:
-        active_exchange = "bybit"
-        account_type = "demo"
+    SIMPLIFIED: No exchange-specific settings here.
+    Exchange is configured in API Keys menu.
+    """
+    cfg = cfg or {}
     
     # Helper to get status emoji
     def status(key):
         return "✅" if cfg.get(key, 0) else "❌"
     
-    # Helper to get trading mode for strategy - now exchange-aware
-    def get_mode_emoji(strategy: str) -> str:
-        if uid:
-            strat_settings = db.get_strategy_settings(uid, strategy, active_exchange, account_type)
-            mode = strat_settings.get("trading_mode", "global")
-            # Normalize "all" to "global" for backwards compatibility
-            if mode == "all":
-                mode = "global"
-        else:
-            mode = "global"
-        
-        # Different labels for different exchanges
-        if active_exchange == "hyperliquid":
-            # HyperLiquid: testnet/mainnet
-            return {
-                "testnet": "T",   # Testnet
-                "mainnet": "M",   # Mainnet (real)
-                "both": "B",      # Both
-                "global": "G",    # Global
-                # Handle bybit modes if user switches exchange
-                "demo": "T",      # Treat demo as testnet
-                "real": "M",      # Treat real as mainnet
-            }.get(mode, "G")
-        else:
-            # Bybit: demo/real
-            return {
-                "demo": "D",      # Demo
-                "real": "R",      # Real
-                "both": "B",      # Both
-                "global": "G",    # Global
-                # Handle HL modes if user switches exchange
-                "testnet": "D",   # Treat testnet as demo
-                "mainnet": "R",   # Treat mainnet as real
-            }.get(mode, "G")
-    
     # Get spot status
     spot_enabled = cfg.get("spot_enabled", 0)
     spot_status = "✅" if spot_enabled else "❌"
-    spot_settings = cfg.get("spot_settings") or {} or {}
-    spot_mode = spot_settings.get("trading_mode", "demo")
-    spot_mode_emoji = {"demo": "D", "real": "R"}.get(spot_mode, "D")
     
     buttons = [
-        [InlineKeyboardButton(f"{status('trade_oi')} 📊 OI", callback_data="strat_toggle:oi"),
-         InlineKeyboardButton(get_mode_emoji("oi"), callback_data="strat_mode:oi"),
+        # Main strategies - just enable/disable and settings
+        [InlineKeyboardButton(f"{status('trade_oi')} 📊 OI Strategy", callback_data="strat_toggle:oi"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:oi")],
-        [InlineKeyboardButton(f"{status('trade_rsi_bb')} 📉 RSI+BB", callback_data="strat_toggle:rsi_bb"),
-         InlineKeyboardButton(get_mode_emoji("rsi_bb"), callback_data="strat_mode:rsi_bb"),
+        [InlineKeyboardButton(f"{status('trade_rsi_bb')} 📉 RSI+BB Strategy", callback_data="strat_toggle:rsi_bb"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:rsi_bb")],
-        [InlineKeyboardButton(f"{status('trade_scryptomera')} 🔮 Scryptom...", callback_data="strat_toggle:scryptomera"),
-         InlineKeyboardButton(get_mode_emoji("scryptomera"), callback_data="strat_mode:scryptomera"),
+        [InlineKeyboardButton(f"{status('trade_scryptomera')} 🔮 Scryptomera", callback_data="strat_toggle:scryptomera"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:scryptomera")],
         [InlineKeyboardButton(f"{status('trade_scalper')} 🎯 Scalper", callback_data="strat_toggle:scalper"),
-         InlineKeyboardButton(get_mode_emoji("scalper"), callback_data="strat_mode:scalper"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:scalper")],
-        [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro", callback_data="strat_toggle:elcaro"),
-         InlineKeyboardButton(get_mode_emoji("elcaro"), callback_data="strat_mode:elcaro"),
+        [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro Signals", callback_data="strat_toggle:elcaro"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:elcaro")],
         [InlineKeyboardButton(f"{status('trade_fibonacci')} 📐 Fibonacci", callback_data="strat_toggle:fibonacci"),
-         InlineKeyboardButton(get_mode_emoji("fibonacci"), callback_data="strat_mode:fibonacci"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:fibonacci")],
-        # Spot as a strategy
-        [InlineKeyboardButton(f"{spot_status} 💹 Spot", callback_data="strat_toggle:spot"),
-         InlineKeyboardButton(spot_mode_emoji, callback_data="strat_mode:spot"),
+        # Spot trading
+        [InlineKeyboardButton(f"{spot_status} 💹 Spot Trading", callback_data="strat_toggle:spot"),
          InlineKeyboardButton(t.get('btn_settings_icon', '⚙️'), callback_data="strat_set:spot")],
         # Manual trading settings
-        [InlineKeyboardButton(t.get('manual_settings', '✋ Manual Settings'), callback_data="strat_set:manual")],
-        [InlineKeyboardButton(t.get('dca_settings', '⚙️ DCA Settings'), callback_data="strat_set:dca")],
+        [InlineKeyboardButton(t.get('manual_settings', '✋ Manual Trading Settings'), callback_data="strat_set:manual")],
         [InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="strat_set:close")],
     ]
     return InlineKeyboardMarkup(buttons)
@@ -19116,6 +19199,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if text in [ctx.t.get("button_lang", "🌍 Lang"), "🌐 Language", "🌍 Lang"]:
         return await cmd_lang(update, ctx)
+
+    # Dashboard button - opens WebApp
+    if text in [ctx.t.get("button_dashboard", "🖥️ Dashboard"), "🖥️ Dashboard"]:
+        return await cmd_webapp(update, ctx)
 
     if text in [ctx.t.get("button_balance", "💎 Portfolio"), "💰 Balance"]:
         return await cmd_account(update, ctx)
