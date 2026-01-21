@@ -1606,7 +1606,8 @@ def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, acc
 
 def _is_empty_settings(settings: dict) -> bool:
     """Check if all relevant settings are None/empty (no customization)."""
-    key_fields = ["percent", "sl_percent", "tp_percent", "leverage"]
+    # Include use_atr and enabled - these are important toggle settings
+    key_fields = ["percent", "sl_percent", "tp_percent", "leverage", "use_atr", "enabled"]
     return all(settings.get(k) is None for k in key_fields)
 
 

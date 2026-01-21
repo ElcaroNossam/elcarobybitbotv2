@@ -1724,7 +1724,8 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
 
 def _pg_is_empty_settings(settings: dict) -> bool:
     """Check if all relevant settings are None/empty."""
-    key_fields = ["percent", "sl_percent", "tp_percent", "leverage"]
+    # Include use_atr and enabled - these are important toggle settings
+    key_fields = ["percent", "sl_percent", "tp_percent", "leverage", "use_atr", "enabled"]
     return all(settings.get(k) is None for k in key_fields)
 
 
@@ -1741,12 +1742,19 @@ def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value,
                            exchange: str = "bybit", account_type: str = "demo") -> bool:
     """Set a single field for a strategy in user_strategy_settings table."""
     ALLOWED_FIELDS = {
+        # General settings
         'enabled', 'percent', 'sl_percent', 'tp_percent', 'leverage',
-        'use_atr', 'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct',
+        'use_atr', 'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct',
         'order_type', 'coins_group', 'direction', 'trading_mode',
-        'long_percent', 'long_sl_percent', 'long_tp_percent',
-        'short_percent', 'short_sl_percent', 'short_tp_percent',
-        'min_quality', 'routing_policy', 'targets_json'
+        'min_quality', 'routing_policy', 'targets_json',
+        # LONG side-specific settings
+        'long_percent', 'long_sl_percent', 'long_tp_percent', 'long_leverage',
+        'long_use_atr', 'long_atr_periods', 'long_atr_multiplier_sl', 
+        'long_atr_trigger_pct', 'long_atr_step_pct',
+        # SHORT side-specific settings
+        'short_percent', 'short_sl_percent', 'short_tp_percent', 'short_leverage',
+        'short_use_atr', 'short_atr_periods', 'short_atr_multiplier_sl',
+        'short_atr_trigger_pct', 'short_atr_step_pct',
     }
     
     if field not in ALLOWED_FIELDS:
