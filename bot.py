@@ -6387,13 +6387,11 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
 def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None, global_cfg: dict = None) -> InlineKeyboardMarkup:
     """Build inline keyboard for strategy LONG or SHORT settings.
     
-    SIMPLIFIED: No fallback logic. Values come from DB or STRATEGY_DEFAULTS.
-    
-    Shows all settings for this side:
+    Shows ALL settings for this side (no feature restrictions):
     - Enabled toggle
     - Entry %
-    - Stop-Loss % (except Elcaro - uses signals)
-    - Take-Profit % (except Elcaro - uses signals)
+    - Stop-Loss %
+    - Take-Profit %
     - Leverage
     - ATR Trailing toggle
     - ATR Trigger % (when ATR enabled)
@@ -6402,7 +6400,6 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     from coin_params import STRATEGY_DEFAULTS
     
     emoji = "📈" if side == "long" else "📉"
-    features = STRATEGY_FEATURES.get(strategy, {})
     settings = settings or {}
     defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
     
@@ -6431,46 +6428,45 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     
     # 2. Entry %
     buttons.append([InlineKeyboardButton(
-        f"📊 {t.get('param_percent', 'Entry %')}: {entry}%", 
+        f"📊 {emoji} {t.get('param_percent', 'Entry %')}: {entry}%", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
-    # 3. SL/TP - show for all strategies except Elcaro (which uses signal data)
-    if strategy != "elcaro":
-        buttons.append([InlineKeyboardButton(
-            f"🔻 {t.get('param_sl', 'Stop-Loss %')}: {sl}%", 
-            callback_data=f"strat_param:{strategy}:{side}_sl_percent"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"🎯 {t.get('param_tp', 'Take-Profit %')}: {tp}%", 
-            callback_data=f"strat_param:{strategy}:{side}_tp_percent"
-        )])
+    # 3. Stop-Loss %
+    buttons.append([InlineKeyboardButton(
+        f"🔻 {emoji} {t.get('param_sl', 'Stop-Loss %')}: {sl}%", 
+        callback_data=f"strat_param:{strategy}:{side}_sl_percent"
+    )])
     
-    # 4. Leverage
-    if features.get("leverage"):
-        buttons.append([InlineKeyboardButton(
-            f"⚡ {t.get('leverage', 'Leverage')}: {int(leverage)}x", 
-            callback_data=f"strat_param:{strategy}:{side}_leverage"
-        )])
+    # 4. Take-Profit %
+    buttons.append([InlineKeyboardButton(
+        f"🎯 {emoji} {t.get('param_tp', 'Take-Profit %')}: {tp}%", 
+        callback_data=f"strat_param:{strategy}:{side}_tp_percent"
+    )])
     
-    # 5. ATR Trailing toggle
-    if features.get("use_atr"):
-        atr_status = "✅" if use_atr else "❌"
+    # 5. Leverage
+    buttons.append([InlineKeyboardButton(
+        f"⚡ {emoji} {t.get('leverage', 'Leverage')}: {int(leverage)}x", 
+        callback_data=f"strat_param:{strategy}:{side}_leverage"
+    )])
+    
+    # 6. ATR Trailing toggle
+    atr_status = "✅" if use_atr else "❌"
+    buttons.append([InlineKeyboardButton(
+        f"📊 {emoji} {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
+        callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
+    )])
+    
+    # 7. ATR params - show when ATR is enabled
+    if use_atr:
         buttons.append([InlineKeyboardButton(
-            f"📊 {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
-            callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
+            f"🎯 {emoji} {t.get('param_atr_trigger', 'ATR Trigger')}: {atr_trigger}%", 
+            callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
         )])
-        
-        # 6. ATR params - show when ATR is enabled
-        if use_atr:
-            buttons.append([InlineKeyboardButton(
-                f"🎯 {t.get('param_atr_trigger', 'ATR Trigger')}: {atr_trigger}%", 
-                callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
-            )])
-            buttons.append([InlineKeyboardButton(
-                f"📏 {t.get('param_atr_step', 'ATR Step')}: {atr_step}%", 
-                callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
-            )])
+        buttons.append([InlineKeyboardButton(
+            f"📏 {emoji} {t.get('param_atr_step', 'ATR Step')}: {atr_step}%", 
+            callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
+        )])
     
     # Back button
     buttons.append([InlineKeyboardButton(
