@@ -23522,12 +23522,6 @@ def main():
     except Exception as e:
         logger.error(f"Failed to initialize notification service: {e}")
     
-    # DEBUG: Log ALL incoming updates
-    from telegram.ext import TypeHandler
-    async def log_all_updates(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-        logger.info(f"[RAW-UPDATE] type={type(update).__name__}, update_id={update.update_id}, message={update.message is not None}, callback_query={update.callback_query is not None}")
-    app.add_handler(TypeHandler(Update, log_all_updates), group=-1)
-    
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
     app.add_handler(CallbackQueryHandler(on_stats_callback, pattern=r"^stats:"))
@@ -23642,20 +23636,12 @@ def main():
             )
         )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-    
-    # Debug: catch-all callback handler to log unhandled callbacks
-    async def debug_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-        query = update.callback_query
-        logger.info(f"[DEBUG-CALLBACK] Unhandled callback: uid={query.from_user.id}, data={query.data}")
-        await query.answer("⚠️ Unknown action")
-    app.add_handler(CallbackQueryHandler(debug_callback_handler))
 
     logger.info("🚀 Bot starting, SIGNAL_CHANNEL_IDS=%s", SIGNAL_CHANNEL_IDS)
     app.add_error_handler(on_error)
 
     try:
-        logger.info("🔄 Starting run_polling with allowed_updates=['message', 'channel_post', 'callback_query']")
-        app.run_polling(allowed_updates=["message", "channel_post", "callback_query"], drop_pending_updates=True)
+        app.run_polling(allowed_updates=["message", "channel_post", "callback_query"])
     finally:
         logger.info("Shutting down application and HTTP session")
         try:
