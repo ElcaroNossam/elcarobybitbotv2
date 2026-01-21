@@ -23637,7 +23637,8 @@ def main():
     app.add_error_handler(on_error)
 
     try:
-        app.run_polling(allowed_updates=["message", "channel_post", "callback_query"])
+        logger.info("🔄 Starting run_polling with allowed_updates=['message', 'channel_post', 'callback_query']")
+        app.run_polling(allowed_updates=["message", "channel_post", "callback_query"], drop_pending_updates=True)
     finally:
         logger.info("Shutting down application and HTTP session")
         try:
