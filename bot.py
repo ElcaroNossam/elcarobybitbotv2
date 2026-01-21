@@ -6814,6 +6814,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     
     uid = query.from_user.id
     data = query.data
+    logger.info(f"[CALLBACK] callback_strategy_settings called: uid={uid}, data={data}")
     cfg = get_user_config(uid)
     lang = cfg.get("lang", DEFAULT_LANG)
     t = LANGS.get(lang, LANGS[DEFAULT_LANG])
@@ -19086,6 +19087,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if strat_mode:
         strategy = strat_mode.get("strategy")
         param = strat_mode.get("param")
+        logger.info(f"[TEXT_HANDLER] strat_setting_mode: uid={uid}, strategy={strategy}, param={param}, text={text}")
         try:
             value = float(text.replace(",", ".").strip())
             
