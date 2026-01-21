@@ -23619,6 +23619,13 @@ def main():
             )
         )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+    
+    # Debug: catch-all callback handler to log unhandled callbacks
+    async def debug_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        logger.info(f"[DEBUG-CALLBACK] Unhandled callback: uid={query.from_user.id}, data={query.data}")
+        await query.answer("⚠️ Unknown action")
+    app.add_handler(CallbackQueryHandler(debug_callback_handler))
 
     logger.info("🚀 Bot starting, SIGNAL_CHANNEL_IDS=%s", SIGNAL_CHANNEL_IDS)
     app.add_error_handler(on_error)
