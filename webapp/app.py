@@ -18,6 +18,13 @@ import random
 from collections import defaultdict
 from threading import Lock
 
+# Load .env file for environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, rely on system env vars
+
 logger = logging.getLogger(__name__)
 
 APP_DIR = Path(__file__).parent
