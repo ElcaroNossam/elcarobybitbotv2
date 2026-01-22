@@ -22975,7 +22975,102 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "hl_api:back":
-        await q.edit_message_text("Use /start to return to main menu.")
+        # Return to main API settings menu
+        creds = get_all_user_credentials(uid)
+        t = getattr(ctx, 't', None) or LANGS.get(db.get_user_lang(uid), LANGS['en'])
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        try:
+            await q.edit_message_text(msg, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest:
+            pass
+    
+    elif data == "hl_api:testnet":
+        # Switch to testnet
+        db.set_user_field(uid, "hl_testnet", True)
+        await q.answer("🧪 Switched to Testnet", show_alert=False)
+        # Refresh HL settings
+        await _refresh_hl_settings_inline(q, uid, ctx)
+    
+    elif data == "hl_api:mainnet":
+        # Switch to mainnet
+        db.set_user_field(uid, "hl_testnet", False)
+        await q.answer("🌐 Switched to Mainnet", show_alert=False)
+        # Refresh HL settings
+        await _refresh_hl_settings_inline(q, uid, ctx)
+    
+    elif data == "hl_api:set_key":
+        # Determine which network to set key for based on current setting
+        hl_creds = get_hl_credentials(uid)
+        is_testnet = hl_creds.get("hl_testnet", False)
+        _hl_awaiting_key[uid] = {"waiting": True, "testnet": is_testnet}
+        network = "Testnet" if is_testnet else "Mainnet"
+        network_emoji = "🧪" if is_testnet else "🌐"
+        await q.edit_message_text(
+            f"{network_emoji} <b>HyperLiquid {network} Setup</b>\n\n"
+            "Send your ETH private key (with or without 0x prefix).\n\n"
+            "⚠️ <b>Security Tips:</b>\n"
+            "• Use a dedicated trading wallet\n"
+            "• Never share your key with anyone\n\n"
+            "Send /cancel to abort.",
+            parse_mode="HTML"
+        )
+
+
+async def _refresh_hl_settings_inline(q, uid: int, ctx):
+    """Refresh HL settings message inline"""
+    from db import get_hl_credentials
+    hl_creds = get_hl_credentials(uid)
+    
+    is_testnet = hl_creds.get("hl_testnet", False)
+    network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+    
+    # Get correct wallet for current network
+    if is_testnet:
+        wallet = hl_creds.get("hl_testnet_wallet_address", "")
+    else:
+        wallet = hl_creds.get("hl_mainnet_wallet_address", "")
+    
+    # Fallback to legacy
+    if not wallet:
+        wallet = hl_creds.get("hl_wallet_address", "")
+    
+    wallet_display = f"{wallet[:8]}...{wallet[-6:]}" if wallet and len(wallet) > 14 else (wallet or "Not set")
+    
+    # Check if key exists for current network
+    if is_testnet:
+        has_key = bool(hl_creds.get("hl_testnet_private_key"))
+    else:
+        has_key = bool(hl_creds.get("hl_mainnet_private_key"))
+    
+    # Fallback to legacy
+    if not has_key:
+        has_key = bool(hl_creds.get("hl_private_key"))
+    
+    key_status = "✅" if has_key else "❌"
+    
+    hl_msg = f"""🔷 <b>HyperLiquid Settings</b>
+
+<b>Network:</b> {network}
+<b>Wallet:</b> <code>{wallet_display}</code>
+<b>Private Key:</b> {key_status}
+
+Use the buttons below to configure:"""
+    
+    hl_buttons = [
+        [
+            InlineKeyboardButton("✅ Testnet" if is_testnet else "🧪 Testnet", callback_data="hl_api:testnet"),
+            InlineKeyboardButton("🌐 Mainnet" if is_testnet else "✅ Mainnet", callback_data="hl_api:mainnet"),
+        ],
+        [InlineKeyboardButton("🔑 Set Private Key", callback_data="hl_api:set_key")],
+        [InlineKeyboardButton("🔄 Test Connection", callback_data="hl_api:test")],
+        [InlineKeyboardButton("⬅️ Back to API Settings", callback_data="hl_api:back")],
+    ]
+    
+    try:
+        await q.edit_message_text(hl_msg, reply_markup=InlineKeyboardMarkup(hl_buttons), parse_mode="HTML")
+    except BadRequest:
+        pass
 
 
 @log_calls
