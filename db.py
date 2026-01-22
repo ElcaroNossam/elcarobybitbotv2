@@ -992,6 +992,20 @@ def set_user_field(user_id: int, field: str, value: Any):
         conn.commit()
     invalidate_user_cache(user_id)
 
+
+def get_user_field(user_id: int, field: str, default: Any = None) -> Any:
+    """Get a single field from user record."""
+    if field not in USER_FIELDS_WHITELIST:
+        raise ValueError(f"Unsupported field: {field}")
+    ensure_user(user_id)
+    with get_conn() as conn:
+        cur = conn.execute(f"SELECT {field} FROM users WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        if row:
+            return row[0] if row[0] is not None else default
+        return default
+
+
 def get_user_config(user_id: int) -> dict:
     # Check cache first
     now = time.time()

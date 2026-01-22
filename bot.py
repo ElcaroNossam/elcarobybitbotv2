@@ -55,6 +55,7 @@ from services.notification_service import init_notification_service
 from db import (
     get_subscribed_users,
     get_user_config,
+    get_user_field,  # Added for API settings
     # HyperLiquid functions
     get_hl_credentials,
     set_hl_credentials,
