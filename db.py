@@ -1445,7 +1445,7 @@ def _get_strategy_settings_raw(user_id: int, strategy: str, exchange: str, accou
             # Not found - return empty dict (caller will handle defaults)
             return {}
     except Exception as e:
-        logger.warning(f"Error reading strategy settings: {e}")
+        _logger.warning(f"Error reading strategy settings: {e}")
         return {}
 
 
