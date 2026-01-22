@@ -75,13 +75,19 @@ async def get_settings(
     
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
+        # Check both new architecture and legacy format
+        has_key = bool(
+            hl_creds.get("hl_testnet_private_key") or 
+            hl_creds.get("hl_mainnet_private_key") or 
+            hl_creds.get("hl_private_key")
+        )
         return {
             "percent": creds.get("hl_percent", 5),
             "leverage": creds.get("hl_leverage", 10),
             "tp_percent": creds.get("hl_tp_percent", 2),
             "sl_percent": creds.get("hl_sl_percent", 1),
             "testnet": hl_creds.get("hl_testnet", False),
-            "has_key": bool(hl_creds.get("hl_private_key")),
+            "has_key": has_key,
             "wallet": hl_creds.get("hl_wallet_address", "")[:10] + "..." if hl_creds.get("hl_wallet_address") else None,
         }
     else:
@@ -165,7 +171,11 @@ async def switch_exchange(
     # Check if HL is configured before switching
     if data.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        if not hl_creds.get("hl_private_key"):
+        # Check both new architecture and legacy format
+        has_testnet = hl_creds.get("hl_testnet_private_key")
+        has_mainnet = hl_creds.get("hl_mainnet_private_key")
+        has_legacy = hl_creds.get("hl_private_key")
+        if not (has_testnet or has_mainnet or has_legacy):
             raise HTTPException(status_code=400, detail="HyperLiquid not configured. Add your wallet and private key first.")
     
     # Check if Bybit is configured
@@ -455,7 +465,11 @@ async def get_profile(user: dict = Depends(get_current_user)):
         
         # HyperLiquid status
         "hyperliquid": {
-            "configured": bool(hl_creds.get("hl_private_key")),
+            "configured": bool(
+                hl_creds.get("hl_testnet_private_key") or 
+                hl_creds.get("hl_mainnet_private_key") or 
+                hl_creds.get("hl_private_key")
+            ),
             "testnet": hl_creds.get("hl_testnet", False),
             "wallet": hl_creds.get("hl_wallet_address", "")[:10] + "..." if hl_creds.get("hl_wallet_address") else None,
         }
@@ -477,7 +491,11 @@ async def get_api_keys(user: dict = Depends(get_current_user)):
         "hl_wallet_address": hl_creds.get("hl_wallet_address"),
         "hl_vault_address": hl_creds.get("hl_vault_address"),
         "hl_testnet": hl_creds.get("hl_testnet", False),
-        "hl_has_key": bool(hl_creds.get("hl_private_key")),
+        "hl_has_key": bool(
+            hl_creds.get("hl_testnet_private_key") or 
+            hl_creds.get("hl_mainnet_private_key") or 
+            hl_creds.get("hl_private_key")
+        ),
     }
 
 

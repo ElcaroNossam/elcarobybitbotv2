@@ -1516,13 +1516,30 @@ except Exception as e:
 # ═══════════════════════════════════════════════════════════════════════════════════
 
 def pg_is_bybit_enabled(user_id: int) -> bool:
-    """Check if Bybit trading is enabled for user."""
+    """Check if Bybit trading is enabled AND configured for user.
+    
+    Returns True only if:
+    1. bybit_enabled flag is True (or None for backward compat)
+    2. User has at least demo OR real credentials configured
+    """
     row = execute_one(
-        "SELECT bybit_enabled FROM users WHERE user_id = %s",
+        "SELECT bybit_enabled, demo_api_key, demo_api_secret, real_api_key, real_api_secret FROM users WHERE user_id = %s",
         (user_id,)
     )
-    # Default to True for backward compatibility
-    return bool(row.get('bybit_enabled')) if row and row.get('bybit_enabled') is not None else True
+    
+    if not row:
+        return False
+    
+    bybit_enabled = row.get('bybit_enabled')
+    # If explicitly disabled, return False
+    if bybit_enabled == 0 or bybit_enabled is False:
+        return False
+    
+    # Check if any credentials exist
+    has_demo = bool(row.get('demo_api_key') and row.get('demo_api_secret'))
+    has_real = bool(row.get('real_api_key') and row.get('real_api_secret'))
+    
+    return has_demo or has_real
 
 
 def pg_set_bybit_enabled(user_id: int, enabled: bool):
@@ -1692,6 +1709,8 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     
     result = {}
     trading_mode = "demo"  # Default trading mode
+    direction = "all"  # Default direction
+    coins_group = "ALL"  # Default coins group
     
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -1724,9 +1743,17 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                 # Get trading_mode from any row (strategy-level setting)
                 if row.get('trading_mode'):
                     trading_mode = row.get('trading_mode')
+                # Get direction from any row (strategy-level setting)  
+                if row.get('direction'):
+                    direction = row.get('direction')
+                # Get coins_group for strategy level
+                if row.get('coins_group'):
+                    coins_group = row.get('coins_group')
     
-    # Add trading_mode to result
+    # Add strategy-level settings to result
     result["trading_mode"] = trading_mode
+    result["direction"] = direction
+    result["coins_group"] = coins_group
     
     # Fill missing sides with defaults
     for side in ["long", "short"]:

@@ -534,12 +534,28 @@ async def get_exchange_client(user_id: int, exchange_type: Optional[str] = None,
         
         if exchange == ExchangeType.HYPERLIQUID:
             hl_creds = db.get_hl_credentials(user_id)
+            
+            # Use correct key based on account_type (new architecture)
+            is_testnet = account_type in ("testnet", "demo")
+            if is_testnet:
+                private_key = hl_creds.get("hl_testnet_private_key")
+                wallet_addr = hl_creds.get("hl_testnet_wallet_address")
+            else:
+                private_key = hl_creds.get("hl_mainnet_private_key")
+                wallet_addr = hl_creds.get("hl_mainnet_wallet_address")
+            
+            # Fallback to legacy format
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                wallet_addr = hl_creds.get("hl_wallet_address")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
             credentials = ExchangeCredentials(
                 exchange=ExchangeType.HYPERLIQUID,
-                private_key=hl_creds.get("hl_private_key"),
-                wallet_address=hl_creds.get("hl_wallet_address"),
+                private_key=private_key,
+                wallet_address=wallet_addr,
                 vault_address=hl_creds.get("hl_vault_address"),
-                mode=AccountMode.TESTNET if hl_creds.get("hl_testnet") else AccountMode.REAL,
+                mode=AccountMode.TESTNET if is_testnet else AccountMode.REAL,
                 user_id=user_id
             )
         else:

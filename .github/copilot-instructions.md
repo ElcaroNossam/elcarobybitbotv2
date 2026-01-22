@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.15.0 | Обновлено: 20 января 2026
+# Версия: 3.16.0 | Обновлено: 21 января 2026
 # =============================================
 
 ---
@@ -483,6 +483,41 @@ account_type = _normalize_both_account_type(account_type, exchange='bybit')
 - Юзер переключает через кнопки Demo/Real (или Testnet/Mainnet)
 - API не поддерживает mode='both' - только конкретный account_type
 
+## HyperLiquid Credentials Architecture (IMPORTANT!)
+
+```python
+# НОВАЯ архитектура (multitenancy):
+# - hl_testnet_private_key + hl_testnet_wallet_address  # Для testnet
+# - hl_mainnet_private_key + hl_mainnet_wallet_address  # Для mainnet
+
+# LEGACY архитектура (fallback):
+# - hl_private_key + hl_wallet_address + hl_testnet (boolean)
+
+# Правильный паттерн получения credentials:
+def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> tuple:
+    is_testnet = account_type in ("testnet", "demo")
+    
+    # Try new architecture first
+    private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+    
+    # Fallback to legacy format
+    if not private_key:
+        private_key = hl_creds.get("hl_private_key")
+        is_testnet = hl_creds.get("hl_testnet", False)
+    
+    return private_key, is_testnet
+
+# ИСПОЛЬЗОВАТЬ В:
+# - webapp/api/trading.py - _get_hl_credentials_for_account()
+# - core/exchange_client.py - get_exchange_client()
+# - bot.py - все HL endpoints
+```
+
+⚠️ **При добавлении новых HL endpoints:**
+- ВСЕГДА использовать `account_type` для выбора testnet/mainnet ключа
+- ВСЕГДА проверять оба формата (new + legacy fallback)
+- НИКОГДА не использовать только `hl_private_key` напрямую
+
 ## Leverage Fallback
 
 ```python
@@ -505,6 +540,51 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: Full HyperLiquid Multitenancy Credentials Fix (Jan 22, 2026)
+- **Проблема:** Все компоненты системы использовали legacy `hl_private_key` вместо новой архитектуры `hl_testnet_private_key` / `hl_mainnet_private_key`
+- **Причина:** При добавлении новых полей в БД не были обновлены все места использования
+- **Исправленные файлы (ПОЛНЫЙ список):**
+  1. **webapp/api/trading.py** (15+ endpoints):
+     - Добавлена функция `_get_hl_credentials_for_account(hl_creds, account_type)`
+     - Исправлены: `/balance`, `/positions`, `/orders`, `/close`, `/close-all`
+     - Исправлены: `/execution-history`, `/set-leverage`, `/cancel-order`, `/modify-tpsl`
+     - Исправлены: `/exchange-status`, `_place_order_hyperliquid()`, `_set_leverage_for_symbol()`, `_place_single_order_hl()`
+  2. **exchange_router.py**:
+     - Добавлена функция `_get_hl_credentials_for_env(hl_creds, env)`
+     - Исправлены: `_execute_hyperliquid()`, `_get_hl_balance()`, `_get_hl_positions()`, `set_leverage()`
+  3. **core/exchange_client.py**:
+     - `get_exchange_client()` теперь выбирает testnet/mainnet ключ по account_type
+  4. **webapp/api/users.py**:
+     - `has_key` и `configured` проверяют все 3 поля
+     - Проверка при переключении на HL биржу
+  5. **webapp/api/admin.py**:
+     - `hl_configured` проверяет все 3 поля
+- **Паттерн исправления:**
+  ```python
+  # Новая архитектура с fallback на legacy
+  is_testnet = account_type in ("testnet", "demo")
+  private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+  if not private_key:
+      private_key = hl_creds.get("hl_private_key")  # Legacy fallback
+      is_testnet = hl_creds.get("hl_testnet", False)
+  ```
+
+### ✅ FIX: Strategy Settings Defaults (Jan 21, 2026)
+- **Проблема #1:** `DEFAULT_HL_STRATEGY_SETTINGS` в db.py не содержал `manual` и `wyckoff` стратегии
+- **Проблема #2:** `STRATEGY_SETTINGS_DEFAULTS` в db.py не содержал `manual` стратегию
+- **Проблема #3:** `pg_get_strategy_settings()` не возвращал `direction` и `coins_group` поля
+- **Файлы:**
+  - `db.py` - добавлены `manual` и `wyckoff` в оба словаря дефолтов
+  - `core/db_postgres.py` - добавлены поля в SELECT запрос
+
+### ✅ FIX: is_bybit_enabled / is_hl_enabled Credential Checks (Jan 21, 2026)
+- **Проблема:** `is_bybit_enabled()` возвращал True если флаг установлен, даже если нет credentials
+- **Причина:** Проверялся только флаг `bybit_enabled=1`, но не наличие API ключей
+- **Файлы:**
+  - `db.py` - `is_bybit_enabled()` теперь проверяет: `demo_api_key OR real_api_key`
+  - `core/db_postgres.py` - `pg_is_bybit_enabled()` аналогично
+- **Результат:** Биржа считается включённой только если есть хотя бы один настроенный аккаунт
 
 ### ✅ FIX: Legacy Routing Missing live_enabled Check (Jan 19, 2026)
 - **Проблема:** При `trading_mode='both'` сделки открывались ТОЛЬКО на Demo, хотя Real был настроен
@@ -1196,10 +1276,11 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 18 января 2026*
-*Version: 3.12.0*
+*Last updated: 21 января 2026*
+*Version: 3.16.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*
 *TON Integration: In Progress (stubs)*
+*HL Credentials: Multitenancy (testnet/mainnet separate keys)*

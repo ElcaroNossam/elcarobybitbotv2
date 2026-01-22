@@ -33,6 +33,39 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# HL CREDENTIALS HELPER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _get_hl_credentials_for_env(hl_creds: dict, env: str) -> tuple:
+    """
+    Get the correct HyperLiquid private key based on env (paper/live).
+    Supports both new architecture and legacy format with fallback.
+    
+    Returns: (private_key, is_testnet, wallet_address, vault_address)
+    """
+    is_testnet = env == "paper"
+    
+    # Try new architecture first
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address")
+    
+    # Fallback to legacy format
+    if not private_key:
+        private_key = hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_wallet_address")
+        if private_key:
+            is_testnet = hl_creds.get("hl_testnet", False)
+    
+    vault_address = hl_creds.get("hl_vault_address")
+    
+    return private_key, is_testnet, wallet_address, vault_address
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENUMS AND DATA CLASSES
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -584,18 +617,20 @@ class ExchangeRouter:
         try:
             # Get HL credentials
             hl_creds = db.get_hl_credentials(intent.user_id)
-            if not hl_creds.get("hl_private_key"):
+            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, target.env)
+            
+            if not private_key:
                 return ExecutionResult(
                     target=target,
                     success=False,
-                    error="HyperLiquid not configured",
+                    error=f"HyperLiquid {target.env} not configured",
                 )
             
             # Create adapter
             adapter = HLAdapter(
-                private_key=hl_creds["hl_private_key"],
-                testnet=hl_creds.get("hl_testnet", False),
-                vault_address=hl_creds.get("hl_vault_address"),
+                private_key=private_key,
+                testnet=is_testnet,
+                vault_address=vault_address,
             )
             
             async with adapter:
@@ -695,17 +730,20 @@ class ExchangeRouter:
             # Bybit balance should be fetched via factory
             return {"equity": 0, "available": 0}
     
-    async def _get_hl_balance(self, user_id: int) -> dict:
+    async def _get_hl_balance(self, user_id: int, target: Target = None) -> dict:
         """Get HyperLiquid balance."""
         try:
             hl_creds = db.get_hl_credentials(user_id)
-            if not hl_creds.get("hl_private_key"):
+            env = target.env if target else "paper"
+            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, env)
+            
+            if not private_key:
                 return {"equity": 0, "available": 0}
             
             adapter = HLAdapter(
-                private_key=hl_creds["hl_private_key"],
-                testnet=hl_creds.get("hl_testnet", False),
-                vault_address=hl_creds.get("hl_vault_address"),
+                private_key=private_key,
+                testnet=is_testnet,
+                vault_address=vault_address,
             )
             
             async with adapter:
@@ -743,17 +781,20 @@ class ExchangeRouter:
         
         return all_positions
     
-    async def _get_hl_positions(self, user_id: int, symbol: str | None = None) -> list[dict]:
+    async def _get_hl_positions(self, user_id: int, symbol: str | None = None, target: Target = None) -> list[dict]:
         """Get HyperLiquid positions."""
         try:
             hl_creds = db.get_hl_credentials(user_id)
-            if not hl_creds.get("hl_private_key"):
+            env = target.env if target else "paper"
+            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, env)
+            
+            if not private_key:
                 return []
             
             adapter = HLAdapter(
-                private_key=hl_creds["hl_private_key"],
-                testnet=hl_creds.get("hl_testnet", False),
-                vault_address=hl_creds.get("hl_vault_address"),
+                private_key=private_key,
+                testnet=is_testnet,
+                vault_address=vault_address,
             )
             
             async with adapter:
@@ -826,10 +867,11 @@ class ExchangeRouter:
             try:
                 if t.exchange == Exchange.HYPERLIQUID.value:
                     hl_creds = db.get_hl_credentials(user_id)
-                    if hl_creds.get("hl_private_key"):
+                    private_key, is_testnet, _, _ = _get_hl_credentials_for_env(hl_creds, t.env)
+                    if private_key:
                         adapter = HLAdapter(
-                            private_key=hl_creds["hl_private_key"],
-                            testnet=hl_creds.get("hl_testnet", False),
+                            private_key=private_key,
+                            testnet=is_testnet,
                         )
                         async with adapter:
                             hl_symbol = normalize_symbol(symbol, Exchange.HYPERLIQUID.value)

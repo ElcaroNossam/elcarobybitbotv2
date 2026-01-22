@@ -1303,6 +1303,16 @@ DEFAULT_STRATEGY_SETTINGS = {
         "direction": "all",  # "all", "long", "short"
         "trading_mode": "global",  # "global", "demo", "real", "both"
     },
+    "manual": {
+        "percent": None, "sl_percent": None, "tp_percent": None,
+        "atr_periods": None, "atr_multiplier_sl": None, "atr_trigger_pct": None,
+        "use_atr": None,  # None = use global, 0 = Fixed SL/TP, 1 = ATR Trailing
+        "order_type": "market",
+        "coins_group": None,
+        "leverage": 10,
+        "direction": "all",
+        "trading_mode": "demo",  # Manual trades default to demo
+    },
 }
 
 STRATEGY_NAMES = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "manual", "wyckoff"]
@@ -1336,6 +1346,8 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
     "scalper": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
     "elcaro": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
     "fibonacci": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "manual": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
+    "wyckoff": {"hl_enabled": False, "hl_percent": None, "hl_sl_percent": None, "hl_tp_percent": None, "hl_leverage": None},
 }
 
 
@@ -4866,14 +4878,31 @@ def set_hl_enabled(user_id: int, enabled: bool):
 
 
 def is_bybit_enabled(user_id: int) -> bool:
-    """Check if Bybit trading is enabled for user."""
+    """Check if Bybit trading is enabled AND configured for user.
+    
+    Returns True only if:
+    1. bybit_enabled flag is True (or None for backward compat)
+    2. User has at least demo OR real credentials configured
+    """
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT bybit_enabled FROM users WHERE user_id = ?",
+            "SELECT bybit_enabled, demo_api_key, demo_api_secret, real_api_key, real_api_secret FROM users WHERE user_id = ?",
             (user_id,)
         ).fetchone()
-    # Default to True for backward compatibility
-    return bool(row[0]) if row and row[0] is not None else True
+    
+    if not row:
+        return False
+    
+    bybit_enabled = row[0]
+    # If explicitly disabled, return False
+    if bybit_enabled == 0:
+        return False
+    
+    # Check if any credentials exist
+    has_demo = bool(row[1] and row[2])
+    has_real = bool(row[3] and row[4])
+    
+    return has_demo or has_real
 
 
 def set_bybit_enabled(user_id: int, enabled: bool):

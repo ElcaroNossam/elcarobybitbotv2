@@ -143,7 +143,11 @@ async def get_user(
         # Exchange info
         "exchange_status": exchange_status,
         "bybit_configured": bool(creds.get("demo_api_key") or creds.get("real_api_key")),
-        "hl_configured": bool(hl_creds.get("hl_private_key")),
+        "hl_configured": bool(
+            hl_creds.get("hl_testnet_private_key") or 
+            hl_creds.get("hl_mainnet_private_key") or 
+            hl_creds.get("hl_private_key")
+        ),
         
         # Strategies
         "enable_scryptomera": creds.get("enable_scryptomera", False),
