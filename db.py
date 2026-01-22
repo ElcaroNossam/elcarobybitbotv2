@@ -3325,7 +3325,7 @@ def get_rolling_24h_pnl(user_id: int, account_type: str | None = None, exchange:
 
 
 def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str | None = None, exchange: str | None = None) -> dict:
-    """Get stats for trades with NULL/unknown strategy."""
+    """Get stats for trades with NULL/unknown/manual strategy."""
     import datetime
     from zoneinfo import ZoneInfo
     
@@ -3333,7 +3333,8 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
     account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
     with get_conn() as conn:
-        where_clauses = ["user_id = ?", "strategy IS NULL"]
+        # Include NULL, 'unknown', and 'manual' strategies
+        where_clauses = ["user_id = ?", "(strategy IS NULL OR strategy IN ('unknown', 'manual'))"]
         params: list = [user_id]
         
         if account_type:
