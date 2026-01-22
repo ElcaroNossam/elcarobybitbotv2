@@ -799,131 +799,113 @@ def get_execution_targets(
     override_policy: str = None
 ) -> list[dict]:
     """
-    Get list of execution targets based on routing policy.
+    Get list of execution targets based on strategy's trading_mode and enabled exchanges.
     
     Returns list of dicts with keys: exchange, env, account_type
     
-    Priority:
-    1. Strategy's custom targets (if strategy has routing_policy='custom' and targets_json)
-    2. Strategy's routing_policy (if set and != 'global')
-    3. User's global routing_policy
-    4. Default: SAME_EXCHANGE_ALL_ENVS
+    Logic:
+    - Get strategy's trading_mode (demo/real/both/global)
+    - If global, use user's trading_mode
+    - If demo: Bybit Demo + HL Testnet (if enabled)
+    - If real: Bybit Real + HL Mainnet (if enabled)
+    - If both: all enabled account types on all enabled exchanges
     
     Safety: Filters out live targets if live_enabled=False
     """
-    # Determine effective routing policy
-    policy = override_policy
-    strategy_targets = None
-    
-    if not policy and strategy:
-        # Check if strategy has explicit targets or routing_policy
-        context = get_user_trading_context(user_id)
-        strat_settings = get_strategy_settings(user_id, strategy, context["exchange"], context["account_type"])
-        
-        if strat_settings.get("routing_policy") == RoutingPolicy.CUSTOM:
-            # Use explicit target list from strategy
-            import json
-            targets_json = strat_settings.get("targets_json")
-            if targets_json:
-                try:
-                    strategy_targets = json.loads(targets_json)
-                except (json.JSONDecodeError, TypeError):
-                    pass
-        elif strat_settings.get("routing_policy") and strat_settings.get("routing_policy") != "global":
-            policy = strat_settings.get("routing_policy")
-    
-    if not policy:
-        policy = get_routing_policy(user_id)
-    
-    # Get user context
-    context = get_user_trading_context(user_id)
+    targets = []
     live_enabled = get_live_enabled(user_id)
     
-    targets = []
+    # Get strategy's trading_mode
+    strat_mode = "demo"  # Default
+    if strategy:
+        strat_mode = get_strategy_trading_mode(user_id, strategy)
     
-    # If strategy has explicit targets, use them
-    if strategy_targets:
-        for t in strategy_targets:
-            env = t.get("env", "paper")
-            # Safety check: skip live if not enabled
-            if env == "live" and not live_enabled:
-                continue
-            targets.append({
-                "exchange": t.get("exchange", "bybit"),
-                "env": env,
-                "account_type": _env_to_account_type(t.get("exchange", "bybit"), env)
-            })
-        return targets
+    # If strategy uses global, get user's global mode
+    if strat_mode == "global":
+        strat_mode = get_trading_mode(user_id) or "demo"
     
-    # Apply routing policy
-    if policy == RoutingPolicy.ACTIVE_ONLY:
-        # Only the currently selected target (from UI)
-        env = "paper" if context["account_type"] in ("demo", "testnet") else "live"
-        if env == "live" and not live_enabled:
-            return []  # User hasn't enabled live trading
-        return [{
-            "exchange": context["exchange"],
-            "env": env,
-            "account_type": context["account_type"]
-        }]
+    # Determine which account types to use based on mode
+    # demo → demo for Bybit, testnet for HL
+    # real → real for Bybit, mainnet for HL
+    # both → all configured accounts
     
-    elif policy == RoutingPolicy.SAME_EXCHANGE_ALL_ENVS:
-        # Current exchange, all enabled envs (demo+real or testnet+mainnet)
-        exchange = context["exchange"]
-        account_types = get_active_account_types(user_id)
+    bybit_enabled = is_bybit_enabled(user_id)
+    hl_enabled = is_hl_enabled(user_id)
+    
+    if strat_mode == "both":
+        # Add all configured accounts for enabled exchanges
+        if bybit_enabled:
+            bybit_types = _get_bybit_account_types(user_id)
+            for acc_type in bybit_types:
+                env = "paper" if acc_type == "demo" else "live"
+                if env == "live" and not live_enabled:
+                    continue
+                targets.append({
+                    "exchange": "bybit",
+                    "env": env,
+                    "account_type": acc_type
+                })
         
-        for acc_type in account_types:
-            env = "paper" if acc_type in ("demo", "testnet") else "live"
-            # Safety check: skip live if not enabled
-            if env == "live" and not live_enabled:
-                continue
-            targets.append({
-                "exchange": exchange,
-                "env": env,
-                "account_type": acc_type
-            })
-        return targets
+        if hl_enabled:
+            hl_types = _get_hl_account_types(user_id)
+            for acc_type in hl_types:
+                env = "paper" if acc_type == "testnet" else "live"
+                if env == "live" and not live_enabled:
+                    continue
+                targets.append({
+                    "exchange": "hyperliquid",
+                    "env": env,
+                    "account_type": acc_type
+                })
     
-    elif policy == RoutingPolicy.ALL_ENABLED:
-        # All enabled targets across all exchanges (up to 4)
-        # Check Bybit
-        bybit_types = _get_bybit_account_types(user_id)
-        for acc_type in bybit_types:
-            env = "paper" if acc_type == "demo" else "live"
-            if env == "live" and not live_enabled:
-                continue
-            targets.append({
-                "exchange": "bybit",
-                "env": env,
-                "account_type": acc_type
-            })
+    elif strat_mode in ("real", "mainnet"):
+        # Real/Mainnet mode
+        if bybit_enabled:
+            # Check if real credentials exist
+            creds = get_all_user_credentials(user_id)
+            if creds.get("real_api_key") and creds.get("real_api_secret"):
+                if live_enabled:  # Only add if live trading is enabled
+                    targets.append({
+                        "exchange": "bybit",
+                        "env": "live",
+                        "account_type": "real"
+                    })
         
-        # Check HyperLiquid
-        hl_types = _get_hl_account_types(user_id)
-        for acc_type in hl_types:
-            env = "paper" if acc_type == "testnet" else "live"
-            if env == "live" and not live_enabled:
-                continue
-            targets.append({
-                "exchange": "hyperliquid",
-                "env": env,
-                "account_type": acc_type
-            })
-        
-        return targets
+        if hl_enabled:
+            hl_creds = get_hl_credentials(user_id)
+            has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+            if not has_mainnet and hl_creds.get("hl_private_key") and not hl_creds.get("hl_testnet"):
+                has_mainnet = True
+            if has_mainnet and live_enabled:
+                targets.append({
+                    "exchange": "hyperliquid",
+                    "env": "live",
+                    "account_type": "mainnet"
+                })
     
-    # Default fallback: same as SAME_EXCHANGE_ALL_ENVS
-    exchange = context["exchange"]
-    account_types = get_active_account_types(user_id)
-    for acc_type in account_types:
-        env = "paper" if acc_type in ("demo", "testnet") else "live"
-        if env == "live" and not live_enabled:
-            continue
-        targets.append({
-            "exchange": exchange,
-            "env": env,
-            "account_type": acc_type
-        })
+    else:  # demo/testnet mode (default)
+        if bybit_enabled:
+            # Check if demo credentials exist
+            creds = get_all_user_credentials(user_id)
+            if creds.get("demo_api_key") and creds.get("demo_api_secret"):
+                targets.append({
+                    "exchange": "bybit",
+                    "env": "paper",
+                    "account_type": "demo"
+                })
+        
+        if hl_enabled:
+            hl_creds = get_hl_credentials(user_id)
+            has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+            if not has_testnet and hl_creds.get("hl_private_key") and hl_creds.get("hl_testnet"):
+                has_testnet = True
+            if has_testnet:
+                targets.append({
+                    "exchange": "hyperliquid",
+                    "env": "paper",
+                    "account_type": "testnet"
+                })
+    
     return targets
 
 
@@ -1506,8 +1488,9 @@ def get_strategy_trading_mode(user_id: int, strategy: str) -> str:
     if strategy_normalized == "rsi_bb":
         strategy_normalized = "rsi_bb"
     
-    # Get from DB
-    settings = _get_strategy_settings_raw(user_id, strategy_normalized, "bybit", "demo")
+    # Use PostgreSQL function directly
+    from core.db_postgres import pg_get_strategy_settings
+    settings = pg_get_strategy_settings(user_id, strategy_normalized)
     return settings.get("trading_mode") or "demo"
 
 

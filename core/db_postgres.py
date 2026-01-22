@@ -348,6 +348,7 @@ def pg_init_db():
                 trade_scalper      INTEGER NOT NULL DEFAULT 0,
                 trade_elcaro       INTEGER NOT NULL DEFAULT 0,
                 trade_fibonacci    INTEGER NOT NULL DEFAULT 0,
+                trade_manual       INTEGER NOT NULL DEFAULT 1,
                 strategy_settings  TEXT,
                 
                 -- DCA settings
@@ -592,6 +593,7 @@ def pg_init_db():
             ("dca_pct_2", "REAL DEFAULT 25.0"),
             ("max_positions", "INTEGER DEFAULT 0"),
             ("coins_group", "TEXT DEFAULT 'ALL'"),
+            ("trading_mode", "TEXT DEFAULT 'demo'"),  # Strategy-level trading mode
         ]:
             try:
                 cur.execute(f"ALTER TABLE user_strategy_settings ADD COLUMN IF NOT EXISTS {col} {col_def}")
@@ -1495,6 +1497,7 @@ def ensure_tables():
                 BEGIN
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0;
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS trade_manual INTEGER DEFAULT 1;
                 EXCEPTION WHEN OTHERS THEN
                     NULL;
                 END $$;
@@ -1683,10 +1686,12 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     """
     Get settings for a specific strategy.
     SIMPLIFIED: Returns both LONG and SHORT settings as long_* and short_* fields.
+    Also returns trading_mode for the strategy.
     """
     from coin_params import STRATEGY_DEFAULTS
     
     result = {}
+    trading_mode = "demo"  # Default trading mode
     
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -1715,6 +1720,13 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                 result[f"{prefix}dca_pct_2"] = row.get('dca_pct_2', 25.0)
                 result[f"{prefix}max_positions"] = row.get('max_positions', 0)
                 result[f"{prefix}coins_group"] = row.get('coins_group', 'ALL')
+                
+                # Get trading_mode from any row (strategy-level setting)
+                if row.get('trading_mode'):
+                    trading_mode = row.get('trading_mode')
+    
+    # Add trading_mode to result
+    result["trading_mode"] = trading_mode
     
     # Fill missing sides with defaults
     for side in ["long", "short"]:
@@ -1775,7 +1787,7 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'enabled', 'percent', 'sl_percent', 'tp_percent', 'leverage',
         'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
-        'max_positions', 'coins_group'
+        'max_positions', 'coins_group', 'trading_mode'  # Added trading_mode
     }
     
     if field not in ALLOWED_FIELDS:
@@ -1804,8 +1816,8 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                     INSERT INTO user_strategy_settings 
                     (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
                      leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
-                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group, trading_mode)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     user_id, strategy, side,
                     defaults.get("enabled", True),
@@ -1822,7 +1834,8 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                     defaults.get("dca_pct_1", 10.0),
                     defaults.get("dca_pct_2", 25.0),
                     defaults.get("max_positions", 0),
-                    defaults.get("coins_group", "ALL")
+                    defaults.get("coins_group", "ALL"),
+                    "demo"  # Default trading_mode
                 ))
                 # Now update the specific field
                 cur.execute(f"""
@@ -1847,8 +1860,8 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                     INSERT INTO user_strategy_settings 
                     (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
                      leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
-                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, coins_group, trading_mode)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (user_id, strategy, side) DO UPDATE SET
                         enabled = EXCLUDED.enabled,
                         percent = EXCLUDED.percent,
@@ -1865,6 +1878,7 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                         dca_pct_2 = EXCLUDED.dca_pct_2,
                         max_positions = EXCLUDED.max_positions,
                         coins_group = EXCLUDED.coins_group,
+                        trading_mode = EXCLUDED.trading_mode,
                         updated_at = NOW()
                 """, (
                     user_id, strategy, s,
@@ -1882,7 +1896,8 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                     defaults.get("dca_pct_1", 10.0),
                     defaults.get("dca_pct_2", 25.0),
                     defaults.get("max_positions", 0),
-                    defaults.get("coins_group", "ALL")
+                    defaults.get("coins_group", "ALL"),
+                    "demo"  # Reset trading_mode to demo
                 ))
     return True
 

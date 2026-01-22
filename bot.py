@@ -1045,8 +1045,7 @@ def _mask_key(key: str | None) -> str:
 def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKeyboardMarkup:
     """Build API settings keyboard with current state.
     
-    Shows connected exchanges and API key management.
-    Trading mode is configured per-strategy in Strategy Settings.
+    Shows connected exchanges with ON/OFF toggles and API key management.
     """
     demo_key = creds.get("demo_api_key")
     demo_secret = creds.get("demo_api_secret")
@@ -1058,30 +1057,43 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     bybit_real_ok = bool(real_key and real_secret)
     bybit_any = bybit_demo_ok or bybit_real_ok
     
-    # Get HL status
+    # Get exchange enabled status
+    bybit_enabled = db.is_bybit_enabled(uid) if uid else True
+    hl_enabled = db.is_hl_enabled(uid) if uid else False
+    
+    # Get HL configuration status
     hl_configured = False
     if uid:
         hl_configured = bool(db.get_user_field(uid, "hl_mainnet_private_key") or 
                             db.get_user_field(uid, "hl_testnet_private_key"))
     
     # Status indicators
-    bybit_status = "✅" if bybit_any else "❌"
-    hl_status = "✅" if hl_configured else "❌"
+    bybit_cfg_status = "✅" if bybit_any else "❌"
+    bybit_trade_status = "🟢" if bybit_enabled else "🔴"
+    hl_cfg_status = "✅" if hl_configured else "❌"
+    hl_trade_status = "🟢" if hl_enabled else "🔴"
+    
     demo_key_status = "✅" if demo_key else "❌"
     demo_secret_status = "✅" if demo_secret else "❌"
     real_key_status = "✅" if real_key else "❌"
     real_secret_status = "✅" if real_secret else "❌"
     
     buttons = [
-        # ─── Connected Exchanges ───
-        [InlineKeyboardButton(t.get('menu_section_exchanges', '══ 🔗 CONNECTED EXCHANGES ══'), callback_data="api:noop")],
+        # ─── Exchange Trading Toggles ───
+        [InlineKeyboardButton(t.get('section_exchanges', '══ 🔗 EXCHANGE TRADING ══'), callback_data="noop")],
         [
-            InlineKeyboardButton(f"{bybit_status} 🟠 Bybit", callback_data="api:noop"),
-            InlineKeyboardButton(f"{hl_status} 🔷 HyperLiquid", callback_data="api:noop"),
+            InlineKeyboardButton(
+                f"{bybit_trade_status} 🟠 Bybit {'ON' if bybit_enabled else 'OFF'}",
+                callback_data="api:toggle_bybit"
+            ),
+            InlineKeyboardButton(
+                f"{hl_trade_status} 🔷 HyperLiquid {'ON' if hl_enabled else 'OFF'}",
+                callback_data="api:toggle_hl"
+            ),
         ],
         
         # ─── Bybit Demo ───
-        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 BYBIT DEMO ══'), callback_data="api:noop")],
+        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 BYBIT DEMO ══'), callback_data="noop")],
         [
             InlineKeyboardButton(f"{demo_key_status} API Key", callback_data="api:demo_key"),
             InlineKeyboardButton(f"{demo_secret_status} Secret", callback_data="api:demo_secret"),
@@ -1089,7 +1101,7 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Demo", callback_data="api:test_demo")],
         
         # ─── Bybit Real ───
-        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 BYBIT REAL ══'), callback_data="api:noop")],
+        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 BYBIT REAL ══'), callback_data="noop")],
         [
             InlineKeyboardButton(f"{real_key_status} API Key", callback_data="api:real_key"),
             InlineKeyboardButton(f"{real_secret_status} Secret", callback_data="api:real_secret"),
@@ -1097,8 +1109,8 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Real", callback_data="api:test_real")],
         
         # ─── HyperLiquid ───
-        [InlineKeyboardButton(t.get('menu_section_hl', '══ 🔷 HYPERLIQUID ══'), callback_data="api:noop")],
-        [InlineKeyboardButton(t.get('menu_hl_settings', '⚙️ HyperLiquid Settings'), callback_data="api:hl_settings")],
+        [InlineKeyboardButton(t.get('menu_section_hl', '══ 🔷 HYPERLIQUID ══'), callback_data="noop")],
+        [InlineKeyboardButton(f"{hl_cfg_status} " + t.get('menu_hl_settings', '⚙️ HyperLiquid Settings'), callback_data="api:hl_settings")],
         
         # ─── Actions ───
         [
@@ -1113,7 +1125,7 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     return InlineKeyboardMarkup(buttons)
 
 def format_api_settings_message(t: dict, creds: dict, uid: int = None) -> str:
-    """Format API settings message with connected exchanges."""
+    """Format API settings message with connected exchanges and trading status."""
     demo_key = creds.get("demo_api_key")
     demo_secret = creds.get("demo_api_secret")
     real_key = creds.get("real_api_key")
@@ -1124,9 +1136,18 @@ def format_api_settings_message(t: dict, creds: dict, uid: int = None) -> str:
     bybit_real_ok = bool(real_key and real_secret)
     
     hl_configured = False
+    bybit_enabled = True
+    hl_enabled = False
+    
     if uid:
         hl_configured = bool(db.get_user_field(uid, "hl_mainnet_private_key") or 
                             db.get_user_field(uid, "hl_testnet_private_key"))
+        bybit_enabled = db.is_bybit_enabled(uid)
+        hl_enabled = db.is_hl_enabled(uid)
+    
+    # Trading status
+    bybit_trade = "🟢 Trading" if bybit_enabled and (bybit_demo_ok or bybit_real_ok) else "🔴 Off"
+    hl_trade = "🟢 Trading" if hl_enabled and hl_configured else "🔴 Off"
     
     # Connected exchanges summary
     connected = []
@@ -1149,7 +1170,11 @@ def format_api_settings_message(t: dict, creds: dict, uid: int = None) -> str:
 
 <b>🔗 Connected:</b> {connected_str}
 
-<i>💡 Trading mode (Demo/Real/Both) is configured per strategy in Strategy Settings</i>
+<b>📊 Exchange Trading Status:</b>
+├ 🟠 Bybit: {bybit_trade}
+└ 🔷 HyperLiquid: {hl_trade}
+
+<i>💡 Use the buttons below to enable/disable exchange trading</i>
 
 {t.get("api_demo_title", "🧪 Bybit Demo")}
 ├ API Key: <code>{demo_key_display}</code>
@@ -1278,6 +1303,35 @@ Use the buttons below to configure:"""
         msg = format_api_settings_message(t, creds)
         keyboard = get_api_settings_keyboard(t, creds)
         await q.answer(t.get("api_deleted", "API deleted for {account}").format(account="Real"), show_alert=True)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Toggle Exchange Trading ───
+    if action == "toggle_bybit":
+        current = db.is_bybit_enabled(uid)
+        new_val = not current
+        db.set_bybit_enabled(uid, new_val)
+        
+        status = "🟢 ON" if new_val else "🔴 OFF"
+        await q.answer(f"Bybit Trading: {status}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "toggle_hl":
+        current = db.is_hl_enabled(uid)
+        new_val = not current
+        db.set_hl_enabled(uid, new_val)
+        
+        status = "🟢 ON" if new_val else "🔴 OFF"
+        await q.answer(f"HyperLiquid Trading: {status}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
         await safe_edit(msg, reply_markup=keyboard)
         return
     
@@ -5297,39 +5351,19 @@ async def place_order_for_targets(
     # Determine targets
     if targets is None:
         if use_legacy_routing:
-            # Use old account_types logic for backward compatibility
-            if strategy:
-                account_types = get_strategy_account_types(user_id, strategy)
-            else:
-                account_types = get_active_account_types(user_id)
+            # Use new get_execution_targets which respects strategy trading_mode
+            # and routes to both enabled exchanges
+            targets = get_execution_targets(user_id, strategy)
             
-            if not account_types:
-                raise ValueError("No API credentials configured")
-            
-            # Convert to targets format
-            exchange = db.get_exchange_type(user_id)
-            
-            # Check if exchange is enabled
-            if exchange == "bybit" and not db.is_bybit_enabled(user_id):
-                raise ValueError("Bybit trading is disabled for this user")
-            if exchange == "hyperliquid" and not db.is_hl_enabled(user_id):
-                raise ValueError("HyperLiquid trading is disabled for this user")
-            
-            # Get live_enabled to filter out Real targets if not enabled
-            live_enabled = get_live_enabled(user_id)
-            
-            targets = []
-            for acc_type in account_types:
-                env = "paper" if acc_type in ("demo", "testnet") else "live"
-                # Safety check: skip live if not enabled (same as get_execution_targets)
-                if env == "live" and not live_enabled:
-                    logger.info(f"[{user_id}] Legacy routing: skipping {acc_type} because live_enabled=False")
-                    continue
-                targets.append({
-                    "exchange": exchange,
-                    "env": env,
-                    "account_type": acc_type
-                })
+            if not targets:
+                # Fallback: check if any exchange is enabled
+                bybit_enabled = db.is_bybit_enabled(user_id)
+                hl_enabled = db.is_hl_enabled(user_id)
+                
+                if not bybit_enabled and not hl_enabled:
+                    raise ValueError("No exchanges enabled for trading")
+                else:
+                    raise ValueError("No valid credentials configured for enabled exchanges")
         else:
             # Use new routing policy system
             targets = get_execution_targets(user_id, strategy)
@@ -6165,7 +6199,7 @@ def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -
 # General settings (percent, sl_tp) serve as FALLBACK for side-specific settings
 STRATEGY_FEATURES = {
     "scryptomera": {
-        "order_type": True,      # Market/Limit toggle
+        "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
         "coins_group": True,     # Coins filter (ALL/TOP100/VOLATILE)
         "leverage": True,        # Leverage setting
         "use_atr": True,         # ATR trailing toggle
@@ -6174,11 +6208,10 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback for side-specific)
         "sl_tp": True,           # General SL/TP (fallback for side-specific)
         "atr_params": True,      # ATR params on main screen  
-        "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
     },
     "scalper": {
-        "order_type": True,
+        "order_type": False,     # Order type is per-side now
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -6187,7 +6220,6 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback)
         "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,
-        "hl_settings": True,
         "min_quality": False,
     },
     "elcaro": {
@@ -6200,11 +6232,10 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback)
         "sl_tp": False,          # From signal - no SL/TP settings
         "atr_params": False,     # From signal
-        "hl_settings": True,
         "min_quality": False,
     },
     "fibonacci": {
-        "order_type": True,      # Market/Limit toggle
+        "order_type": False,     # Order type is per-side now
         "coins_group": True,
         "leverage": True,
         "use_atr": True,         # ATR trailing option
@@ -6213,11 +6244,10 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback)
         "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,      # ATR params
-        "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
     },
     "oi": {
-        "order_type": True,
+        "order_type": False,     # Order type is per-side now
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -6226,11 +6256,10 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback)
         "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,      # Full ATR control
-        "hl_settings": True,
         "min_quality": False,
     },
     "rsi_bb": {
-        "order_type": True,
+        "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -6239,11 +6268,10 @@ STRATEGY_FEATURES = {
         "percent": True,         # General percent (fallback)
         "sl_tp": True,           # General SL/TP (fallback)
         "atr_params": True,
-        "hl_settings": True,
         "min_quality": False,
     },
     "manual": {
-        "order_type": True,      # Market/Limit toggle
+        "order_type": False,     # Order type is per-side now
         "coins_group": False,    # Not needed for manual trades
         "leverage": True,
         "use_atr": True,
@@ -6252,16 +6280,19 @@ STRATEGY_FEATURES = {
         "percent": True,
         "sl_tp": True,
         "atr_params": True,
-        "hl_settings": True,
         "min_quality": False,
     },
 }
 
 def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -> InlineKeyboardMarkup:
-    """Build inline keyboard for strategy selection with enable/disable status.
+    """Build inline keyboard for strategy selection.
     
-    Each strategy can have its own trading mode (Demo/Real/Both).
-    One button cycles through modes: D → R → B → D
+    Each strategy row has 3 buttons:
+    1. ON/OFF toggle
+    2. Trading mode cycle (Demo → Real → Both)
+    3. Settings button
+    
+    Trading mode is per-strategy, allowing different strategies to trade on different accounts.
     """
     cfg = cfg or {}
     
@@ -6269,48 +6300,73 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     def status(key):
         return "✅" if cfg.get(key, 0) else "❌"
     
-    # Get strategy trading mode and create cycling button
-    def mode_btn(strategy_name):
+    # Get strategy trading mode and format as button
+    def get_mode_btn(strategy_name):
         if uid:
             mode = db.get_strategy_trading_mode(uid, strategy_name) or "demo"
         else:
             mode = "demo"
-        # Show current mode with indicator
-        mode_labels = {"demo": "🎮D", "real": "💵R", "both": "🔀B"}
-        label = mode_labels.get(mode, "🎮D")
-        return InlineKeyboardButton(label, callback_data=f"strat_mode:{strategy_name}")
+        
+        mode_labels = {
+            "demo": "🎮 Demo",
+            "real": "💵 Real", 
+            "both": "🔀 Both"
+        }
+        return InlineKeyboardButton(
+            mode_labels.get(mode, "🎮 Demo"),
+            callback_data=f"strat_mode_cycle:{strategy_name}"
+        )
     
-    # Get spot status
+    # Strategy definitions: (key, trade_flag, emoji, name)
+    strategies = [
+        ("oi", "trade_oi", "📊", "OI"),
+        ("rsi_bb", "trade_rsi_bb", "📉", "RSI+BB"),
+        ("scryptomera", "trade_scryptomera", "🔮", "Scryptomera"),
+        ("scalper", "trade_scalper", "🎯", "Scalper"),
+        ("elcaro", "trade_elcaro", "🔥", "ElCaro"),
+        ("fibonacci", "trade_fibonacci", "📐", "Fibonacci"),
+        ("manual", "trade_manual", "✋", "Manual"),  # Manual trading strategy
+    ]
+    
+    buttons = []
+    
+    # Header
+    buttons.append([InlineKeyboardButton(
+        t.get('strategies_header', '══ 📈 STRATEGIES ══'),
+        callback_data="noop"
+    )])
+    
+    # Each strategy: [ON/OFF | Mode | ⚙️ Settings]
+    for strat_key, trade_flag, emoji, name in strategies:
+        buttons.append([
+            InlineKeyboardButton(
+                f"{status(trade_flag)} {emoji} {name}",
+                callback_data=f"strat_toggle:{strat_key}"
+            ),
+            get_mode_btn(strat_key),
+            InlineKeyboardButton("⚙️", callback_data=f"strat_set:{strat_key}"),
+        ])
+    
+    # Separator
+    buttons.append([InlineKeyboardButton("━━━━━━━━━━━━━", callback_data="noop")])
+    
+    # Spot trading
     spot_enabled = cfg.get("spot_enabled", 0)
     spot_status = "✅" if spot_enabled else "❌"
+    buttons.append([
+        InlineKeyboardButton(f"{spot_status} 💹 Spot", callback_data="strat_toggle:spot"),
+        InlineKeyboardButton("⚙️", callback_data="strat_set:spot"),
+    ])
     
-    buttons = [
-        # Each strategy: Enable/Disable + Name | Mode (cycling) | Settings
-        [InlineKeyboardButton(f"{status('trade_oi')} 📊 OI Strategy", callback_data="strat_toggle:oi"),
-         mode_btn("oi"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:oi")],
-        [InlineKeyboardButton(f"{status('trade_rsi_bb')} 📉 RSI+BB Strategy", callback_data="strat_toggle:rsi_bb"),
-         mode_btn("rsi_bb"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:rsi_bb")],
-        [InlineKeyboardButton(f"{status('trade_scryptomera')} 🔮 Scryptomera", callback_data="strat_toggle:scryptomera"),
-         mode_btn("scryptomera"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:scryptomera")],
-        [InlineKeyboardButton(f"{status('trade_scalper')} 🎯 Scalper", callback_data="strat_toggle:scalper"),
-         mode_btn("scalper"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:scalper")],
-        [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro Signals", callback_data="strat_toggle:elcaro"),
-         mode_btn("elcaro"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:elcaro")],
-        [InlineKeyboardButton(f"{status('trade_fibonacci')} 📐 Fibonacci", callback_data="strat_toggle:fibonacci"),
-         mode_btn("fibonacci"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:fibonacci")],
-        # Spot trading
-        [InlineKeyboardButton(f"{spot_status} 💹 Spot Trading", callback_data="strat_toggle:spot"),
-         InlineKeyboardButton("⚙️", callback_data="strat_set:spot")],
-        # Manual trading settings
-        [InlineKeyboardButton(t.get('manual_settings', '✋ Manual Trading Settings'), callback_data="strat_set:manual")],
-        [InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="strat_set:close")],
-    ]
+    # Global settings
+    buttons.append([InlineKeyboardButton(
+        t.get('global_settings', '🌐 Global Settings'),
+        callback_data="strat_set:global"
+    )])
+    
+    # Close
+    buttons.append([InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="strat_set:close")])
+    
     return InlineKeyboardMarkup(buttons)
 
 
@@ -6412,16 +6468,6 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         callback_data=f"strat_side:{strategy}:short"
     )])
     
-    # ─── ORDER TYPE (if supported) ───
-    if features.get("order_type"):
-        order_type = strat_settings.get("order_type", "market")
-        order_emoji = "🎯" if order_type == "limit" else "⚡"
-        order_label = "Limit" if order_type == "limit" else "Market"
-        buttons.append([InlineKeyboardButton(
-            f"📤 {t.get('order_type', 'Order Type')}: {order_emoji} {order_label}",
-            callback_data=f"strat_order_type:{strategy}:{order_type}"
-        )])
-    
     # ─── COINS FILTER (if supported) ───
     if features.get("coins_group"):
         coins_group = strat_settings.get("coins_group", "ALL")
@@ -6437,13 +6483,6 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
         buttons.append([InlineKeyboardButton(
             f"⭐ {t.get('min_quality', 'Min Quality')}: {min_quality}%",
             callback_data=f"strat_param:{strategy}:min_quality"
-        )])
-    
-    # ─── HYPERLIQUID (if supported) ───
-    if features.get("hl_settings"):
-        buttons.append([InlineKeyboardButton(
-            f"🔷 {t.get('hl_settings', 'HyperLiquid')}",
-            callback_data=f"strat_hl:{strategy}"
         )])
     
     # ─── RESET & BACK ───
@@ -6922,6 +6961,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     uid = query.from_user.id
     data = query.data
     logger.info(f"[CALLBACK] callback_strategy_settings called: uid={uid}, data={data}")
+    
+    # Handle noop callback (header buttons, separators)
+    if data == "noop":
+        await query.answer()
+        return
+    
     cfg = get_user_config(uid)
     lang = cfg.get("lang", DEFAULT_LANG)
     t = LANGS.get(lang, LANGS[DEFAULT_LANG])
@@ -7333,13 +7378,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             )
         return
     
-    # Handle strategy trading mode - CYCLING: D → R → B → D
-    # Format: strat_mode:{strategy}
-    if data.startswith("strat_mode:"):
-        parts = data.split(":")
-        strategy = parts[1] if len(parts) > 1 else ""
-        
-        logger.info(f"[STRAT_MODE] User {uid} cycling mode for: {strategy}")
+    # Handle strategy trading mode - CYCLE MODE (Demo → Real → Both → Demo)
+    # Format: strat_mode_cycle:{strategy}
+    if data.startswith("strat_mode_cycle:"):
+        strategy = data.split(":")[1]
         
         if strategy not in STRATEGY_NAMES_MAP:
             await query.answer("Unknown strategy")
@@ -7347,13 +7389,95 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         # Get current mode and cycle to next
         current_mode = db.get_strategy_trading_mode(uid, strategy) or "demo"
-        mode_cycle = ["demo", "real", "both"]
-        current_idx = mode_cycle.index(current_mode) if current_mode in mode_cycle else 0
-        new_mode = mode_cycle[(current_idx + 1) % len(mode_cycle)]
+        modes = ["demo", "real", "both"]
+        next_idx = (modes.index(current_mode) + 1) % 3 if current_mode in modes else 0
+        new_mode = modes[next_idx]
+        
+        logger.info(f"[STRAT_MODE_CYCLE] User {uid} cycling {strategy}: {current_mode} → {new_mode}")
         
         # Save trading_mode for this strategy
         db.set_strategy_trading_mode(uid, strategy, new_mode)
-        logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}")
+        
+        # Check credentials and warn if needed
+        warnings = []
+        
+        # Check Bybit credentials
+        if db.is_bybit_enabled(uid):
+            creds = db.get_all_user_credentials(uid)
+            has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
+            has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
+            
+            if new_mode == "real" and not has_real:
+                warnings.append("Bybit: No Real keys")
+            elif new_mode == "demo" and not has_demo:
+                warnings.append("Bybit: No Demo keys")
+            elif new_mode == "both":
+                if not has_real:
+                    warnings.append("Bybit: No Real keys")
+                if not has_demo:
+                    warnings.append("Bybit: No Demo keys")
+        
+        # Check HyperLiquid credentials
+        if db.is_hl_enabled(uid):
+            hl_creds = db.get_hl_credentials(uid)
+            has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+            if not has_testnet and hl_creds.get("hl_private_key") and hl_creds.get("hl_testnet"):
+                has_testnet = True
+            has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+            if not has_mainnet and hl_creds.get("hl_private_key") and not hl_creds.get("hl_testnet"):
+                has_mainnet = True
+            
+            if new_mode == "real" and not has_mainnet:
+                warnings.append("HL: No Mainnet key")
+            elif new_mode == "demo" and not has_testnet:
+                warnings.append("HL: No Testnet key")
+            elif new_mode == "both":
+                if not has_mainnet:
+                    warnings.append("HL: No Mainnet key")
+                if not has_testnet:
+                    warnings.append("HL: No Testnet key")
+        
+        warning = ""
+        if warnings:
+            warning = " ⚠️ " + ", ".join(warnings)
+        
+        mode_labels = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}
+        await query.answer(f"{STRATEGY_NAMES_MAP[strategy]}: {mode_labels.get(new_mode, new_mode)}{warning}", show_alert=bool(warning))
+        
+        # Refresh the strategies menu
+        cfg = get_user_config(uid)
+        
+        await query.message.edit_reply_markup(
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
+        )
+        return
+    
+    # Handle strategy trading mode - DIRECT MODE SELECTION
+    # Format: strat_mode:{strategy}:{mode}
+    # mode is: demo, real, or both
+    if data.startswith("strat_mode:"):
+        parts = data.split(":")
+        if len(parts) >= 3:
+            strategy = parts[1]
+            new_mode = parts[2]  # demo, real, or both
+        else:
+            # Fallback for old format (cycling) - shouldn't happen anymore
+            strategy = parts[1] if len(parts) > 1 else ""
+            new_mode = "demo"
+        
+        logger.info(f"[STRAT_MODE] User {uid} setting {strategy} mode to: {new_mode}")
+        
+        if strategy not in STRATEGY_NAMES_MAP:
+            await query.answer("Unknown strategy")
+            return
+        
+        # Validate mode
+        if new_mode not in ("demo", "real", "both"):
+            new_mode = "demo"
+        
+        # Save trading_mode for this strategy
+        db.set_strategy_trading_mode(uid, strategy, new_mode)
+        logger.info(f"[STRAT_MODE] {strategy}: set to {new_mode}")
         
         # Check credentials and warn if needed
         warning = ""
@@ -19132,15 +19256,25 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if api_type == "demo_key":
             set_user_credentials(uid, text, creds.get("demo_api_secret") or "", "demo")
             clear_expired_api_cache(uid, "demo")
+            # Auto-enable Bybit trading when API key is set
+            db.set_bybit_enabled(uid, True)
         elif api_type == "demo_secret":
             set_user_credentials(uid, creds.get("demo_api_key") or "", text, "demo")
             clear_expired_api_cache(uid, "demo")
+            # Auto-enable Bybit trading when API secret is set
+            if creds.get("demo_api_key"):
+                db.set_bybit_enabled(uid, True)
         elif api_type == "real_key":
             set_user_credentials(uid, text, creds.get("real_api_secret") or "", "real")
             clear_expired_api_cache(uid, "real")
+            # Auto-enable Bybit trading when Real API key is set
+            db.set_bybit_enabled(uid, True)
         elif api_type == "real_secret":
             set_user_credentials(uid, creds.get("real_api_key") or "", text, "real")
             clear_expired_api_cache(uid, "real")
+            # Auto-enable Bybit trading when Real API secret is set
+            if creds.get("real_api_key"):
+                db.set_bybit_enabled(uid, True)
         
         ctx.user_data.pop("mode", None)
         
@@ -23108,15 +23242,16 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text = (
             "⚙️ *Exchange Settings*\n\n"
             f"*Active Exchange:* {'🔷 HyperLiquid' if current_exchange == 'hyperliquid' else '🟠 Bybit'}\n\n"
-            "*Trading Enabled:*\n"
+            "*Trading Status:*\n"
             f"• 🟠 Bybit: {bybit_status}\n"
             f"• 🔷 HyperLiquid: {hl_status}\n\n"
-            "_Enable/disable exchanges to control which receive signals._"
+            "_Use /api command to manage API keys and enable/disable exchanges._\n"
+            "_Use Strategy Settings to set trading mode (Demo/Real/Both) per strategy._"
         )
         
         keyboard = [
-            [InlineKeyboardButton(f"🟠 Bybit: {bybit_status}", callback_data="exchange:toggle_bybit")],
-            [InlineKeyboardButton(f"🔷 HyperLiquid: {hl_status}", callback_data="exchange:toggle_hl")],
+            [InlineKeyboardButton("🔑 API Settings", callback_data="api:settings")],
+            [InlineKeyboardButton("📈 Strategy Settings", callback_data="strat_set:back")],
             [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
         ]
         
@@ -23350,6 +23485,8 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 vault_address=hl_creds.get("hl_vault_address"),
                 testnet=False
             )
+            # Auto-enable HL trading
+            set_hl_enabled(uid, True)
             await q.edit_message_text(
                 "🌐 *Switched to Mainnet*\n\n"
                 "⚠️ Now trading with real funds!",
@@ -23385,6 +23522,8 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 vault_address=hl_creds.get("hl_vault_address"),
                 testnet=True
             )
+            # Auto-enable HL trading
+            set_hl_enabled(uid, True)
             await q.edit_message_text(
                 "🧪 *Switched to Testnet*\n\n"
                 "Safe for practice trading!",
@@ -23845,7 +23984,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}
