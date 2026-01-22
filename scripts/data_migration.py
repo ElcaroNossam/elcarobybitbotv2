@@ -175,9 +175,13 @@ def import_data(backup_file: str = BACKUP_FILE):
                                 f"UPDATE users SET {', '.join(update_fields)} WHERE user_id = %s",
                                 values
                             )
+                            conn.commit()
                     else:
-                        # Insert new user - skip problematic fields
-                        skip_fields = {'updated_at', 'created_at'}
+                        # Insert new user - skip problematic/non-existent fields
+                        skip_fields = {
+                            'updated_at', 'created_at', 'notification_enabled',
+                            'id', 'row_number', 'rn'  # Any non-schema fields
+                        }
                         fields = [k for k in user.keys() if user[k] is not None and k not in skip_fields]
                         placeholders = ", ".join(["%s"] * len(fields))
                         values = [user[k] for k in fields]
@@ -187,7 +191,9 @@ def import_data(backup_file: str = BACKUP_FILE):
                                 f"INSERT INTO users ({', '.join(fields)}) VALUES ({placeholders})",
                                 values
                             )
+                            conn.commit()
                         except Exception as e:
+                            conn.rollback()
                             logger.warning(f"⚠️ Could not insert user {user_id}: {e}")
                             continue
                     
