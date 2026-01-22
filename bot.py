@@ -3410,49 +3410,34 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     # Get active exchange and trading mode
     active_exchange = get_exchange_type(user_id) if user_id else "bybit"
     
+    # ═══════════════════════════════════════════════════════════════
+    # ██  UNIFIED MODERN COMPACT MENU  ██
+    # ═══════════════════════════════════════════════════════════════
+    # Exchange status button (shows current active exchange, tap to see status)
     if active_exchange == "hyperliquid":
-        # ═══════════════════════════════════════════════════════════════
-        # ██  HYPERLIQUID - MODERN COMPACT MENU  ██
-        # ═══════════════════════════════════════════════════════════════
         hl_creds = get_hl_credentials(user_id) if user_id else {}
         is_testnet = hl_creds.get("hl_testnet", False)
         exchange_btn = t.get('exchange_hl_testnet', '🔷 HL 🧪') if is_testnet else t.get('exchange_hl_mainnet', '🔷 HL 🌐')
-        
-        keyboard = [
-            # ─── Row 1: Core Trading ───
-            [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
-            # ─── Row 2: AI & Market ───
-            [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
-            # ─── Row 3: Settings & Dashboard ───
-            [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
-            # ─── Row 4: Exchange ───
-            [ exchange_btn, t.get('button_switch_bybit', '🔄 Bybit'), t.get('button_api_keys', '🔗 API Keys') ],
-        ]
     else:
-        # ═══════════════════════════════════════════════════════════════
-        # ██  BYBIT - MODERN COMPACT MENU  ██
-        # ═══════════════════════════════════════════════════════════════
         creds = get_all_user_credentials(user_id) if user_id else {}
         trading_mode = creds.get("trading_mode", "demo")
-        
-        # Exchange button based on mode
         if trading_mode == "demo":
             exchange_btn = t.get('exchange_bybit_demo', '🟠 Bybit 🎮')
         elif trading_mode == "real":
             exchange_btn = t.get('exchange_bybit_real', '🟠 Bybit 💵')
         else:  # both
             exchange_btn = t.get('exchange_bybit_both', '🟠 Bybit 🔀')
-        
-        keyboard = [
-            # ─── Row 1: Core Trading ───
-            [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
-            # ─── Row 2: AI & Market ───
-            [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
-            # ─── Row 3: Settings & Dashboard ───
-            [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
-            # ─── Row 4: Exchange ───
-            [ exchange_btn, t.get('button_switch_hl', '🔄 HL'), t.get('button_api_keys', '🔗 API Keys') ],
-        ]
+    
+    keyboard = [
+        # ─── Row 1: Core Trading ───
+        [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
+        # ─── Row 2: AI & Market ───
+        [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
+        # ─── Row 3: Settings & Dashboard ───
+        [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
+        # ─── Row 4: Exchange Status + API Keys ───
+        [ exchange_btn, t.get('button_api_keys', '🔗 API Keys') ],
+    ]
     
     # Add admin row if user is admin
     if user_id == ADMIN_ID:
@@ -19030,41 +19015,17 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await cmd_exchange_status(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
-    # ██  SWITCH EXCHANGE BUTTONS  ██
+    # ██  LEGACY SWITCH EXCHANGE (removed from menu, kept for deep links)  ██
     # ═══════════════════════════════════════════════════════════════
+    # Note: Exchange switching is now done via API Settings (🔗 API Keys)
+    # These handlers are kept for backwards compatibility with old messages
     if text in ["🔄 Bybit", "🔄 Switch to Bybit"]:
-        set_exchange_type(uid, "bybit")
-        await update.message.reply_text(
-            "🟠 *Switched to Bybit!*\n\n"
-            "All trading commands now work with your Bybit account.\n"
-            "Use ⚙️ Settings to configure trading mode (Demo/Real).",
-            parse_mode="Markdown",
-            reply_markup=main_menu_keyboard(ctx, uid)
-        )
-        return
+        # Redirect to API settings
+        return await cmd_api_settings(update, ctx)
     
-    if text in ["🔄 HyperLiquid", "🔄 Switch to HL"]:
-        # Check if HL is configured
-        hl_creds = get_hl_credentials(uid)
-        if not hl_creds.get("hl_private_key"):
-            await update.message.reply_text(
-                "❌ *HyperLiquid not configured!*\n\n"
-                "To trade on HyperLiquid:\n"
-                "1️⃣ Press 🔑 API Keys\n"
-                "2️⃣ Set up your wallet and private key\n\n"
-                "_You can use testnet for practice!_",
-                parse_mode="Markdown"
-            )
-            return
-        set_exchange_type(uid, "hyperliquid")
-        await update.message.reply_text(
-            "🔷 *Switched to HyperLiquid!*\n\n"
-            "All trading commands now work with HyperLiquid.\n"
-            "Use ⚙️ Settings to switch between Testnet/Mainnet.",
-            parse_mode="Markdown",
-            reply_markup=main_menu_keyboard(ctx, uid)
-        )
-        return
+    if text in ["🔄 HyperLiquid", "🔄 Switch to HL", "🔄 HL"]:
+        # Redirect to API settings
+        return await cmd_api_settings(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
     # ██  UNIFIED BUTTONS (work for both exchanges)  ██
