@@ -506,7 +506,7 @@ def pg_init_db():
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_active_user ON active_positions(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_active_account ON active_positions(user_id, account_type)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_active_env ON active_positions(user_id, exchange, env)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_active_exchange ON active_positions(user_id, exchange, account_type)")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # TRADE LOGS TABLE
