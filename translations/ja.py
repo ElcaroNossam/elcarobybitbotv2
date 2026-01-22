@@ -181,18 +181,18 @@ TEXTS = {
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  • サイズ        : {size}\n"
+        "  • エントリー価格: {avg:.8f}\n"
+        "  • マーク価格    : {mark:.8f}\n"
+        "  • 清算価格      : {liq}\n"
+        "  • 初期証拠金    : {im:.2f}\n"
+        "  • 維持証拠金    : {mm:.2f}\n"
+        "  • テイクプロフィット: {tp}\n"
+        "  • ストップロス  : {sl}\n"
+        "  {pnl_emoji} 含み損益    : {pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *戦略別 PnL:*',
+    'pnl_by_exchange':             '🏦 *取引所別 PnL:*',
     'positions_overall':           '含み損益 合計: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

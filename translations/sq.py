@@ -180,18 +180,18 @@ TEXTS = {
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Madhësia       : {size}\n"
+        "  • Çmimi i hyrjes : {avg:.8f}\n"
+        "  • Çmimi mark     : {mark:.8f}\n"
+        "  • Likuidimi      : {liq}\n"
+        "  • Marzhi fillestar:{im:.2f}\n"
+        "  • Marzhi mirëmb. : {mm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  {pnl_emoji} PnL i pareal.: {pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *PnL sipas strategjisë:*',
+    'pnl_by_exchange':             '🏦 *PnL sipas bursës:*',
     'positions_overall':           'PnL i parealizuar total: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

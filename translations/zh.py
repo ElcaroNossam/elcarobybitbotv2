@@ -180,18 +180,18 @@ TEXTS = {
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  • 仓位大小      ：{size}\n"
+        "  • 开仓价        ：{avg:.8f}\n"
+        "  • 标记价格      ：{mark:.8f}\n"
+        "  • 强平价        ：{liq}\n"
+        "  • 初始保证金    ：{im:.2f}\n"
+        "  • 维持保证金    ：{mm:.2f}\n"
+        "  • 止盈 (TP)     ：{tp}\n"
+        "  • 止损 (SL)     ：{sl}\n"
+        "  {pnl_emoji} 未实现盈亏   ：{pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *按策略 PnL：*',
+    'pnl_by_exchange':             '🏦 *按交易所 PnL：*',
     'positions_overall':           '未实现盈亏合计：{pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

@@ -184,11 +184,11 @@ TEXTS = {
         "  • Ціна входу     : {avg:.8f}\n"
         "  • Марк-ціна      : {mark:.8f}\n"
         "  • Ліквідація     : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Початкова маржа: {im:.2f}\n"
+        "  • Маржа утримання: {mm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  {pnl_emoji} Нереал. PnL  : {pnl:+.2f} ({pct:+.2f}%)"
     ),
     'pnl_by_strategy':             '📊 *PnL за стратегією:*',
     'pnl_by_exchange':             '🏦 *PnL за біржею:*',

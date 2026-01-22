@@ -181,18 +181,18 @@ TEXTS = {
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  • الحجم          : {size}\n"
+        "  • سعر الدخول     : {avg:.8f}\n"
+        "  • سعر المؤشر     : {mark:.8f}\n"
+        "  • التصفية        : {liq}\n"
+        "  • الهامش الأولي  : {im:.2f}\n"
+        "  • هامش الصيانة   : {mm:.2f}\n"
+        "  • أخذ الربح      : {tp}\n"
+        "  • وقف الخسارة    : {sl}\n"
+        "  {pnl_emoji} ربح/خسارة غير محقق: {pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *PnL حسب الاستراتيجية:*',
+    'pnl_by_exchange':             '🏦 *PnL حسب البورصة:*',
     'positions_overall':           'إجمالي الربح/الخسارة غير المحقق: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

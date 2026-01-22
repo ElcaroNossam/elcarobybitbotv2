@@ -305,12 +305,12 @@ TEXTS = {
         "  • Цена входа     : {avg:.8f}\n"
         "  • Марк-цена      : {mark:.8f}\n"
         "  • Ликвидация     : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Нач. маржа     : {im:.2f}\n"
+        "  • Маржа удерж.   : {mm:.2f}\n"
         "  • Баланс позиции : {pm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  • Unreal PnL     : {pnl:+.2f} ({pct:+.2f}%)"
+        "  • Нереал. PnL    : {pnl:+.2f} ({pct:+.2f}%)"
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
@@ -318,15 +318,15 @@ TEXTS = {
         "  • Цена входа     : {avg:.8f}\n"
         "  • Марк-цена      : {mark:.8f}\n"
         "  • Ликвидация     : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Нач. маржа     : {im:.2f}\n"
+        "  • Маржа удерж.   : {mm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  {pnl_emoji} Нереал. PnL  : {pnl:+.2f} ({pct:+.2f}%)"
     ),
     'pnl_by_strategy':             '📊 *PnL по стратегии:*',
     'pnl_by_exchange':             '🏦 *PnL по бирже:*',
-    'positions_overall':           'Итого Unreal PnL: {pnl:+.2f} ({pct:+.2f}%)',
+    'positions_overall':           'Итого нереал. PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Управление позициями (inline)
     'open_positions_header':       '📊 *Открытые позиции*',

@@ -184,18 +184,18 @@ Elige tu camino hacia la libertad financiera:''',
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Tamaño         : {size}\n"
+        "  • Precio entrada : {avg:.8f}\n"
+        "  • Precio mark    : {mark:.8f}\n"
+        "  • Liquidación    : {liq}\n"
+        "  • Margen inicial : {im:.2f}\n"
+        "  • Margen mant.   : {mm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  {pnl_emoji} PnL no real. : {pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *PnL por estrategia:*',
+    'pnl_by_exchange':             '🏦 *PnL por exchange:*',
     'positions_overall':           'PnL no realizado total: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)

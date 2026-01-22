@@ -175,8 +175,8 @@ Wähle deinen Weg zur finanziellen Freiheit:''',
         "  • Einstiegspreis : {avg:.8f}\n"
         "  • Mark-Preis     : {mark:.8f}\n"
         "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint. Margin  : {mm:.2f}\n"
+        "  • Anfängl. Marge : {im:.2f}\n"
+        "  • Erhalt. Marge  : {mm:.2f}\n"
         "  • Positionssaldo : {pm:.2f}\n"
         "  • Take-Profit    : {tp}\n"
         "  • Stop-Loss      : {sl}\n"
@@ -184,18 +184,18 @@ Wähle deinen Weg zur finanziellen Freiheit:''',
     ),
     'position_item_v2':            (
         "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
+        "  • Größe          : {size}\n"
+        "  • Einstiegspreis : {avg:.8f}\n"
+        "  • Mark-Preis     : {mark:.8f}\n"
         "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
+        "  • Anfängl. Marge : {im:.2f}\n"
+        "  • Erhalt. Marge  : {mm:.2f}\n"
         "  • Take Profit    : {tp}\n"
         "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+        "  {pnl_emoji} Unreal. PnL  : {pnl:+.2f} ({pct:+.2f}%)"
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
+    'pnl_by_strategy':             '📊 *PnL nach Strategie:*',
+    'pnl_by_exchange':             '🏦 *PnL nach Börse:*',
     'positions_overall':           'Gesamt nicht realisierter PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
