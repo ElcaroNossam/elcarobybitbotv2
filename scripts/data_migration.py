@@ -148,6 +148,11 @@ def import_data(backup_file: str = BACKUP_FILE):
                     if not user_id:
                         continue
                     
+                    # Convert dict/list fields to JSON strings
+                    for key in list(user.keys()):
+                        if isinstance(user[key], (dict, list)):
+                            user[key] = json.dumps(user[key])
+                    
                     # Check if user exists
                     cur.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
                     exists = cur.fetchone()
@@ -171,8 +176,9 @@ def import_data(backup_file: str = BACKUP_FILE):
                                 values
                             )
                     else:
-                        # Insert new user
-                        fields = [k for k in user.keys() if user[k] is not None]
+                        # Insert new user - skip problematic fields
+                        skip_fields = {'updated_at', 'created_at'}
+                        fields = [k for k in user.keys() if user[k] is not None and k not in skip_fields]
                         placeholders = ", ".join(["%s"] * len(fields))
                         values = [user[k] for k in fields]
                         
@@ -210,6 +216,16 @@ def import_data(backup_file: str = BACKUP_FILE):
                 payments = data["tables"]["payment_history"]
                 for p in payments:
                     try:
+                        # Handle created_at - convert unix timestamp to datetime
+                        created_at = p.get("created_at")
+                        if isinstance(created_at, (int, float)):
+                            created_at = datetime.fromtimestamp(created_at)
+                        elif isinstance(created_at, str):
+                            try:
+                                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            except:
+                                created_at = None
+                        
                         cur.execute("""
                             INSERT INTO payment_history 
                             (user_id, amount, currency, payment_type, status, tx_hash, created_at)
@@ -218,9 +234,11 @@ def import_data(backup_file: str = BACKUP_FILE):
                         """, (
                             p["user_id"], p.get("amount", 0), p.get("currency", "USDT"),
                             p.get("payment_type", "unknown"), p.get("status", "completed"),
-                            p.get("tx_hash"), p.get("created_at")
+                            p.get("tx_hash"), created_at
                         ))
+                        conn.commit()  # Commit each payment separately
                     except Exception as e:
+                        conn.rollback()  # Rollback failed transaction
                         logger.warning(f"⚠️ Could not import payment: {e}")
                 
                 logger.info(f"  ✅ Imported {len(payments)} payment records")
