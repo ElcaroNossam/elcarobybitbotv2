@@ -3602,8 +3602,9 @@ async def set_leverage(
         if "10001" in str(e) or "leverage invalid" in err_str:
             logger.warning(f"[{user_id}] Leverage {leverage}x not supported for {symbol}, trying fallbacks")
             # Try decreasing leverage values until one works
-            for fallback_lev in [50, 25, 10, 5, 3, 2, 1]:
-                if fallback_lev < leverage:
+            # Include values <= leverage to handle cases where requested leverage itself fails
+            for fallback_lev in [100, 75, 50, 25, 20, 15, 10, 5, 3, 2, 1]:
+                if fallback_lev <= leverage:
                     try:
                         body["buyLeverage"] = str(fallback_lev)
                         body["sellLeverage"] = str(fallback_lev)
@@ -3637,8 +3638,8 @@ async def set_leverage(
                         return 0
             else:
                 # Can't extract max, try common values: 100, 50, 25, 10
-                for fallback_lev in [100, 50, 25, 10, 5, 3, 2, 1]:
-                    if fallback_lev < leverage:
+                for fallback_lev in [100, 75, 50, 25, 20, 15, 10, 5, 3, 2, 1]:
+                    if fallback_lev <= leverage:
                         try:
                             body["buyLeverage"] = str(fallback_lev)
                             body["sellLeverage"] = str(fallback_lev)
@@ -5456,7 +5457,7 @@ async def place_order_for_targets(
                     notional_value = target_qty * entry_price
                     
                     if notional_value < MIN_NOTIONAL:
-                        # Get instrument info for proper qty rounding
+                        # Get instrument info for proper qty rounding and max leverage
                         inst = await _bybit_request(
                             user_id, "GET", "/v5/market/instruments-info",
                             params={"category": "linear", "symbol": symbol},
@@ -5465,6 +5466,10 @@ async def place_order_for_targets(
                         lot = inst["list"][0]["lotSizeFilter"]
                         step_qty = float(lot["qtyStep"])
                         min_qty = float(lot["minOrderQty"])
+                        
+                        # Get max leverage for this symbol from API
+                        leverage_filter = inst["list"][0].get("leverageFilter", {})
+                        symbol_max_leverage = int(float(leverage_filter.get("maxLeverage", 50)))
                         
                         # Calculate minimum qty needed to reach min notional
                         min_qty_for_notional = MIN_NOTIONAL / entry_price
@@ -5478,12 +5483,12 @@ async def place_order_for_targets(
                         
                         # Adjust leverage proportionally
                         new_leverage = math.ceil(target_leverage * required_multiplier)
-                        new_leverage = min(new_leverage, 50)  # Cap at 50x
+                        new_leverage = min(new_leverage, symbol_max_leverage)  # Cap at symbol's max leverage
                         
                         logger.info(
                             f"[{user_id}] Notional ${notional_value:.2f} < ${MIN_NOTIONAL} min. "
                             f"Adjusting: qty {target_qty:.4f} -> {adjusted_qty:.4f}, "
-                            f"leverage {target_leverage}x -> {new_leverage}x"
+                            f"leverage {target_leverage}x -> {new_leverage}x (max={symbol_max_leverage}x)"
                         )
                         
                         target_qty = adjusted_qty
