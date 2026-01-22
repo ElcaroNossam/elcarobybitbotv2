@@ -121,7 +121,7 @@ def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
-                # UPSERT with defaults
+                # UPSERT with defaults - ensure boolean fields are properly typed
                 cur.execute(f"""
                     INSERT INTO user_strategy_settings 
                         (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
@@ -130,9 +130,10 @@ def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str
                     ON CONFLICT (user_id, strategy, side) 
                     DO UPDATE SET {field} = %s, updated_at = NOW()
                 """, (user_id, strategy, side, 
-                      defaults["enabled"], defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
-                      defaults["leverage"], defaults["use_atr"], defaults["atr_trigger_pct"], 
-                      defaults["atr_step_pct"], defaults["order_type"], value))
+                      bool(defaults["enabled"]), defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
+                      defaults["leverage"], bool(defaults["use_atr"]), defaults["atr_trigger_pct"], 
+                      defaults["atr_step_pct"], defaults["order_type"], 
+                      bool(value) if field in ('enabled', 'use_atr', 'dca_enabled') else value))
         return True
     except Exception as e:
         _logger.error(f"Error setting {field}={value} for {user_id}/{strategy}/{side}: {e}")
@@ -168,8 +169,8 @@ def reset_strategy_side_to_defaults(user_id: int, strategy: str, side: str) -> b
                         order_type = EXCLUDED.order_type,
                         updated_at = NOW()
                 """, (user_id, strategy, side, 
-                      defaults["enabled"], defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
-                      defaults["leverage"], defaults["use_atr"], defaults["atr_trigger_pct"], 
+                      bool(defaults["enabled"]), defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
+                      defaults["leverage"], bool(defaults["use_atr"]), defaults["atr_trigger_pct"], 
                       defaults["atr_step_pct"], defaults["order_type"]))
         _logger.info(f"Reset {user_id}/{strategy}/{side} to defaults")
         return True

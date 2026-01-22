@@ -1825,9 +1825,16 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'exchange', 'account_type'  # Added multitenancy fields
     }
     
+    # Boolean fields that need conversion from int to bool for PostgreSQL
+    BOOLEAN_FIELDS = {'enabled', 'use_atr', 'dca_enabled'}
+    
     if field not in ALLOWED_FIELDS:
         logger.warning(f"Field '{field}' not in allowed fields for _pg_set_side_setting")
         return False
+    
+    # Convert int to bool for boolean columns
+    if field in BOOLEAN_FIELDS and value is not None:
+        value = bool(value)
     
     defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
     
@@ -1856,17 +1863,17 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     user_id, strategy, side,
-                    defaults.get("enabled", True),
+                    bool(defaults.get("enabled", True)),
                     defaults.get("percent"),
                     defaults.get("sl_percent"),
                     defaults.get("tp_percent"),
                     defaults.get("leverage"),
-                    defaults.get("use_atr", 0),
+                    bool(defaults.get("use_atr", False)),  # Convert to bool for PostgreSQL
                     defaults.get("atr_trigger_pct"),
                     defaults.get("atr_step_pct"),
                     defaults.get("order_type", "market"),
                     defaults.get("limit_offset_pct", 0.1),
-                    defaults.get("dca_enabled", 0),
+                    bool(defaults.get("dca_enabled", False)),  # Convert to bool for PostgreSQL
                     defaults.get("dca_pct_1", 10.0),
                     defaults.get("dca_pct_2", 25.0),
                     defaults.get("max_positions", 0),
@@ -1925,17 +1932,17 @@ def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None)
                         updated_at = NOW()
                 """, (
                     user_id, strategy, s,
-                    defaults.get("enabled", True),
+                    bool(defaults.get("enabled", True)),
                     defaults.get("percent"),
                     defaults.get("sl_percent"),
                     defaults.get("tp_percent"),
                     defaults.get("leverage"),
-                    defaults.get("use_atr", 0),
+                    bool(defaults.get("use_atr", False)),  # Convert to bool for PostgreSQL
                     defaults.get("atr_trigger_pct"),
                     defaults.get("atr_step_pct"),
                     defaults.get("order_type", "market"),
                     defaults.get("limit_offset_pct", 0.1),
-                    defaults.get("dca_enabled", 0),
+                    bool(defaults.get("dca_enabled", False)),  # Convert to bool for PostgreSQL
                     defaults.get("dca_pct_1", 10.0),
                     defaults.get("dca_pct_2", 25.0),
                     defaults.get("max_positions", 0),
