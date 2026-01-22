@@ -6261,7 +6261,7 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     """Build inline keyboard for strategy selection with enable/disable status.
     
     Each strategy can have its own trading mode (Demo/Real/Both).
-    This allows running different strategies on different account types.
+    One button cycles through modes: D → R → B → D
     """
     cfg = cfg or {}
     
@@ -6269,42 +6269,40 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     def status(key):
         return "✅" if cfg.get(key, 0) else "❌"
     
-    # Get strategy trading modes from user_strategy_settings
-    def get_strat_mode(strategy_name):
+    # Get strategy trading mode and create cycling button
+    def mode_btn(strategy_name):
         if uid:
-            mode = db.get_strategy_trading_mode(uid, strategy_name)
-            return mode or "demo"
-        return "demo"
-    
-    # Mode indicators
-    def mode_btn(strategy_name, mode):
-        current = get_strat_mode(strategy_name)
-        active = "●" if current == mode else "○"
-        return InlineKeyboardButton(f"{active}{mode[0].upper()}", callback_data=f"strat_mode:{strategy_name}:{mode}")
+            mode = db.get_strategy_trading_mode(uid, strategy_name) or "demo"
+        else:
+            mode = "demo"
+        # Show current mode with indicator
+        mode_labels = {"demo": "🎮D", "real": "💵R", "both": "🔀B"}
+        label = mode_labels.get(mode, "🎮D")
+        return InlineKeyboardButton(label, callback_data=f"strat_mode:{strategy_name}")
     
     # Get spot status
     spot_enabled = cfg.get("spot_enabled", 0)
     spot_status = "✅" if spot_enabled else "❌"
     
     buttons = [
-        # Each strategy: Enable/Disable + Name | D | R | B | Settings
-        [InlineKeyboardButton(f"{status('trade_oi')} 📊 OI", callback_data="strat_toggle:oi"),
-         mode_btn("oi", "demo"), mode_btn("oi", "real"), mode_btn("oi", "both"),
+        # Each strategy: Enable/Disable + Name | Mode (cycling) | Settings
+        [InlineKeyboardButton(f"{status('trade_oi')} 📊 OI Strategy", callback_data="strat_toggle:oi"),
+         mode_btn("oi"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:oi")],
-        [InlineKeyboardButton(f"{status('trade_rsi_bb')} 📉 RSI+BB", callback_data="strat_toggle:rsi_bb"),
-         mode_btn("rsi_bb", "demo"), mode_btn("rsi_bb", "real"), mode_btn("rsi_bb", "both"),
+        [InlineKeyboardButton(f"{status('trade_rsi_bb')} 📉 RSI+BB Strategy", callback_data="strat_toggle:rsi_bb"),
+         mode_btn("rsi_bb"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:rsi_bb")],
-        [InlineKeyboardButton(f"{status('trade_scryptomera')} 🔮 Scrypt", callback_data="strat_toggle:scryptomera"),
-         mode_btn("scryptomera", "demo"), mode_btn("scryptomera", "real"), mode_btn("scryptomera", "both"),
+        [InlineKeyboardButton(f"{status('trade_scryptomera')} 🔮 Scryptomera", callback_data="strat_toggle:scryptomera"),
+         mode_btn("scryptomera"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:scryptomera")],
         [InlineKeyboardButton(f"{status('trade_scalper')} 🎯 Scalper", callback_data="strat_toggle:scalper"),
-         mode_btn("scalper", "demo"), mode_btn("scalper", "real"), mode_btn("scalper", "both"),
+         mode_btn("scalper"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:scalper")],
-        [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro", callback_data="strat_toggle:elcaro"),
-         mode_btn("elcaro", "demo"), mode_btn("elcaro", "real"), mode_btn("elcaro", "both"),
+        [InlineKeyboardButton(f"{status('trade_elcaro')} 🔥 Elcaro Signals", callback_data="strat_toggle:elcaro"),
+         mode_btn("elcaro"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:elcaro")],
-        [InlineKeyboardButton(f"{status('trade_fibonacci')} 📐 Fibo", callback_data="strat_toggle:fibonacci"),
-         mode_btn("fibonacci", "demo"), mode_btn("fibonacci", "real"), mode_btn("fibonacci", "both"),
+        [InlineKeyboardButton(f"{status('trade_fibonacci')} 📐 Fibonacci", callback_data="strat_toggle:fibonacci"),
+         mode_btn("fibonacci"),
          InlineKeyboardButton("⚙️", callback_data="strat_set:fibonacci")],
         # Spot trading
         [InlineKeyboardButton(f"{spot_status} 💹 Spot Trading", callback_data="strat_toggle:spot"),
@@ -7335,32 +7333,27 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             )
         return
     
-    # Handle strategy trading mode - DIRECT MODE SELECTION
-    # Format: strat_mode:{strategy}:{mode}
-    # mode is: demo, real, or both
+    # Handle strategy trading mode - CYCLING: D → R → B → D
+    # Format: strat_mode:{strategy}
     if data.startswith("strat_mode:"):
         parts = data.split(":")
-        if len(parts) >= 3:
-            strategy = parts[1]
-            new_mode = parts[2]  # demo, real, or both
-        else:
-            # Fallback for old format (cycling) - shouldn't happen anymore
-            strategy = parts[1] if len(parts) > 1 else ""
-            new_mode = "demo"
+        strategy = parts[1] if len(parts) > 1 else ""
         
-        logger.info(f"[STRAT_MODE] User {uid} setting {strategy} mode to: {new_mode}")
+        logger.info(f"[STRAT_MODE] User {uid} cycling mode for: {strategy}")
         
         if strategy not in STRATEGY_NAMES_MAP:
             await query.answer("Unknown strategy")
             return
         
-        # Validate mode
-        if new_mode not in ("demo", "real", "both"):
-            new_mode = "demo"
+        # Get current mode and cycle to next
+        current_mode = db.get_strategy_trading_mode(uid, strategy) or "demo"
+        mode_cycle = ["demo", "real", "both"]
+        current_idx = mode_cycle.index(current_mode) if current_mode in mode_cycle else 0
+        new_mode = mode_cycle[(current_idx + 1) % len(mode_cycle)]
         
         # Save trading_mode for this strategy
         db.set_strategy_trading_mode(uid, strategy, new_mode)
-        logger.info(f"[STRAT_MODE] {strategy}: set to {new_mode}")
+        logger.info(f"[STRAT_MODE] {strategy}: {current_mode} -> {new_mode}")
         
         # Check credentials and warn if needed
         warning = ""
