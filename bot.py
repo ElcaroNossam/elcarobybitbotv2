@@ -14902,7 +14902,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('bitk_market_error', "Market error: {msg}").format(msg=error_msg)
+                            t.get('bitk_market_error', "Market error: {msg}").format(
+                                msg=error_msg,
+                                symbol=symbol,
+                                side=side
+                            )
                         )
                 continue
 
@@ -15051,7 +15055,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('scalper_market_error', "Scalper error: {msg}").format(msg=error_msg)
+                            t.get('scalper_market_error', "Scalper error: {msg}").format(
+                                msg=error_msg,
+                                symbol=symbol,
+                                side=side
+                            )
                         )
                 continue
 
@@ -15280,7 +15288,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             else:
                                 await ctx.bot.send_message(
                                     uid,
-                                    t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=error_msg)
+                                    t.get('elcaro_market_error', "Elcaro error: {msg}").format(
+                                        msg=error_msg,
+                                        symbol=symbol,
+                                        side=side
+                                    )
                                 )
                 except Exception as e:
                     error_msg = str(e)
@@ -15307,7 +15319,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     else:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('elcaro_market_error', "Elcaro error: {msg}").format(msg=error_msg)
+                            t.get('elcaro_market_error', "Elcaro error: {msg}").format(
+                                msg=error_msg,
+                                symbol=symbol,
+                                side=side
+                            )
                         )
                 continue
 
