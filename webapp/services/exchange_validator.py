@@ -538,11 +538,15 @@ async def validate_user_exchange_setup(
     
     if exchange == "hyperliquid":
         creds = get_hl_credentials(user_id)
-        if not creds.get("hl_private_key"):
+        # Check all possible keys (new architecture + legacy)
+        private_key = (creds.get("hl_testnet_private_key") or 
+                       creds.get("hl_mainnet_private_key") or
+                       creds.get("hl_private_key"))
+        if not private_key:
             return {"valid": False, "error": "HyperLiquid not configured"}
         
         return await ExchangeValidator.validate_hyperliquid(
-            creds["hl_private_key"],
+            private_key,
             creds.get("hl_testnet", False)
         )
     else:

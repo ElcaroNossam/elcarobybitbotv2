@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.16.0 | Обновлено: 21 января 2026
+# Версия: 3.17.0 | Обновлено: 22 января 2026
 # =============================================
 
 ---
@@ -540,6 +540,46 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FIX: Main Menu Keyboard Simplification (Jan 22, 2026)
+- **Проблема:** Клавиатура была перегружена кнопками переключения бирж (🔄 Bybit, 🔄 HL)
+- **Причина:** Отдельные кнопки для переключения бирж занимали место
+- **Файлы:**
+  - `bot.py` - `main_menu_keyboard()` упрощена:
+    - Убраны кнопки 🔄 Bybit и 🔄 HL
+    - Кнопка биржи теперь toggle: нажатие переключает между Bybit/HL
+    - 4 строки вместо 5
+    - Row 4: `[🟠 Bybit 🎮] [🔗 API Keys]` или `[🔷 HyperLiquid] [🔗 API Keys]`
+- **Новое поведение:**
+  - Нажатие на "🟠 Bybit 🎮" → переключает на HyperLiquid
+  - Нажатие на "🔷 HyperLiquid" → переключает на Bybit
+- **Commits:** 90bf521, 9b48838
+
+### ✅ FIX: Missing get_user_field Function (Jan 22, 2026)
+- **Проблема:** `AttributeError: module 'db' has no attribute 'get_user_field'`
+- **Причина:** Функция вызывалась в bot.py но не была определена в db.py
+- **Файлы:**
+  - `db.py` - добавлена функция `get_user_field(user_id, field, default=None)`:
+    ```python
+    USER_FIELDS_WHITELIST = {"lang", "exchange_type", "trading_mode", ...}
+    def get_user_field(user_id, field, default=None):
+        if field not in USER_FIELDS_WHITELIST:
+            return default
+        # PostgreSQL query
+    ```
+  - `bot.py` - добавлен import `get_user_field` из db
+- **Commit:** a3ebae4
+
+### ✅ FIX: HyperLiquid API Settings Enhancement (Jan 22, 2026)
+- **Проблема:** В меню HL API не было возможности переключить сеть и установить ключ
+- **Файлы:**
+  - `bot.py` - добавлены handlers:
+    - `hl_api:testnet` - переключение на testnet
+    - `hl_api:mainnet` - переключение на mainnet  
+    - `hl_api:set_key` - установка private key для текущей сети
+    - `hl_api:back` - возврат в главное меню API Settings
+  - `bot.py` - добавлена функция `_refresh_hl_settings_inline()` для обновления UI
+- **Commit:** 384f970
 
 ### ✅ CRITICAL: Full HyperLiquid Multitenancy Credentials Fix (Jan 22, 2026)
 - **Проблема:** Все компоненты системы использовали legacy `hl_private_key` вместо новой архитектуры `hl_testnet_private_key` / `hl_mainnet_private_key`
@@ -1276,11 +1316,12 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 21 января 2026*
-*Version: 3.16.0*
+*Last updated: 22 января 2026*
+*Version: 3.17.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*
 *TON Integration: In Progress (stubs)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
+*Main Menu: Simplified 4-row keyboard with exchange toggle*

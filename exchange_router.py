@@ -206,7 +206,11 @@ def get_user_targets(user_id: int) -> list[Target]:
     # Check HyperLiquid credentials
     try:
         hl_creds = db.get_hl_credentials(user_id)
-        if hl_creds.get("hl_private_key") and hl_creds.get("hl_enabled"):
+        # Check all possible keys (new architecture + legacy)
+        has_hl_key = (hl_creds.get("hl_testnet_private_key") or 
+                      hl_creds.get("hl_mainnet_private_key") or
+                      hl_creds.get("hl_private_key"))
+        if has_hl_key and hl_creds.get("hl_enabled"):
             env = Env.PAPER.value if hl_creds.get("hl_testnet") else Env.LIVE.value
             targets.append(Target(
                 exchange=Exchange.HYPERLIQUID.value,
