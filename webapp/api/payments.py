@@ -3,10 +3,11 @@ Payments & Subscriptions API
 Handles subscription purchases, upgrades, TON/Web3 payments
 """
 from fastapi import APIRouter, HTTPException, Depends, Body
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime, timedelta
 import logging
+import re
 
 import db
 from webapp.api.auth import get_current_user
@@ -19,10 +20,28 @@ router = APIRouter()
 class PaymentRequest(BaseModel):
     plan: Literal['trial', 'basic', 'premium']
     period: Literal['monthly', 'quarterly', 'yearly']
-    amount: float
+    amount: float = Field(..., ge=0, le=10000, description="Payment amount in USD")
     payment_method: Literal['web3', 'ton', 'usdt']
-    wallet_address: Optional[str] = None
-    transaction_hash: Optional[str] = None
+    wallet_address: Optional[str] = Field(None, max_length=128)
+    transaction_hash: Optional[str] = Field(None, min_length=64, max_length=128)
+    
+    @field_validator('wallet_address')
+    @classmethod
+    def validate_wallet_address(cls, v):
+        if v is not None:
+            # Basic validation for crypto wallet addresses
+            if not re.match(r'^[a-zA-Z0-9_\-:]+$', v):
+                raise ValueError('Invalid wallet address format')
+        return v
+    
+    @field_validator('transaction_hash')
+    @classmethod
+    def validate_tx_hash(cls, v):
+        if v is not None:
+            # Transaction hash should be hex
+            if not re.match(r'^[a-fA-F0-9]+$', v):
+                raise ValueError('Invalid transaction hash format')
+        return v
 
 
 class SubscriptionInfo(BaseModel):
@@ -83,6 +102,12 @@ async def create_payment(
     user_id = current_user['user_id']
     
     try:
+        # Check for duplicate transaction BEFORE processing
+        if payment.transaction_hash:
+            if db.check_duplicate_transaction(payment.transaction_hash):
+                logger.warning(f"Duplicate transaction attempt: {payment.transaction_hash} by user {user_id}")
+                raise HTTPException(status_code=409, detail="Transaction already processed")
+        
         # Validate plan and period
         if payment.plan not in PRICING:
             raise HTTPException(status_code=400, detail="Invalid plan")
@@ -273,11 +298,10 @@ async def get_my_payment_history(
     """Get current user's payment history"""
     try:
         user_id = user["user_id"]
-        # This would query a payments table
-        # For now, return mock data
+        payments = db.get_user_payments(user_id, limit)
         return {
             "success": True,
-            "payments": []
+            "payments": payments
         }
     except Exception as e:
         logger.error(f"Failed to get payment history: {e}")
@@ -296,11 +320,10 @@ async def get_payment_history(
         raise HTTPException(status_code=403, detail="Access denied. You can only view your own payment history.")
     
     try:
-        # This would query a payments table
-        # For now, return mock data
+        payments = db.get_user_payments(user_id, limit)
         return {
             "success": True,
-            "payments": []
+            "payments": payments
         }
     except Exception as e:
         logger.error(f"Failed to get payment history: {e}")

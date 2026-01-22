@@ -3,11 +3,13 @@ WebSocket endpoint for real-time market data streaming.
 
 Similar to scan/api/consumers.py but using FastAPI WebSockets.
 """
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from typing import Optional
 import logging
 import json
 import asyncio
+
+from webapp.api.auth import get_current_user_optional, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +115,14 @@ async def get_status():
 @router.post("/realtime/start")
 async def start_realtime_workers(
     bybit_symbols: Optional[list] = None,
-    hl_symbols: Optional[list] = None
+    hl_symbols: Optional[list] = None,
+    current_user: dict = Depends(get_current_user)
 ):
-    """Start real-time data workers."""
+    """Start real-time data workers. Requires authentication."""
+    # Only admins can start workers
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
         await start_workers(bybit_symbols, hl_symbols)
         return {'status': 'started', 'message': 'Real-time workers started successfully'}

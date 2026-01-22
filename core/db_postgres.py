@@ -148,8 +148,8 @@ class SQLiteCompatCursor:
             if 'RETURNING' in pg_query:
                 try:
                     self._cursor.connection.rollback()
-                except:
-                    pass
+                except Exception as rollback_err:
+                    logger.warning(f"Rollback failed during RETURNING retry: {rollback_err}")
                 pg_query_no_returning = pg_query.replace(' RETURNING id', '')
                 self._cursor.execute(pg_query_no_returning, params)
                 self.rowcount = self._cursor.rowcount
@@ -350,6 +350,16 @@ def pg_init_db():
                 trade_fibonacci    INTEGER NOT NULL DEFAULT 0,
                 trade_manual       INTEGER NOT NULL DEFAULT 1,
                 strategy_settings  TEXT,
+                strategies_enabled TEXT,  -- CSV list of enabled strategies
+                strategies_order   TEXT,  -- CSV list of strategy execution order
+                
+                -- Strategy thresholds
+                rsi_lo             REAL,
+                rsi_hi             REAL,
+                bb_touch_k         REAL,
+                oi_min_pct         REAL,
+                price_min_pct      REAL,
+                limit_only_default INTEGER NOT NULL DEFAULT 0,
                 
                 -- DCA settings
                 dca_enabled        INTEGER NOT NULL DEFAULT 0,
@@ -393,6 +403,7 @@ def pg_init_db():
                 -- License
                 current_license    TEXT DEFAULT 'none',
                 license_expires    BIGINT,
+                license_type       TEXT,  -- Type of license (trial, basic, pro, etc.)
                 
                 -- ELC Token
                 elc_balance        REAL NOT NULL DEFAULT 0.0,
@@ -927,6 +938,32 @@ def pg_init_db():
             )
         """)
         
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        # MIGRATIONS: Add missing columns to existing tables
+        # ═══════════════════════════════════════════════════════════════════════════════════
+        migration_columns = [
+            ("strategies_enabled", "TEXT"),
+            ("strategies_order", "TEXT"),
+            ("rsi_lo", "REAL"),
+            ("rsi_hi", "REAL"),
+            ("bb_touch_k", "REAL"),
+            ("oi_min_pct", "REAL"),
+            ("price_min_pct", "REAL"),
+            ("limit_only_default", "INTEGER DEFAULT 0"),
+            ("license_type", "TEXT"),
+        ]
+        for col_name, col_def in migration_columns:
+            cur.execute(f"""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'users' AND column_name = '{col_name}') THEN
+                        ALTER TABLE users ADD COLUMN {col_name} {col_def};
+                    END IF;
+                END
+                $$
+            """)
+        
         logger.info("✅ PostgreSQL schema initialized successfully")
 
 
@@ -1443,7 +1480,8 @@ def pg_get_user_config(user_id: int) -> Dict:
         import json
         try:
             config['strategy_settings'] = json.loads(config['strategy_settings'])
-        except:
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse strategy_settings for user {user_id}: {e}")
             config['strategy_settings'] = {}
     
     return config

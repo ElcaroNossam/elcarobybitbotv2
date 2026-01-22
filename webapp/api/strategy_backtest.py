@@ -427,8 +427,8 @@ async def get_available_timeframes() -> List[Dict[str, str]]:
 
 @router.get("/symbols")
 async def get_available_symbols(
-    exchange: str = Query("binance", regex="^(binance|bybit)$"),
-    quote: str = Query("USDT", regex="^(USDT|USDC|BUSD)$")
+    exchange: str = Query("binance", pattern="^(binance|bybit)$"),
+    quote: str = Query("USDT", pattern="^(USDT|USDC|BUSD)$")
 ) -> List[Dict[str, Any]]:
     """Get all tradeable symbols with metadata"""
     # Mock data - in production, fetch from exchange

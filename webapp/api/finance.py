@@ -121,7 +121,7 @@ def calculate_mrr(subscriptions: List[Dict]) -> float:
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 async def get_finance_dashboard(
-    period: str = Query("month", regex="^(day|week|month|quarter|year)$"),
+    period: str = Query("month", pattern="^(day|week|month|quarter|year)$"),
     admin: dict = Depends(require_admin)
 ):
     """
@@ -443,8 +443,8 @@ async def get_subscription_analytics(
 
 @router.get("/revenue/chart", response_model=Dict[str, Any])
 async def get_revenue_chart(
-    period: str = Query("month", regex="^(week|month|quarter|year)$"),
-    group_by: str = Query("day", regex="^(day|week|month)$"),
+    period: str = Query("month", pattern="^(week|month|quarter|year)$"),
+    group_by: str = Query("day", pattern="^(day|week|month)$"),
     admin: dict = Depends(require_admin)
 ):
     """

@@ -144,25 +144,79 @@ def verify_webapp_data(init_data: str) -> Optional[dict]:
 
 
 # =============================================================================
-# TOKEN BLACKLIST (in-memory, use Redis in production for horizontal scaling)
+# TOKEN BLACKLIST (Redis-backed with in-memory fallback)
 # =============================================================================
 from collections import OrderedDict
 from threading import Lock
+import os
 
 class TokenBlacklist:
     """
-    In-memory JWT token blacklist with auto-expiry.
-    Stores token JTI (unique identifier) until expiration.
+    JWT token blacklist with Redis support for horizontal scaling.
+    Falls back to in-memory storage if Redis is unavailable.
     
-    SECURITY: In production with multiple workers, use Redis instead.
+    Stores token JTI (unique identifier) until expiration.
     """
     def __init__(self, max_size: int = 10000):
         self._blacklist: OrderedDict[str, datetime] = OrderedDict()
         self._max_size = max_size
         self._lock = Lock()
+        self._redis = None
+        self._redis_available = False
+        self._redis_prefix = "token_blacklist:"
+    
+    async def _get_redis(self):
+        """Get Redis client, initialize if needed."""
+        if self._redis_available:
+            return self._redis
+        
+        try:
+            from core.redis_client import get_redis
+            self._redis = await get_redis()
+            if self._redis and await self._redis.client.ping():
+                self._redis_available = True
+                logger.info("TokenBlacklist using Redis backend")
+                return self._redis
+        except Exception as e:
+            logger.warning(f"Redis unavailable for TokenBlacklist, using in-memory: {e}")
+        
+        self._redis_available = False
+        return None
+    
+    async def add_async(self, token: str, expires_at: datetime) -> None:
+        """Add token to blacklist (async, uses Redis if available)."""
+        redis = await self._get_redis()
+        if redis:
+            try:
+                ttl = int((expires_at - datetime.utcnow()).total_seconds())
+                if ttl > 0:
+                    await redis.client.setex(
+                        f"{self._redis_prefix}{token}",
+                        ttl,
+                        "1"
+                    )
+                return
+            except Exception as e:
+                logger.warning(f"Redis blacklist add failed, using in-memory: {e}")
+        
+        # Fallback to in-memory
+        self.add(token, expires_at)
+    
+    async def is_blacklisted_async(self, token: str) -> bool:
+        """Check if token is blacklisted (async, uses Redis if available)."""
+        redis = await self._get_redis()
+        if redis:
+            try:
+                result = await redis.client.exists(f"{self._redis_prefix}{token}")
+                return bool(result)
+            except Exception as e:
+                logger.warning(f"Redis blacklist check failed, using in-memory: {e}")
+        
+        # Fallback to in-memory
+        return self.is_blacklisted(token)
     
     def add(self, token: str, expires_at: datetime) -> None:
-        """Add token to blacklist until its expiration."""
+        """Add token to blacklist until its expiration (sync, in-memory)."""
         with self._lock:
             # Clean expired tokens
             now = datetime.utcnow()
@@ -177,7 +231,7 @@ class TokenBlacklist:
             self._blacklist[token] = expires_at
     
     def is_blacklisted(self, token: str) -> bool:
-        """Check if token is blacklisted."""
+        """Check if token is blacklisted (sync, in-memory)."""
         with self._lock:
             if token in self._blacklist:
                 # Check if still valid (not expired)

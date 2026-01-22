@@ -588,6 +588,19 @@ DISCOUNT_LABELS = {
 
 _session_lock = asyncio.Lock()
 
+# Per-user trading locks to prevent race conditions on concurrent signals
+# Key: (user_id, symbol, account_type) -> Lock
+_trading_locks: dict[tuple[int, str, str], asyncio.Lock] = {}
+_trading_locks_lock = asyncio.Lock()
+
+async def get_trading_lock(user_id: int, symbol: str, account_type: str = "auto") -> asyncio.Lock:
+    """Get or create a lock for trading operations on a specific user/symbol/account."""
+    key = (user_id, symbol, account_type)
+    async with _trading_locks_lock:
+        if key not in _trading_locks:
+            _trading_locks[key] = asyncio.Lock()
+        return _trading_locks[key]
+
 async def init_session():
     global _session
     if _session is not None:
@@ -1536,8 +1549,6 @@ def format_spot_settings_message(t: dict, cfg: dict, spot_settings: dict) -> str
     # Strategy description
     lines.append("")
     lines.append(f"<i>{strategy_info.get('description', '')}</i>")
-    
-    return "\n".join(lines)
     
     return "\n".join(lines)
 
@@ -5127,6 +5138,27 @@ async def place_order(
     symbol: str,
     side: str,                 # "Buy" / "Sell"
     orderType: str,            # "Limit" / "Market"
+    qty: float,
+    price: float | None = None,
+    timeInForce: str = "GTC",
+    account_type: str = None,
+):
+    """
+    Place an order on Bybit. Uses per-user/symbol lock to prevent race conditions.
+    """
+    # Get lock for this user/symbol/account to prevent concurrent orders
+    trading_lock = await get_trading_lock(user_id, symbol, account_type or "auto")
+    
+    async with trading_lock:
+        return await _place_order_impl(
+            user_id, symbol, side, orderType, qty, price, timeInForce, account_type
+        )
+
+async def _place_order_impl(
+    user_id: int,
+    symbol: str,
+    side: str,
+    orderType: str,
     qty: float,
     price: float | None = None,
     timeInForce: str = "GTC",

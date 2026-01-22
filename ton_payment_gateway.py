@@ -484,22 +484,75 @@ async def verify_ton_transaction(tx_hash: str, expected_amount: float) -> bool:
         client = LiteBalancer.from_mainnet_config(trust_level=2)
         await client.start_up()
         
-        # TODO: Implement actual transaction verification
-        # 1. Fetch transaction by hash
-        # 2. Verify it's a Jetton transfer (USDT)
-        # 3. Verify amount matches
-        # 4. Verify recipient is platform wallet
-        
-        # For now, return True for development
-        # IMPORTANT: Implement proper verification before production!
-        logger.warning(f"TON transaction verification not fully implemented. tx_hash={tx_hash}")
-        
-        await client.close_all()
-        return True
+        try:
+            # Parse transaction hash
+            if len(tx_hash) != 64:
+                logger.error(f"Invalid tx_hash length: {len(tx_hash)}")
+                return False
+            
+            tx_hash_bytes = bytes.fromhex(tx_hash)
+            
+            # Query the blockchain for this transaction
+            # Get account transactions for platform wallet
+            platform_addr = Address(PLATFORM_WALLET)
+            
+            # Get last 100 transactions and search for our tx_hash
+            transactions = await client.get_transactions(
+                address=platform_addr.to_str(),
+                count=100
+            )
+            
+            verified = False
+            for tx in transactions:
+                if tx.cell.hash.hex() == tx_hash or tx.hash.hex() == tx_hash:
+                    # Found the transaction - verify the amount
+                    if hasattr(tx, 'in_msg') and tx.in_msg:
+                        in_msg = tx.in_msg
+                        if hasattr(in_msg, 'info') and hasattr(in_msg.info, 'value'):
+                            value_nano = in_msg.info.value.grams
+                            value_ton = float(value_nano) / 1e9
+                            
+                            # For Jetton (USDT), we need to decode the message body
+                            if hasattr(in_msg, 'body') and in_msg.body:
+                                try:
+                                    body = in_msg.body.begin_parse()
+                                    op_code = body.load_uint(32)
+                                    
+                                    # Jetton transfer op code = 0x7362d09c
+                                    if op_code == 0x7362d09c:
+                                        query_id = body.load_uint(64)
+                                        amount = body.load_coins()
+                                        usdt_amount = float(amount) / 1e6  # USDT has 6 decimals
+                                        
+                                        # Check if amount matches (with 1% tolerance for fees)
+                                        tolerance = expected_amount * 0.01
+                                        if abs(usdt_amount - expected_amount) <= tolerance:
+                                            verified = True
+                                            logger.info(f"✅ TON transaction verified: {tx_hash}, amount: {usdt_amount} USDT")
+                                            break
+                                except Exception as parse_err:
+                                    logger.warning(f"Could not parse Jetton message: {parse_err}")
+                            
+                            # Native TON transfer check (not Jetton)
+                            elif value_ton > 0:
+                                # Convert TON to approximate USD (rough check)
+                                logger.warning(f"Native TON transfer detected, not Jetton USDT: {value_ton} TON")
+            
+            if not verified:
+                logger.warning(f"❌ Transaction not found or amount mismatch: {tx_hash}")
+            
+            return verified
+            
+        finally:
+            await client.close_all()
         
     except Exception as e:
         logger.error(f"TON transaction verification failed: {e}")
         return False
+
+
+# Platform wallet address (should be loaded from env in production)
+PLATFORM_WALLET = "EQDKbjIcfM6czy4ARDz2k9ywQhqQrT6s-0jJxgdR2t8C6pWA"  # Replace with actual
 
 
 async def verify_usdt_jetton_transfer(
@@ -533,25 +586,85 @@ async def verify_usdt_jetton_transfer(
     try:
         if testnet:
             client = LiteBalancer.from_testnet_config(trust_level=2)
+            usdt_contract = "kQD0GKBM8ZbryVk2aEhhTNyHzJ_freeTXK6dTkvdHh0jiqfh"
         else:
             client = LiteBalancer.from_mainnet_config(trust_level=2)
+            usdt_contract = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
         
         await client.start_up()
         
-        # TODO: Implement full Jetton transfer verification
-        # This requires:
-        # 1. Parsing the transaction data
-        # 2. Decoding the Jetton transfer message
-        # 3. Verifying amounts and addresses
-        
-        await client.close_all()
-        
-        return {
-            "verified": True,  # Placeholder
-            "amount": expected_amount,
-            "recipient": recipient_wallet,
-            "error": None
-        }
+        try:
+            # Validate inputs
+            if len(tx_hash) != 64:
+                return {"verified": False, "error": f"Invalid tx_hash length: {len(tx_hash)}"}
+            
+            recipient_addr = Address(recipient_wallet)
+            
+            # Query transactions for the recipient wallet
+            transactions = await client.get_transactions(
+                address=recipient_addr.to_str(),
+                count=100
+            )
+            
+            result = {
+                "verified": False,
+                "amount": 0.0,
+                "sender": None,
+                "recipient": recipient_wallet,
+                "timestamp": None,
+                "error": None
+            }
+            
+            for tx in transactions:
+                tx_hash_hex = tx.cell.hash.hex() if hasattr(tx.cell, 'hash') else None
+                if tx_hash_hex == tx_hash or (hasattr(tx, 'hash') and tx.hash.hex() == tx_hash):
+                    # Found the transaction
+                    if hasattr(tx, 'in_msg') and tx.in_msg:
+                        in_msg = tx.in_msg
+                        
+                        # Get sender
+                        if hasattr(in_msg, 'info') and hasattr(in_msg.info, 'src'):
+                            result["sender"] = in_msg.info.src.to_str() if in_msg.info.src else None
+                        
+                        # Get timestamp
+                        if hasattr(tx, 'now'):
+                            result["timestamp"] = tx.now
+                        
+                        # Parse Jetton transfer
+                        if hasattr(in_msg, 'body') and in_msg.body:
+                            try:
+                                body = in_msg.body.begin_parse()
+                                op_code = body.load_uint(32)
+                                
+                                # Jetton internal transfer notification = 0x7362d09c
+                                # or Jetton transfer = 0xf8a7ea5
+                                if op_code in [0x7362d09c, 0xf8a7ea5]:
+                                    query_id = body.load_uint(64)
+                                    amount = body.load_coins()
+                                    usdt_amount = float(amount) / 1e6  # USDT = 6 decimals
+                                    
+                                    result["amount"] = usdt_amount
+                                    
+                                    # Check amount with 1% tolerance
+                                    tolerance = expected_amount * 0.01
+                                    if abs(usdt_amount - expected_amount) <= tolerance:
+                                        result["verified"] = True
+                                        logger.info(f"✅ USDT Jetton verified: {tx_hash}, {usdt_amount} USDT")
+                                    else:
+                                        result["error"] = f"Amount mismatch: expected {expected_amount}, got {usdt_amount}"
+                                else:
+                                    result["error"] = f"Not a Jetton transfer (op_code: {hex(op_code)})"
+                            except Exception as parse_err:
+                                result["error"] = f"Failed to parse message: {parse_err}"
+                    break
+            
+            if not result["verified"] and not result["error"]:
+                result["error"] = "Transaction not found in recent history"
+            
+            return result
+            
+        finally:
+            await client.close_all()
         
     except Exception as e:
         logger.error(f"USDT Jetton verification failed: {e}")

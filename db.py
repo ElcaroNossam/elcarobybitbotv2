@@ -232,12 +232,10 @@ def init_db():
 # ------------------------------------------------------------------------------------
 def ensure_user(user_id: int):
     """Гарантирует наличие записи пользователя. Нужен перед любыми UPDATE."""
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO users(user_id) VALUES(?)",
-            (user_id,),
-        )
-        conn.commit()
+    execute_write(
+        "INSERT INTO users(user_id) VALUES(%s) ON CONFLICT (user_id) DO NOTHING",
+        (user_id,),
+    )
 
 def update_user_info(user_id: int, username: str = None, first_name: str = None):
     """Updates user info (username, first_name) if provided"""
@@ -246,44 +244,36 @@ def update_user_info(user_id: int, username: str = None, first_name: str = None)
     params = []
     
     if username is not None:
-        updates.append("username = ?")
+        updates.append("username = %s")
         params.append(username)
     
     if first_name is not None:
-        updates.append("first_name = ?")
+        updates.append("first_name = %s")
         params.append(first_name)
     
     if updates:
         params.append(user_id)
-        with get_conn() as conn:
-            conn.execute(
-                f"UPDATE users SET {', '.join(updates)} WHERE user_id = ?",
-                params
-            )
-            conn.commit()
+        execute_write(
+            f"UPDATE users SET {', '.join(updates)} WHERE user_id = %s",
+            tuple(params)
+        )
 
 def delete_user(user_id: int):
     """
     Полностью удаляет пользователя.
     Связанные записи чистятся каскадом (active_positions, trade_logs, pyramids, pending_limit_orders).
     """
-    with get_conn() as conn:
-        conn.execute("DELETE FROM users WHERE user_id=?", (user_id,))
-        conn.commit()
+    execute_write("DELETE FROM users WHERE user_id=%s", (user_id,))
 
 def ban_user(user_id: int):
     """Блокировка пользователя: бан + снятие одобрения."""
     ensure_user(user_id)
-    with get_conn() as conn:
-        conn.execute("UPDATE users SET is_banned=1, is_allowed=0 WHERE user_id=?", (user_id,))
-        conn.commit()
+    execute_write("UPDATE users SET is_banned=TRUE, is_allowed=FALSE WHERE user_id=%s", (user_id,))
 
 def allow_user(user_id: int):
     """Одобрение пользователя: снимаем бан и ставим флаг допуска."""
     ensure_user(user_id)
-    with get_conn() as conn:
-        conn.execute("UPDATE users SET is_allowed=1, is_banned=0 WHERE user_id=?", (user_id,))
-        conn.commit()
+    execute_write("UPDATE users SET is_allowed=TRUE, is_banned=FALSE WHERE user_id=%s", (user_id,))
 
 # ------------------------------------------------------------------------------------
 # Users
@@ -4577,6 +4567,36 @@ def get_all_payments(status: str | None = None, limit: int = 50, offset: int = 0
         ], total
 
 
+def get_user_payments(user_id: int, limit: int = 50) -> list[dict]:
+    """Get payment history for a specific user."""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT id, user_id, payment_type, amount, currency, license_type, 
+                   period_days, status, created_at, telegram_charge_id, transaction_id
+            FROM payment_history
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (user_id, limit)).fetchall()
+        
+        return [
+            {
+                "id": r[0],
+                "user_id": r[1],
+                "payment_type": r[2],
+                "amount": r[3],
+                "currency": r[4],
+                "license_type": r[5],
+                "period_days": r[6],
+                "status": r[7],
+                "created_at": r[8],
+                "telegram_charge_id": r[9],
+                "transaction_id": r[10],
+            }
+            for r in rows
+        ]
+
+
 def get_payment_stats() -> dict:
     """Get aggregate payment statistics for admin."""
     with get_conn() as conn:
@@ -5784,6 +5804,22 @@ def close_trade(trade_id: int, exit_price: float, pnl: float, pnl_percent: float
 # PAYMENT & SUBSCRIPTION FUNCTIONS
 # =====================================================
 
+def check_duplicate_transaction(transaction_hash: str) -> bool:
+    """Check if transaction hash already exists in payment history.
+    
+    Returns True if duplicate found (payment should be rejected).
+    """
+    if not transaction_hash or transaction_hash.startswith("manual_"):
+        return False
+    
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM payment_history WHERE transaction_id = ?",
+            (transaction_hash,)
+        ).fetchone()
+        return row is not None
+
+
 def add_payment_record(
     user_id: int,
     plan: str,
@@ -5793,8 +5829,16 @@ def add_payment_record(
     wallet_address: str = None,
     transaction_hash: str = None
 ):
-    """Record a payment transaction"""
+    """Record a payment transaction.
+    
+    Raises ValueError if transaction_hash is duplicate.
+    """
     import time
+    
+    # Check for duplicate transaction
+    if transaction_hash and check_duplicate_transaction(transaction_hash):
+        raise ValueError(f"Duplicate transaction: {transaction_hash}")
+    
     with get_conn() as conn:
         conn.execute("""
             INSERT INTO payment_history (

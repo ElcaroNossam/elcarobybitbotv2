@@ -260,7 +260,28 @@ class UnifiedExchangeClient:
                 result = await self._client.fetch_positions(
                     symbol=self._normalize_symbol(symbol) if symbol else None
                 )
-                positions = result.get("result", {}).get("list", [])
+                # HLAdapter returns Bybit-like format: {"result": {"list": [...]}}
+                raw_positions = result.get("result", {}).get("list", [])
+                positions = []
+                for pos in raw_positions:
+                    size = _safe_float(pos.get("size", pos.get("szi", 0)))
+                    if size == 0:
+                        continue
+                    positions.append({
+                        "symbol": pos.get("symbol", ""),
+                        "side": "Long" if pos.get("side") in ("Buy", "Long") else "Short",
+                        "size": abs(size),
+                        "entry_price": _safe_float(pos.get("entryPrice", pos.get("entryPx", 0))),
+                        "mark_price": _safe_float(pos.get("markPrice", pos.get("entryPrice", 0))),
+                        "unrealized_pnl": _safe_float(pos.get("unrealisedPnl", pos.get("unrealizedPnl", 0))),
+                        "leverage": int(_safe_float(pos.get("leverage", 1))),
+                        "liquidation_price": _safe_float(pos.get("liqPrice", pos.get("liquidationPx", 0))),
+                        "stop_loss": pos.get("stopLoss") or None,
+                        "take_profit": pos.get("takeProfit") or None,
+                        "positionIM": _safe_float(pos.get("positionIM", pos.get("marginUsed", 0))),
+                        "margin_used": _safe_float(pos.get("positionIM", pos.get("marginUsed", 0))),
+                        "_hl_coin": pos.get("_hl_coin"),
+                    })
             else:
                 positions_raw = await self._client.get_positions()
                 positions = []

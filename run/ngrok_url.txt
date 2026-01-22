@@ -1,1 +1,1 @@
-https://final-maiden-choir-over.trycloudflare.com
+http://localhost:8765
