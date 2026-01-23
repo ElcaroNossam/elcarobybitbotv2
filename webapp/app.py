@@ -99,6 +99,85 @@ class HackerDetectionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class ResponseCacheMiddleware(BaseHTTPMiddleware):
+    """
+    Lightweight response cache for GET requests.
+    Caches frequent API responses to reduce DB/API load.
+    TTL-based expiration with per-endpoint configuration.
+    """
+    
+    # Endpoints to cache with TTL in seconds
+    CACHEABLE_ENDPOINTS = {
+        "/api/marketplace/overview": 30,      # Market data - 30s
+        "/api/marketplace/trending": 60,      # Trending - 1min
+        "/api/marketplace/top-performers": 60,
+        "/api/stats/leaderboard": 120,        # Leaderboard - 2min
+        "/health": 5,                          # Health check - 5s
+    }
+    
+    def __init__(self, app):
+        super().__init__(app)
+        self._cache: dict = {}  # key -> (response_body, headers, timestamp)
+        self._lock = Lock()
+    
+    async def dispatch(self, request: Request, call_next):
+        # Only cache GET requests
+        if request.method != "GET":
+            return await call_next(request)
+        
+        path = request.url.path
+        ttl = self.CACHEABLE_ENDPOINTS.get(path)
+        
+        if ttl is None:
+            return await call_next(request)
+        
+        cache_key = f"{path}?{request.url.query}"
+        now = time.time()
+        
+        # Check cache
+        with self._lock:
+            if cache_key in self._cache:
+                body, headers, cached_at = self._cache[cache_key]
+                if now - cached_at < ttl:
+                    # Cache hit
+                    response = Response(
+                        content=body,
+                        media_type="application/json",
+                        headers={"X-Cache": "HIT", "Cache-Control": f"max-age={ttl}"}
+                    )
+                    for k, v in headers.items():
+                        if k.lower() not in ("content-length", "x-cache"):
+                            response.headers[k] = v
+                    return response
+        
+        # Cache miss - get response
+        response = await call_next(request)
+        
+        # Only cache successful JSON responses
+        if response.status_code == 200 and response.media_type == "application/json":
+            body = b""
+            async for chunk in response.body_iterator:
+                body += chunk
+            
+            with self._lock:
+                self._cache[cache_key] = (body, dict(response.headers), now)
+                # Cleanup old entries (max 1000)
+                if len(self._cache) > 1000:
+                    oldest_keys = sorted(self._cache.keys(), 
+                                        key=lambda k: self._cache[k][2])[:100]
+                    for k in oldest_keys:
+                        del self._cache[k]
+            
+            return Response(
+                content=body,
+                status_code=response.status_code,
+                headers={"X-Cache": "MISS", **dict(response.headers)},
+                media_type=response.media_type
+            )
+        
+        return response
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Global rate limiting middleware.
@@ -234,6 +313,9 @@ def create_app() -> FastAPI:
     
     # SECURITY: Add hacker detection middleware (first - catches script kiddies)
     app.add_middleware(HackerDetectionMiddleware)
+    
+    # PERFORMANCE: Add response cache middleware (before rate limiting)
+    app.add_middleware(ResponseCacheMiddleware)
     
     # SECURITY: Add rate limiting middleware
     app.add_middleware(RateLimitMiddleware, requests_per_minute=120, burst_size=30)

@@ -750,6 +750,7 @@ async def get_trading_lock(user_id: int, symbol: str, account_type: str = "auto"
         return _trading_locks[key]
 
 async def init_session():
+    """Initialize aiohttp session with optimized connection pooling."""
     global _session
     if _session is not None:
         return
@@ -757,8 +758,15 @@ async def init_session():
         if _session is not None:
             return
         db.init_db()
-        timeout   = ClientTimeout(total=30, connect=10, sock_read=20)
-        connector = TCPConnector(limit=20, limit_per_host=5)
+        # PERFORMANCE: Optimized timeouts and connection limits
+        timeout   = ClientTimeout(total=30, connect=8, sock_read=20)
+        connector = TCPConnector(
+            limit=100,           # Total connections (was 20)
+            limit_per_host=30,   # Per host (was 5) - Bybit needs more
+            ttl_dns_cache=300,   # DNS cache 5 min
+            keepalive_timeout=30,  # Keep connections alive
+            enable_cleanup_closed=True
+        )
         _session  = ClientSession(timeout=timeout, connector=connector)
 
 def log_calls(func):

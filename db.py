@@ -183,13 +183,37 @@ def release_conn(conn):
     pass
 
 
+# PERFORMANCE: Cache for schema introspection (columns rarely change)
+_schema_cache: dict[str, set[str]] = {}  # table_name -> set of column names
+_schema_cache_ts: float = 0.0
+SCHEMA_CACHE_TTL = 3600.0  # 1 hour - schema rarely changes
+
+
+def _refresh_schema_cache():
+    """Refresh the schema cache for all tables."""
+    global _schema_cache, _schema_cache_ts
+    _schema_cache = {}
+    rows = execute("""
+        SELECT table_name, column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public'
+    """)
+    for row in rows:
+        table = row[0] if isinstance(row, tuple) else row.get('table_name')
+        col = row[1] if isinstance(row, tuple) else row.get('column_name')
+        if table not in _schema_cache:
+            _schema_cache[table] = set()
+        _schema_cache[table].add(col)
+    _schema_cache_ts = time.time()
+
+
 def _col_exists_pg(table: str, col: str) -> bool:
-    """Check if column exists in PostgreSQL table."""
-    result = execute_one("""
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = %s AND column_name = %s
-    """, (table, col))
-    return result is not None
+    """Check if column exists in PostgreSQL table. CACHED for performance."""
+    global _schema_cache_ts
+    now = time.time()
+    if now - _schema_cache_ts > SCHEMA_CACHE_TTL or not _schema_cache:
+        _refresh_schema_cache()
+    return col in _schema_cache.get(table, set())
 
 
 def _table_exists_pg(table: str) -> bool:
