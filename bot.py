@@ -22402,8 +22402,8 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @require_premium_for_hl
 @with_texts
 @log_calls
-async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show HyperLiquid positions"""
+async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network: str = None):
+    """Show HyperLiquid positions with optional network switcher"""
     uid = update.effective_user.id
     t = ctx.t
     
@@ -22415,24 +22415,57 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    # Determine which network to use
+    if network is None:
+        is_testnet = hl_creds.get("hl_testnet", False)
+    else:
+        is_testnet = (network == "testnet")
+    
+    # Get credentials for specific network
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    
+    if not private_key:
+        await update.message.reply_text(
+            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
+            parse_mode="Markdown"
+        )
+        return
+    
     try:
         adapter = HLAdapter(
-            private_key=hl_creds["hl_private_key"],
-            testnet=hl_creds.get("hl_testnet", False),
+            private_key=private_key,
+            testnet=is_testnet,
             vault_address=hl_creds.get("hl_vault_address")
         )
         
         result = await adapter.fetch_positions()
+        show_switcher = db.should_show_hl_network_switcher(uid)
+        
+        # Build keyboard
+        keyboard_rows = []
+        if show_switcher:
+            current = "testnet" if is_testnet else "mainnet"
+            keyboard_rows.append([
+                InlineKeyboardButton("🧪 Testnet" + (" ✓" if current == "testnet" else ""), callback_data="hl_pos:testnet"),
+                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if current == "mainnet" else ""), callback_data="hl_pos:mainnet")
+            ])
+        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
         
         # fetch_positions returns Bybit-compatible format: retCode, result.list
         if result.get("retCode") == 0:
             positions = result.get("result", {}).get("list", [])
+            network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+            
             if not positions:
-                await update.message.reply_text(t.get("hl_no_positions", "📭 No open positions on HyperLiquid."))
+                text = f"📈 *HyperLiquid Positions* {network_label}\n\n📭 No open positions."
+                await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
                 return
             
-            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
-            lines = [f"📈 *HyperLiquid Positions* {network}\n"]
+            lines = [f"📈 *HyperLiquid Positions* {network_label}\n"]
             
             for pos in positions[:10]:
                 symbol = pos.get("symbol", "?")
@@ -22451,7 +22484,7 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
                 )
             
-            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+            await update.message.reply_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
         else:
             await update.message.reply_text(
                 t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch positions: {result.get('retMsg', 'Unknown error')}"),
@@ -22495,8 +22528,8 @@ async def cmd_hl_switch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @require_premium_for_hl
 @with_texts
 @log_calls
-async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show HyperLiquid open orders"""
+async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network: str = None):
+    """Show HyperLiquid open orders with optional network switcher"""
     uid = update.effective_user.id
     t = ctx.t
     
@@ -22508,23 +22541,56 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    # Determine which network to use
+    if network is None:
+        is_testnet = hl_creds.get("hl_testnet", False)
+    else:
+        is_testnet = (network == "testnet")
+    
+    # Get credentials for specific network
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    
+    if not private_key:
+        await update.message.reply_text(
+            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
+            parse_mode="Markdown"
+        )
+        return
+    
     try:
         adapter = HLAdapter(
-            private_key=hl_creds["hl_private_key"],
-            testnet=hl_creds.get("hl_testnet", False),
+            private_key=private_key,
+            testnet=is_testnet,
             vault_address=hl_creds.get("hl_vault_address")
         )
         
         result = await adapter.fetch_open_orders()
+        show_switcher = db.should_show_hl_network_switcher(uid)
+        
+        # Build keyboard
+        keyboard_rows = []
+        if show_switcher:
+            current = "testnet" if is_testnet else "mainnet"
+            keyboard_rows.append([
+                InlineKeyboardButton("🧪 Testnet" + (" ✓" if current == "testnet" else ""), callback_data="hl_ord:testnet"),
+                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if current == "mainnet" else ""), callback_data="hl_ord:mainnet")
+            ])
+        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
         
         if result.get("success"):
             orders = result.get("data", [])
             if not orders:
-                await update.message.reply_text(t.get("hl_no_orders", "📭 No open orders on HyperLiquid."))
+                text = f"📈 *HyperLiquid Orders* {network_label}\n\n📭 No open orders."
+                await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
                 return
             
-            network = "🧪 Testnet" if hl_creds.get("hl_testnet") else "🌐 Mainnet"
-            lines = [f"📈 *HyperLiquid Open Orders* {network}\n"]
+            lines = [f"📈 *HyperLiquid Open Orders* {network_label}\n"]
             
             for order in orders[:10]:
                 symbol = order.get("symbol", "?")
@@ -22540,7 +22606,7 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"   {order_type} | Size: {size} @ ${price:,.4f}\n"
                 )
             
-            await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+            await update.message.reply_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
         else:
             await update.message.reply_text(
                 t.get('error_fetch_orders', '❌ Error fetching orders: {error}').format(error=result.get('error', 'Unknown error')),
@@ -23655,6 +23721,183 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 @log_calls
 @with_texts
+async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle HyperLiquid positions network switch callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    t = ctx.t
+    
+    # hl_pos:testnet or hl_pos:mainnet
+    network = data.split(":")[1]
+    is_testnet = (network == "testnet")
+    
+    hl_creds = get_hl_credentials(uid)
+    
+    # Get credentials for specific network
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    
+    if not private_key:
+        await q.edit_message_text(
+            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=private_key,
+            testnet=is_testnet,
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.fetch_positions()
+        show_switcher = db.should_show_hl_network_switcher(uid)
+        
+        # Build keyboard
+        keyboard_rows = []
+        if show_switcher:
+            keyboard_rows.append([
+                InlineKeyboardButton("🧪 Testnet" + (" ✓" if is_testnet else ""), callback_data="hl_pos:testnet"),
+                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if not is_testnet else ""), callback_data="hl_pos:mainnet")
+            ])
+        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+        
+        if result.get("retCode") == 0:
+            positions = result.get("result", {}).get("list", [])
+            
+            if not positions:
+                text = f"📈 *HyperLiquid Positions* {network_label}\n\n📭 No open positions."
+                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                return
+            
+            lines = [f"📈 *HyperLiquid Positions* {network_label}\n"]
+            
+            for pos in positions[:10]:
+                symbol = pos.get("symbol", "?")
+                side = pos.get("side", "?")
+                size = float(pos.get("size", 0))
+                entry = float(pos.get("entryPrice", 0))
+                pnl = float(pos.get("unrealisedPnl", 0))
+                leverage = pos.get("leverage", "?")
+                
+                side_emoji = "🟢 LONG" if side == "Buy" else "🔴 SHORT"
+                pnl_emoji = "+" if pnl >= 0 else ""
+                
+                lines.append(
+                    f"{side_emoji} *{symbol}* {leverage}x\n"
+                    f"   Size: {size} | Entry: ${entry:,.4f}\n"
+                    f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
+                )
+            
+            await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+        else:
+            await q.edit_message_text(
+                f"❌ Failed to fetch positions: {result.get('retMsg', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL positions callback error: {e}")
+        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@log_calls
+@with_texts
+async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle HyperLiquid orders network switch callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    t = ctx.t
+    
+    # hl_ord:testnet or hl_ord:mainnet
+    network = data.split(":")[1]
+    is_testnet = (network == "testnet")
+    
+    hl_creds = get_hl_credentials(uid)
+    
+    # Get credentials for specific network
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    
+    if not private_key:
+        await q.edit_message_text(
+            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    try:
+        adapter = HLAdapter(
+            private_key=private_key,
+            testnet=is_testnet,
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        result = await adapter.fetch_open_orders()
+        show_switcher = db.should_show_hl_network_switcher(uid)
+        
+        # Build keyboard
+        keyboard_rows = []
+        if show_switcher:
+            keyboard_rows.append([
+                InlineKeyboardButton("🧪 Testnet" + (" ✓" if is_testnet else ""), callback_data="hl_ord:testnet"),
+                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if not is_testnet else ""), callback_data="hl_ord:mainnet")
+            ])
+        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
+        keyboard = InlineKeyboardMarkup(keyboard_rows)
+        
+        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+        
+        if result.get("success"):
+            orders = result.get("data", [])
+            
+            if not orders:
+                text = f"📈 *HyperLiquid Orders* {network_label}\n\n📭 No open orders."
+                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                return
+            
+            lines = [f"📈 *HyperLiquid Open Orders* {network_label}\n"]
+            
+            for order in orders[:10]:
+                symbol = order.get("symbol", "?")
+                side = order.get("side", "?")
+                size = float(order.get("size", 0))
+                price = float(order.get("price", 0))
+                order_type = order.get("order_type", "?")
+                
+                side_emoji = "🟢 BUY" if side == "Buy" else "🔴 SELL"
+                
+                lines.append(
+                    f"{side_emoji} *{symbol}*\n"
+                    f"   {order_type} | Size: {size} @ ${price:,.4f}\n"
+                )
+            
+            await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
+        else:
+            await q.edit_message_text(
+                f"❌ Failed to fetch orders: {result.get('error', 'Unknown error')}",
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        logger.error(f"HL orders callback error: {e}")
+        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+
+
+@log_calls
+@with_texts
 async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle HyperLiquid callbacks"""
     q = update.callback_query
@@ -24163,6 +24406,8 @@ def main():
     app.add_handler(CommandHandler("hl_switch",          cmd_hl_switch))
     app.add_handler(CommandHandler("hl_clear",           cmd_hl_clear))
     app.add_handler(CallbackQueryHandler(on_hl_callback, pattern=r"^hl:"))
+    app.add_handler(CallbackQueryHandler(on_hl_positions_callback, pattern=r"^hl_pos:"))
+    app.add_handler(CallbackQueryHandler(on_hl_orders_callback, pattern=r"^hl_ord:"))
     app.add_handler(CallbackQueryHandler(on_deep_loss_callback, pattern=r"^deep_loss:"))
     app.add_handler(CallbackQueryHandler(on_exchange_callback, pattern=r"^exchange:"))
     app.add_handler(CallbackQueryHandler(on_bybit_callback, pattern=r"^bybit:"))

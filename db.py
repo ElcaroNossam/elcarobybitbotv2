@@ -396,9 +396,9 @@ def get_trading_mode(user_id: int) -> str:
 def should_show_account_switcher(user_id: int) -> bool:
     """Check if user should see Demo/Real switcher.
     
-    Returns True only if:
-    1. User has both demo AND real API keys configured
-    2. User's effective trading mode is 'both' (based on enabled strategies)
+    Returns True if user has BOTH demo AND real API keys configured.
+    This allows viewing balances/positions/orders on both accounts
+    regardless of which account they trade on.
     """
     creds = get_all_user_credentials(user_id)
     
@@ -406,12 +406,24 @@ def should_show_account_switcher(user_id: int) -> bool:
     has_demo = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
     has_real = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
     
-    if not (has_demo and has_real):
+    return has_demo and has_real
+
+
+def should_show_hl_network_switcher(user_id: int) -> bool:
+    """Check if user should see Testnet/Mainnet switcher for HyperLiquid.
+    
+    Returns True if user has BOTH testnet AND mainnet keys configured.
+    """
+    hl_creds = get_hl_credentials(user_id)
+    
+    has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+    has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+    
+    # Also check legacy key as fallback
+    if not has_testnet and not has_mainnet:
         return False
     
-    # Check if effective mode is 'both'
-    effective_mode = get_effective_trading_mode(user_id)
-    return effective_mode == "both"
+    return has_testnet and has_mainnet
 
 
 def get_effective_trading_mode(user_id: int) -> str:
