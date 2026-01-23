@@ -89,10 +89,11 @@ def upgrade(cur):
             rating          INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
             review          TEXT,
             
-            created_at      TIMESTAMP DEFAULT NOW(),
+            created_at      BIGINT,
             updated_at      TIMESTAMP DEFAULT NOW(),
             
-            UNIQUE(strategy_id, user_id)
+            UNIQUE(strategy_id, user_id),
+            UNIQUE(marketplace_id, user_id)
         )
     """)
     
@@ -155,23 +156,30 @@ def upgrade(cur):
             id              SERIAL PRIMARY KEY,
             strategy_id     INTEGER NOT NULL REFERENCES custom_strategies(id) ON DELETE CASCADE,
             user_id         BIGINT NOT NULL,
+            strategy_name   TEXT,
             
             -- Settings
             symbols         TEXT DEFAULT 'ALL',
+            exchange        TEXT DEFAULT 'bybit',
             account_type    TEXT DEFAULT 'demo',
             leverage        INTEGER DEFAULT 10,
+            config_json     TEXT,
             
             -- Status: active, paused, stopped
             status          TEXT DEFAULT 'active',
             
             -- Stats
+            trades_count    INTEGER DEFAULT 0,
+            pnl_usd         REAL DEFAULT 0,
+            win_rate        REAL DEFAULT 0,
+            backtest_pnl    REAL DEFAULT 0,
             total_trades    INTEGER DEFAULT 0,
             total_pnl       REAL DEFAULT 0,
             
             started_at      TIMESTAMP DEFAULT NOW(),
             stopped_at      TIMESTAMP,
             
-            UNIQUE(strategy_id, user_id, account_type)
+            UNIQUE(user_id, strategy_id)
         )
     """)
     

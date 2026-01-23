@@ -908,6 +908,7 @@ async def get_replay_data(request: ReplayDataRequest):
 @router.post("/deploy")
 async def deploy_strategy(request: DeployStrategyRequest):
     """Deploy tested strategy to bot with optimized parameters"""
+    conn = None
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -917,7 +918,7 @@ async def deploy_strategy(request: DeployStrategyRequest):
             INSERT INTO strategy_deployments (
                 strategy_name, params_json, backtest_results_json, 
                 deployed_at, is_active
-            ) VALUES (?, ?, ?, ?, 1)
+            ) VALUES (?, ?, ?, ?, TRUE)
         """, (
             request.strategy,
             json.dumps(request.params),
@@ -930,12 +931,11 @@ async def deploy_strategy(request: DeployStrategyRequest):
         # Deactivate previous deployments for same strategy
         cur.execute("""
             UPDATE strategy_deployments 
-            SET is_active = 0 
+            SET is_active = FALSE 
             WHERE strategy_name = ? AND id != ?
         """, (request.strategy, deployment_id))
         
         conn.commit()
-        conn.close()
         
         return {
             "success": True,
@@ -946,43 +946,39 @@ async def deploy_strategy(request: DeployStrategyRequest):
     except Exception as e:
         # Table might not exist - create it
         if "does not exist" in str(e) or "no such table" in str(e):
-            conn = get_db()
-            cur = conn.cursor()
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS strategy_deployments (
-                    id SERIAL PRIMARY KEY,
-                    strategy_name TEXT NOT NULL,
-                    params_json TEXT,
-                    backtest_results_json TEXT,
-                    deployed_at TIMESTAMP DEFAULT NOW(),
-                    is_active BOOLEAN DEFAULT TRUE
-                )
-            """)
-            conn.commit()
-            conn.close()
-            
+            with get_db() as conn2:
+                cur2 = conn2.cursor()
+                cur2.execute("""
+                    CREATE TABLE IF NOT EXISTS strategy_deployments (
+                        id SERIAL PRIMARY KEY,
+                        strategy_name TEXT NOT NULL,
+                        params_json TEXT,
+                        backtest_results_json TEXT,
+                        deployed_at TIMESTAMP DEFAULT NOW(),
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
             # Retry
             return await deploy_strategy(request)
         
         return {"success": False, "error": str(e)}
+    finally:
+        if conn:
+            conn.close()
 
 
 @router.get("/deployments")
 async def list_deployments():
     """List all strategy deployments"""
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        cur.execute("""
-            SELECT * FROM strategy_deployments 
-            ORDER BY deployed_at DESC 
-            LIMIT 50
-        """)
-        
-        rows = cur.fetchall()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT * FROM strategy_deployments 
+                ORDER BY deployed_at DESC 
+                LIMIT 50
+            """)
+            rows = cur.fetchall()
         
         deployments = []
         for row in rows:
@@ -1005,19 +1001,15 @@ async def list_deployments():
 async def get_active_deployment(strategy: str):
     """Get currently active deployment for a strategy"""
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        cur.execute("""
-            SELECT * FROM strategy_deployments 
-            WHERE strategy_name = ? AND is_active = TRUE
-            ORDER BY deployed_at DESC 
-            LIMIT 1
-        """, (strategy,))
-        
-        row = cur.fetchone()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT * FROM strategy_deployments 
+                WHERE strategy_name = ? AND is_active = TRUE
+                ORDER BY deployed_at DESC 
+                LIMIT 1
+            """, (strategy,))
+            row = cur.fetchone()
         
         if row:
             return {
@@ -1868,40 +1860,38 @@ class SaveStrategyRequest(BaseModel):
 async def save_custom_strategy(request: SaveStrategyRequest):
     """Save a custom built strategy"""
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
         now = datetime.now().isoformat()
         
-        # Use INSERT ON CONFLICT for PostgreSQL (upsert)
-        cur.execute("""
-            INSERT INTO custom_strategies 
-            (user_id, name, description, base_strategy, config_json, backtest_results_json, 
-             visibility, price, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
-            ON CONFLICT (user_id, name) DO UPDATE SET
-                description = EXCLUDED.description,
-                base_strategy = EXCLUDED.base_strategy,
-                config_json = EXCLUDED.config_json,
-                backtest_results_json = EXCLUDED.backtest_results_json,
-                visibility = EXCLUDED.visibility,
-                price = EXCLUDED.price,
-                updated_at = EXCLUDED.updated_at
-        """, (
-            request.user_id,
-            request.config.name,
-            request.config.description,
-            request.config.base_strategy,
-            json.dumps(request.config.dict()),
-            json.dumps(request.backtest_results) if request.backtest_results else None,
-            request.visibility,
-            request.price,
-            now, now
-        ))
-        
-        strategy_id = cur.lastrowid
-        conn.commit()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            # Use INSERT ON CONFLICT for PostgreSQL (upsert)
+            cur.execute("""
+                INSERT INTO custom_strategies 
+                (user_id, name, description, base_strategy, config_json, backtest_results_json, 
+                 visibility, price, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+                ON CONFLICT (user_id, name) DO UPDATE SET
+                    description = EXCLUDED.description,
+                    base_strategy = EXCLUDED.base_strategy,
+                    config_json = EXCLUDED.config_json,
+                    backtest_results_json = EXCLUDED.backtest_results_json,
+                    visibility = EXCLUDED.visibility,
+                    price = EXCLUDED.price,
+                    updated_at = EXCLUDED.updated_at
+            """, (
+                request.user_id,
+                request.config.name,
+                request.config.description,
+                request.config.base_strategy,
+                json.dumps(request.config.dict()),
+                json.dumps(request.backtest_results) if request.backtest_results else None,
+                request.visibility,
+                request.price,
+                now, now
+            ))
+            
+            strategy_id = cur.lastrowid
         
         return {"success": True, "strategy_id": strategy_id, "message": f"Strategy '{request.config.name}' saved"}
     except Exception as e:
@@ -1915,20 +1905,17 @@ async def get_user_strategies(user_id: int, user: dict = Depends(get_current_use
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's strategies")
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        cur.execute("""
-            SELECT cs.*, 
-                   (SELECT COUNT(*) FROM live_deployments ld 
-                    WHERE ld.strategy_id = cs.id AND ld.user_id = cs.user_id AND ld.status = 'active') as is_live
-            FROM custom_strategies cs
-            WHERE cs.user_id = ? AND cs.is_active = TRUE 
-            ORDER BY cs.updated_at DESC
-        """, (user_id,))
-        
-        rows = cur.fetchall()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT cs.*, 
+                       (SELECT COUNT(*) FROM live_deployments ld 
+                        WHERE ld.strategy_id = cs.id AND ld.user_id = cs.user_id AND ld.status = 'active') as is_live
+                FROM custom_strategies cs
+                WHERE cs.user_id = ? AND cs.is_active = TRUE 
+                ORDER BY cs.updated_at DESC
+            """, (user_id,))
+            rows = cur.fetchall()
         
         strategies = []
         for row in rows:
@@ -1958,20 +1945,16 @@ async def get_user_strategies(user_id: int, user: dict = Depends(get_current_use
 
 @router.delete("/strategy-builder/{strategy_id}")
 async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_user)):
-    """Delete a custom strategy"""
+    """Delete a custom strategy (soft delete)"""
     # Security: Use authenticated user_id from JWT
     user_id = user["user_id"]
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        cur.execute("""
-            UPDATE custom_strategies SET is_active = 0 
-            WHERE id = ? AND user_id = ?
-        """, (strategy_id, user_id))
-        
-        conn.commit()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE custom_strategies SET is_active = FALSE 
+                WHERE id = ? AND user_id = ?
+            """, (strategy_id, user_id))
         
         return {"success": True, "message": "Strategy deleted"}
     except Exception as e:
@@ -1982,19 +1965,15 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
 async def get_strategy_details(strategy_id: int, user_id: int = None):
     """Get detailed info about a strategy"""
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        cur.execute("""
-            SELECT cs.*, u.username as author_name
-            FROM custom_strategies cs
-            LEFT JOIN users u ON cs.user_id = u.user_id
-            WHERE cs.id = ? AND cs.is_active = TRUE
-        """, (strategy_id,))
-        
-        row = cur.fetchone()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT cs.*, u.username as author_name
+                FROM custom_strategies cs
+                LEFT JOIN users u ON cs.user_id = u.user_id
+                WHERE cs.id = ? AND cs.is_active = TRUE
+            """, (strategy_id,))
+            row = cur.fetchone()
         
         if not row:
             return {"success": False, "error": "Strategy not found"}
@@ -2079,43 +2058,41 @@ async def browse_marketplace(
 ):
     """Browse public strategies in marketplace"""
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        query = """
-            SELECT cs.*, u.username as author_name
-            FROM custom_strategies cs
-            LEFT JOIN users u ON cs.user_id = u.user_id
-            WHERE cs.is_active = TRUE AND cs.visibility IN ('public', 'premium')
-        """
-        params = []
-        
-        if category:
-            query += " AND json_extract(cs.config_json, '$.base_strategy') = ?"
-            params.append(category)
-        
-        sort_map = {
-            "rating": "cs.price DESC",  # Placeholder for rating
-            "copies": "cs.price DESC",  # Placeholder for copies count
-            "pnl": "json_extract(cs.backtest_results_json, '$.total_pnl_percent') DESC",
-            "newest": "cs.created_at DESC"
-        }
-        query += f" ORDER BY {sort_map.get(sort_by, 'cs.created_at DESC')}"
-        query += f" LIMIT {limit} OFFSET {offset}"
-        
-        cur.execute(query, params)
-        rows = cur.fetchall()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            query = """
+                SELECT cs.*, u.username as author_name
+                FROM custom_strategies cs
+                LEFT JOIN users u ON cs.user_id = u.user_id
+                WHERE cs.is_active = TRUE AND cs.visibility IN ('public', 'premium')
+            """
+            params = []
+            
+            if category:
+                query += " AND cs.base_strategy = ?"
+                params.append(category)
+            
+            sort_map = {
+                "rating": "cs.price DESC",
+                "copies": "cs.price DESC",
+                "pnl": "cs.updated_at DESC",  # Use updated_at as proxy since jsonb extraction is complex
+                "newest": "cs.created_at DESC"
+            }
+            query += f" ORDER BY {sort_map.get(sort_by, 'cs.created_at DESC')}"
+            query += f" LIMIT {limit} OFFSET {offset}"
+            
+            cur.execute(query, tuple(params) if params else None)
+            rows = cur.fetchall()
         
         strategies = []
         for row in rows:
-            bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+            bt_results = json.loads(row["backtest_results_json"]) if row.get("backtest_results_json") else {}
             strategies.append({
                 "id": row["id"],
                 "name": row["name"],
                 "description": row["description"],
-                "author": row["author_name"] or f"User #{row['user_id']}",
+                "author": row.get("author_name") or f"User #{row['user_id']}",
                 "base_strategy": row["base_strategy"],
                 "visibility": row["visibility"],
                 "price": row["price"],
@@ -2135,42 +2112,39 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
     """Copy a public strategy to your account - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        # Get original strategy
-        cur.execute("""
-            SELECT * FROM custom_strategies 
-            WHERE id = ? AND visibility IN ('public', 'premium') AND is_active = TRUE
-        """, (strategy_id,))
-        
-        original = cur.fetchone()
-        if not original:
-            return {"success": False, "error": "Strategy not found or not public"}
-        
-        # Check if premium and payment required
-        if original["visibility"] == "premium" and original["price"] > 0:
-            # TODO: Check payment status
-            pass
-        
-        # Create copy for user
-        now = datetime.now().isoformat()
-        new_name = f"{original['name']} (copy)"
-        
-        cur.execute("""
-            INSERT INTO custom_strategies 
-            (user_id, name, description, base_strategy, config_json, backtest_results_json,
-             visibility, price, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'private', 0, 1, ?, ?)
-        """, (
-            user_id, new_name, original["description"], original["base_strategy"],
-            original["config_json"], original["backtest_results_json"], now, now
-        ))
-        
-        new_id = cur.lastrowid
-        conn.commit()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            # Get original strategy
+            cur.execute("""
+                SELECT * FROM custom_strategies 
+                WHERE id = ? AND visibility IN ('public', 'premium') AND is_active = TRUE
+            """, (strategy_id,))
+            
+            original = cur.fetchone()
+            if not original:
+                return {"success": False, "error": "Strategy not found or not public"}
+            
+            # Check if premium and payment required
+            if original["visibility"] == "premium" and original.get("price", 0) > 0:
+                # TODO: Check payment status
+                pass
+            
+            # Create copy for user
+            now = datetime.now().isoformat()
+            new_name = f"{original['name']} (copy)"
+            
+            cur.execute("""
+                INSERT INTO custom_strategies 
+                (user_id, name, description, base_strategy, config_json, backtest_results_json,
+                 visibility, price, is_active, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'private', 0, TRUE, ?, ?)
+            """, (
+                user_id, new_name, original["description"], original["base_strategy"],
+                original["config_json"], original.get("backtest_results_json"), now, now
+            ))
+            
+            new_id = cur.lastrowid
         
         return {"success": True, "strategy_id": new_id, "message": f"Strategy copied as '{new_name}'"}
     except Exception as e:
@@ -2181,24 +2155,21 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
 async def publish_to_marketplace(strategy_id: int, user_id: int, visibility: str = "public", price: float = 0):
     """Publish your strategy to marketplace"""
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        # Verify ownership
-        cur.execute("SELECT user_id FROM custom_strategies WHERE id = ?", (strategy_id,))
-        row = cur.fetchone()
-        
-        if not row or row[0] != user_id:
-            return {"success": False, "error": "Strategy not found or access denied"}
-        
-        cur.execute("""
-            UPDATE custom_strategies 
-            SET visibility = ?, price = ?, updated_at = ?
-            WHERE id = ? AND user_id = ?
-        """, (visibility, price, datetime.now().isoformat(), strategy_id, user_id))
-        
-        conn.commit()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            # Verify ownership
+            cur.execute("SELECT user_id FROM custom_strategies WHERE id = ?", (strategy_id,))
+            row = cur.fetchone()
+            
+            if not row or row["user_id"] != user_id:
+                return {"success": False, "error": "Strategy not found or access denied"}
+            
+            cur.execute("""
+                UPDATE custom_strategies 
+                SET visibility = ?, price = ?, updated_at = ?
+                WHERE id = ? AND user_id = ?
+            """, (visibility, price, datetime.now().isoformat(), strategy_id, user_id))
         
         return {"success": True, "message": f"Strategy published as {visibility}"}
     except Exception as e:
@@ -2217,71 +2188,54 @@ class GoLiveRequest(BaseModel):
 async def start_live_trading(strategy_id: int, request: GoLiveRequest):
     """Deploy strategy to live trading in the bot"""
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        # Get strategy
-        cur.execute("""
-            SELECT * FROM custom_strategies WHERE id = ? AND is_active = TRUE
-        """, (strategy_id,))
-        
-        strategy = cur.fetchone()
-        if not strategy:
-            return {"success": False, "error": "Strategy not found"}
-        
-        # Check ownership or purchase
-        if strategy["user_id"] != request.user_id:
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            # Get strategy
             cur.execute("""
-                SELECT id FROM strategy_purchases 
-                WHERE strategy_id = ? AND buyer_id = ?
-            """, (strategy_id, request.user_id))
-            if not cur.fetchone():
-                return {"success": False, "error": "Access denied - purchase required"}
-        
-        config = json.loads(strategy["config_json"]) if strategy["config_json"] else {}
-        
-        # Merge with override params
-        if request.params:
-            config["risk_params"] = {**config.get("risk_params", {}), **request.params}
-        
-        # Create/update live deployment table with all fields
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS live_deployments (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                strategy_id INTEGER NOT NULL,
-                strategy_name TEXT,
-                exchange TEXT DEFAULT 'bybit',
-                account_type TEXT DEFAULT 'demo',
-                config_json TEXT,
-                status TEXT DEFAULT 'active',
-                started_at TEXT,
-                stopped_at TEXT,
-                trades_count INTEGER DEFAULT 0,
-                pnl_usd REAL DEFAULT 0,
-                win_rate REAL DEFAULT 0,
-                backtest_pnl REAL DEFAULT 0,
-                UNIQUE(user_id, strategy_id)
-            )
-        """)
-        
-        # Get backtest pnl
-        bt_results = json.loads(strategy["backtest_results_json"]) if strategy["backtest_results_json"] else {}
-        backtest_pnl = bt_results.get("total_pnl_percent", 0)
-        
-        now = datetime.now().isoformat()
-        
-        cur.execute("""
-            INSERT OR REPLACE INTO live_deployments 
-            (user_id, strategy_id, strategy_name, exchange, account_type, 
-             config_json, status, started_at, backtest_pnl)
-            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
-        """, (request.user_id, strategy_id, strategy["name"], request.exchange, 
-              request.account_type, json.dumps(config), now, backtest_pnl))
-        
-        conn.commit()
-        conn.close()
+                SELECT * FROM custom_strategies WHERE id = ? AND is_active = TRUE
+            """, (strategy_id,))
+            
+            strategy = cur.fetchone()
+            if not strategy:
+                return {"success": False, "error": "Strategy not found"}
+            
+            # Check ownership or purchase
+            if strategy["user_id"] != request.user_id:
+                cur.execute("""
+                    SELECT id FROM strategy_purchases 
+                    WHERE strategy_id = ? AND buyer_id = ?
+                """, (strategy_id, request.user_id))
+                if not cur.fetchone():
+                    return {"success": False, "error": "Access denied - purchase required"}
+            
+            config = json.loads(strategy["config_json"]) if strategy.get("config_json") else {}
+            
+            # Merge with override params
+            if request.params:
+                config["risk_params"] = {**config.get("risk_params", {}), **request.params}
+            
+            # Get backtest pnl
+            bt_results = json.loads(strategy["backtest_results_json"]) if strategy.get("backtest_results_json") else {}
+            backtest_pnl = bt_results.get("total_pnl_percent", 0)
+            
+            now = datetime.now().isoformat()
+            
+            # Use PostgreSQL upsert syntax
+            cur.execute("""
+                INSERT INTO live_deployments 
+                (user_id, strategy_id, strategy_name, exchange, account_type, 
+                 config_json, status, started_at, backtest_pnl)
+                VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+                ON CONFLICT (user_id, strategy_id) DO UPDATE SET
+                    exchange = EXCLUDED.exchange,
+                    account_type = EXCLUDED.account_type,
+                    config_json = EXCLUDED.config_json,
+                    status = 'active',
+                    started_at = EXCLUDED.started_at,
+                    stopped_at = NULL
+            """, (request.user_id, strategy_id, strategy["name"], request.exchange, 
+                  request.account_type, json.dumps(config), now, backtest_pnl))
         
         return {
             "success": True, 
@@ -2299,17 +2253,13 @@ class StopLiveRequest(BaseModel):
 async def stop_live_trading(strategy_id: int, request: StopLiveRequest):
     """Stop live trading for a strategy"""
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        cur.execute("""
-            UPDATE live_deployments 
-            SET status = 'stopped', stopped_at = ?
-            WHERE strategy_id = ? AND user_id = ? AND status = 'active'
-        """, (datetime.now().isoformat(), strategy_id, request.user_id))
-        
-        conn.commit()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE live_deployments 
+                SET status = 'stopped', stopped_at = ?
+                WHERE strategy_id = ? AND user_id = ? AND status = 'active'
+            """, (datetime.now().isoformat(), strategy_id, request.user_id))
         
         return {"success": True, "message": "Live trading stopped"}
     except Exception as e:
@@ -2323,55 +2273,29 @@ async def get_live_status(user_id: int, user: dict = Depends(get_current_user)):
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's live status")
     try:
-        conn = get_db()
-        
-        cur = conn.cursor()
-        
-        # Ensure table exists
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS live_deployments (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                strategy_id INTEGER NOT NULL,
-                strategy_name TEXT,
-                exchange TEXT DEFAULT 'bybit',
-                account_type TEXT DEFAULT 'demo',
-                config_json TEXT,
-                status TEXT DEFAULT 'active',
-                started_at TEXT,
-                stopped_at TEXT,
-                trades_count INTEGER DEFAULT 0,
-                pnl_usd REAL DEFAULT 0,
-                win_rate REAL DEFAULT 0,
-                backtest_pnl REAL DEFAULT 0,
-                UNIQUE(user_id, strategy_id)
-            )
-        """)
-        conn.commit()
-        
-        cur.execute("""
-            SELECT ld.*, cs.backtest_results_json 
-            FROM live_deployments ld
-            LEFT JOIN custom_strategies cs ON ld.strategy_id = cs.id
-            WHERE ld.user_id = ? AND ld.status = 'active'
-        """, (user_id,))
-        
-        rows = cur.fetchall()
-        conn.close()
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT ld.*, cs.backtest_results_json 
+                FROM live_deployments ld
+                LEFT JOIN custom_strategies cs ON ld.strategy_id = cs.id
+                WHERE ld.user_id = ? AND ld.status = 'active'
+            """, (user_id,))
+            rows = cur.fetchall()
         
         deployments = []
         for row in rows:
-            bt_results = json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {}
+            bt_results = json.loads(row["backtest_results_json"]) if row.get("backtest_results_json") else {}
             deployments.append({
                 "strategy_id": row["strategy_id"],
                 "strategy_name": row["strategy_name"],
-                "exchange": row["exchange"] or "bybit",
-                "account_type": row["account_type"] or "demo",
-                "config": json.loads(row["config_json"]) if row["config_json"] else {},
+                "exchange": row.get("exchange") or "bybit",
+                "account_type": row.get("account_type") or "demo",
+                "config": json.loads(row["config_json"]) if row.get("config_json") else {},
                 "started_at": row["started_at"],
-                "trades": row["trades_count"] or 0,
-                "live_pnl": row["pnl_usd"] or 0,
-                "win_rate": row["win_rate"] or 0,
+                "trades": row.get("trades_count") or 0,
+                "live_pnl": row.get("pnl_usd") or 0,
+                "win_rate": row.get("win_rate") or 0,
                 "backtest_pnl": bt_results.get("total_pnl_percent", 0)
             })
         

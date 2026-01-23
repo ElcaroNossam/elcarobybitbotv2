@@ -22,9 +22,6 @@ from webapp.api.db_helper import get_db
 from webapp.api.auth import get_current_user, get_current_user_optional
 
 router = APIRouter()
-    
-    def __iter__(self):
-        return iter(self._cursor)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -528,11 +525,15 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
         if not cur.fetchone():
             raise HTTPException(status_code=403, detail="Must purchase strategy to rate")
         
-        # Insert or update rating
+        # Insert or update rating - PostgreSQL syntax
         cur.execute("""
-            INSERT OR REPLACE INTO strategy_ratings 
+            INSERT INTO strategy_ratings 
             (marketplace_id, user_id, rating, review, created_at)
             VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (marketplace_id, user_id) DO UPDATE SET
+                rating = EXCLUDED.rating,
+                review = EXCLUDED.review,
+                created_at = EXCLUDED.created_at
         """, (request.marketplace_id, user_id, request.rating, request.review, int(time.time())))
         
         # Update average rating

@@ -45,11 +45,30 @@ def get_db():
 
 
 class _DictCompatConnection:
-    """Connection wrapper that returns dicts from cursor for dict(row) compatibility."""
+    """Connection wrapper that returns dicts from cursor for dict(row) compatibility.
+    
+    Supports context manager usage:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(...)
+    """
     
     def __init__(self, pg_conn):
         self._conn = pg_conn
         self._pool = None
+    
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - always close connection."""
+        if exc_type is not None:
+            self.rollback()
+        else:
+            self.commit()
+        self.close()
+        return False
     
     def cursor(self, *args, **kwargs):
         """Get a cursor wrapper that returns dicts and supports lastrowid."""

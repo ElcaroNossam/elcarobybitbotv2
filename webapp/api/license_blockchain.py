@@ -115,7 +115,7 @@ def verify_user_auth(authorization: str = Header(None)) -> int:
             parts = token.split(":")
             user_id = int(parts[0])
             return user_id
-    except:
+    except (ValueError, IndexError, AttributeError):
         pass
     
     raise HTTPException(status_code=401, detail="Invalid authorization token")

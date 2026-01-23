@@ -2830,7 +2830,7 @@ async def get_chart_markers(
                         from datetime import datetime
                         dt = datetime.fromisoformat(open_ts.replace('Z', '+00:00'))
                         open_ts = int(dt.timestamp())
-                    except:
+                    except (ValueError, TypeError, AttributeError):
                         open_ts = int(time.time())
                 elif open_ts is None:
                     open_ts = int(time.time())

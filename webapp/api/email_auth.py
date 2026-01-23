@@ -596,7 +596,7 @@ async def check_email_available(email: str):
     """
     try:
         EmailStr.validate(email)
-    except:
+    except (ValueError, TypeError):
         raise HTTPException(400, "Invalid email format")
     
     user = get_email_user(email.lower())
