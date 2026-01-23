@@ -18,7 +18,7 @@ async def detailed_test(uid):
         print("❌ No private key!")
         return
     
-    print(f"🔑 Private Key: {creds['hl_private_key'][:15]}...")
+    print(f"🔑 Private Key: ***REDACTED*** (length: {len(creds['hl_private_key'])})")
     print(f"📍 Vault Address: {creds.get('hl_vault_address')}")
     
     # Test TESTNET

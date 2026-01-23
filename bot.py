@@ -21243,8 +21243,21 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Generate payment ID
         payment_id = f"TON-{uid}-{plan}_{period}m-{int(time.time())}"
         
-        # Platform wallet address (testnet for now)
-        platform_wallet = "kQD_your_testnet_wallet_address_here"  # TODO: Set from config
+        # Platform wallet address from environment
+        use_testnet = os.getenv("TON_USE_TESTNET", "true").lower() == "true"
+        if use_testnet:
+            platform_wallet = os.getenv("TON_TESTNET_WALLET", "")
+        else:
+            platform_wallet = os.getenv("TON_MAINNET_WALLET", "")
+        
+        if not platform_wallet:
+            await q.edit_message_text(
+                "❌ TON payment not configured. Please contact support.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:methods")]
+                ])
+            )
+            return
         
         # Create payment links
         ton_link = f"ton://transfer/{platform_wallet}?text={payment_id}"

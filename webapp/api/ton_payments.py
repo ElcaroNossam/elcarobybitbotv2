@@ -27,9 +27,9 @@ router = APIRouter(prefix="/ton", tags=["TON Payments"])
 
 # TON Payment Gateway Configuration
 TON_CONFIG = {
-    # Platform wallet addresses (USDT Jetton receiver)
-    "mainnet_wallet": "UQC_your_mainnet_wallet_address_here",
-    "testnet_wallet": "kQD_your_testnet_wallet_address_here",
+    # Platform wallet addresses (USDT Jetton receiver) - from environment
+    "mainnet_wallet": os.getenv("TON_MAINNET_WALLET", ""),
+    "testnet_wallet": os.getenv("TON_TESTNET_WALLET", ""),
     
     # jUSDT contract addresses
     "usdt_mainnet": "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
@@ -42,10 +42,10 @@ TON_CONFIG = {
     "platform_fee_percent": 0.5,
     
     # Use testnet for development
-    "use_testnet": True,
+    "use_testnet": os.getenv("TON_USE_TESTNET", "true").lower() == "true",
     
     # Webhook secret for verifying payment notifications
-    "webhook_secret": "your_webhook_secret_here",  # TODO: Set via env
+    "webhook_secret": os.getenv("TON_WEBHOOK_SECRET", ""),
     
     # Payment expiry (1 hour)
     "payment_expiry_seconds": 3600,
@@ -166,8 +166,14 @@ def generate_payment_id(user_id: int, plan_id: str) -> str:
 def get_platform_wallet() -> str:
     """Get platform wallet based on network config"""
     if TON_CONFIG["use_testnet"]:
-        return TON_CONFIG["testnet_wallet"]
-    return TON_CONFIG["mainnet_wallet"]
+        wallet = TON_CONFIG["testnet_wallet"]
+    else:
+        wallet = TON_CONFIG["mainnet_wallet"]
+    
+    if not wallet:
+        raise ValueError("TON wallet not configured. Set TON_MAINNET_WALLET or TON_TESTNET_WALLET env vars.")
+    
+    return wallet
 
 
 def verify_webhook_signature(payload: dict, signature: str) -> bool:
