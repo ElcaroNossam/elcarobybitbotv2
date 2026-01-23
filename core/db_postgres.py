@@ -1706,8 +1706,9 @@ def pg_get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "by
 def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> Dict:
     """
     Get settings for a specific strategy.
-    SIMPLIFIED: Returns both LONG and SHORT settings as long_* and short_* fields.
-    Also returns trading_mode for the strategy.
+    SIMPLIFIED 2D SCHEMA: PRIMARY KEY is (user_id, strategy) - no side column.
+    Settings apply to both LONG and SHORT, or per-side settings stored in JSON 'settings' field.
+    Returns both LONG and SHORT settings as long_* and short_* fields.
     """
     from coin_params import STRATEGY_DEFAULTS
     
@@ -1722,37 +1723,41 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                 SELECT * FROM user_strategy_settings 
                 WHERE user_id = %s AND strategy = %s
             """, (user_id, strategy))
-            rows = cur.fetchall()
+            row = cur.fetchone()
             
-            for row in rows:
-                side = row.get('side', 'long')
-                prefix = f"{side}_"
-                
-                result[f"{prefix}enabled"] = row.get('enabled', True)
-                result[f"{prefix}percent"] = row.get('percent')
-                result[f"{prefix}sl_percent"] = row.get('sl_percent')
-                result[f"{prefix}tp_percent"] = row.get('tp_percent')
-                result[f"{prefix}leverage"] = row.get('leverage')
-                result[f"{prefix}use_atr"] = row.get('use_atr')
-                result[f"{prefix}atr_trigger_pct"] = row.get('atr_trigger_pct')
-                result[f"{prefix}atr_step_pct"] = row.get('atr_step_pct')
-                result[f"{prefix}order_type"] = row.get('order_type', 'market')
-                result[f"{prefix}limit_offset_pct"] = row.get('limit_offset_pct', 0.1)
-                result[f"{prefix}dca_enabled"] = row.get('dca_enabled', False)
-                result[f"{prefix}dca_pct_1"] = row.get('dca_pct_1', 10.0)
-                result[f"{prefix}dca_pct_2"] = row.get('dca_pct_2', 25.0)
-                result[f"{prefix}max_positions"] = row.get('max_positions', 0)
-                result[f"{prefix}coins_group"] = row.get('coins_group', 'ALL')
-                
-                # Get trading_mode from any row (strategy-level setting)
+            if row:
+                # Get strategy-level settings from row
                 if row.get('trading_mode'):
                     trading_mode = row.get('trading_mode')
-                # Get direction from any row (strategy-level setting)  
                 if row.get('direction'):
                     direction = row.get('direction')
-                # Get coins_group for strategy level
                 if row.get('coins_group'):
                     coins_group = row.get('coins_group')
+                
+                # 2D SCHEMA: Read from table columns (apply to both long and short)
+                # Or override from JSON 'settings' field if present
+                json_settings = row.get('settings') or {}
+                
+                for side in ["long", "short"]:
+                    prefix = f"{side}_"
+                    # Check JSON for side-specific overrides first
+                    side_json = json_settings.get(side, {}) if isinstance(json_settings, dict) else {}
+                    
+                    result[f"{prefix}enabled"] = side_json.get('enabled', row.get('enabled', True))
+                    result[f"{prefix}percent"] = side_json.get('percent', row.get('percent'))
+                    result[f"{prefix}sl_percent"] = side_json.get('sl_percent', row.get('sl_percent'))
+                    result[f"{prefix}tp_percent"] = side_json.get('tp_percent', row.get('tp_percent'))
+                    result[f"{prefix}leverage"] = side_json.get('leverage', row.get('leverage'))
+                    result[f"{prefix}use_atr"] = side_json.get('use_atr', row.get('use_atr'))
+                    result[f"{prefix}atr_trigger_pct"] = side_json.get('atr_trigger_pct', row.get('atr_trigger_pct'))
+                    result[f"{prefix}atr_step_pct"] = side_json.get('atr_step_pct', row.get('atr_step_pct'))
+                    result[f"{prefix}order_type"] = side_json.get('order_type', row.get('order_type', 'market'))
+                    result[f"{prefix}limit_offset_pct"] = side_json.get('limit_offset_pct', row.get('limit_offset_pct', 0.1))
+                    result[f"{prefix}dca_enabled"] = side_json.get('dca_enabled', row.get('dca_enabled', False))
+                    result[f"{prefix}dca_pct_1"] = side_json.get('dca_pct_1', row.get('dca_pct_1', 10.0))
+                    result[f"{prefix}dca_pct_2"] = side_json.get('dca_pct_2', row.get('dca_pct_2', 25.0))
+                    result[f"{prefix}max_positions"] = side_json.get('max_positions', row.get('max_positions', 0))
+                    result[f"{prefix}coins_group"] = side_json.get('coins_group', row.get('coins_group', 'ALL'))
     
     # Add strategy-level settings to result
     result["trading_mode"] = trading_mode

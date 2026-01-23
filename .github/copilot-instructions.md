@@ -318,38 +318,43 @@ lang               TEXT DEFAULT 'en'
 updated_at         TIMESTAMP DEFAULT NOW()
 ```
 
-### user_strategy_settings (настройки по стратегиям) ⭐ SIMPLIFIED
+### user_strategy_settings (настройки по стратегиям) ⭐ 2D SCHEMA
 ```sql
--- PRIMARY KEY: (user_id, strategy, side)
--- SIMPLIFIED SCHEMA (January 2026): Settings stored per strategy+side, NOT per exchange/account
+-- PRIMARY KEY: (user_id, strategy)
+-- 2D SCHEMA: Settings stored per strategy, apply to BOTH long/short (or use JSON for per-side)
 user_id             BIGINT NOT NULL
 strategy            TEXT NOT NULL         -- 'oi', 'scryptomera', 'scalper', 'elcaro', 'fibonacci', 'rsi_bb'
-side                TEXT NOT NULL         -- 'long' | 'short'
-enabled             BOOLEAN DEFAULT TRUE
-percent             REAL NOT NULL         -- Entry % для этой стратегии
-sl_percent          REAL NOT NULL
-tp_percent          REAL NOT NULL
-leverage            INTEGER NOT NULL
-use_atr             BOOLEAN DEFAULT FALSE
-atr_trigger_pct     REAL NOT NULL
-atr_step_pct        REAL NOT NULL
+settings            JSONB DEFAULT '{}'    -- Optional: per-side overrides {"long": {...}, "short": {...}}
+-- Per-strategy settings (apply to both sides unless overridden in JSON)
+tp_percent          REAL
+sl_percent          REAL
+leverage            INTEGER
+use_atr             BOOLEAN
+atr_periods         INTEGER
+atr_multiplier_sl   REAL
+atr_trigger_pct     REAL
+atr_step_pct        REAL
 order_type          TEXT DEFAULT 'market'
--- Optional columns (for future per-exchange settings)
-exchange            TEXT DEFAULT 'bybit'  -- NOT used in PRIMARY KEY
-account_type        TEXT DEFAULT 'demo'   -- NOT used in PRIMARY KEY
-trading_mode        TEXT DEFAULT 'demo'
 direction           TEXT DEFAULT 'all'
+enabled             BOOLEAN DEFAULT TRUE
+-- Context columns
+limit_offset_pct    REAL DEFAULT 0.1
+dca_enabled         BOOLEAN DEFAULT FALSE
+dca_pct_1           REAL DEFAULT 10.0
+dca_pct_2           REAL DEFAULT 25.0
+max_positions       INTEGER DEFAULT 0
 coins_group         TEXT DEFAULT 'ALL'
--- Timestamps
-created_at          TIMESTAMP DEFAULT NOW()
+trading_mode        TEXT DEFAULT 'demo'
+exchange            TEXT DEFAULT 'bybit'
+account_type        TEXT DEFAULT 'demo'
 updated_at          TIMESTAMP DEFAULT NOW()
 ```
 
-> **⚠️ ВАЖНО:** Упрощённая схема (Jan 2026):
-> - PRIMARY KEY = `(user_id, strategy, side)` — только 3 измерения
-> - Настройки **одинаковы для всех бирж и аккаунтов**
+> **⚠️ ВАЖНО:** 2D схема (актуально Jan 2026):
+> - PRIMARY KEY = `(user_id, strategy)` — 2 измерения
+> - Настройки применяются к ОБОИМ сторонам (long/short)
+> - Для per-side настроек используй JSON поле `settings`
 > - Колонки `exchange`, `account_type` сохранены для будущего расширения
-> - Функции принимают `exchange/account_type` для API совместимости, но **игнорируют их**
 
 ### active_positions (открытые позиции)
 ```sql
