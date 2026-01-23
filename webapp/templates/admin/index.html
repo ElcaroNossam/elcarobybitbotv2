@@ -315,7 +315,7 @@
                     <p class="text-gray-500 text-xs mt-1">Premium: <span id="premiumSubsCount">0</span></p>
                 </div>
                 <div class="glass rounded-xl p-5 stat-card">
-                    <h3 class="text-gray-400 text-sm">TRC Tokens</h3>
+                    <h3 class="text-gray-400 text-sm">ELC Tokens</h3>
                     <p class="text-2xl font-bold mt-2 text-pink-400"><span id="trcPurchased">0</span></p>
                     <p class="text-gray-500 text-xs mt-1">Purchased this period</p>
                 </div>
@@ -711,7 +711,7 @@
             document.getElementById('activeSubsCount').textContent = data.subscriptions?.total_active || 0;
             document.getElementById('premiumSubsCount').textContent = data.subscriptions?.premium || 0;
             
-            // TRC tokens
+            // ELC tokens
             document.getElementById('trcPurchased').textContent = data.trc_tokens?.purchased?.toFixed(2) || '0';
 
             // Payment methods
@@ -766,7 +766,7 @@
 
         function getMethodIcon(method) {
             const icons = {
-                'trc': '💎', 'ton': '💠', 'usdt': '💵', 'crypto': '₿',
+                'elc': '💎', 'ton': '💠', 'usdt': '💵', 'crypto': '₿',
                 'card': '💳', 'bank': '🏦', 'unknown': '❓'
             };
             return icons[method?.toLowerCase()] || '💰';

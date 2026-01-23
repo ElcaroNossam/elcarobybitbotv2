@@ -808,10 +808,10 @@ TEXTS = {
 ✅ 基于ATR的动态SL/TP
 ✅ 限价梯子DCA
 ✅ 所有未来更新''',
-    'premium_1m': '💎 1个月 — {price} TRC',
-    'premium_3m': '💎 3个月 — {price} TRC (-10%)',
-    'premium_6m': '💎 6个月 — {price} TRC (-20%)',
-    'premium_12m': '💎 12个月 — {price} TRC (-30%)',
+    'premium_1m': '💎 1个月 — {price} ELC',
+    'premium_3m': '💎 3个月 — {price} ELC (-10%)',
+    'premium_6m': '💎 6个月 — {price} ELC (-20%)',
+    'premium_12m': '💎 12个月 — {price} ELC (-30%)',
     
     'basic_title': '🥈 *基础计划*',
     'basic_desc': '''✅ 完全访问模拟账户
@@ -819,7 +819,7 @@ TEXTS = {
 ❌ Lyxen, Fibonacci, Spot — 仅限Premium
 ✅ 标准支持
 ✅ 基于ATR的动态SL/TP''',
-    'basic_1m': '🥈 1个月 — {price} TRC',
+    'basic_1m': '🥈 1个月 — {price} ELC',
     
     'trial_title': '🚀 <b>今天就开始您的优势</b>',
     'trial_desc': '''✅ 完全访问模拟账户
@@ -832,10 +832,10 @@ TEXTS = {
     'trial_activated': '🎉 试用已激活！您有7天完整模拟访问权限。',
     
     'payment_select_method': '💳 *选择支付方式*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' 通过TRC支付',
-    'payment_trc_desc': '将收取{amount} TRC用于{plan}（{period}）。',
+    'payment_elc_title': ' 通过ELC支付',
+    'payment_elc_desc': '将收取{amount} ELC用于{plan}（{period}）。',
     'payment_ton_title': '💎 通过TON支付',
     'payment_ton_desc': '''发送正好*{amount} TON*到:
 
@@ -920,7 +920,7 @@ TEXTS = {
 
 💳 *支付:*
   总计: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *首次访问:* {first_seen}
 🕐 *最后访问:* {last_seen}
@@ -1025,56 +1025,56 @@ TEXTS = {
     # Hardcore trading phrase
     'hardcore_mode': '💀 *硬核模式*: 无怜悯，无遗憾。只有盈利或死亡！ 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ TRC余额不足。
+    'payment_elc_insufficient': '''❌ ELC余额不足。
 
-您的余额: {balance} TRC
-需要: {required} TRC
+您的余额: {balance} ELC
+需要: {required} ELC
 
 请充值钱包后继续。''',
     'wallet_address': '''📍 地址: `{address}`''',
-    'wallet_balance': '''💰 *您的TRC钱包*
+    'wallet_balance': '''💰 *您的ELC钱包*
 
-◈ 余额: *{balance} TRC*
-📈 质押中: *{staked} TRC*
-🎁 待领取奖励: *{rewards} TRC*
+◈ 余额: *{balance} ELC*
+📈 质押中: *{staked} ELC*
+🎁 待领取奖励: *{rewards} ELC*
 
 💵 总价值: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« 返回''',
     'wallet_btn_deposit': '''📥 充值''',
     'wallet_btn_history': '''📋 记录''',
     'wallet_btn_stake': '''📈 质押''',
     'wallet_btn_unstake': '''📤 取消质押''',
     'wallet_btn_withdraw': '''📤 提现''',
-    'wallet_deposit_demo': '''🎁 获取100 TRC (演示)''',
-    'wallet_deposit_desc': '''将TRC代币发送到您的钱包地址:
+    'wallet_deposit_demo': '''🎁 获取100 ELC (演示)''',
+    'wallet_deposit_desc': '''将ELC代币发送到您的钱包地址:
 
 `{address}`
 
 💡 *演示模式:* 点击下方获取免费测试代币。''',
-    'wallet_deposit_success': '''✅ 成功充值 {amount} TRC！''',
-    'wallet_deposit_title': '''📥 *充值TRC*''',
+    'wallet_deposit_success': '''✅ 成功充值 {amount} ELC！''',
+    'wallet_deposit_title': '''📥 *充值ELC*''',
     'wallet_history_empty': '''暂无交易记录。''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *交易记录*''',
-    'wallet_stake_desc': '''质押您的TRC代币赚取*12%年化收益*！
+    'wallet_stake_desc': '''质押您的ELC代币赚取*12%年化收益*！
 
-💰 可用: {available} TRC
-📈 当前质押: {staked} TRC
-🎁 待领取奖励: {rewards} TRC
+💰 可用: {available} ELC
+📈 当前质押: {staked} ELC
+🎁 待领取奖励: {rewards} ELC
 
 每日奖励 • 即时取消质押''',
-    'wallet_stake_success': '''✅ 成功质押 {amount} TRC！''',
-    'wallet_stake_title': '''📈 *质押TRC*''',
-    'wallet_title': '''◈ *TRC钱包*''',
-    'wallet_unstake_success': '''✅ 已取消质押 {amount} TRC + {rewards} TRC奖励！''',
+    'wallet_stake_success': '''✅ 成功质押 {amount} ELC！''',
+    'wallet_stake_title': '''📈 *质押ELC*''',
+    'wallet_title': '''◈ *ELC钱包*''',
+    'wallet_unstake_success': '''✅ 已取消质押 {amount} ELC + {rewards} ELC奖励！''',
     'wallet_withdraw_desc': '''输入目标地址和金额:''',
     'wallet_withdraw_failed': '''❌ 提现失败: {error}''',
-    'wallet_withdraw_success': '''✅ 已向 {address} 提现 {amount} TRC''',
-    'wallet_withdraw_title': '''📤 *提现TRC*''',
+    'wallet_withdraw_success': '''✅ 已向 {address} 提现 {amount} ELC''',
+    'wallet_withdraw_title': '''📤 *提现ELC*''',
 
     'spot_freq_biweekly': '📅 每两周',
     'spot_trailing_enabled': '✅ 追踪止盈已启用：+{activation}%激活，追踪{trail}%',

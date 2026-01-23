@@ -1,9 +1,9 @@
 """
-Comprehensive Integration Tests for TRC Payment System.
+Comprehensive Integration Tests for ELC Payment System.
 
 Tests cover:
 1. Wallet operations (create, deposit)
-2. Payment processing (license purchase with TRC)
+2. Payment processing (license purchase with ELC)
 3. Sovereign operations (emission, burn, policy)
 4. Configuration and pricing
 5. Edge cases and error handling
@@ -23,8 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.blockchain import (
     # Core classes
     LyxenBlockchain,
-    TRCWallet,
-    TRCTransaction,
+    ELCWallet,
+    ELCTransaction,
     TransactionType,
     
     # Sovereign operations
@@ -41,12 +41,12 @@ from core.blockchain import (
     get_owner_dashboard,
     
     # Wallet operations
-    get_trc_wallet,
-    pay_with_trc,
-    deposit_trc,
-    reward_trc,
-    get_trc_balance,
-    get_license_price_trc,
+    get_elc_wallet,
+    pay_with_elc,
+    deposit_elc,
+    reward_elc,
+    get_elc_balance,
+    get_license_price_elc,
     pay_license,
     
     # Price conversions
@@ -58,12 +58,12 @@ from core.blockchain import (
     SOVEREIGN_OWNER_NAME,
     CHAIN_ID,
     CHAIN_NAME,
-    TRC_SYMBOL,
-    TRC_NAME,
-    TRC_TOTAL_SUPPLY,
-    TRC_INITIAL_CIRCULATION,
+    ELC_SYMBOL,
+    ELC_NAME,
+    ELC_TOTAL_SUPPLY,
+    ELC_INITIAL_CIRCULATION,
     BASE_STAKING_APY,
-    LICENSE_PRICES_TRC,
+    LICENSE_PRICES_ELC,
 )
 
 
@@ -80,13 +80,13 @@ class TestBlockchainConfig:
         """Test chain configuration values."""
         assert CHAIN_ID == 8888
         assert CHAIN_NAME == "Lyxen Chain"
-        assert TRC_SYMBOL == "TRC"
-        assert TRC_NAME == "Lyxen Coin"
+        assert ELC_SYMBOL == "ELC"
+        assert ELC_NAME == "Lyxen Coin"
     
     def test_supply_config(self):
         """Test supply configuration."""
-        assert TRC_TOTAL_SUPPLY == 1_000_000_000_000  # 1 trillion
-        assert TRC_INITIAL_CIRCULATION == 100_000_000  # 100 million
+        assert ELC_TOTAL_SUPPLY == 1_000_000_000_000  # 1 trillion
+        assert ELC_INITIAL_CIRCULATION == 100_000_000  # 100 million
     
     def test_sovereign_owner(self):
         """Test sovereign owner configuration."""
@@ -94,27 +94,27 @@ class TestBlockchainConfig:
         assert SOVEREIGN_OWNER_NAME == "Lyxen Foundation"
     
     def test_license_prices(self):
-        """Test license pricing in TRC."""
-        assert LICENSE_PRICES_TRC["premium"][1] == 100.0  # $100
-        assert LICENSE_PRICES_TRC["premium"][3] == 270.0  # $90/mo
-        assert LICENSE_PRICES_TRC["premium"][6] == 480.0  # $80/mo
-        assert LICENSE_PRICES_TRC["premium"][12] == 840.0  # $70/mo
+        """Test license pricing in ELC."""
+        assert LICENSE_PRICES_ELC["premium"][1] == 100.0  # $100
+        assert LICENSE_PRICES_ELC["premium"][3] == 270.0  # $90/mo
+        assert LICENSE_PRICES_ELC["premium"][6] == 480.0  # $80/mo
+        assert LICENSE_PRICES_ELC["premium"][12] == 840.0  # $70/mo
         
-        assert LICENSE_PRICES_TRC["basic"][1] == 50.0
-        assert LICENSE_PRICES_TRC["basic"][3] == 135.0
+        assert LICENSE_PRICES_ELC["basic"][1] == 50.0
+        assert LICENSE_PRICES_ELC["basic"][3] == 135.0
 
 
 class TestCurrencyConversion:
-    """Test USDT/TRC conversion."""
+    """Test USDT/ELC conversion."""
     
     def test_usdt_to_trc(self):
-        """Test USDT to TRC conversion."""
+        """Test USDT to ELC conversion."""
         assert usdt_to_trc(100) == 100.0  # 1:1 rate
         assert usdt_to_trc(50.5) == 50.5
         assert usdt_to_trc(0) == 0.0
     
     def test_trc_to_usdt(self):
-        """Test TRC to USDT conversion."""
+        """Test ELC to USDT conversion."""
         assert trc_to_usdt(100) == 100.0
         assert trc_to_usdt(250.75) == 250.75
         assert trc_to_usdt(0) == 0.0
@@ -126,56 +126,56 @@ class TestWalletOperations:
     @pytest.mark.asyncio
     async def test_get_wallet_creates_new(self):
         """Test wallet auto-creation for new user."""
-        wallet = await get_trc_wallet(TEST_USER_ID)
+        wallet = await get_elc_wallet(TEST_USER_ID)
         
         assert wallet is not None
-        assert isinstance(wallet, TRCWallet)
+        assert isinstance(wallet, ELCWallet)
         assert wallet.user_id == TEST_USER_ID
-        assert wallet.address.startswith("0xTRC")
+        assert wallet.address.startswith("0xELC")
         assert wallet.balance >= 0
     
     @pytest.mark.asyncio
     async def test_wallet_persistence(self):
         """Test wallet is retrieved consistently."""
-        wallet1 = await get_trc_wallet(TEST_USER_ID)
-        wallet2 = await get_trc_wallet(TEST_USER_ID)
+        wallet1 = await get_elc_wallet(TEST_USER_ID)
+        wallet2 = await get_elc_wallet(TEST_USER_ID)
         
         assert wallet1.address == wallet2.address
         assert wallet1.user_id == wallet2.user_id
     
     @pytest.mark.asyncio
-    async def test_deposit_trc(self):
-        """Test TRC deposit."""
-        wallet = await get_trc_wallet(TEST_USER_ID)
+    async def test_deposit_elc(self):
+        """Test ELC deposit."""
+        wallet = await get_elc_wallet(TEST_USER_ID)
         initial_balance = wallet.balance
         
-        success, message = await deposit_trc(TEST_USER_ID, 100.0)
+        success, message = await deposit_elc(TEST_USER_ID, 100.0)
         
         assert success is True
         assert "100" in message
         
         # Check new balance
-        new_wallet = await get_trc_wallet(TEST_USER_ID)
+        new_wallet = await get_elc_wallet(TEST_USER_ID)
         assert new_wallet.balance == initial_balance + 100.0
     
     @pytest.mark.asyncio
-    async def test_get_trc_balance(self):
+    async def test_get_elc_balance(self):
         """Test balance retrieval."""
-        balance = await get_trc_balance(TEST_USER_ID)
+        balance = await get_elc_balance(TEST_USER_ID)
         assert isinstance(balance, float)
         assert balance >= 0
 
 
 class TestPaymentOperations:
-    """Test license payment with TRC."""
+    """Test license payment with ELC."""
     
     @pytest.mark.asyncio
     async def test_pay_for_license(self):
-        """Test paying for license with TRC."""
+        """Test paying for license with ELC."""
         # Ensure user has enough funds
-        await deposit_trc(TEST_USER_ID, 200.0)
+        await deposit_elc(TEST_USER_ID, 200.0)
         
-        success, message = await pay_with_trc(
+        success, message = await pay_with_elc(
             user_id=TEST_USER_ID,
             amount=100.0,
             description="Premium License 1 Month"
@@ -188,7 +188,7 @@ class TestPaymentOperations:
     async def test_pay_license_function(self):
         """Test pay_license helper function."""
         # Ensure user has enough funds
-        await deposit_trc(TEST_USER_ID, 200.0)
+        await deposit_elc(TEST_USER_ID, 200.0)
         
         success, message = await pay_license(
             user_id=TEST_USER_ID,
@@ -205,7 +205,7 @@ class TestPaymentOperations:
         # Create fresh user with 0 balance
         new_user_id = 222222222
         
-        success, message = await pay_with_trc(
+        success, message = await pay_with_elc(
             user_id=new_user_id,
             amount=10000.0,  # More than available
             description="Premium License"
@@ -217,22 +217,22 @@ class TestPaymentOperations:
     
     def test_get_license_price(self):
         """Test license price calculation."""
-        assert get_license_price_trc("premium", 1) == 100.0
-        assert get_license_price_trc("premium", 3) == 270.0
-        assert get_license_price_trc("basic", 1) == 50.0
-        assert get_license_price_trc("basic", 6) == 240.0
+        assert get_license_price_elc("premium", 1) == 100.0
+        assert get_license_price_elc("premium", 3) == 270.0
+        assert get_license_price_elc("basic", 1) == 50.0
+        assert get_license_price_elc("basic", 6) == 240.0
 
 
 class TestRewardOperations:
-    """Test TRC reward operations."""
+    """Test ELC reward operations."""
     
     @pytest.mark.asyncio
-    async def test_reward_trc(self):
-        """Test giving TRC reward to user."""
-        wallet = await get_trc_wallet(TEST_USER_ID_2)
+    async def test_reward_elc(self):
+        """Test giving ELC reward to user."""
+        wallet = await get_elc_wallet(TEST_USER_ID_2)
         initial_balance = wallet.balance
         
-        success, message = await reward_trc(
+        success, message = await reward_elc(
             user_id=TEST_USER_ID_2,
             amount=25.0,
             reason="test bonus"
@@ -242,7 +242,7 @@ class TestRewardOperations:
         assert "25" in message
         
         # Verify balance increased
-        new_wallet = await get_trc_wallet(TEST_USER_ID_2)
+        new_wallet = await get_elc_wallet(TEST_USER_ID_2)
         assert new_wallet.balance == initial_balance + 25.0
 
 
@@ -360,7 +360,7 @@ class TestSovereignOperations:
     @pytest.mark.asyncio
     async def test_freeze_unfreeze_wallet(self):
         """Test wallet freeze and unfreeze."""
-        target_wallet = await get_trc_wallet(TEST_USER_ID_2)
+        target_wallet = await get_elc_wallet(TEST_USER_ID_2)
         
         # Freeze
         result = await freeze_wallet(
@@ -414,7 +414,7 @@ class TestLicensePricing:
     
     def test_premium_pricing_discounts(self):
         """Test premium pricing with discounts."""
-        prices = LICENSE_PRICES_TRC["premium"]
+        prices = LICENSE_PRICES_ELC["premium"]
         
         # 1 month = base price
         assert prices[1] == 100.0
@@ -430,8 +430,8 @@ class TestLicensePricing:
     
     def test_basic_pricing_is_half_premium(self):
         """Test basic is 50% of premium."""
-        premium = LICENSE_PRICES_TRC["premium"]
-        basic = LICENSE_PRICES_TRC["basic"]
+        premium = LICENSE_PRICES_ELC["premium"]
+        basic = LICENSE_PRICES_ELC["basic"]
         
         assert basic[1] == premium[1] / 2
         assert basic[3] == premium[3] / 2
@@ -458,7 +458,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_zero_amount_payment(self):
         """Test payment with zero amount."""
-        success, message = await pay_with_trc(
+        success, message = await pay_with_elc(
             user_id=TEST_USER_ID,
             amount=0.0,
             description="Zero test"
@@ -471,7 +471,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_negative_amount_deposit(self):
         """Test deposit with negative amount."""
-        success, message = await deposit_trc(TEST_USER_ID, -100.0)
+        success, message = await deposit_elc(TEST_USER_ID, -100.0)
         
         # Should fail
         assert success is False
@@ -524,10 +524,10 @@ class TestNetworkOperations:
     @pytest.mark.asyncio
     async def test_withdrawal_request(self):
         """Test withdrawal request."""
-        from core.blockchain import request_withdrawal, deposit_trc
+        from core.blockchain import request_withdrawal, deposit_elc
         
         # Ensure user has funds
-        await deposit_trc(TEST_USER_ID, 100.0)
+        await deposit_elc(TEST_USER_ID, 100.0)
         
         success, message, info = await request_withdrawal(
             user_id=TEST_USER_ID,

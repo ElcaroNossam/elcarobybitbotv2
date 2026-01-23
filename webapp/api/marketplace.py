@@ -55,12 +55,12 @@ class CreateStrategyRequest(BaseModel):
 class ListStrategyRequest(BaseModel):
     strategy_id: int
     price_ton: float = 0
-    price_trc: int = 0
+    price_elc: int = 0
 
 
 class PurchaseRequest(BaseModel):
     marketplace_id: int
-    currency: str  # 'ton' or 'trc'
+    currency: str  # 'ton' or 'elc'
 
 
 class RatingRequest(BaseModel):
@@ -167,7 +167,7 @@ async def get_my_strategies(user: dict = Depends(get_current_user)):
         cur = conn.cursor()
         cur.execute("""
             SELECT s.*, 
-                   m.id as marketplace_id, m.price_ton, m.price_trc, m.total_sales, m.rating
+                   m.id as marketplace_id, m.price_ton, m.price_elc, m.total_sales, m.rating
             FROM custom_strategies s
             LEFT JOIN strategy_marketplace m ON s.id = m.strategy_id
             WHERE s.user_id = ?
@@ -190,7 +190,7 @@ async def get_strategy(strategy_id: int, user: Optional[dict] = Depends(get_curr
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT s.*, m.id as marketplace_id, m.price_ton, m.price_trc, 
+            SELECT s.*, m.id as marketplace_id, m.price_ton, m.price_elc, 
                    m.total_sales, m.rating, m.rating_count
             FROM custom_strategies s
             LEFT JOIN strategy_marketplace m ON s.id = m.strategy_id
@@ -296,9 +296,9 @@ async def list_on_marketplace(request: ListStrategyRequest, user: dict = Depends
         # Create marketplace listing
         cur.execute("""
             INSERT INTO strategy_marketplace 
-            (strategy_id, seller_id, price_ton, price_trc, revenue_share, created_at)
+            (strategy_id, seller_id, price_ton, price_elc, revenue_share, created_at)
             VALUES (?, ?, ?, ?, 0.5, NOW())
-        """, (request.strategy_id, user_id, request.price_ton, request.price_trc))
+        """, (request.strategy_id, user_id, request.price_ton, request.price_elc))
         
         # Mark strategy as public
         cur.execute("UPDATE custom_strategies SET is_public = TRUE WHERE id = ?", (request.strategy_id,))
@@ -407,11 +407,11 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
             raise HTTPException(status_code=400, detail="Cannot purchase your own strategy")
         
         # Get price
-        price = listing["price_ton"] if request.currency == "ton" else listing["price_trc"]
+        price = listing["price_ton"] if request.currency == "ton" else listing["price_elc"]
         seller_share = price * 0.5
         platform_share = price * 0.5
         
-        # TODO: Integrate with TRC payment system (blockchain.py)
+        # TODO: Integrate with ELC payment system (blockchain.py)
         # For now, record the purchase (payment verification should happen separately)
         
         cur.execute("""

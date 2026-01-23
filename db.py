@@ -3458,7 +3458,7 @@ def create_license_request(
     period_months: int = 1,
     payment_method: str = "pending",
     amount: float = 0.0,
-    currency: str = "TRC",
+    currency: str = "ELC",
     notes: str = None
 ) -> dict:
     """

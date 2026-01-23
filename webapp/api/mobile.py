@@ -334,7 +334,7 @@ async def get_user_profile(
             row = cur.fetchone()
             positions_count = (row[0] if row else 0) or 0
             
-            # Get TRC balance
+            # Get ELC balance
             cur.execute("""
                 SELECT COALESCE(SUM(CASE WHEN tx_type IN ('purchase', 'reward', 'deposit') THEN amount 
                                          WHEN tx_type IN ('payment', 'withdrawal') THEN -amount 

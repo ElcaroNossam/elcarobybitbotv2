@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRC Blockchain Admin - Lyxen</title>
+    <title>ELC Blockchain Admin - Lyxen</title>
     <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
     <style>
         :root {
@@ -271,7 +271,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>🪙 <span>TRC Blockchain</span> Admin Panel</h1>
+        <h1>🪙 <span>ELC Blockchain</span> Admin Panel</h1>
         <div class="owner-badge">👑 Sovereign Owner</div>
     </div>
     
@@ -314,7 +314,7 @@
             <h2>🖨️ Token Emission</h2>
             <form id="emissionForm">
                 <div class="form-group">
-                    <label>Amount to Emit (TRC)</label>
+                    <label>Amount to Emit (ELC)</label>
                     <input type="number" id="emitAmount" placeholder="1000000" min="1" step="any">
                 </div>
                 <div class="form-group">
@@ -330,7 +330,7 @@
             <h2>🔥 Token Burn</h2>
             <form id="burnForm">
                 <div class="form-group">
-                    <label>Amount to Burn (TRC)</label>
+                    <label>Amount to Burn (ELC)</label>
                     <input type="number" id="burnAmount" placeholder="500000" min="1" step="any">
                 </div>
                 <div class="form-group">
@@ -366,7 +366,7 @@
                     <input type="number" id="transferUserId" placeholder="123456789">
                 </div>
                 <div class="form-group">
-                    <label>Amount (TRC)</label>
+                    <label>Amount (ELC)</label>
                     <input type="number" id="transferAmount" placeholder="1000" min="1" step="any">
                 </div>
                 <div class="form-group">
@@ -455,13 +455,13 @@
                 if (data.treasury) {
                     document.getElementById('currentSupply').textContent = formatNumber(data.treasury.current_supply);
                     document.getElementById('maxSupply').textContent = formatNumber(data.treasury.max_supply);
-                    document.getElementById('treasuryBalance').textContent = formatNumber(data.treasury.treasury_balance) + ' TRC';
+                    document.getElementById('treasuryBalance').textContent = formatNumber(data.treasury.treasury_balance) + ' ELC';
                     document.getElementById('reserveRatio').textContent = (data.treasury.reserve_ratio * 100).toFixed(0) + '%';
                     document.getElementById('stakingApy').textContent = data.treasury.staking_apy.toFixed(1) + '%';
                 }
                 
                 if (data.global) {
-                    document.getElementById('totalStaked').textContent = formatNumber(data.global.total_staked) + ' TRC';
+                    document.getElementById('totalStaked').textContent = formatNumber(data.global.total_staked) + ' ELC';
                 }
                 
                 addLog('Dashboard refreshed', 'success');
@@ -508,8 +508,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showAlert(`Emitted ${formatNumber(amount)} TRC`, 'success');
-                    addLog(`EMISSION: ${formatNumber(amount)} TRC - ${reason}`, 'success');
+                    showAlert(`Emitted ${formatNumber(amount)} ELC`, 'success');
+                    addLog(`EMISSION: ${formatNumber(amount)} ELC - ${reason}`, 'success');
                     loadDashboard();
                 } else {
                     showAlert(data.error || 'Emission failed', 'error');
@@ -535,8 +535,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showAlert(`Burned ${formatNumber(amount)} TRC`, 'success');
-                    addLog(`BURN: ${formatNumber(amount)} TRC - ${reason}`, 'success');
+                    showAlert(`Burned ${formatNumber(amount)} ELC`, 'success');
+                    addLog(`BURN: ${formatNumber(amount)} ELC - ${reason}`, 'success');
                     loadDashboard();
                 } else {
                     showAlert(data.error || 'Burn failed', 'error');
@@ -588,8 +588,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showAlert(`Transferred ${formatNumber(amount)} TRC to user ${to_user_id}`, 'success');
-                    addLog(`TRANSFER: ${formatNumber(amount)} TRC to ${to_user_id}`, 'success');
+                    showAlert(`Transferred ${formatNumber(amount)} ELC to user ${to_user_id}`, 'success');
+                    addLog(`TRANSFER: ${formatNumber(amount)} ELC to ${to_user_id}`, 'success');
                     loadDashboard();
                 } else {
                     showAlert(data.error || 'Transfer failed', 'error');
@@ -647,11 +647,11 @@
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Balance</div>
-                                <div class="stat-value green">${formatNumber(data.balance)} TRC</div>
+                                <div class="stat-value green">${formatNumber(data.balance)} ELC</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Staked</div>
-                                <div class="stat-value blue">${formatNumber(data.staked_balance)} TRC</div>
+                                <div class="stat-value blue">${formatNumber(data.staked_balance)} ELC</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Status</div>

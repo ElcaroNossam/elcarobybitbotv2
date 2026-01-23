@@ -834,7 +834,7 @@ def pg_init_db():
                 period_months   INTEGER NOT NULL DEFAULT 1,
                 payment_method  TEXT NOT NULL DEFAULT 'pending',
                 amount          REAL NOT NULL DEFAULT 0,
-                currency        TEXT NOT NULL DEFAULT 'TRC',
+                currency        TEXT NOT NULL DEFAULT 'ELC',
                 status          TEXT NOT NULL DEFAULT 'pending',
                 notes           TEXT,
                 created_at      BIGINT NOT NULL,

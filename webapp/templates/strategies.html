@@ -973,9 +973,9 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Price in TRC</label>
+                        <label>Price in ELC</label>
                         <div class="price-input">
-                            <input type="number" id="priceTRC" value="1250" step="50">
+                            <input type="number" id="priceELC" value="1250" step="50">
                             <span>◈</span>
                         </div>
                     </div>
@@ -1475,7 +1475,7 @@
             const data = {
                 strategy_id: currentStrategy.id,
                 price_ton: parseFloat(document.getElementById('priceTon').value),
-                price_trc: parseInt(document.getElementById('priceTRC').value)
+                price_elc: parseInt(document.getElementById('priceELC').value)
             };
             
             try {

@@ -1,5 +1,5 @@
 """
-Blockchain API Router for TRC Token Management
+Blockchain API Router for ELC Token Management
 
 Provides endpoints for:
 - Wallet management (balance, deposit, withdraw)
@@ -21,13 +21,13 @@ from webapp.api.auth import get_current_user, require_admin
 # Import blockchain functions
 from core.blockchain import (
     # Wallet operations
-    get_trc_wallet,
-    get_trc_balance,
-    deposit_trc,
-    pay_with_trc,
-    reward_trc,
+    get_elc_wallet,
+    get_elc_balance,
+    deposit_elc,
+    pay_with_elc,
+    reward_elc,
     pay_license,
-    get_license_price_trc,
+    get_license_price_elc,
     
     # Conversion
     usdt_to_trc,
@@ -58,7 +58,7 @@ from core.blockchain import (
     
     # Config
     SOVEREIGN_OWNER_ID,
-    LICENSE_PRICES_TRC,
+    LICENSE_PRICES_ELC,
     CryptoNetwork,
 )
 
@@ -146,7 +146,7 @@ class RewardRequest(BaseModel):
 
 @router.get("/stats", summary="Get global blockchain statistics")
 async def get_blockchain_stats():
-    """Public: Get global TRC blockchain statistics"""
+    """Public: Get global ELC blockchain statistics"""
     return await get_global_stats()
 
 
@@ -191,22 +191,22 @@ async def list_withdrawal_fees():
 
 @router.get("/prices/license", summary="Get license prices")
 async def get_license_prices():
-    """Public: Get all license prices in TRC"""
+    """Public: Get all license prices in ELC"""
     return {
-        "prices": LICENSE_PRICES_TRC,
-        "currency": "TRC",
-        "note": "1 TRC = 1 USDT"
+        "prices": LICENSE_PRICES_ELC,
+        "currency": "ELC",
+        "note": "1 ELC = 1 USDT"
     }
 
 
 @router.get("/price/license/{license_type}/{months}", summary="Get specific license price")
 async def get_specific_license_price(license_type: str, months: int):
     """Public: Get price for specific license and duration"""
-    price = get_license_price_trc(license_type, months)
+    price = get_license_price_elc(license_type, months)
     return {
         "license_type": license_type,
         "months": months,
-        "price_trc": price,
+        "price_elc": price,
         "price_usdt": trc_to_usdt(price)
     }
 
@@ -221,7 +221,7 @@ async def get_specific_license_price(license_type: str, months: int):
 async def get_my_wallet(user: dict = Depends(get_current_user)):
     """Get wallet information for authenticated user"""
     user_id = user["user_id"]
-    wallet = await get_trc_wallet(user_id)
+    wallet = await get_elc_wallet(user_id)
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     
@@ -241,7 +241,7 @@ async def get_user_wallet(user_id: int, user: dict = Depends(get_current_user)):
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied. You can only view your own wallet.")
     
-    wallet = await get_trc_wallet(user_id)
+    wallet = await get_elc_wallet(user_id)
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
     
@@ -256,9 +256,9 @@ async def get_user_wallet(user_id: int, user: dict = Depends(get_current_user)):
 
 @router.get("/wallet/me/balance", summary="Get current user balance")
 async def get_my_balance(user: dict = Depends(get_current_user)):
-    """Get TRC balance for authenticated user"""
+    """Get ELC balance for authenticated user"""
     user_id = user["user_id"]
-    balance = await get_trc_balance(user_id)
+    balance = await get_elc_balance(user_id)
     return {
         "user_id": user_id,
         "balance_trc": balance,
@@ -268,12 +268,12 @@ async def get_my_balance(user: dict = Depends(get_current_user)):
 
 @router.get("/wallet/{user_id}/balance", summary="Get user balance (admin only)")
 async def get_user_balance(user_id: int, user: dict = Depends(get_current_user)):
-    """Get TRC balance for user - requires authentication"""
+    """Get ELC balance for user - requires authentication"""
     # SECURITY: Users can only access their own balance, admins can access any
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied. You can only view your own balance.")
     
-    balance = await get_trc_balance(user_id)
+    balance = await get_elc_balance(user_id)
     return {
         "user_id": user_id,
         "balance_trc": balance,
@@ -300,8 +300,8 @@ async def get_user_deposit_address(user_id: int, network: str, user: dict = Depe
 
 @router.post("/deposit", summary="Process deposit")
 async def process_deposit(request: DepositRequest, user: dict = Depends(require_admin)):
-    """Process TRC deposit (admin/system use only)"""
-    success, message = await deposit_trc(request.user_id, request.amount)
+    """Process ELC deposit (admin/system use only)"""
+    success, message = await deposit_elc(request.user_id, request.amount)
     return {
         "success": success,
         "message": message
@@ -327,8 +327,8 @@ async def process_withdrawal(request: WithdrawalRequest):
 
 @router.post("/pay", summary="Process payment")
 async def process_payment(request: PaymentRequest):
-    """Process TRC payment"""
-    success, message = await pay_with_trc(
+    """Process ELC payment"""
+    success, message = await pay_with_elc(
         request.user_id,
         request.amount,
         request.description
@@ -341,7 +341,7 @@ async def process_payment(request: PaymentRequest):
 
 @router.post("/pay/license", summary="Pay for license")
 async def process_license_payment(request: LicensePaymentRequest):
-    """Pay for license subscription with TRC"""
+    """Pay for license subscription with ELC"""
     success, message = await pay_license(
         request.user_id,
         request.license_type,
@@ -356,10 +356,10 @@ async def process_license_payment(request: LicensePaymentRequest):
     }
 
 
-@router.post("/reward", summary="Give TRC reward")
+@router.post("/reward", summary="Give ELC reward")
 async def give_reward(request: RewardRequest):
-    """Give TRC reward to user (admin)"""
-    success, message = await reward_trc(
+    """Give ELC reward to user (admin)"""
+    success, message = await reward_elc(
         request.user_id,
         request.amount,
         request.reason
@@ -407,7 +407,7 @@ async def get_all_network_status(user: dict = Depends(require_admin)):
 
 @router.post("/admin/emit", summary="Emit new tokens")
 async def emit_new_tokens(request: EmissionRequest, user: dict = Depends(require_admin)):
-    """Sovereign: Emit new TRC tokens"""
+    """Sovereign: Emit new ELC tokens"""
     user_id = user["user_id"]
     if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -422,7 +422,7 @@ async def emit_new_tokens(request: EmissionRequest, user: dict = Depends(require
 
 @router.post("/admin/burn", summary="Burn tokens")
 async def burn_existing_tokens(request: BurnRequest, user: dict = Depends(require_admin)):
-    """Sovereign: Burn TRC tokens from treasury"""
+    """Sovereign: Burn ELC tokens from treasury"""
     user_id = user["user_id"]
     if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -461,7 +461,7 @@ async def freeze_user_wallet(request: FreezeRequest, user: dict = Depends(requir
     if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    target_wallet = await get_trc_wallet(request.target_user_id)
+    target_wallet = await get_elc_wallet(request.target_user_id)
     if not target_wallet:
         raise HTTPException(status_code=404, detail="Target wallet not found")
     
@@ -480,7 +480,7 @@ async def unfreeze_user_wallet(request: FreezeRequest, user: dict = Depends(requ
     if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    target_wallet = await get_trc_wallet(request.target_user_id)
+    target_wallet = await get_elc_wallet(request.target_user_id)
     if not target_wallet:
         raise HTTPException(status_code=404, detail="Target wallet not found")
     
@@ -504,7 +504,7 @@ async def distribute_rewards(user: dict = Depends(require_admin)):
 
 @router.post("/admin/treasury-transfer", summary="Transfer from treasury")
 async def treasury_transfer(request: TreasuryTransferRequest, user: dict = Depends(require_admin)):
-    """Sovereign: Transfer TRC from treasury to user"""
+    """Sovereign: Transfer ELC from treasury to user"""
     user_id = user["user_id"]
     if not is_sovereign_owner(user_id):
         raise HTTPException(status_code=403, detail="Access denied")
@@ -522,21 +522,21 @@ async def treasury_transfer(request: TreasuryTransferRequest, user: dict = Depen
 # UTILITY ENDPOINTS
 # ============================================
 
-@router.get("/convert/usdt-to-trc", summary="Convert USDT to TRC")
+@router.get("/convert/usdt-to-trc", summary="Convert USDT to ELC")
 async def convert_usdt_to_trc(amount: float = Query(gt=0)):
-    """Convert USDT amount to TRC"""
+    """Convert USDT amount to ELC"""
     return {
         "usdt": amount,
-        "trc": usdt_to_trc(amount),
+        "elc": usdt_to_trc(amount),
         "rate": "1:1"
     }
 
 
-@router.get("/convert/trc-to-usdt", summary="Convert TRC to USDT")
+@router.get("/convert/trc-to-usdt", summary="Convert ELC to USDT")
 async def convert_trc_to_usdt(amount: float = Query(gt=0)):
-    """Convert TRC amount to USDT"""
+    """Convert ELC amount to USDT"""
     return {
-        "trc": amount,
+        "elc": amount,
         "usdt": trc_to_usdt(amount),
         "rate": "1:1"
     }

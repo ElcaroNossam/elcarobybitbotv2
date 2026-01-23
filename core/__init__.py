@@ -139,7 +139,7 @@ from .exchange_client import (
     clear_auth_error_cache,
 )
 
-# Blockchain and TRC token
+# Blockchain and ELC token
 # Task management
 from .tasks import (
     safe_create_task,
@@ -153,8 +153,8 @@ from .tasks import (
 from .blockchain import (
     # Core
     LyxenBlockchain,
-    TRCWallet,
-    TRCTransaction,
+    ELCWallet,
+    ELCTransaction,
     TransactionType,
     CryptoNetwork,
     
@@ -163,28 +163,28 @@ from .blockchain import (
     SOVEREIGN_OWNER_NAME,
     CHAIN_ID,
     CHAIN_NAME,
-    TRC_SYMBOL,
-    TRC_NAME,
-    TRC_TOTAL_SUPPLY,
-    TRC_INITIAL_CIRCULATION,
+    ELC_SYMBOL,
+    ELC_NAME,
+    ELC_TOTAL_SUPPLY,
+    ELC_INITIAL_CIRCULATION,
     BASE_STAKING_APY,
-    LICENSE_PRICES_TRC,
+    LICENSE_PRICES_ELC,
     NETWORK_CONFIG,
     GLOBAL_USD_RATES,
     
     # Price functions
     calculate_global_usd_index,
-    get_trc_usd_rate,
-    get_trc_price_info,
+    get_elc_usd_rate,
+    get_elc_price_info,
     
     # Wallet functions
-    get_trc_wallet,
-    get_trc_balance,
-    deposit_trc,
-    pay_with_trc,
-    reward_trc,
+    get_elc_wallet,
+    get_elc_balance,
+    deposit_elc,
+    pay_with_elc,
+    reward_elc,
     pay_license,
-    get_license_price_trc,
+    get_license_price_elc,
     
     # Currency conversion
     usdt_to_trc,
@@ -327,34 +327,34 @@ __all__ = [
     "invalidate_client",
     "clear_auth_error_cache",
     
-    # Blockchain and TRC
+    # Blockchain and ELC
     "LyxenBlockchain",
-    "TRCWallet",
-    "TRCTransaction",
+    "ELCWallet",
+    "ELCTransaction",
     "TransactionType",
     "CryptoNetwork",
     "SOVEREIGN_OWNER_ID",
     "SOVEREIGN_OWNER_NAME",
     "CHAIN_ID",
     "CHAIN_NAME",
-    "TRC_SYMBOL",
-    "TRC_NAME",
-    "TRC_TOTAL_SUPPLY",
-    "TRC_INITIAL_CIRCULATION",
+    "ELC_SYMBOL",
+    "ELC_NAME",
+    "ELC_TOTAL_SUPPLY",
+    "ELC_INITIAL_CIRCULATION",
     "BASE_STAKING_APY",
-    "LICENSE_PRICES_TRC",
+    "LICENSE_PRICES_ELC",
     "NETWORK_CONFIG",
     "GLOBAL_USD_RATES",
     "calculate_global_usd_index",
-    "get_trc_usd_rate",
-    "get_trc_price_info",
-    "get_trc_wallet",
-    "get_trc_balance",
-    "deposit_trc",
-    "pay_with_trc",
-    "reward_trc",
+    "get_elc_usd_rate",
+    "get_elc_price_info",
+    "get_elc_wallet",
+    "get_elc_balance",
+    "deposit_elc",
+    "pay_with_elc",
+    "reward_elc",
     "pay_license",
-    "get_license_price_trc",
+    "get_license_price_elc",
     "usdt_to_trc",
     "trc_to_usdt",
     "is_sovereign_owner",

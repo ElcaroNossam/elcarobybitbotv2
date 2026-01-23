@@ -818,10 +818,10 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
 ✅ Dinaminis SL/TP pagal ATR
 ✅ Limitų kopetėlės DCA
 ✅ Visi būsimi atnaujinimai''',
-    'premium_1m': '💎 1 mėnuo — {price} TRC',
-    'premium_3m': '💎 3 mėnesiai — {price} TRC (-10%)',
-    'premium_6m': '💎 6 mėnesiai — {price} TRC (-20%)',
-    'premium_12m': '💎 12 mėnesių — {price} TRC (-30%)',
+    'premium_1m': '💎 1 mėnuo — {price} ELC',
+    'premium_3m': '💎 3 mėnesiai — {price} ELC (-10%)',
+    'premium_6m': '💎 6 mėnesiai — {price} ELC (-20%)',
+    'premium_12m': '💎 12 mėnesių — {price} ELC (-30%)',
     
     'basic_title': '🥈 *BASIC PLANAS*',
     'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
@@ -829,7 +829,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
 ❌ Lyxen, Fibonacci, Spot — tik Premium
 ✅ Standartinė pagalba
 ✅ Dinaminis SL/TP pagal ATR''',
-    'basic_1m': '🥈 1 mėnuo — {price} TRC',
+    'basic_1m': '🥈 1 mėnuo — {price} ELC',
     
     'trial_title': '🎁 *NEMOKAMA BANDOMOJI — Ribota pasiūla!*',
     'trial_desc': '''✅ Pilna prieiga prie demo sąskaitos
@@ -842,10 +842,10 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     'trial_activated': '🎉 Bandomoji versija aktyvuota! Turite 7 dienas pilnos demo prieigos.',
     
     'payment_select_method': '💳 *Pasirinkite mokėjimo būdą*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' Mokėjimas per TRC',
-    'payment_trc_desc': 'Bus nuskaičiuota {amount} TRC už {plan} ({period}).',
+    'payment_elc_title': ' Mokėjimas per ELC',
+    'payment_elc_desc': 'Bus nuskaičiuota {amount} ELC už {plan} ({period}).',
     'payment_ton_title': '💎 Mokėjimas per TON',
     'payment_ton_desc': '''Siųskite tiksliai *{amount} TON* į:
 
@@ -930,7 +930,7 @@ Po mokėjimo paspauskite mygtuką žemiau patikrinimui.''',
 
 💳 *Mokėjimai:*
   Viso: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *Pirmas apsilankymas:* {first_seen}
 🕐 *Paskutinis apsilankymas:* {last_seen}
@@ -1035,56 +1035,56 @@ Pasirinkite ataskaitos tipą:''',
     # Hardcore trading phrase
     'hardcore_mode': '💀 *HARDCORE REŽIMAS*: Jokios gailesčio, jokių apgailestavimų. Tik pelnas arba mirtis! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ Nepakankamas TRC balansas.
+    'payment_elc_insufficient': '''❌ Nepakankamas ELC balansas.
 
-Jūsų balansas: {balance} TRC
-Reikalinga: {required} TRC
+Jūsų balansas: {balance} ELC
+Reikalinga: {required} ELC
 
 Papildykite piniginę, kad tęstumėte.''',
     'wallet_address': '''📍 Adresas: `{address}`''',
-    'wallet_balance': '''💰 *Jūsų TRC Piniginė*
+    'wallet_balance': '''💰 *Jūsų ELC Piniginė*
 
-◈ Balansas: *{balance} TRC*
-📈 Stakinta: *{staked} TRC*
-🎁 Laukiantys atlygiai: *{rewards} TRC*
+◈ Balansas: *{balance} ELC*
+📈 Stakinta: *{staked} ELC*
+🎁 Laukiantys atlygiai: *{rewards} ELC*
 
 💵 Bendra vertė: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« Atgal''',
     'wallet_btn_deposit': '''📥 Įnėšimas''',
     'wallet_btn_history': '''📋 Istorija''',
     'wallet_btn_stake': '''📈 Stakinti''',
     'wallet_btn_unstake': '''📤 Atšaukti stakinimą''',
     'wallet_btn_withdraw': '''📤 Išėmimas''',
-    'wallet_deposit_demo': '''🎁 Gauti 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Siųskite TRC žetonus į savo piniginės adresą:
+    'wallet_deposit_demo': '''🎁 Gauti 100 ELC (Demo)''',
+    'wallet_deposit_desc': '''Siųskite ELC žetonus į savo piniginės adresą:
 
 `{address}`
 
 💡 *Demo režimas:* Spustelėkite žemiau, kad gautumėte nemokamus bandomuosius žetonus.''',
-    'wallet_deposit_success': '''✅ Sėkmingai įnėšta {amount} TRC!''',
-    'wallet_deposit_title': '''📥 *TRC įnėšimas*''',
+    'wallet_deposit_success': '''✅ Sėkmingai įnėšta {amount} ELC!''',
+    'wallet_deposit_title': '''📥 *ELC įnėšimas*''',
     'wallet_history_empty': '''Kol kas nėra operacijų.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *Operacijų istorija*''',
-    'wallet_stake_desc': '''Stakinkite savo TRC žetonus ir uždirbkite *12% APY*!
+    'wallet_stake_desc': '''Stakinkite savo ELC žetonus ir uždirbkite *12% APY*!
 
-💰 Galima: {available} TRC
-📈 Šiuo metu stakinta: {staked} TRC
-🎁 Laukiantys atlygiai: {rewards} TRC
+💰 Galima: {available} ELC
+📈 Šiuo metu stakinta: {staked} ELC
+🎁 Laukiantys atlygiai: {rewards} ELC
 
 Kasdieniai atlygiai • Momentinis išėmimas''',
-    'wallet_stake_success': '''✅ Sėkmingai stakinta {amount} TRC!''',
-    'wallet_stake_title': '''📈 *TRC Stakinimas*''',
-    'wallet_title': '''◈ *TRC Piniginė*''',
-    'wallet_unstake_success': '''✅ Išimta {amount} TRC + {rewards} TRC atlygių!''',
+    'wallet_stake_success': '''✅ Sėkmingai stakinta {amount} ELC!''',
+    'wallet_stake_title': '''📈 *ELC Stakinimas*''',
+    'wallet_title': '''◈ *ELC Piniginė*''',
+    'wallet_unstake_success': '''✅ Išimta {amount} ELC + {rewards} ELC atlygių!''',
     'wallet_withdraw_desc': '''Įveskite paskirties adresą ir sumą:''',
     'wallet_withdraw_failed': '''❌ Išėmimas nepavyko: {error}''',
-    'wallet_withdraw_success': '''✅ Išimta {amount} TRC į {address}''',
-    'wallet_withdraw_title': '''📤 *TRC Išėmimas*''',
+    'wallet_withdraw_success': '''✅ Išimta {amount} ELC į {address}''',
+    'wallet_withdraw_title': '''📤 *ELC Išėmimas*''',
 
     'spot_freq_biweekly': '📅 Kas 2 savaites',
     'spot_trailing_enabled': '✅ Trailing TP įjungtas: aktyvacija +{activation}%, trail {trail}%',

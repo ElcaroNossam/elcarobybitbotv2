@@ -832,10 +832,10 @@ TEXTS = {
 ✅ SL/TP דינמי מבוסס ATR
 ✅ סולם לימיט DCA
 ✅ כל העדכונים העתידיים''',
-    'premium_1m': '💎 חודש 1 — {price} TRC',
-    'premium_3m': '💎 3 חודשים — {price} TRC (-10%)',
-    'premium_6m': '💎 6 חודשים — {price} TRC (-20%)',
-    'premium_12m': '💎 12 חודשים — {price} TRC (-30%)',
+    'premium_1m': '💎 חודש 1 — {price} ELC',
+    'premium_3m': '💎 3 חודשים — {price} ELC (-10%)',
+    'premium_6m': '💎 6 חודשים — {price} ELC (-20%)',
+    'premium_12m': '💎 12 חודשים — {price} ELC (-30%)',
     
     'basic_title': '🥈 *תוכנית BASIC*',
     'basic_desc': '''✅ גישה מלאה לחשבון דמו
@@ -843,7 +843,7 @@ TEXTS = {
 ❌ Lyxen, Fibonacci, Spot — Premium בלבד
 ✅ תמיכה רגילה
 ✅ SL/TP דינמי מבוסס ATR''',
-    'basic_1m': '🥈 חודש 1 — {price} TRC',
+    'basic_1m': '🥈 חודש 1 — {price} ELC',
     
     'trial_title': '🎁 *ניסיון חינם — הצעה מוגבלת!*',
     'trial_desc': '''✅ גישה מלאה לחשבון דמו
@@ -856,10 +856,10 @@ TEXTS = {
     'trial_activated': '🎉 ניסיון הופעל! יש לך 7 ימים של גישה מלאה לדמו.',
     
     'payment_select_method': '💳 *בחר אמצעי תשלום*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' תשלום דרך TRC',
-    'payment_trc_desc': 'יחויבו {amount} TRC עבור {plan} ({period}).',
+    'payment_elc_title': ' תשלום דרך ELC',
+    'payment_elc_desc': 'יחויבו {amount} ELC עבור {plan} ({period}).',
     'payment_ton_title': '💎 תשלום דרך TON',
     'payment_ton_desc': '''שלח בדיוק *{amount} TON* ל:
 
@@ -944,7 +944,7 @@ TEXTS = {
 
 💳 *תשלומים:*
   סה"כ: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *נראה לראשונה:* {first_seen}
 🕐 *נראה לאחרונה:* {last_seen}
@@ -1049,56 +1049,56 @@ TEXTS = {
     # Hardcore trading phrase
     'hardcore_mode': '💀 *מצב הארדקור*: ללא רחמים, ללא חרטות. רק רווח או מוות! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ יתרת TRC לא מספיקה.
+    'payment_elc_insufficient': '''❌ יתרת ELC לא מספיקה.
 
-היתרה שלך: {balance} TRC
-נדרש: {required} TRC
+היתרה שלך: {balance} ELC
+נדרש: {required} ELC
 
 טען את הארנק כדי להמשיך.''',
     'wallet_address': '''📍 כתובת: `{address}`''',
-    'wallet_balance': '''💰 *ארנק TRC שלך*
+    'wallet_balance': '''💰 *ארנק ELC שלך*
 
-◈ יתרה: *{balance} TRC*
-📈 בהימור: *{staked} TRC*
-🎁 תגמולים ממתינים: *{rewards} TRC*
+◈ יתרה: *{balance} ELC*
+📈 בהימור: *{staked} ELC*
+🎁 תגמולים ממתינים: *{rewards} ELC*
 
 💵 ערך כולל: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« חזרה''',
     'wallet_btn_deposit': '''📥 הפקדה''',
     'wallet_btn_history': '''📋 היסטוריה''',
     'wallet_btn_stake': '''📈 הימור''',
     'wallet_btn_unstake': '''📤 ביטול הימור''',
     'wallet_btn_withdraw': '''📤 משיכה''',
-    'wallet_deposit_demo': '''🎁 קבל 100 TRC (דמו)''',
-    'wallet_deposit_desc': '''שלח טוקני TRC לכתובת הארנק שלך:
+    'wallet_deposit_demo': '''🎁 קבל 100 ELC (דמו)''',
+    'wallet_deposit_desc': '''שלח טוקני ELC לכתובת הארנק שלך:
 
 `{address}`
 
 💡 *מצב דמו:* לחץ למטה לטוקני בדיקה חינם.''',
-    'wallet_deposit_success': '''✅ הופקדו {amount} TRC בהצלחה!''',
-    'wallet_deposit_title': '''📥 *הפקדת TRC*''',
+    'wallet_deposit_success': '''✅ הופקדו {amount} ELC בהצלחה!''',
+    'wallet_deposit_title': '''📥 *הפקדת ELC*''',
     'wallet_history_empty': '''אין עסקאות עדיין.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *היסטוריית עסקאות*''',
-    'wallet_stake_desc': '''הימר את טוקני ה-TRC שלך והרווח *12% APY*!
+    'wallet_stake_desc': '''הימר את טוקני ה-ELC שלך והרווח *12% APY*!
 
-💰 זמין: {available} TRC
-📈 כרגע בהימור: {staked} TRC
-🎁 תגמולים ממתינים: {rewards} TRC
+💰 זמין: {available} ELC
+📈 כרגע בהימור: {staked} ELC
+🎁 תגמולים ממתינים: {rewards} ELC
 
 תגמולים יומיים • ביטול מיידי''',
-    'wallet_stake_success': '''✅ הומרו {amount} TRC בהצלחה!''',
-    'wallet_stake_title': '''📈 *הימור TRC*''',
-    'wallet_title': '''◈ *ארנק TRC*''',
-    'wallet_unstake_success': '''✅ נמשכו {amount} TRC + {rewards} TRC תגמולים!''',
+    'wallet_stake_success': '''✅ הומרו {amount} ELC בהצלחה!''',
+    'wallet_stake_title': '''📈 *הימור ELC*''',
+    'wallet_title': '''◈ *ארנק ELC*''',
+    'wallet_unstake_success': '''✅ נמשכו {amount} ELC + {rewards} ELC תגמולים!''',
     'wallet_withdraw_desc': '''הזן כתובת יעד וסכום:''',
     'wallet_withdraw_failed': '''❌ המשיכה נכשלה: {error}''',
-    'wallet_withdraw_success': '''✅ נמשכו {amount} TRC ל-{address}''',
-    'wallet_withdraw_title': '''📤 *משיכת TRC*''',
+    'wallet_withdraw_success': '''✅ נמשכו {amount} ELC ל-{address}''',
+    'wallet_withdraw_title': '''📤 *משיכת ELC*''',
 
     'spot_freq_biweekly': '📅 כל שבועיים',
     'spot_trailing_enabled': '✅ Trailing TP מופעל: הפעלה ב-+{activation}%, מעקב {trail}%',

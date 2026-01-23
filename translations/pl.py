@@ -799,10 +799,10 @@ Wybierz swoją drogę do wolności finansowej:''',
 ✅ Dynamiczny SL/TP oparty na ATR
 ✅ Drabina limitów DCA
 ✅ Wszystkie przyszłe aktualizacje''',
-    'premium_1m': '💎 1 Miesiąc — {price} TRC',
-    'premium_3m': '💎 3 Miesiące — {price} TRC (-10%)',
-    'premium_6m': '💎 6 Miesięcy — {price} TRC (-20%)',
-    'premium_12m': '💎 12 Miesięcy — {price} TRC (-30%)',
+    'premium_1m': '💎 1 Miesiąc — {price} ELC',
+    'premium_3m': '💎 3 Miesiące — {price} ELC (-10%)',
+    'premium_6m': '💎 6 Miesięcy — {price} ELC (-20%)',
+    'premium_12m': '💎 12 Miesięcy — {price} ELC (-30%)',
     
     'basic_title': '🥈 *PLAN BASIC*',
     'basic_desc': '''✅ Pełny dostęp do konta demo
@@ -810,7 +810,7 @@ Wybierz swoją drogę do wolności finansowej:''',
 ❌ Lyxen, Fibonacci, Spot — tylko Premium
 ✅ Standardowe wsparcie
 ✅ Dynamiczny SL/TP oparty na ATR''',
-    'basic_1m': '🥈 1 Miesiąc — {price} TRC',
+    'basic_1m': '🥈 1 Miesiąc — {price} ELC',
     
     # Trial plan - BLACK RHETORIC: FOMO + Urgency
     'trial_title': '🎁 *BEZPŁATNY PRÓBNY — Limitowana Oferta!*',
@@ -824,10 +824,10 @@ Wybierz swoją drogę do wolności finansowej:''',
     'trial_activated': '🎉 Próba aktywowana! Masz 7 dni pełnego dostępu demo.',
     
     'payment_select_method': '💳 *Wybierz Metodę Płatności*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' Płatność przez TRC',
-    'payment_trc_desc': 'Zostaniesz obciążony {amount} TRC za {plan} ({period}).',
+    'payment_elc_title': ' Płatność przez ELC',
+    'payment_elc_desc': 'Zostaniesz obciążony {amount} ELC za {plan} ({period}).',
     'payment_ton_title': '💎 Płatność przez TON',
     'payment_ton_desc': '''Wyślij dokładnie *{amount} TON* na:
 
@@ -912,7 +912,7 @@ Po płatności kliknij przycisk poniżej, aby zweryfikować.''',
 
 💳 *Płatności:*
   Razem: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *Pierwsza wizyta:* {first_seen}
 🕐 *Ostatnia wizyta:* {last_seen}
@@ -1017,56 +1017,56 @@ Wybierz typ raportu:''',
     # Hardcore trading phrase
     'hardcore_mode': '💀 *TRYB HARDCORE*: Bez litości, bez żalu. Tylko zysk albo śmierć! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ Niewystarczające saldo TRC.
+    'payment_elc_insufficient': '''❌ Niewystarczające saldo ELC.
 
-Twoje saldo: {balance} TRC
-Wymagane: {required} TRC
+Twoje saldo: {balance} ELC
+Wymagane: {required} ELC
 
 Doładuj portfel, aby kontynuować.''',
     'wallet_address': '''📍 Adres: `{address}`''',
-    'wallet_balance': '''💰 *Twój Portfel TRC*
+    'wallet_balance': '''💰 *Twój Portfel ELC*
 
-◈ Saldo: *{balance} TRC*
-📈 W stakingu: *{staked} TRC*
-🎁 Oczekujące nagrody: *{rewards} TRC*
+◈ Saldo: *{balance} ELC*
+📈 W stakingu: *{staked} ELC*
+🎁 Oczekujące nagrody: *{rewards} ELC*
 
 💵 Łączna wartość: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« Wstecz''',
     'wallet_btn_deposit': '''📥 Wpłać''',
     'wallet_btn_history': '''📋 Historia''',
     'wallet_btn_stake': '''📈 Staking''',
     'wallet_btn_unstake': '''📤 Wypłać ze stakingu''',
     'wallet_btn_withdraw': '''📤 Wypłać''',
-    'wallet_deposit_demo': '''🎁 Odbierz 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Wyślij tokeny TRC na adres portfela:
+    'wallet_deposit_demo': '''🎁 Odbierz 100 ELC (Demo)''',
+    'wallet_deposit_desc': '''Wyślij tokeny ELC na adres portfela:
 
 `{address}`
 
 💡 *Tryb demo:* Kliknij poniżej, aby otrzymać darmowe tokeny testowe.''',
-    'wallet_deposit_success': '''✅ Wpłacono {amount} TRC pomyślnie!''',
-    'wallet_deposit_title': '''📥 *Wpłata TRC*''',
+    'wallet_deposit_success': '''✅ Wpłacono {amount} ELC pomyślnie!''',
+    'wallet_deposit_title': '''📥 *Wpłata ELC*''',
     'wallet_history_empty': '''Brak transakcji.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *Historia transakcji*''',
-    'wallet_stake_desc': '''Stakuj swoje TRC i zarabiaj *12% APY*!
+    'wallet_stake_desc': '''Stakuj swoje ELC i zarabiaj *12% APY*!
 
-💰 Dostępne: {available} TRC
-📈 Obecnie w stakingu: {staked} TRC
-🎁 Oczekujące nagrody: {rewards} TRC
+💰 Dostępne: {available} ELC
+📈 Obecnie w stakingu: {staked} ELC
+🎁 Oczekujące nagrody: {rewards} ELC
 
 Codzienne nagrody • Natychmiastowa wypłata''',
-    'wallet_stake_success': '''✅ {amount} TRC pomyślnie zestakowane!''',
-    'wallet_stake_title': '''📈 *Staking TRC*''',
-    'wallet_title': '''◈ *Portfel TRC*''',
-    'wallet_unstake_success': '''✅ Wypłacono {amount} TRC + {rewards} TRC nagród!''',
+    'wallet_stake_success': '''✅ {amount} ELC pomyślnie zestakowane!''',
+    'wallet_stake_title': '''📈 *Staking ELC*''',
+    'wallet_title': '''◈ *Portfel ELC*''',
+    'wallet_unstake_success': '''✅ Wypłacono {amount} ELC + {rewards} ELC nagród!''',
     'wallet_withdraw_desc': '''Podaj adres docelowy i kwotę:''',
     'wallet_withdraw_failed': '''❌ Wypłata nie powiodła się: {error}''',
-    'wallet_withdraw_success': '''✅ Wypłacono {amount} TRC na {address}''',
-    'wallet_withdraw_title': '''📤 *Wypłata TRC*''',
+    'wallet_withdraw_success': '''✅ Wypłacono {amount} ELC na {address}''',
+    'wallet_withdraw_title': '''📤 *Wypłata ELC*''',
 
     'spot_freq_biweekly': '📅 Co 2 tygodnie',
     'spot_trailing_enabled': '✅ Trailing TP włączony: aktywacja +{activation}%, trail {trail}%',

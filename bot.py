@@ -654,17 +654,17 @@ SIGNAL_CHANNEL_IDS = _parse_chat_ids("SIGNAL_CHANNEL_IDS", "SIGNAL_CHANNEL_ID", 
 SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 
 # =====================================================
-# LICENSE PRICING - LYXEN COIN (TRC)
-# 1 TRC = 1 USDT (pegged stablecoin)
+# LICENSE PRICING - LYXEN COIN (ELC)
+# 1 ELC = 1 USDT (pegged stablecoin)
 # Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
 # =====================================================
 
 # Import blockchain module (Sovereign Monetary System)
 from core.blockchain import (
     # Core
-    blockchain, get_trc_balance, get_trc_wallet, pay_with_trc,
-    deposit_trc, reward_trc, get_license_price_trc, pay_license,
-    LICENSE_PRICES_TRC, TRC_SYMBOL, TRC_NAME,
+    blockchain, get_elc_balance, get_elc_wallet, pay_with_elc,
+    deposit_elc, reward_elc, get_license_price_elc, pay_license,
+    LICENSE_PRICES_ELC, ELC_SYMBOL, ELC_NAME,
     # ELC payments (LYXEN Super Token)
     pay_license_elc, get_license_price, get_subscription_options,
     LICENSE_PRICES_ELC,
@@ -677,51 +677,51 @@ from core.blockchain import (
     SOVEREIGN_OWNER_ID, SOVEREIGN_OWNER_NAME, CHAIN_ID, CHAIN_NAME
 )
 
-# TRC prices (1 TRC = 1 USDT)
-PREMIUM_TRC_1M = 100.0    # $100
-PREMIUM_TRC_3M = 270.0    # $270 ($90/mo)
-PREMIUM_TRC_6M = 480.0    # $480 ($80/mo)
-PREMIUM_TRC_12M = 840.0   # $840 ($70/mo)
+# ELC prices (1 ELC = 1 USDT)
+PREMIUM_ELC_1M = 100.0    # $100
+PREMIUM_ELC_3M = 270.0    # $270 ($90/mo)
+PREMIUM_ELC_6M = 480.0    # $480 ($80/mo)
+PREMIUM_ELC_12M = 840.0   # $840 ($70/mo)
 
 # Basic plan (50% of premium)
-BASIC_TRC_1M = 50.0       # $50
-BASIC_TRC_3M = 135.0      # $135 ($45/mo)
-BASIC_TRC_6M = 240.0      # $240 ($40/mo)
-BASIC_TRC_12M = 420.0     # $420 ($35/mo)
+BASIC_ELC_1M = 50.0       # $50
+BASIC_ELC_3M = 135.0      # $135 ($45/mo)
+BASIC_ELC_6M = 240.0      # $240 ($40/mo)
+BASIC_ELC_12M = 420.0     # $420 ($35/mo)
 
 TRIAL_PRICE = 0  # Free trial
 TRIAL_DAYS = 7   # Trial duration
 
-# TRC Payment wallet (platform master wallet)
-TRC_MASTER_WALLET = "0xTRC000000000000000000000000000000001"
+# ELC Payment wallet (platform master wallet)
+ELC_MASTER_WALLET = "0xELC000000000000000000000000000000001"
 
 # ELC/LYXEN Token - Our super token (1:1 with USD)
-# ELC will eventually replace TRC as the primary payment token
+# ELC will eventually deprecated as the primary payment token
 ELC_PRICE_USD = 1.0  # 1 ELC = 1 USD
 
 # Enterprise plan pricing (5x Premium)
-ENTERPRISE_TRC_1M = 500.0     # $500
-ENTERPRISE_TRC_3M = 1350.0    # $1350 ($450/mo)
-ENTERPRISE_TRC_6M = 2400.0    # $2400 ($400/mo)
-ENTERPRISE_TRC_12M = 4200.0   # $4200 ($350/mo)
+ENTERPRISE_ELC_1M = 500.0     # $500
+ENTERPRISE_ELC_3M = 1350.0    # $1350 ($450/mo)
+ENTERPRISE_ELC_6M = 2400.0    # $2400 ($400/mo)
+ENTERPRISE_ELC_12M = 4200.0   # $4200 ($350/mo)
 
-# License price mapping (TRC + ELC - fully WEB3)
-# ELC prices are same as TRC (1:1 with USD)
+# License price mapping (ELC - fully WEB3)
+# ELC prices are same as USDT (1:1 with USD)
 LICENSE_PRICES = {
     "premium": {
-        "trc": {1: PREMIUM_TRC_1M, 3: PREMIUM_TRC_3M, 6: PREMIUM_TRC_6M, 12: PREMIUM_TRC_12M},
-        "elc": {1: PREMIUM_TRC_1M, 3: PREMIUM_TRC_3M, 6: PREMIUM_TRC_6M, 12: PREMIUM_TRC_12M},  # Same as TRC
+        "elc": {1: PREMIUM_ELC_1M, 3: PREMIUM_ELC_3M, 6: PREMIUM_ELC_6M, 12: PREMIUM_ELC_12M},
+        "elc": {1: PREMIUM_ELC_1M, 3: PREMIUM_ELC_3M, 6: PREMIUM_ELC_6M, 12: PREMIUM_ELC_12M},  # Same as ELC
     },
     "basic": {
-        "trc": {1: BASIC_TRC_1M, 3: BASIC_TRC_3M, 6: BASIC_TRC_6M, 12: BASIC_TRC_12M},
-        "elc": {1: BASIC_TRC_1M, 3: BASIC_TRC_3M, 6: BASIC_TRC_6M, 12: BASIC_TRC_12M},  # Same as TRC
+        "elc": {1: BASIC_ELC_1M, 3: BASIC_ELC_3M, 6: BASIC_ELC_6M, 12: BASIC_ELC_12M},
+        "elc": {1: BASIC_ELC_1M, 3: BASIC_ELC_3M, 6: BASIC_ELC_6M, 12: BASIC_ELC_12M},  # Same as ELC
     },
     "enterprise": {
-        "trc": {1: ENTERPRISE_TRC_1M, 3: ENTERPRISE_TRC_3M, 6: ENTERPRISE_TRC_6M, 12: ENTERPRISE_TRC_12M},
-        "elc": {1: ENTERPRISE_TRC_1M, 3: ENTERPRISE_TRC_3M, 6: ENTERPRISE_TRC_6M, 12: ENTERPRISE_TRC_12M},
+        "elc": {1: ENTERPRISE_ELC_1M, 3: ENTERPRISE_ELC_3M, 6: ENTERPRISE_ELC_6M, 12: ENTERPRISE_ELC_12M},
+        "elc": {1: ENTERPRISE_ELC_1M, 3: ENTERPRISE_ELC_3M, 6: ENTERPRISE_ELC_6M, 12: ENTERPRISE_ELC_12M},
     },
     "trial": {
-        "trc": {1: 0},
+        "elc": {1: 0},
         "elc": {1: 0},
     },
 }
@@ -19969,23 +19969,23 @@ def get_subscribe_menu_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Premium period selection keyboard with TRC prices."""
+    """Premium period selection keyboard with ELC prices."""
     prices = LICENSE_PRICES["premium"]
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"💎 1 Month — {prices['trc'][1]:.0f} TRC",
+            f"💎 1 Month — {prices['elc'][1]:.0f} ELC",
             callback_data="sub:period:premium:1"
         )],
         [InlineKeyboardButton(
-            f"💎 3 Months — {prices['trc'][3]:.0f} TRC (-10%)",
+            f"💎 3 Months — {prices['elc'][3]:.0f} ELC (-10%)",
             callback_data="sub:period:premium:3"
         )],
         [InlineKeyboardButton(
-            f"💎 6 Months — {prices['trc'][6]:.0f} TRC (-20%)",
+            f"💎 6 Months — {prices['elc'][6]:.0f} ELC (-20%)",
             callback_data="sub:period:premium:6"
         )],
         [InlineKeyboardButton(
-            f"💎 12 Months — {prices['trc'][12]:.0f} TRC (-30%)",
+            f"💎 12 Months — {prices['elc'][12]:.0f} ELC (-30%)",
             callback_data="sub:period:premium:12"
         )],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")],
@@ -19993,23 +19993,23 @@ def get_premium_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
-    """Basic period selection keyboard with TRC prices."""
+    """Basic period selection keyboard with ELC prices."""
     prices = LICENSE_PRICES["basic"]
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
-            f"🥈 1 Month — {prices['trc'][1]:.0f} TRC",
+            f"🥈 1 Month — {prices['elc'][1]:.0f} ELC",
             callback_data="sub:period:basic:1"
         )],
         [InlineKeyboardButton(
-            f"🥈 3 Months — {prices['trc'][3]:.0f} TRC (-10%)",
+            f"🥈 3 Months — {prices['elc'][3]:.0f} ELC (-10%)",
             callback_data="sub:period:basic:3"
         )],
         [InlineKeyboardButton(
-            f"🥈 6 Months — {prices['trc'][6]:.0f} TRC (-20%)",
+            f"🥈 6 Months — {prices['elc'][6]:.0f} ELC (-20%)",
             callback_data="sub:period:basic:6"
         )],
         [InlineKeyboardButton(
-            f"🥈 12 Months — {prices['trc'][12]:.0f} TRC (-30%)",
+            f"🥈 12 Months — {prices['elc'][12]:.0f} ELC (-30%)",
             callback_data="sub:period:basic:12"
         )],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")],
@@ -20017,9 +20017,9 @@ def get_basic_period_keyboard(t: dict) -> InlineKeyboardMarkup:
 
 
 def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboardMarkup:
-    """Payment method selection keyboard - TRC + ELC + TON (WEB3 native)."""
+    """Payment method selection keyboard - ELC + TON (WEB3 native)."""
     prices = LICENSE_PRICES.get(plan, {})
-    trc_price = prices.get("trc", {}).get(period, 0)
+    trc_price = prices.get("elc", {}).get(period, 0)
     elc_price = prices.get("elc", {}).get(period, 0)
     # TON/USDT price = ELC price (1:1)
     ton_price = elc_price
@@ -20035,15 +20035,15 @@ def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboa
             f"💎 Pay ${ton_price:.0f} USDT (TON)",
             callback_data=f"sub:ton:{plan}:{period}"
         )],
-        # Secondary: TRC (Lyxen Coin)
+        # Secondary: ELC (Lyxen Coin)
         [InlineKeyboardButton(
-            f"🪙 Pay {trc_price:.0f} TRC (~${trc_price:.0f})",
+            f"🪙 Pay {trc_price:.0f} ELC (~${trc_price:.0f})",
             callback_data=f"sub:trc:{plan}:{period}"
         )],
         # Deposit options
         [
             InlineKeyboardButton("💎 Buy ELC", callback_data="wallet:buy_elc"),
-            InlineKeyboardButton("💳 Buy TRC", callback_data="wallet:deposit"),
+            InlineKeyboardButton("💳 Buy ELC", callback_data="wallet:deposit"),
         ],
         [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:plan:{plan}")],
     ]
@@ -20083,15 +20083,15 @@ async def cmd_sovereign(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 🎖️ {dashboard['owner_title']}
 
 📊 *SUPPLY METRICS*
-├ Current Supply: *{treasury['current_supply']:,.0f} TRC*
-├ Max Supply: *{treasury['max_supply']:,.0f} TRC*
+├ Current Supply: *{treasury['current_supply']:,.0f} ELC*
+├ Max Supply: *{treasury['max_supply']:,.0f} ELC*
 ├ Utilization: *{treasury['supply_utilization']*100:.2f}%*
-└ Circulating: *{treasury['current_supply'] - treasury['treasury_balance']:,.0f} TRC*
+└ Circulating: *{treasury['current_supply'] - treasury['treasury_balance']:,.0f} ELC*
 
 🏦 *TREASURY*
-├ Treasury Balance: *{treasury['treasury_balance']:,.0f} TRC*
-├ Liquidity Pool: *{treasury['liquidity_pool']:,.0f} TRC*
-└ Fees Collected: *{treasury['total_fees_collected']:,.2f} TRC*
+├ Treasury Balance: *{treasury['treasury_balance']:,.0f} ELC*
+├ Liquidity Pool: *{treasury['liquidity_pool']:,.0f} ELC*
+└ Fees Collected: *{treasury['total_fees_collected']:,.2f} ELC*
 
 📈 *RESERVES*
 ├ Total Value: *${treasury['total_reserve_value']:,.0f}*
@@ -20099,9 +20099,9 @@ async def cmd_sovereign(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 └ Status: {'✅ Healthy' if treasury['reserve_ratio'] >= 1.0 else '⚠️ Under-collateralized'}
 
 💎 *STAKING*
-├ Total Staked: *{treasury['total_staked']:,.0f} TRC*
+├ Total Staked: *{treasury['total_staked']:,.0f} ELC*
 ├ Current APY: *{treasury['staking_apy']*100:.1f}%*
-└ Rewards Distributed: *{treasury['total_rewards_distributed']:,.2f} TRC*
+└ Rewards Distributed: *{treasury['total_rewards_distributed']:,.2f} ELC*
 
 🔗 *BLOCKCHAIN*
 ├ Chain: *{CHAIN_NAME}*
@@ -20166,10 +20166,10 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 👑 *{SOVEREIGN_OWNER_NAME}*
 
-📊 Supply: *{treasury['current_supply']:,.0f}* / {treasury['max_supply']:,.0f} TRC
-🏦 Treasury: *{treasury['treasury_balance']:,.0f} TRC*
+📊 Supply: *{treasury['current_supply']:,.0f}* / {treasury['max_supply']:,.0f} ELC
+🏦 Treasury: *{treasury['treasury_balance']:,.0f} ELC*
 📈 Reserves: *${treasury['total_reserve_value']:,.0f}* ({treasury['reserve_ratio']*100:.1f}%)
-💎 Staked: *{treasury['total_staked']:,.0f} TRC* @ {treasury['staking_apy']*100:.1f}% APY
+💎 Staked: *{treasury['total_staked']:,.0f} ELC* @ {treasury['staking_apy']*100:.1f}% APY
 🔗 Wallets: *{global_stats['total_wallets']:,}* | TXs: *{global_stats['total_transactions']:,}*
 
 ⚡ *STATUS:* {'🔴 PAUSED' if treasury['is_paused'] else '🟢 ACTIVE'}
@@ -20199,7 +20199,7 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data["sovereign_mode"] = "emit"
         await q.edit_message_text(
             "💵 *TOKEN EMISSION*\n\n"
-            "Enter the amount of TRC to emit and reason:\n"
+            "Enter the amount of ELC to emit and reason:\n"
             "Format: `amount reason`\n\n"
             "Example: `1000000 Liquidity expansion Q1 2026`\n\n"
             "⚠️ This will increase total supply!",
@@ -20216,7 +20216,7 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         await q.edit_message_text(
             f"🔥 *TOKEN BURN*\n\n"
-            f"Treasury Balance: *{treasury_balance:,.0f} TRC*\n\n"
+            f"Treasury Balance: *{treasury_balance:,.0f} ELC*\n\n"
             "Enter amount and reason:\n"
             "Format: `amount reason`\n\n"
             "Example: `500000 Supply reduction for stability`\n\n"
@@ -20247,7 +20247,7 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if result["success"]:
             await q.edit_message_text(
                 f"✅ *REWARDS DISTRIBUTED*\n\n"
-                f"💰 Total: *{result['distributed']:,.2f} TRC*\n"
+                f"💰 Total: *{result['distributed']:,.2f} ELC*\n"
                 f"👥 Recipients: *{result['recipients']}*\n"
                 f"📊 Daily Rate: *{result['daily_rate']*100:.4f}%*\n"
                 f"📈 APY: *{result['apy']*100:.1f}%*",
@@ -20263,7 +20263,7 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data["sovereign_mode"] = "transfer"
         await q.edit_message_text(
             "💸 *TREASURY TRANSFER*\n\n"
-            "Transfer TRC from treasury to a user.\n\n"
+            "Transfer ELC from treasury to a user.\n\n"
             "Format: `user_id amount reason`\n"
             "Example: `123456789 10000 Partner bonus`",
             parse_mode="Markdown",
@@ -20336,9 +20336,9 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             if result["success"]:
                 await update.message.reply_text(
                     f"✅ *TOKEN EMISSION SUCCESSFUL*\n\n"
-                    f"💵 Amount: *{amount:,.0f} TRC*\n"
+                    f"💵 Amount: *{amount:,.0f} ELC*\n"
                     f"📝 Reason: {reason}\n"
-                    f"📊 New Supply: *{result['new_supply']:,.0f} TRC*\n"
+                    f"📊 New Supply: *{result['new_supply']:,.0f} ELC*\n"
                     f"🔗 TX: `{result['tx_hash'][:20]}...`",
                     parse_mode="Markdown"
                 )
@@ -20361,9 +20361,9 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             if result["success"]:
                 await update.message.reply_text(
                     f"✅ *TOKEN BURN SUCCESSFUL*\n\n"
-                    f"🔥 Amount: *{amount:,.0f} TRC*\n"
+                    f"🔥 Amount: *{amount:,.0f} ELC*\n"
                     f"📝 Reason: {reason}\n"
-                    f"📊 New Supply: *{result['new_supply']:,.0f} TRC*\n"
+                    f"📊 New Supply: *{result['new_supply']:,.0f} ELC*\n"
                     f"🔗 TX: `{result['tx_hash'][:20]}...`",
                     parse_mode="Markdown"
                 )
@@ -20411,9 +20411,9 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
                 await update.message.reply_text(
                     f"✅ *TREASURY TRANSFER SUCCESSFUL*\n\n"
                     f"👤 To: User `{target_uid}`\n"
-                    f"💰 Amount: *{amount:,.0f} TRC*\n"
+                    f"💰 Amount: *{amount:,.0f} ELC*\n"
                     f"📝 Reason: {reason}\n"
-                    f"🏦 Remaining: *{result['remaining_treasury']:,.0f} TRC*",
+                    f"🏦 Remaining: *{result['remaining_treasury']:,.0f} ELC*",
                     parse_mode="Markdown"
                 )
             else:
@@ -20430,7 +20430,7 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             target_uid = int(parts[0])
             reason = parts[1] if len(parts) > 1 else "Frozen by owner"
             
-            target_wallet = await get_trc_wallet(target_uid)
+            target_wallet = await get_elc_wallet(target_uid)
             result = await freeze_wallet(uid, target_wallet.address, reason)
             
             if result["success"]:
@@ -20452,7 +20452,7 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     elif mode == "unfreeze":
         try:
             target_uid = int(text.strip())
-            target_wallet = await get_trc_wallet(target_uid)
+            target_wallet = await get_elc_wallet(target_uid)
             result = await unfreeze_wallet(uid, target_wallet.address)
             
             if result["success"]:
@@ -20474,19 +20474,19 @@ async def handle_sovereign_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
 
 
 # =====================================================
-# TRC WALLET MANAGEMENT
+# ELC WALLET MANAGEMENT
 # =====================================================
 
 @log_calls
 @require_access
 async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show user's TRC wallet - OPTIMIZED with parallel fetching."""
+    """Show user's ELC wallet - OPTIMIZED with parallel fetching."""
     uid = update.effective_user.id
     t = ctx.t
     
     # OPTIMIZED: Fetch all wallet data in parallel
     wallet, balance_info, transactions = await asyncio.gather(
-        get_trc_wallet(uid),
+        get_elc_wallet(uid),
         blockchain.get_total_balance(uid),
         blockchain.get_transaction_history(uid, limit=5),
         return_exceptions=True
@@ -20501,22 +20501,22 @@ async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if isinstance(transactions, Exception):
         transactions = []
     
-    text = t.get("wallet_header", "🪙 *Lyxen Coin (TRC) Wallet*")
+    text = t.get("wallet_header", "🪙 *Lyxen Coin (ELC) Wallet*")
     text += f"\n\n📍 *Address:*\n`{wallet.address}`"
-    text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
-    text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
-    text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} TRC"
+    text += f"\n\n💰 *Available:* {balance_info['available']:.2f} ELC"
+    text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} ELC"
+    text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} ELC"
     text += f"\n━━━━━━━━━━━━━━━"
-    text += f"\n💎 *Total:* {balance_info['total']:.2f} TRC (~${balance_info['total']:.2f})"
+    text += f"\n💎 *Total:* {balance_info['total']:.2f} ELC (~${balance_info['total']:.2f})"
     
     # Recent transactions
     if transactions:
         text += f"\n\n📜 *Recent Transactions:*"
         for tx in transactions[:5]:
             icon = "📥" if tx.to_address == wallet.address else "📤"
-            text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} TRC"
+            text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} ELC"
     
-    text += "\n\n💡 *1 TRC = 1 USDT*"
+    text += "\n\n💡 *1 ELC = 1 USDT*"
     
     keyboard = InlineKeyboardMarkup([
         [
@@ -20524,7 +20524,7 @@ async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("💸 Withdraw", callback_data="wallet:withdraw")
         ],
         [
-            InlineKeyboardButton("📊 Stake TRC (12% APY)", callback_data="wallet:stake"),
+            InlineKeyboardButton("📊 Stake ELC (12% APY)", callback_data="wallet:stake"),
             InlineKeyboardButton("📜 History", callback_data="wallet:history")
         ],
         [InlineKeyboardButton("🔄 Refresh", callback_data="wallet:refresh")],
@@ -20549,7 +20549,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if action == "refresh":
         # OPTIMIZED: Refresh wallet display with parallel fetching
         wallet, balance_info, transactions = await asyncio.gather(
-            get_trc_wallet(uid),
+            get_elc_wallet(uid),
             blockchain.get_total_balance(uid),
             blockchain.get_transaction_history(uid, limit=5),
             return_exceptions=True
@@ -20564,21 +20564,21 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if isinstance(transactions, Exception):
             transactions = []
         
-        text = t.get("wallet_header", "🪙 *Lyxen Coin (TRC) Wallet*")
+        text = t.get("wallet_header", "🪙 *Lyxen Coin (ELC) Wallet*")
         text += f"\n\n📍 *Address:*\n`{wallet.address}`"
-        text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
-        text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
-        text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} TRC"
+        text += f"\n\n💰 *Available:* {balance_info['available']:.2f} ELC"
+        text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} ELC"
+        text += f"\n🎁 *Rewards:* {balance_info['pending_rewards']:.2f} ELC"
         text += f"\n━━━━━━━━━━━━━━━"
-        text += f"\n💎 *Total:* {balance_info['total']:.2f} TRC (~${balance_info['total']:.2f})"
+        text += f"\n💎 *Total:* {balance_info['total']:.2f} ELC (~${balance_info['total']:.2f})"
         
         if transactions:
             text += f"\n\n📜 *Recent Transactions:*"
             for tx in transactions[:5]:
                 icon = "📥" if tx.to_address == wallet.address else "📤"
-                text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} TRC"
+                text += f"\n{icon} {tx.tx_type.value}: {tx.amount:.2f} ELC"
         
-        text += "\n\n💡 *1 TRC = 1 USDT*"
+        text += "\n\n💡 *1 ELC = 1 USDT*"
         
         keyboard = InlineKeyboardMarkup([
             [
@@ -20586,7 +20586,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("💸 Withdraw", callback_data="wallet:withdraw")
             ],
             [
-                InlineKeyboardButton("📊 Stake TRC (12% APY)", callback_data="wallet:stake"),
+                InlineKeyboardButton("📊 Stake ELC (12% APY)", callback_data="wallet:stake"),
                 InlineKeyboardButton("📜 History", callback_data="wallet:history")
             ],
             [InlineKeyboardButton("🔄 Refresh", callback_data="wallet:refresh")],
@@ -20596,36 +20596,36 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     elif action == "deposit":
         # Show deposit options
-        wallet = await get_trc_wallet(uid)
+        wallet = await get_elc_wallet(uid)
         
-        text = t.get("wallet_deposit_header", "💳 *Deposit TRC*")
-        text += "\n\n🪙 *Ways to get TRC:*"
+        text = t.get("wallet_deposit_header", "💳 *Deposit ELC*")
+        text += "\n\n🪙 *Ways to get ELC:*"
         text += "\n\n1️⃣ *Buy with Crypto:*"
-        text += f"\nSend USDT/USDC to our exchange and receive TRC 1:1"
+        text += f"\nSend USDT/USDC to our exchange and receive ELC 1:1"
         text += "\n\n2️⃣ *Earn Rewards:*"
         text += "\n• Referral bonuses"
         text += "\n• Trading achievements"
         text += "\n• Staking rewards (12% APY)"
         text += "\n\n3️⃣ *Demo Deposit (Test):*"
-        text += "\nGet 100 TRC for testing (demo only)"
+        text += "\nGet 100 ELC for testing (demo only)"
         text += f"\n\n📍 *Your Wallet:*\n`{wallet.address}`"
         
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🎁 Get 100 TRC (Demo)", callback_data="wallet:demo_deposit")],
-            [InlineKeyboardButton("📊 Buy TRC (Coming Soon)", callback_data="wallet:buy_soon")],
+            [InlineKeyboardButton("🎁 Get 100 ELC (Demo)", callback_data="wallet:demo_deposit")],
+            [InlineKeyboardButton("📊 Buy ELC (Coming Soon)", callback_data="wallet:buy_soon")],
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
         ])
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "demo_deposit":
-        # Demo deposit - give 100 TRC for testing
-        success, message = await deposit_trc(uid, 100.0, "Demo deposit")
+        # Demo deposit - give 100 ELC for testing
+        success, message = await deposit_elc(uid, 100.0, "Demo deposit")
         
         if success:
-            new_balance = await get_trc_balance(uid)
+            new_balance = await get_elc_balance(uid)
             await q.edit_message_text(
-                f"✅ *Demo Deposit Successful!*\n\n🪙 +100 TRC credited\n💰 New Balance: {new_balance:.2f} TRC\n\n{message}",
+                f"✅ *Demo Deposit Successful!*\n\n🪙 +100 ELC credited\n💰 New Balance: {new_balance:.2f} ELC\n\n{message}",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")]
@@ -20640,12 +20640,12 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
     
     elif action == "buy_soon":
-        await q.answer("🚧 Coming soon! External TRC purchases will be available in the next update.", show_alert=True)
+        await q.answer("🚧 Coming soon! External ELC purchases will be available in the next update.", show_alert=True)
     
     elif action == "buy_elc":
         # Show ELC purchase options
         elc_balance = get_elc_balance(uid)
-        trc_balance = await get_trc_balance(uid)
+        trc_balance = await get_elc_balance(uid)
         
         text = t.get("wallet_buy_elc_header", "💎 *Buy LYXEN (ELC) Tokens*")
         text += "\n\n⭐ *LYXEN is the Super Token!*"
@@ -20656,14 +20656,14 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text += f"\n\n💰 *Your ELC Balance:* {elc_balance.get('available', 0):.2f} ELC"
         text += f"\n🔒 *Staked:* {elc_balance.get('staked', 0):.2f} ELC"
         text += f"\n💎 *Total:* {elc_balance.get('total', 0):.2f} ELC"
-        text += f"\n\n🪙 *TRC Balance:* {trc_balance:.2f} TRC"
+        text += f"\n\n🪙 *ELC Balance:* {trc_balance:.2f} ELC"
         text += "\n\n💡 *Ways to get ELC:*"
-        text += "\n1️⃣ Convert TRC to ELC (1:1)"
+        text += "\n1️⃣ Convert ELC to ELC (1:1)"
         text += "\n2️⃣ Buy with USDT on TON"
         text += "\n3️⃣ Earn through platform rewards"
         
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔄 Convert TRC → ELC", callback_data="wallet:convert_trc_elc")],
+            [InlineKeyboardButton("🔄 Convert ELC → ELC", callback_data="wallet:wallet_info")],
             [InlineKeyboardButton("💵 Buy with USDT (TON)", callback_data="wallet:buy_elc_usdt")],
             [InlineKeyboardButton("🎁 Get Demo ELC", callback_data="wallet:demo_elc")],
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:refresh")],
@@ -20671,17 +20671,17 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     
-    elif action == "convert_trc_elc":
-        # Convert TRC to ELC (1:1)
-        trc_balance = await get_trc_balance(uid)
+    elif action == "wallet_info":
+        # Convert ELC to ELC (1:1)
+        trc_balance = await get_elc_balance(uid)
         
         if trc_balance < 10:
-            await q.answer("❌ Minimum 10 TRC required for conversion", show_alert=True)
+            await q.answer("❌ Minimum 10 ELC required for conversion", show_alert=True)
             return
         
-        text = t.get("wallet_convert_header", "🔄 *Convert TRC to ELC*")
-        text += f"\n\n💰 Your TRC Balance: {trc_balance:.2f} TRC"
-        text += "\n\n📊 *Conversion Rate:* 1 TRC = 1 ELC"
+        text = t.get("wallet_convert_header", "🔄 *Convert ELC to ELC*")
+        text += f"\n\n💰 Your ELC Balance: {trc_balance:.2f} ELC"
+        text += "\n\n📊 *Conversion Rate:* 1 ELC = 1 ELC"
         text += "\n💸 *Fee:* 0%"
         text += "\n\n*Select amount to convert:*"
         
@@ -20690,38 +20690,38 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         buttons = []
         for amt in amounts:
             if trc_balance >= amt:
-                buttons.append(InlineKeyboardButton(f"{amt} TRC → ELC", callback_data=f"wallet:do_convert:{amt}"))
+                buttons.append(InlineKeyboardButton(f"{amt} ELC Token", callback_data=f"wallet:deposit:{amt}"))
         
         keyboard_buttons = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
         if trc_balance >= 10:
-            keyboard_buttons.append([InlineKeyboardButton(f"🔄 All ({trc_balance:.0f} TRC)", callback_data=f"wallet:do_convert:{int(trc_balance)}")])
+            keyboard_buttons.append([InlineKeyboardButton(f"🔄 All ({trc_balance:.0f} ELC)", callback_data=f"wallet:deposit:{int(trc_balance)}")])
         keyboard_buttons.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="wallet:buy_elc")])
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard_buttons))
     
     elif action == "do_convert":
-        # Execute TRC to ELC conversion
+        # Execute ELC conversion
         amount = int(parts[2]) if len(parts) > 2 else 0
         
         if amount < 10:
-            await q.answer("❌ Minimum 10 TRC required", show_alert=True)
+            await q.answer("❌ Minimum 10 ELC required", show_alert=True)
             return
         
-        trc_balance = await get_trc_balance(uid)
+        trc_balance = await get_elc_balance(uid)
         if trc_balance < amount:
-            await q.answer("❌ Insufficient TRC balance", show_alert=True)
+            await q.answer("❌ Insufficient ELC balance", show_alert=True)
             return
         
-        # Deduct TRC
-        success, msg = await pay_with_trc(uid, amount, f"Convert to ELC")
+        # Deduct ELC
+        success, msg = await pay_with_elc(uid, amount, f"Convert to ELC")
         
         if success:
             # Add ELC
-            new_elc_balance = add_elc_balance(uid, amount, f"Converted from {amount} TRC")
+            new_elc_balance = add_elc_balance(uid, amount, f"Converted from {amount} ELC")
             
             await q.edit_message_text(
-                f"✅ *Conversion Successful!*\n\n"
-                f"🔄 Converted: {amount} TRC → {amount} ELC\n"
+                f"✅ *Deposit Successful!*\n\n"
+                f"🪙 Added: {amount} ELC\n"
                 f"💎 New ELC Balance: {new_elc_balance.get('available', 0):.2f} ELC",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
@@ -20776,12 +20776,12 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer("📋 Copied! Send USDT to this address with your User ID as memo.", show_alert=True)
     
     elif action == "withdraw":
-        balance = await get_trc_balance(uid)
+        balance = await get_elc_balance(uid)
         
-        text = t.get("wallet_withdraw_header", "💸 *Withdraw TRC*")
-        text += f"\n\n💰 Available: {balance:.2f} TRC"
-        text += "\n\n📝 Withdrawal converts TRC to USDT 1:1"
-        text += "\n• Minimum: 10 TRC"
+        text = t.get("wallet_withdraw_header", "💸 *Withdraw ELC*")
+        text += f"\n\n💰 Available: {balance:.2f} ELC"
+        text += "\n\n📝 Withdrawal converts ELC to USDT 1:1"
+        text += "\n• Minimum: 10 ELC"
         text += "\n• Fee: 0%"
         text += "\n• Processing: Instant"
         
@@ -20796,14 +20796,14 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer("🚧 External withdrawals coming soon! Contact support for manual processing.", show_alert=True)
     
     elif action == "stake":
-        wallet = await get_trc_wallet(uid)
+        wallet = await get_elc_wallet(uid)
         balance_info = await blockchain.get_total_balance(uid)
         
-        text = t.get("wallet_stake_header", "📊 *TRC Staking*")
-        text += "\n\n🔥 *Earn 12% APY on your TRC!*"
-        text += f"\n\n💰 Available to stake: {balance_info['available']:.2f} TRC"
-        text += f"\n🔒 Currently staked: {balance_info['staked']:.2f} TRC"
-        text += f"\n🎁 Pending rewards: {balance_info['pending_rewards']:.2f} TRC"
+        text = t.get("wallet_stake_header", "📊 *ELC Staking*")
+        text += "\n\n🔥 *Earn 12% APY on your ELC!*"
+        text += f"\n\n💰 Available to stake: {balance_info['available']:.2f} ELC"
+        text += f"\n🔒 Currently staked: {balance_info['staked']:.2f} ELC"
+        text += f"\n🎁 Pending rewards: {balance_info['pending_rewards']:.2f} ELC"
         text += "\n\n• No lock period"
         text += "\n• Instant unstaking"
         text += "\n• Daily reward distribution"
@@ -20817,28 +20817,28 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "stake_all":
-        balance = await get_trc_balance(uid)
+        balance = await get_elc_balance(uid)
         if balance < 1:
-            await q.answer("❌ Minimum 1 TRC required for staking", show_alert=True)
+            await q.answer("❌ Minimum 1 ELC required for staking", show_alert=True)
             return
         
         success, tx, message = await blockchain.stake(uid, balance)
         if success:
-            await q.answer(f"✅ Staked {balance:.2f} TRC successfully!", show_alert=True)
+            await q.answer(f"✅ Staked {balance:.2f} ELC successfully!", show_alert=True)
             # Refresh stake view
             await on_wallet_cb(update, ctx)
         else:
             await q.answer(f"❌ Staking failed: {message}", show_alert=True)
     
     elif action == "unstake_all":
-        wallet = await get_trc_wallet(uid)
+        wallet = await get_elc_wallet(uid)
         if wallet.staked_balance < 1:
-            await q.answer("❌ No staked TRC to unstake", show_alert=True)
+            await q.answer("❌ No staked ELC to unstake", show_alert=True)
             return
         
         success, tx, message = await blockchain.unstake(uid, wallet.staked_balance)
         if success:
-            await q.answer(f"✅ Unstaked {wallet.staked_balance:.2f} TRC successfully!", show_alert=True)
+            await q.answer(f"✅ Unstaked {wallet.staked_balance:.2f} ELC successfully!", show_alert=True)
             # Refresh stake view
             await on_wallet_cb(update, ctx)
         else:
@@ -20846,7 +20846,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     elif action == "history":
         transactions = await blockchain.get_transaction_history(uid, limit=20)
-        wallet = await get_trc_wallet(uid)
+        wallet = await get_elc_wallet(uid)
         
         text = t.get("wallet_history_header", "📜 *Transaction History*")
         text += f"\n\n📍 Wallet: `{wallet.address[:20]}...`"
@@ -20859,7 +20859,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 status_icon = "✅" if tx.status.value == "confirmed" else "⏳"
                 date_str = tx.timestamp.strftime("%m/%d %H:%M")
                 text += f"\n\n{icon} *{tx.tx_type.value.upper()}*"
-                text += f"\n   Amount: {tx.amount:.2f} TRC"
+                text += f"\n   Amount: {tx.amount:.2f} ELC"
                 text += f"\n   {date_str} {status_icon}"
         
         keyboard = InlineKeyboardMarkup([
@@ -20998,27 +20998,27 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     )
     
     elif action == "period":
-        # User selected period, show payment with TRC
+        # User selected period, show payment with ELC
         plan = parts[2] if len(parts) > 2 else ""
         period = int(parts[3]) if len(parts) > 3 else 1
         
         prices = LICENSE_PRICES.get(plan, {})
-        trc_price = prices.get("trc", {}).get(period, 0)
+        trc_price = prices.get("elc", {}).get(period, 0)
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        # Get user's TRC balance
-        user_balance = await get_trc_balance(uid)
+        # Get user's ELC balance
+        user_balance = await get_elc_balance(uid)
         
-        text = t.get("payment_select_method", "💳 *Payment with Lyxen Coin (TRC)*")
+        text = t.get("payment_select_method", "💳 *Payment with Lyxen Coin (ELC)*")
         text += f"\n\n📦 *Plan:* {plan.title()}\n⏰ *Period:* {period_text}"
-        text += f"\n\n🪙 *Price:* {trc_price:.0f} TRC (~${trc_price:.0f})"
-        text += f"\n💰 *Your Balance:* {user_balance:.2f} TRC"
+        text += f"\n\n🪙 *Price:* {trc_price:.0f} ELC (~${trc_price:.0f})"
+        text += f"\n💰 *Your Balance:* {user_balance:.2f} ELC"
         
         if user_balance >= trc_price:
-            text += "\n\n✅ You have enough TRC to pay!"
+            text += "\n\n✅ You have enough ELC to pay!"
         else:
             needed = trc_price - user_balance
-            text += f"\n\n⚠️ You need {needed:.2f} more TRC. Deposit to continue."
+            text += f"\n\n⚠️ You need {needed:.2f} more ELC. Deposit to continue."
         
         await q.edit_message_text(
             text,
@@ -21026,34 +21026,34 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_payment_method_keyboard(t, plan, period)
         )
     
-    elif action == "trc":
-        # TRC payment flow
+    elif action == "elc":
+        # ELC payment flow
         plan = parts[2] if len(parts) > 2 else ""
         period = int(parts[3]) if len(parts) > 3 else 1
         prices = LICENSE_PRICES.get(plan, {})
-        trc_price = prices.get("trc", {}).get(period, 0)
+        trc_price = prices.get("elc", {}).get(period, 0)
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        # Check TRC balance
-        user_balance = await get_trc_balance(uid)
+        # Check ELC balance
+        user_balance = await get_elc_balance(uid)
         
         if user_balance < trc_price:
             needed = trc_price - user_balance
             await q.edit_message_text(
-                t.get("payment_insufficient_trc", "❌ *Insufficient TRC Balance*\n\nYou need {needed:.2f} more TRC.\n\nYour balance: {balance:.2f} TRC\nRequired: {price:.0f} TRC\n\nDeposit TRC to continue.").format(
+                t.get("payment_insufficient_elc", "❌ *Insufficient ELC Balance*\n\nYou need {needed:.2f} more ELC.\n\nYour balance: {balance:.2f} ELC\nRequired: {price:.0f} ELC\n\nDeposit ELC to continue.").format(
                     needed=needed, balance=user_balance, price=trc_price
                 ),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 Deposit TRC", callback_data="wallet:deposit")],
+                    [InlineKeyboardButton("💳 Deposit ELC", callback_data="wallet:deposit")],
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
                 ])
             )
             return
         
-        # Process TRC payment
+        # Process ELC payment
         description = f"{plan.title()} License ({period_text})"
-        success, message = await pay_with_trc(uid, trc_price, description)
+        success, message = await pay_with_elc(uid, trc_price, description)
         
         if success:
             # Activate license
@@ -21061,16 +21061,16 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_id=uid,
                 license_type=plan,
                 period_months=period,
-                payment_type="TRC",
+                payment_type="ELC",
                 amount=trc_price,
-                currency="TRC",
+                currency="ELC",
                 notes=f"Paid with Lyxen Coin. {message}"
             )
             
             if result.get("success"):
-                new_balance = await get_trc_balance(uid)
+                new_balance = await get_elc_balance(uid)
                 await q.edit_message_text(
-                    t.get("payment_success_trc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} TRC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} TRC\n\nThank you for using Lyxen!").format(
+                    t.get("payment_success_elc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} ELC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} ELC\n\nThank you for using Lyxen!").format(
                         amount=trc_price, plan=plan.title(), period=period_text, balance=new_balance
                     ),
                     parse_mode="Markdown",
@@ -21080,7 +21080,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
             else:
                 # Payment went through but license activation failed - refund
-                await reward_trc(uid, trc_price, "License activation failed - refund")
+                await reward_elc(uid, trc_price, "License activation failed - refund")
                 await q.edit_message_text(
                     t.get("payment_failed", "❌ Payment failed: {error}").format(error=result.get("error", "Unknown")),
                     reply_markup=InlineKeyboardMarkup([
@@ -21530,9 +21530,9 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
     
     elif action == "verify_ton":
-        # TON payments deprecated - redirect to TRC
+        # TON payments deprecated - redirect to ELC
         await q.edit_message_text(
-            t.get("payment_ton_not_configured", "❌ TON payments are deprecated. Use TRC tokens."),
+            t.get("payment_ton_not_configured", "❌ TON payments are deprecated. Use ELC tokens."),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t.get("wallet_btn_deposit", "📥 Deposit"), callback_data="wallet:deposit")],
                 [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
@@ -21607,9 +21607,9 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def verify_ton_payment(wallet_address: str, memo: str, expected_amount: float) -> bool:
     """
     DEPRECATED: TON payments no longer supported.
-    All payments now use TRC tokens via the blockchain module.
+    All payments now use ELC tokens via the blockchain module.
     """
-    logger.warning("verify_ton_payment is deprecated. Use TRC payments instead.")
+    logger.warning("verify_ton_payment is deprecated. Use ELC payments instead.")
     return False
 
 
@@ -24918,7 +24918,7 @@ def main():
     app.add_handler(PreCheckoutQueryHandler(on_pre_checkout_query))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, on_successful_payment))
     
-    # TRC Wallet handlers
+    # ELC Wallet handlers
     app.add_handler(CommandHandler("wallet",       cmd_wallet))
     app.add_handler(CallbackQueryHandler(on_wallet_cb, pattern=r"^wallet:"))
     

@@ -797,10 +797,10 @@ Vyber si cestu k finanční svobodě:''',
 ✅ Dynamický SL/TP založený na ATR
 ✅ Limitní žebřík DCA
 ✅ Všechny budoucí aktualizace''',
-    'premium_1m': '💎 1 měsíc — {price} TRC',
-    'premium_3m': '💎 3 měsíce — {price} TRC (-10%)',
-    'premium_6m': '💎 6 měsíců — {price} TRC (-20%)',
-    'premium_12m': '💎 12 měsíců — {price} TRC (-30%)',
+    'premium_1m': '💎 1 měsíc — {price} ELC',
+    'premium_3m': '💎 3 měsíce — {price} ELC (-10%)',
+    'premium_6m': '💎 6 měsíců — {price} ELC (-20%)',
+    'premium_12m': '💎 12 měsíců — {price} ELC (-30%)',
     
     'basic_title': '🥈 *BASIC PLÁN*',
     'basic_desc': '''✅ Plný přístup k demo účtu
@@ -808,7 +808,7 @@ Vyber si cestu k finanční svobodě:''',
 ❌ Lyxen, Fibonacci, Spot — pouze Premium
 ✅ Standardní podpora
 ✅ Dynamický SL/TP založený na ATR''',
-    'basic_1m': '🥈 1 měsíc — {price} TRC',
+    'basic_1m': '🥈 1 měsíc — {price} ELC',
     
     'trial_title': '🎁 *BEZPLATNÁ ZKUŠEBNÍ VERZE — Omezená nabídka!*',
     'trial_desc': '''✅ Plný přístup k demo účtu
@@ -821,10 +821,10 @@ Vyber si cestu k finanční svobodě:''',
     'trial_activated': '🎉 Zkušební verze aktivována! Máte 7 dní plného demo přístupu.',
     
     'payment_select_method': '💳 *Vyberte způsob platby*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' Platba přes TRC',
-    'payment_trc_desc': 'Bude vám účtováno {amount} TRC za {plan} ({period}).',
+    'payment_elc_title': ' Platba přes ELC',
+    'payment_elc_desc': 'Bude vám účtováno {amount} ELC za {plan} ({period}).',
     'payment_ton_title': '💎 Platba přes TON',
     'payment_ton_desc': '''Pošlete přesně *{amount} TON* na:
 
@@ -909,7 +909,7 @@ Po platbě klikněte na tlačítko níže pro ověření.''',
 
 💳 *Platby:*
   Celkem: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *První návštěva:* {first_seen}
 🕐 *Poslední návštěva:* {last_seen}
@@ -1014,56 +1014,56 @@ Vyberte typ zprávy:''',
     # Hardcore trading phrase
     'hardcore_mode': '💀 *HARDCORE REŽIM*: Žádná milost, žádná lítost. Pouze zisk nebo smrt! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ Nedostatečný zůstatek TRC.
+    'payment_elc_insufficient': '''❌ Nedostatečný zůstatek ELC.
 
-Váš zůstatek: {balance} TRC
-Požadováno: {required} TRC
+Váš zůstatek: {balance} ELC
+Požadováno: {required} ELC
 
 Dobijte peněženku pro pokračování.''',
     'wallet_address': '''📍 Adresa: `{address}`''',
-    'wallet_balance': '''💰 *Vaše TRC Peněženka*
+    'wallet_balance': '''💰 *Vaše ELC Peněženka*
 
-◈ Zůstatek: *{balance} TRC*
-📈 Stakované: *{staked} TRC*
-🎁 Čekající odměny: *{rewards} TRC*
+◈ Zůstatek: *{balance} ELC*
+📈 Stakované: *{staked} ELC*
+🎁 Čekající odměny: *{rewards} ELC*
 
 💵 Celková hodnota: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« Zpět''',
     'wallet_btn_deposit': '''📥 Vložit''',
     'wallet_btn_history': '''📋 Historie''',
     'wallet_btn_stake': '''📈 Staking''',
     'wallet_btn_unstake': '''📤 Unstake''',
     'wallet_btn_withdraw': '''📤 Vybrat''',
-    'wallet_deposit_demo': '''🎁 Získat 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Pošlete TRC tokeny na adresu vaší peněženky:
+    'wallet_deposit_demo': '''🎁 Získat 100 ELC (Demo)''',
+    'wallet_deposit_desc': '''Pošlete ELC tokeny na adresu vaší peněženky:
 
 `{address}`
 
 💡 *Demo režim:* Klikněte níže pro získání bezplatných testovacích tokenů.''',
-    'wallet_deposit_success': '''✅ Vloženo {amount} TRC úspěšně!''',
-    'wallet_deposit_title': '''📥 *Vklad TRC*''',
+    'wallet_deposit_success': '''✅ Vloženo {amount} ELC úspěšně!''',
+    'wallet_deposit_title': '''📥 *Vklad ELC*''',
     'wallet_history_empty': '''Žádné transakce.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *Historie transakcí*''',
-    'wallet_stake_desc': '''Stakujte své TRC tokeny a vydělávejte *12% APY*!
+    'wallet_stake_desc': '''Stakujte své ELC tokeny a vydělávejte *12% APY*!
 
-💰 Dostupné: {available} TRC
-📈 Aktuálně stakované: {staked} TRC
-🎁 Čekající odměny: {rewards} TRC
+💰 Dostupné: {available} ELC
+📈 Aktuálně stakované: {staked} ELC
+🎁 Čekající odměny: {rewards} ELC
 
 Denní odměny • Okamžitý výběr''',
-    'wallet_stake_success': '''✅ {amount} TRC úspěšně stakované!''',
-    'wallet_stake_title': '''📈 *Staking TRC*''',
-    'wallet_title': '''◈ *TRC Peněženka*''',
-    'wallet_unstake_success': '''✅ Vybráno {amount} TRC + {rewards} TRC odměn!''',
+    'wallet_stake_success': '''✅ {amount} ELC úspěšně stakované!''',
+    'wallet_stake_title': '''📈 *Staking ELC*''',
+    'wallet_title': '''◈ *ELC Peněženka*''',
+    'wallet_unstake_success': '''✅ Vybráno {amount} ELC + {rewards} ELC odměn!''',
     'wallet_withdraw_desc': '''Zadejte cílovou adresu a částku:''',
     'wallet_withdraw_failed': '''❌ Výběr se nezdařil: {error}''',
-    'wallet_withdraw_success': '''✅ Vybráno {amount} TRC na {address}''',
-    'wallet_withdraw_title': '''📤 *Výběr TRC*''',
+    'wallet_withdraw_success': '''✅ Vybráno {amount} ELC na {address}''',
+    'wallet_withdraw_title': '''📤 *Výběr ELC*''',
 
     'spot_freq_biweekly': '📅 Každé 2 týdny',
     'spot_trailing_enabled': '✅ Trailing TP zapnutý: aktivace +{activation}%, trail {trail}%',

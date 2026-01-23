@@ -1221,10 +1221,10 @@ _"This bot literally prints money"_ — @CryptoKing''',
 
 _The question isn't "Can I afford Premium?"
 The question is "Can I afford NOT to?"_''',
-    'premium_1m': '💎 1 Month — {price} TRC ⚡',
-    'premium_3m': '💎 3 Months — {price} TRC 🔥 SAVE 10%',
-    'premium_6m': '💎 6 Months — {price} TRC 🎯 SAVE 20%',
-    'premium_12m': '💎 12 Months — {price} TRC 🏆 BEST VALUE -30%',
+    'premium_1m': '💎 1 Month — {price} ELC ⚡',
+    'premium_3m': '💎 3 Months — {price} ELC 🔥 SAVE 10%',
+    'premium_6m': '💎 6 Months — {price} ELC 🎯 SAVE 20%',
+    'premium_12m': '💎 12 Months — {price} ELC 🏆 BEST VALUE -30%',
     
     # Basic plan - BLACK RHETORIC: Stepping stone narrative
     'basic_title': '''🥈 *BASIC — SMART START*
@@ -1238,7 +1238,7 @@ _Perfect for testing the waters_''',
 
 💡 *87% of Basic users upgrade to Premium within 2 weeks*
 _They see the results. You will too._''',
-    'basic_1m': '🥈 1 Month — {price} TRC',
+    'basic_1m': '🥈 1 Month — {price} ELC',
     
     # Trial plan - BLACK RHETORIC: Zero risk + Taste of power
     'trial_title': '''🎁 *FREE TRIAL — ZERO RISK*
@@ -1273,38 +1273,38 @@ _Your journey to financial freedom starts NOW._
     
     # Payment
     'payment_select_method': '💳 *Select Payment Method*',
-    'btn_pay_trc': '◈ Pay with TRC',
+    'btn_pay_elc': '◈ Pay with ELC',
     'btn_pay_ton': '💎 TON (deprecated)',
-    'payment_trc_title': '◈ Payment via Lyxen Coin (TRC)',
-    'payment_trc_desc': 'You will be charged {amount} TRC for {plan} ({period}).',
+    'payment_elc_title': '◈ Payment via Lyxen Coin (ELC)',
+    'payment_elc_desc': 'You will be charged {amount} ELC for {plan} ({period}).',
     'payment_ton_title': '💎 Payment via TON (Deprecated)',
     'payment_ton_desc': '''TON payments are no longer supported.
-Please use TRC tokens instead.''',
+Please use ELC tokens instead.''',
     'btn_verify_ton': '✅ I Paid — Verify',
     'btn_check_again': '🔄 Check Again',
     'payment_processing': '⏳ Processing payment...',
     'payment_verifying': '⏳ Verifying payment...',
     'payment_success': '🎉 Payment successful!\n\n{plan} activated until {expires}.',
     'payment_failed': '❌ Payment failed: {error}',
-    'payment_ton_not_configured': '❌ TON payments are deprecated. Use TRC tokens.',
+    'payment_ton_not_configured': '❌ TON payments are deprecated. Use ELC tokens.',
     'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_trc_insufficient': '''❌ Insufficient TRC balance.
+    'payment_elc_insufficient': '''❌ Insufficient ELC balance.
 
-Your balance: {balance} TRC
-Required: {required} TRC
+Your balance: {balance} ELC
+Required: {required} ELC
 
 Top up your wallet to continue.''',
     
     # Wallet
-    'wallet_title': '◈ *TRC Wallet*',
-    'wallet_balance': '''💰 *Your TRC Wallet*
+    'wallet_title': '◈ *ELC Wallet*',
+    'wallet_balance': '''💰 *Your ELC Wallet*
 
-◈ Balance: *{balance} TRC*
-📈 Staked: *{staked} TRC*
-🎁 Pending Rewards: *{rewards} TRC*
+◈ Balance: *{balance} ELC*
+📈 Staked: *{staked} ELC*
+🎁 Pending Rewards: *{rewards} ELC*
 
 💵 Total Value: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_address': '📍 Address: `{address}`',
     'wallet_btn_deposit': '📥 Deposit',
     'wallet_btn_withdraw': '📤 Withdraw',
@@ -1312,31 +1312,31 @@ Top up your wallet to continue.''',
     'wallet_btn_unstake': '📤 Unstake',
     'wallet_btn_history': '📋 History',
     'wallet_btn_back': '« Back',
-    'wallet_deposit_title': '📥 *Deposit TRC*',
-    'wallet_deposit_desc': '''Send TRC tokens to your wallet address:
+    'wallet_deposit_title': '📥 *Deposit ELC*',
+    'wallet_deposit_desc': '''Send ELC tokens to your wallet address:
 
 `{address}`
 
 💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_demo': '🎁 Get 100 TRC (Demo)',
-    'wallet_deposit_success': '✅ Deposited {amount} TRC successfully!',
-    'wallet_withdraw_title': '📤 *Withdraw TRC*',
+    'wallet_deposit_demo': '🎁 Get 100 ELC (Demo)',
+    'wallet_deposit_success': '✅ Deposited {amount} ELC successfully!',
+    'wallet_withdraw_title': '📤 *Withdraw ELC*',
     'wallet_withdraw_desc': 'Enter destination address and amount:',
-    'wallet_withdraw_success': '✅ Withdrawn {amount} TRC to {address}',
+    'wallet_withdraw_success': '✅ Withdrawn {amount} ELC to {address}',
     'wallet_withdraw_failed': '❌ Withdrawal failed: {error}',
-    'wallet_stake_title': '📈 *Stake TRC*',
-    'wallet_stake_desc': '''Stake your TRC tokens to earn *12% APY*!
+    'wallet_stake_title': '📈 *Stake ELC*',
+    'wallet_stake_desc': '''Stake your ELC tokens to earn *12% APY*!
 
-💰 Available: {available} TRC
-📈 Currently Staked: {staked} TRC
-🎁 Pending Rewards: {rewards} TRC
+💰 Available: {available} ELC
+📈 Currently Staked: {staked} ELC
+🎁 Pending Rewards: {rewards} ELC
 
 Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '✅ Staked {amount} TRC successfully!',
-    'wallet_unstake_success': '✅ Unstaked {amount} TRC + {rewards} TRC rewards!',
+    'wallet_stake_success': '✅ Staked {amount} ELC successfully!',
+    'wallet_unstake_success': '✅ Unstaked {amount} ELC + {rewards} ELC rewards!',
     'wallet_history_title': '📋 *Transaction History*',
     'wallet_history_empty': 'No transactions yet.',
-    'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} TRC\n   {date}',
+    'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
     
     # My subscription
     'my_subscription_header': '📋 *My Subscription*',
@@ -1418,7 +1418,7 @@ Daily rewards • Instant unstaking''',
 
 💳 *Payments:*
   Total: {payments_count}
-  TRC: {total_trc} ◈
+  ELC: {total_elc} ◈
 
 📅 *First Seen:* {first_seen}
 🕐 *Last Seen:* {last_seen}

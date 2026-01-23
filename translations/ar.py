@@ -838,10 +838,10 @@ TEXTS = {
 ✅ SL/TP ديناميكي مبني على ATR
 ✅ سلم الليمت DCA
 ✅ جميع التحديثات المستقبلية''',
-    'premium_1m': '💎 1 شهر — {price} TRC',
-    'premium_3m': '💎 3 أشهر — {price} TRC (-10%)',
-    'premium_6m': '💎 6 أشهر — {price} TRC (-20%)',
-    'premium_12m': '💎 12 شهر — {price} TRC (-30%)',
+    'premium_1m': '💎 1 شهر — {price} ELC',
+    'premium_3m': '💎 3 أشهر — {price} ELC (-10%)',
+    'premium_6m': '💎 6 أشهر — {price} ELC (-20%)',
+    'premium_12m': '💎 12 شهر — {price} ELC (-30%)',
     
     'basic_title': '🥈 *خطة BASIC*',
     'basic_desc': '''✅ وصول كامل للحساب التجريبي
@@ -849,7 +849,7 @@ TEXTS = {
 ❌ Lyxen, Fibonacci, Spot — Premium فقط
 ✅ دعم عادي
 ✅ SL/TP ديناميكي مبني على ATR''',
-    'basic_1m': '🥈 1 شهر — {price} TRC',
+    'basic_1m': '🥈 1 شهر — {price} ELC',
     
     'trial_title': '🎁 *تجربة مجانية — عرض محدود!*',
     'trial_desc': '''✅ وصول كامل للحساب التجريبي
@@ -862,10 +862,10 @@ TEXTS = {
     'trial_activated': '🎉 تم تفعيل التجربة! لديك 7 أيام من الوصول التجريبي الكامل.',
     
     'payment_select_method': '💳 *اختر طريقة الدفع*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' الدفع عبر TRC',
-    'payment_trc_desc': 'سيتم خصم {amount} TRC مقابل {plan} ({period}).',
+    'payment_elc_title': ' الدفع عبر ELC',
+    'payment_elc_desc': 'سيتم خصم {amount} ELC مقابل {plan} ({period}).',
     'payment_ton_title': '💎 الدفع عبر TON',
     'payment_ton_desc': '''أرسل بالضبط *{amount} TON* إلى:
 
@@ -950,7 +950,7 @@ TEXTS = {
 
 💳 *المدفوعات:*
   الإجمالي: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *أول ظهور:* {first_seen}
 🕐 *آخر ظهور:* {last_seen}
@@ -1055,56 +1055,56 @@ TEXTS = {
     # Hardcore trading phrase
     'hardcore_mode': '💀 *وضع هاردكور*: لا رحمة، لا ندم. فقط الربح أو الموت! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ رصيد TRC غير كافٍ.
+    'payment_elc_insufficient': '''❌ رصيد ELC غير كافٍ.
 
-رصيدك: {balance} TRC
-المطلوب: {required} TRC
+رصيدك: {balance} ELC
+المطلوب: {required} ELC
 
 قم بشحن المحفظة للمتابعة.''',
     'wallet_address': '''📍 العنوان: `{address}`''',
-    'wallet_balance': '''💰 *محفظتك TRC*
+    'wallet_balance': '''💰 *محفظتك ELC*
 
-◈ الرصيد: *{balance} TRC*
-📈 في التخزين: *{staked} TRC*
-🎁 مكافآت معلقة: *{rewards} TRC*
+◈ الرصيد: *{balance} ELC*
+📈 في التخزين: *{staked} ELC*
+🎁 مكافآت معلقة: *{rewards} ELC*
 
 💵 القيمة الإجمالية: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« رجوع''',
     'wallet_btn_deposit': '''📥 إيداع''',
     'wallet_btn_history': '''📋 السجل''',
     'wallet_btn_stake': '''📈 تخزين''',
     'wallet_btn_unstake': '''📤 إلغاء التخزين''',
     'wallet_btn_withdraw': '''📤 سحب''',
-    'wallet_deposit_demo': '''🎁 احصل على 100 TRC (تجريبي)''',
-    'wallet_deposit_desc': '''أرسل رموز TRC إلى عنوان محفظتك:
+    'wallet_deposit_demo': '''🎁 احصل على 100 ELC (تجريبي)''',
+    'wallet_deposit_desc': '''أرسل رموز ELC إلى عنوان محفظتك:
 
 `{address}`
 
 💡 *الوضع التجريبي:* انقر أدناه للحصول على رموز اختبار مجانية.''',
-    'wallet_deposit_success': '''✅ تم إيداع {amount} TRC بنجاح!''',
-    'wallet_deposit_title': '''📥 *إيداع TRC*''',
+    'wallet_deposit_success': '''✅ تم إيداع {amount} ELC بنجاح!''',
+    'wallet_deposit_title': '''📥 *إيداع ELC*''',
     'wallet_history_empty': '''لا توجد معاملات حتى الآن.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *سجل المعاملات*''',
-    'wallet_stake_desc': '''خزّن رموز TRC واربح *12% سنوياً*!
+    'wallet_stake_desc': '''خزّن رموز ELC واربح *12% سنوياً*!
 
-💰 متاح: {available} TRC
-📈 مخزّن حالياً: {staked} TRC
-🎁 مكافآت معلقة: {rewards} TRC
+💰 متاح: {available} ELC
+📈 مخزّن حالياً: {staked} ELC
+🎁 مكافآت معلقة: {rewards} ELC
 
 مكافآت يومية • سحب فوري''',
-    'wallet_stake_success': '''✅ تم تخزين {amount} TRC بنجاح!''',
-    'wallet_stake_title': '''📈 *تخزين TRC*''',
-    'wallet_title': '''◈ *محفظة TRC*''',
-    'wallet_unstake_success': '''✅ تم سحب {amount} TRC + {rewards} TRC مكافآت!''',
+    'wallet_stake_success': '''✅ تم تخزين {amount} ELC بنجاح!''',
+    'wallet_stake_title': '''📈 *تخزين ELC*''',
+    'wallet_title': '''◈ *محفظة ELC*''',
+    'wallet_unstake_success': '''✅ تم سحب {amount} ELC + {rewards} ELC مكافآت!''',
     'wallet_withdraw_desc': '''أدخل عنوان الوجهة والمبلغ:''',
     'wallet_withdraw_failed': '''❌ فشل السحب: {error}''',
-    'wallet_withdraw_success': '''✅ تم سحب {amount} TRC إلى {address}''',
-    'wallet_withdraw_title': '''📤 *سحب TRC*''',
+    'wallet_withdraw_success': '''✅ تم سحب {amount} ELC إلى {address}''',
+    'wallet_withdraw_title': '''📤 *سحب ELC*''',
 
     'spot_freq_biweekly': '📅 كل أسبوعين',
     'spot_trailing_enabled': '✅ تم تفعيل Trailing TP: التنشيط عند +{activation}%، التتبع {trail}%',

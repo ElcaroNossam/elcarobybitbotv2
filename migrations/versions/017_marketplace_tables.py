@@ -34,7 +34,7 @@ def upgrade(cur):
             
             -- Pricing (multiple currencies)
             price_ton       REAL DEFAULT 0,
-            price_trc       REAL DEFAULT 0,
+            price_elc       REAL DEFAULT 0,
             price_usdt      REAL DEFAULT 0,
             
             -- Stats

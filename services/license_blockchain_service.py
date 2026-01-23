@@ -1,7 +1,7 @@
 """
 License Blockchain Service
 =========================
-Full integration of licenses with blockchain (ELC/TRC tokens).
+Full integration of licenses with blockchain (ELC/ELC tokens).
 
 Features:
 - Purchase license with ELC tokens
@@ -73,7 +73,7 @@ class BlockchainLicenseRecord:
     license_type: str
     period_months: int
     amount_paid: float
-    currency: str  # "ELC", "TRC", "USDT"
+    currency: str  # "ELC", "ELC", "USDT"
     start_timestamp: int
     end_timestamp: int
     nft_token_id: Optional[str]

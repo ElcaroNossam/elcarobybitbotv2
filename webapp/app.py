@@ -398,11 +398,11 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"ton_payments router not available: {e}")
     
-    # TRC Blockchain API (wallets, deposits, withdrawals, sovereign operations)
+    # ELC Blockchain API (wallets, deposits, withdrawals, sovereign operations)
     try:
         from webapp.api import blockchain
-        app.include_router(blockchain.router, prefix="/api/blockchain", tags=["blockchain", "trc"])
-        logger.info("✅ TRC Blockchain API loaded at /api/blockchain")
+        app.include_router(blockchain.router, prefix="/api/blockchain", tags=["blockchain", "elc"])
+        logger.info("✅ ELC Blockchain API loaded at /api/blockchain")
     except ImportError as e:
         logger.warning(f"blockchain router not available: {e}")
     
@@ -491,15 +491,15 @@ def create_app() -> FastAPI:
         """Enhanced screener with top 200 Bybit + all HyperLiquid symbols."""
         return templates.TemplateResponse("enhanced_screener.html", {"request": request})
     
-    # Blockchain/TRC pages
+    # Blockchain/ELC pages
     @app.get("/wallet", response_class=HTMLResponse)
     async def wallet_page(request: Request):
-        """TRC wallet - deposit, withdraw, stake, subscribe"""
+        """ELC wallet - deposit, withdraw, stake, subscribe"""
         return templates.TemplateResponse("wallet.html", {"request": request})
     
     @app.get("/blockchain-admin", response_class=HTMLResponse)
     async def blockchain_admin_page(request: Request):
-        """TRC blockchain admin panel - sovereign owner only"""
+        """ELC blockchain admin panel - sovereign owner only"""
         return templates.TemplateResponse("blockchain_admin.html", {"request": request})
     
     @app.get("/backtest", response_class=HTMLResponse)

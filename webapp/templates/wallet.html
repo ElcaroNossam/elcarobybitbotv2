@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRC Wallet - Lyxen</title>
+    <title>ELC Wallet - Lyxen</title>
     <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
     <style>
         :root {
@@ -366,13 +366,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🪙 <span>TRC Wallet</span></h1>
+            <h1>🪙 <span>ELC Wallet</span></h1>
             <p style="color: var(--text-secondary);">Lyxen Coin - Your Global Stablecoin</p>
         </div>
         
         <div class="balance-card">
             <div class="balance-label">Available Balance</div>
-            <div class="balance-value" id="balance">0.00 TRC</div>
+            <div class="balance-value" id="balance">0.00 ELC</div>
             <div class="balance-usd" id="balanceUsd">≈ $0.00 USD</div>
             <div class="wallet-address" id="walletAddress">Loading...</div>
         </div>
@@ -401,11 +401,11 @@
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-label">Staked</div>
-                    <div class="stat-value blue" id="stakedBalance">0 TRC</div>
+                    <div class="stat-value blue" id="stakedBalance">0 ELC</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Pending Rewards</div>
-                    <div class="stat-value green" id="pendingRewards">0 TRC</div>
+                    <div class="stat-value green" id="pendingRewards">0 ELC</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Current APY</div>
@@ -488,13 +488,13 @@
     <div class="modal" id="stakeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🔐 Stake TRC</h3>
+                <h3>🔐 Stake ELC</h3>
                 <button class="close-btn" onclick="closeModal('stakeModal')">&times;</button>
             </div>
             <div style="text-align: center; padding: 32px;">
                 <div style="font-size: 64px; margin-bottom: 16px;">🚀</div>
                 <h4 style="margin-bottom: 8px;">Earn 12% APY</h4>
-                <p style="color: var(--text-secondary);">Stake your TRC and earn passive income. Rewards distributed daily!</p>
+                <p style="color: var(--text-secondary);">Stake your ELC and earn passive income. Rewards distributed daily!</p>
                 <div style="margin-top: 24px; color: var(--accent-yellow);">Coming Soon</div>
             </div>
         </div>
@@ -511,22 +511,22 @@
                 <div class="network-btn selected" data-plan="premium-1" onclick="selectPlan(this)">
                     <span style="font-size: 24px;">⭐</span>
                     <span class="network-name">Premium 1 Month</span>
-                    <span class="network-fee">100 TRC</span>
+                    <span class="network-fee">100 ELC</span>
                 </div>
                 <div class="network-btn" data-plan="premium-3" onclick="selectPlan(this)" style="margin-top: 12px;">
                     <span style="font-size: 24px;">🌟</span>
                     <span class="network-name">Premium 3 Months</span>
-                    <span class="network-fee">270 TRC (-10%)</span>
+                    <span class="network-fee">270 ELC (-10%)</span>
                 </div>
                 <div class="network-btn" data-plan="premium-6" onclick="selectPlan(this)" style="margin-top: 12px;">
                     <span style="font-size: 24px;">💫</span>
                     <span class="network-name">Premium 6 Months</span>
-                    <span class="network-fee">480 TRC (-20%)</span>
+                    <span class="network-fee">480 ELC (-20%)</span>
                 </div>
                 <div class="network-btn" data-plan="premium-12" onclick="selectPlan(this)" style="margin-top: 12px;">
                     <span style="font-size: 24px;">✨</span>
                     <span class="network-name">Premium 12 Months</span>
-                    <span class="network-fee">840 TRC (-30%)</span>
+                    <span class="network-fee">840 ELC (-30%)</span>
                 </div>
             </div>
             <button class="btn btn-primary" style="margin-top: 24px;" onclick="subscribe()">💎 Subscribe Now</button>
@@ -562,11 +562,11 @@
                 const response = await fetch(`${API_BASE}/wallet/${USER_ID}`);
                 const data = await response.json();
                 
-                document.getElementById('balance').textContent = formatNumber(data.balance) + ' TRC';
+                document.getElementById('balance').textContent = formatNumber(data.balance) + ' ELC';
                 document.getElementById('balanceUsd').textContent = '≈ $' + formatNumber(data.balance) + ' USD';
                 document.getElementById('walletAddress').textContent = data.address;
-                document.getElementById('stakedBalance').textContent = formatNumber(data.staked_balance) + ' TRC';
-                document.getElementById('pendingRewards').textContent = formatNumber(data.pending_rewards) + ' TRC';
+                document.getElementById('stakedBalance').textContent = formatNumber(data.staked_balance) + ' ELC';
+                document.getElementById('pendingRewards').textContent = formatNumber(data.pending_rewards) + ' ELC';
             } catch (e) {
                 console.error('Failed to load wallet:', e);
             }

@@ -1,13 +1,13 @@
 """
-Lyxen Blockchain Module - TRC Token Implementation
+Lyxen Blockchain Module - ELC Token Implementation
 =====================================================
 
-Lyxen Coin (TRC) - Next-Generation Global Stablecoin
+Lyxen Coin (ELC) - Next-Generation Global Stablecoin
 =======================================================
 
-TRC is designed to replace USDT/USDC by solving ALL their problems:
+ELC is designed to replace USDT/USDC by solving ALL their problems:
 
-PROBLEMS WITH USDT/USDC (SOLVED BY TRC):
+PROBLEMS WITH USDT/USDC (SOLVED BY ELC):
 1. ❌ Centralization → ✅ Decentralized governance with owner sovereignty
 2. ❌ Opaque reserves → ✅ On-chain verifiable reserves with real-time audit
 3. ❌ Account freezing → ✅ Owner-controlled, no arbitrary freezing
@@ -81,19 +81,19 @@ OWNER_PRIVILEGES = {
 }
 
 # ============================================
-# TOKEN CONFIGURATION
+# TOKEN CONFIGURATION - ELC (LYXEN COIN)
 # ============================================
 
-TRC_SYMBOL = "TRC"
-TRC_NAME = "Lyxen Coin"
-TRC_FULL_NAME = "Lyxen Global Reserve Currency"
-TRC_DECIMALS = 18
-TRC_TOTAL_SUPPLY = 1_000_000_000_000  # 1 trillion tokens (like USD M2 supply)
-TRC_INITIAL_CIRCULATION = 100_000_000  # 100M initial circulation
+ELC_SYMBOL = "ELC"
+ELC_NAME = "Lyxen Coin"
+ELC_FULL_NAME = "Lyxen Global Reserve Currency"
+ELC_DECIMALS = 18
+ELC_TOTAL_SUPPLY = 1_000_000_000_000  # 1 trillion tokens (like USD M2 supply)
+ELC_INITIAL_CIRCULATION = 100_000_000  # 100M initial circulation
 
 # Peg configuration (multi-asset basket)
-TRC_PRIMARY_PEG = "USD"  # Primary reference
-TRC_PEG_RATE = 1.0  # 1 TRC = 1 USD (base)
+ELC_PRIMARY_PEG = "USD"  # Primary reference
+ELC_PEG_RATE = 1.0  # 1 ELC = 1 USD (base)
 
 # Secondary basket weights (for anti-inflation)
 # Like SDR/China gold basket - averaged global USD value
@@ -171,23 +171,23 @@ def calculate_global_usd_index() -> float:
     # Return normalized index (1.0 = base value)
     return 1.0  # Base implementation - can be updated with real oracle data
 
-def get_trc_usd_rate() -> float:
+def get_elc_usd_rate() -> float:
     """
-    Get current TRC/USD rate based on Global USD Index
+    Get current ELC/USD rate based on Global USD Index
     
-    TRC is pegged to the averaged global USD value,
+    ELC is pegged to the averaged global USD value,
     making it more stable than USD alone
     """
     global_index = calculate_global_usd_index()
-    # 1 TRC = 1 "Global USD" 
-    return TRC_PEG_RATE * global_index
+    # 1 ELC = 1 "Global USD" 
+    return ELC_PEG_RATE * global_index
 
-def get_trc_price_info() -> Dict[str, Any]:
-    """Get comprehensive TRC price information"""
-    usd_rate = get_trc_usd_rate()
+def get_elc_price_info() -> Dict[str, Any]:
+    """Get comprehensive ELC price information"""
+    usd_rate = get_elc_usd_rate()
     return {
-        "symbol": TRC_SYMBOL,
-        "name": TRC_NAME,
+        "symbol": ELC_SYMBOL,
+        "name": ELC_NAME,
         "price_usd": usd_rate,
         "price_eur": usd_rate * GLOBAL_USD_RATES["USD_EUR"],
         "price_gbp": usd_rate * GLOBAL_USD_RATES["USD_GBP"],
@@ -206,13 +206,13 @@ def get_trc_price_info() -> Dict[str, Any]:
 
 CHAIN_ID = 8888
 CHAIN_NAME = "Lyxen Chain"
-CHAIN_SYMBOL = "TRC"
+CHAIN_SYMBOL = "ELC"
 BLOCK_TIME = 3  # seconds
 MAX_TRANSACTIONS_PER_BLOCK = 10000
 GENESIS_TIMESTAMP = 1704067200  # 2024-01-01 00:00:00 UTC
 
 # Exchange rate - uses Global USD Index
-TRC_TO_USDT_RATE = 1.0  # Base rate, actual rate from get_trc_usd_rate()
+ELC_TO_USDT_RATE = 1.0  # Base rate, actual rate from get_elc_usd_rate()
 
 # Network configuration
 MAINNET_RPC = "https://rpc.lyxen.io"
@@ -249,34 +249,34 @@ LIQUIDATION_RATIO = 1.50        # 150% collateral ratio for CDPs
 WALLET_SEED_PREFIX = "lyxen_wallet_v2_sovereign_"
 
 # System wallets
-MASTER_WALLET_ADDRESS = "0xTRC000000000000000000000000000000001"
-TREASURY_WALLET_ADDRESS = "0xTRC000000000000000000000000000000002"
-RESERVE_WALLET_ADDRESS = "0xTRC000000000000000000000000000000003"
-STAKING_POOL_ADDRESS = "0xTRC000000000000000000000000000000004"
-BURN_ADDRESS = "0xTRC000000000000000000000000000000DEAD"
+MASTER_WALLET_ADDRESS = "0xELC000000000000000000000000000000001"
+TREASURY_WALLET_ADDRESS = "0xELC000000000000000000000000000000002"
+RESERVE_WALLET_ADDRESS = "0xELC000000000000000000000000000000003"
+STAKING_POOL_ADDRESS = "0xELC000000000000000000000000000000004"
+BURN_ADDRESS = "0xELC000000000000000000000000000000DEAD"
 
 # ============================================
-# UNIFIED LICENSE PRICING (in TRC/ELC = USD)
+# UNIFIED LICENSE PRICING (in ELC = USD)
 # ============================================
-# All tokens are 1:1 with USD: TRC, ELC (LYXEN)
+# All tokens are 1:1 with USD: ELC (LYXEN)
 
-LICENSE_PRICES_TRC = {
+LICENSE_PRICES_ELC = {
     "premium": {1: 100, 3: 270, 6: 480, 12: 840},
     "basic": {1: 50, 3: 135, 6: 240, 12: 420},
     "enterprise": {1: 500, 3: 1350, 6: 2400, 12: 4200},
     "trial": {1: 0}
 }
 
-# ELC prices mirror TRC prices (both are 1:1 with USD)
-LICENSE_PRICES_ELC = LICENSE_PRICES_TRC.copy()
+# ELC prices mirror ELC prices (both are 1:1 with USD)
+LICENSE_PRICES_ELC = LICENSE_PRICES_ELC.copy()
 
 # Unified price getter
 def get_license_price(license_type: str, months: int, currency: str = "elc") -> float:
     """
-    Get license price in specified currency (TRC or ELC).
+    Get license price in specified currency (ELC).
     Both are 1:1 with USD.
     """
-    prices = LICENSE_PRICES_TRC if currency.lower() == "trc" else LICENSE_PRICES_ELC
+    prices = LICENSE_PRICES_ELC if currency.lower() == "elc" else LICENSE_PRICES_ELC
     plan_prices = prices.get(license_type.lower(), prices.get("basic", {1: 50}))
     return float(plan_prices.get(months, plan_prices.get(1, 50)))
 
@@ -503,7 +503,7 @@ class MonetaryPolicyAction(Enum):
 
 
 class ReserveAssetType(Enum):
-    """Types of reserve assets backing TRC"""
+    """Types of reserve assets backing ELC"""
     USD_CASH = "usd_cash"
     USD_TBILLS = "usd_tbills"       # US Treasury Bills
     EUR_BONDS = "eur_bonds"
@@ -520,7 +520,7 @@ class ReserveAssetType(Enum):
 
 @dataclass
 class ReserveAsset:
-    """Asset backing the TRC stablecoin"""
+    """Asset backing the ELC stablecoin"""
     asset_type: ReserveAssetType
     amount: float
     usd_value: float
@@ -588,8 +588,8 @@ class EmissionEvent:
 
 
 @dataclass
-class TRCWallet:
-    """User wallet for TRC tokens"""
+class ELCWallet:
+    """User wallet for ELC tokens"""
     address: str
     user_id: int
     balance: float = 0.0
@@ -626,7 +626,7 @@ class TRCWallet:
 
 
 @dataclass
-class TRCTransaction:
+class ELCTransaction:
     """Transaction on Lyxen blockchain"""
     tx_hash: str
     from_address: str
@@ -661,7 +661,7 @@ class TRCTransaction:
 
 
 @dataclass
-class TRCBlock:
+class ELCBlock:
     """Block on Lyxen blockchain"""
     number: int
     hash: str
@@ -712,11 +712,11 @@ class LyxenBlockchain:
     # Class attributes for external access
     CHAIN_ID = CHAIN_ID
     CHAIN_NAME = CHAIN_NAME
-    TOKEN_SYMBOL = TRC_SYMBOL
-    TOKEN_NAME = TRC_NAME
-    TOKEN_FULL_NAME = TRC_FULL_NAME
-    TOKEN_DECIMALS = TRC_DECIMALS
-    TOTAL_SUPPLY = TRC_TOTAL_SUPPLY
+    TOKEN_SYMBOL = ELC_SYMBOL
+    TOKEN_NAME = ELC_NAME
+    TOKEN_FULL_NAME = ELC_FULL_NAME
+    TOKEN_DECIMALS = ELC_DECIMALS
+    TOTAL_SUPPLY = ELC_TOTAL_SUPPLY
     BLOCK_TIME = BLOCK_TIME
     SOVEREIGN_OWNER = SOVEREIGN_OWNER_ID
     
@@ -743,24 +743,24 @@ class LyxenBlockchain:
         self._initialized = True
         
         # Core storage
-        self._wallets: Dict[str, TRCWallet] = {}  # address -> wallet
+        self._wallets: Dict[str, ELCWallet] = {}  # address -> wallet
         self._user_wallets: Dict[int, str] = {}  # user_id -> address
-        self._transactions: Dict[str, TRCTransaction] = {}
-        self._blocks: List[TRCBlock] = []
+        self._transactions: Dict[str, ELCTransaction] = {}
+        self._blocks: List[ELCBlock] = []
         self._pending_transactions: List[str] = []
         
         # Sovereign monetary system
-        self._current_supply: float = TRC_INITIAL_CIRCULATION
-        self._max_supply: float = TRC_TOTAL_SUPPLY
+        self._current_supply: float = ELC_INITIAL_CIRCULATION
+        self._max_supply: float = ELC_TOTAL_SUPPLY
         self._monetary_policy: MonetaryPolicy = MonetaryPolicy()
         self._emission_history: List[EmissionEvent] = []
         self._reserves: Dict[str, ReserveAsset] = {}
-        self._total_reserve_value: float = TRC_INITIAL_CIRCULATION * TARGET_RESERVE_RATIO
+        self._total_reserve_value: float = ELC_INITIAL_CIRCULATION * TARGET_RESERVE_RATIO
         
         # Liquidity pools
         self._staking_pool: float = 0.0
-        self._liquidity_pool: float = TRC_INITIAL_CIRCULATION * 0.1  # 10% for liquidity
-        self._treasury_balance: float = TRC_INITIAL_CIRCULATION * 0.2  # 20% treasury
+        self._liquidity_pool: float = ELC_INITIAL_CIRCULATION * 0.1  # 10% for liquidity
+        self._treasury_balance: float = ELC_INITIAL_CIRCULATION * 0.2  # 20% treasury
         
         # Statistics
         self._total_staked: float = 0.0
@@ -778,13 +778,13 @@ class LyxenBlockchain:
         
         logger.info(f"LyxenBlockchain initialized. Chain ID: {CHAIN_ID}")
         logger.info(f"Sovereign Owner: {SOVEREIGN_OWNER_ID}")
-        logger.info(f"Initial Supply: {self._current_supply:,.0f} TRC")
+        logger.info(f"Initial Supply: {self._current_supply:,.0f} ELC")
         logger.info(f"Reserve Ratio: {self._monetary_policy.reserve_ratio * 100:.0f}%")
     
     def _init_system_wallets(self):
         """Initialize system wallets for treasury, reserves, etc."""
         # Master wallet (platform operations)
-        self._wallets[MASTER_WALLET_ADDRESS] = TRCWallet(
+        self._wallets[MASTER_WALLET_ADDRESS] = ELCWallet(
             address=MASTER_WALLET_ADDRESS,
             user_id=0,
             balance=self._current_supply * 0.3,  # 30% for operations
@@ -792,7 +792,7 @@ class LyxenBlockchain:
         )
         
         # Treasury wallet (owner controlled)
-        self._wallets[TREASURY_WALLET_ADDRESS] = TRCWallet(
+        self._wallets[TREASURY_WALLET_ADDRESS] = ELCWallet(
             address=TREASURY_WALLET_ADDRESS,
             user_id=SOVEREIGN_OWNER_ID,
             balance=self._treasury_balance,
@@ -800,7 +800,7 @@ class LyxenBlockchain:
         )
         
         # Reserve wallet (collateral)
-        self._wallets[RESERVE_WALLET_ADDRESS] = TRCWallet(
+        self._wallets[RESERVE_WALLET_ADDRESS] = ELCWallet(
             address=RESERVE_WALLET_ADDRESS,
             user_id=0,
             balance=0,  # Reserves are in other assets
@@ -808,7 +808,7 @@ class LyxenBlockchain:
         )
         
         # Staking pool wallet
-        self._wallets[STAKING_POOL_ADDRESS] = TRCWallet(
+        self._wallets[STAKING_POOL_ADDRESS] = ELCWallet(
             address=STAKING_POOL_ADDRESS,
             user_id=0,
             balance=self._staking_pool,
@@ -817,7 +817,7 @@ class LyxenBlockchain:
     
     def _init_reserves(self):
         """Initialize simulated reserve assets"""
-        # Simulated reserves backing the TRC supply
+        # Simulated reserves backing the ELC supply
         reserve_value = self._current_supply * TARGET_RESERVE_RATIO
         
         self._reserves = {
@@ -871,7 +871,7 @@ class LyxenBlockchain:
     
     def _create_genesis_block(self):
         """Create the genesis block"""
-        genesis = TRCBlock(
+        genesis = ELCBlock(
             number=0,
             hash="0x" + "0" * 64,
             previous_hash="0x" + "0" * 64,
@@ -917,7 +917,7 @@ class LyxenBlockchain:
             # Create emission transaction
             tx_hash = self._generate_tx_hash(BURN_ADDRESS, TREASURY_WALLET_ADDRESS, amount, datetime.utcnow())
             
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=tx_hash,
                 from_address=BURN_ADDRESS,  # Minted from null
                 to_address=TREASURY_WALLET_ADDRESS,
@@ -951,7 +951,7 @@ class LyxenBlockchain:
             # Store transaction
             self._transactions[tx_hash] = tx
             
-            logger.info(f"TOKEN EMISSION: {amount:,.2f} TRC by owner {user_id}")
+            logger.info(f"TOKEN EMISSION: {amount:,.2f} ELC by owner {user_id}")
             logger.info(f"Supply: {old_supply:,.0f} → {self._current_supply:,.0f}")
             
             return {
@@ -982,7 +982,7 @@ class LyxenBlockchain:
         async with self._get_lock():
             tx_hash = self._generate_tx_hash(TREASURY_WALLET_ADDRESS, BURN_ADDRESS, amount, datetime.utcnow())
             
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=tx_hash,
                 from_address=TREASURY_WALLET_ADDRESS,
                 to_address=BURN_ADDRESS,
@@ -1000,7 +1000,7 @@ class LyxenBlockchain:
             
             self._transactions[tx_hash] = tx
             
-            logger.info(f"TOKEN BURN: {amount:,.2f} TRC by owner {user_id}")
+            logger.info(f"TOKEN BURN: {amount:,.2f} ELC by owner {user_id}")
             logger.info(f"Supply: {old_supply:,.0f} → {self._current_supply:,.0f}")
             
             return {
@@ -1117,7 +1117,7 @@ class LyxenBlockchain:
         
         self._total_rewards_distributed += distributed
         
-        logger.info(f"REWARDS DISTRIBUTED: {distributed:,.2f} TRC to {recipients} stakers")
+        logger.info(f"REWARDS DISTRIBUTED: {distributed:,.2f} ELC to {recipients} stakers")
         
         return {
             "success": True,
@@ -1172,7 +1172,7 @@ class LyxenBlockchain:
             self._treasury_balance -= amount
             self._wallets[to_address].balance += amount
             
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=tx_hash,
                 from_address=TREASURY_WALLET_ADDRESS,
                 to_address=to_address,
@@ -1212,11 +1212,11 @@ class LyxenBlockchain:
         address_bytes = hmac.new(key, seed.encode(), hashlib.sha256).digest()
         
         # Format as Ethereum-like address (0x + 40 hex chars)
-        address = "0xTRC" + address_bytes[:18].hex().upper()
+        address = "0xELC" + address_bytes[:18].hex().upper()
         
         return address
     
-    def _get_or_create_wallet_internal(self, user_id: int) -> TRCWallet:
+    def _get_or_create_wallet_internal(self, user_id: int) -> ELCWallet:
         """Internal: Get existing wallet or create new one (no lock)"""
         # Check if wallet exists
         if user_id in self._user_wallets:
@@ -1226,7 +1226,7 @@ class LyxenBlockchain:
         # Generate new wallet
         address = self.generate_wallet_address(user_id)
         
-        wallet = TRCWallet(
+        wallet = ELCWallet(
             address=address,
             user_id=user_id,
             balance=0.0,
@@ -1238,32 +1238,32 @@ class LyxenBlockchain:
         self._wallets[address] = wallet
         self._user_wallets[user_id] = address
         
-        logger.info(f"Created TRC wallet for user {user_id}: {address}")
+        logger.info(f"Created ELC wallet for user {user_id}: {address}")
         
         return wallet
     
-    async def get_or_create_wallet(self, user_id: int) -> TRCWallet:
+    async def get_or_create_wallet(self, user_id: int) -> ELCWallet:
         """Get existing wallet or create new one for user"""
         async with self._get_lock():
             return self._get_or_create_wallet_internal(user_id)
     
-    def _get_wallet_internal(self, user_id: int) -> Optional[TRCWallet]:
+    def _get_wallet_internal(self, user_id: int) -> Optional[ELCWallet]:
         """Internal: Get wallet for user if exists (no lock)"""
         if user_id in self._user_wallets:
             address = self._user_wallets[user_id]
             return self._wallets.get(address)
         return None
     
-    async def get_wallet(self, user_id: int) -> Optional[TRCWallet]:
+    async def get_wallet(self, user_id: int) -> Optional[ELCWallet]:
         """Get wallet for user if exists"""
         return self._get_wallet_internal(user_id)
     
-    async def get_wallet_by_address(self, address: str) -> Optional[TRCWallet]:
+    async def get_wallet_by_address(self, address: str) -> Optional[ELCWallet]:
         """Get wallet by address"""
         return self._wallets.get(address)
     
     async def get_balance(self, user_id: int) -> float:
-        """Get available TRC balance for user"""
+        """Get available ELC balance for user"""
         wallet = await self.get_wallet(user_id)
         if wallet:
             return wallet.balance
@@ -1297,9 +1297,9 @@ class LyxenBlockchain:
         amount: float,
         memo: str = "",
         tx_type: TransactionType = TransactionType.TRANSFER
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
-        Transfer TRC between users
+        Transfer ELC between users
         
         Returns:
             (success, transaction, message)
@@ -1314,7 +1314,7 @@ class LyxenBlockchain:
             
             # Check balance
             if from_wallet.balance < amount:
-                return False, None, f"Insufficient balance. Available: {from_wallet.balance:.2f} TRC"
+                return False, None, f"Insufficient balance. Available: {from_wallet.balance:.2f} ELC"
             
             # Check wallet status
             if from_wallet.status != WalletStatus.ACTIVE:
@@ -1323,7 +1323,7 @@ class LyxenBlockchain:
                 return False, None, "Destination wallet is not active"
             
             # Create transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(from_wallet.address, to_wallet.address, amount, datetime.utcnow()),
                 from_address=from_wallet.address,
                 to_address=to_wallet.address,
@@ -1348,7 +1348,7 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Transfer: {amount:.2f} TRC from {from_user_id} to {to_user_id}. TX: {tx.tx_hash[:16]}...")
+            logger.info(f"Transfer: {amount:.2f} ELC from {from_user_id} to {to_user_id}. TX: {tx.tx_hash[:16]}...")
             
             return True, tx, "Transfer successful"
     
@@ -1358,11 +1358,11 @@ class LyxenBlockchain:
         amount: float,
         source: str = "external",
         memo: str = ""
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
-        Deposit TRC to user wallet (mint from platform)
+        Deposit ELC to user wallet (mint from platform)
         
-        Used when user purchases TRC with fiat/crypto
+        Used when user purchases ELC with fiat/crypto
         """
         if amount <= 0:
             return False, None, "Amount must be positive"
@@ -1374,7 +1374,7 @@ class LyxenBlockchain:
                 return False, None, "Wallet is not active"
             
             # Create deposit transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(MASTER_WALLET_ADDRESS, wallet.address, amount, datetime.utcnow()),
                 from_address=MASTER_WALLET_ADDRESS,
                 to_address=wallet.address,
@@ -1394,7 +1394,7 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Deposit: {amount:.2f} TRC to user {user_id}. Source: {source}. TX: {tx.tx_hash[:16]}...")
+            logger.info(f"Deposit: {amount:.2f} ELC to user {user_id}. Source: {source}. TX: {tx.tx_hash[:16]}...")
             
             return True, tx, "Deposit successful"
     
@@ -1404,11 +1404,11 @@ class LyxenBlockchain:
         amount: float,
         destination: str = "external",
         memo: str = ""
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
-        Withdraw TRC from user wallet
+        Withdraw ELC from user wallet
         
-        Used when user converts TRC to fiat/crypto
+        Used when user converts ELC to fiat/crypto
         """
         if amount <= 0:
             return False, None, "Amount must be positive"
@@ -1423,10 +1423,10 @@ class LyxenBlockchain:
                 return False, None, "Wallet is not active"
             
             if wallet.balance < amount:
-                return False, None, f"Insufficient balance. Available: {wallet.balance:.2f} TRC"
+                return False, None, f"Insufficient balance. Available: {wallet.balance:.2f} ELC"
             
             # Create withdrawal transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(wallet.address, MASTER_WALLET_ADDRESS, amount, datetime.utcnow()),
                 from_address=wallet.address,
                 to_address=MASTER_WALLET_ADDRESS,
@@ -1446,7 +1446,7 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Withdraw: {amount:.2f} TRC from user {user_id}. TX: {tx.tx_hash[:16]}...")
+            logger.info(f"Withdraw: {amount:.2f} ELC from user {user_id}. TX: {tx.tx_hash[:16]}...")
             
             return True, tx, "Withdrawal successful"
     
@@ -1456,7 +1456,7 @@ class LyxenBlockchain:
         amount: float,
         recipient_description: str,
         memo: str = ""
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
         Payment for services (license, strategy, etc.)
         
@@ -1469,20 +1469,20 @@ class LyxenBlockchain:
             wallet = self._get_wallet_internal(user_id)
             
             if not wallet:
-                return False, None, "Wallet not found. Please deposit TRC first."
+                return False, None, "Wallet not found. Please deposit ELC first."
             
             if wallet.status != WalletStatus.ACTIVE:
                 return False, None, "Wallet is not active"
             
             if wallet.balance < amount:
-                return False, None, f"Insufficient TRC balance. Need: {amount:.2f} TRC, Available: {wallet.balance:.2f} TRC"
+                return False, None, f"Insufficient ELC balance. Need: {amount:.2f} ELC, Available: {wallet.balance:.2f} ELC"
             
             # Calculate platform fee
             fee = amount * PLATFORM_FEE_RATE
             net_amount = amount - fee
             
             # Create payment transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(wallet.address, MASTER_WALLET_ADDRESS, amount, datetime.utcnow()),
                 from_address=wallet.address,
                 to_address=MASTER_WALLET_ADDRESS,
@@ -1511,7 +1511,7 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Payment: {amount:.2f} TRC from user {user_id} for {recipient_description}. TX: {tx.tx_hash[:16]}...")
+            logger.info(f"Payment: {amount:.2f} ELC from user {user_id} for {recipient_description}. TX: {tx.tx_hash[:16]}...")
             
             return True, tx, "Payment successful"
     
@@ -1520,9 +1520,9 @@ class LyxenBlockchain:
         user_id: int,
         amount: float,
         reason: str = "reward"
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
-        Give TRC reward to user (referral, trading, staking)
+        Give ELC reward to user (referral, trading, staking)
         """
         if amount <= 0:
             return False, None, "Amount must be positive"
@@ -1531,7 +1531,7 @@ class LyxenBlockchain:
             wallet = self._get_or_create_wallet_internal(user_id)
             
             # Create reward transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(MASTER_WALLET_ADDRESS, wallet.address, amount, datetime.utcnow()),
                 from_address=MASTER_WALLET_ADDRESS,
                 to_address=wallet.address,
@@ -1551,7 +1551,7 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Reward: {amount:.2f} TRC to user {user_id}. Reason: {reason}. TX: {tx.tx_hash[:16]}...")
+            logger.info(f"Reward: {amount:.2f} ELC to user {user_id}. Reason: {reason}. TX: {tx.tx_hash[:16]}...")
             
             return True, tx, "Reward credited"
     
@@ -1563,9 +1563,9 @@ class LyxenBlockchain:
         self,
         user_id: int,
         amount: float
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
         """
-        Stake TRC for rewards
+        Stake ELC for rewards
         
         Staking rewards: 12% APY
         """
@@ -1579,10 +1579,10 @@ class LyxenBlockchain:
                 return False, None, "Wallet not found"
             
             if wallet.balance < amount:
-                return False, None, f"Insufficient balance. Available: {wallet.balance:.2f} TRC"
+                return False, None, f"Insufficient balance. Available: {wallet.balance:.2f} ELC"
             
             # Create stake transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash(wallet.address, "STAKING_CONTRACT", amount, datetime.utcnow()),
                 from_address=wallet.address,
                 to_address="STAKING_CONTRACT",
@@ -1590,7 +1590,7 @@ class LyxenBlockchain:
                 tx_type=TransactionType.STAKE,
                 status=TransactionStatus.CONFIRMED,
                 fee=0.0,
-                memo=f"Stake {amount:.2f} TRC",
+                memo=f"Stake {amount:.2f} ELC",
                 metadata={"user_id": user_id}
             )
             tx.confirmed_at = datetime.utcnow()
@@ -1602,16 +1602,16 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Stake: {amount:.2f} TRC by user {user_id}")
+            logger.info(f"Stake: {amount:.2f} ELC by user {user_id}")
             
-            return True, tx, f"Successfully staked {amount:.2f} TRC"
+            return True, tx, f"Successfully staked {amount:.2f} ELC"
     
     async def unstake(
         self,
         user_id: int,
         amount: float
-    ) -> Tuple[bool, Optional[TRCTransaction], str]:
-        """Unstake TRC"""
+    ) -> Tuple[bool, Optional[ELCTransaction], str]:
+        """Unstake ELC"""
         if amount <= 0:
             return False, None, "Amount must be positive"
         
@@ -1622,10 +1622,10 @@ class LyxenBlockchain:
                 return False, None, "Wallet not found"
             
             if wallet.staked_balance < amount:
-                return False, None, f"Insufficient staked balance. Staked: {wallet.staked_balance:.2f} TRC"
+                return False, None, f"Insufficient staked balance. Staked: {wallet.staked_balance:.2f} ELC"
             
             # Create unstake transaction
-            tx = TRCTransaction(
+            tx = ELCTransaction(
                 tx_hash=self._generate_tx_hash("STAKING_CONTRACT", wallet.address, amount, datetime.utcnow()),
                 from_address="STAKING_CONTRACT",
                 to_address=wallet.address,
@@ -1633,7 +1633,7 @@ class LyxenBlockchain:
                 tx_type=TransactionType.UNSTAKE,
                 status=TransactionStatus.CONFIRMED,
                 fee=0.0,
-                memo=f"Unstake {amount:.2f} TRC",
+                memo=f"Unstake {amount:.2f} ELC",
                 metadata={"user_id": user_id}
             )
             tx.confirmed_at = datetime.utcnow()
@@ -1645,15 +1645,15 @@ class LyxenBlockchain:
             
             self._transactions[tx.tx_hash] = tx
             
-            logger.info(f"Unstake: {amount:.2f} TRC by user {user_id}")
+            logger.info(f"Unstake: {amount:.2f} ELC by user {user_id}")
             
-            return True, tx, f"Successfully unstaked {amount:.2f} TRC"
+            return True, tx, f"Successfully unstaked {amount:.2f} ELC"
     
     # ============================================
     # QUERY OPERATIONS
     # ============================================
     
-    async def get_transaction(self, tx_hash: str) -> Optional[TRCTransaction]:
+    async def get_transaction(self, tx_hash: str) -> Optional[ELCTransaction]:
         """Get transaction by hash"""
         return self._transactions.get(tx_hash)
     
@@ -1662,7 +1662,7 @@ class LyxenBlockchain:
         user_id: int,
         limit: int = 50,
         offset: int = 0
-    ) -> List[TRCTransaction]:
+    ) -> List[ELCTransaction]:
         """Get transaction history for user"""
         wallet = await self.get_wallet(user_id)
         if not wallet:
@@ -1685,14 +1685,14 @@ class LyxenBlockchain:
             "block_height": len(self._blocks),
             "total_transactions": len(self._transactions),
             "total_wallets": len(self._wallets),
-            "total_supply": TRC_TOTAL_SUPPLY,
+            "total_supply": ELC_TOTAL_SUPPLY,
             "circulating_supply": sum(w.total_balance for w in self._wallets.values()),
             "block_time": BLOCK_TIME,
             "token": {
-                "symbol": TRC_SYMBOL,
-                "name": TRC_NAME,
-                "decimals": TRC_DECIMALS,
-                "usdt_rate": TRC_TO_USDT_RATE
+                "symbol": ELC_SYMBOL,
+                "name": ELC_NAME,
+                "decimals": ELC_DECIMALS,
+                "usdt_rate": ELC_TO_USDT_RATE
             }
         }
     
@@ -1702,23 +1702,23 @@ class LyxenBlockchain:
     
     @staticmethod
     def usdt_to_trc(usdt_amount: float) -> float:
-        """Convert USDT to TRC (1:1)"""
-        return usdt_amount * TRC_TO_USDT_RATE
+        """Convert USDT to ELC (1:1)"""
+        return usdt_amount * ELC_TO_USDT_RATE
     
     @staticmethod
     def trc_to_usdt(trc_amount: float) -> float:
-        """Convert TRC to USDT (1:1)"""
-        return trc_amount / TRC_TO_USDT_RATE
+        """Convert ELC to USDT (1:1)"""
+        return trc_amount / ELC_TO_USDT_RATE
     
     @staticmethod
     def format_amount(amount: float) -> str:
-        """Format TRC amount for display"""
+        """Format ELC amount for display"""
         if amount >= 1000000:
-            return f"{amount/1000000:.2f}M TRC"
+            return f"{amount/1000000:.2f}M ELC"
         elif amount >= 1000:
-            return f"{amount/1000:.2f}K TRC"
+            return f"{amount/1000:.2f}K ELC"
         else:
-            return f"{amount:.2f} TRC"
+            return f"{amount:.2f} ELC"
 
 
 # ============================================
@@ -1732,52 +1732,52 @@ blockchain = LyxenBlockchain()
 # HELPER FUNCTIONS
 # ============================================
 
-async def get_trc_balance(user_id: int) -> float:
-    """Get user's TRC balance"""
+async def get_elc_balance(user_id: int) -> float:
+    """Get user's ELC balance"""
     return await blockchain.get_balance(user_id)
 
 
-async def get_trc_wallet(user_id: int) -> Optional[TRCWallet]:
-    """Get user's TRC wallet"""
+async def get_elc_wallet(user_id: int) -> Optional[ELCWallet]:
+    """Get user's ELC wallet"""
     return await blockchain.get_or_create_wallet(user_id)
 
 
-async def pay_with_trc(user_id: int, amount: float, description: str) -> Tuple[bool, str]:
+async def pay_with_elc(user_id: int, amount: float, description: str) -> Tuple[bool, str]:
     """
-    Process payment with TRC
+    Process payment with ELC
     
     Returns:
         (success, message)
     """
     success, tx, message = await blockchain.pay(user_id, amount, description)
     if success and tx:
-        return True, f"Payment of {amount:.2f} TRC successful. TX: {tx.tx_hash[:16]}..."
+        return True, f"Payment of {amount:.2f} ELC successful. TX: {tx.tx_hash[:16]}..."
     return False, message
 
 
-async def deposit_trc(user_id: int, amount: float, source: str = "purchase") -> Tuple[bool, str]:
+async def deposit_elc(user_id: int, amount: float, source: str = "purchase") -> Tuple[bool, str]:
     """
-    Deposit TRC to user wallet
+    Deposit ELC to user wallet
     
     Returns:
         (success, message)
     """
     success, tx, message = await blockchain.deposit(user_id, amount, source)
     if success and tx:
-        return True, f"Deposited {amount:.2f} TRC. TX: {tx.tx_hash[:16]}..."
+        return True, f"Deposited {amount:.2f} ELC. TX: {tx.tx_hash[:16]}..."
     return False, message
 
 
-async def reward_trc(user_id: int, amount: float, reason: str = "bonus") -> Tuple[bool, str]:
+async def reward_elc(user_id: int, amount: float, reason: str = "bonus") -> Tuple[bool, str]:
     """
-    Give TRC reward to user
+    Give ELC reward to user
     
     Returns:
         (success, message)
     """
     success, tx, message = await blockchain.reward(user_id, amount, reason)
     if success and tx:
-        return True, f"Rewarded {amount:.2f} TRC for {reason}. TX: {tx.tx_hash[:16]}..."
+        return True, f"Rewarded {amount:.2f} ELC for {reason}. TX: {tx.tx_hash[:16]}..."
     return False, message
 
 
@@ -1786,21 +1786,21 @@ async def reward_trc(user_id: int, amount: float, reason: str = "bonus") -> Tupl
 # ============================================
 
 def usdt_to_trc(usdt_amount: float) -> float:
-    """Convert USDT to TRC (1:1 rate)"""
-    return usdt_amount * TRC_TO_USDT_RATE
+    """Convert USDT to ELC (1:1 rate)"""
+    return usdt_amount * ELC_TO_USDT_RATE
 
 
 def trc_to_usdt(trc_amount: float) -> float:
-    """Convert TRC to USDT (1:1 rate)"""
-    return trc_amount / TRC_TO_USDT_RATE
+    """Convert ELC to USDT (1:1 rate)"""
+    return trc_amount / ELC_TO_USDT_RATE
 
 
 # ============================================
 # PRICE CONVERSION (for license payments)
 # ============================================
 
-# License prices in TRC (= USDT)
-LICENSE_PRICES_TRC = {
+# License prices in ELC (= USDT)
+LICENSE_PRICES_ELC = {
     "premium": {
         1: 100.0,   # 1 month
         3: 270.0,   # 3 months ($90/mo)
@@ -1816,23 +1816,23 @@ LICENSE_PRICES_TRC = {
 }
 
 
-def get_license_price_trc(license_type: str, months: int) -> float:
-    """Get license price in TRC"""
-    prices = LICENSE_PRICES_TRC.get(license_type, LICENSE_PRICES_TRC["basic"])
+def get_license_price_elc(license_type: str, months: int) -> float:
+    """Get license price in ELC"""
+    prices = LICENSE_PRICES_ELC.get(license_type, LICENSE_PRICES_ELC["basic"])
     return prices.get(months, prices.get(1, 50.0))
 
 
 async def pay_license(user_id: int, license_type: str, months: int) -> Tuple[bool, str]:
     """
-    Pay for license with TRC
+    Pay for license with ELC
     
     Returns:
         (success, message)
     """
-    price = get_license_price_trc(license_type, months)
+    price = get_license_price_elc(license_type, months)
     description = f"{license_type.capitalize()} License ({months} month{'s' if months > 1 else ''})"
     
-    success, message = await pay_with_trc(user_id, price, description)
+    success, message = await pay_with_elc(user_id, price, description)
     return success, message
 
 
@@ -1878,10 +1878,10 @@ def get_subscription_options() -> dict:
                 "name": "Basic",
                 "description": "Demo trading + basic signals",
                 "prices": {
-                    1: {"elc": 50, "trc": 50, "usd": 50},
-                    3: {"elc": 135, "trc": 135, "usd": 135},
-                    6: {"elc": 240, "trc": 240, "usd": 240},
-                    12: {"elc": 420, "trc": 420, "usd": 420},
+                    1: {"elc": 50, "elc": 50, "usd": 50},
+                    3: {"elc": 135, "elc": 135, "usd": 135},
+                    6: {"elc": 240, "elc": 240, "usd": 240},
+                    12: {"elc": 420, "elc": 420, "usd": 420},
                 },
                 "features": ["Demo trading", "Basic signals", "Email support"]
             },
@@ -1889,10 +1889,10 @@ def get_subscription_options() -> dict:
                 "name": "Premium",
                 "description": "Full access to all features",
                 "prices": {
-                    1: {"elc": 100, "trc": 100, "usd": 100},
-                    3: {"elc": 270, "trc": 270, "usd": 270},
-                    6: {"elc": 480, "trc": 480, "usd": 480},
-                    12: {"elc": 840, "trc": 840, "usd": 840},
+                    1: {"elc": 100, "elc": 100, "usd": 100},
+                    3: {"elc": 270, "elc": 270, "usd": 270},
+                    6: {"elc": 480, "elc": 480, "usd": 480},
+                    12: {"elc": 840, "elc": 840, "usd": 840},
                 },
                 "features": ["Real trading", "All strategies", "Priority support", "AI Agent"]
             },
@@ -1900,15 +1900,15 @@ def get_subscription_options() -> dict:
                 "name": "Enterprise",
                 "description": "For professional traders",
                 "prices": {
-                    1: {"elc": 500, "trc": 500, "usd": 500},
-                    3: {"elc": 1350, "trc": 1350, "usd": 1350},
-                    6: {"elc": 2400, "trc": 2400, "usd": 2400},
-                    12: {"elc": 4200, "trc": 4200, "usd": 4200},
+                    1: {"elc": 500, "elc": 500, "usd": 500},
+                    3: {"elc": 1350, "elc": 1350, "usd": 1350},
+                    6: {"elc": 2400, "elc": 2400, "usd": 2400},
+                    12: {"elc": 4200, "elc": 4200, "usd": 4200},
                 },
                 "features": ["Everything", "API access", "White-label", "VIP support"]
             }
         },
-        "currencies": ["ELC", "TRC"],
+        "currencies": ["ELC", "ELC"],
         "discounts": {
             1: 0,
             3: 10,
@@ -1987,8 +1987,8 @@ async def transfer_from_treasury(user_id: int, to_user_id: int, amount: float, r
 async def get_global_stats() -> Dict[str, Any]:
     """Get global blockchain statistics (public)"""
     return {
-        "token_name": TRC_NAME,
-        "token_symbol": TRC_SYMBOL,
+        "token_name": ELC_NAME,
+        "token_symbol": ELC_SYMBOL,
         "chain_id": CHAIN_ID,
         "chain_name": CHAIN_NAME,
         "current_supply": blockchain._current_supply,
@@ -2119,7 +2119,7 @@ async def request_withdrawal(
             return False, "Wallet not found", None
         
         if wallet.balance < amount:
-            return False, f"Insufficient balance. Available: {wallet.balance:.2f} TRC", None
+            return False, f"Insufficient balance. Available: {wallet.balance:.2f} ELC", None
         
         # Process withdrawal (deduct from wallet)
         success, tx, msg = await blockchain.withdraw(user_id, amount, f"external:{network}")
@@ -2179,8 +2179,8 @@ async def confirm_deposit(
         )
         
         if success:
-            logger.info(f"Deposit confirmed: {net_amount} TRC to user {user_id} from {network}")
-            return True, f"Deposited {net_amount:.2f} TRC from {config['name']}"
+            logger.info(f"Deposit confirmed: {net_amount} ELC to user {user_id} from {network}")
+            return True, f"Deposited {net_amount:.2f} ELC from {config['name']}"
         
         return False, msg
         

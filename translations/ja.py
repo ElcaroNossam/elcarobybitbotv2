@@ -832,10 +832,10 @@ TEXTS = {
 ✅ ATRベースの動的SL/TP
 ✅ リミットラダーDCA
 ✅ 将来の全アップデート''',
-    'premium_1m': '💎 1ヶ月 — {price} TRC',
-    'premium_3m': '💎 3ヶ月 — {price} TRC (-10%)',
-    'premium_6m': '💎 6ヶ月 — {price} TRC (-20%)',
-    'premium_12m': '💎 12ヶ月 — {price} TRC (-30%)',
+    'premium_1m': '💎 1ヶ月 — {price} ELC',
+    'premium_3m': '💎 3ヶ月 — {price} ELC (-10%)',
+    'premium_6m': '💎 6ヶ月 — {price} ELC (-20%)',
+    'premium_12m': '💎 12ヶ月 — {price} ELC (-30%)',
     
     'basic_title': '🥈 *ベーシックプラン*',
     'basic_desc': '''✅ デモ口座へのフルアクセス
@@ -843,7 +843,7 @@ TEXTS = {
 ❌ Lyxen, Fibonacci, Spot — Premiumのみ
 ✅ 標準サポート
 ✅ ATRベースの動的SL/TP''',
-    'basic_1m': '🥈 1ヶ月 — {price} TRC',
+    'basic_1m': '🥈 1ヶ月 — {price} ELC',
     
     'trial_title': '🎁 *無料トライアル — 期間限定オファー！*',
     'trial_desc': '''✅ デモ口座へのフルアクセス
@@ -856,10 +856,10 @@ TEXTS = {
     'trial_activated': '🎉 トライアル有効化！7日間のフルデモアクセスがあります。',
     
     'payment_select_method': '💳 *支払い方法を選択*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': '◈ Lyxen Coin (TRC)での支払い',
-    'payment_trc_desc': '{plan}（{period}）に{amount} TRCが請求されます。',
+    'payment_elc_title': '◈ Lyxen Coin (ELC)での支払い',
+    'payment_elc_desc': '{plan}（{period}）に{amount} ELCが請求されます。',
     'payment_ton_title': '💎 TONでの支払い',
     'payment_ton_desc': '''正確に*{amount} TON*を以下に送金:
 
@@ -944,7 +944,7 @@ TEXTS = {
 
 💳 *支払い:*
   合計: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *初回: {first_seen}
 🕐 *最終: {last_seen}
@@ -1049,56 +1049,56 @@ TEXTS = {
     # Hardcore trading phrase
     'hardcore_mode': '💀 *ハードコアモード*: 容赦なし、後悔なし。利益か死か！ 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ TRC残高が不足しています。
+    'payment_elc_insufficient': '''❌ ELC残高が不足しています。
 
-現在の残高: {balance} TRC
-必要額: {required} TRC
+現在の残高: {balance} ELC
+必要額: {required} ELC
 
 続行するにはウォレットをチャージしてください。''',
     'wallet_address': '''📍 アドレス: `{address}`''',
-    'wallet_balance': '''💰 *あなたのTRCウォレット*
+    'wallet_balance': '''💰 *あなたのELCウォレット*
 
-◈ 残高: *{balance} TRC*
-📈 ステーク中: *{staked} TRC*
-🎁 保留中の報酬: *{rewards} TRC*
+◈ 残高: *{balance} ELC*
+📈 ステーク中: *{staked} ELC*
+🎁 保留中の報酬: *{rewards} ELC*
 
 💵 合計価値: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« 戻る''',
     'wallet_btn_deposit': '''📥 入金''',
     'wallet_btn_history': '''📋 履歴''',
     'wallet_btn_stake': '''📈 ステーク''',
     'wallet_btn_unstake': '''📤 アンステーク''',
     'wallet_btn_withdraw': '''📤 出金''',
-    'wallet_deposit_demo': '''🎁 100 TRCを取得 (デモ)''',
-    'wallet_deposit_desc': '''TRCトークンをウォレットアドレスに送信してください:
+    'wallet_deposit_demo': '''🎁 100 ELCを取得 (デモ)''',
+    'wallet_deposit_desc': '''ELCトークンをウォレットアドレスに送信してください:
 
 `{address}`
 
 💡 *デモモード:* 以下をクリックして無料テストトークンを取得。''',
-    'wallet_deposit_success': '''✅ {amount} TRCの入金に成功しました！''',
-    'wallet_deposit_title': '''📥 *TRC入金*''',
+    'wallet_deposit_success': '''✅ {amount} ELCの入金に成功しました！''',
+    'wallet_deposit_title': '''📥 *ELC入金*''',
     'wallet_history_empty': '''取引はまだありません。''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *取引履歴*''',
-    'wallet_stake_desc': '''TRCをステークして*年力12%*を稼ぎましょう！
+    'wallet_stake_desc': '''ELCをステークして*年力12%*を稼ぎましょう！
 
-💰 利用可能: {available} TRC
-📈 現在ステーク中: {staked} TRC
-🎁 保留中の報酬: {rewards} TRC
+💰 利用可能: {available} ELC
+📈 現在ステーク中: {staked} ELC
+🎁 保留中の報酬: {rewards} ELC
 
 毎日報酬 • 即時アンステーク''',
-    'wallet_stake_success': '''✅ {amount} TRCのステークに成功しました！''',
-    'wallet_stake_title': '''📈 *TRCステーク*''',
-    'wallet_title': '''◈ *TRCウォレット*''',
-    'wallet_unstake_success': '''✅ {amount} TRC + {rewards} TRC報酬を引き出しました！''',
+    'wallet_stake_success': '''✅ {amount} ELCのステークに成功しました！''',
+    'wallet_stake_title': '''📈 *ELCステーク*''',
+    'wallet_title': '''◈ *ELCウォレット*''',
+    'wallet_unstake_success': '''✅ {amount} ELC + {rewards} ELC報酬を引き出しました！''',
     'wallet_withdraw_desc': '''宛先アドレスと金額を入力してください:''',
     'wallet_withdraw_failed': '''❌ 出金に失敗しました: {error}''',
-    'wallet_withdraw_success': '''✅ {amount} TRCを{address}に出金しました''',
-    'wallet_withdraw_title': '''📤 *TRC出金*''',
+    'wallet_withdraw_success': '''✅ {amount} ELCを{address}に出金しました''',
+    'wallet_withdraw_title': '''📤 *ELC出金*''',
 
     'spot_freq_biweekly': '📅 2週間ごと',
     'spot_trailing_enabled': '✅ Trailing TP有効: +{activation}%で発動、{trail}%トレール',

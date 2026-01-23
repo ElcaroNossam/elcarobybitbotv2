@@ -48,7 +48,7 @@ class TransactionRecord(BaseModel):
     user_id: int
     username: Optional[str]
     transaction_type: str  # 'subscription', 'token_purchase', 'refund', 'payout'
-    payment_method: str  # 'trc', 'ton', 'usdt', 'crypto'
+    payment_method: str  # 'elc', 'ton', 'usdt', 'crypto'
     amount_usd: float
     amount_crypto: float
     crypto_currency: str
@@ -193,7 +193,7 @@ async def get_finance_dashboard(
                     'total_usd': float(row[2])
                 }
             
-            # Get TRC token stats
+            # Get ELC token stats
             cur.execute("""
                 SELECT 
                     COALESCE(SUM(CASE WHEN tx_type = 'purchase' THEN amount ELSE 0 END), 0) as purchased,
@@ -339,7 +339,7 @@ async def get_transactions(
                     "payment_method": row[3],
                     "amount_usd": float(row[4]) if row[4] else 0,
                     "amount_crypto": float(row[5]) if row[5] else 0,
-                    "crypto_currency": row[6] or "TRC",
+                    "crypto_currency": row[6] or "ELC",
                     "status": row[7],
                     "tx_hash": row[8],
                     "timestamp": row[9].isoformat() if row[9] else None,

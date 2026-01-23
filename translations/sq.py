@@ -808,10 +808,10 @@ TEXTS = {
 ✅ SL/TP dinamik bazuar në ATR
 ✅ Shkallë limitesh DCA
 ✅ Të gjitha përditësimet e ardhshme''',
-    'premium_1m': '💎 1 Muaj — {price} TRC',
-    'premium_3m': '💎 3 Muaj — {price} TRC (-10%)',
-    'premium_6m': '💎 6 Muaj — {price} TRC (-20%)',
-    'premium_12m': '💎 12 Muaj — {price} TRC (-30%)',
+    'premium_1m': '💎 1 Muaj — {price} ELC',
+    'premium_3m': '💎 3 Muaj — {price} ELC (-10%)',
+    'premium_6m': '💎 6 Muaj — {price} ELC (-20%)',
+    'premium_12m': '💎 12 Muaj — {price} ELC (-30%)',
     
     'basic_title': '🥈 *PLANI BASIC*',
     'basic_desc': '''✅ Akses i plotë në llogarinë demo
@@ -819,7 +819,7 @@ TEXTS = {
 ❌ Lyxen, Fibonacci, Spot — vetëm Premium
 ✅ Mbështetje standarde
 ✅ SL/TP dinamik bazuar në ATR''',
-    'basic_1m': '🥈 1 Muaj — {price} TRC',
+    'basic_1m': '🥈 1 Muaj — {price} ELC',
     
     'trial_title': '🚀 <b>FILLO PËRPARËSINË TENDE SOT</b>',
     'trial_desc': '''✅ Akses i plotë në llogarinë demo
@@ -832,10 +832,10 @@ TEXTS = {
     'trial_activated': '🎉 Prova u aktivizua! Keni 7 ditë akses demo të plotë.',
     
     'payment_select_method': '💳 *Zgjidhni Metodën e Pagesës*',
-    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
+    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': ' Pagesë nëpërmjet TRC',
-    'payment_trc_desc': 'Do të tarifoheni {amount} TRC për {plan} ({period}).',
+    'payment_elc_title': ' Pagesë nëpërmjet ELC',
+    'payment_elc_desc': 'Do të tarifoheni {amount} ELC për {plan} ({period}).',
     'payment_ton_title': '💎 Pagesë nëpërmjet TON',
     'payment_ton_desc': '''Dërgoni saktësisht *{amount} TON* në:
 
@@ -920,7 +920,7 @@ Pas pagesës, klikoni butonin më poshtë për verifikim.''',
 
 💳 *Pagesat:*
   Totali: {payments_count}
-  TRC: {total_trc}
+  ELC: {total_elc}
 
 📅 *Parë e parë:* {first_seen}
 🕐 *Parë e fundit:* {last_seen}
@@ -1025,56 +1025,56 @@ Zgjidhni llojin e raportit:''',
     # Hardcore trading phrase
     'hardcore_mode': '💀 *MËNYRA HARDCORE*: Pa mëshirë, pa pendim. Vetëm fitim ose vdekje! 🔥',
 
-    # Wallet & TRC translations
+    # Wallet & ELC translations
 
-    'payment_trc_insufficient': '''❌ Bilanc TRC i pamjaftueshëm.
+    'payment_elc_insufficient': '''❌ Bilanc ELC i pamjaftueshëm.
 
-Bilanci juaj: {balance} TRC
-E nevojshme: {required} TRC
+Bilanci juaj: {balance} ELC
+E nevojshme: {required} ELC
 
 Rimbushni portofolin për të vazhduar.''',
     'wallet_address': '''📍 Adresa: `{address}`''',
-    'wallet_balance': '''💰 *Portofoli Juaj TRC*
+    'wallet_balance': '''💰 *Portofoli Juaj ELC*
 
-◈ Bilanci: *{balance} TRC*
-📈 Në Staking: *{staked} TRC*
-🎁 Shpërblime në Pritje: *{rewards} TRC*
+◈ Bilanci: *{balance} ELC*
+📈 Në Staking: *{staked} ELC*
+🎁 Shpërblime në Pritje: *{rewards} ELC*
 
 💵 Vlera Totale: *${total_usd}*
-📍 1 TRC = 1 USDT''',
+📍 1 ELC = 1 USDT''',
     'wallet_btn_back': '''« Prapa''',
     'wallet_btn_deposit': '''📥 Depozitoni''',
     'wallet_btn_history': '''📋 Historia''',
     'wallet_btn_stake': '''📈 Staking''',
     'wallet_btn_unstake': '''📤 Terhiq nga Staking''',
     'wallet_btn_withdraw': '''📤 Terhiq''',
-    'wallet_deposit_demo': '''🎁 Merrni 100 TRC (Demo)''',
-    'wallet_deposit_desc': '''Dërgoni tokenë TRC në adresën e portofolit tuaj:
+    'wallet_deposit_demo': '''🎁 Merrni 100 ELC (Demo)''',
+    'wallet_deposit_desc': '''Dërgoni tokenë ELC në adresën e portofolit tuaj:
 
 `{address}`
 
 💡 *Modaliteti demo:* Klikoni më poshtë për tokenë testimi falas.''',
-    'wallet_deposit_success': '''✅ U depozituan {amount} TRC me sukses!''',
-    'wallet_deposit_title': '''📥 *Depozitoni TRC*''',
+    'wallet_deposit_success': '''✅ U depozituan {amount} ELC me sukses!''',
+    'wallet_deposit_title': '''📥 *Depozitoni ELC*''',
     'wallet_history_empty': '''Asnjë transaksion ende.''',
-    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} TRC
+    'wallet_history_item': '''{type_emoji} {type}: {amount:+.2f} ELC
    {date}''',
     'wallet_history_title': '''📋 *Historia e Transaksioneve*''',
-    'wallet_stake_desc': '''Bëni stake tokenët tuaj TRC për të fituar *12% APY*!
+    'wallet_stake_desc': '''Bëni stake tokenët tuaj ELC për të fituar *12% APY*!
 
-💰 Në Dispozicion: {available} TRC
-📈 Aktualisht në Staking: {staked} TRC
-🎁 Shpërblime në Pritje: {rewards} TRC
+💰 Në Dispozicion: {available} ELC
+📈 Aktualisht në Staking: {staked} ELC
+🎁 Shpërblime në Pritje: {rewards} ELC
 
 Shpërblime ditore • Tërheqje e menjëhershme''',
-    'wallet_stake_success': '''✅ {amount} TRC u bën stake me sukses!''',
-    'wallet_stake_title': '''📈 *Staking TRC*''',
-    'wallet_title': '''◈ *Portofoli TRC*''',
-    'wallet_unstake_success': '''✅ U terhiqën {amount} TRC + {rewards} TRC shpërblime!''',
+    'wallet_stake_success': '''✅ {amount} ELC u bën stake me sukses!''',
+    'wallet_stake_title': '''📈 *Staking ELC*''',
+    'wallet_title': '''◈ *Portofoli ELC*''',
+    'wallet_unstake_success': '''✅ U terhiqën {amount} ELC + {rewards} ELC shpërblime!''',
     'wallet_withdraw_desc': '''Shënoni adresën e destinacionit dhe shumën:''',
     'wallet_withdraw_failed': '''❌ Tërheqja dështoi: {error}''',
-    'wallet_withdraw_success': '''✅ U terhiqën {amount} TRC në {address}''',
-    'wallet_withdraw_title': '''📤 *Tërheqja TRC*''',
+    'wallet_withdraw_success': '''✅ U terhiqën {amount} ELC në {address}''',
+    'wallet_withdraw_title': '''📤 *Tërheqja ELC*''',
 
     'spot_freq_biweekly': '📅 Çdo 2 javë',
     'spot_trailing_enabled': '✅ Trailing TP aktivizuar: aktivizim +{activation}%, trail {trail}%',
