@@ -110,22 +110,27 @@ def update_elc_balance(
     try:
         cur = conn.cursor()
         
-        # Get current balance
-        cur.execute(f"SELECT {column} FROM users WHERE user_id = %s", (user_id,))
-        row = cur.fetchone()
-        current = (row[0] or 0.0) if row else 0.0
+        # ATOMIC UPDATE with check - prevents race conditions
+        # Uses PostgreSQL's RETURNING to get new balance atomically
+        cur.execute(f"""
+            UPDATE users 
+            SET {column} = COALESCE({column}, 0) + %s
+            WHERE user_id = %s 
+            AND (COALESCE({column}, 0) + %s) >= 0
+            RETURNING {column}
+        """, (amount, user_id, amount))
         
-        # Calculate new balance
-        new_balance = current + amount
-        if new_balance < 0:
+        row = cur.fetchone()
+        if not row:
+            # Either user doesn't exist or insufficient balance
+            cur.execute(f"SELECT {column} FROM users WHERE user_id = %s", (user_id,))
+            balance_row = cur.fetchone()
+            if not balance_row:
+                raise ValueError(f"User {user_id} not found")
+            current = balance_row[0] or 0.0
             raise ValueError(f"Insufficient {balance_type} balance: {current} < {abs(amount)}")
         
-        # Update balance
-        cur.execute(
-            f"UPDATE users SET {column} = %s WHERE user_id = %s",
-            (new_balance, user_id)
-        )
-        
+        new_balance = row[0]
         conn.commit()
         
         # Record transaction
