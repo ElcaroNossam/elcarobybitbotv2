@@ -6,10 +6,12 @@ Created: 2026-01-23
 Adds 'side' column and changes PRIMARY KEY from (user_id, strategy) to (user_id, strategy, side).
 Migrates existing data by duplicating each row for 'long' and 'short' sides.
 """
+import json
 
 
 def upgrade(cur):
     """Apply migration - convert to 3D schema with side column"""
+    import psycopg2.extras
     
     # Step 1: Add side column if not exists
     cur.execute("""
@@ -65,8 +67,15 @@ def upgrade(cur):
         user_id = row[0]  # user_id
         strategy = row[1]  # strategy
         
-        # Check if settings JSON has per-side data
-        settings_json = row[2] if len(row) > 2 else None
+        # Check if settings JSON has per-side data (could be dict from psycopg2)
+        settings_raw = row[2] if len(row) > 2 else None
+        # Convert dict to JSON string for JSONB column
+        if isinstance(settings_raw, dict):
+            settings_json = json.dumps(settings_raw)
+        elif settings_raw is None:
+            settings_json = '{}'
+        else:
+            settings_json = str(settings_raw)
         
         # For each side, insert/update
         for side in ['long', 'short']:
