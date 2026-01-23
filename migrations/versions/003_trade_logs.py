@@ -18,7 +18,7 @@ def upgrade(cur):
             signal_id     INTEGER,
             symbol        TEXT NOT NULL,
             side          TEXT NOT NULL,
-            qty           REAL NOT NULL,
+            qty           REAL,
             entry_price   REAL,
             exit_price    REAL,
             pnl           REAL,
