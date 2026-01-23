@@ -12344,6 +12344,11 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data == "pos:back":
         # Go back to main menu
         await query.message.delete()
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=t.get("welcome", "Welcome!"),
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
         return
     
     if data == "pos:noop":
@@ -13177,6 +13182,11 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "stats:close":
         await query.delete_message()
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=t.get("welcome", "Welcome!"),
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
         return
     
     parts = data.split(":")
