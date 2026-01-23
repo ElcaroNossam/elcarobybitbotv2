@@ -2,6 +2,7 @@
 Migration: Trade Logs Table
 Version: 003
 Created: 2026-01-22
+Updated: 2026-01-23 - Added exit_reason, sl_pct, tp_pct, timeframe, source, leverage columns
 
 Creates trade_logs table for completed trades history.
 """
@@ -30,7 +31,13 @@ def upgrade(cur):
             account_type  TEXT DEFAULT 'demo',
             exchange      TEXT DEFAULT 'bybit',
             fee           REAL DEFAULT 0,
-            notes         TEXT
+            notes         TEXT,
+            exit_reason   TEXT,
+            sl_pct        REAL,
+            tp_pct        REAL,
+            timeframe     TEXT,
+            source        TEXT DEFAULT 'api',
+            leverage      REAL
         )
     """)
     
@@ -38,6 +45,11 @@ def upgrade(cur):
     cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_symbol ON trade_logs(symbol)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_ts ON trade_logs(ts)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_status ON trade_logs(status)")
+    # Performance indexes
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_user_ts ON trade_logs(user_id, ts DESC)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_user_acc ON trade_logs(user_id, account_type)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_user_strat ON trade_logs(user_id, strategy)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_trade_logs_user_acc_ts ON trade_logs(user_id, account_type, ts DESC)")
 
 
 def downgrade(cur):
