@@ -22874,51 +22874,8 @@ async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Open WebApp in browser with auto-login"""
+    """Show info about WebApp access via Menu Button"""
     t = ctx.t
-    uid = update.effective_user.id
-    
-    # Get webapp URL from env, fallback to ngrok file, then localhost
-    webapp_url = WEBAPP_URL
-    try:
-        if webapp_url == "http://localhost:8765":
-            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-            if ngrok_file.exists():
-                webapp_url = ngrok_file.read_text().strip()
-    except Exception:
-        pass
-    
-    # Generate auto-login token
-    try:
-        from webapp.services import telegram_auth
-        token, login_url = telegram_auth.generate_login_token(uid)
-        # Update login_url with current webapp URL (in case ngrok changed)
-        # Add timestamp to prevent Telegram from caching old URL
-        import time
-        cache_bust = int(time.time())
-        login_url = f"{webapp_url}/api/auth/token-login?token={token}&_t={cache_bust}"
-    except Exception as e:
-        logging.warning(f"Failed to generate login token: {e}")
-        login_url = f"{webapp_url}?_t={int(time.time())}"
-    
-    # Check if ngrok (free tier has warning page that breaks WebApp)
-    is_ngrok = "ngrok" in webapp_url
-    
-    if is_ngrok:
-        # For ngrok, use regular URL buttons (WebAppInfo shows blank due to ngrok warning)
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", url=login_url)],
-            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
-        ])
-    else:
-        # For production HTTPS, use WebAppInfo for native experience
-        # Add start param with user_id for auto-login and timestamp to prevent Telegram caching
-        webapp_url_with_start = f"{webapp_url}?start={uid}&_t={cache_bust}"
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Open WebApp", web_app=WebAppInfo(url=webapp_url_with_start))],
-            [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
-            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
-        ])
     
     text = (
         "🌐 *Trading WebApp*\n\n"
@@ -22927,13 +22884,13 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "• 💰 Check balances\n"
         "• ⚙️ Manage settings\n"
         "• 📈 Trading statistics\n\n"
-        "_Tap the button below to open_"
+        "💡 *How to open:*\n"
+        "_Tap the_ 💻 Terminal _button in the menu (bottom left corner)_"
     )
     
     await update.message.reply_text(
         text,
         parse_mode="Markdown",
-        reply_markup=keyboard,
         disable_web_page_preview=True
     )
 
