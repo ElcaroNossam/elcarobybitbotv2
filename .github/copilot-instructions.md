@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.19.0 | Обновлено: 23 января 2026
+# Версия: 3.20.0 | Обновлено: 23 января 2026
 # =============================================
 
 ---
@@ -11,6 +11,7 @@
 |----------|------|----------|
 | **Trading Streams** | `docs/TRADING_STREAMS_ARCHITECTURE.md` | Полная карта 60 торговых потоков |
 | **Copilot Instructions** | Этот файл | Правила для AI |
+| **Keyboard Helpers** | `keyboard_helpers.py` | Централизованный factory для кнопок |
 
 ---
 
@@ -77,13 +78,13 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Python файлов | 273 |
+| Python файлов | 280+ |
 | HTML шаблонов | 36 |
 | CSS файлов | 9 |
 | JS файлов | 18 |
 | Тестов | 664 |
 | Языков перевода | 15 |
-| Ключей перевода | 679 |
+| Ключей перевода | 1450+ |
 | База данных | PostgreSQL 14 (ONLY) |
 | Users | 12 |
 | Active positions | 61 |
@@ -94,10 +95,12 @@
 
 ```
 ElCaro Trading Platform
-├── bot.py                 # 🔥 Главный бот (21748 строк, 250+ функций)
+├── bot.py                 # 🔥 Главный бот (24246 строк, 250+ функций)
 ├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 6K строк)
+├── db_elcaro.py           # 💎 ELC Token functions (705 строк)
+├── keyboard_helpers.py    # ⌨️ Centralized button factory (370 строк) ⭐NEW!
 ├── bot_unified.py         # 🔗 Unified API Bybit/HyperLiquid (530 строк)
-├── exchange_router.py     # 🔀 Роутинг между биржами (1140 строк)
+├── exchange_router.py     # 🔀 Роутинг между биржами (1187 строк)
 ├── hl_adapter.py          # 🌐 HyperLiquid адаптер (716 строк)
 ├── coin_params.py         # ⚙️ Параметры, ADMIN_ID, лимиты (309 строк)
 │
@@ -522,6 +525,27 @@ trading_mode = db.get_trading_mode(uid)    # 'demo' | 'real' | 'both'
 await place_order_universal(uid, symbol, side, order_type, qty, ...)
 ```
 
+## Bybit API v5 Trading Stop (CRITICAL!)
+
+```python
+# Обязательные параметры для /v5/position/trading-stop:
+body = {
+    "category": "linear",
+    "symbol": symbol,
+    "positionIdx": position_idx,           # REQUIRED! 0=one-way, 1=buy, 2=sell
+    "tpslMode": "Full",                    # REQUIRED by Bybit v5!
+    "takeProfit": str(tp_price),
+    "tpTriggerBy": "MarkPrice",            # More reliable than LastPrice
+    "stopLoss": str(sl_price),
+    "slTriggerBy": "MarkPrice",            # More reliable than LastPrice
+}
+```
+
+⚠️ **Ошибки при неправильных параметрах:**
+- Без `tpslMode` → API error 10001 "invalid parameters"
+- `LastPrice` триггер → может не сработать при волатильности
+- Без `positionIdx` → не установится на правильную позицию
+
 ## Database Cache Invalidation
 
 ```python
@@ -611,9 +635,73 @@ await set_leverage(uid, symbol, 50, account_type)  # автоматически�
 python3 utils/translation_sync.py --report
 ```
 
+**Common button keys (added Jan 23, 2026):**
+```python
+# Все 15 языков теперь имеют:
+'btn_back', 'btn_close', 'btn_cancel', 'btn_confirm',
+'btn_refresh', 'btn_settings', 'btn_delete', 'btn_yes',
+'btn_no', 'btn_prev', 'btn_next'
+```
+
+---
+
+# ⌨️ KEYBOARD HELPERS (NEW!)
+
+Централизованный модуль для создания кнопок клавиатуры:
+
+```python
+from keyboard_helpers import (
+    btn_back, btn_close, btn_confirm, btn_cancel,
+    btn_refresh, btn_settings, btn_yes, btn_no,
+    btn_prev, btn_next, build_keyboard
+)
+
+# Использование
+keyboard = build_keyboard([
+    [btn_back(t), btn_close(t)],
+    [btn_confirm(t)]
+], t)
+```
+
+**Файл:** `keyboard_helpers.py` (370 строк)
+
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ MAJOR: Menu Restructure + Bybit API Optimization (Jan 23, 2026)
+- **Изменения:**
+  - MenuButton теперь "💻 Terminal" → ведёт на `/terminal` (было Dashboard → `/dashboard`)
+  - Keyboard реорганизована: 4 строки, Dashboard убран
+  - Новая структура клавиатуры:
+    ```
+    Row 1: Portfolio, Positions, Orders
+    Row 2: AI Bots, Market, History
+    Row 3: PREMIUM, Lang, API Keys
+    Row 4: [Exchange Status]
+    ```
+  - Добавлен `tpslMode: "Full"` в `set_trading_stop()` (REQUIRED by Bybit v5 API!)
+  - Изменён TP/SL триггер с LastPrice на MarkPrice (более надёжно)
+  - Добавлен `positionIdx` в `exchanges/bybit.py` set_take_profit/set_stop_loss
+- **Файлы:** `bot.py`, `exchanges/bybit.py`
+- **Commit:** cf21950
+
+### ✅ MAJOR: Keyboard Helpers + Translation Optimization (Jan 23, 2026)
+- **Изменения:**
+  - Создан `keyboard_helpers.py` (370 строк) - centralized button factory
+  - Добавлены common button translation keys во все 15 языков
+  - Добавлены aliases в `db_elcaro.py`: `get_elc_transactions`, `disconnect_wallet`, `get_connected_wallet`
+  - Исправлены hardcoded Russian strings в `exchange_ui.py` и `elcaro_bot_commands.py`
+- **Файлы:** `keyboard_helpers.py` (NEW), `translations/en.py`, `translations/ru.py`, `db_elcaro.py`
+- **Commit:** 65963de
+
+### ✅ MAJOR: TON Blockchain Verification (Jan 23, 2026)
+- **Изменения:**
+  - Добавлена реальная верификация USDT Jetton transfers через TONAPI
+  - Функция `verify_usdt_jetton_transfer()` в `webapp/api/ton_payments.py`
+  - Проверяет: destination wallet, USDT amount, USDT Jetton contract, confirmations
+- **Файл:** `webapp/api/ton_payments.py`
+- **Commit:** cf842c7
 
 ### ✅ MAJOR: Unified CSS Design System (Jan 23, 2026)
 - **Проблема:** Каждая HTML страница дублировала ~840 строк inline CSS с CSS variables
@@ -1397,9 +1485,26 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 
 ---
 
-# 💎 TON PAYMENT INTEGRATION (IN PROGRESS)
+# 💎 TON PAYMENT INTEGRATION (READY!)
 
-## Текущий статус: ЗАГЛУШКИ
+## Текущий статус: ГОТОВО (Jan 23, 2026)
+
+**Файлы:**
+- `webapp/api/ton_payments.py` - API endpoints + verify_usdt_jetton_transfer()
+- `ton_payment_gateway.py` - Gateway functions
+- `bot.py` - UI кнопки оплаты
+- `core/db_postgres.py` - таблица ton_payments
+
+**Верификация:**
+```python
+async def verify_usdt_jetton_transfer(
+    tx_hash: str,
+    expected_amount: float,
+    expected_destination: str,
+    use_testnet: bool = False
+) -> dict:
+    # Реальная проверка через TONAPI
+    # Проверяет: destination, amount, USDT contract, confirmations
 
 **Файлы:**
 - `webapp/api/ton_payments.py` - API endpoints (готово)
@@ -1441,12 +1546,13 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 22 января 2026*
-*Version: 3.17.0*
+*Last updated: 23 января 2026*
+*Version: 3.20.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 664/664 passing*
-*TON Integration: In Progress (stubs)*
+*TON Integration: READY (real verification)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
-*Main Menu: Simplified 4-row keyboard with exchange toggle*
+*Main Menu: 4-row keyboard, Terminal button in MenuButton*
+*Translations: 15 languages, 1450+ keys, common button keys*
