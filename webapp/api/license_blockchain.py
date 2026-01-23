@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/license/blockchain", tags=["License Blockchain"])
 
-# Admin ID for authorization
-ADMIN_ID = 511692487
+# Import ADMIN_ID from central config
+from coin_params import ADMIN_ID
 
 
 # ============================================

@@ -40,7 +40,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # JWT Config
-JWT_SECRET = os.getenv("JWT_SECRET", "dev_secret_change_me")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 168  # 7 days
 

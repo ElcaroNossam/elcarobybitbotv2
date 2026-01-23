@@ -17,8 +17,14 @@ from datetime import datetime, timedelta
 import logging
 import hashlib
 import uuid
+import os
+
+from coin_params import ADMIN_ID
 
 logger = logging.getLogger(__name__)
+
+# Secret for refresh tokens (use JWT_SECRET from environment)
+REFRESH_SECRET = os.getenv("JWT_SECRET", "")
 router = APIRouter()
 
 
@@ -195,11 +201,11 @@ async def mobile_login(
         device_registered = register_device(user_id, device_info)
         
         # Create tokens (using existing create_access_token)
-        is_admin = user_id == 511692487  # ADMIN_ID
+        is_admin = user_id == ADMIN_ID
         access_token = create_access_token(user_id, is_admin)
         
         # Generate simple refresh token (hash of user_id + device_id + secret)
-        refresh_token = hashlib.sha256(f"{user_id}:{device_info.device_id}:refresh_secret_2026".encode()).hexdigest()
+        refresh_token = hashlib.sha256(f"{user_id}:{device_info.device_id}:{REFRESH_SECRET}".encode()).hexdigest()
         
         # Log login
         client_ip = req.headers.get("X-Forwarded-For", "").split(",")[0].strip()
@@ -249,7 +255,7 @@ async def refresh_token_endpoint(
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
         
-        is_admin = user_id == 511692487  # ADMIN_ID
+        is_admin = user_id == ADMIN_ID
         new_access_token = create_access_token(user_id, is_admin)
         
         return {

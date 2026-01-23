@@ -354,9 +354,8 @@ async def get_stats(
         row = cur.fetchone()
         hl_users = row['cnt'] if row else 0
         
-        # Today's stats
-        today = datetime.utcnow().strftime("%Y-%m-%d")
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE created_at::text LIKE ?", (f"{today}%",))
+        # Today's stats - use DATE() for proper PostgreSQL date comparison
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE DATE(created_at) = CURRENT_DATE")
         row = cur.fetchone()
         new_today = row['cnt'] if row else 0
         
