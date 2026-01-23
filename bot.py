@@ -15807,7 +15807,7 @@ async def monitor_positions_loop(app: Application):
     _processed_closures = {}
     
     # Track new position notifications to prevent flood
-    # Key: (uid, symbol, account_type, entry_price_rounded), Value: timestamp
+    # Key: (uid, symbol, account_type), Value: timestamp
     # Prevents duplicate "СДЕЛКА ИСПОЛНЕНА" notifications
     _new_position_notified = {}
     
@@ -16090,8 +16090,8 @@ async def monitor_positions_loop(app: Application):
                                 cooldown_end = _close_all_cooldown.get(uid, 0)
                                 
                                 # Anti-flood: Check if we already sent notification for this position recently
-                                entry_rounded = round(entry, 4)
-                                notify_key = (uid, sym, current_account_type, entry_rounded)
+                                # Key uses only (uid, sym, account_type) - entry price may fluctuate slightly
+                                notify_key = (uid, sym, current_account_type)
                                 last_notify_time = _new_position_notified.get(notify_key, 0)
                                 notify_cooldown_ok = (now - last_notify_time) > NEW_POSITION_NOTIFY_COOLDOWN
                                 
@@ -16313,10 +16313,8 @@ async def monitor_positions_loop(app: Application):
                                         _atr_triggered.pop((uid, sym), None)
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
-                                        # Clear new position notification cache for all entry prices of this symbol
-                                        keys_to_remove = [k for k in _new_position_notified if k[0] == uid and k[1] == sym and k[2] == ap_account_type]
-                                        for k in keys_to_remove:
-                                            _new_position_notified.pop(k, None)
+                                        # Clear new position notification cache
+                                        _new_position_notified.pop((uid, sym, ap_account_type), None)
                                     continue
                             
                                 logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")

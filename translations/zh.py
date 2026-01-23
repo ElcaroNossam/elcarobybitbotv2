@@ -320,7 +320,6 @@ TEXTS = {
     'position_limit_error':        '❌ <b>超出持仓限制！</b>\n\n📊 策略: <b>{strategy}</b>\n🪙 品种: <b>{symbol}</b>\n\n⚠️ 您的持仓将超过最大限制。\n\n<b>解决方案:</b>\n• 降低杠杆\n• 减少仓位大小\n• 平掉部分持仓',
     
 
-
     # Scalper
     'scalper_limit_entry':         '⚡ *Scalper 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
     'scalper_limit_error':         '❌ Scalper 限价错误：{msg}',
@@ -606,30 +605,9 @@ TEXTS = {
     'strat_mode_both':             '🔄 两者',
     'strat_mode_changed':          '✅ {strategy} 交易模式: {mode}',
 
-    'feature_scalper':               'Scalper',
-
     # Elcaro (Heatmap)
-    'elcaro_limit_entry':            '🔥 Elcaro limit-entry {symbol} @ {price:.6f}',
-    'elcaro_limit_error':            '❌ Elcaro limit-entry error: {msg}',
-    'elcaro_market_entry':           '🚀 Elcaro market {symbol} @ {price:.6f}',
-    'elcaro_market_error':           '❌ Elcaro market error: {msg}',
-    'elcaro_market_ok':              '🔥 Elcaro: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'elcaro_analysis':               'Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':                'Elcaro',
 
     # Fibonacci (Fibonacci Extension)
-    'fibonacci_limit_entry':         '📐 Fibonacci limit-entry {symbol} @ {price:.6f}',
-    'fibonacci_limit_error':         '❌ Fibonacci limit-entry error: {msg}',
-    'fibonacci_market_entry':        '🚀 Fibonacci market {symbol} @ {price:.6f}',
-    'fibonacci_market_error':        '❌ Fibonacci market error: {msg}',
-    'fibonacci_market_ok':           '📐 Fibonacci: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'fibonacci_analysis':            'Fibonacci: {side} @ {price}',
-    'feature_fibonacci':             'Fibonacci',
-
-    'scalper_limit_entry':           'Scalper: 限价单 {symbol} @ {price}',
-    'scalper_limit_error':           'Scalper 限价错误: {msg}',
-    'scalper_market_ok':             'Scalper: MARKET {symbol} qty={q} (SL={sl_risk}%)',
-    'scalper_market_error':          'Scalper 错误: {msg}',
 
     # Strategy Settings
     'button_strategy_settings':      '⚙️ 策略设置',
@@ -765,13 +743,9 @@ TEXTS = {
     'elcaro_ai_desc': '_所有参数均今AI信号自动解析：_',
 
     # Scalper entries
-    'scalper_market_entry': '🚀 Scalper 市价 {symbol} @ {price:.6f}',
-    'scalper_analysis': 'Scalper：{side} @ {price}',
 
     # Scryptomera feature
-    'feature_scryptomera': 'Scryptomera',
     
-
 
     # Limit Ladder
     'limit_ladder': '📉 限价梯子',
@@ -1000,9 +974,6 @@ TEXTS = {
     'admin_view_user': '👤 用户卡片',
     'all_positions_closed': '所有持仓已平仓',
     'btn_check_again': '🔄 重新检查',
-    'button_admin': '👑 管理',
-    'button_licenses': '🔑 许可证',
-    'button_subscribe': '💎 订阅',
     'current': '当前',
     'entry': '入场',
     'max_positions_reached': '⚠️ 已达到最大持仓数。新信号将被跳过，直到平仓。',
@@ -1024,8 +995,6 @@ TEXTS = {
     "hl_trading_enabled": "HyperLiquid交易",
     "hl_reset_settings": "🔄 重置为Bybit设置",
 
-
-
     # === AUTO-ADDED FROM ENGLISH (needs translation) ===
     'cancelled': '❌ 已取消。',
     'entry_pct_range_error': '❌ 入场百分比必须在0.1到100之间。',
@@ -1038,7 +1007,6 @@ TEXTS = {
     'max_amount_error': '❌ 最大金额为100,000 USDT',
     'min_amount_error': '❌ 最小金额为1 USDT',
     'sl_tp_range_error': '❌ SL/TP百分比必须在0.1到500之间。',
-
 
     # DCA and Deep Loss notifications
     'btn_enable_dca': '📈 启用DCA平均',
@@ -1053,7 +1021,6 @@ TEXTS = {
     'fibonacci_desc': '_入场、止损、止盈 - 来自信号中的斐波那契水平_',
     'fibonacci_info': '📐 *斐波那契扩展策略*',
     'prompt_min_quality': '输入最低质量 % (0-100):',
-
 
     # Hardcore trading phrase
     'hardcore_mode': '💀 *硬核模式*: 无怜悯，无遗憾。只有盈利或死亡！ 🔥',
@@ -1109,7 +1076,6 @@ TEXTS = {
     'wallet_withdraw_success': '''✅ 已向 {address} 提现 {amount} TRC''',
     'wallet_withdraw_title': '''📤 *提现TRC*''',
 
-
     'spot_freq_biweekly': '📅 每两周',
     'spot_trailing_enabled': '✅ 追踪止盈已启用：+{activation}%激活，追踪{trail}%',
     'spot_trailing_disabled': '❌ 追踪止盈已禁用',
@@ -1118,4 +1084,218 @@ TEXTS = {
     'spot_limit_placed': '📝 限价单已下：以${price}买入{amount} {coin}',
     'spot_limit_cancelled': '❌ {coin}限价单已取消',
     'spot_freq_hourly': '⏰ 每小时',
+
+    # ─── SYNCED FROM EN (placeholders) ───
+    'button_terminal': '💻 Terminal',
+    'button_back': '← Back',
+    'button_close': '✖️ Close',
+    'button_refresh': '🔄 Refresh',
+    'button_confirm': '✅ Confirm',
+    'button_cancel': '❌ Cancel',
+    'menu_section_demo': '══ 🧪 DEMO ══',
+    'menu_section_real': '══ 💼 REAL ══',
+    'menu_test_connection': '🔄 Test',
+    'menu_delete': '🗑️ Delete',
+    'exchange_bybit_demo': '🟠 Bybit 🎮',
+    'exchange_bybit_real': '🟠 Bybit 💵',
+    'exchange_bybit_both': '🟠 Bybit 🔀',
+    'exchange_hl_testnet': '🔷 HL 🧪',
+    'exchange_hl_mainnet': '🔷 HL 🌐',
+    'not_set': '—',
+    'exch_mode_bybit_only': '🟠 Bybit Only',
+    'exch_mode_hl_only': '🟢 HyperLiquid Only',
+    'exch_mode_both': '🔄 Both Exchanges',
+    'btn_connect_hl': '➕ Connect HyperLiquid',
+    'exch_not_configured': '❌ Not configured',
+    'exch_not_connected': '❌ Not connected',
+    'exch_trading_mode': 'Trading Mode',
+    'exch_active': '🟢 Active',
+    'exch_inactive': '⚪ Inactive',
+    'exch_switch_success': '✅ Switched to {exchange}',
+    'exch_select_mode': 'Select exchange mode:',
+    'toggle_on': '✅ Enabled',
+    'toggle_off': '❌ Disabled',
+    'mode_demo': '🧪 Demo',
+    'mode_real': '💰 Real',
+    'mode_testnet': '🧪 Testnet',
+    'mode_mainnet': '🌐 Mainnet',
+    'btn_confirm': '✅ Confirm',
+    'btn_refresh': '🔄 Refresh',
+    'btn_settings': '⚙️ Settings',
+    'btn_delete': '🗑️ Delete',
+    'btn_yes': '✅ Yes',
+    'btn_no': '❌ No',
+    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_available': 'Available',
+    'elc_staked': 'Staked',
+    'elc_locked': 'Locked',
+    'elc_total': 'Total',
+    'elc_value_usd': '💵 Value: ~${value:.2f} USD',
+    'btn_buy_elc': '🛒 Buy ELC',
+    'btn_elc_history': '📊 History',
+    'btn_connect_wallet': '🔗 Connect Wallet',
+    'btn_disconnect_wallet': '🔓 Disconnect',
+    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
+    'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
+    'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
+    'elc_choose_amount': 'Choose amount to buy:',
+    'elc_custom_amount': '✏️ Custom Amount',
+    'elc_custom_amount_title': '✏️ <b>Custom Amount</b>',
+    'elc_custom_prompt': '''Reply with the amount of ELC you want to buy
+Example: <code>2500</code>
+
+Min: 100 ELC
+Max: 100,000 ELC''',
+    'elc_purchase_summary': '🛒 <b>Purchase {amount:.2f} ELC</b>',
+    'elc_cost': 'Cost: <b>{cost:.2f} USDT</b>',
+    'elc_fee_amount': 'Platform Fee: <b>{fee:.2f} USDT</b>',
+    'elc_payment_link': 'Payment Link:',
+    'elc_payment_hint': '<i>Send USDT to this address on TON Network</i>',
+    'btn_open_payment': '🔗 Open Payment',
+    'elc_payment_error': '❌ Failed to create payment. Please try again.',
+    'elc_balance_error': '❌ Failed to get ELC balance. Please try again.',
+    'elc_history_title': '📊 <b>Transaction History</b>',
+    'elc_no_transactions': 'No transactions yet.',
+    'elc_history_error': '❌ Failed to get transaction history. Please try again.',
+    'elc_wallet_connected_title': '🔗 <b>Connected Wallet</b>',
+    'elc_wallet_address': 'Address',
+    'elc_wallet_type': 'Type',
+    'elc_wallet_chain': 'Chain',
+    'elc_wallet_connected_at': 'Connected',
+    'elc_wallet_hint': '<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>',
+    'elc_connect_title': '🔗 <b>Connect Cold Wallet</b>',
+    'elc_connect_desc': 'Trade on HyperLiquid without exposing your private keys!',
+    'elc_supported_wallets': 'Supported wallets:',
+    'elc_wallet_metamask': '• MetaMask (Ethereum, Polygon, BSC)',
+    'elc_wallet_wc': '• WalletConnect (Multi-chain)',
+    'elc_wallet_tonkeeper': '• Tonkeeper (TON Network)',
+    'elc_keys_local': '<i>Your keys never leave your device - all orders are signed locally</i>',
+    'btn_metamask': '🦊 MetaMask',
+    'btn_walletconnect': '🔗 WalletConnect',
+    'btn_tonkeeper': '💎 Tonkeeper',
+    'elc_connect_steps_title': '🔗 <b>Connect {wallet}</b>',
+    'elc_connect_step1': '1. Open our WebApp',
+    'elc_connect_step2': '2. Click \'Connect Wallet\'',
+    'elc_connect_step3': '3. Select {wallet}',
+    'elc_connect_step4': '4. Approve connection in wallet',
+    'elc_connect_keys_hint': '<i>Your private keys stay in your wallet - we only get your public address</i>',
+    'btn_open_webapp': '🌐 Open WebApp',
+    'elc_disconnected_title': '🔓 <b>Wallet Disconnected</b>',
+    'elc_disconnected_msg': 'Your wallet has been successfully disconnected.',
+    'elc_disconnected_hint': '<i>You can reconnect anytime to resume cold wallet trading</i>',
+    'elc_error_generic': '❌ An error occurred. Please try again.',
+    'oi_entry': '''🐋 *OI* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)
+
+*Accounts:*
+{accounts}
+{atr_info}''',
+    'scryptomera_entry': '''🔮 *SCRYPTOMERA* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)
+
+*Accounts:*
+{accounts}
+{atr_info}''',
+    'scalper_entry': '''⚡ *SCALPER* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)
+
+*Accounts:*
+{accounts}
+{atr_info}''',
+    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)
+
+*Accounts:*
+{accounts}
+{atr_info}''',
+    'fibonacci_entry': '''📐 *FIBONACCI* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)
+
+*Accounts:*
+{accounts}
+{atr_info}''',
+    'rsi_bb_entry': '''📊 *RSI+BB* {side_emoji} *{side}*
+────────────────
+🪙 `{symbol}`
+💰 Entry: `{price:.6f}`
+📈 RSI: `{rsi}` ({rsi_zone})
+🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)
+
+*Accounts:*
+{accounts}''',
+    'oi_closed': '''🐋 *OI CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
+    'scryptomera_closed': '''🔮 *SCRYPTOMERA CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
+    'scalper_closed': '''⚡ *SCALPER CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
+    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
+    'fibonacci_closed': '''📐 *FIBONACCI CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
+    'rsi_bb_closed': '''📊 *RSI+BB CLOSED* `{symbol}`
+
+📌 Reason: `{reason}`
+🟢 Entry: `{entry:.8f}`
+🔴 Exit: `{exit:.8f}`
+💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`
+💸 Fee: `{fee:.4f} USDT`
+💵 *Net: `{net_pnl:+.2f} USDT`*
+📍 {exchange} • {market_type}''',
 }
