@@ -1692,52 +1692,15 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 
 
 def pg_get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> Dict:
-    """Get strategy settings from user_strategy_settings table."""
-    row = execute_one(
-        """SELECT enabled, percent, sl_percent, tp_percent, leverage,
-                  use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
-                  order_type, coins_group, direction, trading_mode,
-                  long_percent, long_sl_percent, long_tp_percent,
-                  long_atr_periods, long_atr_multiplier_sl, long_atr_trigger_pct,
-                  short_percent, short_sl_percent, short_tp_percent,
-                  short_atr_periods, short_atr_multiplier_sl, short_atr_trigger_pct,
-                  min_quality
-           FROM user_strategy_settings
-           WHERE user_id = %s AND strategy = %s AND exchange = %s AND account_type = %s""",
-        (user_id, strategy, exchange, account_type)
-    )
+    """Get strategy settings from user_strategy_settings table.
     
-    if not row:
-        return DEFAULT_STRATEGY_SETTINGS.get(strategy, {}).copy()
-    
-    return {
-        "enabled": row.get('enabled'),
-        "percent": row.get('percent'),
-        "sl_percent": row.get('sl_percent'),
-        "tp_percent": row.get('tp_percent'),
-        "leverage": row.get('leverage'),
-        "use_atr": row.get('use_atr'),
-        "atr_periods": row.get('atr_periods'),
-        "atr_multiplier_sl": row.get('atr_multiplier_sl'),
-        "atr_trigger_pct": row.get('atr_trigger_pct'),
-        "order_type": row.get('order_type') or "market",
-        "coins_group": row.get('coins_group'),
-        "direction": row.get('direction') or "all",
-        "trading_mode": row.get('trading_mode') or "global",
-        "long_percent": row.get('long_percent'),
-        "long_sl_percent": row.get('long_sl_percent'),
-        "long_tp_percent": row.get('long_tp_percent'),
-        "long_atr_periods": row.get('long_atr_periods'),
-        "long_atr_multiplier_sl": row.get('long_atr_multiplier_sl'),
-        "long_atr_trigger_pct": row.get('long_atr_trigger_pct'),
-        "short_percent": row.get('short_percent'),
-        "short_sl_percent": row.get('short_sl_percent'),
-        "short_tp_percent": row.get('short_tp_percent'),
-        "short_atr_periods": row.get('short_atr_periods'),
-        "short_atr_multiplier_sl": row.get('short_atr_multiplier_sl'),
-        "short_atr_trigger_pct": row.get('short_atr_trigger_pct'),
-        "min_quality": row.get('min_quality') if row.get('min_quality') is not None else 50,
-    }
+    NOTE: With simplified schema (PRIMARY KEY: user_id, strategy, side),
+    exchange and account_type parameters are kept for API compatibility but NOT used.
+    Settings are shared across all exchanges/accounts for the same strategy.
+    """
+    # SIMPLIFIED: Query by (user_id, strategy) only, return combined long/short settings
+    # The exchange and account_type params are ignored in simplified schema
+    return pg_get_strategy_settings(user_id, strategy)
 
 
 def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> Dict:

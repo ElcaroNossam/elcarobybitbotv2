@@ -256,16 +256,29 @@ def _sqlite_to_pg(query):  # Автоматическая конвертация
 
 ## Multitenancy Architecture
 
-Система поддерживает полную изоляцию настроек по 4 измерениям:
+### Позиции и сделки - полная 4D изоляция
+Таблицы `active_positions` и `trade_logs` используют полную 4D изоляцию:
 
 | Измерение | Значения | Описание |
 |-----------|----------|----------|
 | `user_id` | Telegram ID | Уникальный пользователь |
-| `strategy` | OI, Scryptomera, Scalper, ElCaro, Fibonacci | Торговая стратегия |
+| `symbol` | BTCUSDT, ETHUSDT, etc. | Торговый инструмент |
 | `exchange` | bybit, hyperliquid | Биржа |
 | `account_type` | demo, real, testnet, mainnet | Тип аккаунта |
 
-**Комбинации:**
+### Настройки стратегий - упрощённая 3D схема (Jan 2026)
+Таблица `user_strategy_settings` использует упрощённую схему:
+
+| Измерение | Значения | Описание |
+|-----------|----------|----------|
+| `user_id` | Telegram ID | Уникальный пользователь |
+| `strategy` | oi, scryptomera, scalper, elcaro, fibonacci | Торговая стратегия |
+| `side` | long, short | Направление сделки |
+
+> **⚠️ ВАЖНО:** Настройки стратегий **НЕ зависят от биржи и типа аккаунта**!
+> Одни настройки применяются ко всем биржам и аккаунтам.
+
+**Комбинации для позиций:**
 - **Bybit:** demo, real, both (торгует на обоих)
 - **HyperLiquid:** testnet, mainnet
 
@@ -305,35 +318,38 @@ lang               TEXT DEFAULT 'en'
 updated_at         TIMESTAMP DEFAULT NOW()
 ```
 
-### user_strategy_settings (настройки по стратегиям) ⭐ MULTITENANCY
+### user_strategy_settings (настройки по стратегиям) ⭐ SIMPLIFIED
 ```sql
--- PRIMARY KEY: (user_id, strategy, exchange, account_type)
+-- PRIMARY KEY: (user_id, strategy, side)
+-- SIMPLIFIED SCHEMA (January 2026): Settings stored per strategy+side, NOT per exchange/account
 user_id             BIGINT NOT NULL
-strategy            TEXT NOT NULL         -- 'OI', 'Scryptomera', etc.
-exchange            TEXT DEFAULT 'bybit'  -- 'bybit' | 'hyperliquid'
-account_type        TEXT DEFAULT 'demo'   -- 'demo' | 'real' | 'testnet' | 'mainnet'
-enabled             BOOLEAN DEFAULT FALSE
-percent             REAL                  -- Entry % для этой стратегии
-sl_percent          REAL
-tp_percent          REAL
-leverage            REAL
-use_atr             INTEGER
-atr_periods         INTEGER
-atr_multiplier_sl   REAL
-atr_trigger_pct     REAL
+strategy            TEXT NOT NULL         -- 'oi', 'scryptomera', 'scalper', 'elcaro', 'fibonacci', 'rsi_bb'
+side                TEXT NOT NULL         -- 'long' | 'short'
+enabled             BOOLEAN DEFAULT TRUE
+percent             REAL NOT NULL         -- Entry % для этой стратегии
+sl_percent          REAL NOT NULL
+tp_percent          REAL NOT NULL
+leverage            INTEGER NOT NULL
+use_atr             BOOLEAN DEFAULT FALSE
+atr_trigger_pct     REAL NOT NULL
+atr_step_pct        REAL NOT NULL
 order_type          TEXT DEFAULT 'market'
-direction           TEXT DEFAULT 'all'    -- 'all' | 'long' | 'short'
--- Side-specific settings (Long/Short)
-long_percent        REAL
-long_sl_percent     REAL
-long_tp_percent     REAL
-short_percent       REAL
-short_sl_percent    REAL
-short_tp_percent    REAL
--- Metadata
+-- Optional columns (for future per-exchange settings)
+exchange            TEXT DEFAULT 'bybit'  -- NOT used in PRIMARY KEY
+account_type        TEXT DEFAULT 'demo'   -- NOT used in PRIMARY KEY
+trading_mode        TEXT DEFAULT 'demo'
+direction           TEXT DEFAULT 'all'
+coins_group         TEXT DEFAULT 'ALL'
+-- Timestamps
 created_at          TIMESTAMP DEFAULT NOW()
 updated_at          TIMESTAMP DEFAULT NOW()
 ```
+
+> **⚠️ ВАЖНО:** Упрощённая схема (Jan 2026):
+> - PRIMARY KEY = `(user_id, strategy, side)` — только 3 измерения
+> - Настройки **одинаковы для всех бирж и аккаунтов**
+> - Колонки `exchange`, `account_type` сохранены для будущего расширения
+> - Функции принимают `exchange/account_type` для API совместимости, но **игнорируют их**
 
 ### active_positions (открытые позиции)
 ```sql
@@ -419,7 +435,7 @@ user = execute_one("SELECT * FROM users WHERE user_id = %s", (uid,))
 from core.db_postgres import (
     pg_get_user_trading_context,  # Контекст: exchange + account_type
     pg_get_active_account_types,  # Список аккаунтов для торговли
-    pg_get_strategy_settings,     # Настройки с 4D fallback
+    pg_get_strategy_settings,     # Настройки стратегии (SIMPLIFIED - only user_id, strategy)
     pg_get_effective_settings,    # Эффективные настройки с side-specific
     pg_set_strategy_setting,      # UPSERT настройки
 )
@@ -428,8 +444,9 @@ from core.db_postgres import (
 ctx = pg_get_user_trading_context(uid)
 # {'exchange': 'bybit', 'account_type': 'demo', 'trading_mode': 'demo'}
 
-# Получить настройки стратегии с fallback
-settings = pg_get_strategy_settings(uid, 'oi', exchange='bybit', account_type='demo')
+# Получить настройки стратегии (exchange/account_type игнорируются - упрощённая схема)
+settings = pg_get_strategy_settings(uid, 'oi')
+# Возвращает long_* и short_* настройки для стратегии
 ```
 
 ---

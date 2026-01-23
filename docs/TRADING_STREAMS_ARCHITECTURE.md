@@ -73,51 +73,44 @@
 
 ## 🗄️ СТРУКТУРА БД
 
-### Таблица: `user_strategy_settings`
+### Таблица: `user_strategy_settings` (SIMPLIFIED - Jan 2026)
 
 ```sql
-PRIMARY KEY: (user_id, strategy, exchange, account_type)
+PRIMARY KEY: (user_id, strategy, side)
 ```
+
+> **⚠️ ВАЖНО:** Схема упрощена в январе 2026.  
+> Настройки теперь хранятся по (user_id, strategy, side) — **НЕ по биржам/аккаунтам**.  
+> Одни настройки применяются ко всем биржам и типам аккаунтов.
 
 | Поле | Тип | Описание |
 |------|-----|----------|
 | **user_id** | BIGINT | Telegram ID |
 | **strategy** | TEXT | 'oi', 'scryptomera', 'scalper', 'elcaro', 'fibonacci' |
-| **exchange** | TEXT | 'bybit', 'hyperliquid' |
-| **account_type** | TEXT | 'demo', 'real' (Bybit) / 'testnet', 'mainnet' (HL) |
+| **side** | TEXT | 'long' или 'short' |
 | enabled | BOOLEAN | Включена ли стратегия |
-| direction | TEXT | 'all', 'long', 'short' |
-| **percent** | REAL | Entry % (общий) |
-| **sl_percent** | REAL | Stop-Loss % (общий) |
-| **tp_percent** | REAL | Take-Profit % (общий) |
+| **percent** | REAL | Entry % для этой стороны |
+| **sl_percent** | REAL | Stop-Loss % для этой стороны |
+| **tp_percent** | REAL | Take-Profit % для этой стороны |
 | leverage | INTEGER | Плечо |
-| **long_percent** | REAL | Entry % для Long |
-| **long_sl_percent** | REAL | SL % для Long |
-| **long_tp_percent** | REAL | TP % для Long |
-| **short_percent** | REAL | Entry % для Short |
-| **short_sl_percent** | REAL | SL % для Short |
-| **short_tp_percent** | REAL | TP % для Short |
-| use_atr | INTEGER | Использовать ATR |
-| atr_periods | INTEGER | Периоды ATR |
-| atr_multiplier_sl | REAL | Множитель ATR для SL |
+| use_atr | BOOLEAN | Использовать ATR trailing |
 | atr_trigger_pct | REAL | Триггер ATR trailing |
-| coins_group | TEXT | Группа монет для фильтрации |
+| atr_step_pct | REAL | Шаг ATR trailing |
 | order_type | TEXT | 'market', 'limit' |
 
 ### Логика Side-Specific настроек:
 
 ```python
 # При открытии LONG позиции:
-if side == "Buy":
-    entry_pct = settings.get("long_percent") or settings.get("percent")
-    sl_pct = settings.get("long_sl_percent") or settings.get("sl_percent")
-    tp_pct = settings.get("long_tp_percent") or settings.get("tp_percent")
+settings = get_strategy_settings(user_id, strategy)
+entry_pct = settings.get("long_percent")
+sl_pct = settings.get("long_sl_percent")
+tp_pct = settings.get("long_tp_percent")
 
 # При открытии SHORT позиции:
-if side == "Sell":
-    entry_pct = settings.get("short_percent") or settings.get("percent")
-    sl_pct = settings.get("short_sl_percent") or settings.get("sl_percent")
-    tp_pct = settings.get("short_tp_percent") or settings.get("tp_percent")
+entry_pct = settings.get("short_percent")
+sl_pct = settings.get("short_sl_percent")
+tp_pct = settings.get("short_tp_percent")
 ```
 
 ---
@@ -158,10 +151,12 @@ if side == "Sell":
        ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │  4. Для каждого target account:                                   │
-│     settings = db.get_strategy_settings(uid, 'oi', exchange, acc)│
+│     # Настройки ОДНИ для всех бирж/аккаунтов (SIMPLIFIED схема)  │
+│     settings = db.get_strategy_settings(uid, 'oi')               │
 │     if settings.get('enabled'):                                   │
-│         if settings.get('direction') in ['all', 'long']:         │
-│             open_position(...)                                    │
+│         # side-specific настройки                                 │
+│         entry_pct = settings.get('long_percent')  # для Buy      │
+│         open_position(...)                                        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -169,52 +164,55 @@ if side == "Sell":
 
 ## 📋 ПРИМЕРЫ КОНФИГУРАЦИЙ
 
-### Пример 1: Простой юзер (1 поток)
+### Пример 1: Простой юзер (2 записи - long + short)
 ```
 user_id: 123456
 exchange: bybit
 trading_mode: demo
 strategy: OI (enabled)
-direction: all
 ```
-**Записей в user_strategy_settings: 1**
+**Записей в user_strategy_settings: 2**
+- (123456, 'oi', 'long')
+- (123456, 'oi', 'short')
 
 ---
 
-### Пример 2: Продвинутый юзер (4 потока)
+### Пример 2: Продвинутый юзер (4 записи - 2 стратегии × 2 стороны)
 ```
 user_id: 789012
 exchange: bybit
 trading_mode: both (demo + real)
 strategies: OI, Scryptomera (enabled)
-direction: all
 ```
 **Записей в user_strategy_settings: 4**
-- (789012, 'oi', 'bybit', 'demo')
-- (789012, 'oi', 'bybit', 'real')
-- (789012, 'scryptomera', 'bybit', 'demo')
-- (789012, 'scryptomera', 'bybit', 'real')
+- (789012, 'oi', 'long')
+- (789012, 'oi', 'short')
+- (789012, 'scryptomera', 'long')
+- (789012, 'scryptomera', 'short')
+
+> **Примечание:** Настройки применяются к ВСЕМ аккаунтам (demo + real).  
+> Нет отдельных записей для каждого account_type!
 
 ---
 
-### Пример 3: Профи с Long/Short разделением (8 потоков)
+### Пример 3: Профи с разными Long/Short настройками
 ```
 user_id: 456789
 exchange: bybit
 trading_mode: both
 strategies: OI, Scryptomera
-OI: direction=all (одинаковые настройки)
-Scryptomera: разные long_percent/short_percent
+OI long: entry=3%, SL=25%, TP=20%
+OI short: entry=5%, SL=30%, TP=25%
 ```
-**Записей в user_strategy_settings: 4** (но 8 "логических" потоков)
-- (456789, 'oi', 'bybit', 'demo') → direction=all
-- (456789, 'oi', 'bybit', 'real') → direction=all
-- (456789, 'scryptomera', 'bybit', 'demo') → long_percent=2%, short_percent=1.5%
-- (456789, 'scryptomera', 'bybit', 'real') → long_percent=2%, short_percent=1.5%
+**Записей в user_strategy_settings: 4** (2 стратегии × 2 стороны)
+- (456789, 'oi', 'long') → entry=3%, SL=25%, TP=20%
+- (456789, 'oi', 'short') → entry=5%, SL=30%, TP=25%
+- (456789, 'scryptomera', 'long') → entry=2%
+- (456789, 'scryptomera', 'short') → entry=1.5%
 
 ---
 
-### Пример 4: Мульти-биржа (максимум)
+### Пример 4: Мульти-биржа (настройки ОДИНАКОВЫ для всех бирж)
 ```
 user_id: 111222
 exchanges: bybit + hyperliquid
@@ -222,24 +220,36 @@ bybit: trading_mode=both (demo + real)
 hyperliquid: testnet + mainnet
 strategies: все 5
 ```
-**Записей в user_strategy_settings: 20** (максимум)
-- 5 strategies × 2 exchanges × 2 accounts = 20
+**Записей в user_strategy_settings: 10** (5 стратегий × 2 стороны)
+- (111222, 'oi', 'long'), (111222, 'oi', 'short')
+- (111222, 'scryptomera', 'long'), (111222, 'scryptomera', 'short')
+- ... и т.д.
+
+> **Важно:** Настройки применяются ко ВСЕМ биржам и аккаунтам.
+> Нет отдельных записей для Bybit vs HyperLiquid!
 
 ---
 
 ## 🎯 QUICK REFERENCE
 
-### Получить настройки:
+### Получить настройки (SIMPLIFIED схема):
 ```python
 from db import get_strategy_settings
 
-# Полный путь
-settings = get_strategy_settings(
-    user_id=123456,
-    strategy='oi',
-    exchange='bybit',
-    account_type='demo'
-)
+# Только user_id и strategy - exchange/account_type ИГНОРИРУЮТСЯ
+settings = get_strategy_settings(user_id=123456, strategy='oi')
+
+# Возвращает:
+# {
+#     'long_enabled': True,
+#     'long_percent': 5.0,
+#     'long_sl_percent': 30.0,
+#     'long_tp_percent': 25.0,
+#     'short_enabled': True,
+#     'short_percent': 5.0,
+#     'short_sl_percent': 30.0,
+#     'short_tp_percent': 25.0,
+# }
 ```
 
 ### Получить активную биржу юзера:
@@ -262,96 +272,82 @@ acc = _normalize_both_account_type('both', exchange='hyperliquid')  # → 'testn
 ### Получить Side-Specific настройки:
 ```python
 # Для LONG (side='Buy')
-entry = settings.get('long_percent') or settings.get('percent')
-sl = settings.get('long_sl_percent') or settings.get('sl_percent')
+entry = settings.get('long_percent')
+sl = settings.get('long_sl_percent')
 
 # Для SHORT (side='Sell')
-entry = settings.get('short_percent') or settings.get('percent')
-sl = settings.get('short_sl_percent') or settings.get('sl_percent')
+entry = settings.get('short_percent')
+sl = settings.get('short_sl_percent')
 ```
 
 ---
 
-## 🔧 FALLBACK ЛОГИКА (Оптимизированная)
+## 🔧 АРХИТЕКТУРА НАСТРОЕК (Январь 2026)
 
-### Новая архитектура с 'default':
+### Упрощённая схема (SIMPLIFIED):
 
-**Проблема:** Раньше настройки дублировались - одно значение писалось в demo И real.
+**Было (4D):** `(user_id, strategy, exchange, account_type)` - дублирование настроек для каждой биржи/аккаунта
 
-**Решение:** Настройки пишутся один раз в `account_type='default'`, а читаются с каскадом:
+**Стало (3D):** `(user_id, strategy, side)` - одни настройки для всех бирж/аккаунтов
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │  ЗАПИСЬ (set_strategy_setting)                                          │
 │  ─────────────────────────────                                          │
-│  По умолчанию пишет в account_type='default'                           │
-│  Это значение применяется ко ВСЕМ аккаунтам через fallback            │
-│                                                                         │
-│  Для per-account override: sync_all_accounts=False                      │
+│  Пишет отдельно для каждой стороны (long/short)                        │
+│  Одни настройки применяются ко ВСЕМ биржам и аккаунтам                │
 └────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────────────┐
 │  ЧТЕНИЕ (get_strategy_settings)                                         │
 │  ───────────────────────────────                                        │
-│  Каскад fallback:                                                       │
+│  Возвращает ОБЕ стороны (long + short) одним запросом:                │
 │                                                                         │
-│  1. EXACT MATCH: (user, strategy, exchange, account_type)              │
-│     └─> Если есть конкретная настройка для demo/real - использовать   │
-│         _source = "account"                                            │
+│  {                                                                      │
+│      'long_enabled': True,                                             │
+│      'long_percent': 5.0,                                              │
+│      'long_sl_percent': 30.0,                                          │
+│      'long_tp_percent': 25.0,                                          │
+│      'short_enabled': True,                                            │
+│      'short_percent': 5.0,                                             │
+│      'short_sl_percent': 30.0,                                         │
+│      'short_tp_percent': 25.0,                                         │
+│  }                                                                      │
 │                                                                         │
-│  2. EXCHANGE DEFAULT: (user, strategy, exchange, 'default')            │
-│     └─> Если нет per-account, использовать default для биржи          │
-│         _source = "exchange"                                           │
-│                                                                         │
-│  3. GLOBAL DEFAULT: (user, strategy, 'default', 'default')             │
-│     └─> Универсальные настройки стратегии                             │
-│         _source = "global"                                             │
-│                                                                         │
-│  4. USER DEFAULTS: users.* (глобальные настройки юзера)                │
-│         _source = "user"                                               │
-│                                                                         │
-│  5. SYSTEM DEFAULTS: coin_params.py                                    │
-│         _source = "system"                                             │
+│  Если настроек нет → SYSTEM DEFAULTS из coin_params.py                 │
+│      _source = "system"                                                │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Пример использования:
 
 ```python
-# Записать настройку (пишется в 'default' автоматически)
-db.set_strategy_setting(uid, 'oi', 'sl_percent', 3.5, exchange='bybit')
+# Записать настройку для LONG стороны
+db.set_strategy_setting(uid, 'oi', 'long', percent=5.0, sl_percent=30.0)
 
-# Читается с fallback - работает для demo И real
-settings = db.get_strategy_settings(uid, 'oi', 'bybit', 'demo')
-print(settings['sl_percent'])  # 3.5
-print(settings['_source'])     # 'exchange' (из bybit:default)
+# Записать настройку для SHORT стороны (может отличаться!)
+db.set_strategy_setting(uid, 'oi', 'short', percent=3.0, sl_percent=25.0)
 
-# Per-account override (для продвинутых юзеров)
-db.set_strategy_setting(uid, 'oi', 'sl_percent', 5.0, 
-                        exchange='bybit', account_type='real',
-                        sync_all_accounts=False)  # <-- отключаем sync
-
-# Теперь demo и real разные
-demo_settings = db.get_strategy_settings(uid, 'oi', 'bybit', 'demo')
-real_settings = db.get_strategy_settings(uid, 'oi', 'bybit', 'real')
-print(demo_settings['sl_percent'])  # 3.5 (из exchange:default)
-print(real_settings['sl_percent'])  # 5.0 (из account:real)
+# Читаются ОБЕ стороны вместе
+settings = db.get_strategy_settings(uid, 'oi')
+print(settings['long_percent'])   # 5.0
+print(settings['short_percent'])  # 3.0
 ```
 
 ### Старая vs Новая логика:
 
-| Действие | Было (дублирование) | Стало (fallback) |
-|----------|---------------------|------------------|
-| Установить SL=3% | 2 записи: demo=3%, real=3% | 1 запись: default=3% |
-| Изменить SL=5% | 2 UPDATE: demo=5%, real=5% | 1 UPDATE: default=5% |
-| Override для Real | - | 1 запись: real=5% (demo=3% через fallback) |
+| Действие | Было (4D дублирование) | Стало (3D simplified) |
+|----------|------------------------|------------------------|
+| Установить SL=3% для Long | 4 записи: bybit-demo, bybit-real, hl-testnet, hl-mainnet | 1 запись: (uid, oi, long) |
+| Изменить SL=5% для Long | 4 UPDATE | 1 UPDATE |
+| Разные настройки Long/Short | 8 записей | 2 записи: long + short |
 
 ### Преимущества:
 
-1. **Меньше дубликатов в БД** - типичный юзер: 1 запись вместо 4
+1. **Меньше дубликатов в БД** - типичный юзер: 2 записи (long+short) вместо 20+
 2. **Атомарные изменения** - одно изменение применяется везде
-3. **Гибкость** - продвинутые юзеры могут переопределить per-account
-4. **Прозрачность** - `_source` показывает откуда взято значение
+3. **Простая логика** - не нужен каскад fallback
+4. **Прозрачность** - side-specific настройки сразу видны
 
 ---
 
@@ -360,12 +356,12 @@ print(real_settings['sl_percent'])  # 5.0 (из account:real)
 ### SQL запросы для анализа:
 
 ```sql
--- Сколько записей на юзера
-SELECT user_id, COUNT(*) as streams
+-- Сколько записей на юзера (2 стороны × N стратегий)
+SELECT user_id, COUNT(*) as settings_count
 FROM user_strategy_settings
 WHERE enabled = true
 GROUP BY user_id
-ORDER BY streams DESC;
+ORDER BY settings_count DESC;
 
 -- Какие стратегии популярны
 SELECT strategy, COUNT(DISTINCT user_id) as users
@@ -374,16 +370,11 @@ WHERE enabled = true
 GROUP BY strategy
 ORDER BY users DESC;
 
--- Распределение по биржам
-SELECT exchange, account_type, COUNT(*) as count
+-- Распределение по сторонам
+SELECT strategy, side, COUNT(*) as count
 FROM user_strategy_settings
 WHERE enabled = true
-GROUP BY exchange, account_type;
-
--- Записи с account_type='default' (новая логика)
-SELECT user_id, strategy, exchange, account_type
-FROM user_strategy_settings
-WHERE account_type = 'default';
+GROUP BY strategy, side;
 
 -- Записи с per-account override
 SELECT user_id, strategy, exchange, account_type

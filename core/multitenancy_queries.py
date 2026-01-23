@@ -44,7 +44,8 @@ logger = logging.getLogger(__name__)
 
 RECOMMENDED_INDEXES = """
 -- Multitenancy composite indexes for user_strategy_settings
--- PRIMARY KEY already covers (user_id, strategy, exchange, account_type)
+-- PRIMARY KEY: (user_id, strategy, side) - SIMPLIFIED schema (Jan 2026)
+-- NOTE: exchange/account_type columns exist but NOT in PRIMARY KEY
 
 -- Index for strategy listing per user
 CREATE INDEX IF NOT EXISTS idx_uss_user_enabled 
@@ -53,20 +54,16 @@ WHERE enabled = TRUE;
 
 -- Index for finding all users with specific strategy enabled
 CREATE INDEX IF NOT EXISTS idx_uss_strategy_enabled 
-ON user_strategy_settings(strategy, enabled, exchange, account_type) 
+ON user_strategy_settings(strategy, enabled) 
 WHERE enabled = TRUE;
 
--- Index for exchange-specific queries
-CREATE INDEX IF NOT EXISTS idx_uss_exchange_account 
-ON user_strategy_settings(exchange, account_type, enabled) 
-WHERE enabled = TRUE;
-
--- Covering index for settings lookup (includes all commonly needed columns)
+-- Covering index for settings lookup (simplified - no exchange/account_type)
 CREATE INDEX IF NOT EXISTS idx_uss_covering 
-ON user_strategy_settings(user_id, strategy, exchange, account_type) 
-INCLUDE (enabled, percent, sl_percent, tp_percent, leverage, use_atr, direction);
+ON user_strategy_settings(user_id, strategy, side) 
+INCLUDE (enabled, percent, sl_percent, tp_percent, leverage, use_atr);
 
 -- Indexes for active_positions
+-- PRIMARY KEY: (user_id, symbol, account_type) - still 3D
 -- Composite for user position lookup
 CREATE INDEX IF NOT EXISTS idx_ap_user_account 
 ON active_positions(user_id, account_type);
@@ -124,23 +121,21 @@ class PreparedStatement:
 
 # Frequently used queries as prepared statements
 PREPARED_STATEMENTS = {
-    # User settings lookup with full 4D key
+    # User settings lookup - SIMPLIFIED to (user_id, strategy, side)
+    # NOTE: exchange/account_type not used in simplified schema
     'get_user_settings': PreparedStatement(
         name='get_user_settings',
         query="""
             SELECT 
                 enabled, percent, sl_percent, tp_percent, leverage,
-                use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct,
-                order_type, direction,
-                long_percent, long_sl_percent, long_tp_percent,
-                short_percent, short_sl_percent, short_tp_percent
+                use_atr, atr_trigger_pct, atr_step_pct,
+                order_type
             FROM user_strategy_settings
             WHERE user_id = $1 
               AND strategy = $2 
-              AND exchange = $3 
-              AND account_type = $4
+              AND side = $3
         """,
-        param_types=('bigint', 'text', 'text', 'text')
+        param_types=('bigint', 'text', 'text')
     ),
     
     # All enabled strategies for a user
@@ -219,24 +214,28 @@ PREPARED_STATEMENTS = {
         param_types=()
     ),
     
-    # Upsert user settings
+    # Upsert user settings - SIMPLIFIED to (user_id, strategy, side)
     'upsert_user_settings': PreparedStatement(
         name='upsert_user_settings',
         query="""
             INSERT INTO user_strategy_settings 
-                (user_id, strategy, exchange, account_type, enabled, percent, sl_percent, tp_percent, leverage)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (user_id, strategy, exchange, account_type) 
+                (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (user_id, strategy, side) 
             DO UPDATE SET
                 enabled = EXCLUDED.enabled,
                 percent = COALESCE(EXCLUDED.percent, user_strategy_settings.percent),
                 sl_percent = COALESCE(EXCLUDED.sl_percent, user_strategy_settings.sl_percent),
                 tp_percent = COALESCE(EXCLUDED.tp_percent, user_strategy_settings.tp_percent),
                 leverage = COALESCE(EXCLUDED.leverage, user_strategy_settings.leverage),
+                use_atr = COALESCE(EXCLUDED.use_atr, user_strategy_settings.use_atr),
+                atr_trigger_pct = COALESCE(EXCLUDED.atr_trigger_pct, user_strategy_settings.atr_trigger_pct),
+                atr_step_pct = COALESCE(EXCLUDED.atr_step_pct, user_strategy_settings.atr_step_pct),
+                order_type = COALESCE(EXCLUDED.order_type, user_strategy_settings.order_type),
                 updated_at = NOW()
             RETURNING *
         """,
-        param_types=('bigint', 'text', 'text', 'text', 'boolean', 'real', 'real', 'real', 'real')
+        param_types=('bigint', 'text', 'text', 'boolean', 'real', 'real', 'real', 'integer', 'boolean', 'real', 'real', 'text')
     ),
     
     # Add position
