@@ -38,23 +38,23 @@ class TestStrategyFeaturesLogic:
     """Test that STRATEGY_FEATURES correctly defines each strategy's needs."""
     
     def test_elcaro_minimal_features(self):
-        """Elcaro uses signal data - should have minimal settings."""
+        """Lyxen uses signal data - should have minimal settings."""
         import bot
         elcaro = bot.STRATEGY_FEATURES["elcaro"]
         
-        # Elcaro should NOT have these (signal provides them)
-        assert not elcaro["order_type"], "Elcaro shouldn't show order_type (signal data)"
-        assert not elcaro["leverage"], "Elcaro shouldn't show leverage (signal data)"
-        assert not elcaro["use_atr"], "Elcaro shouldn't show ATR settings"
-        assert not elcaro["sl_tp"], "Elcaro shouldn't show SL/TP (from signal)"
-        assert not elcaro["atr_params"], "Elcaro shouldn't show ATR params"
-        assert not elcaro["min_quality"], "Elcaro doesn't have quality filter"
+        # Lyxen should NOT have these (signal provides them)
+        assert not elcaro["order_type"], "Lyxen shouldn't show order_type (signal data)"
+        assert not elcaro["leverage"], "Lyxen shouldn't show leverage (signal data)"
+        assert not elcaro["use_atr"], "Lyxen shouldn't show ATR settings"
+        assert not elcaro["sl_tp"], "Lyxen shouldn't show SL/TP (from signal)"
+        assert not elcaro["atr_params"], "Lyxen shouldn't show ATR params"
+        assert not elcaro["min_quality"], "Lyxen doesn't have quality filter"
         
-        # Elcaro should have these
-        assert elcaro["coins_group"], "Elcaro should show coins_group filter"
-        assert elcaro["percent"], "Elcaro should show percent"
-        assert elcaro["direction"], "Elcaro should show direction filter"
-        assert elcaro["side_settings"], "Elcaro should have side-specific settings"
+        # Lyxen should have these
+        assert elcaro["coins_group"], "Lyxen should show coins_group filter"
+        assert elcaro["percent"], "Lyxen should show percent"
+        assert elcaro["direction"], "Lyxen should show direction filter"
+        assert elcaro["side_settings"], "Lyxen should have side-specific settings"
     
     def test_scryptomera_full_features(self):
         """Scryptomera should have full trading features."""
@@ -136,7 +136,7 @@ class TestGetStrategyParamKeyboard:
         return [btn.callback_data for row in keyboard.inline_keyboard for btn in row]
     
     def test_elcaro_minimal_buttons(self):
-        """Elcaro keyboard should have minimal buttons."""
+        """Lyxen keyboard should have minimal buttons."""
         kb = self.get_keyboard("elcaro")
         callbacks = self.get_callback_data(kb)
         
@@ -217,7 +217,7 @@ class TestGetStrategySideKeyboard:
         return [btn.callback_data for row in keyboard.inline_keyboard for btn in row]
     
     def test_elcaro_side_minimal(self):
-        """Elcaro side keyboard should only have percent."""
+        """Lyxen side keyboard should only have percent."""
         kb = self.get_keyboard("elcaro", "long")
         callbacks = self.get_callback_data(kb)
         
@@ -282,7 +282,7 @@ class TestBuildStrategySettingsText:
         return bot.build_strategy_settings_text(strategy, settings, t)
     
     def test_elcaro_shows_direction_and_percent(self):
-        """Elcaro should show direction and percent."""
+        """Lyxen should show direction and percent."""
         text = self.get_text("elcaro", {"direction": "long", "percent": 2.0})
         assert "Direction" in text
         assert "LONG" in text
@@ -290,7 +290,7 @@ class TestBuildStrategySettingsText:
         assert "2.0%" in text
     
     def test_elcaro_no_leverage(self):
-        """Elcaro should NOT show leverage."""
+        """Lyxen should NOT show leverage."""
         text = self.get_text("elcaro", {"leverage": 10})
         assert "Leverage" not in text
     

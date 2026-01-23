@@ -292,5 +292,5 @@ python3 -m pytest tests/test_webapp.py::TestTradingAPI -v
 
 **Generated:** December 2024
 **By:** GitHub Copilot (Claude Sonnet 4.5)
-**Project:** ElCaro Trading Bot v2
+**Project:** Lyxen Trading Bot v2
 **Test Framework:** pytest 9.0.2 + FastAPI TestClient

@@ -1,5 +1,5 @@
 """
-Celery Task Queue for ElCaro Trading Platform
+Celery Task Queue for Lyxen Trading Platform
 =============================================
 Distributed task processing for 10K+ users
 

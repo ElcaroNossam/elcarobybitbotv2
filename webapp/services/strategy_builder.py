@@ -1,5 +1,5 @@
 """
-ElCaro Visual Strategy Builder
+Lyxen Visual Strategy Builder
 Create custom trading strategies through visual condition builder
 
 Features:

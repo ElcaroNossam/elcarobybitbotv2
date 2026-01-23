@@ -1,5 +1,5 @@
 """
-Unified Connection Pool Manager for ElCaro Trading Platform
+Unified Connection Pool Manager for Lyxen Trading Platform
 ============================================================
 Best practices implementation based on PostgreSQL community recommendations.
 

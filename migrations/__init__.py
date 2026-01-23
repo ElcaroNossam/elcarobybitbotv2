@@ -1,5 +1,5 @@
 """
-Database Migration System for ElCaro Trading Platform
+Database Migration System for Lyxen Trading Platform
 ======================================================
 
 This module provides a clean, versioned migration system for PostgreSQL.

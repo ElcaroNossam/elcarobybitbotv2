@@ -18,7 +18,7 @@ from typing import Dict, List
 from datetime import datetime, timedelta
 
 print("=" * 80)
-print("🧪 ELCARO BACKTESTER - COMPREHENSIVE TEST SUITE")
+print("🧪 LYXEN BACKTESTER - COMPREHENSIVE TEST SUITE")
 print("=" * 80)
 print()
 

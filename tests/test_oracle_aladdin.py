@@ -262,7 +262,7 @@ class TestIntegration:
         
         report = run_aladdin_analysis(
             tokenomics={
-                "name": "ElCaro (ELC)",
+                "name": "Lyxen (LYX)",
                 "team_allocation_pct": 3,
                 "community_allocation_pct": 28,
                 "vesting_period_months": 120,

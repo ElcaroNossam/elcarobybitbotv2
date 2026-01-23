@@ -7,7 +7,7 @@ Provides endpoints for:
 - Admin/Sovereign operations (emission, burn, treasury)
 - Analytics and statistics
 
-Author: ElCaro Team
+Author: Lyxen Team
 Date: January 2026
 """
 

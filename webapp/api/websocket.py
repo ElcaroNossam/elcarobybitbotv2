@@ -350,7 +350,7 @@ class ConnectionManager:
         # Send welcome message
         await websocket.send_json({
             "type": "connected",
-            "message": "Connected to ElCaro Trade Stream",
+            "message": "Connected to Lyxen Trade Stream",
             "timestamp": datetime.now().isoformat()
         })
     

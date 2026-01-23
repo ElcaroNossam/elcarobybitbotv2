@@ -1,7 +1,7 @@
 # translations/en.py
 TEXTS = {
     # Main menu - Professional trading interface
-    'welcome':                     '''🔥 <b>ElCaro Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> execution
 🛡️ <b>Risk management</b> built-in
@@ -43,7 +43,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Config',
     'button_indicators':           '📡 Signals',
@@ -72,7 +72,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '⚡ Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_elcaro':         '🔥 Lyxen: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # API Settings
@@ -219,7 +219,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     # ─────────────────────────────────────────────────────────────────────────
     # ELC Token Commands
     # ─────────────────────────────────────────────────────────────────────────
-    'elc_balance_title':           '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title':           '💰 <b>LYXEN Balance</b>',
     'elc_available':               'Available',
     'elc_staked':                  'Staked',
     'elc_locked':                  'Locked',
@@ -229,7 +229,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     'btn_elc_history':             '📊 History',
     'btn_connect_wallet':          '🔗 Connect Wallet',
     'btn_disconnect_wallet':       '🔓 Disconnect',
-    'elc_buy_title':               '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title':               '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price':           '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee':            '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint':           '<i>Purchase ELC with USDT on TON Network</i>',
@@ -457,7 +457,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Elcaro Indicators*',
+    'indicators_header':           '📈 *Lyxen Indicators*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Adaptive Trend',
@@ -555,9 +555,9 @@ Bybit • HyperLiquid • Multi-strategy''',
         '{atr_info}'
     ),
     
-    # Elcaro - Heatmap signal
+    # Lyxen - Heatmap signal
     'elcaro_entry': (
-        '🔥 *ELCARO* {side_emoji} *{side}*\n'
+        '🔥 *LYXEN* {side_emoji} *{side}*\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
         '💰 Entry: `{price:.6f}`\n'
@@ -627,7 +627,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     ),
     
     'elcaro_closed': (
-        '🔥 *ELCARO CLOSED* `{symbol}`\n\n'
+        '🔥 *LYXEN CLOSED* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
@@ -742,14 +742,14 @@ _Top traders rarely exceed 10x._
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Speed is profit._',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap) - Fire Style
-    'elcaro_limit_entry':          '🔥 *Elcaro Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Liquidity zone locked. Burn incoming._',
-    'elcaro_limit_error':          '❌ Elcaro error: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Heatmap confirmed. We burn with precision._',
-    'elcaro_market_error':         '❌ Elcaro error\n🪙 {symbol} {side}\n\n{msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}\n_🔥 Liquidity concentration detected._',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap) - Fire Style
+    'elcaro_limit_entry':          '🔥 *Lyxen Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Liquidity zone locked. Burn incoming._',
+    'elcaro_limit_error':          '❌ Lyxen error: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Heatmap confirmed. We burn with precision._',
+    'elcaro_market_error':         '❌ Lyxen error\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}\n_🔥 Liquidity concentration detected._',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci - Mathematics Style
     'fibonacci_limit_entry':       '📐 *Fibonacci Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Golden level engaged. Mathematics never fails._',
@@ -932,7 +932,7 @@ _Top traders rarely exceed 10x._
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':               '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA Settings',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -1009,7 +1009,7 @@ _Top traders rarely exceed 10x._
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_spot':                    '💹 Spot',
     'stats_spot_title':              'Spot DCA Statistics',
     'stats_spot_config':             'Configuration',
@@ -1057,7 +1057,7 @@ _Top traders rarely exceed 10x._
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_info': '🤖 *AI-Powered Trading*',
     'elcaro_ai_desc': '_All parameters are parsed from AI signals automatically:_',
 
@@ -1086,16 +1086,16 @@ _Top traders rarely exceed 10x._
 
 While you're hesitating, *847 traders* are already profiting.
 
-💸 Every minute without ElCaro = missed opportunities
+💸 Every minute without Lyxen = missed opportunities
 ⏰ Markets don't wait. Neither should you.
 
 👉 /subscribe — _Unlock your unfair advantage NOW_''',
     'no_license_trading': '''🚨 *TRADING LOCKED*
 
-Your competitors are making money RIGHT NOW with ElCaro.
+Your competitors are making money RIGHT NOW with Lyxen.
 
 ❌ Manual trading = emotional mistakes
-✅ ElCaro = cold AI precision
+✅ Lyxen = cold AI precision
 
 _Stop watching. Start earning._
 
@@ -1168,7 +1168,7 @@ The question is "Can I afford NOT to?"_''',
 _Perfect for testing the waters_''',
     'basic_desc': '''✅ Full Demo Access — _Risk-free learning_
 ✅ Real Account: OI, RSI+BB, Scryptomera, Scalper
-⛔ Elcaro, Fibonacci, Spot — _Premium exclusive_
+⛔ Lyxen, Fibonacci, Spot — _Premium exclusive_
 ✅ Standard Support
 ✅ ATR Dynamic SL/TP
 
@@ -1185,7 +1185,7 @@ _Seeing is believing_''',
 ✅ No Credit Card Required
 ⚡ One-Click Activation
 
-⚠️ *WARNING:* After experiencing ElCaro AI,
+⚠️ *WARNING:* After experiencing Lyxen AI,
 manual trading will feel... primitive.
 
 _91% of trial users become paying customers._

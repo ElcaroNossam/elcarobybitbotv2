@@ -1,5 +1,5 @@
 """
-ElCaro Strategy Optimizer
+Lyxen Strategy Optimizer
 Advanced optimization algorithms for trading strategies:
 - Grid Search
 - Random Search

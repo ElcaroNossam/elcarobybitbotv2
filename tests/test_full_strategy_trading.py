@@ -11,7 +11,7 @@ Comprehensive tests for the complete trading flow with strategy settings:
 6. Position monitoring with settings
 7. Multi-user isolation
 
-Author: ElCaro Team
+Author: Lyxen Team
 Date: January 2026
 """
 

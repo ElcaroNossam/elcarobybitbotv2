@@ -3,7 +3,7 @@ Migration: Initial Schema
 Version: 001
 Created: 2026-01-22
 
-Creates all core tables for ElCaro Trading Platform.
+Creates all core tables for Lyxen Trading Platform.
 """
 
 

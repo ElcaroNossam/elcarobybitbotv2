@@ -3,13 +3,13 @@ TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
     'welcome':                     '''🔥 <b>Vítej, Alpha Tradere!</b>
 
-Zatímco čteš toto — <b>847 traderů</b> už vydělává s ElCaro.
+Zatímco čteš toto — <b>847 traderů</b> už vydělává s Lyxen.
 
 ⚡ <b>&lt; 100ms</b> rychlost exekuce
 🛡️ <b>664 bezpečnostních testů</b> prošlo
 💎 <b>24/7</b> AI-řízené obchodování
 
-<i>Tvoí konkurenti nespí. ElCaro taky ne.</i>
+<i>Tvoí konkurenti nespí. Lyxen taky ne.</i>
 
 Vyber si cestu k finanční svobodě:''',
     'no_strategies':               '❌ Žádné — <i>Každou sekundu bez strategií ztrácíš peníze</i>',
@@ -46,7 +46,7 @@ Vyber si cestu k finanční svobodě:''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Konfigurace',
     'button_indicators':           '💡 Indikátory',
@@ -55,7 +55,7 @@ Vyber si cestu k finanční svobodě:''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_elcaro':         '🔥 Lyxen: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
@@ -233,7 +233,7 @@ Vyber si cestu k finanční svobodě:''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Indikátory Elcaro*',
+    'indicators_header':           '📈 *Indikátory Lyxen*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Adaptivní trend',
@@ -333,14 +333,14 @@ Vyber si cestu k finanční svobodě:''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit chyba: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market chyba: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen Limit chyba: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen Market chyba: {msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
@@ -603,7 +603,7 @@ Vyber si cestu k finanční svobodě:''',
     'strat_mode_both':             '🔄 Oba',
     'strat_mode_changed':          '✅ Režim obchodování {strategy}: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -617,7 +617,7 @@ Vyber si cestu k finanční svobodě:''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Nastavení DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -693,7 +693,7 @@ Vyber si cestu k finanční svobodě:''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -730,14 +730,14 @@ Vyber si cestu k finanční svobodě:''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Páka',
     'prompt_leverage': 'Zadejte páku (1-100):',
     'auto_default': 'Auto',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_Všechny parametry jsou automaticky parsovány z AI signálů:_',
 
     # Scalper entries
@@ -791,7 +791,7 @@ Vyber si cestu k finanční svobodě:''',
     
     'premium_title': '� *PREMIUM — Volba vítězů*',
     'premium_desc': '''✅ Plný přístup ke všem funkcím
-✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ Skutečné + Demo obchodování
 ✅ Prioritní podpora
 ✅ Dynamický SL/TP založený na ATR
@@ -805,7 +805,7 @@ Vyber si cestu k finanční svobodě:''',
     'basic_title': '🥈 *BASIC PLÁN*',
     'basic_desc': '''✅ Plný přístup k demo účtu
 ✅ Skutečný účet: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — pouze Premium
+❌ Lyxen, Fibonacci, Spot — pouze Premium
 ✅ Standardní podpora
 ✅ Dynamický SL/TP založený na ATR''',
     'basic_1m': '🥈 1 měsíc — {price} TRC',
@@ -1114,7 +1114,7 @@ Denní odměny • Okamžitý výběr''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1124,7 +1124,7 @@ Denní odměny • Okamžitý výběr''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1204,7 +1204,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1260,7 +1260,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

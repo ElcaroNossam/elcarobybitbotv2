@@ -1,5 +1,5 @@
 """
-Async PostgreSQL Database Layer for ElCaro Trading Platform
+Async PostgreSQL Database Layer for Lyxen Trading Platform
 ============================================================
 Designed for 10K+ concurrent users with connection pooling.
 

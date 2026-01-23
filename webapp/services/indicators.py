@@ -1,5 +1,5 @@
 """
-Technical Indicators Library for ElCaro Trading Platform
+Technical Indicators Library for Lyxen Trading Platform
 Complete implementation of all trading indicators
 """
 import math

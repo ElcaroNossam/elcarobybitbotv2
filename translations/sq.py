@@ -2,8 +2,8 @@
 TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
     'welcome': (
-        '🚀 <b>MIRË SE ERDHIT NË ELCARO!</b>\n\n'
-        '📊 <b>847 tregtues</b> po fitojnë pjesë me ElCaro tani\n'
+        '🚀 <b>MIRË SE ERDHIT NË LYXEN!</b>\n\n'
+        '📊 <b>847 tregtues</b> po fitojnë pjesë me Lyxen tani\n'
         '⚡ Ekzekutim < 100ms | 🔒 664 teste sigurie\n\n'
         '<i>Çdo sekondë pa strategji = para të humbura</i>'
     ),
@@ -229,7 +229,7 @@ TEXTS = {
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Treguesit Elcaro*',
+    'indicators_header':           '📈 *Treguesit Lyxen*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Trend adaptiv',
@@ -329,14 +329,14 @@ TEXTS = {
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Hyrje Limit*\n• {symbol} {side}\n• Çmimi: {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit gabim: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Hyrje Market*\n• {symbol} {side}\n• Çmimi: {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market gabim: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen Hyrje Limit*\n• {symbol} {side}\n• Çmimi: {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen Limit gabim: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Hyrje Market*\n• {symbol} {side}\n• Çmimi: {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen Market gabim: {msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Hyrje Limit*\n• {symbol} {side}\n• Çmimi: {price:.6f}\n• Sasia: {qty}\n• SL: {sl_pct}%',
@@ -503,10 +503,10 @@ TEXTS = {
 
     # Scalper Strategy
     'button_scalper':                '🎯 Scalper',
-    'button_elcaro':                 '🔥 Elcaro',
+    'button_elcaro':                 '🔥 Lyxen',
     'button_fibonacci':                '📐 Fibonacci',
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_elcaro':           '🔥 Lyxen: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -605,7 +605,7 @@ TEXTS = {
     'strat_mode_both':             '🔄 Të dyja',
     'strat_mode_changed':          '✅ Mënyra e tregtimit {strategy}: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -619,7 +619,7 @@ TEXTS = {
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Cilësimet DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -695,7 +695,7 @@ TEXTS = {
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -732,14 +732,14 @@ TEXTS = {
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Leva',
     'prompt_leverage': 'Shkruaj levën (1-100):',
     'auto_default': 'Automatike',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_Të gjitha parametrat analizohen automatikisht nga sinjalet AI:_',
 
     # Scalper entries
@@ -780,19 +780,19 @@ TEXTS = {
     'no_license': (
         '🚫 <b>AKSESI REFUZUAR</b>\n\n'
         '📊 847 tregtues po fitojnë tani ndërsa ju jeni jashtë.\n'
-        '⏰ Çdo minutë pa ElCaro = mundësi të humbura\n\n'
+        '⏰ Çdo minutë pa Lyxen = mundësi të humbura\n\n'
         '👑 Zhbllokoni tani përparësinë tuaj të padrejtë: /subscribe'
     ),
     'no_license_trading': (
         '🚫 <b>TREGTIMI ËSHTË I MBYLLUR</b>\n\n'
-        'Derisa ju prisni, 847 tregtues po fitojnë me ElCaro.\n\n'
+        'Derisa ju prisni, 847 tregtues po fitojnë me Lyxen.\n\n'
         '⚡ Filloni të fitoni tani: /subscribe'
     ),
     'license_required': '⚠️ Kjo veçori kërkon abonim {required}.\n\nPërdorni /subscribe për të përmirësuar.',
     'trial_demo_only': '⚠️ Licenca provë lejon vetëm tregtim demo.\n\nPërmirësoni në Premium ose Basic për tregtim real: /subscribe',
     'basic_strategy_limit': '⚠️ Licenca Basic në llogari reale lejon vetëm: {strategies}\n\nPërmirësoni në Premium për të gjitha strategjitë: /subscribe',
     
-    'subscribe_menu_header': '� <b>AKSES VIP NË ELCARO</b>',
+    'subscribe_menu_header': '� <b>AKSES VIP NË LYXEN</b>',
     'subscribe_menu_info': '🔓 Zhbllokoni strategjitë e tregtuesve elitë:',
     'btn_premium': '💎 Premium',
     'btn_basic': '🥈 Basic', 
@@ -802,7 +802,7 @@ TEXTS = {
     
     'premium_title': '� <b>AKSES ELITE PREMIUM</b>',
     'premium_desc': '''✅ Akses i plotë në të gjitha veçoritë
-✅ Të 5 strategjitë: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ Të 5 strategjitë: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ Tregtim Real + Demo
 ✅ Mbështetje prioritare
 ✅ SL/TP dinamik bazuar në ATR
@@ -816,7 +816,7 @@ TEXTS = {
     'basic_title': '🥈 *PLANI BASIC*',
     'basic_desc': '''✅ Akses i plotë në llogarinë demo
 ✅ Llogari reale: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — vetëm Premium
+❌ Lyxen, Fibonacci, Spot — vetëm Premium
 ✅ Mbështetje standarde
 ✅ SL/TP dinamik bazuar në ATR''',
     'basic_1m': '🥈 1 Muaj — {price} TRC',
@@ -1125,7 +1125,7 @@ Shpërblime ditore • Tërheqje e menjëhershme''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1135,7 +1135,7 @@ Shpërblime ditore • Tërheqje e menjëhershme''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1215,7 +1215,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1271,7 +1271,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

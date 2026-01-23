@@ -247,7 +247,7 @@ STRATEGY_NAMES = ["scryptomera", "scalper", "elcaro", "fibonacci", "oi", "rsi_bb
 STRATEGY_DISPLAY_NAMES = {
     "scryptomera": "Scryptomera",
     "scalper": "Scalper", 
-    "elcaro": "ElCaro",
+    "elcaro": "Lyxen",
     "fibonacci": "Fibonacci",
     "oi": "OI Delta",
     "rsi_bb": "RSI+BB",

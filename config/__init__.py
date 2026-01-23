@@ -1,5 +1,5 @@
 """
-ElCaro Trading Platform - Configuration Module
+Lyxen Trading Platform - Configuration Module
 """
 from config.settings import settings, get_settings, Settings
 from config.analytics_db import (

@@ -40,24 +40,24 @@ PYTHONPATH=$PWD python3 blockchain/demo.py
 ```python
 from blockchain import (
     # Core blockchain
-    ElcaroChain, ConsensusEngine,
+    LyxenChain, ConsensusEngine,
     generate_address, elc_to_wei, wei_to_elc,
     
     # DEX
-    ElcaroDEX, ElcaroAMM, OrderBook, PerpetualFutures,
+    LyxenDEX, LyxenAMM, OrderBook, PerpetualFutures,
     
     # Bridge
-    ElcaroBridge, BridgeChain,
+    LyxenBridge, BridgeChain,
     
     # Governance
-    ElcaroDAO, ProposalType, VoteOption
+    LyxenDAO, ProposalType, VoteOption
 )
 
 # Initialize complete ecosystem
-chain = ElcaroChain(chain_id=1)
-dex = ElcaroDEX()
-bridge = ElcaroBridge()
-dao = ElcaroDAO()
+chain = LyxenChain(chain_id=1)
+dex = LyxenDEX()
+bridge = LyxenBridge()
+dao = LyxenDAO()
 
 # Create account and transfer
 alice = generate_address()
@@ -196,7 +196,7 @@ dao.cast_vote(alice, proposal_id, VoteOption.FOR, "Support this change")
 
 ```python
 # Example: Create account and transfer
-chain = ElcaroChain(chain_id=1)
+chain = LyxenChain(chain_id=1)
 
 alice = generate_address()
 bob = generate_address()
@@ -236,7 +236,7 @@ block = chain.produce_block(validator)
 
 ```python
 # Example: DEX trading
-dex = ElcaroDEX()
+dex = LyxenDEX()
 
 # Create trading pair
 dex.create_trading_pair("ELC/USDT", "ELC", "USDT", 
@@ -275,7 +275,7 @@ print(f"Liquidation price: ${position.liquidation_price}")
 
 ```python
 # Example: Bridge ETH to ELCARO
-bridge = ElcaroBridge()
+bridge = LyxenBridge()
 
 # Register wrapped token
 bridge.register_wrapped_token("WETH", "Wrapped Ethereum", 
@@ -322,7 +322,7 @@ for validator in validators[:7]:
 
 ```python
 # Example: DAO governance
-dao = ElcaroDAO(treasury_balance=Decimal("200000000"))
+dao = LyxenDAO(treasury_balance=Decimal("200000000"))
 
 # Lock tokens for voting power
 dao.lock_tokens_for_voting(alice, Decimal("500000"))  # 500k votes

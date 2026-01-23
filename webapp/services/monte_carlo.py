@@ -1,5 +1,5 @@
 """
-ElCaro Monte Carlo Simulation & Stress Testing
+Lyxen Monte Carlo Simulation & Stress Testing
 Advanced statistical analysis for backtesting robustness
 
 Features:

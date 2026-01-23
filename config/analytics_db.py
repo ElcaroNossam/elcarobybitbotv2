@@ -1,5 +1,5 @@
 """
-ElCaro Analytics Database
+Lyxen Analytics Database
 Отдельная база для аналитических данных: свечи, индикаторы, рыночные данные
 Оптимизирована для time-series и быстрого чтения
 """

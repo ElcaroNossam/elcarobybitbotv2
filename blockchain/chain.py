@@ -169,7 +169,7 @@ class Account:
 # Blockchain Core
 # ------------------------------------------------------------------------------------
 
-class ElcaroChain:
+class LyxenChain:
     """
     ELCARO Chain - Core blockchain implementation.
     
@@ -605,7 +605,7 @@ class ConsensusEngine:
     - Instant finality on confirmation
     """
     
-    def __init__(self, chain: ElcaroChain):
+    def __init__(self, chain: LyxenChain):
         self.chain = chain
         self.block_signatures: Dict[str, List[str]] = {}  # block_hash -> [validator_addresses]
         

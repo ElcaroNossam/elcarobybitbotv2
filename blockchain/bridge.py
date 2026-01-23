@@ -135,7 +135,7 @@ class WrappedToken:
 # Bridge Core
 # ------------------------------------------------------------------------------------
 
-class ElcaroBridge:
+class LyxenBridge:
     """
     Multi-chain bridge for ELCARO Chain.
     
@@ -506,7 +506,7 @@ class BridgeRelayer:
     - Handle emergency situations
     """
     
-    def __init__(self, bridge: ElcaroBridge, validator_address: str):
+    def __init__(self, bridge: LyxenBridge, validator_address: str):
         self.bridge = bridge
         self.validator_address = validator_address
         self.is_running = False

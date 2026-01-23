@@ -50,7 +50,7 @@ class WalletAuth:
         """
         timestamp = int(datetime.now().timestamp())
         
-        message = f"""Welcome to ElCaro Trading Platform!
+        message = f"""Welcome to Lyxen Trading Platform!
 
 Sign this message to prove you own this wallet.
 
@@ -105,10 +105,10 @@ This won't cost any gas or funds.
 
 # JavaScript code for WebApp (to be included in templates)
 WALLET_CONNECT_JS = """
-// ElCaro Web3 Wallet Integration
+// Lyxen Web3 Wallet Integration
 // Add to webapp/static/js/wallet.js
 
-class ElcaroWallet {
+class LyxenWallet {
     constructor() {
         this.provider = null;
         this.account = null;
@@ -261,7 +261,7 @@ class ElcaroWallet {
         }
     }
     
-    // Get ELCARO token balance
+    // Get LYXEN token balance
     async getTokenBalance(tokenAddress) {
         if (!this.account) {
             return 0;
@@ -353,7 +353,7 @@ class ElcaroWallet {
 }
 
 // Initialize global wallet instance
-window.elcaroWallet = new ElcaroWallet();
+window.elcaroWallet = new LyxenWallet();
 
 // Helper functions
 async function connectWallet() {

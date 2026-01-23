@@ -1,5 +1,5 @@
 """
-ElCaro Position Size Calculator
+Lyxen Position Size Calculator
 Calculates position size based on stop loss and risk percentage
 EXACTLY like in bot.py - same formulas
 """

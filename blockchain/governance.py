@@ -145,7 +145,7 @@ class Vote:
 # DAO Governance
 # ------------------------------------------------------------------------------------
 
-class ElcaroDAO:
+class LyxenDAO:
     """
     Decentralized Autonomous Organization for ELCARO Chain.
     
@@ -492,7 +492,7 @@ class ElcaroDAO:
 # ------------------------------------------------------------------------------------
 
 def create_parameter_change_proposal(
-    dao: ElcaroDAO,
+    dao: LyxenDAO,
     proposer: str,
     parameter: str,
     old_value: Any,
@@ -512,7 +512,7 @@ def create_parameter_change_proposal(
 
 
 def create_treasury_spending_proposal(
-    dao: ElcaroDAO,
+    dao: LyxenDAO,
     proposer: str,
     recipient: str,
     amount: Decimal,

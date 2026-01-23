@@ -1,10 +1,10 @@
 #!/bin/bash
-# ElCaro Bot - Local Optimization Script
+# Lyxen Bot - Local Optimization Script
 # Automatically cleans cache, logs, and optimizes database
 
 set -e
 
-echo "🧹 ElCaro Bot - Local Optimization"
+echo "🧹 Lyxen Bot - Local Optimization"
 echo "=================================="
 echo ""
 

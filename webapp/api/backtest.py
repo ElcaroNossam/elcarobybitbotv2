@@ -563,7 +563,7 @@ async def list_strategies():
             # Core Strategies
             {
                 "id": "elcaro",
-                "name": "ElCaro",
+                "name": "Lyxen",
                 "description": "Main channel breakout strategy with momentum confirmation",
                 "icon": "🎯",
                 "color": "#6366f1",

@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================"
-echo "  ElCaro Auto-Login Quick Check"
+echo "  Lyxen Auto-Login Quick Check"
 echo "========================================"
 echo ""
 

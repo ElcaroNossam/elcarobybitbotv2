@@ -493,9 +493,9 @@ def test_atr_settings_in_trade():
     params = get_strategy_trade_params(uid, cfg, "BTCUSDT", "elcaro")
     
     if params["use_atr"] != True:
-        errors.append(f"Elcaro ATR should be True (global fallback), got {params['use_atr']}")
+        errors.append(f"Lyxen ATR should be True (global fallback), got {params['use_atr']}")
     else:
-        print(f"  ✅ Elcaro: use_atr = True (global fallback)")
+        print(f"  ✅ Lyxen: use_atr = True (global fallback)")
     
     # Test 3: Strategy with ATR explicitly enabled
     db.set_strategy_setting(uid, "oi", "use_atr", 1, "bybit", "demo")

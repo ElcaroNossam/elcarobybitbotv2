@@ -1,5 +1,5 @@
 """
-ElCaro Walk-Forward Analysis & Parameter Optimization
+Lyxen Walk-Forward Analysis & Parameter Optimization
 Prevent overfitting with rolling optimization and validation
 
 Features:

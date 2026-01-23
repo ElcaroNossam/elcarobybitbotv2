@@ -2,8 +2,8 @@
 TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
     'welcome': (
-        '🚀 <b>欢迎来到 ELCARO！</b>\n\n'
-        '📊 <b>847名交易者</b>正在用ElCaro获利\n'
+        '🚀 <b>欢迎来到 LYXEN！</b>\n\n'
+        '📊 <b>847名交易者</b>正在用Lyxen获利\n'
         '⚡ 执行速度 < 100ms | 🔒 664项安全测试\n\n'
         '<i>没有策略的每一秒 = 损失的金钱</i>'
     ),
@@ -229,7 +229,7 @@ TEXTS = {
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Elcaro 指标*',
+    'indicators_header':           '📈 *Lyxen 指标*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. 交易混沌理论',
     'indicator_3':                 '3. 自适应趋势',
@@ -329,14 +329,14 @@ TEXTS = {
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro 限价错误：{msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro 市价错误：{msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen 限价错误：{msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen 市价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen 市价错误：{msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci 限价入场*\n• {symbol} {side}\n• 价格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
@@ -503,10 +503,10 @@ TEXTS = {
 
     # Scalper Strategy
     'button_scalper':                '🎯 Scalper',
-    'button_elcaro':                 '🔥 Elcaro',
+    'button_elcaro':                 '🔥 Lyxen',
     'button_fibonacci':                '📐 Fibonacci',
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_elcaro':           '🔥 Lyxen: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -605,7 +605,7 @@ TEXTS = {
     'strat_mode_both':             '🔄 两者',
     'strat_mode_changed':          '✅ {strategy} 交易模式: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -619,7 +619,7 @@ TEXTS = {
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA设置',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -695,7 +695,7 @@ TEXTS = {
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -732,14 +732,14 @@ TEXTS = {
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ 杠杆',
     'prompt_leverage': '输入杠杆 (1-100)：',
     'auto_default': '自动',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_所有参数均今AI信号自动解析：_',
 
     # Scalper entries
@@ -780,19 +780,19 @@ TEXTS = {
     'no_license': (
         '🚫 <b>访问被拒绝</b>\n\n'
         '📊 847名交易者正在获利，而您被排除在外。\n'
-        '⏰ 没有ElCaro的每一分钟 = 错过的机会\n\n'
+        '⏰ 没有Lyxen的每一分钟 = 错过的机会\n\n'
         '👑 立即解锁您的不公平优势: /subscribe'
     ),
     'no_license_trading': (
         '🚫 <b>交易已锁定</b>\n\n'
-        '在您等待的同时，847名交易者正在用ElCaro获利。\n\n'
+        '在您等待的同时，847名交易者正在用Lyxen获利。\n\n'
         '⚡ 立即开始盈利: /subscribe'
     ),
     'license_required': '⚠️ 此功能需要{required}订阅。\n\n使用 /subscribe 升级。',
     'trial_demo_only': '⚠️ 试用许可证仅允许模拟交易。\n\n升级到Premium或Basic进行实盘交易: /subscribe',
     'basic_strategy_limit': '⚠️ Basic许可证在实盘账户仅允许: {strategies}\n\n升级到Premium解锁所有策略: /subscribe',
     
-    'subscribe_menu_header': '� <b>ELCARO VIP访问</b>',
+    'subscribe_menu_header': '� <b>LYXEN VIP访问</b>',
     'subscribe_menu_info': '🔓 解锁精英交易者策略:',
     'btn_premium': '💎 高级版',
     'btn_basic': '🥈 基础版', 
@@ -802,7 +802,7 @@ TEXTS = {
     
     'premium_title': '� <b>精英PREMIUM访问</b>',
     'premium_desc': '''✅ 完全访问所有功能
-✅ 所有5种策略: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ 所有5种策略: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ 实盘 + 模拟交易
 ✅ 优先支持
 ✅ 基于ATR的动态SL/TP
@@ -816,7 +816,7 @@ TEXTS = {
     'basic_title': '🥈 *基础计划*',
     'basic_desc': '''✅ 完全访问模拟账户
 ✅ 实盘账户: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — 仅限Premium
+❌ Lyxen, Fibonacci, Spot — 仅限Premium
 ✅ 标准支持
 ✅ 基于ATR的动态SL/TP''',
     'basic_1m': '🥈 1个月 — {price} TRC',
@@ -1125,7 +1125,7 @@ TEXTS = {
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1135,7 +1135,7 @@ TEXTS = {
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1215,7 +1215,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1271,7 +1271,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

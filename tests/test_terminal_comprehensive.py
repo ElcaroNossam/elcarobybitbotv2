@@ -598,7 +598,7 @@ if __name__ == "__main__":
     user_id = int(sys.argv[1]) if len(sys.argv) > 1 else 511692487
     
     print(f"\n{'='*60}")
-    print(f"🚀 ElCaro Terminal Comprehensive Test Suite")
+    print(f"🚀 Lyxen Terminal Comprehensive Test Suite")
     print(f"{'='*60}")
     print(f"User ID: {user_id}")
     print(f"{'='*60}\n")

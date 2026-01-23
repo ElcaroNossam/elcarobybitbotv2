@@ -32,7 +32,7 @@ TEXTS = {
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Nustatymai',
     'button_indicators':           '💡 Indikatoriai',
@@ -216,7 +216,7 @@ TEXTS = {
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Elcaro indikatoriai*',
+    'indicators_header':           '📈 *Lyxen indikatoriai*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Adaptyvus trendas',
@@ -316,14 +316,14 @@ TEXTS = {
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit klaida: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market klaida: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen Limit klaida: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen Market klaida: {msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
@@ -490,7 +490,7 @@ TEXTS = {
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_elcaro':           '🔥 Lyxen: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -589,7 +589,7 @@ TEXTS = {
     'strat_mode_both':             '🔄 Abu',
     'strat_mode_changed':          '✅ {strategy} prekybos režimas: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -603,7 +603,7 @@ TEXTS = {
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA nustatymai',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -679,7 +679,7 @@ TEXTS = {
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -716,14 +716,14 @@ TEXTS = {
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Svertas',
     'prompt_leverage': 'Įveskite svertą (1-100):',
     'auto_default': 'Automatinis',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_Visi parametrai automatiškai išanalizuojami iš AI signalų:_',
 
     # Scalper entries
@@ -766,16 +766,16 @@ TEXTS = {
 
 Kol dvejojate, <b>847 prekiautojai</b> jau uždirba.
 
-💸 Kiekviena minutė be ElCaro = praleistos galimybės
+💸 Kiekviena minutė be Lyxen = praleistos galimybės
 ⏰ Rinkos nelaukia. Jūs taip pat neturėtumėte.
 
 👉 /subscribe — <i>Atrakinkite savo nesąžiningą pranašumą DABAR</i>''',
     'no_license_trading': '''🚨 <b>PREKYBA UŽRAKINTA</b>
 
-⚠️ 847 prekiautojai uždirba ŠIUO METU su ElCaro.
+⚠️ 847 prekiautojai uždirba ŠIUO METU su Lyxen.
 
 ❌ Rankinė prekyba = emocionės klaidos
-✅ ElCaro = šaltas AI tikslumas
+✅ Lyxen = šaltas AI tikslumas
 
 <i>Nustokite žiūrėti. Pradėkite uždirbti.</i>
 
@@ -812,7 +812,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     
     'premium_title': '� *PREMIUM — Laimėtojų pasirinkimas*',
     'premium_desc': '''✅ Pilna prieiga prie visų funkcijų
-✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ Reali + Demo prekyba
 ✅ Prioritetinė pagalba
 ✅ Dinaminis SL/TP pagal ATR
@@ -826,7 +826,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     'basic_title': '🥈 *BASIC PLANAS*',
     'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
 ✅ Reali sąskaita: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — tik Premium
+❌ Lyxen, Fibonacci, Spot — tik Premium
 ✅ Standartinė pagalba
 ✅ Dinaminis SL/TP pagal ATR''',
     'basic_1m': '🥈 1 mėnuo — {price} TRC',
@@ -1135,7 +1135,7 @@ Kasdieniai atlygiai • Momentinis išėmimas''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1145,7 +1145,7 @@ Kasdieniai atlygiai • Momentinis išėmimas''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1225,7 +1225,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1281,7 +1281,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

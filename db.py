@@ -2003,7 +2003,7 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
     Search for most recent signal containing symbol in raw_message.
     Searches all known signal formats:
     - [SYMBOL] - legacy format
-    - 🔔 SYMBOL - Elcaro format  
+    - 🔔 SYMBOL - Lyxen format  
     - 🪙 SYMBOL - Fibonacci format
     - SHORT/LONG SYMBOL - Scryptomera format
     - @ SYMBOL - OI/Scalper format with price
@@ -2026,8 +2026,8 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
             """,
             (
                 f'%[{symbol}]%',           # [SYMBOL]
-                f'%🔔 {symbol}%',          # 🔔 SYMBOL (Elcaro)
-                f'%🔔{symbol}%',           # 🔔SYMBOL (Elcaro no space)
+                f'%🔔 {symbol}%',          # 🔔 SYMBOL (Lyxen)
+                f'%🔔{symbol}%',           # 🔔SYMBOL (Lyxen no space)
                 f'%🪙 {symbol}%',          # 🪙 SYMBOL (Fibonacci)
                 f'%SHORT {symbol}%',       # SHORT SYMBOL (Scryptomera)
                 f'%LONG {symbol}%',        # LONG SYMBOL (Scryptomera)

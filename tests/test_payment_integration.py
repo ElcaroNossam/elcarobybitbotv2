@@ -8,7 +8,7 @@ Tests cover:
 4. Configuration and pricing
 5. Edge cases and error handling
 
-Author: ElCaro Team
+Author: Lyxen Team
 Date: January 2026
 """
 

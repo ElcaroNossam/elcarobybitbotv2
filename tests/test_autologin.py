@@ -1,5 +1,5 @@
 """
-Auto-login Tests for ElCaro Trading Bot
+Auto-login Tests for Lyxen Trading Bot
 Tests all auto-login scenarios to prevent regressions
 """
 

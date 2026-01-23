@@ -1,4 +1,4 @@
-# ElCaro Trading Platform v2.1.0
+# Lyxen Trading Platform v2.1.0
 
 **Multi-exchange async trading bot + WebApp + Real-time Screener**
 

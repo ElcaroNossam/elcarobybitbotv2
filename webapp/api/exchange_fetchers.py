@@ -1,5 +1,5 @@
 """
-Exchange data fetchers for ElCaro Screener
+Exchange data fetchers for Lyxen Screener
 Supports: Binance, Bybit, OKX
 """
 import aiohttp

@@ -258,7 +258,7 @@ BURN_ADDRESS = "0xTRC000000000000000000000000000000DEAD"
 # ============================================
 # UNIFIED LICENSE PRICING (in TRC/ELC = USD)
 # ============================================
-# All tokens are 1:1 with USD: TRC, ELC (ELCARO)
+# All tokens are 1:1 with USD: TRC, ELC (LYXEN)
 
 LICENSE_PRICES_TRC = {
     "premium": {1: 100, 3: 270, 6: 480, 12: 840},
@@ -1838,7 +1838,7 @@ async def pay_license(user_id: int, license_type: str, months: int) -> Tuple[boo
 
 async def pay_license_elc(user_id: int, license_type: str, months: int) -> Tuple[bool, str, float]:
     """
-    Pay for license with ELC (ELCARO tokens)
+    Pay for license with ELC (LYXEN tokens)
     
     Args:
         user_id: User ID

@@ -1,5 +1,5 @@
 """
-ELCARO Token Database Functions
+LYXEN Token Database Functions
 
 All database operations for ELCARO (ELC) token:
 - User balances (available, staked, locked)
@@ -47,7 +47,7 @@ def _release_conn(conn):
 
 def get_elc_balance(user_id: int) -> Dict[str, float]:
     """
-    Get user's ELCARO token balance breakdown.
+    Get user's LYXEN token balance breakdown.
     
     Returns:
         {

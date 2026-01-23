@@ -1,5 +1,5 @@
 """
-Advanced Notification Service for ElCaro Bot
+Advanced Notification Service for Lyxen Bot
 PostgreSQL Multitenancy Architecture
 Sends personalized notifications about:
 - Position closed/opened

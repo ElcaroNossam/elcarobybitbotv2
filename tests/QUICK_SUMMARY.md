@@ -1,4 +1,4 @@
-# 🚀 Quick Test Summary - ElCaro Bot v2
+# 🚀 Quick Test Summary - Lyxen Bot v2
 
 ## ✅ WebApp Tests - ПОЛНОСТЬЮ ГОТОВО!
 

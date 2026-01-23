@@ -232,11 +232,11 @@ class StrategyTemplates:
     
     @staticmethod
     def elcaro() -> StrategyConfig:
-        """ElCaro Main Strategy"""
+        """Lyxen Main Strategy"""
         return StrategyConfig(
-            name="ElCaro",
+            name="Lyxen",
             base_strategy="elcaro",
-            description="ElCaro proprietary signal processing",
+            description="Lyxen proprietary signal processing",
             indicators={
                 "rsi": RSIParams(period=14, overbought=65, oversold=35),
                 "ema": EMAParams(periods=[9, 21, 50]),

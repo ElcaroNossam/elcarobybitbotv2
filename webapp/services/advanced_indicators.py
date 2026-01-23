@@ -1,5 +1,5 @@
 """
-ElCaro Advanced Technical Indicators Library
+Lyxen Advanced Technical Indicators Library
 50+ Professional Trading Indicators with Full Customization
 
 Categories:

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Quick Test Runner for ElCaro Trading Platform
+# Quick Test Runner for Lyxen Trading Platform
 
-echo "🚀 ElCaro Trading Platform - Test Suite Runner"
+echo "🚀 Lyxen Trading Platform - Test Suite Runner"
 echo "=============================================="
 echo ""
 

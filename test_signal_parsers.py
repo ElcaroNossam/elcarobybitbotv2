@@ -52,7 +52,7 @@ SIGNALS = {
     ],
     
     "ELCARO": [
-        """Elcaro
+        """Lyxen
 🔔 SUSHIUSDT 📉 SHORT 🟢⚪⚪
 ⏱️ D | 🎚 65
 
@@ -62,7 +62,7 @@ SIGNALS = {
 
 📊 RR: 4.0:1 | ATR Exit:  ✅
 📉 ATR: 14 | ×2.0 | Trigger: 18%""",
-        """Elcaro
+        """Lyxen
 🔔 BERAUSDT 📉 SHORT 🟢⚪⚪
 ⏱️ 120 | 🎚 72
 
@@ -72,7 +72,7 @@ SIGNALS = {
 
 📊 RR: 3.0:1 | ATR Exit: ✅
 📉 ATR: 14 | ×1.5 | Trigger: 15%""",
-        """Elcaro
+        """Lyxen
 🔔 CAMPUSDT 📈 LONG 🟢⚪⚪
 ⏱️ 60 | 🎚 68
 

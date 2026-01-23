@@ -3,13 +3,13 @@ TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
     'welcome':                     '''🔥 <b>שלום, סוחר אלפא!</b>
 
-בזמן שאתה קורא את זה — <b>847 סוחרים</b> כבר מרוויחים עם ElCaro.
+בזמן שאתה קורא את זה — <b>847 סוחרים</b> כבר מרוויחים עם Lyxen.
 
 ⚡ <b>&lt; 100ms</b> מהירות ביצוע
 🛡️ <b>664 בדיקות אבטחה</b> עברו
 💎 <b>24/7</b> מסחר מונחה בינה מלאכותית
 
-<i>המתחרים שלך לא ישנים. גם ElCaro לא.</i>
+<i>המתחרים שלך לא ישנים. גם Lyxen לא.</i>
 
 בחר את הדרך שלך לחופש פיננסי:''',
     'no_strategies':               '❌ אין — <i>אתה מפסיד כסף כל שנייה ללא אסטרטגיות פעילות</i>',
@@ -46,7 +46,7 @@ TEXTS = {
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ הגדרות',
     'button_indicators':           '💡 אינדיקטורים',
@@ -230,7 +230,7 @@ TEXTS = {
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Elcaro אינדיקטורים*',
+    'indicators_header':           '📈 *Lyxen אינדיקטורים*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. מגמה אדפטיבית',
@@ -330,14 +330,14 @@ TEXTS = {
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ שגיאת Elcaro Limit: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ שגיאת Elcaro Market: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ שגיאת Lyxen Limit: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ שגיאת Lyxen Market: {msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
@@ -504,7 +504,7 @@ TEXTS = {
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_elcaro':           '🔥 Lyxen: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -603,7 +603,7 @@ TEXTS = {
     'strat_mode_both':             '🔄 שניהם',
     'strat_mode_changed':          '✅ מצב מסחר {strategy}: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -617,7 +617,7 @@ TEXTS = {
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ הגדרות DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -693,7 +693,7 @@ TEXTS = {
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -730,14 +730,14 @@ TEXTS = {
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ מינוף',
     'prompt_leverage': 'הזן מינוף (1-100):',
     'auto_default': 'אוטומטי',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_כל הפרמטרים מנותחים אוטומטית מאותות AI:_',
 
     # Scalper entries
@@ -780,16 +780,16 @@ TEXTS = {
 
 בזמן שאתה מהסס, <b>847 סוחרים</b> כבר מרוויחים.
 
-💸 כל דקה ללא ElCaro = הזדמנויות שהוחמצו
+💸 כל דקה ללא Lyxen = הזדמנויות שהוחמצו
 ⏰ השווקים לא מחכים. גם אתה לא צריך.
 
 👉 /subscribe — <i>פתח את היתרון שלך עכשיו</i>''',
     'no_license_trading': '''🚨 <b>המסחר נעול</b>
 
-⚠️ 847 סוחרים מרוויחים עכשיו עם ElCaro.
+⚠️ 847 סוחרים מרוויחים עכשיו עם Lyxen.
 
 ❌ מסחר ידני = טעויות רגשיות
-✅ ElCaro = דיוק AI קר
+✅ Lyxen = דיוק AI קר
 
 <i>תפסיק לצפות. תתחיל להרוויח.</i>
 
@@ -826,7 +826,7 @@ TEXTS = {
     
     'premium_title': '� *PREMIUM — הבחירה של המנצחים*',
     'premium_desc': '''✅ גישה מלאה לכל התכונות
-✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ מסחר אמיתי + דמו
 ✅ תמיכה עדיפה
 ✅ SL/TP דינמי מבוסס ATR
@@ -840,7 +840,7 @@ TEXTS = {
     'basic_title': '🥈 *תוכנית BASIC*',
     'basic_desc': '''✅ גישה מלאה לחשבון דמו
 ✅ חשבון אמיתי: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — Premium בלבד
+❌ Lyxen, Fibonacci, Spot — Premium בלבד
 ✅ תמיכה רגילה
 ✅ SL/TP דינמי מבוסס ATR''',
     'basic_1m': '🥈 חודש 1 — {price} TRC',
@@ -1149,7 +1149,7 @@ TEXTS = {
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1159,7 +1159,7 @@ TEXTS = {
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1239,7 +1239,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1295,7 +1295,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

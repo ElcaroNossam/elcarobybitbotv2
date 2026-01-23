@@ -1,4 +1,4 @@
-# ElCaro Trading Platform - Scalable Architecture for 10K+ Users
+# Lyxen Trading Platform - Scalable Architecture for 10K+ Users
 # ===============================================================
 # Version: 1.0.0 | Created: January 15, 2026
 # ===============================================================

@@ -1,7 +1,7 @@
 # translations/ru.py
 TEXTS = {
     # Главное меню - Профессиональный терминал
-    'welcome':                     '''🔥 <b>ElCaro Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
 ⚡ <b>&lt; 100мс</b> исполнение
 🛡️ <b>Риск-менеджмент</b> встроен
@@ -43,7 +43,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Конфиг',
     'button_indicators':           '📡 Сигналы',
@@ -72,7 +72,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '⚡ Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Elcaro: {state}',
+    'config_trade_elcaro':         '🔥 Lyxen: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # API настройки
@@ -218,7 +218,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     # ─────────────────────────────────────────────────────────────────────────
     # ELC Token Commands
     # ─────────────────────────────────────────────────────────────────────────
-    'elc_balance_title':           '💰 <b>Баланс ELCARO</b>',
+    'elc_balance_title':           '💰 <b>Баланс LYXEN</b>',
     'elc_available':               'Доступно',
     'elc_staked':                  'В стейке',
     'elc_locked':                  'Заблокировано',
@@ -228,7 +228,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'btn_elc_history':             '📊 История',
     'btn_connect_wallet':          '🔗 Подключить кошелёк',
     'btn_disconnect_wallet':       '🔓 Отключить',
-    'elc_buy_title':               '🛒 <b>Покупка ELCARO (ELC)</b>',
+    'elc_buy_title':               '🛒 <b>Покупка LYXEN (ELC)</b>',
     'elc_current_price':           '💵 Текущая цена: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee':            '🔥 Комиссия платформы: <b>0.5%</b>',
     'elc_purchase_hint':           '<i>Покупка ELC за USDT в сети TON</i>',
@@ -456,7 +456,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'status_disabled':             '❌',
 
     # Индикаторы
-    'indicators_header':           '📈 *Индикаторы Elcaro*',
+    'indicators_header':           '📈 *Индикаторы Lyxen*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Торговый хаос',
     'indicator_3':                 '3. Адаптивный тренд',
@@ -500,7 +500,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
         '🎯 {symbol} @ {entry:.6f}\n'
         '📊 Размер: {size}\n'
         '📍 {exchange} • {market_type}\n\n'
-        '_ElCaro AI нашёл возможность. Ты внутри._'
+        '_Lyxen AI нашёл возможность. Ты внутри._'
     ),
     'sl_auto_set':                 '🛡️ *SL установлен:* @ {price:.6f}',
     'auto_close_position':         '⚡ *Авто-выход:* {symbol} закрыт (TF={tf})',
@@ -560,9 +560,9 @@ Bybit • HyperLiquid • Мульти-стратегии''',
         '_Быстрая сделка_'
     ),
     
-    # Elcaro - анализ ликвидности
+    # Lyxen - анализ ликвидности
     'elcaro_entry': (
-        '🔥 *ELCARO* {side_emoji} *{side}*\n'
+        '🔥 *LYXEN* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
         '🪙 `{symbol}`\n'
         '💰 Вход: `{price:.6f}`\n'
@@ -640,9 +640,9 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     ),
     
     'elcaro_closed': (
-        '🔥 *ELCARO ЗАКРЫТ*\n\n'
+        '🔥 *LYXEN ЗАКРЫТ*\n\n'
         '🪙 *{symbol}* по *{reason}*\n'
-        '📊 Стратегия: `Elcaro`\n'
+        '📊 Стратегия: `Lyxen`\n'
         '📈 Вход: `{entry:.8f}`\n'
         '📉 Выход: `{exit:.8f}`\n'
         '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
@@ -749,14 +749,14 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro ошибка: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro ошибка\n🪙 {symbol} {side}\n\n{msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen ошибка: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Маркет*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen ошибка\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci Extension Strategy
     'fibonacci_limit_entry':       '📐 *Fibonacci Лимит*\n• {symbol} {side}\n• Цена: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
@@ -938,7 +938,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':               '📐 Fibonacci',
     'dca_settings':                  '⚙️ Настройки DCA',
     'dca_settings_header':           '⚙️ *Настройки DCA (Фьючерсы)*\n\n',
@@ -1015,7 +1015,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_fibonacci':               '📐 Fibonacci',
     'stats_spot':                    '💹 Спот',
     'stats_spot_title':              'Статистика Спот DCA',
@@ -1064,7 +1064,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'select_coins_for_strategy': '🪙 *Выберите группу монет для {name}*',
     'group_global': '📊 Глобальная (общая настройка)',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_info': '🤖 *AI-трейдинг*',
     'elcaro_ai_desc': '_Все параметры парсятся из AI-сигналов автоматически:_',
 
@@ -1117,7 +1117,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
 👉 /subscribe — апгрейд''',
     
     # Меню подписки
-    'subscribe_menu_header': '''💎 *ПОДПИСКА ElCaro*
+    'subscribe_menu_header': '''💎 *ПОДПИСКА Lyxen*
 
 🤖 AI-торговля 24/7
 📊 5 стратегий
@@ -1150,7 +1150,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
 
 ✅ Полный демо доступ
 ✅ Реал: OI, RSI+BB, Scryptomera, Scalper
-⛔ Elcaro, Fibonacci, Spot — только Premium
+⛔ Lyxen, Fibonacci, Spot — только Premium
 ✅ Стандартная поддержка
 ✅ ATR SL/TP''',
     'basic_1m': '🥈 1 Месяц — {price} TRC',

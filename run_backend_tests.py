@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Dict, List
 
 print("=" * 80)
-print("🧪 ELCARO BACKEND - COMPREHENSIVE TEST SUITE")
+print("🧪 LYXEN BACKEND - COMPREHENSIVE TEST SUITE")
 print("=" * 80)
 print()
 
@@ -724,9 +724,9 @@ def test_bot_core():
     # Test 7.3: Signal detection
     try:
         # Import signal detection functions
-        from bot import ELCARO_RE_MAIN, is_elcaro_signal
+        from bot import LYXEN_RE_MAIN, is_elcaro_signal
         
-        if ELCARO_RE_MAIN and callable(is_elcaro_signal):
+        if LYXEN_RE_MAIN and callable(is_elcaro_signal):
             print("  ✅ Signal detection - OK")
             tests_passed += 1
         else:

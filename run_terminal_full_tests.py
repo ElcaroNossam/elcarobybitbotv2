@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ═══════════════════════════════════════════════════════════════════════════
-ElCaro Trading Terminal - Full Multi-User Functional Tests
+Lyxen Trading Terminal - Full Multi-User Functional Tests
 ═══════════════════════════════════════════════════════════════════════════
 
 Comprehensive test suite for trading terminal covering:
@@ -25,7 +25,7 @@ Testing Strategy:
 5. Test WebSocket real-time updates
 6. Validate edge cases and error handling
 
-Author: ElCaro Team
+Author: Lyxen Team
 Date: December 2025
 Version: 1.0.0
 """
@@ -291,7 +291,7 @@ class TerminalFunctionalTests:
     async def setup(self):
         """Setup test environment"""
         print(f"\n{Colors.HEADER}{'═'*80}{Colors.ENDC}")
-        print(f"{Colors.HEADER}{Colors.BOLD}ElCaro Trading Terminal - Full Functional Tests{Colors.ENDC}")
+        print(f"{Colors.HEADER}{Colors.BOLD}Lyxen Trading Terminal - Full Functional Tests{Colors.ENDC}")
         print(f"{Colors.HEADER}{'═'*80}{Colors.ENDC}\n")
         
         print(f"{Colors.OKCYAN}🔧 Setting up test environment...{Colors.ENDC}")

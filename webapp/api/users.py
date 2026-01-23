@@ -706,7 +706,7 @@ STRATEGY_FEATURES = {
         "min_quality": False,
     },
     "elcaro": {
-        "order_type": False,     # Elcaro signals have their own order logic
+        "order_type": False,     # Lyxen signals have their own order logic
         "coins_group": True,
         "leverage": False,       # From signal
         "use_atr": False,        # ATR managed by signal

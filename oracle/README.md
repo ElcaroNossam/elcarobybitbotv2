@@ -375,4 +375,4 @@ Beautiful dashboard with:
 
 **🔮 Oracle** - *Autonomous Financial Intelligence for Crypto*
 
-Version 1.0.0 | ElCaro © 2024-2025
+Version 1.0.0 | Lyxen © 2024-2025

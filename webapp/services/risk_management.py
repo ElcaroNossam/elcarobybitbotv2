@@ -1,5 +1,5 @@
 """
-ElCaro Advanced Risk Management & Position Sizing
+Lyxen Advanced Risk Management & Position Sizing
 Professional risk management tools for backtesting
 
 Features:

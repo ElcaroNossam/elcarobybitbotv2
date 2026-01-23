@@ -14,10 +14,10 @@ import logging
 from decimal import Decimal
 import time
 
-from blockchain.chain import ElcaroChain, ConsensusEngine, generate_address, elc_to_wei
-from blockchain.dex import ElcaroDEX, OrderSide, OrderType, PositionSide
-from blockchain.bridge import ElcaroBridge, BridgeChain, BridgeRelayer
-from blockchain.governance import ElcaroDAO, VoteOption, ProposalType
+from blockchain.chain import LyxenChain, ConsensusEngine, generate_address, elc_to_wei
+from blockchain.dex import LyxenDEX, OrderSide, OrderType, PositionSide
+from blockchain.bridge import LyxenBridge, BridgeChain, BridgeRelayer
+from blockchain.governance import LyxenDAO, VoteOption, ProposalType
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def demo_blockchain_basics():
     logger.info("="*80)
     
     # Initialize chain
-    chain = ElcaroChain(chain_id=1, block_time=2, max_validators=100)
+    chain = LyxenChain(chain_id=1, block_time=2, max_validators=100)
     consensus = ConsensusEngine(chain)
     
     logger.info(f"✅ Chain initialized: {chain.get_chain_stats()}")
@@ -108,7 +108,7 @@ def demo_dex_trading():
     logger.info("="*80)
     
     # Initialize DEX
-    dex = ElcaroDEX()
+    dex = LyxenDEX()
     
     # Create trading pair: ELC/USDT
     dex.create_trading_pair(
@@ -180,7 +180,7 @@ def demo_bridge():
     logger.info("="*80)
     
     # Initialize bridge
-    bridge = ElcaroBridge()
+    bridge = LyxenBridge()
     
     # Register wrapped tokens
     bridge.register_wrapped_token(
@@ -252,7 +252,7 @@ def demo_governance():
     logger.info("="*80)
     
     # Initialize DAO
-    dao = ElcaroDAO(
+    dao = LyxenDAO(
         treasury_balance=Decimal("200000000"),  # 200M ELC
         circulating_supply=Decimal("1000000000")  # 1B ELC
     )
@@ -337,11 +337,11 @@ def demo_complete_ecosystem():
     # 1. Initialize all components
     logger.info("\n📦 Initializing ELCARO Chain ecosystem...")
     
-    chain = ElcaroChain(chain_id=1)
+    chain = LyxenChain(chain_id=1)
     consensus = ConsensusEngine(chain)
-    dex = ElcaroDEX()
-    bridge = ElcaroBridge()
-    dao = ElcaroDAO()
+    dex = LyxenDEX()
+    bridge = LyxenBridge()
+    dao = LyxenDAO()
     
     logger.info("✅ All components initialized")
     

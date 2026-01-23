@@ -1,5 +1,5 @@
 """
-Redis Client for ElCaro Trading Platform
+Redis Client for Lyxen Trading Platform
 =========================================
 Distributed caching, rate limiting, pub/sub for 10K+ users
 

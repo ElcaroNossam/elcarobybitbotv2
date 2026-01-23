@@ -1,4 +1,4 @@
-# Elcaro Bybit Trading Bot v2 - Dependencies
+# Lyxen Bybit Trading Bot v2 - Dependencies
 # Python 3.10+ required
 # Last updated: December 23, 2025
 
@@ -19,7 +19,7 @@ pillow>=10.0.0
 # =====================================================
 # BLOCKCHAIN & WEB3
 # =====================================================
-# TON blockchain for ELCARO token payments
+# TON blockchain for LYXEN token payments
 pytoniq>=0.1.35
 pytoniq-core>=0.1.35
 tonsdk>=1.0.15
@@ -120,7 +120,7 @@ anyio>=4.9.0
 # - ✅ Unified models (Position, Balance, OrderResult)
 # - ✅ Multi-exchange support (Bybit + HyperLiquid)
 # - ✅ Enhanced testing suite (102+ tests passing)
-# - ✅ ElCaro design system CSS (gradient UI)# - ✅ Position calculator matching bot.py EXACT formula
+# - ✅ Lyxen design system CSS (gradient UI)# - ✅ Position calculator matching bot.py EXACT formula
 # - ✅ 50+ advanced indicators (trend, momentum, volatility)
 # - ✅ Orderbook analyzer with slippage modeling
 # - ✅ Risk management (Kelly, Optimal F, Sharpe/Sortino)

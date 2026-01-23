@@ -64,7 +64,7 @@ class TestBuildPnlSummary:
             api_positions, db_positions
         )
         
-        # Elcaro: 50 - 25 = 25
+        # Lyxen: 50 - 25 = 25
         assert strategy_pnl["elcaro"]["pnl"] == 25.00
         assert strategy_pnl["elcaro"]["count"] == 2
         
@@ -124,7 +124,7 @@ class TestBuildPnlSummary:
             api_positions, db_positions
         )
         
-        # Elcaro from BTCUSDT
+        # Lyxen from BTCUSDT
         assert strategy_pnl["elcaro"]["pnl"] == 100.00
         assert strategy_pnl["elcaro"]["count"] == 1
         
@@ -195,7 +195,7 @@ class TestFormatPnlSummary:
         result = format_pnl_summary(strategy_pnl, exchange_pnl, total_pnl, t)
         
         assert "📊 *PnL by Strategy:*" in result
-        assert "Elcaro" in result
+        assert "Lyxen" in result
         assert "+100.50" in result
         assert "(3)" in result
         # Single exchange - should NOT show exchange breakdown
@@ -263,7 +263,7 @@ class TestFormatPnlSummary:
         
         result = format_pnl_summary(strategy_pnl, exchange_pnl, total_pnl, t)
         
-        # Elcaro (200) should come before Fibonacci (50) and Scalper (-50)
+        # Lyxen (200) should come before Fibonacci (50) and Scalper (-50)
         elcaro_pos = result.find("Elcaro")
         fibonacci_pos = result.find("Fibonacci")
         scalper_pos = result.find("Scalper")
@@ -382,7 +382,7 @@ class TestShowPositionsForAccountIntegration:
         
         # Check PnL summary is present
         assert "PnL by Strategy:" in call_text
-        assert "Elcaro" in call_text
+        assert "Lyxen" in call_text
         assert "100.50" in call_text
 
 

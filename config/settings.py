@@ -1,5 +1,5 @@
 """
-ElCaro Trading Platform - Centralized Configuration
+Lyxen Trading Platform - Centralized Configuration
 Единый конфиг для всех сервисов: Bot, WebApp, Screener, Analytics
 """
 import os

@@ -1,5 +1,5 @@
 """
-ElCaro Paper Trading Module
+Lyxen Paper Trading Module
 Simulates real trading without risking actual capital:
 - Virtual balance tracking
 - Position management

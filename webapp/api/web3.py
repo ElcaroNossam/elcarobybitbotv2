@@ -166,7 +166,7 @@ async def get_wallet_info(user: Dict = Depends(get_current_user)):
 
 @router.post("/wallet/refresh-balance")
 async def refresh_token_balance(user: Dict = Depends(get_current_user)):
-    """Refresh ELCARO token balance from blockchain"""
+    """Refresh LYXEN token balance from blockchain"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     
@@ -462,7 +462,7 @@ async def purchase_subscription_with_tokens(
     request: SubscriptionPurchaseRequest,
     user: Dict = Depends(get_current_user)
 ):
-    """Purchase subscription with ELCARO tokens"""
+    """Purchase subscription with LYXEN tokens"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     
@@ -544,7 +544,7 @@ async def get_transaction_history(
 
 @router.get("/token/info")
 async def get_token_info():
-    """Get ELCARO token information"""
+    """Get LYXEN token information"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     
@@ -572,7 +572,7 @@ async def get_token_info():
         # Return default info
         return {
             'success': True,
-            'name': 'ElCaro Token',
+            'name': 'Lyxen Token',
             'symbol': 'ELCARO',
             'decimals': 18,
             'price_usd': 1.0,

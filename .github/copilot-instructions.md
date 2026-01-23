@@ -1,4 +1,4 @@
-# ElCaro Trading Platform - AI Coding Guidelines
+# Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
 # Версия: 3.20.0 | Обновлено: 23 января 2026
 # =============================================
@@ -94,7 +94,7 @@
 ## Структура проекта
 
 ```
-ElCaro Trading Platform
+Lyxen Trading Platform
 ├── bot.py                 # 🔥 Главный бот (24246 строк, 250+ функций)
 ├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 6K строк)
 ├── db_elcaro.py           # 💎 ELC Token functions (705 строк)
@@ -414,7 +414,7 @@ idx_trade_logs_account      (account_type, ts DESC)
 | custom_strategies | Кастомные стратегии |
 | strategy_marketplace | Маркетплейс стратегий |
 | exchange_accounts | Подключённые биржи |
-| elc_transactions | ELCARO token транзакции |
+| elc_transactions | LYXEN token транзакции |
 
 ## Использование в коде
 

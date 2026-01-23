@@ -1,5 +1,5 @@
 """
-ElCaro Orderbook & Market Microstructure Analysis
+Lyxen Orderbook & Market Microstructure Analysis
 Real-time orderbook data fetching and analysis for realistic backtesting
 
 Features:

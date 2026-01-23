@@ -3,13 +3,13 @@ TEXTS = {
     # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
     'welcome':                     '''🔥 <b>Bienvenue, Trader Alpha !</b>
 
-Pendant que vous lisez ceci — <b>847 traders</b> profitent déjà avec ElCaro.
+Pendant que vous lisez ceci — <b>847 traders</b> profitent déjà avec Lyxen.
 
 ⚡ <b>&lt; 100ms</b> vitesse d'exécution
 🛡️ <b>664 tests de sécurité</b> réussis
 💎 <b>24/7</b> trading propulsé par IA
 
-<i>Vos concurrents ne dorment pas. ElCaro non plus.</i>
+<i>Vos concurrents ne dorment pas. Lyxen non plus.</i>
 
 Choisissez votre voie vers la liberté financière :''',
     'no_strategies':               '❌ Aucune — <i>Vous perdez de l\'argent chaque seconde sans stratégies actives</i>',
@@ -42,7 +42,7 @@ Choisissez votre voie vers la liberté financière :''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Elcaro',
+    'button_elcaro':               '🔥 Lyxen',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Config',
     'button_indicators':           '💡 Indicateurs',
@@ -226,7 +226,7 @@ Choisissez votre voie vers la liberté financière :''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Indicateurs Elcaro*',
+    'indicators_header':           '📈 *Indicateurs Lyxen*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Tendance adaptative',
@@ -269,7 +269,7 @@ Choisissez votre voie vers la liberté financière :''',
         '💎 {symbol} @ {entry:.6f}\n'
         '📊 Taille: {size}\n'
         '📍 {exchange} • {market_type}\n\n'
-        '<i>L\'IA ElCaro travaille pour vous 24/7</i>'
+        '<i>L\'IA Lyxen travaille pour vous 24/7</i>'
     ),
     'sl_auto_set':                 '🛑 SL défini automatiquement : {price:.6f}',
     'auto_close_position':         '⏱ Position {symbol} (TF={tf}) ouverte > {tf} et perdante, clôturée auto.',
@@ -326,14 +326,14 @@ Choisissez votre voie vers la liberté financière :''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Elcaro (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Elcaro Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Elcaro Limit erreur: {msg}',
-    'elcaro_market_entry':         '🔥 *Elcaro Entrée Market*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Elcaro: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Elcaro Market erreur: {msg}',
-    'elcaro_analysis':             '🔥 Elcaro Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Elcaro',
+    # Lyxen (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Lyxen Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Lyxen Limit erreur: {msg}',
+    'elcaro_market_entry':         '🔥 *Lyxen Entrée Market*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Lyxen Market erreur: {msg}',
+    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Lyxen',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
@@ -500,7 +500,7 @@ Choisissez votre voie vers la liberté financière :''',
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Elcaro: {state}',
+    'config_trade_elcaro':           '🔥 Lyxen: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -599,7 +599,7 @@ Choisissez votre voie vers la liberté financière :''',
     'strat_mode_both':             '🔄 Les deux',
     'strat_mode_changed':          '✅ Mode de trading {strategy}: {mode}',
 
-    # Elcaro (Heatmap)
+    # Lyxen (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -613,7 +613,7 @@ Choisissez votre voie vers la liberté financière :''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Elcaro',
+    'strat_elcaro':                  '🔥 Lyxen',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Paramètres DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -689,7 +689,7 @@ Choisissez votre voie vers la liberté financière :''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Elcaro',
+    'stats_elcaro':                  '🔥 Lyxen',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -726,14 +726,14 @@ Choisissez votre voie vers la liberté financière :''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Elcaro AI settings
+    # Lyxen AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Levier',
     'prompt_leverage': 'Entrez le levier (1-100) :',
     'auto_default': 'Auto',
 
-    # Elcaro AI
+    # Lyxen AI
     'elcaro_ai_desc': '_Tous les paramètres sont parsés automatiquement depuis les signaux AI :_',
 
     # Scalper entries
@@ -773,7 +773,7 @@ Choisissez votre voie vers la liberté financière :''',
     
     # License status messages
     'no_license': '🚨 <b>ACCÈS REFUSÉ</b>\n\n⚠️ Pendant que vous lisez ceci, les traders Premium font des profits.\n\n💎 Débloquez votre potentiel: /subscribe\n\n<i>Chaque minute d\'attente = argent perdu</i>',
-    'no_license_trading': '🚨 <b>TRADING BLOQUÉ</b>\n\n⚠️ 847 traders profitent EN CE MOMENT avec ElCaro.\n\n💎 Rejoignez-les: /subscribe\n\n<i>Le marché n\'attend personne.</i>',
+    'no_license_trading': '🚨 <b>TRADING BLOQUÉ</b>\n\n⚠️ 847 traders profitent EN CE MOMENT avec Lyxen.\n\n💎 Rejoignez-les: /subscribe\n\n<i>Le marché n\'attend personne.</i>',
     'license_required': '⚠️ Cette fonctionnalité nécessite un abonnement {required}.\n\nUtilisez /subscribe pour mettre à niveau.',
     'trial_demo_only': '⚠️ La licence d\'essai ne permet que le trading démo.\n\nPassez à Premium ou Basic pour le trading réel: /subscribe',
     'basic_strategy_limit': '⚠️ La licence Basic sur compte réel ne permet que: {strategies}\n\nPassez à Premium pour toutes les stratégies: /subscribe',
@@ -793,7 +793,7 @@ Choisissez votre voie vers la liberté financière :''',
     # Premium plan - BLACK RHETORIC: Authority + Social Proof
     'premium_title': '👑 *PREMIUM — Le Choix des Gagnants*',
     'premium_desc': '''✅ Accès complet à toutes les fonctionnalités
-✅ Les 5 stratégies: OI, RSI+BB, Scryptomera, Scalper, Elcaro
+✅ Les 5 stratégies: OI, RSI+BB, Scryptomera, Scalper, Lyxen
 ✅ Trading Réel + Démo
 ✅ Support prioritaire
 ✅ SL/TP dynamique basé sur ATR
@@ -808,7 +808,7 @@ Choisissez votre voie vers la liberté financière :''',
     'basic_title': '🥈 *PLAN BASIC*',
     'basic_desc': '''✅ Accès complet au compte démo
 ✅ Compte réel: OI, RSI+BB, Scryptomera, Scalper
-❌ Elcaro, Fibonacci, Spot — Premium uniquement
+❌ Lyxen, Fibonacci, Spot — Premium uniquement
 ✅ Support standard
 ✅ SL/TP dynamique basé sur ATR''',
     'basic_1m': '🥈 1 Mois — {price} TRC',
@@ -1127,7 +1127,7 @@ Récompenses quotidiennes • Unstaking instantané''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ELCARO Balance</b>',
+    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1137,7 +1137,7 @@ Récompenses quotidiennes • Unstaking instantané''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ELCARO (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1217,7 +1217,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *ELCARO* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1273,7 +1273,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *ELCARO CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`
