@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.20.0 | Обновлено: 23 января 2026
+# Версия: 3.21.0 | Обновлено: 24 января 2026
 # =============================================
 
 ---
@@ -74,22 +74,22 @@
 
 # 📊 АРХИТЕКТУРА ПРОЕКТА
 
-## Статистика проекта (актуально на 23.01.2026)
+## Статистика проекта (актуально на 24.01.2026)
 
 | Метрика | Значение |
 |---------|----------|
-| Python файлов | 280+ |
-| HTML шаблонов | 36 |
-| CSS файлов | 9 |
-| JS файлов | 18 |
-| Тестов | 664 |
+| Python файлов | 318 |
+| HTML шаблонов | 44 |
+| CSS файлов | 15 |
+| JS файлов | 26 |
+| Тестов | 778 |
 | Языков перевода | 15 |
-| Ключей перевода | 1450+ |
+| Ключей перевода | 1521 |
 | База данных | PostgreSQL 14 (ONLY) |
 | Users | 12 |
 | Active positions | 61 |
-| Trade logs | 11,691 |
-| Migration files | 14 |
+| Trade logs | 0 (пересоздана) |
+| Migration files | 16 |
 
 ## Структура проекта
 
@@ -694,6 +694,40 @@ keyboard = build_keyboard([
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ MAJOR: Triacelo → Lyxen Full Rebrand (Jan 24, 2026)
+- **Изменения:**
+  - Все упоминания Triacelo/triacelo/TRIACELO заменены на Lyxen/lyxen/LYXEN
+  - Затронуто 48 файлов: HTML, JS, CSS, SVG, Python, MD
+  - core.js: `Triacelo.apiGet()` → `Lyxen.apiGet()` etc.
+  - Логотипы, заголовки, футеры - везде Lyxen
+- **Файлы:** 48 файлов во всём проекте
+- **Commit:** pending
+
+### ✅ FIX: trade_logs Missing Columns (Jan 24, 2026)
+- **Проблема:** Ошибка "column rsi of relation trade_logs does not exist"
+- **Причина:** Таблица trade_logs не имела колонок rsi, bb_hi, bb_lo, vol_delta
+- **Fix SQL:**
+  ```sql
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS rsi REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS bb_hi REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS bb_lo REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS vol_delta REAL;
+  ```
+
+### ✅ FEAT: Automatic Log Cleanup (Jan 24, 2026)
+- **Изменения:**
+  - Создан `/scripts/cleanup_logs.sh` на сервере
+  - Удаление логов старше 7 дней
+  - Автообрезка логов больше 50MB
+  - Cron job: `0 3 * * *` (каждый день в 3:00 AM)
+- **Результат:** Логи очищены с 72MB до 16MB
+
+### ✅ FIX: Daily Error Notification Keys (Jan 24, 2026)
+- **Изменения:**
+  - Добавлены ключи daily_zero_balance, daily_api_keys_invalid, daily_connection_error, daily_margin_exhausted
+  - Добавлены во все 15 языков переводов
+- **Файлы:** все translations/*.py
 
 ### ✅ MAJOR: Menu Restructure + Bybit API Optimization (Jan 23, 2026)
 - **Изменения:**
@@ -1572,13 +1606,15 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 23 января 2026*
-*Version: 3.20.0*
+*Last updated: 24 января 2026*
+*Version: 3.21.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
-*Tests: 664/664 passing*
+*Tests: 778/778 passing*
 *TON Integration: READY (real verification)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
-*Translations: 15 languages, 1450+ keys, common button keys*
+*Translations: 15 languages, 1521 keys, common button keys*
+*Branding: Lyxen (renamed from Triacelo)*
+*Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
