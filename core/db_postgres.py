@@ -234,10 +234,14 @@ class SQLiteCompatConnection:
         self._conn.rollback()
     
     def close(self):
-        """Close connection."""
+        """Close connection - returns to pool if pool reference exists."""
         if self._cursor:
             self._cursor.close()
-        self._conn.close()
+        # If we have a pool reference, return connection to pool instead of closing
+        if hasattr(self, '_pool') and self._pool:
+            self._pool.putconn(self._conn)
+        else:
+            self._conn.close()
     
     def __enter__(self):
         return self

@@ -11,22 +11,20 @@ user_id is extracted from verified JWT token, not from query params.
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-import sqlite3
 import json
 import time
 import asyncio
 from pathlib import Path
+from contextlib import contextmanager
 
+# Use PostgreSQL via centralized helper (NOT sqlite3!)
+from webapp.api.db_helper import get_db
 from webapp.api.auth import get_current_user, get_current_user_optional
 
 router = APIRouter()
-DB_FILE = Path("bot.db")
-
-
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    
+    def __iter__(self):
+        return iter(self._cursor)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -223,7 +221,7 @@ async def get_strategy(strategy_id: int, user: Optional[dict] = Depends(get_curr
         if user_id and not is_owner and strategy.get("marketplace_id"):
             cur.execute("""
                 SELECT 1 FROM strategy_purchases 
-                WHERE buyer_id = ? AND marketplace_id = ? AND is_active = 1
+                WHERE buyer_id = ? AND marketplace_id = ? AND is_active = TRUE
             """, (user_id, strategy["marketplace_id"]))
             has_purchased = cur.fetchone() is not None
         
@@ -366,7 +364,7 @@ async def get_marketplace(
             FROM strategy_marketplace m
             JOIN custom_strategies s ON m.strategy_id = s.id
             JOIN users u ON m.seller_id = u.user_id
-            WHERE m.is_active = 1 AND m.rating >= ?
+            WHERE m.is_active = TRUE AND m.rating >= ?
         """
         params = [min_rating]
         
@@ -386,7 +384,7 @@ async def get_marketplace(
             listings.append(listing)
         
         # Get total count
-        cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = 1")
+        cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = TRUE")
         row = cur.fetchone()
         total = row[0] if row else 0
         
@@ -414,7 +412,7 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
             SELECT m.*, s.name, s.user_id as creator_id
             FROM strategy_marketplace m
             JOIN custom_strategies s ON m.strategy_id = s.id
-            WHERE m.id = ? AND m.is_active = 1
+            WHERE m.id = ? AND m.is_active = TRUE
         """, (request.marketplace_id,))
         
         listing = cur.fetchone()
@@ -426,7 +424,7 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
         # Check if already purchased
         cur.execute("""
             SELECT id FROM strategy_purchases 
-            WHERE buyer_id = ? AND marketplace_id = ? AND is_active = 1
+            WHERE buyer_id = ? AND marketplace_id = ? AND is_active = TRUE
         """, (user_id, request.marketplace_id))
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Already purchased")
@@ -484,7 +482,7 @@ async def get_purchased_strategies(user: dict = Depends(get_current_user)):
             SELECT p.*, s.name, s.description, s.config_json, s.win_rate, s.total_pnl
             FROM strategy_purchases p
             JOIN custom_strategies s ON p.strategy_id = s.id
-            WHERE p.buyer_id = ? AND p.is_active = 1
+            WHERE p.buyer_id = ? AND p.is_active = TRUE
             ORDER BY p.purchased_at DESC
         """, (user_id,))
         
@@ -525,7 +523,7 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
         # Verify purchase
         cur.execute("""
             SELECT id FROM strategy_purchases 
-            WHERE buyer_id = ? AND marketplace_id = ? AND is_active = 1
+            WHERE buyer_id = ? AND marketplace_id = ? AND is_active = TRUE
         """, (user_id, request.marketplace_id))
         if not cur.fetchone():
             raise HTTPException(status_code=403, detail="Must purchase strategy to rate")
@@ -604,7 +602,7 @@ async def get_custom_strategy_rankings(page: int = 1, limit: int = 50):
                    ROW_NUMBER() OVER (ORDER BY s.win_rate DESC, s.total_pnl DESC) as rank
             FROM custom_strategies s
             LEFT JOIN strategy_marketplace m ON s.id = m.strategy_id
-            WHERE s.is_active = 1
+            WHERE s.is_active = TRUE
             ORDER BY s.win_rate DESC, s.total_pnl DESC
             LIMIT ? OFFSET ?
         """, (limit, (page - 1) * limit))

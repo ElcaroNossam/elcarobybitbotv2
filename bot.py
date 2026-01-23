@@ -4920,6 +4920,7 @@ async def split_market_plus_one_limit(
         timeframe=tf, signal_id=(signal_id or get_last_signal_id(uid, symbol, tf)),
         strategy=strategy,
         account_type=account_type,
+        exchange="bybit",  # DCA is Bybit-only
         use_atr=use_atr,  # P0.5: Pass ATR setting
         leverage=pos_leverage,  # Save actual leverage used
         # Fix #2: Save SL/TP % at position open time
@@ -12573,6 +12574,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     # Fix #2: Use saved SL/TP % from position open time
                     applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
                     applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
+                    exchange=ap.get("exchange") or "bybit",  # Multitenancy fix
                 )
             except Exception as log_err:
                 logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
@@ -12736,6 +12738,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         # Fix #2: Use saved SL/TP % from position open time
                         applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
                         applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
+                        exchange=ap.get("exchange") or "bybit",  # Multitenancy fix
                     )
                 except Exception as log_err:
                     logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
@@ -16122,6 +16125,7 @@ async def monitor_positions_loop(app: Application):
                                                 signal_id   = po["signal_id"],
                                                 strategy    = strat_name,
                                                 account_type = current_account_type,
+                                                exchange    = current_exchange,  # Multitenancy fix
                                                 use_atr     = pos_use_atr_pending,  # P0.5
                                                 leverage    = pos_leverage,  # Save actual leverage
                                                 # Fix #2: Save SL/TP % at position open time
@@ -16284,6 +16288,7 @@ async def monitor_positions_loop(app: Application):
                                     signal_id  = signal_id,
                                     strategy   = final_strategy,
                                     account_type = current_account_type,
+                                    exchange   = current_exchange,  # Multitenancy fix
                                     use_atr    = pos_use_atr_detected,  # P0.5
                                     leverage   = pos_leverage,  # Save actual leverage
                                     # Fix #2: Save SL/TP % at position open time

@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import sys
 import os
-import sqlite3
 import json
 import asyncio
 from pathlib import Path
@@ -18,11 +17,11 @@ from core.tasks import safe_create_task
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# Import auth
+# Import auth and PostgreSQL helper
 from webapp.api.auth import get_current_user
+from webapp.api.db_helper import get_db
 
 router = APIRouter()
-DB_FILE = Path(__file__).parent.parent.parent / "bot.db"
 
 # WebSocket connections for live mode
 live_connections: Dict[str, WebSocket] = {}
@@ -200,28 +199,28 @@ async def run_custom_backtest(request: CustomBacktestRequest, user_id: int = Non
         from webapp.services.backtest_engine import RealBacktestEngine, save_backtest_results
         
         # Verify strategy exists and user has access
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
         cur = conn.cursor()
         
-        cur.execute("""
-            SELECT s.*, p.id as purchase_id 
-            FROM custom_strategies s
-            LEFT JOIN strategy_purchases p ON s.id = p.strategy_id AND p.buyer_id = ?
-            WHERE s.id = ? AND s.is_active = 1
-        """, (user_id, request.strategy_id))
-        
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Strategy not found")
-        
-        strategy = dict(row)
-        
-        # Check access: owner or purchased
-        if user_id and strategy["user_id"] != user_id and not strategy.get("purchase_id"):
-            raise HTTPException(status_code=403, detail="Purchase required to backtest this strategy")
-        
-        conn.close()
+        try:
+            cur.execute("""
+                SELECT s.*, p.id as purchase_id 
+                FROM custom_strategies s
+                LEFT JOIN strategy_purchases p ON s.id = p.strategy_id AND p.buyer_id = ?
+                WHERE s.id = ? AND s.is_active = TRUE
+            """, (user_id, request.strategy_id))
+            
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Strategy not found")
+            
+            strategy = dict(row)
+            
+            # Check access: owner or purchased
+            if user_id and strategy["user_id"] != user_id and not strategy.get("purchase_id"):
+                raise HTTPException(status_code=403, detail="Purchase required to backtest this strategy")
+        finally:
+            conn.close()
         
         engine = RealBacktestEngine()
         
@@ -910,7 +909,7 @@ async def get_replay_data(request: ReplayDataRequest):
 async def deploy_strategy(request: DeployStrategyRequest):
     """Deploy tested strategy to bot with optimized parameters"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
+        conn = get_db()
         cur = conn.cursor()
         
         # Save deployment record
@@ -944,19 +943,19 @@ async def deploy_strategy(request: DeployStrategyRequest):
             "message": f"Strategy '{request.strategy}' deployed successfully"
         }
         
-    except sqlite3.OperationalError as e:
+    except Exception as e:
         # Table might not exist - create it
-        if "no such table" in str(e):
-            conn = sqlite3.connect(str(DB_FILE))
+        if "does not exist" in str(e) or "no such table" in str(e):
+            conn = get_db()
             cur = conn.cursor()
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS strategy_deployments (
-                    id INTEGER PRIMARY KEY,
+                    id SERIAL PRIMARY KEY,
                     strategy_name TEXT NOT NULL,
                     params_json TEXT,
                     backtest_results_json TEXT,
-                    deployed_at TEXT,
-                    is_active INTEGER DEFAULT 1
+                    deployed_at TIMESTAMP DEFAULT NOW(),
+                    is_active BOOLEAN DEFAULT TRUE
                 )
             """)
             conn.commit()
@@ -966,16 +965,14 @@ async def deploy_strategy(request: DeployStrategyRequest):
             return await deploy_strategy(request)
         
         return {"success": False, "error": str(e)}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
 
 @router.get("/deployments")
 async def list_deployments():
     """List all strategy deployments"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         cur.execute("""
@@ -1008,13 +1005,13 @@ async def list_deployments():
 async def get_active_deployment(strategy: str):
     """Get currently active deployment for a strategy"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         cur.execute("""
             SELECT * FROM strategy_deployments 
-            WHERE strategy_name = ? AND is_active = 1
+            WHERE strategy_name = ? AND is_active = TRUE
             ORDER BY deployed_at DESC 
             LIMIT 1
         """, (strategy,))
@@ -1871,35 +1868,25 @@ class SaveStrategyRequest(BaseModel):
 async def save_custom_strategy(request: SaveStrategyRequest):
     """Save a custom built strategy"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
+        conn = get_db()
         cur = conn.cursor()
-        
-        # Ensure table exists
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS custom_strategies (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                description TEXT,
-                base_strategy TEXT DEFAULT 'custom',
-                config_json TEXT NOT NULL,
-                backtest_results_json TEXT,
-                visibility TEXT DEFAULT 'private',
-                price REAL DEFAULT 0,
-                is_active INTEGER DEFAULT 1,
-                created_at TEXT,
-                updated_at TEXT,
-                UNIQUE(user_id, name)
-            )
-        """)
         
         now = datetime.now().isoformat()
         
+        # Use INSERT ON CONFLICT for PostgreSQL (upsert)
         cur.execute("""
-            INSERT OR REPLACE INTO custom_strategies 
+            INSERT INTO custom_strategies 
             (user_id, name, description, base_strategy, config_json, backtest_results_json, 
              visibility, price, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+            ON CONFLICT (user_id, name) DO UPDATE SET
+                description = EXCLUDED.description,
+                base_strategy = EXCLUDED.base_strategy,
+                config_json = EXCLUDED.config_json,
+                backtest_results_json = EXCLUDED.backtest_results_json,
+                visibility = EXCLUDED.visibility,
+                price = EXCLUDED.price,
+                updated_at = EXCLUDED.updated_at
         """, (
             request.user_id,
             request.config.name,
@@ -1928,34 +1915,15 @@ async def get_user_strategies(user_id: int, user: dict = Depends(get_current_use
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's strategies")
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
         cur = conn.cursor()
-        
-        # Ensure table exists
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS custom_strategies (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                description TEXT,
-                base_strategy TEXT DEFAULT 'custom',
-                config_json TEXT NOT NULL,
-                backtest_results_json TEXT,
-                visibility TEXT DEFAULT 'private',
-                price REAL DEFAULT 0,
-                is_active INTEGER DEFAULT 1,
-                created_at TEXT,
-                updated_at TEXT
-            )
-        """)
         
         cur.execute("""
             SELECT cs.*, 
                    (SELECT COUNT(*) FROM live_deployments ld 
                     WHERE ld.strategy_id = cs.id AND ld.user_id = cs.user_id AND ld.status = 'active') as is_live
             FROM custom_strategies cs
-            WHERE cs.user_id = ? AND cs.is_active = 1 
+            WHERE cs.user_id = ? AND cs.is_active = TRUE 
             ORDER BY cs.updated_at DESC
         """, (user_id,))
         
@@ -1994,7 +1962,7 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
     # Security: Use authenticated user_id from JWT
     user_id = user["user_id"]
     try:
-        conn = sqlite3.connect(str(DB_FILE))
+        conn = get_db()
         cur = conn.cursor()
         
         cur.execute("""
@@ -2014,15 +1982,15 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
 async def get_strategy_details(strategy_id: int, user_id: int = None):
     """Get detailed info about a strategy"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         cur.execute("""
             SELECT cs.*, u.username as author_name
             FROM custom_strategies cs
             LEFT JOIN users u ON cs.user_id = u.user_id
-            WHERE cs.id = ? AND cs.is_active = 1
+            WHERE cs.id = ? AND cs.is_active = TRUE
         """, (strategy_id,))
         
         row = cur.fetchone()
@@ -2111,15 +2079,15 @@ async def browse_marketplace(
 ):
     """Browse public strategies in marketplace"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         query = """
             SELECT cs.*, u.username as author_name
             FROM custom_strategies cs
             LEFT JOIN users u ON cs.user_id = u.user_id
-            WHERE cs.is_active = 1 AND cs.visibility IN ('public', 'premium')
+            WHERE cs.is_active = TRUE AND cs.visibility IN ('public', 'premium')
         """
         params = []
         
@@ -2167,14 +2135,14 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
     """Copy a public strategy to your account - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         # Get original strategy
         cur.execute("""
             SELECT * FROM custom_strategies 
-            WHERE id = ? AND visibility IN ('public', 'premium') AND is_active = 1
+            WHERE id = ? AND visibility IN ('public', 'premium') AND is_active = TRUE
         """, (strategy_id,))
         
         original = cur.fetchone()
@@ -2213,7 +2181,7 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
 async def publish_to_marketplace(strategy_id: int, user_id: int, visibility: str = "public", price: float = 0):
     """Publish your strategy to marketplace"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
+        conn = get_db()
         cur = conn.cursor()
         
         # Verify ownership
@@ -2249,13 +2217,13 @@ class GoLiveRequest(BaseModel):
 async def start_live_trading(strategy_id: int, request: GoLiveRequest):
     """Deploy strategy to live trading in the bot"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         # Get strategy
         cur.execute("""
-            SELECT * FROM custom_strategies WHERE id = ? AND is_active = 1
+            SELECT * FROM custom_strategies WHERE id = ? AND is_active = TRUE
         """, (strategy_id,))
         
         strategy = cur.fetchone()
@@ -2331,7 +2299,7 @@ class StopLiveRequest(BaseModel):
 async def stop_live_trading(strategy_id: int, request: StopLiveRequest):
     """Stop live trading for a strategy"""
     try:
-        conn = sqlite3.connect(str(DB_FILE))
+        conn = get_db()
         cur = conn.cursor()
         
         cur.execute("""
@@ -2355,8 +2323,8 @@ async def get_live_status(user_id: int, user: dict = Depends(get_current_user)):
     if user["user_id"] != user_id and not user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Access denied: Cannot view other user's live status")
     try:
-        conn = sqlite3.connect(str(DB_FILE))
-        conn.row_factory = sqlite3.Row
+        conn = get_db()
+        
         cur = conn.cursor()
         
         # Ensure table exists

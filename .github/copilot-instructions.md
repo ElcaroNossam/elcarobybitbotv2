@@ -695,6 +695,18 @@ keyboard = build_keyboard([
 
 # 🔧 RECENT FIXES (Январь 2026)
 
+### ✅ CRITICAL: Multitenancy Exchange Field Fix (Jan 24, 2026)
+- **Проблема:** Несколько мест в коде НЕ передавали `exchange` при сохранении позиций и trade logs
+- **Причина:** При добавлении multitenancy не были обновлены все вызовы `add_active_position()` и `log_exit_and_remove_position()`
+- **Исправленные места:**
+  - `bot.py` line 4917: DCA handler - добавлен `exchange="bybit"`
+  - `bot.py` line 16116: pending orders monitor - добавлен `exchange=current_exchange`
+  - `bot.py` line 16279: position detection monitor - добавлен `exchange=current_exchange`
+  - `bot.py` line 12564: manual close - добавлен `exchange=ap.get("exchange") or "bybit"`
+  - `bot.py` line 12739: close all - добавлен `exchange=ap.get("exchange") or "bybit"`
+- **Результат:** Все позиции и trade logs теперь корректно сохраняют биржу для multitenancy фильтрации
+- **Файл:** bot.py (5 изменений)
+
 ### ✅ CRITICAL: HyperLiquid Multitenancy Credentials Fix (Jan 24, 2026)
 - **Проблема:** HL функции использовали устаревший `hl_creds["hl_private_key"]` вместо multitenancy credentials
 - **Причина:** При добавлении multitenancy (testnet/mainnet ключи) не были обновлены все HL функции
@@ -1648,13 +1660,14 @@ async def verify_usdt_jetton_transfer(...)
 ---
 
 *Last updated: 24 января 2026*
-*Version: 3.21.0*
+*Version: 3.22.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 778/778 passing*
 *TON Integration: READY (real verification)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
+*Exchange Field: All add_active_position/log_exit calls pass exchange correctly*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1521 keys, common button keys*
 *Branding: Lyxen (renamed from Triacelo)*

@@ -3,7 +3,6 @@ Admin API - Users and Licenses management
 """
 import os
 import sys
-import sqlite3
 from typing import Optional, List
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -13,6 +12,9 @@ import secrets
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from coin_params import ADMIN_ID
+
+# Use PostgreSQL via centralized helper (NOT sqlite3!)
+from webapp.api.db_helper import get_db
 
 router = APIRouter()
 
@@ -38,26 +40,26 @@ async def get_users(
 ):
     """Get all users with stats."""
     
-    conn = sqlite3.connect(db.DB_FILE)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cur = conn.cursor()
     
-    # Get counts (with safe None handling)
-    cur.execute("SELECT COUNT(*) FROM users")
-    row = cur.fetchone()
-    total = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
-    row = cur.fetchone()
-    active = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
-    row = cur.fetchone()
-    premium = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE is_banned = 1")
-    row = cur.fetchone()
-    banned = row[0] if row else 0
+    try:
+        # Get counts (with safe None handling)
+        cur.execute("SELECT COUNT(*) as cnt FROM users")
+        row = cur.fetchone()
+        total = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
+        row = cur.fetchone()
+        active = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        row = cur.fetchone()
+        premium = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = 1")
+        row = cur.fetchone()
+        banned = row['cnt'] if row else 0
     
     # Get users list
     offset = (page - 1) * limit
@@ -96,17 +98,17 @@ async def get_users(
             "created_at": row["created_at"],
         })
     
-    conn.close()
-    
-    return {
-        "total": total,
-        "active": active,
-        "premium": premium,
-        "banned": banned,
-        "page": page,
-        "limit": limit,
-        "list": users
-    }
+        return {
+            "total": total,
+            "active": active,
+            "premium": premium,
+            "banned": banned,
+            "page": page,
+            "limit": limit,
+            "list": users
+        }
+    finally:
+        conn.close()
 
 
 @router.get("/users/{user_id}")
@@ -202,27 +204,27 @@ async def get_licenses(
 ):
     """Get all licenses."""
     
-    conn = sqlite3.connect(db.DB_FILE)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cur = conn.cursor()
     
-    # Check if licenses table exists
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='licenses'")
-    if not cur.fetchone():
-        # Create licenses table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS licenses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                license_key TEXT UNIQUE NOT NULL,
-                license_type TEXT DEFAULT 'premium',
-                user_id INTEGER,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                expires_at TEXT,
-                is_active INTEGER DEFAULT 1,
-                days INTEGER DEFAULT 30
-            )
-        """)
-        conn.commit()
+    try:
+        # Check if licenses table exists (PostgreSQL uses information_schema)
+        cur.execute("SELECT table_name FROM information_schema.tables WHERE table_name='licenses'")
+        if not cur.fetchone():
+            # Create licenses table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS licenses (
+                    id SERIAL PRIMARY KEY,
+                    license_key TEXT UNIQUE NOT NULL,
+                    license_type TEXT DEFAULT 'premium',
+                    user_id BIGINT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    expires_at TIMESTAMP,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    days INTEGER DEFAULT 30
+                )
+            """)
+            conn.commit()
     
     cur.execute("""
         SELECT license_key, license_type, user_id, created_at, expires_at, is_active, days
@@ -231,21 +233,21 @@ async def get_licenses(
         LIMIT 100
     """)
     
-    licenses = []
-    for row in cur.fetchall():
-        licenses.append({
-            "key": row["license_key"],
-            "type": row["license_type"],
-            "user_id": row["user_id"],
-            "created_at": row["created_at"],
-            "expires_at": row["expires_at"],
-            "is_active": bool(row["is_active"]),
-            "days": row["days"],
-        })
-    
-    conn.close()
-    
-    return {"list": licenses}
+        licenses = []
+        for row in cur.fetchall():
+            licenses.append({
+                "key": row["license_key"],
+                "type": row["license_type"],
+                "user_id": row["user_id"],
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+                "expires_at": str(row["expires_at"]) if row["expires_at"] else None,
+                "is_active": bool(row["is_active"]),
+                "days": row["days"],
+            })
+        
+        return {"list": licenses}
+    finally:
+        conn.close()
 
 
 @router.post("/licenses")
@@ -255,33 +257,35 @@ async def create_license(
 ):
     """Create a new license."""
     
-    license_key = f"ELCARO-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+    license_key = f"LYXEN-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
     expires_at = (datetime.utcnow() + timedelta(days=data.days)).isoformat()
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Ensure table exists
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS licenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            license_key TEXT UNIQUE NOT NULL,
-            license_type TEXT DEFAULT 'premium',
-            user_id INTEGER,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT,
-            is_active INTEGER DEFAULT 1,
-            days INTEGER DEFAULT 30
-        )
-    """)
-    
-    cur.execute("""
-        INSERT INTO licenses (license_key, license_type, user_id, expires_at, days)
-        VALUES (?, ?, ?, ?, ?)
-    """, (license_key, data.license_type, data.user_id, expires_at, data.days))
-    
-    conn.commit()
-    conn.close()
+    try:
+        # Ensure table exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS licenses (
+                id SERIAL PRIMARY KEY,
+                license_key TEXT UNIQUE NOT NULL,
+                license_type TEXT DEFAULT 'premium',
+                user_id BIGINT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                expires_at TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                days INTEGER DEFAULT 30
+            )
+        """)
+        
+        cur.execute("""
+            INSERT INTO licenses (license_key, license_type, user_id, expires_at, days)
+            VALUES (?, ?, ?, ?, ?)
+        """, (license_key, data.license_type, data.user_id, expires_at, data.days))
+        
+        conn.commit()
+    finally:
+        conn.close()
     
     # If user_id provided, activate license for user
     if data.user_id:
@@ -302,21 +306,23 @@ async def revoke_license(
 ):
     """Revoke a license."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Get user_id before deleting
-    cur.execute("SELECT user_id FROM licenses WHERE license_key = ?", (license_key,))
-    row = cur.fetchone()
-    
-    if row and row[0]:
-        # Remove license from user
-        db.set_user_field(row[0], "license_type", None)
-        db.set_user_field(row[0], "license_expires", None)
-    
-    cur.execute("DELETE FROM licenses WHERE license_key = ?", (license_key,))
-    conn.commit()
-    conn.close()
+    try:
+        # Get user_id before deleting
+        cur.execute("SELECT user_id FROM licenses WHERE license_key = ?", (license_key,))
+        row = cur.fetchone()
+        
+        if row and row.get('user_id'):
+            # Remove license from user
+            db.set_user_field(row['user_id'], "license_type", None)
+            db.set_user_field(row['user_id'], "license_expires", None)
+        
+        cur.execute("DELETE FROM licenses WHERE license_key = ?", (license_key,))
+        conn.commit()
+    finally:
+        conn.close()
     
     return {"success": True, "message": f"License {license_key} revoked"}
 
@@ -327,47 +333,48 @@ async def get_stats(
 ):
     """Get system statistics."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Users stats (with safe None handling)
-    cur.execute("SELECT COUNT(*) FROM users")
-    row = cur.fetchone()
-    total_users = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
-    row = cur.fetchone()
-    active_users = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
-    row = cur.fetchone()
-    premium_users = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM users WHERE exchange_type = 'hyperliquid'")
-    row = cur.fetchone()
-    hl_users = row[0] if row else 0
-    
-    # Today's stats
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    cur.execute("SELECT COUNT(*) FROM users WHERE created_at LIKE ?", (f"{today}%",))
-    row = cur.fetchone()
-    new_today = row[0] if row else 0
-    
-    conn.close()
-    
-    return {
-        "users": {
-            "total": total_users,
-            "active": active_users,
-            "premium": premium_users,
-            "hyperliquid": hl_users,
-            "new_today": new_today,
-        },
-        "system": {
-            "bot_status": "running",
-            "webapp_status": "running",
+    try:
+        # Users stats (with safe None handling)
+        cur.execute("SELECT COUNT(*) as cnt FROM users")
+        row = cur.fetchone()
+        total_users = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
+        row = cur.fetchone()
+        active_users = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        row = cur.fetchone()
+        premium_users = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE exchange_type = 'hyperliquid'")
+        row = cur.fetchone()
+        hl_users = row['cnt'] if row else 0
+        
+        # Today's stats
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE created_at::text LIKE ?", (f"{today}%",))
+        row = cur.fetchone()
+        new_today = row['cnt'] if row else 0
+        
+        return {
+            "users": {
+                "total": total_users,
+                "active": active_users,
+                "premium": premium_users,
+                "hyperliquid": hl_users,
+                "new_today": new_today,
+            },
+            "system": {
+                "bot_status": "running",
+                "webapp_status": "running",
+            }
         }
-    }
+    finally:
+        conn.close()
 
 
 # ============ STRATEGY MANAGEMENT ============
@@ -380,56 +387,56 @@ async def get_all_strategies(
 ):
     """Get all custom strategies for admin review."""
     
-    conn = sqlite3.connect(db.DB_FILE)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cur = conn.cursor()
     
-    offset = (page - 1) * limit
-    
-    # Get strategies with user info
-    cur.execute("""
-        SELECT s.id, s.user_id, s.name, s.description, s.is_active, s.is_public,
-               s.performance_stats, s.created_at, s.updated_at,
-               u.username, u.first_name
-        FROM custom_strategies s
-        LEFT JOIN users u ON s.user_id = u.user_id
-        ORDER BY s.created_at DESC
-        LIMIT ? OFFSET ?
-    """, (limit, offset))
-    
-    strategies = []
-    for row in cur.fetchall():
-        strategies.append({
-            "id": row["id"],
-            "user_id": row["user_id"],
-            "username": row["username"],
-            "first_name": row["first_name"],
-            "name": row["name"],
-            "description": row["description"],
-            "is_active": bool(row["is_active"]),
-            "is_public": bool(row["is_public"]),
-            "performance_stats": row["performance_stats"],
-            "created_at": row["created_at"],
-            "updated_at": row["updated_at"],
-        })
-    
-    cur.execute("SELECT COUNT(*) FROM custom_strategies")
-    row = cur.fetchone()
-    total = row[0] if row else 0
-    
-    cur.execute("SELECT COUNT(*) FROM custom_strategies WHERE is_public = 1")
-    row = cur.fetchone()
-    public = row[0] if row else 0
-    
-    conn.close()
-    
-    return {
-        "total": total,
-        "public": public,
-        "page": page,
-        "limit": limit,
-        "list": strategies
-    }
+    try:
+        offset = (page - 1) * limit
+        
+        # Get strategies with user info
+        cur.execute("""
+            SELECT s.id, s.user_id, s.name, s.description, s.is_active, s.is_public,
+                   s.performance_stats, s.created_at, s.updated_at,
+                   u.username, u.first_name
+            FROM custom_strategies s
+            LEFT JOIN users u ON s.user_id = u.user_id
+            ORDER BY s.created_at DESC
+            LIMIT ? OFFSET ?
+        """, (limit, offset))
+        
+        strategies = []
+        for row in cur.fetchall():
+            strategies.append({
+                "id": row["id"],
+                "user_id": row["user_id"],
+                "username": row["username"],
+                "first_name": row["first_name"],
+                "name": row["name"],
+                "description": row["description"],
+                "is_active": bool(row["is_active"]),
+                "is_public": bool(row["is_public"]),
+                "performance_stats": row["performance_stats"],
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+                "updated_at": str(row["updated_at"]) if row["updated_at"] else None,
+            })
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM custom_strategies")
+        row = cur.fetchone()
+        total = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM custom_strategies WHERE is_public = TRUE")
+        row = cur.fetchone()
+        public = row['cnt'] if row else 0
+        
+        return {
+            "total": total,
+            "public": public,
+            "page": page,
+            "limit": limit,
+            "list": strategies
+        }
+    finally:
+        conn.close()
 
 
 @router.get("/strategies/marketplace")
@@ -438,57 +445,57 @@ async def get_marketplace_stats(
 ):
     """Get marketplace statistics."""
     
-    conn = sqlite3.connect(db.DB_FILE)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cur = conn.cursor()
     
-    # Total listings
-    cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = 1")
-    row = cur.fetchone()
-    active_listings = row[0] if row else 0
-    
-    # Total sales
-    cur.execute("SELECT COUNT(*), SUM(amount_paid) FROM strategy_purchases")
-    row = cur.fetchone()
-    total_sales = row[0] or 0
-    total_revenue = row[1] or 0
-    
-    # Platform share (50%)
-    platform_revenue = total_revenue * 0.5
-    
-    # Pending payouts
-    cur.execute("SELECT COUNT(*), SUM(amount) FROM seller_payouts WHERE status = 'pending'")
-    row = cur.fetchone()
-    pending_count = row[0] or 0
-    pending_amount = row[1] or 0
-    
-    # Top sellers
-    cur.execute("""
-        SELECT seller_id, COUNT(*) as sales, SUM(amount_paid) as revenue
-        FROM strategy_purchases
-        GROUP BY seller_id
-        ORDER BY revenue DESC
-        LIMIT 10
-    """)
-    top_sellers = []
-    for row in cur.fetchall():
-        top_sellers.append({
-            "seller_id": row["seller_id"],
-            "sales": row["sales"],
-            "revenue": row["revenue"],
-        })
-    
-    conn.close()
-    
-    return {
-        "active_listings": active_listings,
-        "total_sales": total_sales,
-        "total_revenue": total_revenue,
-        "platform_revenue": platform_revenue,
-        "pending_payouts": pending_count,
-        "pending_amount": pending_amount,
-        "top_sellers": top_sellers,
-    }
+    try:
+        # Total listings
+        cur.execute("SELECT COUNT(*) as cnt FROM strategy_marketplace WHERE is_active = TRUE")
+        row = cur.fetchone()
+        active_listings = row['cnt'] if row else 0
+        
+        # Total sales
+        cur.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(amount_paid), 0) as total FROM strategy_purchases")
+        row = cur.fetchone()
+        total_sales = row['cnt'] or 0
+        total_revenue = float(row['total'] or 0)
+        
+        # Platform share (50%)
+        platform_revenue = total_revenue * 0.5
+        
+        # Pending payouts
+        cur.execute("SELECT COUNT(*) as cnt, COALESCE(SUM(amount), 0) as total FROM seller_payouts WHERE status = 'pending'")
+        row = cur.fetchone()
+        pending_count = row['cnt'] or 0
+        pending_amount = float(row['total'] or 0)
+        
+        # Top sellers
+        cur.execute("""
+            SELECT seller_id, COUNT(*) as sales, SUM(amount_paid) as revenue
+            FROM strategy_purchases
+            GROUP BY seller_id
+            ORDER BY revenue DESC
+            LIMIT 10
+        """)
+        top_sellers = []
+        for row in cur.fetchall():
+            top_sellers.append({
+                "seller_id": row["seller_id"],
+                "sales": row["sales"],
+                "revenue": float(row["revenue"] or 0),
+            })
+        
+        return {
+            "active_listings": active_listings,
+            "total_sales": total_sales,
+            "total_revenue": total_revenue,
+            "platform_revenue": platform_revenue,
+            "pending_payouts": pending_count,
+            "pending_amount": pending_amount,
+            "top_sellers": top_sellers,
+        }
+    finally:
+        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/feature")
@@ -499,17 +506,18 @@ async def feature_strategy(
 ):
     """Feature or unfeature a strategy in marketplace."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    cur.execute("""
-        UPDATE strategy_marketplace SET is_featured = ? WHERE strategy_id = ?
-    """, (1 if featured else 0, strategy_id))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"success": True, "strategy_id": strategy_id, "featured": featured}
+    try:
+        cur.execute("""
+            UPDATE strategy_marketplace SET is_featured = ? WHERE strategy_id = ?
+        """, (featured, strategy_id))
+        
+        conn.commit()
+        return {"success": True, "strategy_id": strategy_id, "featured": featured}
+    finally:
+        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/approve")
@@ -519,18 +527,19 @@ async def approve_strategy(
 ):
     """Approve a strategy for public listing."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Set strategy as public and active
-    cur.execute("""
-        UPDATE custom_strategies SET is_public = 1, is_active = 1 WHERE id = ?
-    """, (strategy_id,))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"success": True, "strategy_id": strategy_id, "approved": True}
+    try:
+        # Set strategy as public and active
+        cur.execute("""
+            UPDATE custom_strategies SET is_public = TRUE, is_active = TRUE WHERE id = ?
+        """, (strategy_id,))
+        
+        conn.commit()
+        return {"success": True, "strategy_id": strategy_id, "approved": True}
+    finally:
+        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/reject")
@@ -541,23 +550,24 @@ async def reject_strategy(
 ):
     """Reject a strategy from public listing."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Remove from public
-    cur.execute("""
-        UPDATE custom_strategies SET is_public = 0 WHERE id = ?
-    """, (strategy_id,))
-    
-    # Remove from marketplace if listed
-    cur.execute("""
-        UPDATE strategy_marketplace SET is_active = 0 WHERE strategy_id = ?
-    """, (strategy_id,))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"success": True, "strategy_id": strategy_id, "rejected": True, "reason": reason}
+    try:
+        # Remove from public
+        cur.execute("""
+            UPDATE custom_strategies SET is_public = FALSE WHERE id = ?
+        """, (strategy_id,))
+        
+        # Remove from marketplace if listed
+        cur.execute("""
+            UPDATE strategy_marketplace SET is_active = FALSE WHERE strategy_id = ?
+        """, (strategy_id,))
+        
+        conn.commit()
+        return {"success": True, "strategy_id": strategy_id, "rejected": True, "reason": reason}
+    finally:
+        conn.close()
 
 
 @router.delete("/strategies/{strategy_id}")
@@ -567,20 +577,21 @@ async def delete_strategy_admin(
 ):
     """Delete a strategy (admin only)."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    # Delete from marketplace first
-    cur.execute("DELETE FROM strategy_marketplace WHERE strategy_id = ?", (strategy_id,))
-    
-    # Delete strategy
-    cur.execute("DELETE FROM custom_strategies WHERE id = ?", (strategy_id,))
-    
-    conn.commit()
-    affected = cur.rowcount
-    conn.close()
-    
-    return {"success": affected > 0, "deleted": affected}
+    try:
+        # Delete from marketplace first
+        cur.execute("DELETE FROM strategy_marketplace WHERE strategy_id = ?", (strategy_id,))
+        
+        # Delete strategy
+        cur.execute("DELETE FROM custom_strategies WHERE id = ?", (strategy_id,))
+        
+        conn.commit()
+        affected = cur.rowcount
+        return {"success": affected > 0, "deleted": affected}
+    finally:
+        conn.close()
 
 
 # ============ PAYOUTS MANAGEMENT ============
@@ -592,45 +603,45 @@ async def get_payouts(
 ):
     """Get all payout requests."""
     
-    conn = sqlite3.connect(db.DB_FILE)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cur = conn.cursor()
     
-    if status:
-        cur.execute("""
-            SELECT p.*, u.username, u.first_name
-            FROM seller_payouts p
-            LEFT JOIN users u ON p.seller_id = u.user_id
-            WHERE p.status = ?
-            ORDER BY p.requested_at DESC
-        """, (status,))
-    else:
-        cur.execute("""
-            SELECT p.*, u.username, u.first_name
-            FROM seller_payouts p
-            LEFT JOIN users u ON p.seller_id = u.user_id
-            ORDER BY p.requested_at DESC
-            LIMIT 100
-        """)
-    
-    payouts = []
-    for row in cur.fetchall():
-        payouts.append({
-            "id": row["id"],
-            "seller_id": row["seller_id"],
-            "username": row["username"],
-            "first_name": row["first_name"],
-            "amount": row["amount"],
-            "currency": row["currency"],
-            "status": row["status"],
-            "tx_hash": row["tx_hash"],
-            "requested_at": row["requested_at"],
-            "processed_at": row["processed_at"],
-        })
-    
-    conn.close()
-    
-    return {"list": payouts}
+    try:
+        if status:
+            cur.execute("""
+                SELECT p.*, u.username, u.first_name
+                FROM seller_payouts p
+                LEFT JOIN users u ON p.seller_id = u.user_id
+                WHERE p.status = ?
+                ORDER BY p.requested_at DESC
+            """, (status,))
+        else:
+            cur.execute("""
+                SELECT p.*, u.username, u.first_name
+                FROM seller_payouts p
+                LEFT JOIN users u ON p.seller_id = u.user_id
+                ORDER BY p.requested_at DESC
+                LIMIT 100
+            """)
+        
+        payouts = []
+        for row in cur.fetchall():
+            payouts.append({
+                "id": row["id"],
+                "seller_id": row["seller_id"],
+                "username": row["username"],
+                "first_name": row["first_name"],
+                "amount": float(row["amount"]) if row["amount"] else 0,
+                "currency": row["currency"],
+                "status": row["status"],
+                "tx_hash": row["tx_hash"],
+                "requested_at": str(row["requested_at"]) if row["requested_at"] else None,
+                "processed_at": str(row["processed_at"]) if row["processed_at"] else None,
+            })
+        
+        return {"list": payouts}
+    finally:
+        conn.close()
 
 
 @router.post("/payouts/{payout_id}/process")
@@ -642,19 +653,20 @@ async def process_payout(
     """Mark payout as processed."""
     import time
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    cur.execute("""
-        UPDATE seller_payouts 
-        SET status = 'completed', tx_hash = ?, processed_at = ?
-        WHERE id = ?
-    """, (tx_hash, int(time.time()), payout_id))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"success": True, "payout_id": payout_id, "status": "completed"}
+    try:
+        cur.execute("""
+            UPDATE seller_payouts 
+            SET status = 'completed', tx_hash = ?, processed_at = ?
+            WHERE id = ?
+        """, (tx_hash, int(time.time()), payout_id))
+        
+        conn.commit()
+        return {"success": True, "payout_id": payout_id, "status": "completed"}
+    finally:
+        conn.close()
 
 
 @router.post("/payouts/{payout_id}/reject")
@@ -665,17 +677,18 @@ async def reject_payout(
 ):
     """Reject a payout request."""
     
-    conn = sqlite3.connect(db.DB_FILE)
+    conn = get_db()
     cur = conn.cursor()
     
-    cur.execute("""
-        UPDATE seller_payouts SET status = 'failed' WHERE id = ?
-    """, (payout_id,))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"success": True, "payout_id": payout_id, "status": "failed", "reason": reason}
+    try:
+        cur.execute("""
+            UPDATE seller_payouts SET status = 'failed' WHERE id = ?
+        """, (payout_id,))
+        
+        conn.commit()
+        return {"success": True, "payout_id": payout_id, "status": "failed", "reason": reason}
+    finally:
+        conn.close()
 
 
 # ============ RANKINGS MANAGEMENT ============
