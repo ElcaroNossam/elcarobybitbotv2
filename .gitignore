@@ -83,3 +83,4 @@ nohup.out
 
 # SSH keys
 *.pem
+noet-dat.pem

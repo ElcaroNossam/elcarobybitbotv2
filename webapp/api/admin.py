@@ -49,15 +49,15 @@ async def get_users(
         row = cur.fetchone()
         total = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
         row = cur.fetchone()
         active = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = TRUE")
         row = cur.fetchone()
         premium = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = TRUE")
         row = cur.fetchone()
         banned = row['cnt'] if row else 0
     
@@ -98,15 +98,15 @@ async def get_users(
             "created_at": row["created_at"],
         })
     
-        return {
-            "total": total,
-            "active": active,
-            "premium": premium,
-            "banned": banned,
-            "page": page,
-            "limit": limit,
-            "list": users
-        }
+    return {
+        "total": total,
+        "active": active,
+        "premium": premium,
+        "banned": banned,
+        "page": page,
+        "limit": limit,
+        "list": users
+    }
     finally:
         conn.close()
 
@@ -342,11 +342,11 @@ async def get_stats(
         row = cur.fetchone()
         total_users = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
         row = cur.fetchone()
         active_users = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = TRUE")
         row = cur.fetchone()
         premium_users = row['cnt'] if row else 0
         

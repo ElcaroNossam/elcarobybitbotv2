@@ -169,9 +169,9 @@ async def get_finance_dashboard(
                     COUNT(*) FILTER (WHERE license_type = 'premium') as premium,
                     COUNT(*) FILTER (WHERE license_type = 'basic') as basic,
                     COUNT(*) FILTER (WHERE license_type = 'trial') as trial,
-                    COUNT(*) FILTER (WHERE is_lifetime = 1) as lifetime
+                    COUNT(*) FILTER (WHERE is_lifetime = TRUE) as lifetime
                 FROM users 
-                WHERE is_allowed = 1 AND is_banned = 0
+                WHERE is_allowed = TRUE AND is_banned = FALSE
             """)
             sub_row = cur.fetchone()
             
@@ -216,7 +216,7 @@ async def get_finance_dashboard(
             cur.execute("""
                 SELECT license_type, COUNT(*) 
                 FROM users 
-                WHERE is_allowed = 1 AND is_banned = 0 
+                WHERE is_allowed = TRUE AND is_banned = FALSE 
                 AND license_type IS NOT NULL
                 GROUP BY license_type
             """)
@@ -378,7 +378,7 @@ async def get_subscription_analytics(
                     COALESCE(license_type, 'free') as plan,
                     COUNT(*) as count
                 FROM users 
-                WHERE is_allowed = 1 AND is_banned = 0
+                WHERE is_allowed = TRUE AND is_banned = FALSE
                 GROUP BY license_type
             """)
             by_plan = {row[0]: row[1] for row in cur.fetchall()}
@@ -407,7 +407,7 @@ async def get_subscription_analytics(
             # Calculate churn (users who stopped being active)
             cur.execute("""
                 SELECT COUNT(*) FROM users 
-                WHERE is_allowed = 0 
+                WHERE is_allowed = FALSE 
                 AND created_at >= NOW() - INTERVAL '30 days'
             """)
             row = cur.fetchone()
@@ -761,7 +761,7 @@ async def approve_payment(
                 UPDATE users 
                 SET license_type = %s,
                     license_expires = %s,
-                    is_allowed = 1
+                    is_allowed = TRUE
                 WHERE user_id = %s
             """, (license_type, expires, user_id))
             

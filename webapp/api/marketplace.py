@@ -136,20 +136,18 @@ async def get_available_indicators():
 async def create_strategy(request: CreateStrategyRequest, user: dict = Depends(get_current_user)):
     """Create a new custom strategy - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT, not request
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO custom_strategies 
             (user_id, name, description, config_json, base_strategy, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, NOW())
         """, (
             user_id,
             request.config.name,
             request.config.description,
             json.dumps(request.config.dict()),
-            request.config.base_strategy,
-            int(time.time())
+            request.config.base_strategy
         ))
         conn.commit()
         strategy_id = cur.lastrowid
@@ -159,16 +157,13 @@ async def create_strategy(request: CreateStrategyRequest, user: dict = Depends(g
             "strategy_id": strategy_id,
             "message": "Strategy created successfully"
         }
-    finally:
-        conn.close()
 
 
 @router.get("/strategies/my")
 async def get_my_strategies(user: dict = Depends(get_current_user)):
     """Get all strategies for authenticated user"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT s.*, 
@@ -186,16 +181,13 @@ async def get_my_strategies(user: dict = Depends(get_current_user)):
             strategies.append(strategy)
         
         return {"success": True, "strategies": strategies}
-    finally:
-        conn.close()
 
 
 @router.get("/strategies/{strategy_id}")
 async def get_strategy(strategy_id: int, user: Optional[dict] = Depends(get_current_user_optional)):
     """Get strategy details (only owner can see full config)"""
     user_id = user["user_id"] if user else None  # SECURITY: user_id from JWT if authenticated
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT s.*, m.id as marketplace_id, m.price_ton, m.price_trc, 
@@ -230,16 +222,13 @@ async def get_strategy(strategy_id: int, user: Optional[dict] = Depends(get_curr
             del strategy["config_json"]
         
         return {"success": True, "strategy": strategy, "is_owner": is_owner, "has_purchased": has_purchased}
-    finally:
-        conn.close()
 
 
 @router.put("/strategies/{strategy_id}")
 async def update_strategy(strategy_id: int, request: CreateStrategyRequest, user: dict = Depends(get_current_user)):
     """Update a custom strategy (owner only) - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Verify ownership
@@ -250,28 +239,24 @@ async def update_strategy(strategy_id: int, request: CreateStrategyRequest, user
         
         cur.execute("""
             UPDATE custom_strategies 
-            SET name = ?, description = ?, config_json = ?, updated_at = ?
+            SET name = ?, description = ?, config_json = ?, updated_at = NOW()
             WHERE id = ?
         """, (
             request.config.name,
             request.config.description,
             json.dumps(request.config.dict()),
-            int(time.time()),
             strategy_id
         ))
         conn.commit()
         
         return {"success": True, "message": "Strategy updated"}
-    finally:
-        conn.close()
 
 
 @router.delete("/strategies/{strategy_id}")
 async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_user)):
     """Delete a custom strategy (owner only) - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Verify ownership
@@ -284,8 +269,6 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
         conn.commit()
         
         return {"success": True, "message": "Strategy deleted"}
-    finally:
-        conn.close()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -296,8 +279,7 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
 async def list_on_marketplace(request: ListStrategyRequest, user: dict = Depends(get_current_user)):
     """List a strategy on the marketplace (50/50 revenue share) - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Verify ownership
@@ -315,11 +297,11 @@ async def list_on_marketplace(request: ListStrategyRequest, user: dict = Depends
         cur.execute("""
             INSERT INTO strategy_marketplace 
             (strategy_id, seller_id, price_ton, price_trc, revenue_share, created_at)
-            VALUES (?, ?, ?, ?, 0.5, ?)
-        """, (request.strategy_id, user_id, request.price_ton, request.price_trc, int(time.time())))
+            VALUES (?, ?, ?, ?, 0.5, NOW())
+        """, (request.strategy_id, user_id, request.price_ton, request.price_trc))
         
         # Mark strategy as public
-        cur.execute("UPDATE custom_strategies SET is_public = 1 WHERE id = ?", (request.strategy_id,))
+        cur.execute("UPDATE custom_strategies SET is_public = TRUE WHERE id = ?", (request.strategy_id,))
         
         conn.commit()
         
@@ -329,8 +311,6 @@ async def list_on_marketplace(request: ListStrategyRequest, user: dict = Depends
             "marketplace_id": cur.lastrowid,
             "revenue_share": "50% goes to you, 50% to platform"
         }
-    finally:
-        conn.close()
 
 
 @router.get("/marketplace")
@@ -342,8 +322,7 @@ async def get_marketplace(
     base_strategy: str = None
 ):
     """Browse marketplace listings"""
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         order_map = {
@@ -392,16 +371,13 @@ async def get_marketplace(
             "page": page,
             "pages": (total + limit - 1) // limit
         }
-    finally:
-        conn.close()
 
 
 @router.post("/marketplace/purchase")
 async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_current_user)):
     """Purchase a strategy from marketplace - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Get marketplace listing
@@ -441,10 +417,10 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
         cur.execute("""
             INSERT INTO strategy_purchases 
             (buyer_id, marketplace_id, strategy_id, seller_id, amount_paid, currency, seller_share, platform_share, purchased_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
         """, (
             user_id, request.marketplace_id, listing["strategy_id"], listing["seller_id"],
-            price, request.currency, seller_share, platform_share, int(time.time())
+            price, request.currency, seller_share, platform_share
         ))
         
         # Update sales count
@@ -464,16 +440,13 @@ async def purchase_strategy(request: PurchaseRequest, user: dict = Depends(get_c
             "seller_gets": seller_share,
             "access_granted": True
         }
-    finally:
-        conn.close()
 
 
 @router.get("/marketplace/purchased")
 async def get_purchased_strategies(user: dict = Depends(get_current_user)):
     """Get strategies purchased by authenticated user"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
             SELECT p.*, s.name, s.description, s.config_json, s.win_rate, s.total_pnl
@@ -491,8 +464,6 @@ async def get_purchased_strategies(user: dict = Depends(get_current_user)):
             purchases.append(purchase)
         
         return {"success": True, "purchases": purchases, "strategies": purchases}
-    finally:
-        conn.close()
 
 
 # Alias for frontend compatibility
@@ -513,8 +484,7 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
     if not 1 <= request.rating <= 5:
         raise HTTPException(status_code=400, detail="Rating must be 1-5")
     
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Verify purchase
@@ -529,12 +499,12 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
         cur.execute("""
             INSERT INTO strategy_ratings 
             (marketplace_id, user_id, rating, review, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, NOW())
             ON CONFLICT (marketplace_id, user_id) DO UPDATE SET
                 rating = EXCLUDED.rating,
                 review = EXCLUDED.review,
                 created_at = EXCLUDED.created_at
-        """, (request.marketplace_id, user_id, request.rating, request.review, int(time.time())))
+        """, (request.marketplace_id, user_id, request.rating, request.review))
         
         # Update average rating
         cur.execute("""
@@ -547,8 +517,6 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
         conn.commit()
         
         return {"success": True, "message": "Rating submitted"}
-    finally:
-        conn.close()
 
 
 @router.get("/rankings/top")
@@ -557,8 +525,7 @@ async def get_top_strategies(
     limit: int = 20
 ):
     """Get top performing strategies (for display, hidden from marketplace)"""
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         query = """
@@ -585,15 +552,12 @@ async def get_top_strategies(
             strategies.append(strategy)
         
         return {"success": True, "rankings": strategies}
-    finally:
-        conn.close()
 
 
 @router.get("/rankings/custom")
 async def get_custom_strategy_rankings(page: int = 1, limit: int = 50):
     """Get rankings of all custom strategies by performance"""
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         cur.execute("""
@@ -616,8 +580,6 @@ async def get_custom_strategy_rankings(page: int = 1, limit: int = 50):
             rankings.append(ranking)
         
         return {"success": True, "rankings": rankings, "page": page}
-    finally:
-        conn.close()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -779,8 +741,7 @@ async def get_symbol_data(symbol: str):
 async def get_seller_stats(user: dict = Depends(get_current_user)):
     """Get seller statistics and earnings - requires authentication"""
     user_id = user["user_id"]  # SECURITY: user_id from JWT
-    conn = get_db()
-    try:
+    with get_db() as conn:
         cur = conn.cursor()
         
         # Total earnings
@@ -836,5 +797,3 @@ async def get_seller_stats(user: dict = Depends(get_current_user)):
                 "listings": listings
             }
         }
-    finally:
-        conn.close()
