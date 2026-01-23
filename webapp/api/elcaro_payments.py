@@ -25,6 +25,7 @@ from cold_wallet_trading import (
 )
 import db
 from db import set_user_license
+from core.db_postgres import execute, execute_one, execute_write
 from db_elcaro import (
     get_elc_balance as get_elc_balance_db,
     subtract_elc_balance,
@@ -404,10 +405,10 @@ async def connect_wallet(
         
         if result.get("success"):
             # Save to database
-            db.execute(
+            execute_write(
                 """INSERT INTO connected_wallets 
                    (user_id, wallet_address, wallet_type, connected_at)
-                   VALUES (?, ?, ?, NOW())
+                   VALUES (%s, %s, %s, NOW())
                    ON CONFLICT (user_id, wallet_address) DO UPDATE SET connected_at = NOW()""",
                 (user_id, request.wallet_address, request.wallet_type)
             )
@@ -424,18 +425,18 @@ async def get_wallet_status(user: dict = Depends(get_current_user)):
     user_id = user["user_id"]
     
     try:
-        result = db.execute(
-            "SELECT wallet_address, wallet_type, connected_at FROM connected_wallets WHERE user_id = ?",
+        rows = execute(
+            "SELECT wallet_address, wallet_type, connected_at FROM connected_wallets WHERE user_id = %s",
             (user_id,)
         )
-        row = result.fetchone()
+        row = rows[0] if rows else None
         
         if row:
             return {
                 "connected": True,
-                "wallet_address": row[0],
-                "wallet_type": row[1],
-                "connected_at": row[2],
+                "wallet_address": row["wallet_address"],
+                "wallet_type": row["wallet_type"],
+                "connected_at": row["connected_at"],
                 "trading_enabled": True
             }
         
@@ -457,7 +458,7 @@ async def disconnect_wallet(user: dict = Depends(get_current_user)):
     
     try:
         disconnect_metamask(user_id)
-        db.execute("DELETE FROM connected_wallets WHERE user_id = ?", (user_id,))
+        execute_write("DELETE FROM connected_wallets WHERE user_id = %s", (user_id,))
         
         return {
             "success": True,

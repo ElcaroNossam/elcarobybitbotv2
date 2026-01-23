@@ -15,9 +15,11 @@ import json
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Tuple
-import sqlite3
 import aiohttp
 from pathlib import Path
+
+# PostgreSQL imports
+from webapp.api.db_helper import get_db
 
 # Load .env file if not already loaded
 _env_file = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))) / ".env"
@@ -38,18 +40,10 @@ CONFIRMATION_EXPIRY = 180  # 3 minutes for 2FA confirmation
 WEBAPP_URL = os.getenv("WEBAPP_URL", "http://localhost:8765")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 
-# Database path
-from pathlib import Path
-DB_PATH = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))) / "bot.db"
-
 
 def _db():
-    """Get database connection"""
-    con = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30.0)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA journal_mode=WAL")
-    con.execute("PRAGMA synchronous=NORMAL")
-    return con
+    """Get database connection (PostgreSQL via db_helper)"""
+    return get_db()
 
 
 def init_auth_tables():
