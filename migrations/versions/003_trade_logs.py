@@ -2,7 +2,7 @@
 Migration: Trade Logs Table
 Version: 003
 Created: 2026-01-22
-Updated: 2026-01-23 - Added exit_reason, sl_pct, tp_pct, timeframe, source, leverage columns
+Updated: 2026-01-24 - Added all signal analytics columns
 
 Creates trade_logs table for completed trades history.
 """
@@ -37,7 +37,23 @@ def upgrade(cur):
             tp_pct        REAL,
             timeframe     TEXT,
             source        TEXT DEFAULT 'api',
-            leverage      REAL
+            leverage      REAL,
+            signal_source TEXT,
+            sl_price      REAL,
+            tp_price      REAL,
+            entry_ts      BIGINT,
+            exit_ts       BIGINT,
+            exit_order_type TEXT,
+            rsi           REAL,
+            bb_hi         REAL,
+            bb_lo         REAL,
+            vol_delta     REAL,
+            oi_prev       REAL,
+            oi_now        REAL,
+            oi_chg        REAL,
+            vol_from      REAL,
+            vol_to        REAL,
+            price_chg     REAL
         )
     """)
     

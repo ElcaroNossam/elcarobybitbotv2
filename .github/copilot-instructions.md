@@ -704,16 +704,23 @@ keyboard = build_keyboard([
 - **Файлы:** 48 файлов во всём проекте
 - **Commit:** pending
 
-### ✅ FIX: trade_logs Missing Columns (Jan 24, 2026)
-- **Проблема:** Ошибка "column rsi of relation trade_logs does not exist"
-- **Причина:** Таблица trade_logs не имела колонок rsi, bb_hi, bb_lo, vol_delta
+### ✅ FIX: trade_logs Missing Signal Analytics Columns (Jan 24, 2026)
+- **Проблема:** Ошибка "column oi_prev of relation trade_logs does not exist"
+- **Причина:** Таблица trade_logs не имела 10 колонок для аналитики сигналов
 - **Fix SQL:**
   ```sql
   ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS rsi REAL;
   ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS bb_hi REAL;
   ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS bb_lo REAL;
   ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS vol_delta REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS oi_prev REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS oi_now REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS oi_chg REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS vol_from REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS vol_to REAL;
+  ALTER TABLE trade_logs ADD COLUMN IF NOT EXISTS price_chg REAL;
   ```
+- **Результат:** trade_logs теперь 41 колонка, миграция 003 обновлена
 
 ### ✅ FEAT: Automatic Log Cleanup (Jan 24, 2026)
 - **Изменения:**
