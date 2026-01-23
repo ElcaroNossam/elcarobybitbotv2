@@ -34,22 +34,22 @@ async def cmd_elc_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         balance = db_elcaro.get_elc_balance(user_id)
         
         text = (
-            f"💰 <b>ELCARO Balance</b>\n\n"
-            f"Available: <b>{balance['available']:.2f} ELC</b>\n"
-            f"Staked: <b>{balance['staked']:.2f} ELC</b>\n"
-            f"Locked: <b>{balance['locked']:.2f} ELC</b>\n"
+            f"{t.get('elc_balance_title')}\n\n"
+            f"{t.get('elc_available')}: <b>{balance['available']:.2f} ELC</b>\n"
+            f"{t.get('elc_staked')}: <b>{balance['staked']:.2f} ELC</b>\n"
+            f"{t.get('elc_locked')}: <b>{balance['locked']:.2f} ELC</b>\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
-            f"Total: <b>{balance['total']:.2f} ELC</b>\n\n"
-            f"💵 Value: ~${balance['total']:.2f} USD"
+            f"{t.get('elc_total')}: <b>{balance['total']:.2f} ELC</b>\n\n"
+            f"{t.get('elc_value_usd', value=balance['total'])}"
         )
         
         keyboard = [
             [
-                InlineKeyboardButton("🛒 Buy ELC", callback_data="elc:buy"),
-                InlineKeyboardButton("📊 History", callback_data="elc:history")
+                InlineKeyboardButton(t.get('btn_buy_elc'), callback_data="elc:buy"),
+                InlineKeyboardButton(t.get('btn_elc_history'), callback_data="elc:history")
             ],
             [
-                InlineKeyboardButton("🔗 Connect Wallet", callback_data="elc:connect_wallet")
+                InlineKeyboardButton(t.get('btn_connect_wallet'), callback_data="elc:connect_wallet")
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -59,7 +59,7 @@ async def cmd_elc_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error getting ELC balance for {user_id}: {e}")
         await update.message.reply_text(
-            "❌ Failed to get ELC balance. Please try again.",
+            t.get('elc_balance_error'),
             parse_mode="HTML"
         )
 
@@ -74,11 +74,11 @@ async def cmd_buy_elc(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     t = ctx.t
     
     text = (
-        f"🛒 <b>Buy ELCARO (ELC)</b>\n\n"
-        f"💵 Current Price: <b>$1.00 USD / ELC</b>\n"
-        f"🔥 Platform Fee: <b>0.5%</b>\n\n"
-        f"<i>Purchase ELC with USDT on TON Network</i>\n\n"
-        f"Choose amount to buy:"
+        f"{t.get('elc_buy_title')}\n\n"
+        f"{t.get('elc_current_price')}\n"
+        f"{t.get('elc_platform_fee')}\n\n"
+        f"{t.get('elc_purchase_hint')}\n\n"
+        f"{t.get('elc_choose_amount')}"
     )
     
     amounts = [100, 500, 1000, 5000, 10000]
@@ -94,10 +94,10 @@ async def cmd_buy_elc(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ])
     
     keyboard.append([
-        InlineKeyboardButton("✏️ Custom Amount", callback_data="elc:buy:custom")
+        InlineKeyboardButton(t.get('elc_custom_amount'), callback_data="elc:buy:custom")
     ])
     keyboard.append([
-        InlineKeyboardButton("« Back", callback_data="elc:balance")
+        InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")
     ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -118,9 +118,9 @@ async def cmd_elc_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         transactions = db_elcaro.get_elc_transactions(user_id, limit=10)
         
         if not transactions:
-            text = "📊 <b>Transaction History</b>\n\nNo transactions yet."
+            text = f"{t.get('elc_history_title')}\n\n{t.get('elc_no_transactions')}"
         else:
-            text = "📊 <b>Transaction History</b>\n\n"
+            text = f"{t.get('elc_history_title')}\n\n"
             
             for tx in transactions:
                 amount_str = f"+{tx['amount']:.2f}" if tx['amount'] >= 0 else f"{tx['amount']:.2f}"
@@ -145,7 +145,7 @@ async def cmd_elc_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"   {tx['created_at']}\n\n"
                 )
         
-        keyboard = [[InlineKeyboardButton("« Back", callback_data="elc:balance")]]
+        keyboard = [[InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await update.message.reply_text(text, parse_mode="HTML", reply_markup=reply_markup)
@@ -153,7 +153,7 @@ async def cmd_elc_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error getting ELC history for {user_id}: {e}")
         await update.message.reply_text(
-            "❌ Failed to get transaction history. Please try again.",
+            t.get('elc_history_error'),
             parse_mode="HTML"
         )
 
@@ -172,34 +172,34 @@ async def cmd_connect_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if wallet:
         text = (
-            f"🔗 <b>Connected Wallet</b>\n\n"
-            f"Address: <code>{wallet['wallet_address'][:10]}...{wallet['wallet_address'][-8:]}</code>\n"
-            f"Type: <b>{wallet['wallet_type'].title()}</b>\n"
-            f"Chain: <b>{wallet['chain'].upper()}</b>\n"
-            f"Connected: {wallet['connected_at']}\n\n"
-            f"<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>"
+            f"{t.get('elc_wallet_connected_title')}\n\n"
+            f"{t.get('elc_wallet_address')}: <code>{wallet['wallet_address'][:10]}...{wallet['wallet_address'][-8:]}</code>\n"
+            f"{t.get('elc_wallet_type')}: <b>{wallet['wallet_type'].title()}</b>\n"
+            f"{t.get('elc_wallet_chain')}: <b>{wallet['chain'].upper()}</b>\n"
+            f"{t.get('elc_wallet_connected_at')}: {wallet['connected_at']}\n\n"
+            f"{t.get('elc_wallet_hint')}"
         )
         
         keyboard = [
-            [InlineKeyboardButton("🔓 Disconnect", callback_data="elc:disconnect_wallet")],
-            [InlineKeyboardButton("« Back", callback_data="elc:balance")]
+            [InlineKeyboardButton(t.get('btn_disconnect_wallet'), callback_data="elc:disconnect_wallet")],
+            [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]
         ]
     else:
         text = (
-            f"🔗 <b>Connect Cold Wallet</b>\n\n"
-            f"Trade on HyperLiquid without exposing your private keys!\n\n"
-            f"Supported wallets:\n"
-            f"• MetaMask (Ethereum, Polygon, BSC)\n"
-            f"• WalletConnect (Multi-chain)\n"
-            f"• Tonkeeper (TON Network)\n\n"
-            f"<i>Your keys never leave your device - all orders are signed locally</i>"
+            f"{t.get('elc_connect_title')}\n\n"
+            f"{t.get('elc_connect_desc')}\n\n"
+            f"{t.get('elc_supported_wallets')}\n"
+            f"{t.get('elc_wallet_metamask')}\n"
+            f"{t.get('elc_wallet_wc')}\n"
+            f"{t.get('elc_wallet_tonkeeper')}\n\n"
+            f"{t.get('elc_keys_local')}"
         )
         
         keyboard = [
-            [InlineKeyboardButton("🦊 MetaMask", callback_data="elc:connect:metamask")],
-            [InlineKeyboardButton("🔗 WalletConnect", callback_data="elc:connect:walletconnect")],
-            [InlineKeyboardButton("💎 Tonkeeper", callback_data="elc:connect:tonkeeper")],
-            [InlineKeyboardButton("« Back", callback_data="elc:balance")]
+            [InlineKeyboardButton(t.get('btn_metamask'), callback_data="elc:connect:metamask")],
+            [InlineKeyboardButton(t.get('btn_walletconnect'), callback_data="elc:connect:walletconnect")],
+            [InlineKeyboardButton(t.get('btn_tonkeeper'), callback_data="elc:connect:tonkeeper")],
+            [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]
         ]
     
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -226,21 +226,21 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             balance = db_elcaro.get_elc_balance(user_id)
             
             text = (
-                f"💰 <b>ELCARO Balance</b>\n\n"
-                f"Available: <b>{balance['available']:.2f} ELC</b>\n"
-                f"Staked: <b>{balance['staked']:.2f} ELC</b>\n"
-                f"Locked: <b>{balance['locked']:.2f} ELC</b>\n"
+                f"{t.get('elc_balance_title')}\n\n"
+                f"{t.get('elc_available')}: <b>{balance['available']:.2f} ELC</b>\n"
+                f"{t.get('elc_staked')}: <b>{balance['staked']:.2f} ELC</b>\n"
+                f"{t.get('elc_locked')}: <b>{balance['locked']:.2f} ELC</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━\n"
-                f"Total: <b>{balance['total']:.2f} ELC</b>\n\n"
-                f"💵 Value: ~${balance['total']:.2f} USD"
+                f"{t.get('elc_total')}: <b>{balance['total']:.2f} ELC</b>\n\n"
+                f"{t.get('elc_value_usd', value=balance['total'])}"
             )
             
             keyboard = [
                 [
-                    InlineKeyboardButton("🛒 Buy ELC", callback_data="elc:buy"),
-                    InlineKeyboardButton("📊 History", callback_data="elc:history")
+                    InlineKeyboardButton(t.get('btn_buy_elc'), callback_data="elc:buy"),
+                    InlineKeyboardButton(t.get('btn_elc_history'), callback_data="elc:history")
                 ],
-                [InlineKeyboardButton("🔗 Connect Wallet", callback_data="elc:connect_wallet")]
+                [InlineKeyboardButton(t.get('btn_connect_wallet'), callback_data="elc:connect_wallet")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -249,11 +249,11 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         elif data == "elc:buy":
             # Show buy options
             text = (
-                f"🛒 <b>Buy ELCARO (ELC)</b>\n\n"
-                f"💵 Current Price: <b>$1.00 USD / ELC</b>\n"
-                f"🔥 Platform Fee: <b>0.5%</b>\n\n"
-                f"<i>Purchase ELC with USDT on TON Network</i>\n\n"
-                f"Choose amount to buy:"
+                f"{t.get('elc_buy_title')}\n\n"
+                f"{t.get('elc_current_price')}\n"
+                f"{t.get('elc_platform_fee')}\n\n"
+                f"{t.get('elc_purchase_hint')}\n\n"
+                f"{t.get('elc_choose_amount')}"
             )
             
             amounts = [100, 500, 1000, 5000, 10000]
@@ -268,8 +268,8 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     )
                 ])
             
-            keyboard.append([InlineKeyboardButton("✏️ Custom Amount", callback_data="elc:buy:custom")])
-            keyboard.append([InlineKeyboardButton("« Back", callback_data="elc:balance")])
+            keyboard.append([InlineKeyboardButton(t.get('elc_custom_amount'), callback_data="elc:buy:custom")])
+            keyboard.append([InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")])
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -281,11 +281,8 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             if amount_str == "custom":
                 text = (
-                    f"✏️ <b>Custom Amount</b>\n\n"
-                    f"Reply with the amount of ELC you want to buy\n"
-                    f"Example: <code>2500</code>\n\n"
-                    f"Min: 100 ELC\n"
-                    f"Max: 100,000 ELC"
+                    f"{t.get('elc_custom_amount_title')}\n\n"
+                    f"{t.get('elc_custom_prompt')}"
                 )
                 await query.edit_message_text(text, parse_mode="HTML")
                 ctx.user_data["awaiting_elc_amount"] = True
@@ -305,17 +302,17 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
                 
                 text = (
-                    f"🛒 <b>Purchase {elc_amount:.2f} ELC</b>\n\n"
-                    f"Cost: <b>{usdt_amount:.2f} USDT</b>\n"
-                    f"Platform Fee: <b>{usdt_amount * 0.005:.2f} USDT</b>\n\n"
-                    f"Payment Link:\n"
+                    f"{t.get('elc_purchase_summary', amount=elc_amount)}\n\n"
+                    f"{t.get('elc_cost', cost=usdt_amount)}\n"
+                    f"{t.get('elc_fee_amount', fee=usdt_amount * 0.005)}\n\n"
+                    f"{t.get('elc_payment_link')}\n"
                     f"<code>{payment_result['payment_link']}</code>\n\n"
-                    f"<i>Send USDT to this address on TON Network</i>"
+                    f"{t.get('elc_payment_hint')}"
                 )
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔗 Open Payment", url=payment_result['payment_link'])],
-                    [InlineKeyboardButton("« Back", callback_data="elc:buy")]
+                    [InlineKeyboardButton(t.get('btn_open_payment'), url=payment_result['payment_link'])],
+                    [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:buy")]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 
@@ -324,7 +321,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logger.error(f"Error creating payment: {e}")
                 await query.edit_message_text(
-                    "❌ Failed to create payment. Please try again.",
+                    t.get('elc_payment_error'),
                     parse_mode="HTML"
                 )
         
@@ -333,9 +330,9 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             transactions = db_elcaro.get_elc_transactions(user_id, limit=10)
             
             if not transactions:
-                text = "📊 <b>Transaction History</b>\n\nNo transactions yet."
+                text = f"{t.get('elc_history_title')}\n\n{t.get('elc_no_transactions')}"
             else:
-                text = "📊 <b>Transaction History</b>\n\n"
+                text = f"{t.get('elc_history_title')}\n\n"
                 
                 for tx in transactions:
                     amount_str = f"+{tx['amount']:.2f}" if tx['amount'] >= 0 else f"{tx['amount']:.2f}"
@@ -359,7 +356,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         f"   {tx['created_at']}\n\n"
                     )
             
-            keyboard = [[InlineKeyboardButton("« Back", callback_data="elc:balance")]]
+            keyboard = [[InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(text, parse_mode="HTML", reply_markup=reply_markup)
@@ -370,34 +367,34 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             if wallet:
                 text = (
-                    f"🔗 <b>Connected Wallet</b>\n\n"
-                    f"Address: <code>{wallet['wallet_address'][:10]}...{wallet['wallet_address'][-8:]}</code>\n"
-                    f"Type: <b>{wallet['wallet_type'].title()}</b>\n"
-                    f"Chain: <b>{wallet['chain'].upper()}</b>\n"
-                    f"Connected: {wallet['connected_at']}\n\n"
-                    f"<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>"
+                    f"{t.get('elc_wallet_connected_title')}\n\n"
+                    f"{t.get('elc_wallet_address')}: <code>{wallet['wallet_address'][:10]}...{wallet['wallet_address'][-8:]}</code>\n"
+                    f"{t.get('elc_wallet_type')}: <b>{wallet['wallet_type'].title()}</b>\n"
+                    f"{t.get('elc_wallet_chain')}: <b>{wallet['chain'].upper()}</b>\n"
+                    f"{t.get('elc_wallet_connected_at')}: {wallet['connected_at']}\n\n"
+                    f"{t.get('elc_wallet_hint')}"
                 )
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔓 Disconnect", callback_data="elc:disconnect_wallet")],
-                    [InlineKeyboardButton("« Back", callback_data="elc:balance")]
+                    [InlineKeyboardButton(t.get('btn_disconnect_wallet'), callback_data="elc:disconnect_wallet")],
+                    [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]
                 ]
             else:
                 text = (
-                    f"🔗 <b>Connect Cold Wallet</b>\n\n"
-                    f"Trade on HyperLiquid without exposing your private keys!\n\n"
-                    f"Supported wallets:\n"
-                    f"• MetaMask (Ethereum, Polygon, BSC)\n"
-                    f"• WalletConnect (Multi-chain)\n"
-                    f"• Tonkeeper (TON Network)\n\n"
-                    f"<i>Your keys never leave your device - all orders are signed locally</i>"
+                    f"{t.get('elc_connect_title')}\n\n"
+                    f"{t.get('elc_connect_desc')}\n\n"
+                    f"{t.get('elc_supported_wallets')}\n"
+                    f"{t.get('elc_wallet_metamask')}\n"
+                    f"{t.get('elc_wallet_wc')}\n"
+                    f"{t.get('elc_wallet_tonkeeper')}\n\n"
+                    f"{t.get('elc_keys_local')}"
                 )
                 
                 keyboard = [
-                    [InlineKeyboardButton("🦊 MetaMask", callback_data="elc:connect:metamask")],
-                    [InlineKeyboardButton("🔗 WalletConnect", callback_data="elc:connect:walletconnect")],
-                    [InlineKeyboardButton("💎 Tonkeeper", callback_data="elc:connect:tonkeeper")],
-                    [InlineKeyboardButton("« Back", callback_data="elc:balance")]
+                    [InlineKeyboardButton(t.get('btn_metamask'), callback_data="elc:connect:metamask")],
+                    [InlineKeyboardButton(t.get('btn_walletconnect'), callback_data="elc:connect:walletconnect")],
+                    [InlineKeyboardButton(t.get('btn_tonkeeper'), callback_data="elc:connect:tonkeeper")],
+                    [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]
                 ]
             
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -411,17 +408,17 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             webapp_url = "https://kevin-longitude-night-pro.trycloudflare.com"  # Get from config
             
             text = (
-                f"🔗 <b>Connect {wallet_type.title()}</b>\n\n"
-                f"1. Open our WebApp\n"
-                f"2. Click 'Connect Wallet'\n"
-                f"3. Select {wallet_type.title()}\n"
-                f"4. Approve connection in wallet\n\n"
-                f"<i>Your private keys stay in your wallet - we only get your public address</i>"
+                f"{t.get('elc_connect_steps_title', wallet=wallet_type.title())}\n\n"
+                f"{t.get('elc_connect_step1')}\n"
+                f"{t.get('elc_connect_step2')}\n"
+                f"{t.get('elc_connect_step3', wallet=wallet_type.title())}\n"
+                f"{t.get('elc_connect_step4')}\n\n"
+                f"{t.get('elc_connect_keys_hint')}"
             )
             
             keyboard = [
-                [InlineKeyboardButton("🌐 Open WebApp", url=f"{webapp_url}/terminal")],
-                [InlineKeyboardButton("« Back", callback_data="elc:connect_wallet")]
+                [InlineKeyboardButton(t.get('btn_open_webapp'), url=f"{webapp_url}/terminal")],
+                [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:connect_wallet")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -432,12 +429,12 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             db_elcaro.disconnect_wallet(user_id)
             
             text = (
-                f"🔓 <b>Wallet Disconnected</b>\n\n"
-                f"Your wallet has been successfully disconnected.\n\n"
-                f"<i>You can reconnect anytime to resume cold wallet trading</i>"
+                f"{t.get('elc_disconnected_title')}\n\n"
+                f"{t.get('elc_disconnected_msg')}\n\n"
+                f"{t.get('elc_disconnected_hint')}"
             )
             
-            keyboard = [[InlineKeyboardButton("« Back", callback_data="elc:balance")]]
+            keyboard = [[InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:balance")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(text, parse_mode="HTML", reply_markup=reply_markup)
@@ -445,7 +442,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error in ELC callback handler: {e}")
         await query.edit_message_text(
-            "❌ An error occurred. Please try again.",
+            t.get('elc_error_generic'),
             parse_mode="HTML"
         )
 

@@ -4,8 +4,10 @@ Exchange UI Module - Keyboards and display functions for multi-exchange support
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
 
-def get_exchange_selector_keyboard(current_mode: str = "bybit", hl_configured: bool = False) -> InlineKeyboardMarkup:
+def get_exchange_selector_keyboard(current_mode: str = "bybit", hl_configured: bool = False, t: dict = None) -> InlineKeyboardMarkup:
     """Get inline keyboard for exchange mode selection."""
+    if t is None:
+        t = {}
     buttons = []
     
     # Bybit button
@@ -19,9 +21,9 @@ def get_exchange_selector_keyboard(current_mode: str = "bybit", hl_configured: b
         
         # Both button
         both_check = "✅ " if current_mode == "both" else ""
-        buttons.append([InlineKeyboardButton(f"{both_check}🔄 Обе биржи", callback_data="exch:select:both")])
+        buttons.append([InlineKeyboardButton(f"{both_check}" + t.get('exch_mode_both', '🔄 Both Exchanges'), callback_data="exch:select:both")])
     else:
-        buttons.append([InlineKeyboardButton("➕ Подключить HyperLiquid", callback_data="hl:mainnet")])
+        buttons.append([InlineKeyboardButton(t.get('btn_connect_hl', '➕ Connect HyperLiquid'), callback_data="hl:mainnet")])
     
     return InlineKeyboardMarkup(buttons)
 
@@ -80,15 +82,15 @@ def get_exchange_status_text(status: dict, t: dict) -> str:
     bb = status["bybit"]
     hl = status["hyperliquid"]
     
-    # Mode labels
+    # Mode labels with translations
     mode_labels = {
-        "bybit": "🟠 Только Bybit",
-        "hyperliquid": "🟢 Только HyperLiquid",
-        "both": "🔄 Обе биржи",
+        "bybit": t.get('exch_mode_bybit_only', '🟠 Bybit Only'),
+        "hyperliquid": t.get('exch_mode_hl_only', '🟢 HyperLiquid Only'),
+        "both": t.get('exch_mode_both', '🔄 Both Exchanges'),
     }
     
     lines = [
-        f"*🔀 Режим торговли:* {mode_labels.get(mode, mode)}",
+        f"*🔀 {t.get('exch_trading_mode', 'Trading Mode')}:* {mode_labels.get(mode, mode)}",
         "",
         "*🟠 Bybit:*",
     ]
@@ -98,13 +100,13 @@ def get_exchange_status_text(status: dict, t: dict) -> str:
         bb_mode = "Demo" if bb["trading_mode"] == "demo" else "Real"
         demo_status = "✅" if bb["demo_configured"] else "❌"
         real_status = "✅" if bb["real_configured"] else "❌"
-        active = "🟢 Active" if bb["active"] else "⚪ Inactive"
+        active = t.get('exch_active', '🟢 Active') if bb["active"] else t.get('exch_inactive', '⚪ Inactive')
         lines.extend([
             f"   Demo API: {demo_status} | Real API: {real_status}",
             f"   Mode: {bb_mode} | Status: {active}",
         ])
     else:
-        lines.append("   ❌ Не настроен")
+        lines.append(f"   {t.get('exch_not_configured', '❌ Not configured')}")
     
     lines.extend(["", "*🟢 HyperLiquid:*"])
     
@@ -112,13 +114,13 @@ def get_exchange_status_text(status: dict, t: dict) -> str:
     if hl["configured"]:
         network = "🧪 Testnet" if hl["testnet"] else "🌐 Mainnet"
         addr = hl["address"][:8] + "..." + hl["address"][-6:] if hl["address"] else "N/A"
-        active = "🟢 Active" if hl["active"] else "⚪ Inactive"
+        active = t.get('exch_active', '🟢 Active') if hl["active"] else t.get('exch_inactive', '⚪ Inactive')
         lines.extend([
             f"   Wallet: `{addr}`",
             f"   Network: {network} | Status: {active}",
         ])
     else:
-        lines.append("   ❌ Не подключен")
+        lines.append(f"   {t.get('exch_not_connected', '❌ Not connected')}")
     
     return "\n".join(lines)
 

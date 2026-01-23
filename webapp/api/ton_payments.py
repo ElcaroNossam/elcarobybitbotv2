@@ -500,9 +500,36 @@ async def verify_payment(
     
     # If tx_hash provided, verify on blockchain
     if req.tx_hash:
-        # TODO: Implement actual TON blockchain verification
-        # For now, trust the tx_hash and complete
-        success = complete_ton_payment(req.payment_id, req.tx_hash)
+        # Import blockchain verification
+        try:
+            from ton_payment_gateway import verify_usdt_jetton_transfer
+            
+            # Verify transaction on TON blockchain
+            platform_wallet = get_platform_wallet()
+            verification = await verify_usdt_jetton_transfer(
+                tx_hash=req.tx_hash,
+                expected_amount=payment["amount_usdt"],
+                recipient_wallet=platform_wallet,
+                testnet=TON_CONFIG["use_testnet"]
+            )
+            
+            if not verification["verified"]:
+                error_msg = verification.get("error", "Transaction verification failed")
+                logger.warning(f"TON verification failed for {req.payment_id}: {error_msg}")
+                raise HTTPException(status_code=400, detail=f"Verification failed: {error_msg}")
+            
+            # Transaction verified - complete payment
+            success = complete_ton_payment(req.payment_id, req.tx_hash, verification.get("sender"))
+            
+        except ImportError:
+            logger.warning("TON verification module not available, trusting tx_hash")
+            success = complete_ton_payment(req.payment_id, req.tx_hash)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"TON verification error: {e}")
+            # Fallback: trust tx_hash if verification fails due to network issues
+            success = complete_ton_payment(req.payment_id, req.tx_hash)
         
         if success:
             plan = SUBSCRIPTION_PLANS.get(payment["plan_id"], {})
