@@ -509,9 +509,9 @@ async def rate_strategy(request: RatingRequest, user: dict = Depends(get_current
         # Update average rating
         cur.execute("""
             UPDATE strategy_marketplace 
-            SET rating = (SELECT AVG(rating) FROM strategy_ratings WHERE marketplace_id = ?),
-                rating_count = (SELECT COUNT(*) FROM strategy_ratings WHERE marketplace_id = ?)
-            WHERE id = ?
+            SET rating = (SELECT AVG(rating) FROM strategy_ratings WHERE marketplace_id = %s),
+                rating_count = (SELECT COUNT(*) FROM strategy_ratings WHERE marketplace_id = %s)
+            WHERE id = %s
         """, (request.marketplace_id, request.marketplace_id, request.marketplace_id))
         
         conn.commit()

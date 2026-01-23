@@ -293,7 +293,7 @@ def get_user_strategies(user_id: int, active_only: bool = True) -> List[Dict[str
         """
         
         if active_only:
-            query += " AND is_active = 1"
+            query += " AND is_active = TRUE"
         
         query += " ORDER BY updated_at DESC"
         

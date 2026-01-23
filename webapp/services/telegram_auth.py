@@ -122,12 +122,12 @@ def generate_login_token(user_id: int) -> Tuple[str, str]:
     cur = con.cursor()
     
     # Clean up old tokens for this user
-    cur.execute("DELETE FROM login_tokens WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM login_tokens WHERE user_id = %s", (user_id,))
     
     # Insert new token
     cur.execute("""
         INSERT INTO login_tokens (token, user_id, created_at, expires_at)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
     """, (token, user_id, now.isoformat(), expires.isoformat()))
     
     con.commit()
@@ -204,13 +204,13 @@ def create_2fa_confirmation(user_id: int, ip_address: str = None, user_agent: st
     # Clean up old pending confirmations for this user
     cur.execute("""
         DELETE FROM twofa_confirmations 
-        WHERE user_id = ? AND status = 'pending'
+        WHERE user_id = %s AND status = 'pending'
     """, (user_id,))
     
     # Create new confirmation
     cur.execute("""
         INSERT INTO twofa_confirmations (id, user_id, ip_address, user_agent, created_at, expires_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """, (confirmation_id, user_id, ip_address, user_agent, now.isoformat(), expires.isoformat()))
     
     con.commit()

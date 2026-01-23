@@ -175,8 +175,8 @@ class StrategyDeployer:
                 
                 cur.execute("""
                     UPDATE strategy_deployments 
-                    SET is_active = 0, updated_at = ?
-                    WHERE user_id = ? AND strategy_name = ? AND is_active = 1
+                    SET is_active = FALSE, updated_at = %s
+                    WHERE user_id = %s AND strategy_name = %s AND is_active = TRUE
                 """, (datetime.now().isoformat(), user_id, strategy))
                 
                 conn.commit()
@@ -267,7 +267,7 @@ class StrategyDeployer:
                 cur.execute("""
                     INSERT INTO deployment_history 
                     (deployment_id, event_type, event_data)
-                    VALUES (?, ?, ?)
+                    VALUES (%s, %s, %s)
                 """, (deployment_id, event_type, json.dumps(event_data)))
                 
                 conn.commit()
@@ -308,7 +308,7 @@ class StrategyDeployer:
                 
                 cur.execute("""
                     SELECT * FROM strategy_deployments 
-                    WHERE user_id = ? AND is_active = 1
+                    WHERE user_id = %s AND is_active = TRUE
                     ORDER BY deployed_at DESC
                 """, (user_id,))
                 

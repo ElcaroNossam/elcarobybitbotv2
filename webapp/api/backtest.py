@@ -1865,7 +1865,7 @@ async def save_custom_strategy(request: SaveStrategyRequest):
                 INSERT INTO custom_strategies 
                 (user_id, name, description, base_strategy, config_json, backtest_results_json, 
                  visibility, price, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s, %s)
                 ON CONFLICT (user_id, name) DO UPDATE SET
                     description = EXCLUDED.description,
                     base_strategy = EXCLUDED.base_strategy,
@@ -2133,7 +2133,7 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
                 INSERT INTO custom_strategies 
                 (user_id, name, description, base_strategy, config_json, backtest_results_json,
                  visibility, price, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'private', 0, TRUE, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, 'private', 0, TRUE, %s, %s)
             """, (
                 user_id, new_name, original["description"], original["base_strategy"],
                 original["config_json"], original.get("backtest_results_json"), now, now
@@ -2221,7 +2221,7 @@ async def start_live_trading(strategy_id: int, request: GoLiveRequest):
                 INSERT INTO live_deployments 
                 (user_id, strategy_id, strategy_name, exchange, account_type, 
                  config_json, status, started_at, backtest_pnl)
-                VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, 'active', %s, %s)
                 ON CONFLICT (user_id, strategy_id) DO UPDATE SET
                     exchange = EXCLUDED.exchange,
                     account_type = EXCLUDED.account_type,
@@ -2230,7 +2230,7 @@ async def start_live_trading(strategy_id: int, request: GoLiveRequest):
                     started_at = EXCLUDED.started_at,
                     stopped_at = NULL
             """, (request.user_id, strategy_id, strategy["name"], request.exchange, 
-                  request.account_type, json.dumps(config), now, backtest_pnl))
+                  request.account_type, json.dumps(config), now, backtest_pnl)))
         
         return {
             "success": True, 

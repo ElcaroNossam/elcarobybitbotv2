@@ -273,7 +273,7 @@ async def create_license(
         
         cur.execute("""
             INSERT INTO licenses (license_key, license_type, user_id, expires_at, days)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (license_key, data.license_type, data.user_id, expires_at, data.days))
         
         conn.commit()

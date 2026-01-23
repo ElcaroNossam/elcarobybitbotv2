@@ -244,7 +244,7 @@ Keep it up! 💪
             # Get all users who want notifications using PostgreSQL
             with get_conn() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT user_id FROM users WHERE is_allowed = 1")
+                cur.execute("SELECT user_id FROM users WHERE is_allowed = TRUE")
                 users = cur.fetchall()
             
             for row in users:
@@ -301,7 +301,7 @@ Keep it up! 💪
             # Get all users using PostgreSQL
             with get_conn() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT user_id FROM users WHERE is_allowed = 1")
+                cur.execute("SELECT user_id FROM users WHERE is_allowed = TRUE")
                 users = cur.fetchall()
             
             for row in users:

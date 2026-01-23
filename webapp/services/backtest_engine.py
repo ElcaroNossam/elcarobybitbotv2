@@ -188,7 +188,7 @@ class RealBacktestEngine:
             conn = get_db()
             try:
                 cur = conn.cursor()
-                cur.execute("SELECT * FROM custom_strategies WHERE id = ? AND is_active = 1", (strategy_id,))
+                cur.execute("SELECT * FROM custom_strategies WHERE id = %s AND is_active = TRUE", (strategy_id,))
                 row = cur.fetchone()
             finally:
                 conn.close()
