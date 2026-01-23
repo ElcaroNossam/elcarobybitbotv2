@@ -19080,7 +19080,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await cmd_api_settings(update, ctx)
     
     # Subscribe button
-    if text in [ctx.t.get('button_subscribe', '� PREMIUM'), 
+    if text in [ctx.t.get('button_subscribe', '👑 PREMIUM'), 
                 "💎 Premium", "💎 Subscribe", "👑 PREMIUM", "👑 VIP",
                 "👑 ПРЕМИУМ"]:
         return await cmd_subscribe(update, ctx)
@@ -19269,14 +19269,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text in [ctx.t.get("button_dashboard", "🖥️ Dashboard"), "🖥️ Dashboard"]:
         return await cmd_webapp(update, ctx)
 
-    if text in [ctx.t.get("button_balance", "💎 Portfolio"), "💰 Balance"]:
-        return await cmd_account(update, ctx)
-
-    if text in [ctx.t.get("button_orders", "📊 Orders"), "📈 Orders"]:
-        return await cmd_openorders(update, ctx)
-
-    if text in [ctx.t.get("button_positions", "🎯 Positions"), "📊 Positions"]:
-        return await cmd_open_positions(update, ctx)
+    # NOTE: Balance, Orders, Positions are handled in UNIFIED BUTTONS section above
+    # (removed duplicates that were calling legacy cmd_account, cmd_openorders, cmd_open_positions)
 
     if text == ctx.t.get("button_stats", "📊 Statistics"):
         return await cmd_trade_stats(update, ctx)
