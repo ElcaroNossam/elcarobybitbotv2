@@ -536,8 +536,8 @@ def _should_send_daily_error(user_id: int, error_type: str, account_type: str) -
     entry = _daily_error_cache.get(key)
     
     if entry is None:
-        # First error of this type today
-        _daily_error_cache[key] = {"last_sent": 0, "missed_count": 1, "day_start": today_start}
+        # First error of this type today - will be sent
+        _daily_error_cache[key] = {"last_sent": now, "missed_count": 1, "day_start": today_start}
         return True, 1
     
     # Check if it's a new day
@@ -549,12 +549,12 @@ def _should_send_daily_error(user_id: int, error_type: str, account_type: str) -
     # Same day - increment counter
     entry["missed_count"] = entry.get("missed_count", 0) + 1
     
-    # Check if already sent today
+    # Check if already sent today (last_sent is set to now when first sent)
     if entry.get("last_sent", 0) >= today_start:
         # Already sent today - don't send again
         return False, entry["missed_count"]
     
-    # Not sent today yet - send now
+    # Not sent today yet (shouldn't happen now, but just in case)
     entry["last_sent"] = now
     return True, entry["missed_count"]
 
