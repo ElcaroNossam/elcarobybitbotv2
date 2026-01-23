@@ -47,7 +47,7 @@ from html import unescape
 from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, MenuButtonDefault, BotCommand
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, MenuButtonDefault, MenuButtonCommands, BotCommand
 from keyboard_helpers import (
     btn_back, btn_close, btn_cancel, btn_confirm, btn_refresh, btn_settings,
     btn_yes, btn_no, btn_toggle, btn_section, btn_divider,
@@ -8375,11 +8375,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await cmd_terms(update, ctx)
         return
     
-    # Reset Menu Button to default (remove WebApp button if was set before)
+    # Reset Menu Button to commands menu (remove WebApp button if was set before)
     try:
-        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=MenuButtonDefault())
+        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=MenuButtonCommands())
+        logger.info(f"[{uid}] Reset menu button to commands")
     except Exception as e:
-        logger.debug(f"Failed to reset menu button for {uid}: {e}")
+        logger.warning(f"Failed to reset menu button for {uid}: {e}")
 
     # Send user guide PDF on first start (only once)
     if not cfg.get("guide_sent", 0):
