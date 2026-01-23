@@ -34,7 +34,9 @@ def upgrade(cur):
             vol_delta   REAL,
             rsi         REAL,
             bb_status   TEXT,
-            atr_value   REAL
+            atr_value   REAL,
+            bb_hi       REAL,
+            bb_lo       REAL
         )
     """)
     
