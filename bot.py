@@ -19063,16 +19063,16 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Admin-only buttons
     if uid == ADMIN_ID:
-        if text == ctx.t.get("button_licenses", "🔑 Licenses"):
+        if text == ctx.t.get("button_licenses", "🎫 Licenses"):
             # Show license management menu
             await update.message.reply_text(
-                ctx.t.get("admin_license_menu", "🔑 *License Management*"),
+                ctx.t.get("admin_license_menu", "🎫 *License Management*"),
                 parse_mode="Markdown",
                 reply_markup=get_admin_license_keyboard(ctx.t)
             )
             return
         
-        if text == ctx.t.get("button_admin", "👑 Admin"):
+        if text == ctx.t.get("button_admin", "🛡️ Admin"):
             return await cmd_admin(update, ctx)
     
     # New API Settings button

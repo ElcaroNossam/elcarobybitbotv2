@@ -1384,8 +1384,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
 
     # Payment keys
     'btn_check_again': '🔄 Проверить снова',
-    'button_admin': '👑 Админ',
-    'button_licenses': '🔑 Лицензии',
+    # NOTE: button_admin and button_licenses already defined at top of file with correct icons
     'payment_session_expired': '❌ Сессия оплаты истекла. Начните заново.',
     'payment_ton_not_configured': '❌ TON платежи не настроены.',
     'payment_verifying': '⏳ Проверяем платёж...',
