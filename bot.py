@@ -3465,8 +3465,8 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
         # ─── Row 3: Premium & Settings ───
         [ t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys') ],
-        # ─── Row 4: Exchange Status ───
-        [ exchange_btn ],
+        # ─── Row 4: Terminal & Exchange ───
+        [ t.get('button_terminal', '💻 Terminal'), exchange_btn ],
     ]
     
     # Add admin row if user is admin
@@ -8374,6 +8374,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await reply_with_keyboard(update, ctx, ctx.t['need_terms'])
         await cmd_terms(update, ctx)
         return
+    
+    # Reset Menu Button to default (remove WebApp button if was set before)
+    try:
+        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=MenuButtonDefault())
+    except Exception as e:
+        logger.debug(f"Failed to reset menu button for {uid}: {e}")
 
     # Send user guide PDF on first start (only once)
     if not cfg.get("guide_sent", 0):
@@ -19219,6 +19225,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ═══════════════════════════════════════════════════════════════
     # ██  LEGACY BUTTONS (for backward compatibility)  ██
     # ═══════════════════════════════════════════════════════════════
+    
+    # Terminal button - opens WebApp
+    if text in ["💻 Terminal", "💻 Терминал", ctx.t.get("button_terminal", "💻 Terminal")]:
+        return await cmd_webapp(update, ctx)
     
     # WebApp button
     if text == ctx.t.get("button_webapp", "🌐 WebApp"):
