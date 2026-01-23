@@ -862,7 +862,7 @@ TEXTS = {
     'trial_activated': '🎉 تم تفعيل التجربة! لديك 7 أيام من الوصول التجريبي الكامل.',
     
     'payment_select_method': '💳 *اختر طريقة الدفع*',
-    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
+    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
     'btn_pay_ton': '💎 TON',
     'payment_trc_title': ' الدفع عبر TRC',
     'payment_trc_desc': 'سيتم خصم {amount} TRC مقابل {plan} ({period}).',
@@ -1328,4 +1328,20 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
+    # Daily error notifications (once per 24h)
+    'daily_zero_balance':          """⚠️ <b>BALANCE ALERT</b>
+
+💰 Your <b>{account_type}</b> account has <b>$0</b>.
+
+📊 <b>Missed signals:</b> {missed_count}
+
+👉 Deposit funds to resume trading.""",
+
+    'daily_api_keys_invalid':      '🔑 <b>API KEYS ISSUE</b> - Your {account_type} keys are invalid. Missed: {missed_count}. Update in /api_settings',
+
+    'daily_connection_error':      '🌐 <b>CONNECTION ISSUE</b> - Cannot connect to {exchange} ({account_type}). Missed: {missed_count}',
+
+    'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
+
+
 }

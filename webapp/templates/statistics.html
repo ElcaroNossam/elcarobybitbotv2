@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Trading Statistics | Triacelo</title>
+    <title>Trading Statistics | Lyxen</title>
     
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -806,7 +806,7 @@
         
         // Get auth token
         function getToken() {
-            return localStorage.getItem('triacelo_token') || sessionStorage.getItem('triacelo_token');
+            return localStorage.getItem('lyxen_token') || sessionStorage.getItem('lyxen_token');
         }
         
         // Auto-login via Telegram WebApp
@@ -822,10 +822,10 @@
                 
                 const data = await res.json();
                 if (res.ok && data.token) {
-                    localStorage.setItem('triacelo_token', data.token);
-                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    localStorage.setItem('lyxen_token', data.token);
+                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
                     if (data.user?.user_id) {
-                        localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
+                        localStorage.setItem('lyxen_user_id', data.user.user_id.toString());
                     }
                     return true;
                 }
@@ -878,7 +878,7 @@
                     if (resp.status === 401) {
                         // Token expired, try re-login via Telegram
                         if (tg?.initData) {
-                            localStorage.removeItem('triacelo_token');
+                            localStorage.removeItem('lyxen_token');
                             const success = await autoLoginTelegram();
                             if (success) {
                                 loadStats(); // Retry

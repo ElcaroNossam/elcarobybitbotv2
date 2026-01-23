@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.blockchain import (
     # Core classes
-    TriaceloBlockchain,
+    LyxenBlockchain,
     TRCWallet,
     TRCTransaction,
     TransactionType,
@@ -79,9 +79,9 @@ class TestBlockchainConfig:
     def test_chain_config(self):
         """Test chain configuration values."""
         assert CHAIN_ID == 8888
-        assert CHAIN_NAME == "Triacelo Chain"
+        assert CHAIN_NAME == "Lyxen Chain"
         assert TRC_SYMBOL == "TRC"
-        assert TRC_NAME == "Triacelo Coin"
+        assert TRC_NAME == "Lyxen Coin"
     
     def test_supply_config(self):
         """Test supply configuration."""
@@ -91,7 +91,7 @@ class TestBlockchainConfig:
     def test_sovereign_owner(self):
         """Test sovereign owner configuration."""
         assert SOVEREIGN_OWNER_ID == 511692487
-        assert SOVEREIGN_OWNER_NAME == "Triacelo Foundation"
+        assert SOVEREIGN_OWNER_NAME == "Lyxen Foundation"
     
     def test_license_prices(self):
         """Test license pricing in TRC."""

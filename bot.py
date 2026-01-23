@@ -654,7 +654,7 @@ SIGNAL_CHANNEL_IDS = _parse_chat_ids("SIGNAL_CHANNEL_IDS", "SIGNAL_CHANNEL_ID", 
 SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 
 # =====================================================
-# LICENSE PRICING - TRIACELO COIN (TRC)
+# LICENSE PRICING - LYXEN COIN (TRC)
 # 1 TRC = 1 USDT (pegged stablecoin)
 # Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
 # =====================================================
@@ -19996,7 +19996,7 @@ def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboa
             f"💎 Pay ${ton_price:.0f} USDT (TON)",
             callback_data=f"sub:ton:{plan}:{period}"
         )],
-        # Secondary: TRC (Triacelo Coin)
+        # Secondary: TRC (Lyxen Coin)
         [InlineKeyboardButton(
             f"🪙 Pay {trc_price:.0f} TRC (~${trc_price:.0f})",
             callback_data=f"sub:trc:{plan}:{period}"
@@ -20462,7 +20462,7 @@ async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if isinstance(transactions, Exception):
         transactions = []
     
-    text = t.get("wallet_header", "🪙 *Triacelo Coin (TRC) Wallet*")
+    text = t.get("wallet_header", "🪙 *Lyxen Coin (TRC) Wallet*")
     text += f"\n\n📍 *Address:*\n`{wallet.address}`"
     text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
     text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
@@ -20525,7 +20525,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if isinstance(transactions, Exception):
             transactions = []
         
-        text = t.get("wallet_header", "🪙 *Triacelo Coin (TRC) Wallet*")
+        text = t.get("wallet_header", "🪙 *Lyxen Coin (TRC) Wallet*")
         text += f"\n\n📍 *Address:*\n`{wallet.address}`"
         text += f"\n\n💰 *Available:* {balance_info['available']:.2f} TRC"
         text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} TRC"
@@ -20970,7 +20970,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Get user's TRC balance
         user_balance = await get_trc_balance(uid)
         
-        text = t.get("payment_select_method", "💳 *Payment with Triacelo Coin (TRC)*")
+        text = t.get("payment_select_method", "💳 *Payment with Lyxen Coin (TRC)*")
         text += f"\n\n📦 *Plan:* {plan.title()}\n⏰ *Period:* {period_text}"
         text += f"\n\n🪙 *Price:* {trc_price:.0f} TRC (~${trc_price:.0f})"
         text += f"\n💰 *Your Balance:* {user_balance:.2f} TRC"
@@ -21025,13 +21025,13 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 payment_type="TRC",
                 amount=trc_price,
                 currency="TRC",
-                notes=f"Paid with Triacelo Coin. {message}"
+                notes=f"Paid with Lyxen Coin. {message}"
             )
             
             if result.get("success"):
                 new_balance = await get_trc_balance(uid)
                 await q.edit_message_text(
-                    t.get("payment_success_trc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} TRC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} TRC\n\nThank you for using Triacelo!").format(
+                    t.get("payment_success_trc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} TRC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} TRC\n\nThank you for using Lyxen!").format(
                         amount=trc_price, plan=plan.title(), period=period_text, balance=new_balance
                     ),
                     parse_mode="Markdown",

@@ -636,11 +636,11 @@ async def get_app_config(
                 "push_notifications": True
             },
             "links": {
-                "support": "https://t.me/triacelo_support",
-                "telegram_bot": "https://t.me/triacelo_bybit_bot",
-                "website": "https://triacelo.com",
-                "terms": "https://triacelo.com/terms",
-                "privacy": "https://triacelo.com/privacy"
+                "support": "https://t.me/lyxen_support",
+                "telegram_bot": "https://t.me/lyxen_bybit_bot",
+                "website": "https://lyxen.com",
+                "terms": "https://lyxen.com/terms",
+                "privacy": "https://lyxen.com/privacy"
             },
             "rate_limits": {
                 "api_calls_per_minute": 60,

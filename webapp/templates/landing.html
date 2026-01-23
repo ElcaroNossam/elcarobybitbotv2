@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Triacelo Trading Bot - Professional Crypto Trading</title>
+    <title>Lyxen Trading Bot - Professional Crypto Trading</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
@@ -471,7 +471,7 @@
     <nav class="navbar">
         <div class="logo">
             <div class="logo-icon">🚀</div>
-            <span>Triacelo</span>
+            <span>Lyxen</span>
         </div>
         <div class="nav-links">
             <a href="#pricing">Pricing</a>
@@ -668,7 +668,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🎯</div>
                 <h3 class="feature-title">Multiple Strategies</h3>
-                <p class="feature-desc">Triacelo, RSI+BB+OI, Wyckoff SMC, Scryptomera, and Scalper strategies running 24/7.</p>
+                <p class="feature-desc">Lyxen, RSI+BB+OI, Wyckoff SMC, Scryptomera, and Scalper strategies running 24/7.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔔</div>
@@ -686,7 +686,7 @@
     <!-- CTA -->
     <section class="cta">
         <h2 class="cta-title">Ready to Automate Your Trading?</h2>
-        <p class="cta-subtitle">Join thousands of traders using Triacelo to maximize their profits</p>
+        <p class="cta-subtitle">Join thousands of traders using Lyxen to maximize their profits</p>
         <a href="/terminal" class="btn-primary" style="font-size: 1.1rem; padding: 18px 40px;">
             <i class="fas fa-rocket"></i> Launch Terminal
         </a>
@@ -810,17 +810,17 @@
             // Method 2: Check for auth_token (from token-login redirect)
             const authToken = params.get('auth_token');
             if (authToken) {
-                localStorage.setItem('triacelo_token', authToken);
+                localStorage.setItem('lyxen_token', authToken);
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${authToken}` }
                     });
                     const user = await res.json();
                     if (user && user.user_id) {
-                        localStorage.setItem('triacelo_user_id', user.user_id.toString());
-                        localStorage.setItem('triacelo_user', JSON.stringify(user));
-                        if (user.language) localStorage.setItem('triacelo_language', user.language);
-                        if (user.exchange_type) localStorage.setItem('triacelo_exchange', user.exchange_type);
+                        localStorage.setItem('lyxen_user_id', user.user_id.toString());
+                        localStorage.setItem('lyxen_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('lyxen_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('lyxen_exchange', user.exchange_type);
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
                         return;
@@ -844,11 +844,11 @@
                         });
                         const data = await res.json();
                         if (data.access_token) {
-                            localStorage.setItem('triacelo_token', data.access_token);
-                            localStorage.setItem('triacelo_user_id', userId.toString());
-                            localStorage.setItem('triacelo_user', JSON.stringify(data.user));
-                            if (data.user?.language) localStorage.setItem('triacelo_language', data.user.language);
-                            if (data.user?.exchange_type) localStorage.setItem('triacelo_exchange', data.user.exchange_type);
+                            localStorage.setItem('lyxen_token', data.access_token);
+                            localStorage.setItem('lyxen_user_id', userId.toString());
+                            localStorage.setItem('lyxen_user', JSON.stringify(data.user));
+                            if (data.user?.language) localStorage.setItem('lyxen_language', data.user.language);
+                            if (data.user?.exchange_type) localStorage.setItem('lyxen_exchange', data.user.exchange_type);
                             // Redirect to dashboard after successful auto-login
                             window.location.href = '/dashboard';
                             return;
@@ -871,9 +871,9 @@
                     });
                     const data = await res.json();
                     if (data.token) {
-                        localStorage.setItem('triacelo_token', data.token);
-                        localStorage.setItem('triacelo_user_id', data.user.user_id.toString());
-                        localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                        localStorage.setItem('lyxen_token', data.token);
+                        localStorage.setItem('lyxen_user_id', data.user.user_id.toString());
+                        localStorage.setItem('lyxen_user', JSON.stringify(data.user));
                         // Redirect to dashboard after successful auto-login
                         window.location.href = '/dashboard';
                         return;
@@ -886,21 +886,21 @@
             }
             
             // Method 5: Check existing token and refresh user data
-            const existingToken = localStorage.getItem('triacelo_token');
+            const existingToken = localStorage.getItem('lyxen_token');
             if (existingToken) {
                 try {
                     const res = await fetch('/api/auth/me', {
                         headers: { 'Authorization': `Bearer ${existingToken}` }
                     });
                     if (!res.ok) {
-                        localStorage.removeItem('triacelo_token');
-                        localStorage.removeItem('triacelo_user');
-                        localStorage.removeItem('triacelo_user_id');
+                        localStorage.removeItem('lyxen_token');
+                        localStorage.removeItem('lyxen_user');
+                        localStorage.removeItem('lyxen_user_id');
                     } else {
                         const user = await res.json();
                         if (user && user.user_id) {
-                            localStorage.setItem('triacelo_user', JSON.stringify(user));
-                            localStorage.setItem('triacelo_user_id', user.user_id.toString());
+                            localStorage.setItem('lyxen_user', JSON.stringify(user));
+                            localStorage.setItem('lyxen_user_id', user.user_id.toString());
                         }
                     }
                 } catch (err) {
@@ -957,7 +957,7 @@
         
         // Smart navigation: redirect logged-in users to dashboard
         function updateNavigationLinks() {
-            const isLoggedIn = !!localStorage.getItem('triacelo_token');
+            const isLoggedIn = !!localStorage.getItem('lyxen_token');
             const targetPage = isLoggedIn ? '/dashboard' : '/terminal';
             
             // Update all "Launch App" and "Start Trading" buttons
@@ -1006,7 +1006,7 @@
             const amount = parseFloat(document.getElementById('trcAmount').value) || 0;
             if (amount < 10) { alert('Minimum: 10 TRC'); return; }
             
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (!token) {
                 if (confirm('Please login to purchase. Redirect to login?')) window.location.href = '/login';
                 return;
@@ -1015,7 +1015,7 @@
         }
 
         function subscribePlan(plan) {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (!token) {
                 if (confirm('Please login to subscribe. Redirect to login?')) window.location.href = '/login';
                 return;
@@ -1063,7 +1063,7 @@
         function closePaymentModal() { document.getElementById('paymentModal')?.remove(); }
 
         async function processPayment(type, amount, plan, method) {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (!token) { alert('Please login first'); return; }
             closePaymentModal();
             
@@ -1118,7 +1118,7 @@
         }
 
         async function loadSubscriptionStatus() {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (!token) return;
             try {
                 const res = await fetch('/api/finance/user/subscription', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -1275,8 +1275,8 @@
                 
                 if (isLogin) {
                     if (data.success && data.token) {
-                        localStorage.setItem('triacelo_token', data.token);
-                        localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                        localStorage.setItem('lyxen_token', data.token);
+                        localStorage.setItem('lyxen_user', JSON.stringify(data.user));
                         closeAuthModal();
                         window.location.href = '/dashboard';
                     } else {
@@ -1313,10 +1313,10 @@
                 const data = await res.json();
                 
                 if (data.success && data.token) {
-                    localStorage.setItem('triacelo_token', data.token);
-                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    localStorage.setItem('lyxen_token', data.token);
+                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
                     closeAuthModal();
-                    alert('🎉 Welcome to Triacelo!');
+                    alert('🎉 Welcome to Lyxen!');
                     window.location.href = '/dashboard';
                 } else {
                     alert(data.detail || 'Invalid code');
@@ -1328,7 +1328,7 @@
         
         function loginWithTelegram() {
             // Open Telegram bot link
-            window.open('https://t.me/triacelo_bybit_bot?start=web', '_blank');
+            window.open('https://t.me/lyxen_bybit_bot?start=web', '_blank');
             closeAuthModal();
         }
         
@@ -1342,8 +1342,8 @@
                 const data = await res.json();
                 
                 if (data.success && data.token) {
-                    localStorage.setItem('triacelo_token', data.token);
-                    localStorage.setItem('triacelo_user', JSON.stringify(data.user));
+                    localStorage.setItem('lyxen_token', data.token);
+                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
                     closeAuthModal();
                     window.location.href = '/terminal';
                 }
@@ -1355,8 +1355,8 @@
         
         function updateNavForLoggedInUser(subscription) {
             const navAuth = document.querySelector('.nav-auth-buttons');
-            if (navAuth && localStorage.getItem('triacelo_token')) {
-                const user = JSON.parse(localStorage.getItem('triacelo_user') || '{}');
+            if (navAuth && localStorage.getItem('lyxen_token')) {
+                const user = JSON.parse(localStorage.getItem('lyxen_user') || '{}');
                 navAuth.innerHTML = `
                     <span style="color:#888;margin-right:10px;">Welcome, ${user.name || user.first_name || 'Trader'}!</span>
                     <a href="/dashboard" class="nav-btn">Dashboard</a>
@@ -1365,7 +1365,7 @@
         }
         
         // Check if already logged in on page load
-        if (localStorage.getItem('triacelo_token')) {
+        if (localStorage.getItem('lyxen_token')) {
             updateNavForLoggedInUser({});
         }
         loadSubscriptionStatus();
@@ -1374,7 +1374,7 @@
         // QUICK START WITH PLAN
         // ================================
         function startWithPlan(plan) {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             
             if (plan === 'free') {
                 // Free plan - just go to terminal (works for everyone)
@@ -1402,7 +1402,7 @@
         // Check for pending plan after auth
         (function() {
             const pendingPlan = localStorage.getItem('pendingPlan');
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (pendingPlan && token) {
                 localStorage.removeItem('pendingPlan');
                 // Auto-trigger subscription after 1s

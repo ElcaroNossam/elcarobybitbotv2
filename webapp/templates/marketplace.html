@@ -7,12 +7,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Strategy Marketplace - Triacelo Trading</title>
+    <title>Strategy Marketplace - Lyxen Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* Unified Triacelo Design System */
+            /* Unified Lyxen Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -646,7 +646,7 @@
             <div class="logo-icon">
                 <i class="fas fa-bolt"></i>
             </div>
-            <span class="logo-text">Triacelo</span>
+            <span class="logo-text">Lyxen</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -779,8 +779,8 @@
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="payment-details">
-                        <h4>Triacelo Coin (TRC)</h4>
-                        <p>Pay with Triacelo Coin (TRC)</p>
+                        <h4>Lyxen Coin (TRC)</h4>
+                        <p>Pay with Lyxen Coin (TRC)</p>
                     </div>
                     <div class="payment-price" id="trcPrice"></div>
                 </div>
@@ -802,12 +802,12 @@
         let selectedPaymentMethod = 'ton';
         
         function getAuthHeaders() {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
         async function initAuth() {
-            const token = localStorage.getItem('triacelo_token');
+            const token = localStorage.getItem('lyxen_token');
             if (token) {
                 try {
                     const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
@@ -880,8 +880,8 @@
             return [
                 {
                     id: 1,
-                    name: "Triacelo Pro Scalper",
-                    author: "Triacelo Team",
+                    name: "Lyxen Pro Scalper",
+                    author: "Lyxen Team",
                     author_id: "511692487",
                     description: "Professional scalping strategy using RSI, Bollinger Bands, and Open Interest analysis. Optimized for high-frequency trading on volatile pairs.",
                     profit_percent: 127.5,
@@ -1213,7 +1213,7 @@
                 }
             });
             
-            localStorage.setItem('triacelo_language', lang);
+            localStorage.setItem('lyxen_language', lang);
             document.getElementById('langMenu').classList.remove('show');
         }
         
@@ -1243,12 +1243,12 @@
                 }
             });
             
-            localStorage.setItem('triacelo_theme', theme);
+            localStorage.setItem('lyxen_theme', theme);
             document.getElementById('themeMenu').classList.remove('show');
         }
         
         function initLanguageAndTheme() {
-            const savedLang = localStorage.getItem('triacelo_language') || 'en';
+            const savedLang = localStorage.getItem('lyxen_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 const flag = document.getElementById('currentLangFlag');
@@ -1261,7 +1261,7 @@
                 });
             }
             
-            const savedTheme = localStorage.getItem('triacelo_theme') || 'dark';
+            const savedTheme = localStorage.getItem('lyxen_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             

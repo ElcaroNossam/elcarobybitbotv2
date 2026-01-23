@@ -147,7 +147,7 @@ class TestDashboardAutoLogin:
         
         # Should return 200 and HTML
         assert response.status_code == 200
-        assert "Triacelo" in response.text or "Dashboard" in response.text
+        assert "Lyxen" in response.text or "Dashboard" in response.text
         assert "dashboard" in response.text.lower()
         
         print(f"✅ Dashboard with start param test passed for user {test_user_id}")

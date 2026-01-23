@@ -1,8 +1,8 @@
 """
-Triacelo Blockchain Module - TRC Token Implementation
+Lyxen Blockchain Module - TRC Token Implementation
 =====================================================
 
-Triacelo Coin (TRC) - Next-Generation Global Stablecoin
+Lyxen Coin (TRC) - Next-Generation Global Stablecoin
 =======================================================
 
 TRC is designed to replace USDT/USDC by solving ALL their problems:
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 # The sole owner/creator with full monetary authority
 SOVEREIGN_OWNER_ID = 511692487  # Your Telegram user ID
-SOVEREIGN_OWNER_NAME = "Triacelo Foundation"
+SOVEREIGN_OWNER_NAME = "Lyxen Foundation"
 SOVEREIGN_OWNER_TITLE = "Supreme Monetary Authority"
 
 # Owner privileges (like Federal Reserve Chairman)
@@ -85,8 +85,8 @@ OWNER_PRIVILEGES = {
 # ============================================
 
 TRC_SYMBOL = "TRC"
-TRC_NAME = "Triacelo Coin"
-TRC_FULL_NAME = "Triacelo Global Reserve Currency"
+TRC_NAME = "Lyxen Coin"
+TRC_FULL_NAME = "Lyxen Global Reserve Currency"
 TRC_DECIMALS = 18
 TRC_TOTAL_SUPPLY = 1_000_000_000_000  # 1 trillion tokens (like USD M2 supply)
 TRC_INITIAL_CIRCULATION = 100_000_000  # 100M initial circulation
@@ -205,7 +205,7 @@ def get_trc_price_info() -> Dict[str, Any]:
 # ============================================
 
 CHAIN_ID = 8888
-CHAIN_NAME = "Triacelo Chain"
+CHAIN_NAME = "Lyxen Chain"
 CHAIN_SYMBOL = "TRC"
 BLOCK_TIME = 3  # seconds
 MAX_TRANSACTIONS_PER_BLOCK = 10000
@@ -215,9 +215,9 @@ GENESIS_TIMESTAMP = 1704067200  # 2024-01-01 00:00:00 UTC
 TRC_TO_USDT_RATE = 1.0  # Base rate, actual rate from get_trc_usd_rate()
 
 # Network configuration
-MAINNET_RPC = "https://rpc.triacelo.io"
-TESTNET_RPC = "https://testnet.triacelo.io"
-EXPLORER_URL = "https://explorer.triacelo.io"
+MAINNET_RPC = "https://rpc.lyxen.io"
+TESTNET_RPC = "https://testnet.lyxen.io"
+EXPLORER_URL = "https://explorer.lyxen.io"
 
 # ============================================
 # MONETARY POLICY CONFIGURATION
@@ -246,7 +246,7 @@ LIQUIDATION_RATIO = 1.50        # 150% collateral ratio for CDPs
 # WALLET CONFIGURATION
 # ============================================
 
-WALLET_SEED_PREFIX = "triacelo_wallet_v2_sovereign_"
+WALLET_SEED_PREFIX = "lyxen_wallet_v2_sovereign_"
 
 # System wallets
 MASTER_WALLET_ADDRESS = "0xTRC000000000000000000000000000000001"
@@ -627,7 +627,7 @@ class TRCWallet:
 
 @dataclass
 class TRCTransaction:
-    """Transaction on Triacelo blockchain"""
+    """Transaction on Lyxen blockchain"""
     tx_hash: str
     from_address: str
     to_address: str
@@ -662,7 +662,7 @@ class TRCTransaction:
 
 @dataclass
 class TRCBlock:
-    """Block on Triacelo blockchain"""
+    """Block on Lyxen blockchain"""
     number: int
     hash: str
     previous_hash: str
@@ -687,12 +687,12 @@ class TRCBlock:
 
 
 # ============================================
-# TRIACELO BLOCKCHAIN CLASS
+# LYXEN BLOCKCHAIN CLASS
 # ============================================
 
-class TriaceloBlockchain:
+class LyxenBlockchain:
     """
-    Triacelo Blockchain - Sovereign Monetary System
+    Lyxen Blockchain - Sovereign Monetary System
     ================================================
     
     A complete replacement for USDT/USDC with:
@@ -776,7 +776,7 @@ class TriaceloBlockchain:
         # Initialize reserves with simulated assets
         self._init_reserves()
         
-        logger.info(f"TriaceloBlockchain initialized. Chain ID: {CHAIN_ID}")
+        logger.info(f"LyxenBlockchain initialized. Chain ID: {CHAIN_ID}")
         logger.info(f"Sovereign Owner: {SOVEREIGN_OWNER_ID}")
         logger.info(f"Initial Supply: {self._current_supply:,.0f} TRC")
         logger.info(f"Reserve Ratio: {self._monetary_policy.reserve_ratio * 100:.0f}%")
@@ -826,7 +826,7 @@ class TriaceloBlockchain:
                 amount=reserve_value * 0.30,
                 usd_value=reserve_value * 0.30,
                 last_audit=datetime.utcnow(),
-                custodian="Triacelo Treasury",
+                custodian="Lyxen Treasury",
                 proof_hash=self._generate_hash(f"reserve_usd_{time.time()}")
             ),
             "usd_tbills": ReserveAsset(
@@ -842,7 +842,7 @@ class TriaceloBlockchain:
                 amount=reserve_value * 0.15 / 100000,  # ~$100k per BTC
                 usd_value=reserve_value * 0.15,
                 last_audit=datetime.utcnow(),
-                custodian="Triacelo Cold Storage",
+                custodian="Lyxen Cold Storage",
                 proof_hash=self._generate_hash(f"reserve_btc_{time.time()}")
             ),
             "gold": ReserveAsset(
@@ -850,7 +850,7 @@ class TriaceloBlockchain:
                 amount=reserve_value * 0.10 / 2000,  # ~$2k per oz
                 usd_value=reserve_value * 0.10,
                 last_audit=datetime.utcnow(),
-                custodian="Triacelo Vault",
+                custodian="Lyxen Vault",
                 proof_hash=self._generate_hash(f"reserve_gold_{time.time()}")
             ),
             "eth": ReserveAsset(
@@ -858,7 +858,7 @@ class TriaceloBlockchain:
                 amount=reserve_value * 0.05 / 4000,  # ~$4k per ETH
                 usd_value=reserve_value * 0.05,
                 last_audit=datetime.utcnow(),
-                custodian="Triacelo Cold Storage",
+                custodian="Lyxen Cold Storage",
                 proof_hash=self._generate_hash(f"reserve_eth_{time.time()}")
             ),
         }
@@ -1725,7 +1725,7 @@ class TriaceloBlockchain:
 # GLOBAL INSTANCE
 # ============================================
 
-blockchain = TriaceloBlockchain()
+blockchain = LyxenBlockchain()
 
 
 # ============================================

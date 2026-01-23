@@ -856,9 +856,9 @@ TEXTS = {
     'trial_activated': '🎉 トライアル有効化！7日間のフルデモアクセスがあります。',
     
     'payment_select_method': '💳 *支払い方法を選択*',
-    'btn_pay_trc': '◈ Triacelo Coin (TRC)',
+    'btn_pay_trc': '◈ Lyxen Coin (TRC)',
     'btn_pay_ton': '💎 TON',
-    'payment_trc_title': '◈ Triacelo Coin (TRC)での支払い',
+    'payment_trc_title': '◈ Lyxen Coin (TRC)での支払い',
     'payment_trc_desc': '{plan}（{period}）に{amount} TRCが請求されます。',
     'payment_ton_title': '💎 TONでの支払い',
     'payment_ton_desc': '''正確に*{amount} TON*を以下に送金:
@@ -1322,4 +1322,20 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
+    # Daily error notifications (once per 24h)
+    'daily_zero_balance':          """⚠️ <b>BALANCE ALERT</b>
+
+💰 Your <b>{account_type}</b> account has <b>$0</b>.
+
+📊 <b>Missed signals:</b> {missed_count}
+
+👉 Deposit funds to resume trading.""",
+
+    'daily_api_keys_invalid':      '🔑 <b>API KEYS ISSUE</b> - Your {account_type} keys are invalid. Missed: {missed_count}. Update in /api_settings',
+
+    'daily_connection_error':      '🌐 <b>CONNECTION ISSUE</b> - Cannot connect to {exchange} ({account_type}). Missed: {missed_count}',
+
+    'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
+
+
 }

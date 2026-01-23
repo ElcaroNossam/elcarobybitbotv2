@@ -152,7 +152,7 @@ from .tasks import (
 
 from .blockchain import (
     # Core
-    TriaceloBlockchain,
+    LyxenBlockchain,
     TRCWallet,
     TRCTransaction,
     TransactionType,
@@ -328,7 +328,7 @@ __all__ = [
     "clear_auth_error_cache",
     
     # Blockchain and TRC
-    "TriaceloBlockchain",
+    "LyxenBlockchain",
     "TRCWallet",
     "TRCTransaction",
     "TransactionType",

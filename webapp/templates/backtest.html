@@ -7,13 +7,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Strategy Backtester - Triacelo Trading</title>
+    <title>Strategy Backtester - Lyxen Trading</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/mobile.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            /* Unified Triacelo Design System */
+            /* Unified Lyxen Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -1139,7 +1139,7 @@
         </button>
         <a href="/" class="logo">
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
-            <span class="logo-text">Triacelo</span>
+            <span class="logo-text">Lyxen</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -1274,7 +1274,7 @@
                     <div class="form-group">
                         <label>Strategy (for Live/Replay)</label>
                         <select id="liveStrategy">
-                            <option value="triacelo">Triacelo</option>
+                            <option value="lyxen">Lyxen</option>
                             <option value="rsibboi">RSI+BB+OI</option>
                             <option value="wyckoff">Wyckoff/SMC</option>
                             <option value="scryptomera">Scryptomera</option>
@@ -1572,7 +1572,7 @@
                             <label>Base Strategy</label>
                             <select id="baseStrategy">
                                 <option value="custom">Custom (from scratch)</option>
-                                <option value="triacelo">Based on Triacelo</option>
+                                <option value="lyxen">Based on Lyxen</option>
                                 <option value="rsibboi">Based on RSI+BB</option>
                                 <option value="trend_following">Based on Trend Following</option>
                             </select>
@@ -1945,7 +1945,7 @@
         
         async function loadUserSettings() {
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 if (!token) return;
                 
                 const res = await fetch('/api/users/me', {
@@ -1970,15 +1970,15 @@
         }
         
         function connectSettingsSyncWebSocket() {
-            let userId = localStorage.getItem('triacelo_user_id');
+            let userId = localStorage.getItem('lyxen_user_id');
             
-            // Fallback: try to get from triacelo_user object
+            // Fallback: try to get from lyxen_user object
             if (!userId) {
                 try {
-                    const userObj = JSON.parse(localStorage.getItem('triacelo_user') || '{}');
+                    const userObj = JSON.parse(localStorage.getItem('lyxen_user') || '{}');
                     if (userObj.user_id) {
                         userId = userObj.user_id.toString();
-                        localStorage.setItem('triacelo_user_id', userId);
+                        localStorage.setItem('lyxen_user_id', userId);
                     }
                 } catch (e) {}
             }
@@ -2074,7 +2074,7 @@
             if (newExchange === currentExchange) return;
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const res = await fetch('/api/users/exchange', {
                     method: 'POST',
                     headers: {
@@ -2106,7 +2106,7 @@
             if (newAccountType === currentAccountType) return;
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const res = await fetch('/api/users/switch-account-type', {
                     method: 'POST',
                     headers: {
@@ -2912,7 +2912,7 @@
             // Call the real function if available
             if (typeof backtestAdvanced !== 'undefined') {
                 const config = {
-                    strategy: document.getElementById('liveStrategy')?.value || 'triacelo',
+                    strategy: document.getElementById('liveStrategy')?.value || 'lyxen',
                     symbol: document.getElementById('symbol')?.value || 'BTCUSDT',
                     timeframe: document.getElementById('timeframe')?.value || '1h',
                     params: {
@@ -2946,7 +2946,7 @@
             document.getElementById('liveSymbol').textContent = document.getElementById('symbol').value;
             
             if (typeof strategyReplay !== 'undefined') {
-                const strategy = document.getElementById('liveStrategy')?.value || 'triacelo';
+                const strategy = document.getElementById('liveStrategy')?.value || 'lyxen';
                 const symbol = document.getElementById('symbol')?.value || 'BTCUSDT';
                 const timeframe = document.getElementById('timeframe')?.value || '1h';
                 const days = parseInt(document.getElementById('days')?.value || 30);
@@ -2973,7 +2973,7 @@
             }
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const config = getConfig();
                 
                 const res = await fetch('/api/backtest/deploy', {
@@ -3036,7 +3036,7 @@
             if (!presetName) return;
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const config = getConfig();
                 
                 const res = await fetch('/api/strategies/presets', {
@@ -3172,7 +3172,7 @@
             showLoading(true);
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const res = await fetch('/api/backtest/strategy-builder/test', {
                     method: 'POST',
                     headers: {
@@ -3213,8 +3213,8 @@
             }
             
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch('/api/backtest/strategy-builder/save', {
                     method: 'POST',
@@ -3313,7 +3313,7 @@
             const offset = marketplacePage * MARKETPLACE_LIMIT;
             
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const url = `/api/backtest/marketplace/browse?sort_by=${sortBy}&category=${encodeURIComponent(category || '')}&offset=${offset}&limit=${MARKETPLACE_LIMIT}`;
                 
                 const res = await fetch(url, {
@@ -3389,8 +3389,8 @@
         
         async function copyStrategy(strategyId) {
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/marketplace/copy/${strategyId}`, {
                     method: 'POST',
@@ -3417,7 +3417,7 @@
         async function viewStrategy(strategyId) {
             // Load strategy details and show in builder for viewing/editing
             try {
-                const token = localStorage.getItem('triacelo_token');
+                const token = localStorage.getItem('lyxen_token');
                 const res = await fetch(`/api/backtest/strategy-builder/${strategyId}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -3447,8 +3447,8 @@
         
         async function loadMyStrategies() {
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/strategy-builder/my-strategies/${userId}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -3530,8 +3530,8 @@
             if (!confirm('Delete this strategy?')) return;
             
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/strategy-builder/${strategyId}?user_id=${userId}`, {
                     method: 'DELETE',
@@ -3569,8 +3569,8 @@
             }
             
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/go-live/${strategyId}`, {
                     method: 'POST',
@@ -3618,8 +3618,8 @@
         
         async function stopLive(strategyId) {
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/stop-live/${strategyId}`, {
                     method: 'POST',
@@ -3645,8 +3645,8 @@
         
         async function loadLiveStatus() {
             try {
-                const token = localStorage.getItem('triacelo_token');
-                const userId = localStorage.getItem('triacelo_user_id') || 'anonymous';
+                const token = localStorage.getItem('lyxen_token');
+                const userId = localStorage.getItem('lyxen_user_id') || 'anonymous';
                 
                 const res = await fetch(`/api/backtest/live-status/${userId}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -3799,7 +3799,7 @@
                 }
             });
             
-            localStorage.setItem('triacelo_language', lang);
+            localStorage.setItem('lyxen_language', lang);
             document.getElementById('langMenu').classList.remove('show');
         }
         
@@ -3829,12 +3829,12 @@
                 }
             });
             
-            localStorage.setItem('triacelo_theme', theme);
+            localStorage.setItem('lyxen_theme', theme);
             document.getElementById('themeMenu').classList.remove('show');
         }
         
         function initLanguageAndTheme() {
-            const savedLang = localStorage.getItem('triacelo_language') || 'en';
+            const savedLang = localStorage.getItem('lyxen_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 const flag = document.getElementById('currentLangFlag');
@@ -3847,7 +3847,7 @@
                 });
             }
             
-            const savedTheme = localStorage.getItem('triacelo_theme') || 'dark';
+            const savedTheme = localStorage.getItem('lyxen_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             

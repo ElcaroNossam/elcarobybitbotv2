@@ -1244,7 +1244,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'payment_select_method': '💳 *Выберите способ оплаты*',
     'btn_pay_trc': '◈ Оплатить TRC',
     'btn_pay_ton': '💎 TON (устарело)',
-    'payment_trc_title': '◈ Оплата через Triacelo Coin (TRC)',
+    'payment_trc_title': '◈ Оплата через Lyxen Coin (TRC)',
     'payment_trc_desc': 'С вас будет списано {amount} TRC за {plan} ({period}).',
     'payment_ton_title': '💎 Оплата через TON (Устарело)',
     'payment_ton_desc': '''Оплата через TON больше не поддерживается.

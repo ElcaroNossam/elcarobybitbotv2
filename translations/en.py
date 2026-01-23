@@ -1275,7 +1275,7 @@ _Your journey to financial freedom starts NOW._
     'payment_select_method': '💳 *Select Payment Method*',
     'btn_pay_trc': '◈ Pay with TRC',
     'btn_pay_ton': '💎 TON (deprecated)',
-    'payment_trc_title': '◈ Payment via Triacelo Coin (TRC)',
+    'payment_trc_title': '◈ Payment via Lyxen Coin (TRC)',
     'payment_trc_desc': 'You will be charged {amount} TRC for {plan} ({period}).',
     'payment_ton_title': '💎 Payment via TON (Deprecated)',
     'payment_ton_desc': '''TON payments are no longer supported.
