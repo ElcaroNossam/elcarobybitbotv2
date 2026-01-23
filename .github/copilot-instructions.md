@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.22.0 | Обновлено: 24 января 2026
+# Версия: 3.23.0 | Обновлено: 25 января 2026
 # =============================================
 
 ---
@@ -694,6 +694,24 @@ keyboard = build_keyboard([
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: SQLite → PostgreSQL Migration for WebApp API (Jan 25, 2026)
+- **Проблема:** 3 API файла (marketplace.py, admin.py, backtest.py) использовали sqlite3.connect вместо PostgreSQL!
+- **Причина:** При миграции на PostgreSQL эти файлы были пропущены
+- **Решение:**
+  - Создан `webapp/api/db_helper.py` - centralized PostgreSQL compatibility layer
+  - `get_db()` возвращает connection с автоматической конверсией ? → %s
+  - `dict(row)` работает через RealDictCursor
+  - `lastrowid` поддерживается через RETURNING id
+- **Исправленные файлы:**
+  - `marketplace.py`: 8 sqlite3.connect → get_db(), is_active=1 → is_active=TRUE
+  - `admin.py`: 14 sqlite3.connect → get_db(), добавлены try-finally блоки
+  - `backtest.py`: 16+ sqlite3.connect → get_db(), убраны CREATE TABLE в коде
+- **Новая миграция:** `017_marketplace_tables.py` создаёт все недостающие таблицы:
+  - strategy_marketplace, strategy_purchases, strategy_ratings
+  - seller_payouts, licenses, strategy_deployments, live_deployments
+- **Файлы:** 6 файлов изменено, 2 новых файла создано
+- **Commit:** ea69741
 
 ### ✅ CRITICAL: Multitenancy Exchange Field Fix (Jan 24, 2026)
 - **Проблема:** Несколько мест в коде НЕ передавали `exchange` при сохранении позиций и trade logs
@@ -1659,9 +1677,10 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-*Last updated: 24 января 2026*
-*Version: 3.22.0*
+*Last updated: 25 января 2026*
+*Version: 3.23.0*
 *Database: PostgreSQL 14 (SQLite removed)*
+*WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 778/778 passing*
