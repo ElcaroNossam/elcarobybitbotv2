@@ -3110,6 +3110,7 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         # Updated: ATR and PARTIAL_TP are now categorized based on PnL:
         #   - ATR/PARTIAL_TP with pnl > 0 → counted as TP (trailing win)
         #   - ATR/PARTIAL_TP with pnl < 0 → counted as SL (trailing loss)
+        # NULL exit_reason: use PnL to determine win/loss
         row = conn.execute(f"""
             SELECT 
                 COUNT(*) as total,
@@ -3117,26 +3118,28 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
                     WHEN exit_reason IN ('TP', 'TRAILING', 'PARTIAL_TP') THEN 1
                     WHEN exit_reason = 'ATR' AND pnl > 0 THEN 1
                     WHEN exit_reason = 'UNKNOWN' AND pnl > 0 THEN 1
+                    WHEN exit_reason IS NULL AND pnl > 0 THEN 1
                     ELSE 0 
                 END) as tp_count,
                 SUM(CASE 
                     WHEN exit_reason IN ('SL', 'LIQ', 'ADL') THEN 1
                     WHEN exit_reason = 'ATR' AND pnl <= 0 THEN 1
                     WHEN exit_reason = 'UNKNOWN' AND pnl < 0 THEN 1
+                    WHEN exit_reason IS NULL AND pnl <= 0 THEN 1
                     ELSE 0 
                 END) as sl_count,
                 SUM(CASE WHEN exit_reason IN ('EOD', 'MANUAL', 'webapp_close') THEN 1 ELSE 0 END) as eod_count,
-                SUM(pnl) as total_pnl,
-                AVG(pnl_pct) as avg_pnl_pct,
+                COALESCE(SUM(pnl), 0) as total_pnl,
+                COALESCE(AVG(pnl_pct), 0) as avg_pnl_pct,
                 SUM(CASE WHEN side = 'Buy' THEN 1 ELSE 0 END) as long_count,
                 SUM(CASE WHEN side = 'Sell' THEN 1 ELSE 0 END) as short_count,
                 SUM(CASE WHEN side = 'Buy' AND pnl > 0 THEN 1 ELSE 0 END) as long_wins,
                 SUM(CASE WHEN side = 'Sell' AND pnl > 0 THEN 1 ELSE 0 END) as short_wins,
-                SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) as gross_profit,
-                SUM(CASE WHEN pnl < 0 THEN pnl ELSE 0 END) as gross_loss,
+                COALESCE(SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END), 0) as gross_profit,
+                COALESCE(SUM(CASE WHEN pnl < 0 THEN pnl ELSE 0 END), 0) as gross_loss,
                 SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
-                MAX(pnl) as best_pnl,
-                MIN(pnl) as worst_pnl
+                COALESCE(MAX(pnl), 0) as best_pnl,
+                COALESCE(MIN(pnl), 0) as worst_pnl
             FROM trade_logs
             WHERE {where_sql}
         """, params).fetchone()
