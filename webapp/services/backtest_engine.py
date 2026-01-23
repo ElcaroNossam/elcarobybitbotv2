@@ -4,6 +4,7 @@ Based on analyzers from: elcaro, aiboll, spain_rsibb_oi, fibo_bot, pazzle, damp
 """
 import aiohttp
 import asyncio
+import sqlite3
 import json
 import logging
 from datetime import datetime, timedelta
@@ -184,16 +185,16 @@ class RealBacktestEngine:
     def get_custom_strategy_analyzer(self, strategy_id: int) -> Optional["CustomStrategyAnalyzer"]:
         """Load a custom strategy from database and create analyzer"""
         try:
-            from webapp.api.db_helper import get_db
+            conn = sqlite3.connect(str(DB_FILE))
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM custom_strategies WHERE id = ? AND is_active = 1", (strategy_id,))
+            row = cur.fetchone()
+            conn.close()
             
-            with get_db() as conn:
-                cur = conn.cursor()
-                cur.execute("SELECT * FROM custom_strategies WHERE id = ? AND is_active = TRUE", (strategy_id,))
-                row = cur.fetchone()
-                
-                if row:
-                    config = json.loads(row["config_json"])
-                    return CustomStrategyAnalyzer(config, row["base_strategy"])
+            if row:
+                config = json.loads(row["config_json"])
+                return CustomStrategyAnalyzer(config, row["base_strategy"])
             return None
         except Exception:
             return None
@@ -2302,36 +2303,35 @@ class CustomStrategyAnalyzer:
 def save_backtest_results(strategy_id: int, results: Dict) -> bool:
     """Save backtest results to custom_strategies table"""
     try:
-        from webapp.api.db_helper import get_db
+        conn = sqlite3.connect(str(DB_FILE))
+        cur = conn.cursor()
         
-        with get_db() as conn:
-            cur = conn.cursor()
-            
-            win_rate = results.get("win_rate", 0)
-            total_pnl = results.get("total_pnl_percent", 0)
-            total_trades = results.get("total_trades", 0)
-            
-            # Calculate composite backtest score
-            sharpe = results.get("sharpe_ratio", 0)
-            max_dd = results.get("max_drawdown_percent", 0)
-            profit_factor = results.get("profit_factor", 0)
-            
-            # Score formula: win_rate*0.3 + pnl*0.3 + sharpe*10 + profit_factor*5 - max_dd*0.5
-            backtest_score = (
-                win_rate * 0.3 +
-                min(total_pnl, 100) * 0.3 +
-                min(sharpe, 3) * 10 +
-                min(profit_factor, 5) * 5 -
-                max_dd * 0.5
-            )
-            
-            cur.execute("""
-                UPDATE custom_strategies
-                SET win_rate = ?, total_pnl = ?, total_trades = ?, backtest_score = ?, updated_at = NOW()
-                WHERE id = ?
-            """, (win_rate, total_pnl, total_trades, backtest_score, strategy_id))
-            
-            conn.commit()
+        win_rate = results.get("win_rate", 0)
+        total_pnl = results.get("total_pnl_percent", 0)
+        total_trades = results.get("total_trades", 0)
+        
+        # Calculate composite backtest score
+        sharpe = results.get("sharpe_ratio", 0)
+        max_dd = results.get("max_drawdown_percent", 0)
+        profit_factor = results.get("profit_factor", 0)
+        
+        # Score formula: win_rate*0.3 + pnl*0.3 + sharpe*10 + profit_factor*5 - max_dd*0.5
+        backtest_score = (
+            win_rate * 0.3 +
+            min(total_pnl, 100) * 0.3 +
+            min(sharpe, 3) * 10 +
+            min(profit_factor, 5) * 5 -
+            max_dd * 0.5
+        )
+        
+        cur.execute("""
+            UPDATE custom_strategies
+            SET win_rate = ?, total_pnl = ?, total_trades = ?, backtest_score = ?, updated_at = ?
+            WHERE id = ?
+        """, (win_rate, total_pnl, total_trades, backtest_score, int(datetime.now().timestamp()), strategy_id))
+        
+        conn.commit()
+        conn.close()
         return True
     except Exception:
         return False

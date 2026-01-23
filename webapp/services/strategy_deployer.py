@@ -3,6 +3,7 @@ Strategy Deployment Service
 Manages deploying backtested strategies to live trading
 """
 import asyncio
+import sqlite3
 import json
 import logging
 from datetime import datetime
@@ -10,12 +11,9 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field, asdict
 
-# PostgreSQL imports
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from webapp.api.db_helper import get_db
-
 logger = logging.getLogger(__name__)
+
+DB_FILE = Path(__file__).parent.parent.parent / "data" / "trading.db"
 
 
 @dataclass
@@ -58,42 +56,44 @@ class StrategyDeployer:
         self._init_db()
     
     def _init_db(self):
-        """Initialize deployment tables using PostgreSQL"""
+        """Initialize deployment tables"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS strategy_deployments (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL,
-                        strategy_name TEXT NOT NULL,
-                        params_json TEXT,
-                        backtest_results_json TEXT,
-                        deployed_at TIMESTAMP DEFAULT NOW(),
-                        is_active BOOLEAN DEFAULT TRUE,
-                        live_stats_json TEXT,
-                        created_at TIMESTAMP DEFAULT NOW(),
-                        updated_at TIMESTAMP DEFAULT NOW()
-                    )
-                """)
-                
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_deployments_user 
-                    ON strategy_deployments(user_id, is_active)
-                """)
-                
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS deployment_history (
-                        id SERIAL PRIMARY KEY,
-                        deployment_id INTEGER REFERENCES strategy_deployments(id),
-                        event_type TEXT NOT NULL,
-                        event_data TEXT,
-                        created_at TIMESTAMP DEFAULT NOW()
-                    )
-                """)
-                
-                conn.commit()
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS strategy_deployments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    strategy_name TEXT NOT NULL,
+                    params_json TEXT,
+                    backtest_results_json TEXT,
+                    deployed_at TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    live_stats_json TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_deployments_user 
+                ON strategy_deployments(user_id, is_active)
+            """)
+            
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS deployment_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    deployment_id INTEGER,
+                    event_type TEXT NOT NULL,
+                    event_data TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (deployment_id) REFERENCES strategy_deployments(id)
+                )
+            """)
+            
+            conn.commit()
+            conn.close()
         except Exception as e:
             logger.error(f"Failed to init deployment DB: {e}")
     
@@ -206,16 +206,17 @@ class StrategyDeployer:
     async def _deactivate_existing(self, user_id: int, strategy: str):
         """Deactivate existing deployments for same strategy"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    UPDATE strategy_deployments 
-                    SET is_active = FALSE, updated_at = NOW()
-                    WHERE user_id = ? AND strategy_name = ? AND is_active = TRUE
-                """, (user_id, strategy))
-                
-                conn.commit()
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                UPDATE strategy_deployments 
+                SET is_active = 0, updated_at = ?
+                WHERE user_id = ? AND strategy_name = ? AND is_active = 1
+            """, (datetime.now().isoformat(), user_id, strategy))
+            
+            conn.commit()
+            conn.close()
         except Exception as e:
             logger.error(f"Failed to deactivate existing: {e}")
     
@@ -228,24 +229,26 @@ class StrategyDeployer:
     ) -> int:
         """Save deployment to database"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    INSERT INTO strategy_deployments 
-                    (user_id, strategy_name, params_json, backtest_results_json, deployed_at, is_active)
-                    VALUES (?, ?, ?, ?, NOW(), TRUE)
-                """, (
-                    user_id,
-                    strategy,
-                    json.dumps(params),
-                    json.dumps(backtest_results)
-                ))
-                
-                deployment_id = cur.lastrowid
-                conn.commit()
-                
-                return deployment_id
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                INSERT INTO strategy_deployments 
+                (user_id, strategy_name, params_json, backtest_results_json, deployed_at, is_active)
+                VALUES (?, ?, ?, ?, ?, 1)
+            """, (
+                user_id,
+                strategy,
+                json.dumps(params),
+                json.dumps(backtest_results),
+                datetime.now().isoformat()
+            ))
+            
+            deployment_id = cur.lastrowid
+            conn.commit()
+            conn.close()
+            
+            return deployment_id
         except Exception as e:
             logger.error(f"Failed to save deployment: {e}")
             return -1
@@ -288,16 +291,17 @@ class StrategyDeployer:
     ):
         """Log deployment event"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    INSERT INTO deployment_history 
-                    (deployment_id, event_type, event_data)
-                    VALUES (?, ?, ?)
-                """, (deployment_id, event_type, json.dumps(event_data)))
-                
-                conn.commit()
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                INSERT INTO deployment_history 
+                (deployment_id, event_type, event_data)
+                VALUES (?, ?, ?)
+            """, (deployment_id, event_type, json.dumps(event_data)))
+            
+            conn.commit()
+            conn.close()
         except Exception as e:
             logger.error(f"Failed to log event: {e}")
     
@@ -327,28 +331,30 @@ class StrategyDeployer:
     async def get_active_deployments(self, user_id: int) -> List[Dict]:
         """Get all active deployments for a user"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    SELECT * FROM strategy_deployments 
-                    WHERE user_id = ? AND is_active = TRUE
-                    ORDER BY deployed_at DESC
-                """, (user_id,))
-                
-                rows = cur.fetchall()
-                
-                return [
-                    {
-                        "id": row["id"],
-                        "strategy": row["strategy_name"],
-                        "params": json.loads(row["params_json"]) if row["params_json"] else {},
-                        "backtest_results": json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {},
-                        "deployed_at": str(row["deployed_at"]) if row["deployed_at"] else None,
-                        "live_stats": json.loads(row["live_stats_json"]) if row.get("live_stats_json") else {}
-                    }
-                    for row in rows
-                ]
+            conn = sqlite3.connect(str(DB_FILE))
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT * FROM strategy_deployments 
+                WHERE user_id = ? AND is_active = 1
+                ORDER BY deployed_at DESC
+            """, (user_id,))
+            
+            rows = cur.fetchall()
+            conn.close()
+            
+            return [
+                {
+                    "id": row["id"],
+                    "strategy": row["strategy_name"],
+                    "params": json.loads(row["params_json"]) if row["params_json"] else {},
+                    "backtest_results": json.loads(row["backtest_results_json"]) if row["backtest_results_json"] else {},
+                    "deployed_at": row["deployed_at"],
+                    "live_stats": json.loads(row["live_stats_json"]) if row["live_stats_json"] else {}
+                }
+                for row in rows
+            ]
             
         except Exception as e:
             logger.error(f"Failed to get deployments: {e}")
@@ -361,30 +367,32 @@ class StrategyDeployer:
     ) -> List[Dict]:
         """Get deployment history"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                if user_id:
-                    cur.execute("""
-                        SELECT d.*, h.event_type, h.event_data, h.created_at as event_time
-                        FROM strategy_deployments d
-                        LEFT JOIN deployment_history h ON d.id = h.deployment_id
-                        WHERE d.user_id = ?
-                        ORDER BY d.deployed_at DESC
-                        LIMIT ?
-                    """, (user_id, limit))
-                else:
-                    cur.execute("""
-                        SELECT d.*, h.event_type, h.event_data, h.created_at as event_time
-                        FROM strategy_deployments d
-                        LEFT JOIN deployment_history h ON d.id = h.deployment_id
-                        ORDER BY d.deployed_at DESC
-                        LIMIT ?
-                    """, (limit,))
-                
-                rows = cur.fetchall()
-                
-                return [dict(row) for row in rows]
+            conn = sqlite3.connect(str(DB_FILE))
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            
+            if user_id:
+                cur.execute("""
+                    SELECT d.*, h.event_type, h.event_data, h.created_at as event_time
+                    FROM strategy_deployments d
+                    LEFT JOIN deployment_history h ON d.id = h.deployment_id
+                    WHERE d.user_id = ?
+                    ORDER BY d.deployed_at DESC
+                    LIMIT ?
+                """, (user_id, limit))
+            else:
+                cur.execute("""
+                    SELECT d.*, h.event_type, h.event_data, h.created_at as event_time
+                    FROM strategy_deployments d
+                    LEFT JOIN deployment_history h ON d.id = h.deployment_id
+                    ORDER BY d.deployed_at DESC
+                    LIMIT ?
+                """, (limit,))
+            
+            rows = cur.fetchall()
+            conn.close()
+            
+            return [dict(row) for row in rows]
             
         except Exception as e:
             logger.error(f"Failed to get history: {e}")
@@ -397,16 +405,17 @@ class StrategyDeployer:
     ):
         """Update live trading stats for a deployment"""
         try:
-            with get_db() as conn:
-                cur = conn.cursor()
-                
-                cur.execute("""
-                    UPDATE strategy_deployments 
-                    SET live_stats_json = ?, updated_at = NOW()
-                    WHERE id = ?
-                """, (json.dumps(stats), deployment_id))
-                
-                conn.commit()
+            conn = sqlite3.connect(str(DB_FILE))
+            cur = conn.cursor()
+            
+            cur.execute("""
+                UPDATE strategy_deployments 
+                SET live_stats_json = ?, updated_at = ?
+                WHERE id = ?
+            """, (json.dumps(stats), datetime.now().isoformat(), deployment_id))
+            
+            conn.commit()
+            conn.close()
             
             # Log stats update
             await self._log_event(deployment_id, "stats_update", stats)

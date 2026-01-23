@@ -1788,7 +1788,7 @@ def get_active_trading_users() -> list[int]:
         # P0.10: Include HL users in the query
         rows = conn.execute("""
             SELECT user_id FROM users 
-            WHERE is_banned = FALSE 
+            WHERE is_banned = 0 
             AND (
                 demo_api_key IS NOT NULL 
                 OR real_api_key IS NOT NULL
@@ -3787,7 +3787,7 @@ def get_user_license(user_id: int) -> dict:
             )
             # Deactivate old license records
             conn.execute(
-                "UPDATE user_licenses SET is_active = FALSE, updated_at = ? WHERE user_id = ? AND is_active = TRUE",
+                "UPDATE user_licenses SET is_active = 0, updated_at = ? WHERE user_id = ? AND is_active = 1",
                 (now, user_id)
             )
             conn.commit()
@@ -3860,14 +3860,14 @@ def set_user_license(
         
         # Deactivate old license
         conn.execute(
-            "UPDATE user_licenses SET is_active = FALSE, updated_at = ? WHERE user_id = ? AND is_active = TRUE",
+            "UPDATE user_licenses SET is_active = 0, updated_at = ? WHERE user_id = ? AND is_active = 1",
             (now, user_id)
         )
         
         # Create new license record
         cur = conn.execute("""
             INSERT INTO user_licenses (user_id, license_type, start_date, end_date, is_active, created_at, created_by, notes)
-            VALUES (?, ?, ?, ?, TRUE, ?, ?, ?)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?)
         """, (user_id, license_type, now, new_end, now, admin_id, notes))
         
         license_id = cur.lastrowid
@@ -3915,7 +3915,7 @@ def extend_license(user_id: int, days: int, admin_id: int | None = None, notes: 
         conn.execute("""
             UPDATE user_licenses 
             SET end_date = ?, updated_at = ?, notes = COALESCE(notes || ' | ', '') || ?
-            WHERE user_id = ? AND is_active = TRUE
+            WHERE user_id = ? AND is_active = 1
         """, (new_end, now, f"Extended +{days}d by admin {admin_id}", user_id))
         
         # Record as admin grant
@@ -3952,8 +3952,8 @@ def revoke_license(user_id: int, admin_id: int | None = None, reason: str | None
         # Deactivate license
         conn.execute("""
             UPDATE user_licenses 
-            SET is_active = FALSE, updated_at = ?, notes = COALESCE(notes || ' | ', '') || ?
-            WHERE user_id = ? AND is_active = TRUE
+            SET is_active = 0, updated_at = ?, notes = COALESCE(notes || ' | ', '') || ?
+            WHERE user_id = ? AND is_active = 1
         """, (now, f"Revoked by admin {admin_id}: {reason or 'No reason'}", user_id))
         
         # Record revocation
@@ -4163,7 +4163,7 @@ def use_promo_code(user_id: int, code: str) -> dict:
 def get_promo_codes(active_only: bool = True) -> list[dict]:
     """Get all promo codes (admin function)."""
     with get_conn() as conn:
-        where = "WHERE is_active = TRUE" if active_only else ""
+        where = "WHERE is_active = 1" if active_only else ""
         rows = conn.execute(f"""
             SELECT id, code, license_type, period_days, max_uses, current_uses, is_active, valid_until, created_at, notes
             FROM promo_codes {where}
@@ -4191,7 +4191,7 @@ def deactivate_promo_code(code: str) -> dict:
     """Deactivate a promo code."""
     with get_conn() as conn:
         conn.execute(
-            "UPDATE promo_codes SET is_active = FALSE WHERE code = ?",
+            "UPDATE promo_codes SET is_active = 0 WHERE code = ?",
             (code.upper(),)
         )
         conn.commit()
@@ -4425,9 +4425,9 @@ def get_users_paginated(page: int = 0, per_page: int = 10, filter_type: str = "a
         # Build WHERE clause based on filter
         where = "1=1"
         if filter_type == "active":
-            where = "is_allowed = TRUE AND is_banned = FALSE"
+            where = "is_allowed = 1 AND is_banned = 0"
         elif filter_type == "banned":
-            where = "is_banned = TRUE"
+            where = "is_banned = 1"
         elif filter_type == "premium":
             where = f"current_license = 'premium' AND license_expires > {now}"
         elif filter_type == "basic":
@@ -5230,7 +5230,7 @@ def get_active_trading_strategies(user_id: int, exchange: str = None, account_ty
         cur = conn.execute(
             """SELECT id, name, config, base_strategy 
                FROM custom_strategies 
-               WHERE user_id = ? AND is_active = TRUE""",
+               WHERE user_id = ? AND is_active = 1""",
             (user_id,)
         )
         for row in cur.fetchall():
@@ -5248,7 +5248,7 @@ def get_active_trading_strategies(user_id: int, exchange: str = None, account_ty
             """SELECT s.id, s.name, s.config, s.base_strategy
                FROM strategy_purchases p
                JOIN custom_strategies s ON p.strategy_id = s.id
-               WHERE p.buyer_id = ? AND p.is_active = TRUE""",
+               WHERE p.buyer_id = ? AND p.is_active = 1""",
             (user_id,)
         )
         for row in cur.fetchall():
@@ -5655,7 +5655,7 @@ def get_public_strategies(limit: int = 50, offset: int = 0) -> list:
                       m.price, m.sales_count, m.average_rating
                FROM custom_strategies s
                LEFT JOIN strategy_marketplace m ON s.id = m.strategy_id
-               WHERE s.is_public = TRUE AND s.is_active = TRUE
+               WHERE s.is_public = 1 AND s.is_active = 1
                ORDER BY m.average_rating DESC, m.sales_count DESC
                LIMIT ? OFFSET ?""",
             (limit, offset)

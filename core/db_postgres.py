@@ -1048,14 +1048,14 @@ def pg_get_active_users() -> List[int]:
     rows = execute("""
         SELECT user_id FROM users 
         WHERE (demo_api_key IS NOT NULL OR real_api_key IS NOT NULL)
-        AND is_banned = FALSE
+        AND is_banned = 0
     """)
     return [r['user_id'] for r in rows]
 
 
 def pg_get_allowed_users() -> List[int]:
-    """Get users with is_allowed=TRUE"""
-    rows = execute("SELECT user_id FROM users WHERE is_allowed = TRUE")
+    """Get users with is_allowed=1"""
+    rows = execute("SELECT user_id FROM users WHERE is_allowed = 1")
     return [r['user_id'] for r in rows]
 
 
@@ -1074,7 +1074,7 @@ def pg_get_active_trading_users() -> List[int]:
     """
     rows = execute("""
         SELECT user_id FROM users 
-        WHERE is_banned = FALSE 
+        WHERE is_banned = 0 
         AND (
             demo_api_key IS NOT NULL 
             OR real_api_key IS NOT NULL

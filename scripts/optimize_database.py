@@ -191,7 +191,7 @@ def benchmark_queries(conn):
          (511692487,)),
         
         ("License check", 
-         "SELECT * FROM user_licenses WHERE user_id = ? AND is_active = TRUE AND end_date > ?", 
+         "SELECT * FROM user_licenses WHERE user_id = ? AND is_active = 1 AND end_date > ?", 
          (511692487, int(time.time()))),
         
         ("Pending orders by symbol", 

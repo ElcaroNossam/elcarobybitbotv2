@@ -107,7 +107,7 @@ def migrate():
         
         # Step 3: Verify users table is intact
         print("\n[3/5] Verifying users table...")
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1")
         active_users = cur.fetchone()['cnt']
         print(f"  ✅ {active_users} active users found")
         
@@ -119,7 +119,7 @@ def migrate():
                    CASE WHEN real_api_key IS NOT NULL THEN 1 ELSE 0 END as has_real,
                    CASE WHEN hl_mainnet_private_key IS NOT NULL THEN 1 ELSE 0 END as has_hl
             FROM users 
-            WHERE is_allowed = TRUE
+            WHERE is_allowed = 1
         """)
         users_with_keys = cur.fetchall()
         
