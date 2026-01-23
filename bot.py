@@ -8374,30 +8374,6 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await reply_with_keyboard(update, ctx, ctx.t['need_terms'])
         await cmd_terms(update, ctx)
         return
-    
-    # Setup personalized Menu Button with WebApp for Terminal
-    try:
-        # Get webapp URL from env, fallback to ngrok file, then default
-        webapp_url = WEBAPP_URL
-        if webapp_url == "http://localhost:8765":
-            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-            if ngrok_file.exists():
-                webapp_url = ngrok_file.read_text().strip()
-        
-        # Add user_id as start param for auto-login to Terminal
-        import time
-        cache_bust = int(time.time())
-        webapp_url_with_user = f"{webapp_url}/terminal?start={uid}&_t={cache_bust}"
-        menu_button = MenuButtonWebApp(
-            text="💻 Terminal",
-            web_app=WebAppInfo(url=webapp_url_with_user)
-        )
-        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
-        logger.info(f"[{uid}] Personalized menu button set: {webapp_url_with_user}")
-    except Exception as e:
-        logger.warning(f"Failed to set menu button for {uid}: {e}")
-    except Exception as e:
-        logger.warning(f"Failed to set menu button for {uid}: {e}")
 
     # Send user guide PDF on first start (only once)
     if not cfg.get("guide_sent", 0):
@@ -22874,8 +22850,48 @@ async def cmd_switch_exchange(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show info about WebApp access via Menu Button"""
+    """Open WebApp in Telegram or browser with auto-login"""
     t = ctx.t
+    uid = update.effective_user.id
+    
+    # Get webapp URL from env, fallback to ngrok file, then localhost
+    webapp_url = WEBAPP_URL
+    try:
+        if webapp_url == "http://localhost:8765":
+            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+            if ngrok_file.exists():
+                webapp_url = ngrok_file.read_text().strip()
+    except Exception:
+        pass
+    
+    # Generate auto-login token
+    import time
+    cache_bust = int(time.time())
+    try:
+        from webapp.services import telegram_auth
+        token, _ = telegram_auth.generate_login_token(uid)
+        login_url = f"{webapp_url}/api/auth/token-login?token={token}&_t={cache_bust}"
+    except Exception as e:
+        logging.warning(f"Failed to generate login token: {e}")
+        login_url = f"{webapp_url}?_t={cache_bust}"
+    
+    # Check if ngrok (free tier has warning page that breaks WebApp)
+    is_ngrok = "ngrok" in webapp_url
+    webapp_url_with_start = f"{webapp_url}/terminal?start={uid}&_t={cache_bust}"
+    
+    if is_ngrok:
+        # For ngrok, use regular URL buttons (WebAppInfo shows blank due to ngrok warning)
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Open WebApp", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
+    else:
+        # For production HTTPS, use WebAppInfo for native Telegram experience
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📱 Open in Telegram", web_app=WebAppInfo(url=webapp_url_with_start))],
+            [InlineKeyboardButton("🔗 Open in Browser", url=login_url)],
+            [InlineKeyboardButton(t.get("button_back", "🔙 Back"), callback_data="main_menu")]
+        ])
     
     text = (
         "🌐 *Trading WebApp*\n\n"
@@ -22884,13 +22900,13 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "• 💰 Check balances\n"
         "• ⚙️ Manage settings\n"
         "• 📈 Trading statistics\n\n"
-        "💡 *How to open:*\n"
-        "_Tap the_ 💻 Terminal _button in the menu (bottom left corner)_"
+        "_Tap the button below to open_"
     )
     
     await update.message.reply_text(
         text,
         parse_mode="Markdown",
+        reply_markup=keyboard,
         disable_web_page_preview=True
     )
 
