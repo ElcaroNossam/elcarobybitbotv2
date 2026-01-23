@@ -1,6 +1,6 @@
 # ElCaro Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.18.0 | Обновлено: 23 января 2026
+# Версия: 3.19.0 | Обновлено: 23 января 2026
 # =============================================
 
 ---
@@ -119,6 +119,12 @@ ElCaro Trading Platform
 │   │   ├── marketplace.html
 │   │   └── ...
 │   └── static/            # CSS/JS/Images
+│       ├── css/
+│       │   ├── base.css           # ⭐ Unified design system
+│       │   ├── terminal-layout.css # Terminal page styles
+│       │   └── components/header.css
+│       └── js/
+│           └── core.js            # ⭐ Unified API/auth/theme
 │
 ├── models/                # Data models
 │   ├── unified.py         # Position, Balance, Order
@@ -608,6 +614,26 @@ python3 utils/translation_sync.py --report
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ MAJOR: Unified CSS Design System (Jan 23, 2026)
+- **Проблема:** Каждая HTML страница дублировала ~840 строк inline CSS с CSS variables
+- **Решение:** Создана унифицированная CSS система
+- **Файлы:**
+  - `webapp/static/css/base.css` - Unified design tokens, CSS reset, компоненты (~320 lines)
+  - `webapp/static/css/components/header.css` - Unified header component (~250 lines)
+  - `webapp/static/css/terminal-layout.css` - Terminal page styles (~1100 lines)
+  - `webapp/static/js/core.js` - API helpers, auth, theme, toast, formatting (~340 lines)
+- **Изменения:**
+  - Все CSS variables централизованы в base.css
+  - Компоненты: buttons, cards, inputs, badges, utilities
+  - core.js: `Triacelo.apiGet()`, `Triacelo.showToast()`, `Triacelo.formatCurrency()` etc.
+- **Как использовать:**
+  ```html
+  <link href="/static/css/base.css" rel="stylesheet">
+  <link href="/static/css/components/header.css" rel="stylesheet">
+  <script src="/static/js/core.js"></script>
+  ```
+- **Commit:** 39dab58
 
 ### ✅ MAJOR: Database Migration System Created (Jan 23, 2026)
 - **Проблема:** Отсутствовала система управления миграциями БД, схема создавалась хаотично
