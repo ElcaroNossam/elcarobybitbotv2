@@ -199,10 +199,9 @@ async def run_custom_backtest(request: CustomBacktestRequest, user_id: int = Non
         from webapp.services.backtest_engine import RealBacktestEngine, save_backtest_results
         
         # Verify strategy exists and user has access
-        conn = get_db()
-        cur = conn.cursor()
-        
-        try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            
             cur.execute("""
                 SELECT s.*, p.id as purchase_id 
                 FROM custom_strategies s
@@ -219,8 +218,6 @@ async def run_custom_backtest(request: CustomBacktestRequest, user_id: int = Non
             # Check access: owner or purchased
             if user_id and strategy["user_id"] != user_id and not strategy.get("purchase_id"):
                 raise HTTPException(status_code=403, detail="Purchase required to backtest this strategy")
-        finally:
-            conn.close()
         
         engine = RealBacktestEngine()
         
@@ -908,40 +905,41 @@ async def get_replay_data(request: ReplayDataRequest):
 @router.post("/deploy")
 async def deploy_strategy(request: DeployStrategyRequest):
     """Deploy tested strategy to bot with optimized parameters"""
-    conn = None
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        # Save deployment record
-        cur.execute("""
-            INSERT INTO strategy_deployments (
-                strategy_name, params_json, backtest_results_json, 
-                deployed_at, is_active
-            ) VALUES (?, ?, ?, ?, TRUE)
-        """, (
-            request.strategy,
-            json.dumps(request.params),
-            json.dumps(request.backtest_results) if request.backtest_results else "{}",
-            datetime.now().isoformat()
-        ))
-        
-        deployment_id = cur.lastrowid
-        
-        # Deactivate previous deployments for same strategy
-        cur.execute("""
-            UPDATE strategy_deployments 
-            SET is_active = FALSE 
-            WHERE strategy_name = ? AND id != ?
-        """, (request.strategy, deployment_id))
-        
-        conn.commit()
-        
-        return {
-            "success": True,
-            "deployment_id": deployment_id,
-            "message": f"Strategy '{request.strategy}' deployed successfully"
-        }
+        with get_db() as conn:
+            cur = conn.cursor()
+            
+            # Save deployment record
+            cur.execute("""
+                INSERT INTO strategy_deployments (
+                    strategy_name, params_json, backtest_results_json, 
+                    deployed_at, is_active
+                ) VALUES (?, ?, ?, NOW(), TRUE)
+                RETURNING id
+            """, (
+                request.strategy,
+                json.dumps(request.params),
+                json.dumps(request.backtest_results) if request.backtest_results else "{}"
+            ))
+            
+            row = cur.fetchone()
+            deployment_id = row['id'] if row else None
+            
+            # Deactivate previous deployments for same strategy
+            if deployment_id:
+                cur.execute("""
+                    UPDATE strategy_deployments 
+                    SET is_active = FALSE 
+                    WHERE strategy_name = ? AND id != ?
+                """, (request.strategy, deployment_id))
+            
+            conn.commit()
+            
+            return {
+                "success": True,
+                "deployment_id": deployment_id,
+                "message": f"Strategy '{request.strategy}' deployed successfully"
+            }
         
     except Exception as e:
         # Table might not exist - create it
@@ -962,9 +960,6 @@ async def deploy_strategy(request: DeployStrategyRequest):
             return await deploy_strategy(request)
         
         return {"success": False, "error": str(e)}
-    finally:
-        if conn:
-            conn.close()
 
 
 @router.get("/deployments")

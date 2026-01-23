@@ -40,10 +40,9 @@ async def get_users(
 ):
     """Get all users with stats."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Get counts (with safe None handling)
         cur.execute("SELECT COUNT(*) as cnt FROM users")
         row = cur.fetchone()
@@ -60,55 +59,53 @@ async def get_users(
         cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = TRUE")
         row = cur.fetchone()
         banned = row['cnt'] if row else 0
-    
-    # Get users list
-    offset = (page - 1) * limit
-    
-    if search:
-        cur.execute("""
-            SELECT user_id, first_name, username, is_allowed, is_banned, 
-                   license_type, is_lifetime, exchange_type, lang,
-                   created_at
-            FROM users 
-            WHERE user_id LIKE ? OR username LIKE ? OR first_name LIKE ?
-            ORDER BY user_id DESC 
-            LIMIT ? OFFSET ?
-        """, (f"%{search}%", f"%{search}%", f"%{search}%", limit, offset))
-    else:
-        cur.execute("""
-            SELECT user_id, first_name, username, is_allowed, is_banned, 
-                   license_type, is_lifetime, exchange_type, lang,
-                   created_at
-            FROM users 
-            ORDER BY user_id DESC 
-            LIMIT ? OFFSET ?
-        """, (limit, offset))
-    
-    users = []
-    for row in cur.fetchall():
-        users.append({
-            "user_id": row["user_id"],
-            "first_name": row["first_name"],
-            "username": row["username"],
-            "is_allowed": bool(row["is_allowed"]),
-            "is_banned": bool(row["is_banned"]),
-            "license_type": row["license_type"] or ("lifetime" if row["is_lifetime"] else "free"),
-            "exchange_type": row["exchange_type"] or "bybit",
-            "lang": row["lang"] or "en",
-            "created_at": row["created_at"],
-        })
-    
-    return {
-        "total": total,
-        "active": active,
-        "premium": premium,
-        "banned": banned,
-        "page": page,
-        "limit": limit,
-        "list": users
-    }
-    finally:
-        conn.close()
+        
+        # Get users list
+        offset = (page - 1) * limit
+        
+        if search:
+            cur.execute("""
+                SELECT user_id, first_name, username, is_allowed, is_banned, 
+                       license_type, is_lifetime, exchange_type, lang,
+                       created_at
+                FROM users 
+                WHERE CAST(user_id AS TEXT) LIKE ? OR username LIKE ? OR first_name LIKE ?
+                ORDER BY user_id DESC 
+                LIMIT ? OFFSET ?
+            """, (f"%{search}%", f"%{search}%", f"%{search}%", limit, offset))
+        else:
+            cur.execute("""
+                SELECT user_id, first_name, username, is_allowed, is_banned, 
+                       license_type, is_lifetime, exchange_type, lang,
+                       created_at
+                FROM users 
+                ORDER BY user_id DESC 
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+        
+        users = []
+        for row in cur.fetchall():
+            users.append({
+                "user_id": row["user_id"],
+                "first_name": row["first_name"],
+                "username": row["username"],
+                "is_allowed": bool(row["is_allowed"]),
+                "is_banned": bool(row["is_banned"]),
+                "license_type": row["license_type"] or ("lifetime" if row["is_lifetime"] else "free"),
+                "exchange_type": row["exchange_type"] or "bybit",
+                "lang": row["lang"] or "en",
+                "created_at": row["created_at"],
+            })
+        
+        return {
+            "total": total,
+            "active": active,
+            "premium": premium,
+            "banned": banned,
+            "page": page,
+            "limit": limit,
+            "list": users
+        }
 
 
 @router.get("/users/{user_id}")
@@ -204,10 +201,9 @@ async def get_licenses(
 ):
     """Get all licenses."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Check if licenses table exists (PostgreSQL uses information_schema)
         cur.execute("SELECT table_name FROM information_schema.tables WHERE table_name='licenses'")
         if not cur.fetchone():
@@ -225,14 +221,14 @@ async def get_licenses(
                 )
             """)
             conn.commit()
-    
-    cur.execute("""
-        SELECT license_key, license_type, user_id, created_at, expires_at, is_active, days
-        FROM licenses
-        ORDER BY created_at DESC
-        LIMIT 100
-    """)
-    
+        
+        cur.execute("""
+            SELECT license_key, license_type, user_id, created_at, expires_at, is_active, days
+            FROM licenses
+            ORDER BY created_at DESC
+            LIMIT 100
+        """)
+        
         licenses = []
         for row in cur.fetchall():
             licenses.append({
@@ -246,8 +242,6 @@ async def get_licenses(
             })
         
         return {"list": licenses}
-    finally:
-        conn.close()
 
 
 @router.post("/licenses")
@@ -260,10 +254,9 @@ async def create_license(
     license_key = f"LYXEN-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
     expires_at = (datetime.utcnow() + timedelta(days=data.days)).isoformat()
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Ensure table exists
         cur.execute("""
             CREATE TABLE IF NOT EXISTS licenses (
@@ -284,8 +277,6 @@ async def create_license(
         """, (license_key, data.license_type, data.user_id, expires_at, data.days))
         
         conn.commit()
-    finally:
-        conn.close()
     
     # If user_id provided, activate license for user
     if data.user_id:
@@ -306,10 +297,9 @@ async def revoke_license(
 ):
     """Revoke a license."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Get user_id before deleting
         cur.execute("SELECT user_id FROM licenses WHERE license_key = ?", (license_key,))
         row = cur.fetchone()
@@ -321,8 +311,6 @@ async def revoke_license(
         
         cur.execute("DELETE FROM licenses WHERE license_key = ?", (license_key,))
         conn.commit()
-    finally:
-        conn.close()
     
     return {"success": True, "message": f"License {license_key} revoked"}
 
@@ -333,10 +321,9 @@ async def get_stats(
 ):
     """Get system statistics."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Users stats (with safe None handling)
         cur.execute("SELECT COUNT(*) as cnt FROM users")
         row = cur.fetchone()
@@ -372,8 +359,6 @@ async def get_stats(
                 "webapp_status": "running",
             }
         }
-    finally:
-        conn.close()
 
 
 # ============ STRATEGY MANAGEMENT ============
@@ -386,10 +371,8 @@ async def get_all_strategies(
 ):
     """Get all custom strategies for admin review."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         offset = (page - 1) * limit
         
         # Get strategies with user info
@@ -434,8 +417,6 @@ async def get_all_strategies(
             "limit": limit,
             "list": strategies
         }
-    finally:
-        conn.close()
 
 
 @router.get("/strategies/marketplace")
@@ -444,10 +425,9 @@ async def get_marketplace_stats(
 ):
     """Get marketplace statistics."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         # Total listings
         cur.execute("SELECT COUNT(*) as cnt FROM strategy_marketplace WHERE is_active = TRUE")
         row = cur.fetchone()
@@ -493,8 +473,6 @@ async def get_marketplace_stats(
             "pending_amount": pending_amount,
             "top_sellers": top_sellers,
         }
-    finally:
-        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/feature")
@@ -505,18 +483,14 @@ async def feature_strategy(
 ):
     """Feature or unfeature a strategy in marketplace."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         cur.execute("""
             UPDATE strategy_marketplace SET is_featured = ? WHERE strategy_id = ?
         """, (featured, strategy_id))
         
         conn.commit()
         return {"success": True, "strategy_id": strategy_id, "featured": featured}
-    finally:
-        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/approve")
@@ -526,10 +500,8 @@ async def approve_strategy(
 ):
     """Approve a strategy for public listing."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         # Set strategy as public and active
         cur.execute("""
             UPDATE custom_strategies SET is_public = TRUE, is_active = TRUE WHERE id = ?
@@ -537,8 +509,6 @@ async def approve_strategy(
         
         conn.commit()
         return {"success": True, "strategy_id": strategy_id, "approved": True}
-    finally:
-        conn.close()
 
 
 @router.post("/strategies/{strategy_id}/reject")
@@ -549,10 +519,8 @@ async def reject_strategy(
 ):
     """Reject a strategy from public listing."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         # Remove from public
         cur.execute("""
             UPDATE custom_strategies SET is_public = FALSE WHERE id = ?
@@ -565,8 +533,6 @@ async def reject_strategy(
         
         conn.commit()
         return {"success": True, "strategy_id": strategy_id, "rejected": True, "reason": reason}
-    finally:
-        conn.close()
 
 
 @router.delete("/strategies/{strategy_id}")
@@ -576,10 +542,8 @@ async def delete_strategy_admin(
 ):
     """Delete a strategy (admin only)."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         # Delete from marketplace first
         cur.execute("DELETE FROM strategy_marketplace WHERE strategy_id = ?", (strategy_id,))
         
@@ -589,8 +553,6 @@ async def delete_strategy_admin(
         conn.commit()
         affected = cur.rowcount
         return {"success": affected > 0, "deleted": affected}
-    finally:
-        conn.close()
 
 
 # ============ PAYOUTS MANAGEMENT ============
@@ -602,10 +564,9 @@ async def get_payouts(
 ):
     """Get all payout requests."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
+        
         if status:
             cur.execute("""
                 SELECT p.*, u.username, u.first_name
@@ -639,8 +600,6 @@ async def get_payouts(
             })
         
         return {"list": payouts}
-    finally:
-        conn.close()
 
 
 @router.post("/payouts/{payout_id}/process")
@@ -650,22 +609,17 @@ async def process_payout(
     admin: dict = Depends(require_admin)
 ):
     """Mark payout as processed."""
-    import time
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         cur.execute("""
             UPDATE seller_payouts 
-            SET status = 'completed', tx_hash = ?, processed_at = ?
+            SET status = 'completed', tx_hash = ?, processed_at = NOW()
             WHERE id = ?
-        """, (tx_hash, int(time.time()), payout_id))
+        """, (tx_hash, payout_id))
         
         conn.commit()
         return {"success": True, "payout_id": payout_id, "status": "completed"}
-    finally:
-        conn.close()
 
 
 @router.post("/payouts/{payout_id}/reject")
@@ -676,18 +630,14 @@ async def reject_payout(
 ):
     """Reject a payout request."""
     
-    conn = get_db()
-    cur = conn.cursor()
-    
-    try:
+    with get_db() as conn:
+        cur = conn.cursor()
         cur.execute("""
             UPDATE seller_payouts SET status = 'failed' WHERE id = ?
         """, (payout_id,))
         
         conn.commit()
         return {"success": True, "payout_id": payout_id, "status": "failed", "reason": reason}
-    finally:
-        conn.close()
 
 
 # ============ RANKINGS MANAGEMENT ============
