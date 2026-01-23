@@ -3447,15 +3447,26 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         else:  # both
             exchange_btn = t.get('exchange_bybit_both', '🟠 Bybit 🔀')
     
+    # Build webapp URL with user_id for auto-login
+    webapp_url = WEBAPP_URL
+    if webapp_url == "http://localhost:8765":
+        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
+        if ngrok_file.exists():
+            webapp_url = ngrok_file.read_text().strip()
+    
+    import time
+    cache_bust = int(time.time())
+    webapp_url_with_user = f"{webapp_url}/terminal?start={user_id}&_t={cache_bust}" if user_id else f"{webapp_url}/terminal?_t={cache_bust}"
+    
     keyboard = [
         # ─── Row 1: Core Trading ───
         [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
         # ─── Row 2: AI & Market ───
         [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
-        # ─── Row 3: Settings & Dashboard ───
-        [ t.get('button_dashboard', '🖥️ Dashboard'), t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang') ],
-        # ─── Row 4: Exchange Status + API Keys ───
-        [ exchange_btn, t.get('button_api_keys', '🔗 API Keys') ],
+        # ─── Row 3: Premium & Settings ───
+        [ t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys') ],
+        # ─── Row 4: Exchange Status ───
+        [ exchange_btn ],
     ]
     
     # Add admin row if user is admin
@@ -4541,11 +4552,14 @@ async def set_trading_stop(
         "category": "linear",
         "symbol": symbol,
         "positionIdx": position_idx,
+        "tpslMode": "Full",  # Required by Bybit API v5 - entire position TP/SL
     }
     if tp_price is not None:
         body["takeProfit"] = str(tp_price)
+        body["tpTriggerBy"] = "MarkPrice"  # More reliable than LastPrice
     if sl_price is not None:
         body["stopLoss"] = str(sl_price)
+        body["slTriggerBy"] = "MarkPrice"  # More reliable than LastPrice
 
     logger.debug(
         f"{symbol}: set_trading_stop side={effective_side} mode={mode} idx={position_idx} "
@@ -8361,7 +8375,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await cmd_terms(update, ctx)
         return
     
-    # Setup personalized Menu Button with user_id for auto-login
+    # Setup personalized Menu Button with WebApp for Terminal
     try:
         # Get webapp URL from env, fallback to ngrok file, then default
         webapp_url = WEBAPP_URL
@@ -8370,18 +8384,18 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if ngrok_file.exists():
                 webapp_url = ngrok_file.read_text().strip()
         
-        # Add user_id as start param for auto-login
-        # Landing page handles auth and redirects to dashboard
-        # Add timestamp to prevent Telegram from caching old URL
+        # Add user_id as start param for auto-login to Terminal
         import time
         cache_bust = int(time.time())
-        webapp_url_with_user = f"{webapp_url}?start={uid}&_t={cache_bust}"
+        webapp_url_with_user = f"{webapp_url}/terminal?start={uid}&_t={cache_bust}"
         menu_button = MenuButtonWebApp(
-            text="🖥️ Dashboard",
+            text="💻 Terminal",
             web_app=WebAppInfo(url=webapp_url_with_user)
         )
         await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
         logger.info(f"[{uid}] Personalized menu button set: {webapp_url_with_user}")
+    except Exception as e:
+        logger.warning(f"Failed to set menu button for {uid}: {e}")
     except Exception as e:
         logger.warning(f"Failed to set menu button for {uid}: {e}")
 
@@ -17471,8 +17485,8 @@ async def start_monitoring(app: Application):
         # Add timestamp to prevent Telegram from caching old URL
         import time
         cache_bust = int(time.time())
-        current_url = f"{webapp_url}/dashboard?_t={cache_bust}"
-        base_url = f"{webapp_url}/dashboard"
+        current_url = f"{webapp_url}/terminal?_t={cache_bust}"
+        base_url = f"{webapp_url}/terminal"
         
         # Only update menu button if base URL changed
         if last_url != base_url:
@@ -17483,13 +17497,13 @@ async def start_monitoring(app: Application):
             logger.info("Menu button reset to default (clearing cache)")
             await asyncio.sleep(1)
             
-            # Set the menu button for all users with cache-busting timestamp
+            # Set the menu button for all users with cache-busting timestamp to Terminal
             menu_button = MenuButtonWebApp(
-                text="🖥️ Dashboard",
+                text="💻 Terminal",
                 web_app=WebAppInfo(url=current_url)
             )
             await app.bot.set_chat_menu_button(menu_button=menu_button)
-            logger.info(f"Menu button set to Dashboard: {current_url}")
+            logger.info(f"Menu button set to Terminal: {current_url}")
             
             # Save base URL (without timestamp) for comparison
             last_url_file.write_text(base_url)

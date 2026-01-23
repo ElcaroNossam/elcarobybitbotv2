@@ -475,7 +475,8 @@ class BybitExchange(BaseExchange):
         self,
         symbol: str,
         price: float,
-        size: Optional[float] = None
+        size: Optional[float] = None,
+        position_idx: int = 0
     ) -> OrderResult:
         """Set take profit for a position"""
         symbol = symbol.upper()
@@ -486,8 +487,9 @@ class BybitExchange(BaseExchange):
             "category": "linear",
             "symbol": symbol,
             "takeProfit": str(price),
-            "tpTriggerBy": "LastPrice",
+            "tpTriggerBy": "MarkPrice",  # More reliable than LastPrice
             "tpslMode": "Full" if size is None else "Partial",
+            "positionIdx": position_idx,
         }
         
         if size:
@@ -504,7 +506,8 @@ class BybitExchange(BaseExchange):
         self,
         symbol: str,
         price: float,
-        size: Optional[float] = None
+        size: Optional[float] = None,
+        position_idx: int = 0
     ) -> OrderResult:
         """Set stop loss for a position"""
         symbol = symbol.upper()
@@ -515,8 +518,9 @@ class BybitExchange(BaseExchange):
             "category": "linear",
             "symbol": symbol,
             "stopLoss": str(price),
-            "slTriggerBy": "LastPrice",
+            "slTriggerBy": "MarkPrice",  # More reliable than LastPrice
             "tpslMode": "Full" if size is None else "Partial",
+            "positionIdx": position_idx,
         }
         
         if size:
