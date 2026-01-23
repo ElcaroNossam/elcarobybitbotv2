@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.21.0 | Обновлено: 24 января 2026
+# Версия: 3.22.0 | Обновлено: 24 января 2026
 # =============================================
 
 ---
@@ -95,7 +95,7 @@
 
 ```
 Lyxen Trading Platform
-├── bot.py                 # 🔥 Главный бот (24246 строк, 250+ функций)
+├── bot.py                 # 🔥 Главный бот (25018 строк, 260+ функций)
 ├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 6K строк)
 ├── db_elcaro.py           # 💎 ELC Token functions (705 строк)
 ├── keyboard_helpers.py    # ⌨️ Centralized button factory (370 строк) ⭐NEW!
@@ -694,6 +694,40 @@ keyboard = build_keyboard([
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: HyperLiquid Multitenancy Credentials Fix (Jan 24, 2026)
+- **Проблема:** HL функции использовали устаревший `hl_creds["hl_private_key"]` вместо multitenancy credentials
+- **Причина:** При добавлении multitenancy (testnet/mainnet ключи) не были обновлены все HL функции
+- **Исправленные функции:**
+  - `cmd_hl_balance` - добавлен network switcher + multitenancy
+  - `cmd_hl_positions` - исправлена проверка credentials
+  - `cmd_hl_orders` - исправлена проверка credentials
+  - `cmd_hl_history` - добавлен network switcher + multitenancy
+  - `on_hl_balance_callback` - NEW: обработчик переключения сети баланса
+  - `on_hl_history_callback` - NEW: обработчик переключения сети истории
+  - Исправлено 7 мест с `hl_creds["hl_private_key"]` → multitenancy pattern
+- **Multitenancy паттерн:**
+  ```python
+  if is_testnet:
+      hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+  else:
+      hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+  ```
+- **Файл:** bot.py (+374 lines)
+- **Commit:** fcb0513
+
+### ✅ FIX: Unknown Strategy → Manual for External Positions (Jan 24, 2026)
+- **Проблема:** Позиции открытые вручную на бирже записывались со `strategy='unknown'`
+- **Решение:** Изменён fallback с "unknown" на "manual"
+- **Файлы:**
+  - `bot.py` line 16236: `final_strategy = detected_strategy or "manual"`
+  - `sync_trade_history.py`: skip trades without detected strategy
+- **База:** Удалено 8079 trades с strategy='unknown', обновлено 38 позиций на 'manual'
+
+### ✅ FIX: trade_logs.qty Made Nullable (Jan 24, 2026)
+- **Проблема:** trade_logs.qty был NOT NULL, но API sync не всегда имеет qty
+- **Решение:** `ALTER TABLE trade_logs ALTER COLUMN qty DROP NOT NULL`
+- **Файл:** migrations/versions/003_trade_logs.py
 
 ### ✅ MAJOR: Triacelo → Lyxen Full Rebrand (Jan 24, 2026)
 - **Изменения:**
