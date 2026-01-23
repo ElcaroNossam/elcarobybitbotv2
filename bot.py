@@ -16231,8 +16231,8 @@ async def monitor_positions_loop(app: Application):
                                         detected_strategy = "oi"
                                 
                                 # Use current_account_type from the loop
-                                # If strategy not detected, use "unknown" (position opened externally)
-                                final_strategy = detected_strategy or "unknown"
+                                # If strategy not detected, use "manual" (position opened externally on exchange)
+                                final_strategy = detected_strategy or "manual"
                                 
                                 # P0.5: Get use_atr from strategy settings
                                 cfg_detected = get_user_config(uid) or {}

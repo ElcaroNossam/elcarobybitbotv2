@@ -235,9 +235,11 @@ async def sync_user_trades(
                         strategy = pos.get("strategy")
                         break
             
-            # Default to "unknown" if no strategy detected
+            # Skip trades without detected strategy - only import trades we can attribute
+            # Manual trades from exchange will be recorded when they are closed through monitoring
             if not strategy:
-                strategy = "unknown"
+                stats["skipped_no_strategy"] = stats.get("skipped_no_strategy", 0) + 1
+                continue
             
             # Track detected strategies
             stats["strategies_detected"][strategy] = stats["strategies_detected"].get(strategy, 0) + 1
