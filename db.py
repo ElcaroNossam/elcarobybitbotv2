@@ -3055,6 +3055,12 @@ def add_trade_log(
         conn.commit()
 
 
+# Simple cache for trade stats (TTL 60 seconds)
+_trade_stats_cache: dict = {}
+_trade_stats_cache_ts: dict = {}
+TRADE_STATS_CACHE_TTL = 60  # seconds
+
+
 def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "all", account_type: str | None = None, exchange: str | None = None) -> dict:
     """
     Получает статистику сделок пользователя.
@@ -3064,7 +3070,15 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
     exchange: 'bybit', 'hyperliquid' or None = все
     """
     import datetime
+    import time
     from zoneinfo import ZoneInfo
+    
+    # Check cache first
+    cache_key = f"{user_id}:{strategy}:{period}:{account_type}:{exchange}"
+    now = time.time()
+    if cache_key in _trade_stats_cache:
+        if now - _trade_stats_cache_ts.get(cache_key, 0) < TRADE_STATS_CACHE_TTL:
+            return _trade_stats_cache[cache_key]
     
     # Normalize 'both' -> 'demo' or 'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
@@ -3184,7 +3198,7 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         """, open_params).fetchone()
         open_count = open_row[0] if open_row else 0
         
-        return {
+        result = {
             "total": total,
             "tp_count": tp_count,
             "sl_count": sl_count,
@@ -3203,6 +3217,12 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
             "best_pnl": best_pnl,
             "worst_pnl": worst_pnl,
         }
+        
+        # Cache result
+        _trade_stats_cache[cache_key] = result
+        _trade_stats_cache_ts[cache_key] = now
+        
+        return result
 
 
 def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None, 
