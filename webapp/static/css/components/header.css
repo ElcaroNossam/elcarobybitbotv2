@@ -1,0 +1,317 @@
+/**
+ * Triacelo - Unified Header Component
+ * Стандартный header для всех страниц
+ */
+
+/* ===== HEADER ===== */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    padding: 0 var(--space-lg);
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+.header-center {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+/* Logo */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.logo-icon {
+    font-size: 24px;
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Back Button */
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.back-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+/* Page Title */
+.page-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.page-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* ===== NAVIGATION TABS ===== */
+.nav-tabs {
+    display: flex;
+    gap: var(--space-xs);
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+}
+
+.nav-tab {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nav-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.nav-tab.active {
+    color: white;
+    background: var(--gradient-primary);
+}
+
+/* ===== ACCOUNT SWITCHER ===== */
+.account-switcher {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-tertiary);
+    padding: 3px;
+    border-radius: var(--radius-md);
+}
+
+.account-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.account-btn.demo {
+    color: var(--text-muted);
+    background: transparent;
+}
+
+.account-btn.demo.active {
+    color: white;
+    background: var(--bybit-color);
+}
+
+.account-btn.real {
+    color: var(--text-muted);
+    background: transparent;
+}
+
+.account-btn.real.active {
+    color: white;
+    background: var(--green);
+}
+
+/* ===== EXCHANGE INDICATOR ===== */
+.exchange-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+}
+
+.exchange-badge.bybit {
+    color: var(--bybit-color);
+    border-color: rgba(247, 166, 0, 0.3);
+}
+
+.exchange-badge.hyperliquid {
+    color: var(--hl-color);
+    border-color: rgba(0, 255, 136, 0.3);
+}
+
+.exchange-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.exchange-badge.bybit .exchange-dot {
+    background: var(--bybit-color);
+    box-shadow: 0 0 8px var(--bybit-color);
+}
+
+.exchange-badge.hyperliquid .exchange-dot {
+    background: var(--hl-color);
+    box-shadow: 0 0 8px var(--hl-color);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ===== USER MENU ===== */
+.user-menu {
+    position: relative;
+}
+
+.user-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.user-btn:hover {
+    border-color: var(--border-hover);
+}
+
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all var(--transition-fast);
+    z-index: var(--z-dropdown);
+}
+
+.user-menu.open .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.dropdown-item:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.dropdown-item.danger {
+    color: var(--red);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: var(--space-sm) 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .header {
+        height: 56px;
+        padding: 0 var(--space-md);
+    }
+    
+    .logo-text {
+        display: none;
+    }
+    
+    .nav-tabs {
+        display: none;
+    }
+    
+    .page-title {
+        font-size: 16px;
+    }
+}
