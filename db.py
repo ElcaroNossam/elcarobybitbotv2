@@ -1379,29 +1379,47 @@ def _migrate_single_strategy(user_id: int, strategy: str, strat_json: dict,
     """
     Helper to migrate a single strategy's settings from JSON dict to DB.
     Uses provided cursor for transaction.
+    With 3D schema, inserts separate rows for 'long' and 'short' sides.
     """
     # Filter only valid columns
     valid_settings = {k: v for k, v in strat_json.items() if k in _STRATEGY_DB_COLUMNS and v is not None}
     if not valid_settings:
         return False
     
-    columns = ["user_id", "strategy", "exchange", "account_type"] + list(valid_settings.keys())
-    placeholders = ["?"] * len(columns)
-    values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
+    # Insert for both sides
+    for side in ['long', 'short']:
+        # Extract side-specific settings (e.g., 'long_percent' -> 'percent')
+        side_settings = {}
+        for key, val in valid_settings.items():
+            if key.startswith(f"{side}_"):
+                # Remove side prefix for DB column
+                db_key = key[len(side) + 1:]  # Remove 'long_' or 'short_'
+                side_settings[db_key] = val
+            elif not key.startswith("long_") and not key.startswith("short_"):
+                # Non-side-specific setting, apply to both
+                side_settings[key] = val
+        
+        if not side_settings:
+            continue
+        
+        columns = ["user_id", "strategy", "side", "exchange", "account_type"] + list(side_settings.keys())
+        placeholders = ["%s"] * len(columns)
+        values = [user_id, strategy, side, exchange, account_type] + list(side_settings.values())
+        
+        # Build UPDATE SET clause for all columns except primary key
+        update_cols = list(side_settings.keys())
+        update_set = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
+        
+        try:
+            cur.execute(f"""
+                INSERT INTO user_strategy_settings ({', '.join(columns)})
+                VALUES ({', '.join(placeholders)})
+                ON CONFLICT (user_id, strategy, side) DO UPDATE SET {update_set}
+            """, values)
+        except Exception:
+            return False
     
-    # Build UPDATE SET clause for all columns except primary key
-    update_cols = list(valid_settings.keys())
-    update_set = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
-    
-    try:
-        cur.execute(f"""
-            INSERT INTO user_strategy_settings ({', '.join(columns)})
-            VALUES ({', '.join(placeholders)})
-            ON CONFLICT (user_id, strategy) DO UPDATE SET {update_set}
-        """, values)
-        return True
-    except Exception:
-        return False
+    return True
 
 
 def get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "bybit", account_type: str = "demo") -> dict:

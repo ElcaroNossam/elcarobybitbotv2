@@ -1492,26 +1492,44 @@ def pg_get_user_config(user_id: int) -> Dict:
 # ═══════════════════════════════════════════════════════════════════════════════════
 
 def pg_get_user_strategy_settings(user_id: int, strategy: str) -> Optional[Dict]:
-    """Get user's settings for a specific strategy"""
-    return execute_one(
+    """Get user's settings for a specific strategy (both sides)"""
+    rows = execute(
         "SELECT * FROM user_strategy_settings WHERE user_id = %s AND strategy = %s",
         (user_id, strategy)
     )
+    return rows if rows else []
 
 
-def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict):
-    """Set user's settings for a specific strategy"""
+def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict, side: str = None):
+    """Set user's settings for a specific strategy.
+    
+    With 3D schema, if side is provided, updates that specific side.
+    If side is None and settings contains 'long'/'short' keys, updates both sides.
+    """
     import json
-    settings_json = json.dumps(settings)
+    
+    # Determine which sides to update
+    sides_to_update = []
+    if side:
+        sides_to_update = [side]
+    elif 'long' in settings or 'short' in settings:
+        sides_to_update = [s for s in ['long', 'short'] if s in settings]
+    else:
+        # Apply same settings to both sides
+        sides_to_update = ['long', 'short']
     
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO user_strategy_settings (user_id, strategy, settings)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (user_id, strategy) 
-                DO UPDATE SET settings = EXCLUDED.settings
-            """, (user_id, strategy, settings_json))
+            for s in sides_to_update:
+                side_settings = settings.get(s, settings) if s in settings else settings
+                settings_json = json.dumps(side_settings)
+                
+                cur.execute("""
+                    INSERT INTO user_strategy_settings (user_id, strategy, side, settings)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (user_id, strategy, side) 
+                    DO UPDATE SET settings = EXCLUDED.settings, updated_at = NOW()
+                """, (user_id, strategy, s, settings_json))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════
@@ -1519,17 +1537,60 @@ def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict):
 # ═══════════════════════════════════════════════════════════════════════════════════
 
 def ensure_tables():
-    """Ensure all required tables exist"""
+    """Ensure all required tables exist with 3D schema (user_id, strategy, side)"""
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # user_strategy_settings
+            # user_strategy_settings with 3D PRIMARY KEY (user_id, strategy, side)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS user_strategy_settings (
-                    user_id BIGINT NOT NULL,
-                    strategy TEXT NOT NULL,
-                    settings JSONB,
-                    PRIMARY KEY (user_id, strategy)
+                    user_id       BIGINT NOT NULL,
+                    strategy      TEXT NOT NULL,
+                    side          TEXT NOT NULL DEFAULT 'long',
+                    settings      JSONB DEFAULT '{}',
+                    
+                    -- Per-side trading settings
+                    percent       REAL,
+                    tp_percent    REAL,
+                    sl_percent    REAL,
+                    leverage      INTEGER,
+                    use_atr       BOOLEAN DEFAULT FALSE,
+                    
+                    -- ATR settings per strategy/side
+                    atr_periods       INTEGER,
+                    atr_multiplier_sl REAL,
+                    atr_trigger_pct   REAL,
+                    atr_step_pct      REAL,
+                    
+                    -- Order settings
+                    order_type        TEXT DEFAULT 'market',
+                    limit_offset_pct  REAL DEFAULT 0.1,
+                    direction         TEXT DEFAULT 'all',
+                    
+                    -- DCA settings
+                    dca_enabled   BOOLEAN DEFAULT FALSE,
+                    dca_pct_1     REAL DEFAULT 10.0,
+                    dca_pct_2     REAL DEFAULT 25.0,
+                    
+                    -- Position limits
+                    max_positions INTEGER DEFAULT 0,
+                    coins_group   TEXT DEFAULT 'ALL',
+                    
+                    -- Context columns (for future extension)
+                    trading_mode  TEXT DEFAULT 'demo',
+                    exchange      TEXT DEFAULT 'bybit',
+                    account_type  TEXT DEFAULT 'demo',
+                    
+                    enabled       BOOLEAN DEFAULT TRUE,
+                    updated_at    TIMESTAMP DEFAULT NOW(),
+                    
+                    PRIMARY KEY (user_id, strategy, side)
                 )
+            """)
+            
+            # Indexes for efficient querying
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_strategy_settings_user 
+                ON user_strategy_settings(user_id)
             """)
             
             # Add any missing columns to users
@@ -1706,9 +1767,12 @@ def pg_get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "by
 def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> Dict:
     """
     Get settings for a specific strategy.
-    SIMPLIFIED 2D SCHEMA: PRIMARY KEY is (user_id, strategy) - no side column.
-    Settings apply to both LONG and SHORT, or per-side settings stored in JSON 'settings' field.
+    3D SCHEMA: PRIMARY KEY is (user_id, strategy, side).
+    Each side (long/short) has its own row with independent settings.
     Returns both LONG and SHORT settings as long_* and short_* fields.
+    
+    Note: exchange and account_type are accepted for API compatibility but
+    settings are currently shared across all exchanges/accounts.
     """
     from coin_params import STRATEGY_DEFAULTS
     
@@ -1719,45 +1783,48 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # 3D SCHEMA: Query for both long and short rows
             cur.execute("""
                 SELECT * FROM user_strategy_settings 
                 WHERE user_id = %s AND strategy = %s
             """, (user_id, strategy))
-            row = cur.fetchone()
+            rows = cur.fetchall()
             
-            if row:
-                # Get strategy-level settings from row
+            # Group rows by side
+            rows_by_side = {}
+            for row in rows:
+                side = row.get('side', 'long')
+                rows_by_side[side] = row
+                
+                # Get strategy-level settings from any row (they should be same)
                 if row.get('trading_mode'):
                     trading_mode = row.get('trading_mode')
                 if row.get('direction'):
                     direction = row.get('direction')
                 if row.get('coins_group'):
                     coins_group = row.get('coins_group')
+            
+            # Build result from each side's row
+            for side in ["long", "short"]:
+                prefix = f"{side}_"
+                row = rows_by_side.get(side)
                 
-                # 2D SCHEMA: Read from table columns (apply to both long and short)
-                # Or override from JSON 'settings' field if present
-                json_settings = row.get('settings') or {}
-                
-                for side in ["long", "short"]:
-                    prefix = f"{side}_"
-                    # Check JSON for side-specific overrides first
-                    side_json = json_settings.get(side, {}) if isinstance(json_settings, dict) else {}
-                    
-                    result[f"{prefix}enabled"] = side_json.get('enabled', row.get('enabled', True))
-                    result[f"{prefix}percent"] = side_json.get('percent', row.get('percent'))
-                    result[f"{prefix}sl_percent"] = side_json.get('sl_percent', row.get('sl_percent'))
-                    result[f"{prefix}tp_percent"] = side_json.get('tp_percent', row.get('tp_percent'))
-                    result[f"{prefix}leverage"] = side_json.get('leverage', row.get('leverage'))
-                    result[f"{prefix}use_atr"] = side_json.get('use_atr', row.get('use_atr'))
-                    result[f"{prefix}atr_trigger_pct"] = side_json.get('atr_trigger_pct', row.get('atr_trigger_pct'))
-                    result[f"{prefix}atr_step_pct"] = side_json.get('atr_step_pct', row.get('atr_step_pct'))
-                    result[f"{prefix}order_type"] = side_json.get('order_type', row.get('order_type', 'market'))
-                    result[f"{prefix}limit_offset_pct"] = side_json.get('limit_offset_pct', row.get('limit_offset_pct', 0.1))
-                    result[f"{prefix}dca_enabled"] = side_json.get('dca_enabled', row.get('dca_enabled', False))
-                    result[f"{prefix}dca_pct_1"] = side_json.get('dca_pct_1', row.get('dca_pct_1', 10.0))
-                    result[f"{prefix}dca_pct_2"] = side_json.get('dca_pct_2', row.get('dca_pct_2', 25.0))
-                    result[f"{prefix}max_positions"] = side_json.get('max_positions', row.get('max_positions', 0))
-                    result[f"{prefix}coins_group"] = side_json.get('coins_group', row.get('coins_group', 'ALL'))
+                if row:
+                    result[f"{prefix}enabled"] = row.get('enabled', True)
+                    result[f"{prefix}percent"] = row.get('percent')
+                    result[f"{prefix}sl_percent"] = row.get('sl_percent')
+                    result[f"{prefix}tp_percent"] = row.get('tp_percent')
+                    result[f"{prefix}leverage"] = row.get('leverage')
+                    result[f"{prefix}use_atr"] = row.get('use_atr')
+                    result[f"{prefix}atr_trigger_pct"] = row.get('atr_trigger_pct')
+                    result[f"{prefix}atr_step_pct"] = row.get('atr_step_pct')
+                    result[f"{prefix}order_type"] = row.get('order_type', 'market')
+                    result[f"{prefix}limit_offset_pct"] = row.get('limit_offset_pct', 0.1)
+                    result[f"{prefix}dca_enabled"] = row.get('dca_enabled', False)
+                    result[f"{prefix}dca_pct_1"] = row.get('dca_pct_1', 10.0)
+                    result[f"{prefix}dca_pct_2"] = row.get('dca_pct_2', 25.0)
+                    result[f"{prefix}max_positions"] = row.get('max_positions', 0)
+                    result[f"{prefix}coins_group"] = row.get('coins_group', 'ALL')
     
     # Add strategy-level settings to result
     result["trading_mode"] = trading_mode

@@ -318,43 +318,47 @@ lang               TEXT DEFAULT 'en'
 updated_at         TIMESTAMP DEFAULT NOW()
 ```
 
-### user_strategy_settings (настройки по стратегиям) ⭐ 2D SCHEMA
+### user_strategy_settings (настройки по стратегиям) ⭐ 3D SCHEMA
 ```sql
--- PRIMARY KEY: (user_id, strategy)
--- 2D SCHEMA: Settings stored per strategy, apply to BOTH long/short (or use JSON for per-side)
+-- PRIMARY KEY: (user_id, strategy, side)
+-- 3D SCHEMA: Each side (long/short) has its own row with independent settings
 user_id             BIGINT NOT NULL
 strategy            TEXT NOT NULL         -- 'oi', 'scryptomera', 'scalper', 'elcaro', 'fibonacci', 'rsi_bb'
-settings            JSONB DEFAULT '{}'    -- Optional: per-side overrides {"long": {...}, "short": {...}}
--- Per-strategy settings (apply to both sides unless overridden in JSON)
+side                TEXT NOT NULL         -- 'long' | 'short'
+settings            JSONB DEFAULT '{}'    -- Optional: additional per-side data
+-- Per-side trading settings
+percent             REAL                  -- Entry % of equity
 tp_percent          REAL
 sl_percent          REAL
 leverage            INTEGER
-use_atr             BOOLEAN
+use_atr             BOOLEAN DEFAULT FALSE
 atr_periods         INTEGER
 atr_multiplier_sl   REAL
 atr_trigger_pct     REAL
 atr_step_pct        REAL
 order_type          TEXT DEFAULT 'market'
-direction           TEXT DEFAULT 'all'
-enabled             BOOLEAN DEFAULT TRUE
--- Context columns
 limit_offset_pct    REAL DEFAULT 0.1
+direction           TEXT DEFAULT 'all'
+-- DCA settings
 dca_enabled         BOOLEAN DEFAULT FALSE
 dca_pct_1           REAL DEFAULT 10.0
 dca_pct_2           REAL DEFAULT 25.0
+-- Position limits
 max_positions       INTEGER DEFAULT 0
 coins_group         TEXT DEFAULT 'ALL'
+-- Context columns (for future extension)
 trading_mode        TEXT DEFAULT 'demo'
 exchange            TEXT DEFAULT 'bybit'
 account_type        TEXT DEFAULT 'demo'
+enabled             BOOLEAN DEFAULT TRUE
 updated_at          TIMESTAMP DEFAULT NOW()
 ```
 
-> **⚠️ ВАЖНО:** 2D схема (актуально Jan 2026):
-> - PRIMARY KEY = `(user_id, strategy)` — 2 измерения
-> - Настройки применяются к ОБОИМ сторонам (long/short)
-> - Для per-side настроек используй JSON поле `settings`
-> - Колонки `exchange`, `account_type` сохранены для будущего расширения
+> **⚠️ ВАЖНО:** 3D схема (актуально Jan 2026):
+> - PRIMARY KEY = `(user_id, strategy, side)` — 3 измерения
+> - LONG и SHORT имеют **отдельные строки** с независимыми настройками
+> - Каждый side может иметь свой TP%, SL%, leverage, DCA и т.д.
+> - Колонки `exchange`, `account_type` сохранены для будущего 4D расширения
 
 ### active_positions (открытые позиции)
 ```sql

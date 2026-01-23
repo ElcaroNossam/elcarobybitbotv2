@@ -201,17 +201,19 @@ def import_data(backup_file: str = BACKUP_FILE):
                 
                 logger.info(f"  ✅ Imported/updated {imported} users")
             
-            # Import user_strategy_settings
+            # Import user_strategy_settings (3D schema: user_id, strategy, side)
             if "user_strategy_settings" in data["tables"]:
                 settings = data["tables"]["user_strategy_settings"]
                 for s in settings:
                     try:
-                        cur.execute("""
-                            INSERT INTO user_strategy_settings (user_id, strategy, settings)
-                            VALUES (%s, %s, %s)
-                            ON CONFLICT (user_id, strategy) DO UPDATE 
-                            SET settings = EXCLUDED.settings
-                        """, (s["user_id"], s["strategy"], json.dumps(s.get("settings", {}))))
+                        # With 3D schema, insert for both sides
+                        for side in ['long', 'short']:
+                            cur.execute("""
+                                INSERT INTO user_strategy_settings (user_id, strategy, side, settings)
+                                VALUES (%s, %s, %s, %s)
+                                ON CONFLICT (user_id, strategy, side) DO UPDATE 
+                                SET settings = EXCLUDED.settings
+                            """, (s["user_id"], s["strategy"], side, json.dumps(s.get("settings", {}))))
                     except Exception as e:
                         logger.warning(f"⚠️ Could not import strategy setting: {e}")
                 
