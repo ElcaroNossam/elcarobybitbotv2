@@ -1389,10 +1389,15 @@ def _migrate_single_strategy(user_id: int, strategy: str, strat_json: dict,
     placeholders = ["?"] * len(columns)
     values = [user_id, strategy, exchange, account_type] + list(valid_settings.values())
     
+    # Build UPDATE SET clause for all columns except primary key
+    update_cols = list(valid_settings.keys())
+    update_set = ", ".join([f"{col} = EXCLUDED.{col}" for col in update_cols])
+    
     try:
         cur.execute(f"""
-            INSERT OR REPLACE INTO user_strategy_settings ({', '.join(columns)})
+            INSERT INTO user_strategy_settings ({', '.join(columns)})
             VALUES ({', '.join(placeholders)})
+            ON CONFLICT (user_id, strategy) DO UPDATE SET {update_set}
         """, values)
         return True
     except Exception:
@@ -1802,8 +1807,9 @@ def store_news(
     with get_conn() as conn:
         conn.execute(
             """
-          INSERT OR IGNORE INTO news(link, title, description, image_url, signal, sentiment)
+          INSERT INTO news(link, title, description, image_url, signal, sentiment)
           VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT (link) DO NOTHING
         """,
             (link, title, description, image_url, signal, sentiment),
         )
@@ -2796,9 +2802,10 @@ def add_pending_limit_order(
     with get_conn() as conn:
         conn.execute(
             """
-          INSERT OR IGNORE INTO pending_limit_orders
+          INSERT INTO pending_limit_orders
             (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT (user_id, order_id) DO NOTHING
         """,
             (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type),
         )
