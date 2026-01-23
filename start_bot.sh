@@ -19,15 +19,29 @@ export REDIS_URL="redis://127.0.0.1:6379/0"
 
 echo "[$(date)] Starting Lyxen services (PostgreSQL mode)..." >> "$LOG_FILE"
 
-# Kill any existing uvicorn processes
-pkill -f "uvicorn webapp.app" 2>/dev/null || true
+# Kill any existing uvicorn/cloudflared processes gracefully
+echo "[$(date)] Cleaning up old processes..." >> "$LOG_FILE"
+pkill -SIGTERM -f "uvicorn webapp.app" 2>/dev/null || true
+pkill -SIGTERM -f "cloudflared tunnel" 2>/dev/null || true
+sleep 2
+# Force kill any remaining
+pkill -SIGKILL -f "uvicorn webapp.app" 2>/dev/null || true
+pkill -SIGKILL -f "cloudflared tunnel" 2>/dev/null || true
 sleep 1
 
-# Detect CPU cores for optimal workers
+# Detect CPU cores and RAM for optimal workers
 CPU_CORES=$(nproc 2>/dev/null || echo 2)
-WORKERS=$((CPU_CORES * 2 + 1))
-[ $WORKERS -gt 8 ] && WORKERS=8
-echo "[$(date)] Detected $CPU_CORES cores, using $WORKERS workers" >> "$LOG_FILE"
+RAM_MB=$(free -m | awk '/^Mem:/{print $2}' 2>/dev/null || echo 2048)
+
+# For low-memory servers (<=2GB), limit workers to 2
+# Each worker uses ~150-200MB RAM
+if [ "$RAM_MB" -le 2048 ]; then
+    WORKERS=2
+else
+    WORKERS=$((CPU_CORES + 1))
+    [ $WORKERS -gt 4 ] && WORKERS=4
+fi
+echo "[$(date)] Detected $CPU_CORES cores, ${RAM_MB}MB RAM, using $WORKERS workers" >> "$LOG_FILE"
 
 # Start webapp (uvicorn) in background with multiple workers
 echo "[$(date)] Starting webapp on port $WEBAPP_PORT with $WORKERS workers..." >> "$LOG_FILE"
