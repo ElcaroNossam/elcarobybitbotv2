@@ -48,6 +48,13 @@ from functools import wraps
 
 from aiohttp import ClientSession, ClientTimeout, TCPConnector
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputFile, WebAppInfo, MenuButtonWebApp, MenuButtonDefault, BotCommand
+from keyboard_helpers import (
+    btn_back, btn_close, btn_cancel, btn_confirm, btn_refresh, btn_settings,
+    btn_yes, btn_no, btn_toggle, btn_section, btn_divider,
+    btn_prev, btn_next, btn_page_info,
+    build_keyboard, build_paginated_keyboard, build_confirm_dialog,
+    chunk_buttons, make_url_button, make_webapp_button
+)
 from user_guide import get_user_guide_pdf
 from hl_adapter import HLAdapter
 from services.notification_service import init_notification_service

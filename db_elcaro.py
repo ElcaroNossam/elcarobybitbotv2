@@ -380,6 +380,10 @@ def get_user_transactions(
         )
 
 
+# Alias for backward compatibility
+get_elc_transactions = get_user_transactions
+
+
 # ------------------------------------------------------------------------------------
 # ELC Staking
 # ------------------------------------------------------------------------------------
@@ -603,6 +607,19 @@ def disconnect_cold_wallet(user_id: int, wallet_address: str) -> bool:
     return count > 0
 
 
+def disconnect_wallet(user_id: int) -> bool:
+    """Disconnect all cold wallets for user (alias for backward compatibility)."""
+    count = execute_write(
+        """UPDATE connected_wallets 
+           SET is_active = FALSE 
+           WHERE user_id = %s""",
+        (user_id,)
+    )
+    if count > 0:
+        invalidate_user_cache(user_id)
+    return count > 0
+
+
 def get_connected_wallets(user_id: int) -> List[Dict[str, Any]]:
     """Get user's connected cold wallets."""
     return execute(
@@ -612,6 +629,20 @@ def get_connected_wallets(user_id: int) -> List[Dict[str, Any]]:
            ORDER BY connected_at DESC""",
         (user_id,)
     )
+
+
+def get_connected_wallet(user_id: int) -> Optional[Dict[str, Any]]:
+    """Get user's primary connected wallet (first active one)."""
+    wallets = get_connected_wallets(user_id)
+    if wallets:
+        w = wallets[0]
+        return {
+            'wallet_address': w.get('wallet_address'),
+            'wallet_type': w.get('wallet_type'),
+            'chain': w.get('wallet_type', 'eth').upper(),
+            'connected_at': str(w.get('connected_at', ''))
+        }
+    return None
 
 
 def get_user_by_wallet(wallet_address: str) -> Optional[int]:
