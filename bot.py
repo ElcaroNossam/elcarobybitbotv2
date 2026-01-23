@@ -497,6 +497,147 @@ def clear_expired_api_cache(user_id: int, account_type: str = None):
         pass
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# DAILY ERROR NOTIFICATIONS SYSTEM
+# Send user-friendly error messages once per day per error type (no spam!)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Error types for daily notifications
+class DailyErrorType:
+    ZERO_BALANCE = "zero_balance"
+    API_KEYS_INVALID = "api_keys_invalid"
+    CONNECTION_ERROR = "connection_error"
+    MARGIN_EXHAUSTED = "margin_exhausted"
+
+# Cache: (user_id, error_type, account_type) -> {"last_sent": timestamp, "missed_count": int}
+if _USE_TTLCACHE:
+    _daily_error_cache: TTLCache = TTLCache(maxsize=5000, ttl=86400)  # 24h TTL
+else:
+    _daily_error_cache: dict = {}
+
+DAILY_ERROR_INTERVAL = 86400  # 24 hours
+
+
+def _get_daily_error_key(user_id: int, error_type: str, account_type: str) -> tuple:
+    """Generate cache key for daily error notification."""
+    return (user_id, error_type, account_type)
+
+
+def _should_send_daily_error(user_id: int, error_type: str, account_type: str) -> tuple[bool, int]:
+    """
+    Check if we should send error notification.
+    Returns (should_send, missed_count).
+    Increments missed_count for tracking.
+    """
+    key = _get_daily_error_key(user_id, error_type, account_type)
+    now = time.time()
+    today_start = now - (now % 86400)  # Start of today (UTC)
+    
+    entry = _daily_error_cache.get(key)
+    
+    if entry is None:
+        # First error of this type today
+        _daily_error_cache[key] = {"last_sent": 0, "missed_count": 1, "day_start": today_start}
+        return True, 1
+    
+    # Check if it's a new day
+    if entry.get("day_start", 0) < today_start:
+        # New day - reset counter and send
+        _daily_error_cache[key] = {"last_sent": now, "missed_count": 1, "day_start": today_start}
+        return True, 1
+    
+    # Same day - increment counter
+    entry["missed_count"] = entry.get("missed_count", 0) + 1
+    
+    # Check if already sent today
+    if entry.get("last_sent", 0) >= today_start:
+        # Already sent today - don't send again
+        return False, entry["missed_count"]
+    
+    # Not sent today yet - send now
+    entry["last_sent"] = now
+    return True, entry["missed_count"]
+
+
+async def notify_user_daily_error(
+    bot,
+    user_id: int,
+    error_type: str,
+    account_type: str,
+    t: dict,
+    extra_data: dict = None
+) -> bool:
+    """
+    Send daily error notification to user.
+    Returns True if message was sent, False if skipped (already sent today).
+    """
+    should_send, missed_count = _should_send_daily_error(user_id, error_type, account_type)
+    
+    if not should_send:
+        logger.debug(f"[DailyError] Skipping {error_type} for uid={user_id} (already sent today, missed={missed_count})")
+        return False
+    
+    # Build message based on error type
+    extra = extra_data or {}
+    extra["account_type"] = account_type.upper()
+    extra["missed_count"] = missed_count
+    
+    try:
+        if error_type == DailyErrorType.ZERO_BALANCE:
+            msg = t.get('daily_zero_balance', 
+                "⚠️ Your {account_type} account has $0. Missed signals: {missed_count}. Deposit funds to resume trading."
+            ).format(**extra)
+        
+        elif error_type == DailyErrorType.API_KEYS_INVALID:
+            msg = t.get('daily_api_keys_invalid',
+                "🔑 Your {account_type} API keys are invalid. Missed signals: {missed_count}. Update keys in /api_settings."
+            ).format(**extra)
+        
+        elif error_type == DailyErrorType.CONNECTION_ERROR:
+            extra.setdefault("exchange", "Bybit")
+            msg = t.get('daily_connection_error',
+                "🌐 Cannot connect to {exchange} ({account_type}). Missed signals: {missed_count}."
+            ).format(**extra)
+        
+        elif error_type == DailyErrorType.MARGIN_EXHAUSTED:
+            extra.setdefault("open_count", "?")
+            msg = t.get('daily_margin_exhausted',
+                "📊 Your {account_type} margin is exhausted. Positions: {open_count}. Missed: {missed_count}."
+            ).format(**extra)
+        
+        else:
+            logger.warning(f"[DailyError] Unknown error type: {error_type}")
+            return False
+        
+        await bot.send_message(user_id, msg, parse_mode="HTML")
+        logger.info(f"[DailyError] Sent {error_type} notification to uid={user_id} (missed={missed_count})")
+        return True
+        
+    except Exception as e:
+        logger.warning(f"[DailyError] Failed to send {error_type} to uid={user_id}: {e}")
+        return False
+
+
+def clear_daily_error_cache(user_id: int, error_type: str = None, account_type: str = None):
+    """Clear daily error cache when user fixes the issue (e.g., deposits funds, updates API keys)."""
+    keys_to_remove = []
+    for key in _daily_error_cache:
+        uid, err_type, acc_type = key
+        if uid != user_id:
+            continue
+        if error_type and err_type != error_type:
+            continue
+        if account_type and acc_type != account_type:
+            continue
+        keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        _daily_error_cache.pop(key, None)
+    
+    if keys_to_remove:
+        logger.debug(f"[DailyError] Cleared {len(keys_to_remove)} error cache entries for uid={user_id}")
+
+
 def _parse_chat_ids(*keys: str) -> list[int]:
     import re
     raw_parts = []
@@ -13741,6 +13882,145 @@ async def calc_qty(
 
     return qty
 
+
+async def _handle_calc_qty_error(
+    bot,
+    user_id: int, 
+    symbol: str, 
+    strategy: str, 
+    error: Exception, 
+    account_type: str, 
+    t: dict
+) -> None:
+    """
+    Handle calc_qty errors with daily notifications.
+    Detects error type and sends user-friendly message once per day.
+    """
+    error_msg = str(error)
+    
+    # Detect error type
+    if "Don't have USDT" in error_msg or "equity=0" in error_msg:
+        # Zero balance error
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.ZERO_BALANCE, 
+            account_type, t
+        )
+    elif "API" in error_msg or "authentication" in error_msg.lower() or "401" in error_msg:
+        # API keys error
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.API_KEYS_INVALID, 
+            account_type, t
+        )
+    elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
+        # Connection error
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.CONNECTION_ERROR, 
+            account_type, t,
+            {"exchange": "Bybit"}
+        )
+    # Log the error always
+    logger.error(f"✖ calc_qty [uid={user_id}]: {error}")
+
+
+async def handle_trade_error(
+    bot,
+    user_id: int,
+    error: Exception,
+    account_type: str,
+    t: dict,
+    strategy: str = None,
+    symbol: str = None
+) -> bool:
+    """
+    Handle trading errors with user-friendly notifications.
+    Uses daily limit for repetitive errors (no spam!).
+    Returns True if error was handled with user notification.
+    """
+    error_msg = str(error)
+    
+    # Zero balance error - send daily notification
+    if "Don't have USDT" in error_msg or "equity=0" in error_msg or "equity <= 0" in error_msg:
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.ZERO_BALANCE, 
+            account_type, t
+        )
+        return True
+    
+    # Insufficient balance for this trade (margin locked in positions)
+    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+        # Get open positions count for context
+        try:
+            positions = await fetch_open_positions(user_id, account_type=account_type)
+            open_count = len(positions) if positions else 0
+        except Exception:
+            open_count = "?"
+        
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.MARGIN_EXHAUSTED, 
+            account_type, t,
+            {"open_count": open_count}
+        )
+        return True
+    
+    # API keys invalid
+    if any(x in error_msg for x in ["API", "401", "403", "authentication", "Invalid API"]):
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.API_KEYS_INVALID, 
+            account_type, t
+        )
+        return True
+    
+    # Connection errors
+    if any(x in error_msg.lower() for x in ["timeout", "connection", "network", "unreachable"]):
+        await notify_user_daily_error(
+            bot, user_id, 
+            DailyErrorType.CONNECTION_ERROR, 
+            account_type, t,
+            {"exchange": "Bybit"}
+        )
+        return True
+    
+    # Leverage errors - show immediately (not daily)
+    if "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
+        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
+        max_lev = match.group(1) if match else "?"
+        try:
+            await bot.send_message(
+                user_id,
+                t.get('leverage_too_high_error', 
+                    "⚠️ Leverage too high for {symbol}. Max allowed: {max_leverage}x"
+                ).format(symbol=symbol or "this pair", max_leverage=max_lev),
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+        return True
+    
+    # Position limit exceeded - show immediately
+    if "110090" in error_msg or "position limit exceeded" in error_msg.lower():
+        try:
+            await bot.send_message(
+                user_id,
+                t.get('position_limit_error',
+                    "🛑 Position limit exceeded for {symbol}. Reduce leverage or close some positions."
+                ).format(strategy=strategy or "Unknown", symbol=symbol or "?"),
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+        return True
+    
+    # Unknown error - log only, no spam to user
+    logger.warning(f"[{user_id}] Unhandled trade error: {error_msg}")
+    return False
+
+
 NUM = r'([0-9]+(?:[.,][0-9]+)?)'
 
 def _tof(s: str) -> float:
@@ -14678,7 +14958,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type)
                 except Exception as e:
-                    logger.warning(f"[{uid}] {symbol}: calc_qty failed for rsi_bb: {e}")
+                    # Handle error with daily notifications (no spam!)
+                    await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
                     continue
                 
                 # Set leverage if configured
@@ -14704,15 +14985,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             parse_mode="Markdown"
                         )
                     except Exception as e:
-                        error_msg = str(e)
-                        if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        # Use unified error handler with daily notifications
+                        handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
+                        if not handled:
                             await ctx.bot.send_message(
-                                uid,
-                                t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="RSI+BB", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                                parse_mode="HTML"
+                                uid, t.get('rsi_bb_market_error', "❌ RSI+BB error: {msg}").format(
+                                    symbol=symbol, side=side, msg=str(e)[:100]
+                                )
                             )
-                        else:
-                            await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 else:
                     try:
                         rv = float(rsi_val)
@@ -14799,15 +15079,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as ladder_err:
                             logger.warning(f"[{uid}] rsi_bb ladder error: {ladder_err}")
                     except Exception as e:
-                        error_msg = str(e)
-                        if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                        # Use unified error handler with daily notifications
+                        handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
+                        if not handled:
                             await ctx.bot.send_message(
-                                uid,
-                                t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="RSI+BB", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                                parse_mode="HTML"
+                                uid, t.get('rsi_bb_market_error', "❌ RSI+BB error: {msg}").format(
+                                    symbol=symbol, side=side, msg=str(e)[:100]
+                                )
                             )
-                        else:
-                            await ctx.bot.send_message(uid, t.get('rsi_bb_market_error', "❌ RSI+BB error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 continue
 
             if bitk_trigger:
@@ -14932,37 +15211,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] scryptomera ladder error: {ladder_err}")
 
                 except Exception as e:
-                    error_msg = str(e)
-                    # Проверка на недостаток баланса - показываем понятное сообщение
-                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                    # Use unified error handler with daily notifications
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "scryptomera", symbol)
+                    if not handled:
+                        # Unknown error - show generic message
                         await ctx.bot.send_message(
                             uid,
-                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
-                            parse_mode="HTML"
-                        )
-                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        # Extract max leverage from error if possible (re is imported globally)
-                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
-                        max_lev = match.group(1) if match else "50-100"
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
-                            parse_mode="HTML"
-                        )
-                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
-                        # Position limit exceeded error
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Scryptomera", symbol=symbol),
-                            parse_mode="HTML"
-                        )
-                    else:
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('bitk_market_error', "Market error: {msg}").format(
-                                msg=error_msg,
-                                symbol=symbol,
-                                side=side
+                            t.get('bitk_market_error', "❌ Scryptomera error: {msg}").format(
+                                msg=str(e)[:100], symbol=symbol, side=side
                             )
                         )
                 continue
@@ -15087,35 +15343,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] scalper ladder error: {ladder_err}")
 
                 except Exception as e:
-                    error_msg = str(e)
-                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                    # Use unified error handler with daily notifications
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "scalper", symbol)
+                    if not handled:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
-                            parse_mode="HTML"
-                        )
-                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        # Extract max leverage from error if possible (re is imported globally)
-                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
-                        max_lev = match.group(1) if match else "50-100"
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
-                            parse_mode="HTML"
-                        )
-                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Scalper", symbol=symbol),
-                            parse_mode="HTML"
-                        )
-                    else:
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('scalper_market_error', "Scalper error: {msg}").format(
-                                msg=error_msg,
-                                symbol=symbol,
-                                side=side
+                            t.get('scalper_market_error', "❌ Scalper error: {msg}").format(
+                                msg=str(e)[:100], symbol=symbol, side=side
                             )
                         )
                 continue
@@ -15321,65 +15555,23 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 logger.warning(f"[{uid}] elcaro ladder error: {ladder_err}")
                             
                         except Exception as e:
-                            error_msg = str(e)
-                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                            # Use unified error handler with daily notifications
+                            handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "elcaro", symbol)
+                            if not handled:
                                 await ctx.bot.send_message(
                                     uid,
-                                    t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
-                                    parse_mode="HTML"
-                                )
-                            elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                                match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
-                                max_lev = match.group(1) if match else "50-100"
-                                await ctx.bot.send_message(
-                                    uid,
-                                    t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
-                                    parse_mode="HTML"
-                                )
-                            elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
-                                await ctx.bot.send_message(
-                                    uid,
-                                    t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Lyxen", symbol=symbol),
-                                    parse_mode="HTML"
-                                )
-                            else:
-                                await ctx.bot.send_message(
-                                    uid,
-                                    t.get('elcaro_market_error', "Elcaro error: {msg}").format(
-                                        msg=error_msg,
-                                        symbol=symbol,
-                                        side=side
+                                    t.get('elcaro_market_error', "❌ Lyxen error: {msg}").format(
+                                        msg=str(e)[:100], symbol=symbol, side=side
                                     )
                                 )
                 except Exception as e:
-                    error_msg = str(e)
-                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                    # Use unified error handler with daily notifications
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "elcaro", symbol)
+                    if not handled:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('insufficient_balance_error', "❌ <b>Insufficient balance!</b>\n\n💰 Not enough funds on your {account_type} account to open this position.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(account_type=ctx_account_type.upper()),
-                            parse_mode="HTML"
-                        )
-                    elif "110013" in error_msg or "cannot set leverage" in error_msg.lower() or "maxleverage" in error_msg.lower():
-                        match = re.search(r'maxLeverage\s*\[(\d+)\]', error_msg)
-                        max_lev = match.group(1) if match else "50-100"
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('leverage_too_high_error', "❌ <b>Leverage too high!</b>\n\n⚙️ Your configured leverage exceeds the maximum allowed for this symbol.\n\n<b>Maximum allowed:</b> {max_leverage}x\n\n<b>Solution:</b> Go to strategy settings and reduce leverage.").format(max_leverage=max_lev),
-                            parse_mode="HTML"
-                        )
-                    elif "110090" in error_msg or "position limit exceeded" in error_msg.lower():
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('position_limit_error', "❌ <b>Position limit exceeded!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b>\n\n⚠️ Your position would exceed the maximum allowed limit.\n\n<b>Solutions:</b>\n• Reduce leverage in strategy settings\n• Reduce position size (% per trade)\n• Close some existing positions").format(strategy="Lyxen", symbol=symbol),
-                            parse_mode="HTML"
-                        )
-                    else:
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('elcaro_market_error', "Elcaro error: {msg}").format(
-                                msg=error_msg,
-                                symbol=symbol,
-                                side=side
+                            t.get('elcaro_market_error', "❌ Lyxen error: {msg}").format(
+                                msg=str(e)[:100], symbol=symbol, side=side
                             )
                         )
                 continue
@@ -15455,17 +15647,14 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 parse_mode="Markdown"
                             )
                         except Exception as e:
-                            error_msg = str(e)
-                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                            # Use unified error handler with daily notifications
+                            handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "fibonacci", symbol)
+                            if not handled:
                                 await ctx.bot.send_message(
                                     uid,
-                                    t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                                    parse_mode="HTML"
-                                )
-                            else:
-                                await ctx.bot.send_message(
-                                    uid,
-                                    t.get('fibonacci_limit_error', "❌ Fibonacci limit error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                                    t.get('fibonacci_limit_error', "❌ Fibonacci error: {msg}").format(
+                                        symbol=symbol, side=side, msg=str(e)[:100]
+                                    )
                                 )
                     else:
                         # Market order - price is in entry zone
@@ -15534,30 +15723,24 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             await ctx.bot.send_message(uid, signal_info, parse_mode="Markdown")
                             
                         except Exception as e:
-                            error_msg = str(e)
-                            if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                            # Use unified error handler with daily notifications
+                            handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "fibonacci", symbol)
+                            if not handled:
                                 await ctx.bot.send_message(
                                     uid,
-                                    t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                                    parse_mode="HTML"
-                                )
-                            else:
-                                await ctx.bot.send_message(
-                                    uid,
-                                    t.get('fibonacci_market_error', "❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                                    t.get('fibonacci_market_error', "❌ Fibonacci error: {msg}").format(
+                                        symbol=symbol, side=side, msg=str(e)[:100]
+                                    )
                                 )
                 except Exception as e:
-                    error_msg = str(e)
-                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                    # Use unified error handler with daily notifications
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "fibonacci", symbol)
+                    if not handled:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="Fibonacci", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                            parse_mode="HTML"
-                        )
-                    else:
-                        await ctx.bot.send_message(
-                            uid,
-                            t.get('fibonacci_market_error', "❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg)
+                            t.get('fibonacci_market_error', "❌ Fibonacci error: {msg}").format(
+                                symbol=symbol, side=side, msg=str(e)[:100]
+                            )
                         )
                 continue
 
@@ -15685,15 +15868,15 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             logger.warning(f"[{uid}] oi ladder error: {ladder_err}")
 
                 except Exception as e:
-                    error_msg = str(e)
-                    if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
+                    # Use unified error handler with daily notifications
+                    handled = await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "oi", symbol)
+                    if not handled:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('insufficient_balance_error_extended', "❌ <b>Insufficient balance!</b>\n\n📊 Strategy: <b>{strategy}</b>\n🪙 Symbol: <b>{symbol}</b> {side}\n\n💰 Not enough funds on your {account_type} account.\n\n<b>Solutions:</b>\n• Top up your balance\n• Reduce position size (% per trade)\n• Lower leverage\n• Close some open positions").format(strategy="OI", symbol=symbol, side=side, account_type=ctx_account_type.upper()),
-                            parse_mode="HTML"
+                            t.get('oi_market_error', "❌ OI error: {msg}").format(
+                                symbol=symbol, side=side, msg=str(e)[:100]
+                            )
                         )
-                    else:
-                        await ctx.bot.send_message(uid, t.get('oi_market_error', "❌ OI error\n🪙 {symbol} {side}\n\n{msg}").format(symbol=symbol, side=side, msg=error_msg))
                 continue
 
         except Exception as e:

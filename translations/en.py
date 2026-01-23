@@ -718,6 +718,70 @@ Bybit • HyperLiquid • Multi-strategy''',
 _Top traders rarely exceed 10x._
 
 <b>Solution:</b> Adjust leverage in strategy settings.''',
+
+    # ═══════════════════════════════════════════════════════════
+    # DAILY ERROR NOTIFICATIONS (once per day per error type)
+    # ═══════════════════════════════════════════════════════════
+    
+    # Zero balance notification (once per day)
+    'daily_zero_balance':          '''⚠️ <b>BALANCE ALERT</b>
+
+💰 Your <b>{account_type}</b> account has <b>$0</b> available.
+
+📊 <b>Today's missed signals:</b> {missed_count}
+
+<b>🧠 To resume trading:</b>
+• Deposit funds to your {account_type} account
+• Or switch to another account with balance
+
+<i>This is a daily summary. Signals are waiting.</i>
+
+👉 /balance — <b>Check your balance</b>''',
+
+    # API keys invalid (once per day)
+    'daily_api_keys_invalid':      '''🔑 <b>API KEYS ISSUE</b>
+
+⚠️ Your <b>{account_type}</b> API keys are invalid or expired.
+
+📊 <b>Missed signals today:</b> {missed_count}
+
+<b>🔧 To fix:</b>
+1. Go to Bybit → API Management
+2. Create new API keys
+3. Update in /api_settings
+
+<i>Without valid keys, bot cannot trade for you.</i>''',
+
+    # Account connection error (once per day)
+    'daily_connection_error':      '''🌐 <b>CONNECTION ISSUE</b>
+
+⚠️ Cannot connect to <b>{exchange}</b> for {account_type}.
+
+📊 <b>Missed signals today:</b> {missed_count}
+
+<b>Possible causes:</b>
+• Exchange maintenance
+• API rate limits
+• Network issues
+
+<i>Bot will retry automatically. Check exchange status.</i>''',
+
+    # No positions possible (margin/limits)
+    'daily_margin_exhausted':      '''📊 <b>MARGIN ALERT</b>
+
+💰 Your <b>{account_type}</b> margin is fully allocated.
+
+📊 <b>Open positions:</b> {open_count}
+📊 <b>Missed signals today:</b> {missed_count}
+
+<b>🧠 Options:</b>
+• Close losing positions to free margin
+• Reduce position sizes
+• Increase deposit
+
+<i>Capital efficiency is key to profits.</i>
+
+👉 /positions — <b>Manage positions</b>''',
     
     # Position limit exceeded error (110090)
     'position_limit_error':        '''🛑 <b>POSITION LIMIT HIT!</b>
