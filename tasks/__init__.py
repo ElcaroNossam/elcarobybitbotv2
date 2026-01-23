@@ -47,9 +47,9 @@ app.conf.update(
     enable_utc=True,
     
     # Worker settings
-    worker_prefetch_multiplier=4,
-    worker_concurrency=8,
-    worker_max_tasks_per_child=1000,  # Restart worker after 1000 tasks (memory leak prevention)
+    worker_prefetch_multiplier=2,
+    worker_concurrency=4,  # Reduced from 8 for 2GB RAM servers
+    worker_max_tasks_per_child=500,  # Restart worker after 500 tasks (memory leak prevention)
     
     # Task settings
     task_acks_late=True,  # Acknowledge after completion
