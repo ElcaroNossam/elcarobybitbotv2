@@ -2230,7 +2230,7 @@ async def start_live_trading(strategy_id: int, request: GoLiveRequest):
                     started_at = EXCLUDED.started_at,
                     stopped_at = NULL
             """, (request.user_id, strategy_id, strategy["name"], request.exchange, 
-                  request.account_type, json.dumps(config), now, backtest_pnl)))
+                  request.account_type, json.dumps(config), now, backtest_pnl))
         
         return {
             "success": True, 
