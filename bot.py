@@ -10474,10 +10474,14 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
-    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
     if account_type == 'both':
-        account_type = 'demo'
-        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for orders display")
+        creds = db.get_all_user_credentials(uid)
+        if creds.get("real_api_key") and creds.get("real_api_secret"):
+            account_type = 'real'
+        else:
+            account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for orders display")
     
     try:
         ords = await fetch_open_orders(uid, account_type=account_type)
@@ -10822,10 +10826,14 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
-    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
     if account_type == 'both':
-        account_type = 'demo'
-        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for positions display")
+        creds = db.get_all_user_credentials(uid)
+        if creds.get("real_api_key") and creds.get("real_api_secret"):
+            account_type = 'real'
+        else:
+            account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for positions display")
     
     # Save account type to user_data for callbacks
     ctx.user_data['positions_account_type'] = account_type
@@ -11671,12 +11679,16 @@ async def show_balance_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYP
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
-    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
     # 'both' is a trading config that means "trade on demo AND real", but for display
-    # we need to pick one. Default to 'demo' - user can switch via buttons.
+    # we need to pick one. Prefer 'real' as it's the priority account.
     if account_type == 'both':
-        account_type = 'demo'
-        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for balance display")
+        creds = db.get_all_user_credentials(uid)
+        if creds.get("real_api_key") and creds.get("real_api_secret"):
+            account_type = 'real'
+        else:
+            account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for balance display")
     
     try:
         # OPTIMIZED: Fetch ALL data in parallel (was sequential = slow!)
@@ -11801,10 +11813,14 @@ async def show_positions_direct(update: Update, ctx: ContextTypes.DEFAULT_TYPE, 
     t = ctx.t
     show_switcher = db.should_show_account_switcher(uid)
     
-    # CRITICAL FIX: Normalize 'both' mode to 'demo' since Bybit API doesn't support 'both'
+    # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
     if account_type == 'both':
-        account_type = 'demo'
-        logger.info(f"[{uid}] Normalized account_type 'both' -> 'demo' for positions display")
+        creds = db.get_all_user_credentials(uid)
+        if creds.get("real_api_key") and creds.get("real_api_secret"):
+            account_type = 'real'
+        else:
+            account_type = 'demo'
+        logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for positions display")
     
     pos_list = await fetch_open_positions(uid, account_type=account_type)
     
@@ -15789,6 +15805,14 @@ async def monitor_positions_loop(app: Application):
     # Key: (uid, symbol, entry_price_rounded, pnl_rounded), Value: timestamp
     # This is a second layer of protection (first layer is in add_trade_log)
     _processed_closures = {}
+    
+    # Track new position notifications to prevent flood
+    # Key: (uid, symbol, account_type, entry_price_rounded), Value: timestamp
+    # Prevents duplicate "СДЕЛКА ИСПОЛНЕНА" notifications
+    _new_position_notified = {}
+    
+    # Cooldown for new position notifications (5 minutes = 300 seconds)
+    NEW_POSITION_NOTIFY_COOLDOWN = 300
 
     while True:
         try:
@@ -16062,9 +16086,16 @@ async def monitor_positions_loop(app: Application):
                                 else:
                                     logger.info(f"[{uid}] Position {sym} added with strategy=manual (external/webapp)")
 
-                                # Only send notification if not in cooldown
+                                # Only send notification if not in cooldown (close_all and anti-flood)
                                 cooldown_end = _close_all_cooldown.get(uid, 0)
-                                if now >= cooldown_end:
+                                
+                                # Anti-flood: Check if we already sent notification for this position recently
+                                entry_rounded = round(entry, 4)
+                                notify_key = (uid, sym, current_account_type, entry_rounded)
+                                last_notify_time = _new_position_notified.get(notify_key, 0)
+                                notify_cooldown_ok = (now - last_notify_time) > NEW_POSITION_NOTIFY_COOLDOWN
+                                
+                                if now >= cooldown_end and notify_cooldown_ok:
                                     # Format exchange and market type for display
                                     exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
                                     market_type_display = {
@@ -16086,6 +16117,11 @@ async def monitor_positions_loop(app: Application):
                                             market_type=market_type_display
                                         )
                                     )
+                                    
+                                    # Mark as notified to prevent flood
+                                    _new_position_notified[notify_key] = now
+                                elif not notify_cooldown_ok:
+                                    logger.debug(f"[{uid}] Skipping new_position notification for {sym} - anti-flood cooldown")
 
                             if raw_sl in (None, "", "0", 0):
                                 # Get strategy: for new positions use detected_strategy,
@@ -16277,6 +16313,10 @@ async def monitor_positions_loop(app: Application):
                                         _atr_triggered.pop((uid, sym), None)
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
+                                        # Clear new position notification cache for all entry prices of this symbol
+                                        keys_to_remove = [k for k in _new_position_notified if k[0] == uid and k[1] == sym and k[2] == ap_account_type]
+                                        for k in keys_to_remove:
+                                            _new_position_notified.pop(k, None)
                                     continue
                             
                                 logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
