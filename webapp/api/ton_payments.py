@@ -4,6 +4,7 @@ Supports: USDT (Jetton), TON native
 
 Integration with LYXEN token ecosystem
 """
+import os
 import logging
 import time
 import hashlib
