@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS config (
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_users_allowed ON users(is_allowed) WHERE is_allowed = 1;
+CREATE INDEX IF NOT EXISTS idx_users_allowed ON users(is_allowed) WHERE is_allowed = TRUE;
 CREATE INDEX IF NOT EXISTS idx_positions_user ON active_positions(user_id);
 CREATE INDEX IF NOT EXISTS idx_positions_symbol ON active_positions(symbol);
 CREATE INDEX IF NOT EXISTS idx_trade_logs_user_ts ON trade_logs(user_id, ts DESC);

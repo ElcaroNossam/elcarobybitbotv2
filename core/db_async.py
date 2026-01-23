@@ -152,8 +152,8 @@ async def get_subscribed_users() -> List[int]:
     async with get_connection() as conn:
         rows = await conn.fetch("""
             SELECT user_id FROM users 
-            WHERE is_allowed = 1 
-            AND is_banned = 0
+            WHERE is_allowed = TRUE 
+            AND is_banned = FALSE
             AND (
                 trade_scryptomera = 1 OR 
                 trade_scalper = 1 OR 
@@ -170,8 +170,8 @@ async def get_active_trading_users() -> List[int]:
     async with get_connection() as conn:
         rows = await conn.fetch("""
             SELECT user_id FROM users 
-            WHERE is_allowed = 1 
-            AND is_banned = 0
+            WHERE is_allowed = TRUE 
+            AND is_banned = FALSE
             AND (
                 (demo_api_key IS NOT NULL AND demo_api_key != '') OR
                 (real_api_key IS NOT NULL AND real_api_key != '')
@@ -738,7 +738,7 @@ CREATE TABLE IF NOT EXISTS user_licenses (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_users_allowed ON users(is_allowed) WHERE is_allowed = 1;
+CREATE INDEX IF NOT EXISTS idx_users_allowed ON users(is_allowed) WHERE is_allowed = TRUE;
 CREATE INDEX IF NOT EXISTS idx_positions_user ON active_positions(user_id);
 CREATE INDEX IF NOT EXISTS idx_trade_logs_user_ts ON trade_logs(user_id, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_trade_logs_strategy ON trade_logs(strategy, ts DESC);

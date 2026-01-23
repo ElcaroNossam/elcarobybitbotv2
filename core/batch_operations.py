@@ -247,8 +247,8 @@ async def batch_fetch_active_users() -> List[Dict]:
             hl_mainnet_private_key IS NOT NULL as has_hl_mainnet,
             hl_testnet_private_key IS NOT NULL as has_hl_testnet
         FROM users
-        WHERE is_banned = 0
-        AND is_allowed = 1
+        WHERE is_banned = FALSE
+        AND is_allowed = TRUE
         AND (
             demo_api_key IS NOT NULL 
             OR real_api_key IS NOT NULL

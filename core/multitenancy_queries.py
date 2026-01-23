@@ -98,12 +98,12 @@ ON trade_logs(user_id, strategy, account_type, ts DESC);
 -- Active users lookup
 CREATE INDEX IF NOT EXISTS idx_users_allowed 
 ON users(is_allowed) 
-WHERE is_allowed = 1;
+WHERE is_allowed = TRUE;
 
 -- Exchange type filtering
 CREATE INDEX IF NOT EXISTS idx_users_exchange 
 ON users(exchange_type, is_allowed) 
-WHERE is_allowed = 1;
+WHERE is_allowed = TRUE;
 """
 
 
@@ -197,7 +197,7 @@ PREPARED_STATEMENTS = {
         query="""
             SELECT DISTINCT user_id, exchange_type, trading_mode
             FROM users
-            WHERE is_allowed = 1 AND is_banned = 0
+            WHERE is_allowed = TRUE AND is_banned = FALSE
         """,
         param_types=()
     ),
@@ -209,7 +209,7 @@ PREPARED_STATEMENTS = {
             SELECT DISTINCT ap.user_id, u.exchange_type, u.trading_mode
             FROM active_positions ap
             JOIN users u ON ap.user_id = u.user_id
-            WHERE u.is_allowed = 1 AND u.is_banned = 0
+            WHERE u.is_allowed = TRUE AND u.is_banned = FALSE
         """,
         param_types=()
     ),

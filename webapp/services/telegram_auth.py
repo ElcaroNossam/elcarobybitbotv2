@@ -13,11 +13,13 @@ import secrets
 import hashlib
 import json
 import time
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Tuple
-import sqlite3
 import aiohttp
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Load .env file if not already loaded
 _env_file = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))) / ".env"
@@ -38,77 +40,71 @@ CONFIRMATION_EXPIRY = 180  # 3 minutes for 2FA confirmation
 WEBAPP_URL = os.getenv("WEBAPP_URL", "http://localhost:8765")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 
-# Database path
-from pathlib import Path
-DB_PATH = Path(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))) / "bot.db"
-
-
-def _db():
-    """Get database connection"""
-    con = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30.0)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA journal_mode=WAL")
-    con.execute("PRAGMA synchronous=NORMAL")
-    return con
+# PostgreSQL database helper
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from webapp.api.db_helper import get_db
 
 
 def init_auth_tables():
-    """Initialize authentication tables"""
-    con = _db()
-    cur = con.cursor()
-    
-    # Login tokens - for auto-login from bot
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS login_tokens (
-            token TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            used INTEGER DEFAULT 0,
-            ip_address TEXT,
-            user_agent TEXT
-        )
-    """)
-    
-    # 2FA confirmations - pending login confirmations
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS twofa_confirmations (
-            id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            session_id TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            confirmed_at TEXT
-        )
-    """)
-    
-    # Active sessions
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS webapp_sessions (
-            session_id TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            token_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            last_activity TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            is_active INTEGER DEFAULT 1
-        )
-    """)
-    
-    # Indexes
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_login_tokens_user ON login_tokens(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_login_tokens_expires ON login_tokens(expires_at)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_twofa_user ON twofa_confirmations(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON webapp_sessions(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_hash ON webapp_sessions(token_hash)")
-    
-    con.commit()
-    con.close()
+    """Initialize authentication tables using PostgreSQL"""
+    try:
+        with get_db() as con:
+            cur = con.cursor()
+            
+            # Login tokens - for auto-login from bot
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS login_tokens (
+                    token TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    used BOOLEAN DEFAULT FALSE,
+                    ip_address TEXT,
+                    user_agent TEXT
+                )
+            """)
+            
+            # 2FA confirmations - pending login confirmations
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS twofa_confirmations (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    session_id TEXT,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    confirmed_at TIMESTAMP
+                )
+            """)
+            
+            # Active sessions
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS webapp_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    token_hash TEXT NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    last_activity TIMESTAMP,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """)
+            
+            # Indexes
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_login_tokens_user ON login_tokens(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_login_tokens_expires ON login_tokens(expires_at)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_twofa_user ON twofa_confirmations(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON webapp_sessions(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_hash ON webapp_sessions(token_hash)")
+            
+            con.commit()
+    except Exception as e:
+        logger.error(f"Failed to init auth tables: {e}")
 
 
 # ==============================================================================
@@ -124,20 +120,19 @@ def generate_login_token(user_id: int) -> Tuple[str, str]:
     now = datetime.now(timezone.utc)
     expires = now + timedelta(seconds=LOGIN_TOKEN_EXPIRY)
     
-    con = _db()
-    cur = con.cursor()
-    
-    # Clean up old tokens for this user
-    cur.execute("DELETE FROM login_tokens WHERE user_id = ?", (user_id,))
-    
-    # Insert new token
-    cur.execute("""
-        INSERT INTO login_tokens (token, user_id, created_at, expires_at)
-        VALUES (?, ?, ?, ?)
-    """, (token, user_id, now.isoformat(), expires.isoformat()))
-    
-    con.commit()
-    con.close()
+    with get_db() as con:
+        cur = con.cursor()
+        
+        # Clean up old tokens for this user
+        cur.execute("DELETE FROM login_tokens WHERE user_id = ?", (user_id,))
+        
+        # Insert new token
+        cur.execute("""
+            INSERT INTO login_tokens (token, user_id, created_at, expires_at)
+            VALUES (?, ?, ?, ?)
+        """, (token, user_id, now, expires))
+        
+        con.commit()
     
     # Generate webapp URL with token
     login_url = f"{WEBAPP_URL}/api/auth/token-login?token={token}"
@@ -150,45 +145,43 @@ def validate_login_token(token: str, ip_address: str = None, user_agent: str = N
     Validate a login token and return user_id if valid.
     Marks token as used after validation.
     """
-    con = _db()
-    cur = con.cursor()
-    
-    now = datetime.now(timezone.utc)
-    
-    cur.execute("""
-        SELECT user_id, expires_at, used
-        FROM login_tokens
-        WHERE token = ?
-    """, (token,))
-    
-    row = cur.fetchone()
-    
-    if not row:
-        con.close()
-        return None
-    
-    # Check if already used
-    if row['used']:
-        con.close()
-        return None
-    
-    # Check expiry
-    expires = datetime.fromisoformat(row['expires_at'])
-    if now > expires:
-        con.close()
-        return None
-    
-    # Mark as used and update IP/UA
-    cur.execute("""
-        UPDATE login_tokens
-        SET used = 1, ip_address = ?, user_agent = ?
-        WHERE token = ?
-    """, (ip_address, user_agent, token))
-    
-    con.commit()
-    con.close()
-    
-    return row['user_id']
+    with get_db() as con:
+        cur = con.cursor()
+        
+        now = datetime.now(timezone.utc)
+        
+        cur.execute("""
+            SELECT user_id, expires_at, used
+            FROM login_tokens
+            WHERE token = ?
+        """, (token,))
+        
+        row = cur.fetchone()
+        
+        if not row:
+            return None
+        
+        # Check if already used
+        if row['used']:
+            return None
+        
+        # Check expiry
+        expires = row['expires_at']
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+        if now > expires:
+            return None
+        
+        # Mark as used and update IP/UA
+        cur.execute("""
+            UPDATE login_tokens
+            SET used = TRUE, ip_address = ?, user_agent = ?
+            WHERE token = ?
+        """, (ip_address, user_agent, token))
+        
+        con.commit()
+        
+        return row['user_id']
 
 
 # ==============================================================================
@@ -204,23 +197,22 @@ def create_2fa_confirmation(user_id: int, ip_address: str = None, user_agent: st
     now = datetime.now(timezone.utc)
     expires = now + timedelta(seconds=CONFIRMATION_EXPIRY)
     
-    con = _db()
-    cur = con.cursor()
-    
-    # Clean up old pending confirmations for this user
-    cur.execute("""
-        DELETE FROM twofa_confirmations 
-        WHERE user_id = ? AND status = 'pending'
-    """, (user_id,))
-    
-    # Create new confirmation
-    cur.execute("""
-        INSERT INTO twofa_confirmations (id, user_id, ip_address, user_agent, created_at, expires_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (confirmation_id, user_id, ip_address, user_agent, now.isoformat(), expires.isoformat()))
-    
-    con.commit()
-    con.close()
+    with get_db() as con:
+        cur = con.cursor()
+        
+        # Clean up old pending confirmations for this user
+        cur.execute("""
+            DELETE FROM twofa_confirmations 
+            WHERE user_id = ? AND status = 'pending'
+        """, (user_id,))
+        
+        # Create new confirmation
+        cur.execute("""
+            INSERT INTO twofa_confirmations (id, user_id, ip_address, user_agent, created_at, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (confirmation_id, user_id, ip_address, user_agent, now, expires))
+        
+        con.commit()
     
     return confirmation_id
 
@@ -230,34 +222,35 @@ def check_2fa_status(confirmation_id: str) -> Optional[dict]:
     Check the status of a 2FA confirmation.
     Returns dict with status and user_id, or None if not found.
     """
-    con = _db()
-    cur = con.cursor()
-    
-    cur.execute("""
-        SELECT id, user_id, status, expires_at, confirmed_at
-        FROM twofa_confirmations
-        WHERE id = ?
-    """, (confirmation_id,))
-    
-    row = cur.fetchone()
-    con.close()
-    
-    if not row:
-        return None
-    
-    # Check expiry
-    now = datetime.now(timezone.utc)
-    expires = datetime.fromisoformat(row['expires_at'])
-    
-    if now > expires and row['status'] == 'pending':
-        return {'status': 'expired', 'user_id': row['user_id']}
-    
-    return {
-        'id': row['id'],
-        'user_id': row['user_id'],
-        'status': row['status'],
-        'confirmed_at': row['confirmed_at']
-    }
+    with get_db() as con:
+        cur = con.cursor()
+        
+        cur.execute("""
+            SELECT id, user_id, status, expires_at, confirmed_at
+            FROM twofa_confirmations
+            WHERE id = ?
+        """, (confirmation_id,))
+        
+        row = cur.fetchone()
+        
+        if not row:
+            return None
+        
+        # Check expiry
+        now = datetime.now(timezone.utc)
+        expires = row['expires_at']
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+        
+        if now > expires and row['status'] == 'pending':
+            return {'status': 'expired', 'user_id': row['user_id']}
+        
+        return {
+            'id': row['id'],
+            'user_id': row['user_id'],
+            'status': row['status'],
+            'confirmed_at': str(row['confirmed_at']) if row['confirmed_at'] else None
+        }
 
 
 def confirm_2fa(confirmation_id: str, approved: bool) -> bool:
@@ -265,39 +258,38 @@ def confirm_2fa(confirmation_id: str, approved: bool) -> bool:
     Confirm or deny a 2FA request.
     Called from bot callback.
     """
-    con = _db()
-    cur = con.cursor()
-    
-    now = datetime.now(timezone.utc)
-    
-    # Check if exists and is pending
-    cur.execute("""
-        SELECT status, expires_at FROM twofa_confirmations WHERE id = ?
-    """, (confirmation_id,))
-    
-    row = cur.fetchone()
-    if not row or row['status'] != 'pending':
-        con.close()
-        return False
-    
-    # Check expiry
-    expires = datetime.fromisoformat(row['expires_at'])
-    if now > expires:
-        con.close()
-        return False
-    
-    # Update status
-    status = 'approved' if approved else 'denied'
-    cur.execute("""
-        UPDATE twofa_confirmations
-        SET status = ?, confirmed_at = ?
-        WHERE id = ?
-    """, (status, now.isoformat(), confirmation_id))
-    
-    con.commit()
-    con.close()
-    
-    return True
+    with get_db() as con:
+        cur = con.cursor()
+        
+        now = datetime.now(timezone.utc)
+        
+        # Check if exists and is pending
+        cur.execute("""
+            SELECT status, expires_at FROM twofa_confirmations WHERE id = ?
+        """, (confirmation_id,))
+        
+        row = cur.fetchone()
+        if not row or row['status'] != 'pending':
+            return False
+        
+        # Check expiry
+        expires = row['expires_at']
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+        if now > expires:
+            return False
+        
+        # Update status
+        status = 'approved' if approved else 'denied'
+        cur.execute("""
+            UPDATE twofa_confirmations
+            SET status = ?, confirmed_at = ?
+            WHERE id = ?
+        """, (status, now, confirmation_id))
+        
+        con.commit()
+        
+        return True
 
 
 # ==============================================================================
@@ -309,31 +301,28 @@ def find_user_by_identifier(identifier: str) -> Optional[int]:
     Find user by Telegram ID or @username.
     Returns user_id if found, None otherwise.
     """
-    con = _db()
-    cur = con.cursor()
-    
-    # Try as numeric ID first
-    try:
-        user_id = int(identifier.strip())
-        cur.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-        row = cur.fetchone()
-        if row:
-            con.close()
-            return row['user_id']
-    except ValueError:
-        pass
-    
-    # Try as username (with or without @)
-    username = identifier.strip().lstrip('@').lower()
-    if username:
-        cur.execute("SELECT user_id FROM users WHERE LOWER(username) = ?", (username,))
-        row = cur.fetchone()
-        if row:
-            con.close()
-            return row['user_id']
-    
-    con.close()
-    return None
+    with get_db() as con:
+        cur = con.cursor()
+        
+        # Try as numeric ID first
+        try:
+            user_id = int(identifier.strip())
+            cur.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+            row = cur.fetchone()
+            if row:
+                return row['user_id']
+        except ValueError:
+            pass
+        
+        # Try as username (with or without @)
+        username = identifier.strip().lstrip('@').lower()
+        if username:
+            cur.execute("SELECT user_id FROM users WHERE LOWER(username) = ?", (username,))
+            row = cur.fetchone()
+            if row:
+                return row['user_id']
+        
+        return None
 
 
 # ==============================================================================
@@ -429,26 +418,22 @@ async def send_2fa_notification(user_id: int, confirmation_id: str, ip_address: 
 
 def cleanup_expired():
     """Remove expired tokens and sessions"""
-    con = _db()
-    cur = con.cursor()
-    
-    now = datetime.now(timezone.utc).isoformat()
-    
-    # Clean login tokens
-    cur.execute("DELETE FROM login_tokens WHERE expires_at < ?", (now,))
-    
-    # Clean 2FA confirmations
-    cur.execute("DELETE FROM twofa_confirmations WHERE expires_at < ? AND status = 'pending'", (now,))
-    
-    # Deactivate expired sessions
-    cur.execute("UPDATE webapp_sessions SET is_active = 0 WHERE expires_at < ?", (now,))
-    
-    # Delete very old sessions (30 days)
-    old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    cur.execute("DELETE FROM webapp_sessions WHERE expires_at < ?", (old_date,))
-    
-    con.commit()
-    con.close()
+    with get_db() as con:
+        cur = con.cursor()
+        
+        # Clean login tokens
+        cur.execute("DELETE FROM login_tokens WHERE expires_at < NOW()")
+        
+        # Clean 2FA confirmations
+        cur.execute("DELETE FROM twofa_confirmations WHERE expires_at < NOW() AND status = 'pending'")
+        
+        # Deactivate expired sessions
+        cur.execute("UPDATE webapp_sessions SET is_active = FALSE WHERE expires_at < NOW()")
+        
+        # Delete very old sessions (30 days)
+        cur.execute("DELETE FROM webapp_sessions WHERE expires_at < NOW() - INTERVAL '30 days'")
+        
+        con.commit()
 
 
 # Initialize tables on import
