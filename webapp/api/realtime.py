@@ -129,3 +129,140 @@ async def start_realtime_workers(
     except Exception as e:
         logger.error(f"Failed to start workers: {e}", exc_info=True)
         return {'status': 'error', 'message': str(e)}
+
+
+# ============================================================
+# iOS MOBILE APP WEBSOCKET ENDPOINT
+# ============================================================
+# iOS uses /ws/market endpoint with specific message format:
+# Subscribe: {"action": "subscribe", "channel": "ticker", "symbol": "BTCUSDT"}
+# Response: {"type": "ticker", "symbol": "...", "price": ..., "change_24h": ...}
+
+import aiohttp
+
+async def fetch_ticker_data(symbol: str) -> Optional[dict]:
+    """Fetch ticker data for a symbol from Bybit API."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = f"https://api.bybit.com/v5/market/tickers?category=linear&symbol={symbol}"
+            async with session.get(url, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get("retCode") == 0:
+                        result = data.get("result", {}).get("list", [])
+                        if result:
+                            t = result[0]
+                            return {
+                                "type": "ticker",
+                                "symbol": t.get("symbol", symbol),
+                                "price": float(t.get("lastPrice", 0)),
+                                "change_24h": float(t.get("price24hPcnt", 0)) * 100,
+                                "volume_24h": float(t.get("volume24h", 0)),
+                                "high_24h": float(t.get("highPrice24h", 0)),
+                                "low_24h": float(t.get("lowPrice24h", 0))
+                            }
+    except Exception as e:
+        logger.debug(f"Failed to fetch ticker for {symbol}: {e}")
+    return None
+
+
+@router.websocket("/market")
+async def websocket_market_ios(websocket: WebSocket):
+    """
+    WebSocket endpoint for iOS mobile app real-time market data.
+    
+    iOS sends:
+        {"action": "subscribe", "channel": "ticker", "symbol": "BTCUSDT"}
+        {"action": "unsubscribe", "channel": "ticker", "symbol": "BTCUSDT"}
+    
+    Server sends:
+        {"type": "ticker", "symbol": "BTCUSDT", "price": 42000.5, "change_24h": 2.5, ...}
+    """
+    await websocket.accept()
+    logger.info("✅ iOS client connected to /ws/market")
+    
+    # Track subscribed symbols for this connection
+    subscribed_symbols: set = set()
+    running = True
+    
+    async def stream_tickers():
+        """Background task to stream ticker updates."""
+        nonlocal running
+        while running:
+            try:
+                for symbol in list(subscribed_symbols):
+                    if not running:
+                        break
+                    ticker = await fetch_ticker_data(symbol)
+                    if ticker:
+                        try:
+                            await websocket.send_json(ticker)
+                        except Exception:
+                            running = False
+                            break
+                await asyncio.sleep(1)  # Update every second
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.debug(f"Ticker stream error: {e}")
+                await asyncio.sleep(2)
+    
+    # Start ticker streaming task
+    ticker_task = asyncio.create_task(stream_tickers())
+    
+    try:
+        while True:
+            try:
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=30)
+                
+                action = data.get("action")
+                channel = data.get("channel")
+                symbol = data.get("symbol", "BTCUSDT")
+                msg_type = data.get("type")
+                
+                # Handle ping/pong
+                if msg_type == "ping" or action == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+                
+                # Handle subscription
+                if action == "subscribe" and channel == "ticker":
+                    subscribed_symbols.add(symbol)
+                    # Send immediate ticker update
+                    ticker = await fetch_ticker_data(symbol)
+                    if ticker:
+                        await websocket.send_json(ticker)
+                    await websocket.send_json({
+                        "type": "subscribed",
+                        "channel": "ticker",
+                        "symbol": symbol
+                    })
+                    logger.debug(f"iOS subscribed to {symbol}")
+                
+                elif action == "unsubscribe" and channel == "ticker":
+                    subscribed_symbols.discard(symbol)
+                    await websocket.send_json({
+                        "type": "unsubscribed",
+                        "channel": "ticker",
+                        "symbol": symbol
+                    })
+                    logger.debug(f"iOS unsubscribed from {symbol}")
+                    
+            except asyncio.TimeoutError:
+                # Send ping to keep connection alive
+                try:
+                    await websocket.send_json({"type": "ping"})
+                except Exception:
+                    break
+                    
+    except WebSocketDisconnect:
+        logger.info("iOS client disconnected from /ws/market")
+    except Exception as e:
+        logger.error(f"iOS WebSocket error: {e}")
+    finally:
+        running = False
+        ticker_task.cancel()
+        try:
+            await ticker_task
+        except asyncio.CancelledError:
+            pass

@@ -201,6 +201,9 @@ class AuthManager: ObservableObject {
             // Sync full settings from server (trading mode, account type, etc.)
             await AppState.shared.syncFromServer()
             
+            // Connect to WebSockets (market data + settings sync)
+            WebSocketService.shared.connectAll()
+            
         } catch {
             print("Failed to fetch user: \(error)")
             // Don't logout on network errors - only on 401
@@ -213,6 +216,9 @@ class AuthManager: ObservableObject {
     // MARK: - Logout
     func logout() {
         network.clearTokens()
+        
+        // Disconnect WebSockets
+        WebSocketService.shared.disconnectAll()
         
         DispatchQueue.main.async {
             self.isAuthenticated = false

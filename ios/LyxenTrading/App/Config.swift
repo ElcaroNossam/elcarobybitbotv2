@@ -84,6 +84,7 @@ struct Config {
         // WebSocket
         static let wsMarket = "/ws/market"
         static let wsTrades = "/ws/trades"
+        static let wsSettingsSync = "/ws/settings-sync"  // Requires auth: /ws/settings-sync/{user_id}?token=...
     }
     
     // App Settings

@@ -90,12 +90,18 @@ class WebSocketService: NSObject, ObservableObject {
     static let shared = WebSocketService()
     
     @Published var isConnected = false
+    @Published var isSyncConnected = false
     @Published var lastTicker: WSTickerMessage?
     @Published var tickers: [String: WSTickerMessage] = [:]
     
+    // Market data WebSocket
     private var webSocket: URLSessionWebSocketTask?
+    // Settings sync WebSocket (requires auth)
+    private var syncWebSocket: URLSessionWebSocketTask?
+    
     private var session: URLSession!
     private var reconnectTimer: Timer?
+    private var syncReconnectTimer: Timer?
     private var subscribedSymbols: Set<String> = []
     
     private let tickerSubject = PassthroughSubject<WSTickerMessage, Never>()
@@ -119,7 +125,7 @@ class WebSocketService: NSObject, ObservableObject {
         session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
     }
     
-    // MARK: - Connection
+    // MARK: - Market Data Connection
     func connect() {
         guard webSocket == nil else { return }
         
@@ -157,6 +163,58 @@ class WebSocketService: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Settings Sync Connection (Authenticated)
+    func connectSync() {
+        guard syncWebSocket == nil else { return }
+        
+        // Need user_id and token for authenticated connection
+        guard let userId = UserDefaults.standard.object(forKey: Config.userIdKey) as? Int,
+              let token = UserDefaults.standard.string(forKey: Config.tokenKey) else {
+            print("Cannot connect to sync WebSocket: not authenticated")
+            return
+        }
+        
+        // Construct URL with user_id and token
+        let urlString = "\(Config.wsURL)\(Config.Endpoints.wsSettingsSync)/\(userId)?token=\(token)"
+        guard let url = URL(string: urlString) else {
+            print("Invalid sync WebSocket URL")
+            return
+        }
+        
+        syncWebSocket = session.webSocketTask(with: url)
+        syncWebSocket?.resume()
+        
+        receiveSyncMessage()
+        
+        DispatchQueue.main.async {
+            self.isSyncConnected = true
+        }
+        print("✅ Settings sync WebSocket connected")
+    }
+    
+    func disconnectSync() {
+        syncReconnectTimer?.invalidate()
+        syncReconnectTimer = nil
+        
+        syncWebSocket?.cancel(with: .goingAway, reason: nil)
+        syncWebSocket = nil
+        
+        DispatchQueue.main.async {
+            self.isSyncConnected = false
+        }
+    }
+    
+    // MARK: - Connect All (call after login)
+    func connectAll() {
+        connect()
+        connectSync()
+    }
+    
+    func disconnectAll() {
+        disconnect()
+        disconnectSync()
+    }
+    
     // MARK: - Subscriptions
     func subscribe(to symbol: String) {
         subscribedSymbols.insert(symbol)
@@ -182,7 +240,7 @@ class WebSocketService: NSObject, ObservableObject {
         send(message)
     }
     
-    // MARK: - Send Message
+    // MARK: - Send Message (Market WebSocket)
     private func send(_ dict: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: dict),
               let string = String(data: data, encoding: .utf8) else {
@@ -196,7 +254,21 @@ class WebSocketService: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Receive Message
+    // MARK: - Send Sync Message (Sync WebSocket)
+    private func sendSync(_ dict: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: dict),
+              let string = String(data: data, encoding: .utf8) else {
+            return
+        }
+        
+        syncWebSocket?.send(.string(string)) { error in
+            if let error = error {
+                print("Sync WebSocket send error: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - Receive Message (Market WebSocket)
     private func receiveMessage() {
         webSocket?.receive { [weak self] result in
             switch result {
@@ -222,10 +294,68 @@ class WebSocketService: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Receive Sync Message (Sync WebSocket)
+    private func receiveSyncMessage() {
+        syncWebSocket?.receive { [weak self] result in
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    self?.handleSyncWebSocketMessage(text)
+                case .data(let data):
+                    if let text = String(data: data, encoding: .utf8) {
+                        self?.handleSyncWebSocketMessage(text)
+                    }
+                @unknown default:
+                    break
+                }
+                
+                // Continue receiving
+                self?.receiveSyncMessage()
+                
+            case .failure(let error):
+                print("Sync WebSocket receive error: \(error)")
+                self?.handleSyncDisconnect()
+            }
+        }
+    }
+    
+    private func handleSyncWebSocketMessage(_ text: String) {
+        guard let data = text.data(using: .utf8) else { return }
+        
+        // Handle ping/pong
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           json["type"] as? String == "ping" {
+            sendSync(["type": "pong"])
+            return
+        }
+        
+        // Try to decode as sync message
+        if let sync = try? JSONDecoder().decode(WSSyncMessage.self, from: data) {
+            print("📡 Sync message from server: \(sync.type)")
+            syncSubject.send(sync)
+            handleSyncMessage(sync)
+        }
+    }
+    
+    private func handleSyncDisconnect() {
+        DispatchQueue.main.async {
+            self.isSyncConnected = false
+        }
+        
+        syncWebSocket = nil
+        
+        // Schedule reconnect
+        syncReconnectTimer?.invalidate()
+        syncReconnectTimer = Timer.scheduledTimer(withTimeInterval: Config.wsReconnectDelay, repeats: false) { [weak self] _ in
+            self?.connectSync()
+        }
+    }
+    
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
         
-        // Try to decode as sync message first (settings sync)
+        // Try to decode as sync message first (settings sync) - for backwards compatibility
         if let sync = try? JSONDecoder().decode(WSSyncMessage.self, from: data),
            ["settings_changed", "exchange_switched", "account_switched", "sync_request"].contains(sync.type) {
             print("📡 Sync message received: \(sync.type) from \(sync.source)")
@@ -287,7 +417,7 @@ class WebSocketService: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Send Sync Updates
+    // MARK: - Send Sync Updates (via Sync WebSocket)
     func sendExchangeSwitch(to exchange: String) {
         let message: [String: Any] = [
             "type": "exchange_switched",
@@ -297,7 +427,7 @@ class WebSocketService: NSObject, ObservableObject {
                 "timestamp": ISO8601DateFormatter().string(from: Date())
             ]
         ]
-        send(message)
+        sendSync(message)
     }
     
     func sendAccountTypeSwitch(to accountType: String, exchange: String) {
@@ -310,7 +440,7 @@ class WebSocketService: NSObject, ObservableObject {
                 "timestamp": ISO8601DateFormatter().string(from: Date())
             ]
         ]
-        send(message)
+        sendSync(message)
     }
     
     func sendSettingsChange(strategy: String, setting: String, oldValue: Any?, newValue: Any?) {
@@ -325,7 +455,7 @@ class WebSocketService: NSObject, ObservableObject {
                 "timestamp": ISO8601DateFormatter().string(from: Date())
             ]
         ]
-        send(message)
+        sendSync(message)
     }
     
     // MARK: - Reconnection
