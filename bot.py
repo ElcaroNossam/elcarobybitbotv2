@@ -7856,9 +7856,10 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     
     if data.startswith("strat_reset:"):
         strategy = data.split(":")[1]
-        # Reset all settings for this strategy to ENV defaults
+        # Reset all settings for this strategy to ENV defaults for current exchange
         from core.db_postgres import pg_reset_strategy_to_defaults
-        pg_reset_strategy_to_defaults(uid, strategy)
+        current_exchange = get_exchange_type(uid)
+        pg_reset_strategy_to_defaults(uid, strategy, exchange=current_exchange)
         
         await query.answer(t.get('settings_reset_defaults', 'Settings reset to defaults'))
         
@@ -7872,7 +7873,8 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_dir_toggle:"):
         strategy = data.split(":")[1]
         context = get_user_trading_context(uid)
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        current_exchange = context["exchange"]
+        strat_settings = db.get_strategy_settings(uid, strategy, current_exchange, context["account_type"])
         
         long_enabled = strat_settings.get("long_enabled", True)
         short_enabled = strat_settings.get("short_enabled", True)
@@ -7880,24 +7882,24 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Determine current and next state
         if long_enabled and short_enabled:
             # all -> long only
-            db.set_strategy_setting(uid, strategy, "long_enabled", True)
-            db.set_strategy_setting(uid, strategy, "short_enabled", False)
+            db.set_strategy_setting(uid, strategy, "long_enabled", True, current_exchange)
+            db.set_strategy_setting(uid, strategy, "short_enabled", False, current_exchange)
             new_dir = "LONG only"
         elif long_enabled and not short_enabled:
             # long only -> short only
-            db.set_strategy_setting(uid, strategy, "long_enabled", False)
-            db.set_strategy_setting(uid, strategy, "short_enabled", True)
+            db.set_strategy_setting(uid, strategy, "long_enabled", False, current_exchange)
+            db.set_strategy_setting(uid, strategy, "short_enabled", True, current_exchange)
             new_dir = "SHORT only"
         else:
             # short only or disabled -> all
-            db.set_strategy_setting(uid, strategy, "long_enabled", True)
-            db.set_strategy_setting(uid, strategy, "short_enabled", True)
+            db.set_strategy_setting(uid, strategy, "long_enabled", True, current_exchange)
+            db.set_strategy_setting(uid, strategy, "short_enabled", True, current_exchange)
             new_dir = "ALL"
         
         await query.answer(f"Direction: {new_dir}")
         
         # Refresh strategy settings menu
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        strat_settings = db.get_strategy_settings(uid, strategy, current_exchange, context["account_type"])
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
         lines = [t.get('strategy_param_header', '⚙️ *{name} Settings*').format(name=display_name)]
@@ -7945,13 +7947,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         side = parts[2]  # 'long' or 'short'
         
         context = get_user_trading_context(uid)
-        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        current_exchange = context["exchange"]
+        strat_settings = db.get_strategy_settings(uid, strategy, current_exchange, context["account_type"])
         
         field = f"{side}_enabled"
         current = strat_settings.get(field, True)
         new_val = not current
         
-        db.set_strategy_setting(uid, strategy, field, new_val)
+        db.set_strategy_setting(uid, strategy, field, new_val, current_exchange)
         
         status = "✅ Enabled" if new_val else "❌ Disabled"
         await query.answer(f"{side.upper()}: {status}")

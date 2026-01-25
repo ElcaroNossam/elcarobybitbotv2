@@ -1771,14 +1771,25 @@ def pg_get_strategy_settings_db(user_id: int, strategy: str, exchange: str = "by
 def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> Dict:
     """
     Get settings for a specific strategy.
-    3D SCHEMA: PRIMARY KEY is (user_id, strategy, side).
-    Each side (long/short) has its own row with independent settings.
+    4D SCHEMA: PRIMARY KEY is (user_id, strategy, side, exchange).
+    Each side (long/short) and exchange has its own row with independent settings.
     Returns both LONG and SHORT settings as long_* and short_* fields.
     
-    Note: exchange and account_type are accepted for API compatibility but
-    settings are currently shared across all exchanges/accounts.
+    Args:
+        user_id: User ID
+        strategy: Strategy name
+        exchange: Exchange name ('bybit' or 'hyperliquid'). If None, uses user's active exchange.
+        account_type: Kept for API compatibility
     """
     from coin_params import STRATEGY_DEFAULTS
+    
+    # Get user's active exchange if not specified
+    if not exchange:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT exchange_type FROM users WHERE user_id = %s", (user_id,))
+                row = cur.fetchone()
+                exchange = row[0] if row and row[0] else "bybit"
     
     result = {}
     trading_mode = "demo"  # Default trading mode
@@ -1787,12 +1798,34 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     
     with get_conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            # 3D SCHEMA: Query for both long and short rows
+            # 4D SCHEMA: Query for both long and short rows for specific exchange
             cur.execute("""
                 SELECT * FROM user_strategy_settings 
-                WHERE user_id = %s AND strategy = %s
-            """, (user_id, strategy))
+                WHERE user_id = %s AND strategy = %s AND exchange = %s
+            """, (user_id, strategy, exchange))
             rows = cur.fetchall()
+            
+            # If no rows found for this exchange, try to copy from default exchange
+            if not rows and exchange != "bybit":
+                # Try to get settings from bybit as fallback
+                cur.execute("""
+                    SELECT * FROM user_strategy_settings 
+                    WHERE user_id = %s AND strategy = %s AND exchange = 'bybit'
+                """, (user_id, strategy))
+                bybit_rows = cur.fetchall()
+                
+                # Copy bybit settings to this exchange
+                if bybit_rows:
+                    for row in bybit_rows:
+                        side = row.get('side', 'long')
+                        _pg_copy_settings_to_exchange(cur, user_id, strategy, side, row, exchange)
+                    
+                    # Re-fetch for this exchange
+                    cur.execute("""
+                        SELECT * FROM user_strategy_settings 
+                        WHERE user_id = %s AND strategy = %s AND exchange = %s
+                    """, (user_id, strategy, exchange))
+                    rows = cur.fetchall()
             
             # Group rows by side
             rows_by_side = {}
@@ -1834,6 +1867,7 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     result["trading_mode"] = trading_mode
     result["direction"] = direction
     result["coins_group"] = coins_group
+    result["exchange"] = exchange  # Include current exchange in result
     
     # Fill missing sides with defaults
     for side in ["long", "short"]:
@@ -1860,21 +1894,72 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     return result
 
 
+def _pg_copy_settings_to_exchange(cur, user_id: int, strategy: str, side: str, 
+                                   source_row: dict, target_exchange: str):
+    """Copy settings from source row to target exchange."""
+    cur.execute("""
+        INSERT INTO user_strategy_settings 
+        (user_id, strategy, side, exchange, settings, percent, tp_percent, sl_percent,
+         leverage, use_atr, atr_periods, atr_multiplier_sl, atr_trigger_pct, atr_step_pct,
+         order_type, limit_offset_pct, direction, dca_enabled, dca_pct_1, dca_pct_2,
+         max_positions, coins_group, trading_mode, account_type, enabled, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        ON CONFLICT (user_id, strategy, side, exchange) DO NOTHING
+    """, (
+        user_id, strategy, side, target_exchange,
+        source_row.get('settings', '{}'),
+        source_row.get('percent'),
+        source_row.get('tp_percent'),
+        source_row.get('sl_percent'),
+        source_row.get('leverage'),
+        source_row.get('use_atr', False),
+        source_row.get('atr_periods'),
+        source_row.get('atr_multiplier_sl'),
+        source_row.get('atr_trigger_pct'),
+        source_row.get('atr_step_pct'),
+        source_row.get('order_type', 'market'),
+        source_row.get('limit_offset_pct', 0.1),
+        source_row.get('direction', 'all'),
+        source_row.get('dca_enabled', False),
+        source_row.get('dca_pct_1', 10.0),
+        source_row.get('dca_pct_2', 25.0),
+        source_row.get('max_positions', 0),
+        source_row.get('coins_group', 'ALL'),
+        source_row.get('trading_mode', 'demo'),
+        source_row.get('account_type', 'demo'),
+        source_row.get('enabled', True)
+    ))
+
+
 def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value, 
-                            exchange: str = "bybit", account_type: str = "demo") -> bool:
+                            exchange: str = None, account_type: str = "demo") -> bool:
     """
     Set a single field for a strategy in user_strategy_settings table.
     
-    SIMPLIFIED: Field name determines side (long_* or short_*)
+    4D SCHEMA: Field name determines side (long_* or short_*)
     If field starts with 'long_' or 'short_', extracts side and stores in correct row.
     
-    Note: exchange and account_type are accepted for API compatibility but not used yet
-    in the simplified schema (which uses side-based multitenancy).
+    Args:
+        user_id: User ID
+        strategy: Strategy name
+        field: Field name (e.g., 'long_percent', 'short_sl_percent', 'direction')
+        value: Value to set
+        exchange: Exchange name. If None, uses user's active exchange.
+        account_type: Kept for API compatibility
     """
     from coin_params import STRATEGY_DEFAULTS
     
+    # Get user's active exchange if not specified
+    if not exchange:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT exchange_type FROM users WHERE user_id = %s", (user_id,))
+                row = cur.fetchone()
+                exchange = row[0] if row and row[0] else "bybit"
+    
     # Determine side from field name
     if field.startswith("long_"):
+
         side = "long"
         db_field = field[5:]  # Remove 'long_' prefix
     elif field.startswith("short_"):
@@ -1882,16 +1967,20 @@ def pg_set_strategy_setting(user_id: int, strategy: str, field: str, value,
         db_field = field[6:]  # Remove 'short_' prefix
     else:
         # Non-side field like 'direction', 'order_type', 'coins_group'
-        # Apply to both sides
+        # Apply to both sides for this exchange
         for s in ["long", "short"]:
-            _pg_set_side_setting(user_id, strategy, s, field, value)
+            _pg_set_side_setting(user_id, strategy, s, field, value, exchange)
         return True
     
-    return _pg_set_side_setting(user_id, strategy, side, db_field, value)
+    return _pg_set_side_setting(user_id, strategy, side, db_field, value, exchange)
 
 
-def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, value) -> bool:
-    """Set a field for a specific side (long/short)."""
+def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, value, 
+                         exchange: str = "bybit") -> bool:
+    """Set a field for a specific side (long/short) and exchange.
+    
+    4D SCHEMA: Uses (user_id, strategy, side, exchange) as key.
+    """
     from coin_params import STRATEGY_DEFAULTS
     
     ALLOWED_FIELDS = {
@@ -1899,7 +1988,7 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
         'max_positions', 'coins_group', 'trading_mode', 'direction',
-        'exchange', 'account_type'  # Added multitenancy fields
+        'account_type'
     }
     
     # Boolean fields that need conversion from int to bool for PostgreSQL
@@ -1917,118 +2006,125 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
     
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # Check if row exists
+            # 4D SCHEMA: Check if row exists for this exchange
             cur.execute("""
                 SELECT 1 FROM user_strategy_settings 
-                WHERE user_id = %s AND strategy = %s AND side = %s
-            """, (user_id, strategy, side))
+                WHERE user_id = %s AND strategy = %s AND side = %s AND exchange = %s
+            """, (user_id, strategy, side, exchange))
             
             if cur.fetchone():
                 # UPDATE existing
                 cur.execute(f"""
                     UPDATE user_strategy_settings SET {field} = %s, updated_at = NOW()
-                    WHERE user_id = %s AND strategy = %s AND side = %s
-                """, (value, user_id, strategy, side))
+                    WHERE user_id = %s AND strategy = %s AND side = %s AND exchange = %s
+                """, (value, user_id, strategy, side, exchange))
             else:
-                # INSERT new row with all defaults
+                # INSERT new row with all defaults for this exchange
                 cur.execute("""
                     INSERT INTO user_strategy_settings 
-                    (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
+                    (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, 
                      leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
                      limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, 
-                     coins_group, trading_mode, exchange, account_type, direction)
+                     coins_group, trading_mode, account_type, direction)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
-                    user_id, strategy, side,
+                    user_id, strategy, side, exchange,
                     bool(defaults.get("enabled", True)),
                     defaults.get("percent"),
                     defaults.get("sl_percent"),
                     defaults.get("tp_percent"),
                     defaults.get("leverage"),
-                    bool(defaults.get("use_atr", False)),  # Convert to bool for PostgreSQL
+                    bool(defaults.get("use_atr", False)),
                     defaults.get("atr_trigger_pct"),
                     defaults.get("atr_step_pct"),
                     defaults.get("order_type", "market"),
                     defaults.get("limit_offset_pct", 0.1),
-                    bool(defaults.get("dca_enabled", False)),  # Convert to bool for PostgreSQL
+                    bool(defaults.get("dca_enabled", False)),
                     defaults.get("dca_pct_1", 10.0),
                     defaults.get("dca_pct_2", 25.0),
                     defaults.get("max_positions", 0),
                     defaults.get("coins_group", "ALL"),
                     "demo",    # Default trading_mode
-                    "bybit",   # Default exchange
                     "demo",    # Default account_type
                     "all"      # Default direction
                 ))
                 # Now update the specific field
                 cur.execute(f"""
                     UPDATE user_strategy_settings SET {field} = %s
-                    WHERE user_id = %s AND strategy = %s AND side = %s
-                """, (value, user_id, strategy, side))
+                    WHERE user_id = %s AND strategy = %s AND side = %s AND exchange = %s
+                """, (value, user_id, strategy, side, exchange))
     
     return True
 
 
-def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None) -> bool:
-    """Reset strategy settings to defaults. If side is None, resets both."""
+
+def pg_reset_strategy_to_defaults(user_id: int, strategy: str, side: str = None, 
+                                   exchange: str = None) -> bool:
+    """Reset strategy settings to defaults. 
+    
+    If side is None, resets both long and short.
+    If exchange is None, resets both bybit and hyperliquid.
+    
+    4D SCHEMA: Uses (user_id, strategy, side, exchange) as key.
+    """
     from coin_params import STRATEGY_DEFAULTS
     
     sides = [side] if side else ["long", "short"]
+    exchanges = [exchange] if exchange else ["bybit", "hyperliquid"]
     
     with get_conn() as conn:
         with conn.cursor() as cur:
-            for s in sides:
-                defaults = STRATEGY_DEFAULTS.get(s, STRATEGY_DEFAULTS["long"])
-                cur.execute("""
-                    INSERT INTO user_strategy_settings 
-                    (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
-                     leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
-                     limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, 
-                     coins_group, trading_mode, exchange, account_type, direction)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (user_id, strategy, side) DO UPDATE SET
-                        enabled = EXCLUDED.enabled,
-                        percent = EXCLUDED.percent,
-                        sl_percent = EXCLUDED.sl_percent,
-                        tp_percent = EXCLUDED.tp_percent,
-                        leverage = EXCLUDED.leverage,
-                        use_atr = EXCLUDED.use_atr,
-                        atr_trigger_pct = EXCLUDED.atr_trigger_pct,
-                        atr_step_pct = EXCLUDED.atr_step_pct,
-                        order_type = EXCLUDED.order_type,
-                        limit_offset_pct = EXCLUDED.limit_offset_pct,
-                        dca_enabled = EXCLUDED.dca_enabled,
-                        dca_pct_1 = EXCLUDED.dca_pct_1,
-                        dca_pct_2 = EXCLUDED.dca_pct_2,
-                        max_positions = EXCLUDED.max_positions,
-                        coins_group = EXCLUDED.coins_group,
-                        trading_mode = EXCLUDED.trading_mode,
-                        exchange = EXCLUDED.exchange,
-                        account_type = EXCLUDED.account_type,
-                        direction = EXCLUDED.direction,
-                        updated_at = NOW()
-                """, (
-                    user_id, strategy, s,
-                    bool(defaults.get("enabled", True)),
-                    defaults.get("percent"),
-                    defaults.get("sl_percent"),
-                    defaults.get("tp_percent"),
-                    defaults.get("leverage"),
-                    bool(defaults.get("use_atr", False)),  # Convert to bool for PostgreSQL
-                    defaults.get("atr_trigger_pct"),
-                    defaults.get("atr_step_pct"),
-                    defaults.get("order_type", "market"),
-                    defaults.get("limit_offset_pct", 0.1),
-                    bool(defaults.get("dca_enabled", False)),  # Convert to bool for PostgreSQL
-                    defaults.get("dca_pct_1", 10.0),
-                    defaults.get("dca_pct_2", 25.0),
-                    defaults.get("max_positions", 0),
-                    defaults.get("coins_group", "ALL"),
-                    "demo",   # Reset trading_mode to demo
-                    "bybit",  # Default exchange
-                    "demo",   # Default account_type
-                    "all"     # Default direction
-                ))
+            for ex in exchanges:
+                for s in sides:
+                    defaults = STRATEGY_DEFAULTS.get(s, STRATEGY_DEFAULTS["long"])
+                    cur.execute("""
+                        INSERT INTO user_strategy_settings 
+                        (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, 
+                         leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
+                         limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, 
+                         coins_group, trading_mode, account_type, direction)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (user_id, strategy, side, exchange) DO UPDATE SET
+                            enabled = EXCLUDED.enabled,
+                            percent = EXCLUDED.percent,
+                            sl_percent = EXCLUDED.sl_percent,
+                            tp_percent = EXCLUDED.tp_percent,
+                            leverage = EXCLUDED.leverage,
+                            use_atr = EXCLUDED.use_atr,
+                            atr_trigger_pct = EXCLUDED.atr_trigger_pct,
+                            atr_step_pct = EXCLUDED.atr_step_pct,
+                            order_type = EXCLUDED.order_type,
+                            limit_offset_pct = EXCLUDED.limit_offset_pct,
+                            dca_enabled = EXCLUDED.dca_enabled,
+                            dca_pct_1 = EXCLUDED.dca_pct_1,
+                            dca_pct_2 = EXCLUDED.dca_pct_2,
+                            max_positions = EXCLUDED.max_positions,
+                            coins_group = EXCLUDED.coins_group,
+                            trading_mode = EXCLUDED.trading_mode,
+                            account_type = EXCLUDED.account_type,
+                            direction = EXCLUDED.direction,
+                            updated_at = NOW()
+                    """, (
+                        user_id, strategy, s, ex,
+                        bool(defaults.get("enabled", True)),
+                        defaults.get("percent"),
+                        defaults.get("sl_percent"),
+                        defaults.get("tp_percent"),
+                        defaults.get("leverage"),
+                        bool(defaults.get("use_atr", False)),
+                        defaults.get("atr_trigger_pct"),
+                        defaults.get("atr_step_pct"),
+                        defaults.get("order_type", "market"),
+                        defaults.get("limit_offset_pct", 0.1),
+                        bool(defaults.get("dca_enabled", False)),
+                        defaults.get("dca_pct_1", 10.0),
+                        defaults.get("dca_pct_2", 25.0),
+                        defaults.get("max_positions", 0),
+                        defaults.get("coins_group", "ALL"),
+                        "demo",   # Reset trading_mode to demo
+                        "demo",   # Default account_type
+                        "all"     # Default direction
+                    ))
     return True
 
 

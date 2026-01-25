@@ -1641,38 +1641,50 @@ def migrate_json_to_db_settings(user_id: int) -> bool:
 
 def get_strategy_settings(user_id: int, strategy: str, exchange: str = None, account_type: str = None) -> dict:
     """
-    Get settings for a specific strategy.
+    Get settings for a specific strategy for a specific exchange.
     
-    SIMPLIFIED: Just reads from DB, no complex fallbacks.
+    4D SCHEMA: Uses (user_id, strategy, side, exchange) as key.
+    If exchange is None, uses user's current exchange from get_exchange_type().
     Returns settings with long_* and short_* fields.
     """
     from core.db_postgres import pg_get_strategy_settings
-    return pg_get_strategy_settings(user_id, strategy)
+    
+    # If exchange not provided, get user's current exchange
+    if exchange is None:
+        exchange = get_exchange_type(user_id) or "bybit"
+    
+    return pg_get_strategy_settings(user_id, strategy, exchange)
 
 
 def set_strategy_setting(user_id: int, strategy: str, field: str, value,
                          exchange: str = None, account_type: str = None,
                          sync_all_accounts: bool = True) -> bool:
     """
-    Set a specific field for a strategy.
-    SIMPLIFIED: Direct write to DB.
+    Set a specific field for a strategy on a specific exchange.
+    
+    4D SCHEMA: Uses (user_id, strategy, side, exchange) as key.
+    If exchange is None, uses user's current exchange from get_exchange_type().
     """
-    return pg_set_strategy_setting(user_id, strategy, field, value)
+    # If exchange not provided, get user's current exchange
+    if exchange is None:
+        exchange = get_exchange_type(user_id) or "bybit"
+    
+    return pg_set_strategy_setting(user_id, strategy, field, value, exchange)
 
 
 def get_effective_settings(user_id: int, strategy: str, exchange: str = None, 
                           account_type: str = None, timeframe: str = "24h", 
                           side: str = None) -> dict:
     """
-    Get effective settings for a strategy.
+    Get effective settings for a strategy on a specific exchange.
     
-    SIMPLIFIED: 
-    - Read side-specific settings (long_* or short_*) from DB
-    - Fall back to STRATEGY_DEFAULTS from coin_params.py
+    4D SCHEMA: Reads side-specific settings from DB with exchange context.
+    Falls back to STRATEGY_DEFAULTS from coin_params.py.
     
     Args:
         user_id: User ID
         strategy: Strategy name (oi, scalper, scryptomera, etc.)
+        exchange: Exchange name ('bybit' or 'hyperliquid'). If None, uses user's current.
         side: Trade side ('Buy'/'LONG' or 'Sell'/'SHORT'). REQUIRED for trading!
     
     Returns dict with: enabled, percent, sl_percent, tp_percent, leverage, 
@@ -1680,7 +1692,8 @@ def get_effective_settings(user_id: int, strategy: str, exchange: str = None,
     """
     from coin_params import STRATEGY_DEFAULTS
     
-    strat_settings = get_strategy_settings(user_id, strategy)
+    # Get settings for this exchange (or user's current if not specified)
+    strat_settings = get_strategy_settings(user_id, strategy, exchange)
     
     # Determine side prefix
     side_prefix = "long"  # default
