@@ -12,7 +12,7 @@ struct Config {
     #if DEBUG
     static let baseURL = "http://localhost:8765"
     #else
-    static let baseURL = "https://racks-exterior-traveling-acid.trycloudflare.com"
+    static let baseURL = "https://harvest-specific-envelope-dollar.trycloudflare.com"
     #endif
     
     static let apiURL = "\(baseURL)/api"
