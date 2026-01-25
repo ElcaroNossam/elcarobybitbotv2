@@ -33,7 +33,7 @@ def backup_users():
                demo_api_key, demo_api_secret, real_api_key, real_api_secret,
                hl_enabled, hl_testnet, hl_testnet_private_key, hl_testnet_wallet_address,
                hl_mainnet_private_key, hl_mainnet_wallet_address, hl_private_key, hl_wallet_address,
-               elc_balance, elc_staked, elc_locked, email, created_at, updated_at
+               elc_balance, elc_staked, elc_locked, email, updated_at
         FROM users
         WHERE is_allowed = TRUE OR demo_api_key IS NOT NULL OR real_api_key IS NOT NULL
     """)
