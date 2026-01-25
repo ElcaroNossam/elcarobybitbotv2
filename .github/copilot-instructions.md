@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.26.0 | Обновлено: 25 января 2026
+# Версия: 3.27.0 | Обновлено: 25 января 2026
 # =============================================
 
 ---
@@ -696,6 +696,38 @@ keyboard = build_keyboard([
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: iOS Exchange Switcher with Server Sync (Jan 25, 2026)
+- **Проблема:** iOS приложение не синхронизировало exchange/accountType изменения с сервером
+- **Причина:** AppState сохранял только в UserDefaults (локально)
+- **Исправленные файлы:**
+  - `ios/LyxenTrading/App/AppState.swift`:
+    - Добавлен `syncExchangeWithServer(exchange:)` - PUT /users/exchange
+    - Добавлен `syncAccountTypeWithServer(accountType:)` - PUT /users/switch-account-type
+    - Добавлен `syncFromServer()` - GET /users/settings для загрузки настроек при логине
+    - Добавлены структуры `ServerSettings`, `EmptyResponse`
+  - `ios/LyxenTrading/Services/AuthManager.swift`:
+    - Добавлен вызов `AppState.shared.syncFromServer()` после fetchCurrentUser()
+  - `ios/LyxenTrading/Models/Models.swift`:
+    - Добавлено поле `hlTestnet: Bool?` в User model
+  - `webapp/api/users.py`:
+    - `/me` endpoint теперь использует `db.get_exchange_type()` вместо legacy полей
+    - Добавлен `hl_testnet` в ответ `/me`
+    - `/settings` endpoint теперь возвращает `exchange_type`, `trading_mode`, `hl_testnet`
+  - `webapp/services/exchange_validator.py`:
+    - Исправлен выбор ключа с учётом `hl_testnet` флага
+- **Результат:** iOS теперь синхронизирует exchange preferences с сервером
+- **Commit:** 6deff34
+
+### ✅ VERIFIED: WebSocket Exchange Support (Jan 25, 2026)
+- **Проверка:** webapp/realtime/__init__.py уже имеет полную поддержку exchange
+- **Существующие компоненты:**
+  - `BybitWorker` и `HyperliquidWorker` - отдельные workers для каждой биржи
+  - `_bybit_data`, `_hyperliquid_data` - раздельное хранение данных
+  - `_active_connections['bybit']`, `_active_connections['hyperliquid']` - раздельные подключения
+  - `register_client(ws, exchange)` - регистрация клиента по бирже
+  - `snapshot_broadcaster('bybit'|'hyperliquid')` - broadcaster по бирже
+- **Статус:** Уже реализовано, не требует изменений
 
 ### ✅ CRITICAL: Full Multitenancy Exchange Parameter Propagation (Jan 25, 2026)
 - **Проблема:** Многие вызовы `get_trade_stats()`, `get_active_positions()`, `get_trade_stats_unknown()` не передавали `exchange` параметр
