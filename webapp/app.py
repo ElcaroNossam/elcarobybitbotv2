@@ -480,6 +480,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"ton_payments router not available: {e}")
     
+    # Signals REST API (for iOS/mobile)
+    try:
+        from webapp.api import signals
+        app.include_router(signals.router, prefix="/api", tags=["signals"])
+        logger.info("✅ Signals API loaded at /api/signals")
+    except ImportError as e:
+        logger.warning(f"signals router not available: {e}")
+    
     # Activity Log & Cross-Platform Sync API
     try:
         from webapp.api import activity

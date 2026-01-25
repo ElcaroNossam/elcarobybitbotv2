@@ -80,25 +80,26 @@ struct Config {
         static let strategyReport = "/stats/strategy-report"
         static let positionsSummary = "/stats/positions-summary"
         
-        // Screener
-        static let screenerSymbols = "/api/screener/symbols"
-        static let screenerOverview = "/api/screener/overview"
-        static let screenerSymbol = "/api/screener/symbol"  // /{symbol}
+        // Screener (note: screener endpoints have /api prefix built-in)
+        static let screenerSymbols = "/screener/symbols"
+        static let screenerOverview = "/screener/overview"
+        static let screenerSymbol = "/screener/symbol"  // /{symbol}
         static let wsScreener = "/ws/screener"
         
         // AI Agent
-        static let aiAnalyze = "/api/ai/analyze"
-        static let aiMarketSentiment = "/api/ai/market-sentiment"
+        static let aiAnalyze = "/ai/analyze"
+        static let aiChat = "/ai/chat"
+        static let aiMarketSentiment = "/ai/market-sentiment"
         
         // Activity Sync
-        static let activityHistory = "/api/activity/history"
-        static let activityRecent = "/api/activity/recent"
-        static let activityStats = "/api/activity/stats"
-        static let activityTriggerSync = "/api/activity/trigger-sync"
+        static let activityHistory = "/activity/history"
+        static let activityRecent = "/activity/recent"
+        static let activityStats = "/activity/stats"
+        static let activityTriggerSync = "/activity/trigger-sync"
         
         // Signals
-        static let signals = "/api/signals/list"
-        static let signalsActive = "/api/signals/active"
+        static let signals = "/signals"
+        static let signalsActive = "/signals/active"
         
         // LYXEN Token
         static let elcBalance = "/elcaro/balance"
