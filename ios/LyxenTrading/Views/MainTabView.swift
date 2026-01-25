@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  LyxenTrading
 //
-//  Main tab navigation
+//  Main tab navigation with all features
 //
 
 import SwiftUI
@@ -35,10 +35,10 @@ struct MainTabView: View {
                 }
                 .tag(2)
             
-            // Strategies Tab
-            StrategiesView()
+            // More Tab (contains additional features)
+            MoreView()
                 .tabItem {
-                    Label("Strategies", systemImage: "brain")
+                    Label("More", systemImage: "square.grid.2x2.fill")
                 }
                 .tag(3)
             
@@ -56,6 +56,104 @@ struct MainTabView: View {
                 await tradingService.fetchSymbols()
             }
         }
+    }
+}
+
+// MARK: - More View (Hub for additional features)
+struct MoreView: View {
+    var body: some View {
+        NavigationView {
+            List {
+                // Strategies
+                NavigationLink(destination: StrategiesView()) {
+                    MoreMenuItem(
+                        icon: "brain",
+                        title: "AI Strategies",
+                        subtitle: "Manage trading strategies",
+                        color: .purple
+                    )
+                }
+                
+                // Statistics
+                NavigationLink(destination: StatsView()) {
+                    MoreMenuItem(
+                        icon: "chart.bar.fill",
+                        title: "Statistics",
+                        subtitle: "Trading performance analytics",
+                        color: .blue
+                    )
+                }
+                
+                // Screener
+                NavigationLink(destination: ScreenerView()) {
+                    MoreMenuItem(
+                        icon: "magnifyingglass.circle.fill",
+                        title: "Screener",
+                        subtitle: "Market scanner & filters",
+                        color: .orange
+                    )
+                }
+                
+                // AI Analysis
+                NavigationLink(destination: AIView()) {
+                    MoreMenuItem(
+                        icon: "cpu",
+                        title: "AI Analysis",
+                        subtitle: "AI-powered market insights",
+                        color: .green
+                    )
+                }
+                
+                // Signals
+                NavigationLink(destination: SignalsView()) {
+                    MoreMenuItem(
+                        icon: "bell.fill",
+                        title: "Signals",
+                        subtitle: "Trading signals & alerts",
+                        color: .red
+                    )
+                }
+                
+                // Activity (Cross-platform sync)
+                NavigationLink(destination: ActivityView()) {
+                    MoreMenuItem(
+                        icon: "arrow.triangle.2.circlepath",
+                        title: "Activity",
+                        subtitle: "Cross-platform sync history",
+                        color: .cyan
+                    )
+                }
+            }
+            .listStyle(InsetGroupedListStyle())
+            .navigationTitle("More")
+        }
+    }
+}
+
+struct MoreMenuItem: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(color)
+                .cornerRadius(10)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

@@ -71,10 +71,34 @@ struct Config {
         static let myStrategies = "/marketplace/my-strategies"
         static let purchasedStrategies = "/marketplace/purchased"
         
-        // Stats
+        // Stats & Analytics
         static let dailyStats = "/stats/daily"
         static let performanceChart = "/stats/performance"
         static let strategyStats = "/stats/strategy"
+        static let dashboard = "/stats/dashboard"
+        static let pnlHistory = "/stats/pnl-history"
+        static let strategyReport = "/stats/strategy-report"
+        static let positionsSummary = "/stats/positions-summary"
+        
+        // Screener
+        static let screenerSymbols = "/api/screener/symbols"
+        static let screenerOverview = "/api/screener/overview"
+        static let screenerSymbol = "/api/screener/symbol"  // /{symbol}
+        static let wsScreener = "/ws/screener"
+        
+        // AI Agent
+        static let aiAnalyze = "/api/ai/analyze"
+        static let aiMarketSentiment = "/api/ai/market-sentiment"
+        
+        // Activity Sync
+        static let activityHistory = "/api/activity/history"
+        static let activityRecent = "/api/activity/recent"
+        static let activityStats = "/api/activity/stats"
+        static let activityTriggerSync = "/api/activity/trigger-sync"
+        
+        // Signals
+        static let signals = "/api/signals/list"
+        static let signalsActive = "/api/signals/active"
         
         // LYXEN Token
         static let elcBalance = "/elcaro/balance"
