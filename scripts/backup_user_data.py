@@ -35,7 +35,7 @@ def backup_users():
                hl_mainnet_private_key, hl_mainnet_wallet_address, hl_private_key, hl_wallet_address,
                elc_balance, elc_staked, elc_locked, email, updated_at
         FROM users
-        WHERE is_allowed = TRUE OR demo_api_key IS NOT NULL OR real_api_key IS NOT NULL
+        WHERE is_allowed = 1 OR demo_api_key IS NOT NULL OR real_api_key IS NOT NULL
     """)
     
     users = []
