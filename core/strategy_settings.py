@@ -97,9 +97,9 @@ def get_strategy_side_settings(user_id: int, strategy: str, side: str) -> Dict:
     }
 
 
-def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str, value) -> bool:
+def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str, value, exchange: str = "bybit") -> bool:
     """
-    Set a single field for a strategy+side.
+    Set a single field for a strategy+side+exchange.
     
     If no record exists, creates one with all default values first.
     """
@@ -124,24 +124,24 @@ def set_strategy_side_setting(user_id: int, strategy: str, side: str, field: str
                 # UPSERT with defaults - ensure boolean fields are properly typed
                 cur.execute(f"""
                     INSERT INTO user_strategy_settings 
-                        (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
+                        (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, 
                          leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (user_id, strategy, side) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, strategy, side, exchange) 
                     DO UPDATE SET {field} = %s, updated_at = NOW()
-                """, (user_id, strategy, side, 
+                """, (user_id, strategy, side, exchange,
                       bool(defaults["enabled"]), defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
                       defaults["leverage"], bool(defaults["use_atr"]), defaults["atr_trigger_pct"], 
                       defaults["atr_step_pct"], defaults["order_type"], 
                       bool(value) if field in ('enabled', 'use_atr', 'dca_enabled') else value))
         return True
     except Exception as e:
-        _logger.error(f"Error setting {field}={value} for {user_id}/{strategy}/{side}: {e}")
+        _logger.error(f"Error setting {field}={value} for {user_id}/{strategy}/{side}/{exchange}: {e}")
         return False
 
 
-def reset_strategy_side_to_defaults(user_id: int, strategy: str, side: str) -> bool:
-    """Reset a strategy+side settings to ENV defaults."""
+def reset_strategy_side_to_defaults(user_id: int, strategy: str, side: str, exchange: str = "bybit") -> bool:
+    """Reset a strategy+side+exchange settings to ENV defaults."""
     side = side.lower()
     if side not in ('long', 'short'):
         return False
@@ -153,10 +153,10 @@ def reset_strategy_side_to_defaults(user_id: int, strategy: str, side: str) -> b
             with conn.cursor() as cur:
                 cur.execute("""
                     INSERT INTO user_strategy_settings 
-                        (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, 
+                        (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, 
                          leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (user_id, strategy, side) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, strategy, side, exchange) 
                     DO UPDATE SET 
                         enabled = EXCLUDED.enabled,
                         percent = EXCLUDED.percent,
@@ -168,31 +168,31 @@ def reset_strategy_side_to_defaults(user_id: int, strategy: str, side: str) -> b
                         atr_step_pct = EXCLUDED.atr_step_pct,
                         order_type = EXCLUDED.order_type,
                         updated_at = NOW()
-                """, (user_id, strategy, side, 
+                """, (user_id, strategy, side, exchange,
                       bool(defaults["enabled"]), defaults["percent"], defaults["sl_percent"], defaults["tp_percent"],
                       defaults["leverage"], bool(defaults["use_atr"]), defaults["atr_trigger_pct"], 
                       defaults["atr_step_pct"], defaults["order_type"]))
-        _logger.info(f"Reset {user_id}/{strategy}/{side} to defaults")
+        _logger.info(f"Reset {user_id}/{strategy}/{side}/{exchange} to defaults")
         return True
     except Exception as e:
-        _logger.error(f"Error resetting {user_id}/{strategy}/{side}: {e}")
+        _logger.error(f"Error resetting {user_id}/{strategy}/{side}/{exchange}: {e}")
         return False
 
 
-def get_strategy_enabled(user_id: int, strategy: str) -> bool:
-    """Check if strategy is enabled (either LONG or SHORT is enabled)."""
+def get_strategy_enabled(user_id: int, strategy: str, exchange: str = "bybit") -> bool:
+    """Check if strategy is enabled (either LONG or SHORT is enabled) with multitenancy support."""
     rows = execute(
-        "SELECT enabled FROM user_strategy_settings WHERE user_id = %s AND strategy = %s",
-        (user_id, strategy)
+        "SELECT enabled FROM user_strategy_settings WHERE user_id = %s AND strategy = %s AND exchange = %s",
+        (user_id, strategy, exchange)
     )
     if not rows:
         return True  # Default enabled
     return any(row.get('enabled', True) for row in rows)
 
 
-def set_strategy_enabled(user_id: int, strategy: str, side: str, enabled: bool) -> bool:
+def set_strategy_enabled(user_id: int, strategy: str, side: str, enabled: bool, exchange: str = "bybit") -> bool:
     """Enable or disable a strategy side."""
-    return set_strategy_side_setting(user_id, strategy, side, 'enabled', enabled)
+    return set_strategy_side_setting(user_id, strategy, side, 'enabled', enabled, exchange=exchange)
 
 
 def get_effective_settings(user_id: int, strategy: str, side: str = None) -> Dict:

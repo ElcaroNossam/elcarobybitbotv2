@@ -228,8 +228,8 @@ async def sync_user_trades(
             strategy = detect_strategy_from_symbol_and_time(user_id, symbol, entry_ts)
             
             if not strategy:
-                # Check active_positions for strategy
-                positions = get_active_positions(user_id, account_type=account_type)
+                # Check active_positions for strategy (Bybit sync only)
+                positions = get_active_positions(user_id, account_type=account_type, exchange="bybit")
                 for pos in positions:
                     if pos.get("symbol") == symbol:
                         strategy = pos.get("strategy")

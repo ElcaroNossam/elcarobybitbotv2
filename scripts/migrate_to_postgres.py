@@ -269,7 +269,7 @@ async def migrate_table(
                 elif table == "active_positions":
                     query = f"""
                         INSERT INTO {table} ({cols}) VALUES ({placeholders})
-                        ON CONFLICT (user_id, symbol, account_type) DO NOTHING
+                        ON CONFLICT (user_id, symbol, account_type, exchange) DO NOTHING
                     """
                 elif table == "config":
                     query = f"""
@@ -466,7 +466,7 @@ async def migrate_active_positions(pool: asyncpg.Pool, sqlite_conn: sqlite3.Conn
                 
                 query = f"""
                     INSERT INTO active_positions ({', '.join(cols)}) VALUES ({placeholders})
-                    ON CONFLICT (user_id, symbol, account_type) DO NOTHING
+                    ON CONFLICT (user_id, symbol, account_type, exchange) DO NOTHING
                 """
                 await conn.execute(query, *values)
                 migrated += 1

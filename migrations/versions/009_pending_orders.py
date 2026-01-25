@@ -27,7 +27,7 @@ def upgrade(cur):
             status        TEXT DEFAULT 'pending',
             expires_at    TIMESTAMP,
             
-            PRIMARY KEY (user_id, order_id)
+            PRIMARY KEY (user_id, order_id, exchange)
         )
     """)
     

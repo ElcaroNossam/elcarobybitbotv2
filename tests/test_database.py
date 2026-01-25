@@ -142,6 +142,7 @@ class TestPositionManagement:
             "user_id": test_user_id,
             "symbol": "BTCUSDT",
             "account_type": "demo",
+            "exchange": "bybit",
             "side": "LONG",
             "entry_price": 50000.0,
             "size": 0.1,
@@ -150,8 +151,8 @@ class TestPositionManagement:
         
         cursor.execute("""
             INSERT INTO active_positions 
-            (user_id, symbol, account_type, side, entry_price, size, strategy)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (user_id, symbol, account_type, exchange, side, entry_price, size, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, tuple(position_data.values()))
         test_db.commit()
         
@@ -175,15 +176,15 @@ class TestPositionManagement:
         
         # Add multiple positions
         positions = [
-            (test_user_id, "BTCUSDT", "demo", "LONG", 50000.0, 0.1, "elcaro"),
-            (test_user_id, "ETHUSDT", "demo", "SHORT", 3000.0, 1.0, "scalper")
+            (test_user_id, "BTCUSDT", "demo", "bybit", "LONG", 50000.0, 0.1, "elcaro"),
+            (test_user_id, "ETHUSDT", "demo", "bybit", "SHORT", 3000.0, 1.0, "scalper")
         ]
         
         for pos in positions:
             cursor.execute("""
                 INSERT INTO active_positions 
-                (user_id, symbol, account_type, side, entry_price, size, strategy)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (user_id, symbol, account_type, exchange, side, entry_price, size, strategy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, pos)
         test_db.commit()
         
@@ -202,26 +203,26 @@ class TestPositionManagement:
         """Test removing a position"""
         cursor = test_db.cursor()
         
-        # Add position
+        # Add position (4D multitenancy)
         cursor.execute("""
             INSERT INTO active_positions 
-            (user_id, symbol, account_type, side, entry_price, size, strategy)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (test_user_id, "BTCUSDT", "demo", "LONG", 50000.0, 0.1, "elcaro"))
+            (user_id, symbol, account_type, exchange, side, entry_price, size, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (test_user_id, "BTCUSDT", "demo", "bybit", "LONG", 50000.0, 0.1, "elcaro"))
         test_db.commit()
         
-        # Remove
+        # Remove (4D filter)
         cursor.execute("""
             DELETE FROM active_positions 
-            WHERE user_id = ? AND symbol = ?
-        """, (test_user_id, "BTCUSDT"))
+            WHERE user_id = ? AND symbol = ? AND account_type = ? AND exchange = ?
+        """, (test_user_id, "BTCUSDT", "demo", "bybit"))
         test_db.commit()
         
-        # Verify removed
+        # Verify removed (4D filter)
         cursor.execute("""
             SELECT * FROM active_positions 
-            WHERE user_id = ? AND symbol = ?
-        """, (test_user_id, "BTCUSDT"))
+            WHERE user_id = ? AND symbol = ? AND account_type = ? AND exchange = ?
+        """, (test_user_id, "BTCUSDT", "demo", "bybit"))
         result = cursor.fetchone()
         assert result is None
 
@@ -242,13 +243,15 @@ class TestTradeLogging:
             "entry_price": 50000.0,
             "exit_price": 54000.0,
             "pnl": 400.0,
-            "strategy": "elcaro"
+            "strategy": "elcaro",
+            "account_type": "demo",
+            "exchange": "bybit"
         }
         
         cursor.execute("""
             INSERT INTO trade_logs
-            (user_id, symbol, side, entry_price, exit_price, pnl, strategy)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (user_id, symbol, side, entry_price, exit_price, pnl, strategy, account_type, exchange)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, tuple(trade_data.values()))
         test_db.commit()
         
@@ -268,16 +271,16 @@ class TestTradeLogging:
         
         # Add multiple trades
         trades = [
-            (test_user_id, "BTCUSDT", "LONG", 50000, 54000, 400, "elcaro"),
-            (test_user_id, "ETHUSDT", "SHORT", 3000, 2900, 100, "scalper"),
-            (test_user_id, "BTCUSDT", "LONG", 52000, 51000, -100, "elcaro")
+            (test_user_id, "BTCUSDT", "LONG", 50000, 54000, 400, "elcaro", "demo", "bybit"),
+            (test_user_id, "ETHUSDT", "SHORT", 3000, 2900, 100, "scalper", "demo", "bybit"),
+            (test_user_id, "BTCUSDT", "LONG", 52000, 51000, -100, "elcaro", "demo", "bybit")
         ]
         
         for trade in trades:
             cursor.execute("""
                 INSERT INTO trade_logs
-                (user_id, symbol, side, entry_price, exit_price, pnl, strategy)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (user_id, symbol, side, entry_price, exit_price, pnl, strategy, account_type, exchange)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, trade)
         test_db.commit()
         

@@ -662,13 +662,14 @@ async def close_position(
                             account_type=hl_account_type,
                             exit_order_type="Market",
                             exit_ts=int(time.time() * 1000),
+                            exchange="hyperliquid",
                         )
                         logger.info(f"[{user_id}] WebApp HL: Trade logged for {req.symbol}")
                     except Exception as log_err:
                         logger.warning(f"[{user_id}] WebApp HL: Failed to log trade: {log_err}")
                 
                 try:
-                    db.remove_active_position(user_id, req.symbol, account_type=account_type)
+                    db.remove_active_position(user_id, req.symbol, account_type=account_type, exchange="hyperliquid")
                     logger.info(f"[{user_id}] WebApp HL: Position removed from DB for {req.symbol}")
                 except Exception as rm_err:
                     logger.warning(f"[{user_id}] WebApp HL: Failed to remove position: {rm_err}")
@@ -749,7 +750,7 @@ async def close_position(
             # Get DB position for strategy info
             db_pos = None
             try:
-                db_positions = db.get_active_positions(user_id, account_type=req.account_type)
+                db_positions = db.get_active_positions(user_id, account_type=req.account_type, exchange="bybit")
                 db_pos = next((p for p in db_positions if p.get("symbol") == req.symbol), None)
             except Exception:
                 pass
@@ -775,6 +776,7 @@ async def close_position(
                     account_type=req.account_type,
                     exit_order_type="Market",
                     exit_ts=int(time.time() * 1000),
+                    exchange="bybit",
                 )
                 logger.info(f"[{user_id}] WebApp: Trade logged for {req.symbol} close")
             except Exception as log_err:
@@ -782,7 +784,7 @@ async def close_position(
             
             # Remove position from DB
             try:
-                db.remove_active_position(user_id, req.symbol, account_type=req.account_type)
+                db.remove_active_position(user_id, req.symbol, account_type=req.account_type, exchange="bybit")
                 logger.info(f"[{user_id}] WebApp: Position removed from DB for {req.symbol}")
             except Exception as rm_err:
                 logger.warning(f"[{user_id}] WebApp: Failed to remove position: {rm_err}")
@@ -886,12 +888,13 @@ async def close_all_positions(
                                 account_type=hl_account_type,
                                 exit_order_type="Market",
                                 exit_ts=int(time.time() * 1000),
+                                exchange="hyperliquid",
                             )
                         except Exception:
                             pass
                         
                         try:
-                            db.remove_active_position(user_id, symbol, account_type=hl_account_type)
+                            db.remove_active_position(user_id, symbol, account_type=hl_account_type, exchange="hyperliquid")
                         except Exception:
                             pass
                 except Exception as e:
@@ -927,7 +930,7 @@ async def close_all_positions(
             # Get DB positions for strategy info
             db_positions = {}
             try:
-                active_pos = db.get_active_positions(user_id, account_type=req.account_type)
+                active_pos = db.get_active_positions(user_id, account_type=req.account_type, exchange="bybit")
                 for ap in active_pos:
                     db_positions[ap.get("symbol", "")] = ap
             except Exception:
@@ -1030,13 +1033,14 @@ async def close_all_positions(
                             account_type=req.account_type,
                             exit_order_type="Market",
                             exit_ts=int(time.time() * 1000),
+                            exchange="bybit",
                         )
                     except Exception:
                         pass
                     
                     # Remove from DB
                     try:
-                        db.remove_active_position(user_id, symbol, account_type=req.account_type)
+                        db.remove_active_position(user_id, symbol, account_type=req.account_type, exchange="bybit")
                     except Exception:
                         pass
                         
@@ -1148,25 +1152,37 @@ async def get_trades(
     try:
         from core.db_postgres import execute, execute_scalar
         
-        # Build query with optional account_type filter
+        # Build query with account_type and exchange filters for multitenancy
         if account_type:
             trades_data = execute("""
                 SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
                        ts, strategy, account_type, exit_reason, exchange
                 FROM trade_logs 
-                WHERE user_id = %s AND account_type = %s
+                WHERE user_id = %s AND account_type = %s AND exchange = %s
                 ORDER BY ts DESC 
                 LIMIT %s
-            """, (user_id, account_type, limit))
+            """, (user_id, account_type, exchange, limit))
+            
+            # Get total count with exchange filter
+            total = execute_scalar(
+                "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s AND account_type = %s AND exchange = %s",
+                (user_id, account_type, exchange)
+            ) or 0
         else:
             trades_data = execute("""
                 SELECT id, symbol, side, entry_price, exit_price, pnl, pnl_pct,
                        ts, strategy, account_type, exit_reason, exchange
                 FROM trade_logs 
-                WHERE user_id = %s
+                WHERE user_id = %s AND exchange = %s
                 ORDER BY ts DESC 
                 LIMIT %s
-            """, (user_id, limit))
+            """, (user_id, exchange, limit))
+            
+            # Get total count with exchange filter
+            total = execute_scalar(
+                "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s AND exchange = %s",
+                (user_id, exchange)
+            ) or 0
         
         trades = []
         for row in trades_data:
@@ -1185,12 +1201,6 @@ async def get_trades(
                 "account_type": row.get("account_type") or "demo",
                 "exit_reason": row.get("exit_reason"),
             })
-        
-        # Get total count
-        total = execute_scalar(
-            "SELECT COUNT(*) FROM trade_logs WHERE user_id = %s",
-            (user_id,)
-        ) or 0
         
         return {"trades": trades, "total": total}
         
@@ -1650,9 +1660,10 @@ async def modify_position_tpsl(
             
             # P0.8: Set manual_sltp_override in DB so bot won't overwrite
             try:
-                account_type = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+                # Use normalized account_type from request, not global hl_testnet flag
+                hl_account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
                 db.set_manual_sltp_override(
-                    user_id, req.symbol, account_type, 
+                    user_id, req.symbol, hl_account_type, 
                     sl_price=req.stop_loss, tp_price=req.take_profit
                 )
                 logger.info(f"[{user_id}] WebApp: Set manual_sltp_override for {req.symbol}")

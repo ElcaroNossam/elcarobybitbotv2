@@ -263,13 +263,13 @@ async def batch_fetch_active_users() -> List[Dict]:
 
 
 async def batch_update_positions(
-    updates: List[Tuple[int, str, str, Dict[str, Any]]]
+    updates: List[Tuple[int, str, str, str, Dict[str, Any]]]
 ) -> int:
     """
-    Batch update multiple positions.
+    Batch update multiple positions with 4D multitenancy support.
     
     Args:
-        updates: List of (user_id, symbol, account_type, fields_dict)
+        updates: List of (user_id, symbol, account_type, exchange, fields_dict)
     
     Returns:
         Number of updated rows
@@ -284,7 +284,7 @@ async def batch_update_positions(
     
     # Process in transaction for atomicity
     async with pool.async_transaction() as conn:
-        for user_id, symbol, account_type, fields in updates:
+        for user_id, symbol, account_type, exchange, fields in updates:
             # Build SET clause
             set_parts = []
             params = []
@@ -295,7 +295,7 @@ async def batch_update_positions(
                 params.append(value)
                 param_idx += 1
             
-            params.extend([user_id, symbol, account_type])
+            params.extend([user_id, symbol, account_type, exchange])
             
             query = f"""
                 UPDATE active_positions
@@ -303,6 +303,7 @@ async def batch_update_positions(
                 WHERE user_id = ${param_idx} 
                 AND symbol = ${param_idx + 1} 
                 AND account_type = ${param_idx + 2}
+                AND exchange = ${param_idx + 3}
             """
             
             result = await conn.execute(query, *params)

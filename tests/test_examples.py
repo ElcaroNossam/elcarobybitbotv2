@@ -383,16 +383,17 @@ class ExampleIntegrationTests:
         """Test complete workflow"""
         cursor = test_db.cursor()
         
-        # Step 1: Create position
+        # Step 1: Create position (4D multitenancy)
         cursor.execute("""
             INSERT INTO active_positions
-            (user_id, symbol, side, entry_price, quantity, leverage, strategy, opened_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (test_user_id, "BTCUSDT", "LONG", 50000, 0.1, 10, "test", 1234567890))
+            (user_id, symbol, side, entry_price, quantity, leverage, strategy, opened_at, account_type, exchange)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (test_user_id, "BTCUSDT", "LONG", 50000, 0.1, 10, "test", 1234567890, "demo", "bybit"))
         test_db.commit()
         
-        # Step 2: Verify stored
-        cursor.execute("SELECT * FROM active_positions WHERE user_id = ?", (test_user_id,))
+        # Step 2: Verify stored (4D filter)
+        cursor.execute("SELECT * FROM active_positions WHERE user_id = ? AND symbol = ? AND account_type = ? AND exchange = ?", 
+                       (test_user_id, "BTCUSDT", "demo", "bybit"))
         position = cursor.fetchone()
         assert position is not None
         
@@ -406,12 +407,14 @@ class ExampleIntegrationTests:
         )
         assert result['retCode'] == 0
         
-        # Step 4: Remove from active
-        cursor.execute("DELETE FROM active_positions WHERE user_id = ?", (test_user_id,))
+        # Step 4: Remove from active (4D filter)
+        cursor.execute("DELETE FROM active_positions WHERE user_id = ? AND symbol = ? AND account_type = ? AND exchange = ?", 
+                       (test_user_id, "BTCUSDT", "demo", "bybit"))
         test_db.commit()
         
-        # Step 5: Verify removed
-        cursor.execute("SELECT * FROM active_positions WHERE user_id = ?", (test_user_id,))
+        # Step 5: Verify removed (4D filter)
+        cursor.execute("SELECT * FROM active_positions WHERE user_id = ? AND symbol = ? AND account_type = ? AND exchange = ?", 
+                       (test_user_id, "BTCUSDT", "demo", "bybit"))
         assert cursor.fetchone() is None
 
 

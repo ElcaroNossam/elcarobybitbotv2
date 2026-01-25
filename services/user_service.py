@@ -115,11 +115,17 @@ class UserService:
             raise ValueError(f"Invalid exchange mode: {mode}")
         return await self.update_user(user_id, exchange_mode=mode)
     
-    async def get_user_stats(self, user_id: int) -> Dict[str, Any]:
-        """Get user trading statistics"""
+    async def get_user_stats(self, user_id: int, exchange: str = None, account_type: str = None) -> Dict[str, Any]:
+        """Get user trading statistics with multitenancy support"""
         try:
-            if hasattr(self.db, "get_trade_logs"):
-                trades = self.db.get_trade_logs(user_id, limit=1000)
+            if hasattr(self.db, "get_trade_logs_list"):
+                # Use correct function name and pass exchange for multitenancy
+                trades = self.db.get_trade_logs_list(
+                    user_id, 
+                    limit=1000, 
+                    exchange=exchange,
+                    account_type=account_type
+                )
             else:
                 trades = []
             

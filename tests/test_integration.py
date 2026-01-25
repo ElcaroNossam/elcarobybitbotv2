@@ -49,9 +49,9 @@ class TestDatabaseIntegration:
         db.ensure_user(test_user_id)
         
         # Clean up any existing positions first
-        existing = db.get_active_positions(test_user_id)
+        existing = db.get_active_positions(test_user_id, exchange='bybit')
         for pos in existing:
-            db.remove_active_position(test_user_id, pos['symbol'])
+            db.remove_active_position(test_user_id, pos['symbol'], exchange=pos.get('exchange', 'bybit'))
         
         # Add position
         db.add_active_position(
@@ -68,19 +68,19 @@ class TestDatabaseIntegration:
         )
         
         # Get positions
-        positions = db.get_active_positions(test_user_id)
+        positions = db.get_active_positions(test_user_id, exchange='bybit')
         assert len(positions) > 0
         
         # Remove position
-        db.remove_active_position(test_user_id, "BTCUSDT")
-        positions_after = db.get_active_positions(test_user_id)
+        db.remove_active_position(test_user_id, "BTCUSDT", "demo", exchange="bybit")
+        positions_after = db.get_active_positions(test_user_id, exchange='bybit')
         assert len(positions_after) == 0
     
     def test_trade_logging(self, test_db, test_user_id):
         """Test trade log creation"""
         db.ensure_user(test_user_id)
         
-        # Log trade
+        # Log trade with multitenancy params
         db.add_trade_log(
             user_id=test_user_id,
             signal_id=None,
@@ -91,11 +91,13 @@ class TestDatabaseIntegration:
             exit_reason="TP",
             pnl=100.0,
             pnl_pct=3.33,
-            strategy="scalper"
+            strategy="scalper",
+            account_type="demo",
+            exchange="bybit"
         )
         
-        # Get stats
-        stats = db.get_trade_stats(test_user_id, strategy="scalper")
+        # Get stats with exchange
+        stats = db.get_trade_stats(test_user_id, strategy="scalper", exchange="bybit")
         assert stats is not None
     
     def test_signal_storage(self, test_db):
@@ -170,7 +172,8 @@ class TestTradingWorkflow:
             timeframe="4h",
             signal_id=None,
             strategy=None,
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         # Close position
@@ -183,7 +186,7 @@ class TestTradingWorkflow:
         assert close_result.success is True
         
         # Remove from DB
-        db.remove_active_position(test_user_id, "BTCUSDT")
+        db.remove_active_position(test_user_id, "BTCUSDT", "demo", exchange="bybit")
     
     def test_multi_position_management(self, test_db, test_user_id):
         """Test managing multiple positions"""
@@ -206,12 +209,12 @@ class TestTradingWorkflow:
             )
         
         # Get all positions
-        positions = db.get_active_positions(test_user_id)
+        positions = db.get_active_positions(test_user_id, exchange='bybit')
         assert len(positions) >= 3
         
         # Clean up
         for symbol in symbols:
-            db.remove_active_position(test_user_id, symbol)
+            db.remove_active_position(test_user_id, symbol, "demo", exchange="bybit")
     
     def test_position_with_tp_sl(self, test_db, test_user_id):
         """Test position with TP/SL"""
@@ -242,7 +245,7 @@ class TestTradingWorkflow:
             exchange="bybit"  # 4D schema
         )
         
-        positions = db.get_active_positions(test_user_id)
+        positions = db.get_active_positions(test_user_id, exchange='bybit')
         assert len(positions) > 0
 
 
@@ -377,12 +380,13 @@ class TestPerformance:
                 timeframe="4h",
                 signal_id=None,
                 strategy=None,
-                account_type="demo"
+                account_type="demo",
+                exchange="bybit"
             )
         
         # Measure query time
         start = time.time()
-        positions = db.get_active_positions(test_user_id)
+        positions = db.get_active_positions(test_user_id, exchange='bybit')
         elapsed = time.time() - start
         
         assert len(positions) >= 10

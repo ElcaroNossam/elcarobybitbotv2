@@ -1,8 +1,9 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.28.0 | Обновлено: 25 января 2026
+# Версия: 3.29.0 | Обновлено: 25 января 2026
 # =============================================
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot
+# Multitenancy Audit: 115 bugs fixed (15 rounds)
 
 ---
 
@@ -870,6 +871,23 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: Multitenancy Audit Round 15 - Missing Exchange Filters (Jan 25, 2026)
+- **Проблема:** Функции `get_pending_limit_orders()` и `was_position_recently_closed()` не фильтровали по exchange
+- **Причина:** При добавлении multitenancy эти функции были пропущены
+- **Исправленные файлы:**
+  - `db.py`:
+    - `get_pending_limit_orders(user_id, exchange="bybit")` - добавлен exchange параметр + фильтр во все 4 SQL запроса
+    - `was_position_recently_closed(user_id, symbol, entry_price, seconds, exchange="bybit")` - добавлен exchange параметр
+  - `bot.py`:
+    - Line 14813: `get_pending_limit_orders(uid)` → `get_pending_limit_orders(uid, exchange=user_exchange)`
+    - Line 16121: `get_pending_limit_orders(uid)` → `get_pending_limit_orders(uid, exchange=current_exchange)`
+    - Line 14803: `was_position_recently_closed(...)` → добавлен `exchange=user_exchange`
+    - Line 16251: `was_position_recently_closed(...)` → добавлен `exchange=current_exchange`
+  - `webapp/api/trading.py`:
+    - Line 781: Исправлена лишняя скобка в logger.info()
+- **Результат:** Все multitenancy функции теперь корректно фильтруют по exchange
+- **Общий итог аудита:** ~115 багов исправлено за 15 раундов
 
 ### ✅ FEAT: Cross-Platform Sync System (Jan 25, 2026)
 - **Добавлено:** Полная кросс-платформенная синхронизация iOS ↔ WebApp ↔ Telegram

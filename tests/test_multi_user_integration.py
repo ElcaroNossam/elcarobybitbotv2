@@ -50,7 +50,7 @@ def cleanup_test_users(test_db, multi_user_ids):
             # Clean positions
             positions = db.get_active_positions(uid)
             for pos in positions:
-                db.remove_active_position(uid, pos['symbol'], pos.get('account_type', 'demo'))
+                db.remove_active_position(uid, pos['symbol'], pos.get('account_type', 'demo'), exchange=pos.get('exchange', 'bybit'))
         except:
             pass
     
@@ -61,7 +61,7 @@ def cleanup_test_users(test_db, multi_user_ids):
         try:
             positions = db.get_active_positions(uid)
             for pos in positions:
-                db.remove_active_position(uid, pos['symbol'], pos.get('account_type', 'demo'))
+                db.remove_active_position(uid, pos['symbol'], pos.get('account_type', 'demo'), exchange=pos.get('exchange', 'bybit'))
         except:
             pass
 
@@ -177,7 +177,8 @@ class TestMultiUserPositions:
             entry_price=45000.0,
             size=0.1,
             strategy="elcaro",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         # User 2 opens different position
@@ -188,7 +189,8 @@ class TestMultiUserPositions:
             entry_price=3000.0,
             size=1.0,
             strategy="scalper",
-            account_type="real"
+            account_type="real",
+            exchange="bybit"
         )
         
         # Verify isolation
@@ -205,8 +207,8 @@ class TestMultiUserPositions:
         assert "ETHUSDT" in user2_symbols
         
         # Cleanup
-        db.remove_active_position(uid1, "BTCUSDT", "demo")
-        db.remove_active_position(uid2, "ETHUSDT", "real")
+        db.remove_active_position(uid1, "BTCUSDT", "demo", exchange="bybit")
+        db.remove_active_position(uid2, "ETHUSDT", "real", exchange="bybit")
     
     def test_position_account_type_separation(self, test_db, multi_user_ids, cleanup_test_users):
         """Same symbol can have positions in demo and real accounts"""
@@ -222,7 +224,8 @@ class TestMultiUserPositions:
             entry_price=45000.0,
             size=0.1,
             strategy="elcaro",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         # Open BTCUSDT in REAL (different direction)
@@ -233,7 +236,8 @@ class TestMultiUserPositions:
             entry_price=45100.0,
             size=0.05,
             strategy="scalper",
-            account_type="real"
+            account_type="real",
+            exchange="bybit"
         )
         
         # Get all positions
@@ -258,8 +262,8 @@ class TestMultiUserPositions:
         assert real_btc[0]['side'] == 'Sell'
         
         # Cleanup
-        db.remove_active_position(uid, "BTCUSDT", "demo")
-        db.remove_active_position(uid, "BTCUSDT", "real")
+        db.remove_active_position(uid, "BTCUSDT", "demo", exchange="bybit")
+        db.remove_active_position(uid, "BTCUSDT", "real", exchange="bybit")
     
     def test_strategy_tracking_per_position(self, test_db, multi_user_ids, cleanup_test_users):
         """Each position should track its strategy correctly"""
@@ -282,7 +286,8 @@ class TestMultiUserPositions:
                 entry_price=100.0,
                 size=1.0,
                 strategy=strategy,
-                account_type="demo"
+                account_type="demo",
+                exchange="bybit"
             )
         
         # Verify strategies
@@ -295,7 +300,7 @@ class TestMultiUserPositions:
         
         # Cleanup
         for symbol in strategies.keys():
-            db.remove_active_position(uid, symbol, "demo")
+            db.remove_active_position(uid, symbol, "demo", exchange="bybit")
 
 
 # ===========================
@@ -408,12 +413,13 @@ class TestMultiUserTradeLogs:
                 pnl=5.0,
                 pnl_pct=5.0,
                 strategy=strategy,
-                account_type="demo"
+                account_type="demo",
+                exchange="bybit"
             )
         
-        # Get stats by strategy
-        elcaro_stats = db.get_trade_stats(uid, strategy='elcaro')
-        scalper_stats = db.get_trade_stats(uid, strategy='scalper')
+        # Get stats by strategy with exchange
+        elcaro_stats = db.get_trade_stats(uid, strategy='elcaro', exchange="bybit")
+        scalper_stats = db.get_trade_stats(uid, strategy='scalper', exchange="bybit")
         
         # These should work without error
         assert elcaro_stats is not None
@@ -436,7 +442,8 @@ class TestMultiUserTradeLogs:
             pnl=100.0,
             pnl_pct=2.22,
             strategy="elcaro",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         # Log real trade
@@ -451,13 +458,14 @@ class TestMultiUserTradeLogs:
             pnl=-50.0,
             pnl_pct=-2.22,
             strategy="scalper",
-            account_type="real"
+            account_type="real",
+            exchange="bybit"
         )
         
-        # Get stats by account type (if supported)
+        # Get stats by account type with exchange
         try:
-            demo_stats = db.get_trade_stats(uid, account_type='demo')
-            real_stats = db.get_trade_stats(uid, account_type='real')
+            demo_stats = db.get_trade_stats(uid, account_type='demo', exchange="bybit")
+            real_stats = db.get_trade_stats(uid, account_type='real', exchange="bybit")
             # Just verify no errors
             assert demo_stats is not None or True
             assert real_stats is not None or True
@@ -606,7 +614,8 @@ class TestConcurrentOperations:
                 entry_price=100.0 + i * 10,
                 size=1.0,
                 strategy="elcaro",
-                account_type="demo"
+                account_type="demo",
+                exchange="bybit"
             )
         
         # Verify each user has their position
@@ -617,7 +626,7 @@ class TestConcurrentOperations:
         
         # All users close positions
         for i, uid in enumerate(users):
-            db.remove_active_position(uid, f"COIN{i}USDT", "demo")
+            db.remove_active_position(uid, f"COIN{i}USDT", "demo", exchange='bybit')
         
         # Verify all closed
         for uid in users:
@@ -666,7 +675,8 @@ class TestUpdatePositionStrategy:
             entry_price=100.0,
             size=1.0,
             strategy=None,  # NULL strategy
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         # Verify strategy is NULL
@@ -686,7 +696,7 @@ class TestUpdatePositionStrategy:
         assert test_pos['strategy'] == 'manual'
         
         # Cleanup
-        db.remove_active_position(uid, 'TESTUSDT', 'demo')
+        db.remove_active_position(uid, 'TESTUSDT', 'demo', exchange='bybit')
     
     def test_update_nonexistent_position(self, test_db, multi_user_ids, cleanup_test_users):
         """Updating nonexistent position returns False"""
@@ -716,7 +726,8 @@ class TestEdgeCases:
             entry_price=100.0,
             size=1.0,
             strategy="",  # Empty string
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         positions = db.get_active_positions(uid)
@@ -725,7 +736,7 @@ class TestEdgeCases:
         # Empty string or None both acceptable
         assert edge_pos['strategy'] in ['', None]
         
-        db.remove_active_position(uid, 'EDGEUSDT', 'demo')
+        db.remove_active_position(uid, 'EDGEUSDT', 'demo', exchange='bybit')
     
     def test_special_characters_in_settings(self, test_db, multi_user_ids, cleanup_test_users):
         """Handle special characters in settings values"""
@@ -752,7 +763,8 @@ class TestEdgeCases:
             entry_price=0.00001,
             size=1000000000.0,  # Very large
             strategy="elcaro",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         positions = db.get_active_positions(uid)
@@ -760,7 +772,7 @@ class TestEdgeCases:
         assert large_pos is not None
         assert large_pos['size'] == 1000000000.0
         
-        db.remove_active_position(uid, 'LARGEUSDT', 'demo')
+        db.remove_active_position(uid, 'LARGEUSDT', 'demo', exchange='bybit')
     
     def test_very_small_entry_price(self, test_db, multi_user_ids, cleanup_test_users):
         """Handle very small entry prices (meme coins)"""
@@ -774,7 +786,8 @@ class TestEdgeCases:
             entry_price=0.0000000001,  # Very small price
             size=1000000.0,
             strategy="scalper",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"
         )
         
         positions = db.get_active_positions(uid)
@@ -782,7 +795,7 @@ class TestEdgeCases:
         assert meme_pos is not None
         assert meme_pos['entry_price'] == pytest.approx(0.0000000001, rel=1e-5)
         
-        db.remove_active_position(uid, 'MEMEUSDT', 'demo')
+        db.remove_active_position(uid, 'MEMEUSDT', 'demo', exchange='bybit')
 
 
 # ===========================

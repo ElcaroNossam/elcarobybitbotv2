@@ -55,7 +55,7 @@ def upgrade(cur):
             trailing_distance    REAL,
             highest_pnl          REAL,
             updated_at           TIMESTAMP DEFAULT NOW(),
-            PRIMARY KEY(user_id, symbol, account_type)
+            PRIMARY KEY(user_id, symbol, account_type, exchange)
         )
     """)
     

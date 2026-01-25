@@ -201,19 +201,20 @@ def import_data(backup_file: str = BACKUP_FILE):
                 
                 logger.info(f"  ✅ Imported/updated {imported} users")
             
-            # Import user_strategy_settings (3D schema: user_id, strategy, side)
+            # Import user_strategy_settings (4D schema: user_id, strategy, side, exchange)
             if "user_strategy_settings" in data["tables"]:
                 settings = data["tables"]["user_strategy_settings"]
                 for s in settings:
                     try:
-                        # With 3D schema, insert for both sides
+                        # With 4D schema, insert for both sides and exchanges
                         for side in ['long', 'short']:
-                            cur.execute("""
-                                INSERT INTO user_strategy_settings (user_id, strategy, side, settings)
-                                VALUES (%s, %s, %s, %s)
-                                ON CONFLICT (user_id, strategy, side) DO UPDATE 
-                                SET settings = EXCLUDED.settings
-                            """, (s["user_id"], s["strategy"], side, json.dumps(s.get("settings", {}))))
+                            for exchange in ['bybit', 'hyperliquid']:
+                                cur.execute("""
+                                    INSERT INTO user_strategy_settings (user_id, strategy, side, exchange, settings)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                    ON CONFLICT (user_id, strategy, side, exchange) DO UPDATE 
+                                    SET settings = EXCLUDED.settings
+                                """, (s["user_id"], s["strategy"], side, exchange, json.dumps(s.get("settings", {}))))
                     except Exception as e:
                         logger.warning(f"⚠️ Could not import strategy setting: {e}")
                 

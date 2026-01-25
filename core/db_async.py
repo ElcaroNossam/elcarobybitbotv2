@@ -201,16 +201,17 @@ async def add_active_position(
     account_type: str = "demo",
     leverage: float = None,
     sl_price: float = None,
-    tp_price: float = None
+    tp_price: float = None,
+    exchange: str = "bybit"
 ):
-    """Add or update active position"""
+    """Add or update active position with multitenancy support"""
     async with get_connection() as conn:
         await conn.execute("""
             INSERT INTO active_positions 
             (user_id, symbol, side, entry_price, size, strategy, account_type, 
-             leverage, sl_price, tp_price, open_ts)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-            ON CONFLICT (user_id, symbol, account_type) 
+             leverage, sl_price, tp_price, open_ts, exchange)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), $11)
+            ON CONFLICT (user_id, symbol, account_type, exchange) 
             DO UPDATE SET 
                 side = EXCLUDED.side,
                 entry_price = EXCLUDED.entry_price,
@@ -220,16 +221,16 @@ async def add_active_position(
                 sl_price = EXCLUDED.sl_price,
                 tp_price = EXCLUDED.tp_price
         """, user_id, symbol, side, entry_price, size, strategy, account_type,
-            leverage, sl_price, tp_price)
+            leverage, sl_price, tp_price, exchange)
 
 
-async def remove_active_position(user_id: int, symbol: str, account_type: str = "demo"):
-    """Remove active position"""
+async def remove_active_position(user_id: int, symbol: str, account_type: str = "demo", exchange: str = "bybit"):
+    """Remove active position with multitenancy support"""
     async with get_connection() as conn:
         await conn.execute("""
             DELETE FROM active_positions 
-            WHERE user_id = $1 AND symbol = $2 AND account_type = $3
-        """, user_id, symbol, account_type)
+            WHERE user_id = $1 AND symbol = $2 AND account_type = $3 AND exchange = $4
+        """, user_id, symbol, account_type, exchange)
 
 
 async def get_active_positions(user_id: int, account_type: str = None, exchange: str = None) -> List[Dict[str, Any]]:
@@ -292,10 +293,11 @@ async def add_trade_log(
     account_type: str = "demo",
     sl_pct: float = None,
     tp_pct: float = None,
-    timeframe: str = None
+    timeframe: str = None,
+    exchange: str = "bybit"
 ) -> bool:
     """
-    Add trade log with duplicate prevention.
+    Add trade log with duplicate prevention and multitenancy support.
     Returns True if inserted, False if duplicate.
     """
     async with get_connection() as conn:
@@ -308,8 +310,9 @@ async def add_trade_log(
             AND ABS(entry_price - $4) < 0.0001
             AND ABS(pnl - $5) < 0.01
             AND ts > NOW() - INTERVAL '24 hours'
+            AND exchange = $6
             LIMIT 1
-        """, user_id, symbol, side, entry_price, pnl)
+        """, user_id, symbol, side, entry_price, pnl, exchange)
         
         if existing:
             logger.debug(f"Duplicate trade log skipped: {user_id} {symbol}")
@@ -318,10 +321,10 @@ async def add_trade_log(
         await conn.execute("""
             INSERT INTO trade_logs 
             (user_id, symbol, side, entry_price, exit_price, exit_reason, 
-             pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, ts)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+             pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, exchange, ts)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
         """, user_id, symbol, side, entry_price, exit_price, exit_reason,
-            pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe)
+            pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, exchange)
         
         return True
 
@@ -330,9 +333,10 @@ async def get_trade_stats(
     user_id: int, 
     days: int = 30, 
     account_type: str = None,
-    strategy: str = None
+    strategy: str = None,
+    exchange: str = None
 ) -> Dict[str, Any]:
-    """Get trading statistics for user"""
+    """Get trading statistics for user with multitenancy support"""
     async with get_connection() as conn:
         conditions = ["user_id = $1", "ts > NOW() - $2::interval"]
         params = [user_id, f"{days} days"]
@@ -344,6 +348,10 @@ async def get_trade_stats(
         if strategy:
             conditions.append(f"strategy = ${len(params) + 1}")
             params.append(strategy)
+        
+        if exchange:
+            conditions.append(f"exchange = ${len(params) + 1}")
+            params.append(exchange)
         
         where_clause = " AND ".join(conditions)
         
@@ -368,7 +376,7 @@ async def get_trade_stats(
         return result
 
 
-async def get_stats_by_strategy(user_id: int, days: int = 30, account_type: str = None) -> Dict[str, Dict]:
+async def get_stats_by_strategy(user_id: int, days: int = 30, account_type: str = None, exchange: str = None) -> Dict[str, Dict]:
     """Get stats grouped by strategy"""
     async with get_connection() as conn:
         conditions = ["user_id = $1", "ts > NOW() - $2::interval"]
@@ -377,6 +385,10 @@ async def get_stats_by_strategy(user_id: int, days: int = 30, account_type: str 
         if account_type:
             conditions.append(f"account_type = ${len(params) + 1}")
             params.append(account_type)
+        
+        if exchange:
+            conditions.append(f"exchange = ${len(params) + 1}")
+            params.append(exchange)
         
         where_clause = " AND ".join(conditions)
         

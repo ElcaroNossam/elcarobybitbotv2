@@ -170,11 +170,11 @@ PREPARED_STATEMENTS = {
         query="""
             SELECT 
                 symbol, side, entry_price, size, strategy,
-                leverage, sl_price, tp_price, dca_10_done, dca_25_done, open_ts
+                leverage, sl_price, tp_price, dca_10_done, dca_25_done, open_ts, exchange
             FROM active_positions
-            WHERE user_id = $1 AND symbol = $2 AND account_type = $3
+            WHERE user_id = $1 AND symbol = $2 AND account_type = $3 AND exchange = $4
         """,
-        param_types=('bigint', 'text', 'text')
+        param_types=('bigint', 'text', 'text', 'text')
     ),
     
     # User global settings fallback
@@ -214,14 +214,14 @@ PREPARED_STATEMENTS = {
         param_types=()
     ),
     
-    # Upsert user settings - SIMPLIFIED to (user_id, strategy, side)
+    # Upsert user settings - 4D schema (user_id, strategy, side, exchange)
     'upsert_user_settings': PreparedStatement(
         name='upsert_user_settings',
         query="""
             INSERT INTO user_strategy_settings 
-                (user_id, strategy, side, enabled, percent, sl_percent, tp_percent, leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT (user_id, strategy, side) 
+                (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ON CONFLICT (user_id, strategy, side, exchange) 
             DO UPDATE SET
                 enabled = EXCLUDED.enabled,
                 percent = COALESCE(EXCLUDED.percent, user_strategy_settings.percent),
@@ -235,7 +235,7 @@ PREPARED_STATEMENTS = {
                 updated_at = NOW()
             RETURNING *
         """,
-        param_types=('bigint', 'text', 'text', 'boolean', 'real', 'real', 'real', 'integer', 'boolean', 'real', 'real', 'text')
+        param_types=('bigint', 'text', 'text', 'text', 'boolean', 'real', 'real', 'real', 'integer', 'boolean', 'real', 'real', 'text')
     ),
     
     # Add position
@@ -243,9 +243,9 @@ PREPARED_STATEMENTS = {
         name='add_position',
         query="""
             INSERT INTO active_positions
-                (user_id, symbol, account_type, side, entry_price, size, strategy, leverage, sl_price, tp_price)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (user_id, symbol, account_type)
+                (user_id, symbol, account_type, exchange, side, entry_price, size, strategy, leverage, sl_price, tp_price)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (user_id, symbol, account_type, exchange)
             DO UPDATE SET
                 side = EXCLUDED.side,
                 entry_price = EXCLUDED.entry_price,
@@ -256,7 +256,7 @@ PREPARED_STATEMENTS = {
                 tp_price = EXCLUDED.tp_price
             RETURNING *
         """,
-        param_types=('bigint', 'text', 'text', 'text', 'real', 'real', 'text', 'real', 'real', 'real')
+        param_types=('bigint', 'text', 'text', 'text', 'text', 'real', 'real', 'text', 'real', 'real', 'real')
     ),
     
     # Remove position
@@ -264,10 +264,10 @@ PREPARED_STATEMENTS = {
         name='remove_position',
         query="""
             DELETE FROM active_positions
-            WHERE user_id = $1 AND symbol = $2 AND account_type = $3
+            WHERE user_id = $1 AND symbol = $2 AND account_type = $3 AND exchange = $4
             RETURNING *
         """,
-        param_types=('bigint', 'text', 'text')
+        param_types=('bigint', 'text', 'text', 'text')
     ),
     
     # Add trade log
@@ -276,12 +276,12 @@ PREPARED_STATEMENTS = {
         query="""
             INSERT INTO trade_logs
                 (user_id, symbol, side, entry_price, exit_price, exit_reason, 
-                 pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, exchange)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id
         """,
         param_types=('bigint', 'text', 'text', 'real', 'real', 'text', 
-                     'real', 'real', 'text', 'text', 'real', 'real')
+                     'real', 'real', 'text', 'text', 'real', 'real', 'text')
     ),
 }
 

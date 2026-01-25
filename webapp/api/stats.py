@@ -519,8 +519,11 @@ async def get_positions_summary(
         import db
         uid = user["user_id"]
         
-        # Get active positions from database
-        positions = db.get_active_positions(uid)
+        # Get active positions from database with exchange filter
+        if exchange != "all":
+            positions = db.get_active_positions(uid, exchange=exchange)
+        else:
+            positions = db.get_active_positions(uid)
         
         if not positions:
             return {

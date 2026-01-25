@@ -72,7 +72,8 @@ async def _async_monitor_positions(user_ids: List[int]) -> Dict[str, Any]:
     
     for user_id in user_ids:
         try:
-            # Get positions from DB
+            # Get positions from DB - get all positions across exchanges
+            # In monitoring, we process ALL positions regardless of exchange
             positions = await get_active_positions(user_id)
             
             for pos in positions:
@@ -270,13 +271,15 @@ async def _sync_all_positions() -> Dict[str, int]:
             # Get positions from exchange
             exchange_positions = await _fetch_exchange_positions(user_id)
             
-            # Get positions from DB
+            # Get positions from DB - get exchange from position data
+            # Note: We process each exchange separately
             db_positions = await get_active_positions(user_id)
-            db_keys = {(p["symbol"], p["account_type"]) for p in db_positions}
+            db_keys = {(p["symbol"], p["account_type"], p.get("exchange", "bybit")) for p in db_positions}
             
             # Sync new positions from exchange
             for pos in exchange_positions:
-                key = (pos["symbol"], pos["account_type"])
+                exchange = pos.get("exchange", "bybit")
+                key = (pos["symbol"], pos["account_type"], exchange)
                 if key not in db_keys:
                     await add_active_position(
                         user_id=user_id,
@@ -285,19 +288,21 @@ async def _sync_all_positions() -> Dict[str, int]:
                         entry_price=pos["entry_price"],
                         size=pos["size"],
                         strategy="external",
-                        account_type=pos["account_type"]
+                        account_type=pos["account_type"],
+                        exchange=exchange
                     )
                     synced += 1
             
             # Remove positions that no longer exist on exchange
-            exchange_keys = {(p["symbol"], p["account_type"]) for p in exchange_positions}
+            exchange_keys = {(p["symbol"], p["account_type"], p.get("exchange", "bybit")) for p in exchange_positions}
             for db_pos in db_positions:
-                key = (db_pos["symbol"], db_pos["account_type"])
+                key = (db_pos["symbol"], db_pos["account_type"], db_pos.get("exchange", "bybit"))
                 if key not in exchange_keys:
                     await remove_active_position(
                         user_id, 
                         db_pos["symbol"], 
-                        db_pos["account_type"]
+                        db_pos["account_type"],
+                        exchange=db_pos.get("exchange", "bybit")
                     )
                     removed += 1
                     

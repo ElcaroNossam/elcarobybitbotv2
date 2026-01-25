@@ -846,9 +846,9 @@ class ExchangeRouter:
         # Remove from DB if successful
         for r in result.results:
             if r.success:
-                db.remove_active_position(user_id, symbol, r.target.account_type)
+                db.remove_active_position(user_id, symbol, r.target.account_type, exchange=r.target.exchange)
                 # P0.4: Clear ATR state
-                db.clear_atr_state(user_id, symbol, r.target.account_type)
+                db.clear_atr_state(user_id, symbol, r.target.account_type, exchange=r.target.exchange)
         
         return result
     
@@ -900,9 +900,10 @@ class ExchangeRouter:
         sl_price: float | None = None,
         tp_price: float | None = None,
         set_manual_override: bool = True,
+        exchange: str = "bybit",
     ) -> bool:
         """
-        Modify SL/TP for position.
+        Modify SL/TP for position with multitenancy support.
         
         P0.8: If set_manual_override=True, sets the flag so bot won't overwrite.
         """
@@ -910,11 +911,11 @@ class ExchangeRouter:
             # Update on exchange (to be implemented via factory)
             # ...
             
-            # Update in DB
+            # Update in DB with exchange parameter
             if set_manual_override:
-                db.set_manual_sltp_override(user_id, symbol, account_type, sl_price, tp_price)
+                db.set_manual_sltp_override(user_id, symbol, account_type, sl_price, tp_price, exchange=exchange)
             else:
-                db.update_position_sltp(user_id, symbol, account_type, sl_price, tp_price)
+                db.update_position_sltp(user_id, symbol, account_type, sl_price, tp_price, exchange=exchange)
             
             logger.info(f"[{user_id}] SL/TP modified for {symbol}: SL={sl_price}, TP={tp_price}")
             return True
@@ -1144,8 +1145,8 @@ async def close_position_universal(
                     qty=size,
                     account_type=target.account_type,
                 )
-                db.remove_active_position(user_id, symbol, target.account_type)
-                db.clear_atr_state(user_id, symbol, target.account_type)
+                db.remove_active_position(user_id, symbol, target.account_type, exchange=target.exchange)
+                db.clear_atr_state(user_id, symbol, target.account_type, exchange=target.exchange)
             except Exception as e:
                 logger.error(f"Bybit close error: {e}")
         

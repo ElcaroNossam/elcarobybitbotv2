@@ -238,7 +238,8 @@ async def _execute_single_trade(
             account_type=account_type,
             leverage=leverage,
             sl_price=sl_price,
-            tp_price=tp_price
+            tp_price=tp_price,
+            exchange="bybit"  # tasks/trades.py is Bybit-only for now
         )
         
         return {
@@ -296,14 +297,15 @@ async def _async_close_position(
     symbol: str,
     account_type: str,
     reason: str,
-    exit_price: float
+    exit_price: float,
+    exchange: str = "bybit"
 ) -> Dict[str, Any]:
-    """Async position close"""
+    """Async position close with multitenancy support"""
     from core.db_async import get_active_positions, remove_active_position, add_trade_log
     from bot_unified import close_position_unified
     
-    # Get position data
-    positions = await get_active_positions(user_id, account_type)
+    # Get position data with exchange filter
+    positions = await get_active_positions(user_id, account_type, exchange=exchange)
     position = next((p for p in positions if p["symbol"] == symbol), None)
     
     if not position:
@@ -313,6 +315,7 @@ async def _async_close_position(
     size = position["size"]
     side = position["side"]
     strategy = position.get("strategy", "unknown")
+    exchange = position.get("exchange", exchange)
     
     # Close on exchange
     try:
@@ -329,7 +332,7 @@ async def _async_close_position(
         pnl = (entry_price - exit_price) * size
         pnl_pct = (entry_price - exit_price) / entry_price * 100
     
-    # Log trade
+    # Log trade with exchange
     await add_trade_log(
         user_id=user_id,
         symbol=symbol,
@@ -340,11 +343,12 @@ async def _async_close_position(
         pnl=pnl,
         pnl_pct=pnl_pct,
         strategy=strategy,
-        account_type=account_type
+        account_type=account_type,
+        exchange=exchange
     )
     
-    # Remove from active positions
-    await remove_active_position(user_id, symbol, account_type)
+    # Remove from active positions with exchange
+    await remove_active_position(user_id, symbol, account_type, exchange=exchange)
     
     # Send notification
     from tasks.notifications import send_close_notification
@@ -382,13 +386,15 @@ def update_stop_loss(
             
             # Update in DB
             from core.db_async import get_pool
+            # Determine exchange from account_type for multitenancy
+            exchange_for_db = 'hyperliquid' if account_type in ('testnet', 'mainnet') else 'bybit'
             async def update_sl():
                 async with (await get_pool()).acquire() as conn:
                     await conn.execute("""
                         UPDATE active_positions 
                         SET sl_price = $1 
-                        WHERE user_id = $2 AND symbol = $3 AND account_type = $4
-                    """, new_sl, user_id, symbol, account_type)
+                        WHERE user_id = $2 AND symbol = $3 AND account_type = $4 AND exchange = $5
+                    """, new_sl, user_id, symbol, account_type, exchange_for_db)
             
             loop.run_until_complete(update_sl())
             

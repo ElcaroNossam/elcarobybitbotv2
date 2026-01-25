@@ -438,11 +438,12 @@ class TestTradingFlowSimulation:
             entry_price=50000.0,
             size=0.1,
             strategy='scryptomera',
-            account_type='demo'
+            account_type='demo',
+            exchange='bybit'
         )
         
         # Verify position exists for demo
-        positions = db.get_active_positions(uid, account_type='demo')
+        positions = db.get_active_positions(uid, account_type='demo', exchange='bybit')
         assert len(positions) >= 1
         
         btc_pos = next((p for p in positions if p.get('symbol') == 'BTCUSDT'), None)
@@ -451,13 +452,13 @@ class TestTradingFlowSimulation:
         assert btc_pos['strategy'] == 'scryptomera'
         
         # Cleanup
-        db.remove_active_position(uid, 'BTCUSDT', account_type='demo')
+        db.remove_active_position(uid, 'BTCUSDT', account_type='demo', exchange='bybit')
     
     def test_trade_log_with_context(self, setup_user_configs):
         """Trade logs include exchange/account context"""
         uid = setup_user_configs['bybit_demo_user']
         
-        # Add trade log
+        # Add trade log with exchange for multitenancy
         db.add_trade_log(
             user_id=uid,
             signal_id=None,
@@ -469,7 +470,8 @@ class TestTradingFlowSimulation:
             pnl=150.0,
             pnl_pct=5.0,
             strategy='scalper',
-            account_type='demo'
+            account_type='demo',
+            exchange='bybit'
         )
         
         # Verify trade log
@@ -704,16 +706,17 @@ class TestCompleteWorkflow:
             entry_price=100.0,
             size=10.0,
             strategy='elcaro',
-            account_type='demo'
+            account_type='demo',
+            exchange='bybit'
         )
         
         # 2. Verify position exists
-        positions = db.get_active_positions(uid, 'demo')
+        positions = db.get_active_positions(uid, 'demo', exchange='bybit')
         sol_pos = next((p for p in positions if p.get('symbol') == 'SOLUSDT'), None)
         assert sol_pos is not None
         
         # 3. Simulate close (remove position, add to logs)
-        db.remove_active_position(uid, 'SOLUSDT', 'demo')
+        db.remove_active_position(uid, 'SOLUSDT', 'demo', exchange='bybit')
         
         db.add_trade_log(
             user_id=uid,
@@ -726,11 +729,12 @@ class TestCompleteWorkflow:
             pnl=80.0,
             pnl_pct=8.0,
             strategy='elcaro',
-            account_type='demo'
+            account_type='demo',
+            exchange='bybit'
         )
         
         # 4. Verify position removed
-        positions_after = db.get_active_positions(uid, 'demo')
+        positions_after = db.get_active_positions(uid, 'demo', exchange='bybit')
         sol_pos_after = next((p for p in positions_after if p.get('symbol') == 'SOLUSDT'), None)
         assert sol_pos_after is None
         

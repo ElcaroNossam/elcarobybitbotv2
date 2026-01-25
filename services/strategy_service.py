@@ -144,9 +144,9 @@ class StrategySyncService:
     # USER STRATEGY CONFIG (reads/writes from main user record)
     # ═══════════════════════════════════════════════════════════════════════════════
     
-    def get_user_strategies(self, user_id: int) -> Dict[str, Dict]:
+    def get_user_strategies(self, user_id: int, exchange: str = "bybit", account_type: str = "demo") -> Dict[str, Dict]:
         """
-        Get all enabled strategies and their settings for a user.
+        Get all enabled strategies and their settings for a user with multitenancy support.
         Returns dict of {strategy_key: settings}
         """
         result = {}
@@ -159,7 +159,7 @@ class StrategySyncService:
             enabled = bool(cfg.get(flag_field, 0))
             
             if enabled:
-                settings = db.get_strategy_settings(user_id, key)
+                settings = db.get_strategy_settings(user_id, key, exchange=exchange, account_type=account_type)
                 result[key] = {
                     "type": "system",
                     "enabled": True,
@@ -403,9 +403,9 @@ def get_strategy_service() -> StrategySyncService:
 # CONVENIENCE FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def get_user_strategies(user_id: int) -> Dict:
-    """Get all enabled strategies for a user"""
-    return get_strategy_service().get_user_strategies(user_id)
+def get_user_strategies(user_id: int, exchange: str = "bybit", account_type: str = "demo") -> Dict:
+    """Get all enabled strategies for a user with multitenancy support"""
+    return get_strategy_service().get_user_strategies(user_id, exchange=exchange, account_type=account_type)
 
 def enable_strategy(user_id: int, strategy_key: str, enabled: bool = True) -> bool:
     """Enable/disable a strategy"""

@@ -1214,15 +1214,15 @@ def pg_add_active_position(
     exchange: str = "bybit",
     env: str = None
 ):
-    """Add or update active position"""
+    """Add or update active position with full 4D multitenancy support"""
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO active_positions 
-                    (user_id, symbol, account_type, side, entry_price, size, 
+                    (user_id, symbol, account_type, exchange, side, entry_price, size, 
                      strategy, leverage, sl_price, tp_price, open_ts)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (user_id, symbol, account_type) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (user_id, symbol, account_type, exchange) 
                 DO UPDATE SET 
                     side = EXCLUDED.side,
                     entry_price = EXCLUDED.entry_price,
@@ -1231,7 +1231,7 @@ def pg_add_active_position(
                     leverage = EXCLUDED.leverage,
                     sl_price = EXCLUDED.sl_price,
                     tp_price = EXCLUDED.tp_price
-            """, (user_id, symbol, account_type, side, entry_price, size,
+            """, (user_id, symbol, account_type, exchange, side, entry_price, size,
                   strategy, leverage, sl_price, tp_price))
 
 
@@ -1241,39 +1241,49 @@ def pg_get_active_positions(
     exchange: str = None,
     env: str = None
 ) -> List[Dict]:
-    """Get active positions for user"""
+    """Get active positions for user with full 4D multitenancy support"""
+    conditions = ["user_id = %s"]
+    params = [user_id]
+    
     if account_type:
-        return execute(
-            "SELECT * FROM active_positions WHERE user_id = %s AND account_type = %s",
-            (user_id, account_type)
-        )
-    return execute(
-        "SELECT * FROM active_positions WHERE user_id = %s",
-        (user_id,)
-    )
+        conditions.append("account_type = %s")
+        params.append(account_type)
+    
+    if exchange:
+        conditions.append("exchange = %s")
+        params.append(exchange)
+    
+    if env:
+        conditions.append("env = %s")
+        params.append(env)
+    
+    query = f"SELECT * FROM active_positions WHERE {' AND '.join(conditions)}"
+    return execute(query, tuple(params))
 
 
 def pg_get_active_position(
     user_id: int,
     symbol: str,
-    account_type: str = "demo"
+    account_type: str = "demo",
+    exchange: str = "bybit"
 ) -> Optional[Dict]:
     """Get single active position"""
     return execute_one(
-        "SELECT * FROM active_positions WHERE user_id = %s AND symbol = %s AND account_type = %s",
-        (user_id, symbol, account_type)
+        "SELECT * FROM active_positions WHERE user_id = %s AND symbol = %s AND account_type = %s AND exchange = %s",
+        (user_id, symbol, account_type, exchange)
     )
 
 
 def pg_remove_active_position(
     user_id: int,
     symbol: str,
-    account_type: str = "demo"
+    account_type: str = "demo",
+    exchange: str = "bybit"
 ):
     """Remove active position"""
     execute_write(
-        "DELETE FROM active_positions WHERE user_id = %s AND symbol = %s AND account_type = %s",
-        (user_id, symbol, account_type)
+        "DELETE FROM active_positions WHERE user_id = %s AND symbol = %s AND account_type = %s AND exchange = %s",
+        (user_id, symbol, account_type, exchange)
     )
 
 
@@ -1282,7 +1292,8 @@ def pg_update_position_field(
     symbol: str,
     field: str,
     value: Any,
-    account_type: str = "demo"
+    account_type: str = "demo",
+    exchange: str = "bybit"
 ):
     """Update single position field"""
     allowed_fields = {'sl_price', 'tp_price', 'size', 'leverage', 'dca_10_done', 'dca_25_done'}
@@ -1292,9 +1303,9 @@ def pg_update_position_field(
     query = f"""
         UPDATE active_positions 
         SET {field} = %s 
-        WHERE user_id = %s AND symbol = %s AND account_type = %s
+        WHERE user_id = %s AND symbol = %s AND account_type = %s AND exchange = %s
     """
-    execute_write(query, (value, user_id, symbol, account_type))
+    execute_write(query, (value, user_id, symbol, account_type, exchange))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════
@@ -1315,19 +1326,21 @@ def pg_add_trade_log(
     sl_pct: float = None,
     tp_pct: float = None,
     timeframe: str = None,
-    fee: float = 0.0
+    fee: float = 0.0,
+    exchange: str = "bybit"
 ) -> bool:
-    """Add trade log entry with duplicate protection"""
+    """Add trade log entry with duplicate protection and multitenancy support"""
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # Check for recent duplicate
+            # Check for recent duplicate with exchange filter
             cur.execute("""
                 SELECT 1 FROM trade_logs 
                 WHERE user_id = %s AND symbol = %s AND side = %s 
                 AND entry_price = %s AND ABS(pnl - %s) < 0.01
                 AND ts > NOW() - INTERVAL '24 hours'
+                AND exchange = %s
                 LIMIT 1
-            """, (user_id, symbol, side, entry_price, pnl))
+            """, (user_id, symbol, side, entry_price, pnl, exchange))
             
             if cur.fetchone():
                 return False  # Duplicate
@@ -1335,10 +1348,10 @@ def pg_add_trade_log(
             cur.execute("""
                 INSERT INTO trade_logs 
                     (user_id, symbol, side, entry_price, exit_price, exit_reason,
-                     pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee, ts)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                     pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee, exchange, ts)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (user_id, symbol, side, entry_price, exit_price, exit_reason,
-                  pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee))
+                  pnl, pnl_pct, strategy, account_type, sl_pct, tp_pct, timeframe, fee, exchange))
             return True
 
 
@@ -1347,9 +1360,10 @@ def pg_get_trade_logs(
     account_type: str = None,
     strategy: str = None,
     limit: int = 100,
-    days: int = None
+    days: int = None,
+    exchange: str = None
 ) -> List[Dict]:
-    """Get trade logs for user"""
+    """Get trade logs for user with multitenancy support"""
     conditions = ["user_id = %s"]
     params = [user_id]
     
@@ -1365,6 +1379,10 @@ def pg_get_trade_logs(
         conditions.append("ts > NOW() - INTERVAL '%s days'")
         params.append(days)
     
+    if exchange:
+        conditions.append("exchange = %s")
+        params.append(exchange)
+    
     query = f"""
         SELECT * FROM trade_logs 
         WHERE {' AND '.join(conditions)}
@@ -1379,9 +1397,10 @@ def pg_get_trade_logs(
 def pg_get_pnl_stats(
     user_id: int,
     account_type: str = None,
-    days: int = None
+    days: int = None,
+    exchange: str = None
 ) -> Dict:
-    """Get PnL statistics"""
+    """Get PnL statistics with multitenancy support"""
     conditions = ["user_id = %s"]
     params = [user_id]
     
@@ -1392,6 +1411,10 @@ def pg_get_pnl_stats(
     if days:
         conditions.append("ts > NOW() - INTERVAL '%s days'")
         params.append(days)
+    
+    if exchange:
+        conditions.append("exchange = %s")
+        params.append(exchange)
     
     query = f"""
         SELECT 
@@ -1495,19 +1518,19 @@ def pg_get_user_config(user_id: int) -> Dict:
 # USER STRATEGY SETTINGS
 # ═══════════════════════════════════════════════════════════════════════════════════
 
-def pg_get_user_strategy_settings(user_id: int, strategy: str) -> Optional[Dict]:
-    """Get user's settings for a specific strategy (both sides)"""
+def pg_get_user_strategy_settings(user_id: int, strategy: str, exchange: str = "bybit") -> Optional[Dict]:
+    """Get user's settings for a specific strategy (both sides) with multitenancy support"""
     rows = execute(
-        "SELECT * FROM user_strategy_settings WHERE user_id = %s AND strategy = %s",
-        (user_id, strategy)
+        "SELECT * FROM user_strategy_settings WHERE user_id = %s AND strategy = %s AND exchange = %s",
+        (user_id, strategy, exchange)
     )
     return rows if rows else []
 
 
-def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict, side: str = None):
-    """Set user's settings for a specific strategy.
+def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict, side: str = None, exchange: str = "bybit"):
+    """Set user's settings for a specific strategy with multitenancy support.
     
-    With 3D schema, if side is provided, updates that specific side.
+    With 4D schema, if side is provided, updates that specific side.
     If side is None and settings contains 'long'/'short' keys, updates both sides.
     """
     import json
@@ -1529,11 +1552,11 @@ def pg_set_user_strategy_settings(user_id: int, strategy: str, settings: Dict, s
                 settings_json = json.dumps(side_settings)
                 
                 cur.execute("""
-                    INSERT INTO user_strategy_settings (user_id, strategy, side, settings)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (user_id, strategy, side) 
+                    INSERT INTO user_strategy_settings (user_id, strategy, side, exchange, settings)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (user_id, strategy, side, exchange) 
                     DO UPDATE SET settings = EXCLUDED.settings, updated_at = NOW()
-                """, (user_id, strategy, s, settings_json))
+                """, (user_id, strategy, s, exchange, settings_json))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════
@@ -2294,12 +2317,12 @@ def pg_delete_user(user_id: int):
             cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
 
 
-def pg_sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo") -> bool:
+def pg_sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """Update position entry price (used after DCA)."""
     result = execute_write(
         """UPDATE active_positions SET entry_price = %s 
-           WHERE user_id = %s AND symbol = %s AND account_type = %s""",
-        (new_entry_price, user_id, symbol, account_type)
+           WHERE user_id = %s AND symbol = %s AND account_type = %s AND exchange = %s""",
+        (new_entry_price, user_id, symbol, account_type, exchange)
     )
     return result > 0
 

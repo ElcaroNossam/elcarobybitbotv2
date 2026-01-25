@@ -310,7 +310,8 @@ async def place_order_unified(
             entry_price=price or order_data.get('avg_price', 0),
             size=qty,
             strategy=strategy,
-            account_type=account_type
+            account_type=account_type,
+            exchange=exchange
         )
         
         return {
@@ -411,15 +412,16 @@ async def close_position_unified(
                 'error': error or 'Failed to close position'
             }
         
-        # Remove from database
-        db.remove_active_position(user_id, symbol)
+        # Remove from database with proper multitenancy params
+        exchange_for_db = 'hyperliquid' if account_type in ('testnet', 'mainnet') else 'bybit'
+        db.remove_active_position(user_id, symbol, account_type=account_type, exchange=exchange_for_db)
         
         # Log trade
         # Log trade
         pnl = position.unrealized_pnl * (close_qty / position.size)
         
-        # Get strategy from active positions
-        positions = db.get_active_positions(user_id)
+        # Get strategy from active positions - use exchange from account_type
+        positions = db.get_active_positions(user_id, account_type=account_type, exchange=exchange_for_db)
         strategy = 'unknown'
         for pos in positions:
             if pos['symbol'] == symbol:
@@ -436,7 +438,9 @@ async def close_position_unified(
             exit_reason='manual_close',
             pnl=pnl,
             pnl_pct=(pnl / (position.entry_price * close_qty)) * 100 if position.entry_price > 0 else 0,
-            strategy=strategy
+            strategy=strategy,
+            account_type=account_type,
+            exchange=exchange_for_db
         )
         
         return {

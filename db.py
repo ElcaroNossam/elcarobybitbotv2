@@ -1450,7 +1450,7 @@ def _migrate_single_strategy(user_id: int, strategy: str, strat_json: dict,
             cur.execute(f"""
                 INSERT INTO user_strategy_settings ({', '.join(columns)})
                 VALUES ({', '.join(placeholders)})
-                ON CONFLICT (user_id, strategy, side) DO UPDATE SET {update_set}
+                ON CONFLICT (user_id, strategy, side, exchange) DO UPDATE SET {update_set}
             """, values)
         except Exception:
             return False
@@ -2157,7 +2157,7 @@ def add_active_position(
              sl_price, tp_price, leverage, client_order_id, exchange_order_id, env, use_atr,
              applied_sl_pct, applied_tp_pct)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(user_id, symbol, account_type) DO UPDATE SET
+          ON CONFLICT(user_id, symbol, account_type, exchange) DO UPDATE SET
             side             = excluded.side,
             entry_price      = excluded.entry_price,
             size             = excluded.size,
@@ -2274,9 +2274,9 @@ def get_active_positions(user_id: int, account_type: str | None = None, exchange
         ]
 
 
-def remove_active_position(user_id: int, symbol: str, account_type: str | None = None, entry_price: float | None = None, entry_price_tolerance: float = 0.001):
+def remove_active_position(user_id: int, symbol: str, account_type: str | None = None, entry_price: float | None = None, entry_price_tolerance: float = 0.001, exchange: str = "bybit"):
     """
-    Удаляет активную позицию.
+    Удаляет активную позицию с поддержкой multitenancy.
     Если account_type указан - удаляет только для этого типа.
     Если не указан - удаляет все позиции по символу (для обратной совместимости).
     
@@ -2290,6 +2290,7 @@ def remove_active_position(user_id: int, symbol: str, account_type: str | None =
         account_type: demo/real/testnet (optional)
         entry_price: Expected entry price to match (optional, for race condition protection)
         entry_price_tolerance: Relative tolerance for price matching (default 0.1% = 0.001)
+        exchange: 'bybit' or 'hyperliquid' (default 'bybit')
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -2300,13 +2301,13 @@ def remove_active_position(user_id: int, symbol: str, account_type: str | None =
             # First check current entry_price in DB
             if account_type:
                 cur = conn.execute(
-                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
-                    (user_id, symbol, account_type),
+                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+                    (user_id, symbol, account_type, exchange),
                 )
             else:
                 cur = conn.execute(
-                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=?",
-                    (user_id, symbol),
+                    "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND exchange=?",
+                    (user_id, symbol, exchange),
                 )
             row = cur.fetchone()
             
@@ -2323,21 +2324,21 @@ def remove_active_position(user_id: int, symbol: str, account_type: str | None =
                         )
                         return  # Don't delete - this is a different position!
         
-        # Proceed with deletion
+        # Proceed with deletion with exchange filter
         if account_type:
             conn.execute(
-                "DELETE FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
-                (user_id, symbol, account_type),
+                "DELETE FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+                (user_id, symbol, account_type, exchange),
             )
         else:
             conn.execute(
-                "DELETE FROM active_positions WHERE user_id=? AND symbol=?",
-                (user_id, symbol),
+                "DELETE FROM active_positions WHERE user_id=? AND symbol=? AND exchange=?",
+                (user_id, symbol, exchange),
             )
         conn.commit()
 
 
-def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True, account_type: str = "demo"):
+def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True, account_type: str = "demo", exchange: str = "bybit"):
     """
     Устанавливает флаг DCA для позиции.
     level: 10 или 25 (процент)
@@ -2347,13 +2348,13 @@ def set_dca_flag(user_id: int, symbol: str, level: int, value: bool = True, acco
         raise ValueError(f"Invalid DCA level: {level}")
     with get_conn() as conn:
         conn.execute(
-            f"UPDATE active_positions SET {col}=? WHERE user_id=? AND symbol=? AND account_type=?",
-            (1 if value else 0, user_id, symbol, account_type),
+            f"UPDATE active_positions SET {col}=? WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (1 if value else 0, user_id, symbol, account_type, exchange),
         )
         conn.commit()
 
 
-def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "demo") -> bool:
+def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Проверяет, был ли выполнен DCA на данном уровне.
     level: 10 или 25 (процент)
@@ -2363,13 +2364,13 @@ def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "dem
         raise ValueError(f"Invalid DCA level: {level}")
     with get_conn() as conn:
         row = conn.execute(
-            f"SELECT {col} FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
-            (user_id, symbol, account_type),
+            f"SELECT {col} FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (user_id, symbol, account_type, exchange),
         ).fetchone()
     return bool(row[0]) if row else False
 
 
-def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo") -> bool:
+def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Синхронизирует entry_price позиции с биржей.
     
@@ -2381,8 +2382,8 @@ def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float,
     """
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
-            (user_id, symbol, account_type),
+            "SELECT entry_price FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (user_id, symbol, account_type, exchange),
         ).fetchone()
         
         if not row:
@@ -2399,8 +2400,8 @@ def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float,
         
         # Update entry_price
         conn.execute(
-            "UPDATE active_positions SET entry_price=? WHERE user_id=? AND symbol=? AND account_type=?",
-            (new_entry_price, user_id, symbol, account_type),
+            "UPDATE active_positions SET entry_price=? WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (new_entry_price, user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return True
@@ -2444,15 +2445,15 @@ def get_all_positions_by_targets(user_id: int, targets: list[dict]) -> dict[str,
     return result
 
 
-def update_position_strategy(user_id: int, symbol: str, strategy: str, account_type: str = "demo") -> bool:
+def update_position_strategy(user_id: int, symbol: str, strategy: str, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
-    Обновляет strategy для существующей позиции.
+    Обновляет strategy для существующей позиции с поддержкой multitenancy.
     Возвращает True если позиция была обновлена, False если не найдена.
     """
     with get_conn() as conn:
         cursor = conn.execute(
-            "UPDATE active_positions SET strategy=? WHERE user_id=? AND symbol=? AND account_type=?",
-            (strategy, user_id, symbol, account_type),
+            "UPDATE active_positions SET strategy=? WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (strategy, user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -2468,6 +2469,7 @@ def update_atr_state(
     atr_activated: bool = False,
     atr_activation_price: float | None = None,
     atr_last_stop_price: float | None = None,
+    exchange: str = "bybit",
 ) -> bool:
     """
     Обновляет ATR trailing stop state для позиции.
@@ -2481,15 +2483,15 @@ def update_atr_state(
                 atr_activation_price = ?,
                 atr_last_stop_price = ?,
                 atr_last_update_ts = ?
-            WHERE user_id=? AND symbol=? AND account_type=?""",
+            WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?""",
             (1 if atr_activated else 0, atr_activation_price, atr_last_stop_price,
-             int(time.time()), user_id, symbol, account_type),
+             int(time.time()), user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return cursor.rowcount > 0
 
 
-def get_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> dict | None:
+def get_atr_state(user_id: int, symbol: str, account_type: str = "demo", exchange: str = "bybit") -> dict | None:
     """
     Получает ATR trailing stop state для позиции.
     Возвращает dict с полями: atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts
@@ -2498,8 +2500,8 @@ def get_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> dict
     with get_conn() as conn:
         row = conn.execute(
             """SELECT atr_activated, atr_activation_price, atr_last_stop_price, atr_last_update_ts
-            FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?""",
-            (user_id, symbol, account_type),
+            FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?""",
+            (user_id, symbol, account_type, exchange),
         ).fetchone()
         
         if row:
@@ -2512,7 +2514,7 @@ def get_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> dict
         return None
 
 
-def clear_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+def clear_atr_state(user_id: int, symbol: str, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Сбрасывает ATR state для позиции.
     Вызывается при закрытии позиции.
@@ -2524,8 +2526,8 @@ def clear_atr_state(user_id: int, symbol: str, account_type: str = "demo") -> bo
                 atr_activation_price = NULL,
                 atr_last_stop_price = NULL,
                 atr_last_update_ts = NULL
-            WHERE user_id=? AND symbol=? AND account_type=?""",
-            (user_id, symbol, account_type),
+            WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?""",
+            (user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -2540,10 +2542,12 @@ def set_manual_sltp_override(
     account_type: str = "demo",
     sl_price: float | None = None,
     tp_price: float | None = None,
+    exchange: str = "bybit",
 ) -> bool:
     """
     Устанавливает manual_sltp_override=1 и обновляет SL/TP цены.
     После этого бот не будет перезаписывать SL/TP в мониторинге.
+    Поддержка multitenancy через exchange параметр.
     """
     import time
     with get_conn() as conn:
@@ -2553,38 +2557,40 @@ def set_manual_sltp_override(
                 manual_sltp_ts = ?,
                 sl_price = COALESCE(?, sl_price),
                 tp_price = COALESCE(?, tp_price)
-            WHERE user_id=? AND symbol=? AND account_type=?""",
-            (int(time.time()), sl_price, tp_price, user_id, symbol, account_type),
+            WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?""",
+            (int(time.time()), sl_price, tp_price, user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return cursor.rowcount > 0
 
 
-def clear_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+def clear_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Сбрасывает manual_sltp_override - бот снова может управлять SL/TP.
+    Поддержка multitenancy через exchange параметр.
     """
     with get_conn() as conn:
         cursor = conn.execute(
             """UPDATE active_positions SET 
                 manual_sltp_override = 0,
                 manual_sltp_ts = NULL
-            WHERE user_id=? AND symbol=? AND account_type=?""",
-            (user_id, symbol, account_type),
+            WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?""",
+            (user_id, symbol, account_type, exchange),
         )
         conn.commit()
         return cursor.rowcount > 0
 
 
-def is_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo") -> bool:
+def is_manual_sltp_override(user_id: int, symbol: str, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Проверяет, установлен ли manual_sltp_override для позиции.
     Возвращает True если бот не должен трогать SL/TP.
+    Поддержка multitenancy через exchange параметр.
     """
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT manual_sltp_override FROM active_positions WHERE user_id=? AND symbol=? AND account_type=?",
-            (user_id, symbol, account_type),
+            "SELECT manual_sltp_override FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (user_id, symbol, account_type, exchange),
         ).fetchone()
         return bool(row[0]) if row and row[0] else False
 
@@ -2596,12 +2602,13 @@ def update_position_sltp(
     sl_price: float | None = None,
     tp_price: float | None = None,
     respect_manual_override: bool = True,
+    exchange: str = "bybit",
 ) -> bool:
     """
-    Обновляет SL/TP цены для позиции.
+    Обновляет SL/TP цены для позиции с поддержкой multitenancy.
     Если respect_manual_override=True и manual_sltp_override=1, ничего не делает.
     """
-    if respect_manual_override and is_manual_sltp_override(user_id, symbol, account_type):
+    if respect_manual_override and is_manual_sltp_override(user_id, symbol, account_type, exchange=exchange):
         return False
     
     with get_conn() as conn:
@@ -2618,9 +2625,9 @@ def update_position_sltp(
         if not updates:
             return False
         
-        params.extend([user_id, symbol, account_type])
+        params.extend([user_id, symbol, account_type, exchange])
         cursor = conn.execute(
-            f"UPDATE active_positions SET {', '.join(updates)} WHERE user_id=? AND symbol=? AND account_type=?",
+            f"UPDATE active_positions SET {', '.join(updates)} WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
             params,
         )
         conn.commit()
@@ -2864,25 +2871,30 @@ def add_pending_limit_order(
     time_in_force: str = "GTC",
     strategy: str | None = None,
     account_type: str = "demo",
+    exchange: str = "bybit",
 ):
     ensure_user(user_id)
     with get_conn() as conn:
         conn.execute(
             """
           INSERT INTO pending_limit_orders
-            (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT (user_id, order_id) DO NOTHING
+            (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type, exchange)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT (user_id, order_id, exchange) DO NOTHING
         """,
-            (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type),
+            (user_id, order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type, exchange),
         )
         conn.commit()
 
-def get_pending_limit_orders(user_id: int) -> list[dict]:
+def get_pending_limit_orders(user_id: int, exchange: str = "bybit") -> list[dict]:
     """
-    Возвращает список отложенных лимитных ордеров пользователя,
+    Возвращает список отложенных лимитных ордеров пользователя для указанной биржи,
     отсортированных от новых к старым. Гарантирует наличие ключа
     `time_in_force`, `strategy` и `account_type` (если колонок нет в БД — подставит дефолты).
+    
+    Args:
+        user_id: ID пользователя
+        exchange: Биржа ('bybit' или 'hyperliquid')
     """
     with get_conn() as conn:
         # На всякий случай держим совместимость со старыми схемами
@@ -2895,40 +2907,40 @@ def get_pending_limit_orders(user_id: int) -> list[dict]:
                 """
                 SELECT order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy, account_type
                   FROM pending_limit_orders
-                 WHERE user_id=?
+                 WHERE user_id=? AND exchange=?
                  ORDER BY created_ts DESC
                 """,
-                (user_id,),
+                (user_id, exchange),
             ).fetchall()
         elif has_tif and has_strategy:
             rows = conn.execute(
                 """
                 SELECT order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force, strategy
                   FROM pending_limit_orders
-                 WHERE user_id=?
+                 WHERE user_id=? AND exchange=?
                  ORDER BY created_ts DESC
                 """,
-                (user_id,),
+                (user_id, exchange),
             ).fetchall()
         elif has_tif:
             rows = conn.execute(
                 """
                 SELECT order_id, symbol, side, qty, price, signal_id, created_ts, time_in_force
                   FROM pending_limit_orders
-                 WHERE user_id=?
+                 WHERE user_id=? AND exchange=?
                  ORDER BY created_ts DESC
                 """,
-                (user_id,),
+                (user_id, exchange),
             ).fetchall()
         else:
             rows = conn.execute(
                 """
                 SELECT order_id, symbol, side, qty, price, signal_id, created_ts
                   FROM pending_limit_orders
-                 WHERE user_id=?
+                 WHERE user_id=? AND exchange=?
                  ORDER BY created_ts DESC
                 """,
-                (user_id,),
+                (user_id, exchange),
             ).fetchall()
 
     result: list[dict] = []
@@ -2965,14 +2977,14 @@ def get_pending_limit_orders(user_id: int) -> list[dict]:
         )
     return result
 
-def remove_pending_limit_order(user_id: int, order_id: str):
+def remove_pending_limit_order(user_id: int, order_id: str, exchange: str = "bybit"):
     with get_conn() as conn:
         conn.execute(
             """
           DELETE FROM pending_limit_orders
-           WHERE user_id=? AND order_id=?
+           WHERE user_id=? AND order_id=? AND exchange=?
         """,
-            (user_id, order_id),
+            (user_id, order_id, exchange),
         )
         conn.commit()
 
@@ -2980,7 +2992,7 @@ def remove_pending_limit_order(user_id: int, order_id: str):
 # Trade logs
 # ------------------------------------------------------------------------------------
 
-def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, seconds: int = 120) -> bool:
+def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, seconds: int = 120, exchange: str = "bybit") -> bool:
     """
     Check if a position with the same symbol and entry price was closed recently.
     This helps detect Bybit API sync delays where closed positions still appear as open.
@@ -2990,6 +3002,7 @@ def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, 
         symbol: Trading pair symbol
         entry_price: Entry price to match (rounded to 4 decimals)
         seconds: Time window to check (default 2 minutes)
+        exchange: Exchange to filter by ('bybit' or 'hyperliquid')
     
     Returns:
         True if a matching trade was closed within the time window
@@ -3004,9 +3017,10 @@ def was_position_recently_closed(user_id: int, symbol: str, entry_price: float, 
             SELECT COUNT(*) FROM trade_logs
             WHERE user_id = ?
               AND symbol = ?
+              AND exchange = ?
               AND ABS(entry_price - ?) < 0.0001
               AND ts > ?
-        """, (user_id, symbol, entry_price, cutoff_str))
+        """, (user_id, symbol, exchange, entry_price, cutoff_str))
         row = cur.fetchone()
         count = row[0] if row else 0
         return count > 0
@@ -3466,22 +3480,22 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
         }
 
 
-def get_stats_by_strategy(user_id: int, period: str = "all", account_type: str | None = None) -> dict[str, dict]:
+def get_stats_by_strategy(user_id: int, period: str = "all", account_type: str | None = None, exchange: str | None = None) -> dict[str, dict]:
     """Возвращает статистику по каждой стратегии отдельно."""
     strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
     result = {}
     for strat in strategies:
-        stats = get_trade_stats(user_id, strategy=strat, period=period, account_type=account_type)
+        stats = get_trade_stats(user_id, strategy=strat, period=period, account_type=account_type, exchange=exchange)
         if stats["total"] > 0:
             result[strat] = stats
     
     # Add unknown/manual trades
-    unknown_stats = get_trade_stats_unknown(user_id, period=period, account_type=account_type)
+    unknown_stats = get_trade_stats_unknown(user_id, period=period, account_type=account_type, exchange=exchange)
     if unknown_stats["total"] > 0:
         result["manual"] = unknown_stats
     
     # Общая статистика
-    result["all"] = get_trade_stats(user_id, strategy=None, period=period, account_type=account_type)
+    result["all"] = get_trade_stats(user_id, strategy=None, period=period, account_type=account_type, exchange=exchange)
     return result
 
 
@@ -4775,32 +4789,32 @@ def get_top_traders(period: str = "all", account_type: str = "demo", limit: int 
         ]
 
 
-def get_user_usage_report(user_id: int) -> dict:
-    """Get detailed usage report for a specific user."""
+def get_user_usage_report(user_id: int, exchange: str = "bybit") -> dict:
+    """Get detailed usage report for a specific user with multitenancy support."""
     with get_conn() as conn:
         # Trade stats by account type
-        demo_stats = get_trade_stats(user_id, account_type="demo")
-        real_stats = get_trade_stats(user_id, account_type="real")
+        demo_stats = get_trade_stats(user_id, account_type="demo", exchange=exchange)
+        real_stats = get_trade_stats(user_id, account_type="real", exchange=exchange)
         
         # Strategy breakdown
         strategies = ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci"]
         strategy_stats = {}
         for strat in strategies:
-            stats = get_trade_stats(user_id, strategy=strat)
+            stats = get_trade_stats(user_id, strategy=strat, exchange=exchange)
             if stats["total"] > 0:
                 strategy_stats[strat] = stats
         
         # Demo by strategy
         demo_by_strat = {}
         for strat in strategies:
-            stats = get_trade_stats(user_id, strategy=strat, account_type="demo")
+            stats = get_trade_stats(user_id, strategy=strat, account_type="demo", exchange=exchange)
             if stats["total"] > 0:
                 demo_by_strat[strat] = stats
         
         # Real by strategy
         real_by_strat = {}
         for strat in strategies:
-            stats = get_trade_stats(user_id, strategy=strat, account_type="real")
+            stats = get_trade_stats(user_id, strategy=strat, account_type="real", exchange=exchange)
             if stats["total"] > 0:
                 real_by_strat[strat] = stats
         
@@ -6081,9 +6095,9 @@ def get_both_side_settings(user_id: int, strategy: str) -> dict:
     return _get_all_strategy_settings(user_id, strategy)
 
 
-def is_strategy_enabled(user_id: int, strategy: str) -> bool:
-    """Check if strategy is enabled."""
-    return _get_strategy_enabled(user_id, strategy)
+def is_strategy_enabled(user_id: int, strategy: str, exchange: str = "bybit") -> bool:
+    """Check if strategy is enabled with multitenancy support."""
+    return _get_strategy_enabled(user_id, strategy, exchange=exchange)
 
 
 def get_defaults() -> dict:

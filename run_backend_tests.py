@@ -131,8 +131,8 @@ def test_database_layer():
         
         if has_functions:
             # Try to set and get
-            db.set_strategy_setting(test_uid, 'elcaro', 'enabled', True)
-            settings = db.get_strategy_settings(test_uid, 'elcaro')
+            db.set_strategy_setting(test_uid, 'elcaro', 'enabled', True, exchange='bybit')
+            settings = db.get_strategy_settings(test_uid, 'elcaro', exchange='bybit')
             if settings is not None:
                 print(f"  ✅ Strategy settings - OK")
                 tests_passed += 1

@@ -362,6 +362,11 @@ class SignalService:
         active = []
         config = db.get_user_config(user_id)
         
+        # Get user's trading context for exchange and account_type
+        user_context = db.get_user_trading_context(user_id)
+        user_exchange = user_context.get("exchange", "bybit")
+        user_account_type = user_context.get("account_type", "demo")
+        
         # Built-in strategies
         builtin_map = {
             "elcaro": "trade_elcaro",
@@ -376,7 +381,7 @@ class SignalService:
                     "type": "builtin",
                     "name": name,
                     "source": SignalSource[name.upper()] if name.upper() in SignalSource.__members__ else SignalSource.MANUAL,
-                    "config": db.get_strategy_settings(user_id, name),
+                    "config": db.get_strategy_settings(user_id, name, exchange=user_exchange, account_type=user_account_type),
                 })
         
         # Custom strategies from webapp

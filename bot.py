@@ -5023,6 +5023,8 @@ async def split_market_plus_one_limit(
                         signal_id=(signal_id or 0),
                         created_ts=int(time.time()*1000),
                         time_in_force=tif,
+                        account_type=account_type,
+                        exchange="bybit",
                     )
                     try:
                         await ctx.bot.send_message(
@@ -5588,10 +5590,10 @@ async def place_order_for_targets(
             continue
         
         # ═══════════════════════════════════════════════════════════════════
-        # Skip target if position already exists for this symbol+account_type
+        # Skip target if position already exists for this symbol+account_type+exchange
         # ═══════════════════════════════════════════════════════════════════
         acc_for_check = target_account_type or ("demo" if target_env == "paper" else "real")
-        existing_positions = get_active_positions(user_id, account_type=acc_for_check)
+        existing_positions = get_active_positions(user_id, account_type=acc_for_check, exchange=target_exchange)
         has_existing = any(p.get("symbol") == symbol for p in existing_positions)
         
         if has_existing:
@@ -10584,7 +10586,7 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
             trading_mode = db.get_trading_mode(uid)
             account_type = 'real' if trading_mode == 'real' else 'demo'
         
-        db_positions = db.get_active_positions(uid, account_type=account_type)
+        db_positions = db.get_active_positions(uid, account_type=account_type, exchange="bybit")
         db_by_symbol = {p['symbol']: p for p in db_positions}
         
         for pos in all_positions:
@@ -13700,6 +13702,7 @@ async def place_limit_order_with_strategy(
                 time_in_force=tif,
                 strategy=strategy,
                 account_type=acc_type,
+                exchange="bybit",
             )
             
             results[acc_type] = {"success": True, "result": res, "order_id": order_id}
@@ -13825,6 +13828,7 @@ async def place_ladder_limit_orders(
                     time_in_force="GTC",
                     strategy=f"{strategy}_ladder_{i+1}",
                     account_type=acc_type,
+                    exchange="bybit",
                 )
                 
                 results[f"ladder_{i+1}_{acc_type}"] = {
@@ -14794,9 +14798,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] {symbol}: already has open position → skip signal")
                 continue
 
+            user_exchange = get_exchange_type(uid)
+
             # CRITICAL: Check if position was recently closed (prevent re-entry on repeated signals)
             # This handles cases where strategies like FIBONACCI send repeated signals
-            if was_position_recently_closed(uid, symbol, spot_price, seconds=120):
+            if was_position_recently_closed(uid, symbol, spot_price, seconds=120, exchange=user_exchange):
                 logger.info(f"[{uid}] {symbol}: position was recently closed at similar price → skip signal")
                 continue
 
@@ -14805,7 +14811,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] {symbol}: has active order(s) → skip signal")
                 continue
 
-            pending = get_pending_limit_orders(uid)
+            pending = get_pending_limit_orders(uid, exchange=user_exchange)
             if any(po.get("symbol") == symbol for po in pending):
                 logger.info(f"[{uid}] {symbol}: pending limit order in DB → skip signal")
                 continue
@@ -16009,13 +16015,13 @@ def log_exit_and_remove_position(
     )
     # Pass entry_price to prevent race condition where a NEW position (opened by signal)
     # gets deleted when closing OLD position (detected by monitor)
-    remove_active_position(user_id, symbol, account_type=account_type, entry_price=entry_price)
+    remove_active_position(user_id, symbol, account_type=account_type, entry_price=entry_price, exchange=exchange)
 
-def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str) -> None:
+def cleanup_limit_order_on_status(user_id: int, order_id: str, status: str, exchange: str = "bybit") -> None:
     status = (status or "").upper()
     if status in ("FILLED", "CANCELED", "EXPIRED"):
         try:
-            remove_pending_limit_order(user_id, order_id)
+            remove_pending_limit_order(user_id, order_id, exchange=exchange)
         except Exception:
             pass
 
@@ -16112,7 +16118,7 @@ async def monitor_positions_loop(app: Application):
                         # Update previous symbols cache at end of processing
                         _open_syms_prev[cache_key] = open_syms.copy()
                         
-                        pending = get_pending_limit_orders(uid)
+                        pending = get_pending_limit_orders(uid, exchange=current_exchange)
                         if pending:
                             try:
                                 open_orders = await fetch_open_orders(uid, account_type=current_account_type)
@@ -16174,7 +16180,7 @@ async def monitor_positions_loop(app: Application):
                                                 uid,
                                                 t['limit_order_cancelled'].format(symbol=sym, order_id=order_id)
                                             )                                
-                                        remove_pending_limit_order(uid, order_id)
+                                        remove_pending_limit_order(uid, order_id, exchange=current_exchange)
 
                         # Refresh active positions for this account type
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
@@ -16212,7 +16218,7 @@ async def monitor_positions_loop(app: Application):
                                         t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
                                     )
                                     # Use ap entry_price to prevent race condition
-                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"))
+                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                     reset_pyramid(uid, pos["symbol"])
                                     _atr_triggered.pop((uid, pos["symbol"]), None)
                                     _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
@@ -16241,7 +16247,7 @@ async def monitor_positions_loop(app: Application):
                                 # CRITICAL: Check if position with same entry price was recently closed
                                 # This prevents re-adding positions that appear on Bybit API due to sync delay
                                 entry_price_check = round(entry, 4)
-                                recently_closed = was_position_recently_closed(uid, sym, entry_price_check, seconds=120)
+                                recently_closed = was_position_recently_closed(uid, sym, entry_price_check, seconds=120, exchange=current_exchange)
                                 if recently_closed:
                                     logger.info(f"[{uid}] Skipping {sym} - position with entry={entry_price_check} was recently closed (API sync delay)")
                                     continue
@@ -16552,7 +16558,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.debug(f"[{uid}] No closed PnL for {sym}, cleaning up")
                                     try:
                                         # Pass entry_price to avoid race condition
-                                        remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"))
+                                        remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
@@ -16635,7 +16641,7 @@ async def monitor_positions_loop(app: Application):
                                                 f"(processed {now_ts - last_processed}s ago)"
                                             )
                                             # Still try to remove the position from active_positions
-                                            remove_active_position(uid, sym, account_type=ap_account_type, entry_price=entry_price)
+                                            remove_active_position(uid, sym, account_type=ap_account_type, entry_price=entry_price, exchange=current_exchange)
                                             continue
                                     
                                     # Mark as processed BEFORE logging to prevent race condition
@@ -16876,7 +16882,7 @@ async def monitor_positions_loop(app: Application):
                                 if entry_diff_pct > 0.1:  # Entry changed by >0.1%
                                     try:
                                         pos_account_type = account_type_map.get(sym, "demo")
-                                        if db.sync_position_entry_price(uid, sym, entry, pos_account_type):
+                                        if db.sync_position_entry_price(uid, sym, entry, pos_account_type, exchange=current_exchange):
                                             logger.info(f"[{uid}] {sym}: Entry synced {db_entry:.6f} → {entry:.6f} (diff={entry_diff_pct:.2f}%)")
                                             entry_changed = True
                                     except Exception as e:
@@ -16914,7 +16920,7 @@ async def monitor_positions_loop(app: Application):
                                             logger.info(f"[{uid}] {sym}: Detected strategy={pos_strategy} from signal, updating DB")
                                             try:
                                                 pos_account_type = account_type_map.get(sym, "demo")
-                                                update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type)
+                                                update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type, exchange=current_exchange)
                                             except Exception as e:
                                                 logger.warning(f"[{uid}] Failed to update position strategy: {e}")
                         
@@ -16997,7 +17003,7 @@ async def monitor_positions_loop(app: Application):
 
                             # --- DCA при -dca_pct_1% против нас (только если DCA включён) ---
                             if dca_enabled and move_pct <= -dca_pct_1:
-                                if not get_dca_flag(uid, sym, 10, account_type=pos_account_type):
+                                if not get_dca_flag(uid, sym, 10, account_type=pos_account_type, exchange=current_exchange):
                                     try:
                                         # Use strategy-specific percent if available
                                         if risk_pct_for_dca > 0:
@@ -17013,7 +17019,7 @@ async def monitor_positions_loop(app: Application):
                                             order_value = add_qty * mark
                                             if order_value < 5.0:
                                                 logger.info(f"{sym}: DCA order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
-                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)  # Mark as done to avoid retry
+                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type, exchange=current_exchange)  # Mark as done to avoid retry
                                             elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
@@ -17023,7 +17029,7 @@ async def monitor_positions_loop(app: Application):
                                                     qty=add_qty,
                                                     account_type=pos_account_type
                                                 )
-                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type)
+                                                set_dca_flag(uid, sym, 10, True, account_type=pos_account_type, exchange=current_exchange)
                                                 try:
                                                     await safe_send_notification(
                                                         bot, uid,
@@ -17044,7 +17050,7 @@ async def monitor_positions_loop(app: Application):
 
                             # --- DCA при -dca_pct_2% против нас (только если DCA включён) ---
                             if dca_enabled and move_pct <= -dca_pct_2:
-                                if not get_dca_flag(uid, sym, 25, account_type=pos_account_type):
+                                if not get_dca_flag(uid, sym, 25, account_type=pos_account_type, exchange=current_exchange):
                                     try:
                                         # Use strategy-specific percent if available
                                         if risk_pct_for_dca > 0:
@@ -17060,7 +17066,7 @@ async def monitor_positions_loop(app: Application):
                                             order_value = add_qty * mark
                                             if order_value < 5.0:
                                                 logger.info(f"{sym}: DCA Leg2 order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
-                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)  # Mark as done to avoid retry
+                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type, exchange=current_exchange)  # Mark as done to avoid retry
                                             elif add_qty > 0:
                                                 await place_order(
                                                     user_id=uid,
@@ -17070,7 +17076,7 @@ async def monitor_positions_loop(app: Application):
                                                     qty=add_qty,
                                                     account_type=pos_account_type
                                                 )
-                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type)
+                                                set_dca_flag(uid, sym, 25, True, account_type=pos_account_type, exchange=current_exchange)
                                                 try:
                                                     await safe_send_notification(
                                                         bot, uid,
@@ -17266,7 +17272,7 @@ async def monitor_positions_loop(app: Application):
                                     # Stale position - not on exchange anymore
                                     logger.info(f"[STALE-CLEANUP] {uid} {db_sym} - removing from DB (not on exchange)")
                                     try:
-                                        remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"))
+                                        remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, db_sym)
                                         _atr_triggered.pop((uid, db_sym), None)
                                         _sl_notified.pop((uid, db_sym), None)
@@ -18575,7 +18581,7 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             user, "POST", "/v5/order/cancel",
                             body={"category": "linear", "orderId": o["orderId"], "symbol": o["symbol"]}
                         )
-                        remove_pending_limit_order(user, o["orderId"])
+                        remove_pending_limit_order(user, o["orderId"], exchange="bybit")
                         canceled += 1
                     except Exception:
                         pass
