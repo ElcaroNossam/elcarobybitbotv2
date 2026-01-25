@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.23.0 | Обновлено: 25 января 2026
+# Версия: 3.25.0 | Обновлено: 25 января 2026
 # =============================================
 
 ---
@@ -74,22 +74,23 @@
 
 # 📊 АРХИТЕКТУРА ПРОЕКТА
 
-## Статистика проекта (актуально на 24.01.2026)
+## Статистика проекта (актуально на 25.01.2026)
 
 | Метрика | Значение |
 |---------|----------|
-| Python файлов | 318 |
+| Python файлов | 322 |
 | HTML шаблонов | 44 |
 | CSS файлов | 15 |
 | JS файлов | 26 |
+| Swift файлов | 26 |
 | Тестов | 778 |
 | Языков перевода | 15 |
 | Ключей перевода | 1521 |
 | База данных | PostgreSQL 14 (ONLY) |
-| Users | 12 |
-| Active positions | 61 |
-| Trade logs | 0 (пересоздана) |
-| Migration files | 16 |
+| API endpoints | 120+ |
+| Migration files | 18 |
+| iOS Bundle ID | io.lyxen.LyxenTrading |
+| Xcode | 26.2 (17C52) |
 
 ## Структура проекта
 
@@ -266,17 +267,18 @@ def _sqlite_to_pg(query):  # Автоматическая конвертация
 | `exchange` | bybit, hyperliquid | Биржа |
 | `account_type` | demo, real, testnet, mainnet | Тип аккаунта |
 
-### Настройки стратегий - упрощённая 3D схема (Jan 2026)
-Таблица `user_strategy_settings` использует упрощённую схему:
+### Настройки стратегий - 4D схема (Jan 2026)
+Таблица `user_strategy_settings` использует полную 4D схему:
 
 | Измерение | Значения | Описание |
 |-----------|----------|----------|
 | `user_id` | Telegram ID | Уникальный пользователь |
-| `strategy` | oi, scryptomera, scalper, elcaro, fibonacci | Торговая стратегия |
+| `strategy` | oi, scryptomera, scalper, elcaro, fibonacci, rsi_bb | Торговая стратегия |
 | `side` | long, short | Направление сделки |
+| `exchange` | bybit, hyperliquid | Биржа |
 
-> **⚠️ ВАЖНО:** Настройки стратегий **НЕ зависят от биржи и типа аккаунта**!
-> Одни настройки применяются ко всем биржам и аккаунтам.
+> **⚠️ ВАЖНО:** Каждая комбинация (user, strategy, side, exchange) имеет независимые настройки!
+> Это позволяет иметь разные SL/TP/leverage для Bybit и HyperLiquid.
 
 **Комбинации для позиций:**
 - **Bybit:** demo, real, both (торгует на обоих)
@@ -318,13 +320,14 @@ lang               TEXT DEFAULT 'en'
 updated_at         TIMESTAMP DEFAULT NOW()
 ```
 
-### user_strategy_settings (настройки по стратегиям) ⭐ 3D SCHEMA
+### user_strategy_settings (настройки по стратегиям) ⭐ 4D SCHEMA
 ```sql
--- PRIMARY KEY: (user_id, strategy, side)
--- 3D SCHEMA: Each side (long/short) has its own row with independent settings
+-- PRIMARY KEY: (user_id, strategy, side, exchange)
+-- 4D SCHEMA: Each combination has independent settings
 user_id             BIGINT NOT NULL
 strategy            TEXT NOT NULL         -- 'oi', 'scryptomera', 'scalper', 'elcaro', 'fibonacci', 'rsi_bb'
 side                TEXT NOT NULL         -- 'long' | 'short'
+exchange            TEXT NOT NULL         -- 'bybit' | 'hyperliquid'
 settings            JSONB DEFAULT '{}'    -- Optional: additional per-side data
 -- Per-side trading settings
 percent             REAL                  -- Entry % of equity
@@ -346,16 +349,15 @@ dca_pct_2           REAL DEFAULT 25.0
 -- Position limits
 max_positions       INTEGER DEFAULT 0
 coins_group         TEXT DEFAULT 'ALL'
--- Context columns (for future extension)
+-- Context columns
 trading_mode        TEXT DEFAULT 'demo'
-exchange            TEXT DEFAULT 'bybit'
 account_type        TEXT DEFAULT 'demo'
 enabled             BOOLEAN DEFAULT TRUE
 updated_at          TIMESTAMP DEFAULT NOW()
 ```
 
-> **⚠️ ВАЖНО:** 3D схема (актуально Jan 2026):
-> - PRIMARY KEY = `(user_id, strategy, side)` — 3 измерения
+> **⚠️ ВАЖНО:** 4D схема (актуально Jan 2026):
+> - PRIMARY KEY = `(user_id, strategy, side, exchange)` — 4 измерения
 > - LONG и SHORT имеют **отдельные строки** с независимыми настройками
 > - Каждый side может иметь свой TP%, SL%, leverage, DCA и т.д.
 > - Колонки `exchange`, `account_type` сохранены для будущего 4D расширения
@@ -1677,8 +1679,125 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
+# 📱 iOS РАЗРАБОТКА (NEW! Jan 25, 2026)
+
+## Статистика iOS приложения
+
+| Метрика | Значение |
+|---------|----------|
+| Swift файлов | 26 |
+| Views | 12 |
+| Services | 4 |
+| Xcode версия | 26.2 (17C52) |
+| iOS Target | 26.2 |
+| Bundle ID | io.lyxen.LyxenTrading |
+| Team ID | NDGY75Y29A |
+
+## Структура iOS проекта
+
+```
+ios/LyxenTrading/LyxenTrading/
+├── LyxenTrading.xcodeproj
+├── LyxenTrading/
+│   ├── App/
+│   │   ├── LyxenTradingApp.swift   # @main entry point
+│   │   ├── AppState.swift          # Global state management
+│   │   └── Config.swift            # API URLs, endpoints
+│   ├── Views/
+│   │   ├── LoginView.swift         # Auth screen
+│   │   ├── MainTabView.swift       # Tab navigation
+│   │   ├── PortfolioView.swift     # Balance, PnL
+│   │   ├── PositionsView.swift     # Open positions
+│   │   ├── TradingView.swift       # Trading interface
+│   │   ├── MarketView.swift        # Market data
+│   │   ├── SettingsView.swift      # User settings
+│   │   └── ...
+│   ├── Services/
+│   │   ├── NetworkService.swift    # HTTP + JWT auth
+│   │   ├── TradingService.swift    # Trading API calls
+│   │   ├── WebSocketService.swift  # Real-time updates
+│   │   └── AuthManager.swift       # Auth state
+│   ├── Models/
+│   │   ├── Models.swift            # Position, Order, Balance
+│   │   ├── AuthModels.swift        # Login, Token
+│   │   └── ViewModels.swift        # Observable objects
+│   ├── Extensions/
+│   │   └── Color+Extensions.swift  # Lyxen color scheme
+│   ├── Utils/
+│   │   └── Utilities.swift         # Formatters, helpers
+│   └── Assets.xcassets/
+│       └── AppIcon.appiconset/     # 1024x1024 icon
+```
+
+## iOS CLI команды
+
+```bash
+# Список доступных версий Xcode
+xcodes list
+
+# Установить Xcode
+xcodes install "26.2"
+
+# Проверить подключённые устройства
+xcrun xctrace list devices
+
+# Билд для устройства
+cd ios/LyxenTrading/LyxenTrading
+xcodebuild -project LyxenTrading.xcodeproj \
+  -scheme LyxenTrading \
+  -configuration Release \
+  -destination generic/platform=iOS \
+  build
+
+# Создать архив для TestFlight
+xcodebuild -project LyxenTrading.xcodeproj \
+  -scheme LyxenTrading \
+  -configuration Release \
+  -destination generic/platform=iOS \
+  -archivePath ./build/LyxenTrading.xcarchive \
+  archive
+
+# Установить на iPhone через ios-deploy
+ios-deploy --bundle /path/to/LyxenTrading.app
+
+# Открыть архив в Organizer
+open ./build/LyxenTrading.xcarchive
+```
+
+## Config.swift - API Endpoints
+
+```swift
+#if DEBUG
+static let baseURL = "http://localhost:8765"
+#else
+static let baseURL = "https://YOUR-CLOUDFLARE-URL.trycloudflare.com"
+#endif
+
+static let apiURL = "\(baseURL)/api"
+static let wsURL = baseURL
+    .replacingOccurrences(of: "https://", with: "wss://")
+    .replacingOccurrences(of: "http://", with: "ws://")
+```
+
+## Apple Developer Program
+
+- **Цена:** $99/год
+- **Возможности:** TestFlight, App Store, Push Notifications, In-App Purchases
+- **Сертификаты:** Apple Development + Apple Distribution
+- **Регистрация:** [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/)
+
+## TestFlight Deployment
+
+1. Создать App в App Store Connect (Bundle ID: io.lyxen.LyxenTrading)
+2. Добавить аккаунт в Xcode → Settings → Accounts
+3. Создать архив: `xcodebuild archive`
+4. Открыть в Organizer: `open ./build/LyxenTrading.xcarchive`
+5. Distribute App → TestFlight & App Store → Upload
+
+---
+
 *Last updated: 25 января 2026*
-*Version: 3.23.0*
+*Version: 3.24.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*

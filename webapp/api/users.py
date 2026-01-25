@@ -957,3 +957,148 @@ async def update_strategy_settings(
         "account_type": data.account_type,
         "updated_fields": updated_fields
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# iOS MOBILE API ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+@router.get("/strategy-settings/mobile")
+async def get_strategy_settings_mobile(
+    strategy: str = Query(None, description="Filter by strategy name"),
+    exchange: str = Query("bybit"),
+    account_type: str = Query("demo"),
+    user: dict = Depends(get_current_user)
+):
+    """Get strategy settings in iOS-compatible format.
+    
+    Returns flat array of StrategySettings objects for iOS app.
+    Each side (long/short) is a separate object in the array.
+    
+    Query params:
+        strategy: Optional filter by strategy name
+        exchange: Exchange name (bybit/hyperliquid)
+        account_type: Account type (demo/real/testnet/mainnet)
+    
+    Returns:
+        List of StrategySettings objects: [
+            {"strategy": "oi", "side": "long", "percent": 1.0, ...},
+            {"strategy": "oi", "side": "short", "percent": 1.0, ...},
+            ...
+        ]
+    """
+    user_id = user["user_id"]
+    
+    # Normalize 'both' -> 'demo'/'testnet' based on exchange
+    account_type = _normalize_both_account_type(account_type, exchange)
+    
+    # Filter strategies if specified
+    strategies_to_fetch = [strategy] if strategy and strategy in VALID_STRATEGIES else VALID_STRATEGIES
+    
+    result = []
+    
+    for strat_name in strategies_to_fetch:
+        # Get settings from database
+        db_settings = db.get_strategy_settings_db(user_id, strat_name, exchange, account_type)
+        
+        # Create separate objects for long and short sides
+        for side in ["long", "short"]:
+            prefix = f"{side}_"
+            
+            settings_obj = {
+                "strategy": strat_name,
+                "side": side,
+                "exchange": exchange,
+                "account_type": account_type,
+                "enabled": bool(db_settings.get(f"{prefix}enabled", True)),
+                "percent": db_settings.get(f"{prefix}percent") or 1.0,
+                "tp_percent": db_settings.get(f"{prefix}tp_percent") or 8.0,
+                "sl_percent": db_settings.get(f"{prefix}sl_percent") or 3.0,
+                "leverage": db_settings.get(f"{prefix}leverage") or 10,
+                "use_atr": bool(db_settings.get(f"{prefix}use_atr", False)),
+                "atr_trigger_pct": db_settings.get(f"{prefix}atr_trigger_pct"),
+                "atr_step_pct": db_settings.get(f"{prefix}atr_step_pct"),
+                "dca_enabled": bool(db_settings.get(f"{prefix}dca_enabled", False)),
+                "dca_pct_1": db_settings.get(f"{prefix}dca_pct_1") or 10.0,
+                "dca_pct_2": db_settings.get(f"{prefix}dca_pct_2") or 25.0,
+                "max_positions": db_settings.get(f"{prefix}max_positions") or 0,
+                "coins_group": db_settings.get(f"{prefix}coins_group") or db_settings.get("coins_group") or "ALL",
+                "direction": db_settings.get("direction") or "all",
+                "order_type": db_settings.get("order_type") or "market",
+            }
+            
+            result.append(settings_obj)
+    
+    return result
+
+
+@router.put("/strategy-settings/mobile/{strategy_name}")
+async def update_strategy_settings_mobile(
+    strategy_name: str,
+    settings: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update strategy settings from iOS app.
+    
+    Accepts flat StrategySettings object and updates the corresponding side.
+    
+    Body:
+        {
+            "side": "long",
+            "exchange": "bybit",
+            "account_type": "demo",
+            "percent": 1.5,
+            "sl_percent": 3.0,
+            ...
+        }
+    """
+    user_id = user["user_id"]
+    
+    if strategy_name not in VALID_STRATEGIES:
+        raise HTTPException(status_code=400, detail=f"Invalid strategy: {strategy_name}")
+    
+    side = settings.get("side", "long")
+    if side not in ["long", "short"]:
+        raise HTTPException(status_code=400, detail="Invalid side. Must be 'long' or 'short'")
+    
+    exchange = settings.get("exchange", "bybit")
+    account_type = settings.get("account_type", "demo")
+    
+    # Fields that can be updated (with side prefix)
+    updatable_fields = [
+        "enabled", "percent", "tp_percent", "sl_percent", "leverage",
+        "use_atr", "atr_trigger_pct", "atr_step_pct", 
+        "dca_enabled", "dca_pct_1", "dca_pct_2",
+        "max_positions", "coins_group"
+    ]
+    
+    updated = []
+    for field in updatable_fields:
+        if field in settings:
+            value = settings[field]
+            # Add side prefix for DB
+            db_field = f"{side}_{field}"
+            
+            # Type conversion
+            if field in ("enabled", "use_atr", "dca_enabled"):
+                value = bool(value)
+            elif field in ("leverage", "max_positions"):
+                value = int(value) if value is not None else None
+            elif field in ("percent", "tp_percent", "sl_percent", "atr_trigger_pct", "atr_step_pct", "dca_pct_1", "dca_pct_2"):
+                value = float(value) if value is not None else None
+            
+            db.set_strategy_setting_db(user_id, strategy_name, db_field, value, exchange, account_type)
+            updated.append(field)
+    
+    # Non-side fields
+    if "direction" in settings:
+        db.set_strategy_setting_db(user_id, strategy_name, "direction", settings["direction"], exchange, account_type)
+        updated.append("direction")
+    
+    if "order_type" in settings:
+        db.set_strategy_setting_db(user_id, strategy_name, "order_type", settings["order_type"], exchange, account_type)
+        updated.append("order_type")
+    
+    logger.info(f"User {user_id} updated {strategy_name}/{side} via mobile: {updated}")
+    
+    return {"success": True, "strategy": strategy_name, "side": side, "updated_fields": updated}

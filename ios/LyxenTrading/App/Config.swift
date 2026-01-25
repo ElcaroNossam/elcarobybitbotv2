@@ -35,6 +35,7 @@ struct Config {
         static let profile = "/users/profile"
         static let apiKeys = "/users/api-keys"
         static let strategySettings = "/users/strategy-settings"
+        static let strategySettingsMobile = "/users/strategy-settings/mobile"
         static let switchExchange = "/users/exchange"
         static let switchAccountType = "/users/switch-account-type"
         

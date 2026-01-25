@@ -1,21 +1,33 @@
 """
-Migration: Strategy Settings Table with 3D Schema
+Migration: Strategy Settings Table with 4D Schema
 Version: 005
-Created: 2026-01-22
-Updated: 2026-01-23 - Changed to 3D schema (user_id, strategy, side)
+Created: 2026-01-25
+Updated: 2026-01-25 - Unified 4D schema (user_id, strategy, side, exchange)
 
-Creates user_strategy_settings table for per-strategy per-side user settings.
+Creates user_strategy_settings table for per-strategy per-side per-exchange user settings.
+
+4D SCHEMA: PRIMARY KEY = (user_id, strategy, side, exchange)
+- Each user can have different settings per strategy
+- Each strategy can have different settings for long vs short
+- Each side can have different settings per exchange (bybit/hyperliquid)
 """
 
 
 def upgrade(cur):
     """Apply migration"""
     
+    # Drop old table if exists (for clean migration)
+    cur.execute("DROP TABLE IF EXISTS user_strategy_settings CASCADE")
+    
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_strategy_settings (
+        CREATE TABLE user_strategy_settings (
+            -- PRIMARY KEY: 4D multitenancy
             user_id       BIGINT NOT NULL,
             strategy      TEXT NOT NULL,
             side          TEXT NOT NULL DEFAULT 'long',
+            exchange      TEXT NOT NULL DEFAULT 'bybit',
+            
+            -- JSON settings (for future flexibility)
             settings      JSONB DEFAULT '{}',
             
             -- Per-side trading settings
@@ -45,20 +57,25 @@ def upgrade(cur):
             max_positions INTEGER DEFAULT 0,
             coins_group   TEXT DEFAULT 'ALL',
             
-            -- Context columns (for future extension)
+            -- Context columns
             trading_mode  TEXT DEFAULT 'demo',
-            exchange      TEXT DEFAULT 'bybit',
             account_type  TEXT DEFAULT 'demo',
             
             enabled       BOOLEAN DEFAULT TRUE,
             updated_at    TIMESTAMP DEFAULT NOW(),
             
-            PRIMARY KEY (user_id, strategy, side)
+            -- 4D PRIMARY KEY
+            PRIMARY KEY (user_id, strategy, side, exchange)
         )
     """)
     
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_strategy_settings_user ON user_strategy_settings(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_strategy_settings_strategy ON user_strategy_settings(strategy)")
+    # Indexes for fast lookups
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user ON user_strategy_settings(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_strategy ON user_strategy_settings(strategy)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strat ON user_strategy_settings(user_id, strategy)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_uss_user_strat_exchange ON user_strategy_settings(user_id, strategy, exchange)")
+    
+    print("  ✅ Created user_strategy_settings with 4D schema (user_id, strategy, side, exchange)")
 
 
 def downgrade(cur):

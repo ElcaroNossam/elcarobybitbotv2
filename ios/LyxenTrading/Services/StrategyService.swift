@@ -74,19 +74,57 @@ class StrategyService: ObservableObject {
         }
     }
     
-    // MARK: - Fetch Strategy Settings
+    // MARK: - Fetch Strategy Settings (Mobile API)
     @MainActor
-    func fetchStrategySettings(strategy: String) async {
+    func fetchStrategySettings(strategy: String? = nil, exchange: String = "bybit", accountType: String = "demo") async {
         do {
+            var params: [String: String] = [
+                "exchange": exchange,
+                "account_type": accountType
+            ]
+            if let strategy = strategy {
+                params["strategy"] = strategy
+            }
+            
             let response: APIResponse<[StrategySettings]> = try await network.get(
-                Config.Endpoints.strategySettings,
-                params: ["strategy": strategy]
+                Config.Endpoints.strategySettingsMobile,
+                params: params
             )
             if let settings = response.data {
                 self.strategySettings = settings
             }
         } catch {
             print("Failed to fetch strategy settings: \(error)")
+        }
+    }
+    
+    // MARK: - Update Strategy Settings (Mobile API)
+    @MainActor
+    func updateStrategySettings(
+        strategy: String,
+        side: String,
+        exchange: String = "bybit",
+        accountType: String = "demo",
+        settings: [String: Any]
+    ) async -> Bool {
+        do {
+            var body = settings
+            body["side"] = side
+            body["exchange"] = exchange
+            body["account_type"] = accountType
+            
+            let _: APIResponse<EmptyResponse> = try await network.put(
+                "\(Config.Endpoints.strategySettingsMobile)/\(strategy)",
+                body: body
+            )
+            
+            // Refresh settings after update
+            await fetchStrategySettings(strategy: strategy, exchange: exchange, accountType: accountType)
+            return true
+        } catch {
+            print("Failed to update strategy settings: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
         }
     }
     
