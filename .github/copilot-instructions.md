@@ -1,7 +1,8 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.27.0 | Обновлено: 25 января 2026
+# Версия: 3.28.0 | Обновлено: 25 января 2026
 # =============================================
+# Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot
 
 ---
 
@@ -12,6 +13,8 @@
 | **Trading Streams** | `docs/TRADING_STREAMS_ARCHITECTURE.md` | Полная карта 60 торговых потоков |
 | **Copilot Instructions** | Этот файл | Правила для AI |
 | **Keyboard Helpers** | `keyboard_helpers.py` | Централизованный factory для кнопок |
+| **Sync Service** | `services/sync_service.py` | Кросс-платформенная синхронизация |
+| **Activity API** | `webapp/api/activity.py` | История активности пользователей |
 
 ---
 
@@ -78,19 +81,20 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Python файлов | 322 |
+| Python файлов | 325 |
 | HTML шаблонов | 44 |
 | CSS файлов | 15 |
 | JS файлов | 26 |
-| Swift файлов | 26 |
+| Swift файлов | 28 |
 | Тестов | 778 |
 | Языков перевода | 15 |
 | Ключей перевода | 1521 |
 | База данных | PostgreSQL 14 (ONLY) |
-| API endpoints | 120+ |
+| API endpoints | 127+ |
 | Migration files | 18 |
 | iOS Bundle ID | io.lyxen.LyxenTrading |
 | Xcode | 26.2 (17C52) |
+| **Cross-Platform Sync** | iOS ↔ WebApp ↔ Telegram |
 
 ## Структура проекта
 
@@ -137,6 +141,7 @@ Lyxen Trading Platform
 │   └── strategy_spec.py   # Strategy specifications
 │
 ├── services/              # Бизнес-логика
+│   ├── sync_service.py    # ⭐ Cross-platform sync (iOS↔WebApp↔Bot)
 │   ├── trading_service.py
 │   ├── signal_service.py
 │   ├── strategy_service.py
@@ -155,10 +160,24 @@ Lyxen Trading Platform
 │   ├── crypto.py          # HMAC подписи
 │   └── translation_sync.py # Синхронизация переводов
 │
+├── ios/                   # 📱 iOS приложение (Swift)
+│   └── LyxenTrading/
+│       ├── App/
+│       │   ├── LyxenTradingApp.swift
+│       │   ├── AppState.swift     # ⭐ Server sync
+│       │   └── Config.swift
+│       ├── Services/
+│       │   ├── WebSocketService.swift  # ⭐ Sync messages
+│       │   ├── NetworkService.swift
+│       │   └── AuthManager.swift
+│       ├── Views/                 # 12 SwiftUI views
+│       └── Extensions/
+│           └── Notification+Extensions.swift
+│
 ├── translations/          # 15 языков (679 ключей каждый)
 │   └── en.py              # REFERENCE файл
 │
-├── tests/                 # 664 теста (pytest)
+├── tests/                 # 778 тестов (pytest)
 └── logs/                  # Логи
 ```
 
@@ -177,7 +196,7 @@ Lyxen Trading Platform
 migrations/
 ├── __init__.py
 ├── runner.py              # CLI для управления миграциями
-└── versions/              # 14 миграционных файлов
+└── versions/              # 18 миграционных файлов
     ├── 001_initial_users.py
     ├── 002_signals.py
     ├── 003_trade_logs.py
@@ -191,7 +210,11 @@ migrations/
     ├── 011_user_devices.py
     ├── 012_pending_inputs.py
     ├── 013_elc_token.py
-    └── 014_backtest_results.py
+    ├── 014_backtest_results.py
+    ├── 015_ton_payments.py
+    ├── 016_session_tokens.py
+    ├── 017_marketplace_tables.py
+    └── 018_user_activity_log.py   # ⭐ Cross-platform sync
 ```
 
 ### Команды миграций
@@ -695,7 +718,172 @@ keyboard = build_keyboard([
 
 ---
 
+# � CROSS-PLATFORM SYNC SYSTEM (NEW! Jan 25, 2026)
+
+## Архитектура синхронизации
+
+```
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│   iOS App       │      │   WebApp        │      │ Telegram Bot    │
+│                 │      │                 │      │                 │
+│ WebSocketService│      │  users.py API   │      │   bot.py        │
+│   + AppState    │      │  + websocket.py │      │   handlers      │
+└────────┬────────┘      └────────┬────────┘      └────────┬────────┘
+         │                        │                        │
+         │   WS: exchange_switched, account_switched, settings_changed
+         │                        │                        │
+         └────────────────────────┴────────────────────────┘
+                                  │
+                      ┌───────────┴───────────┐
+                      │    PostgreSQL         │
+                      │  -------------------- │
+                      │  user_activity_log    │
+                      │  notification_queue   │
+                      │  users (settings)     │
+                      └───────────────────────┘
+```
+
+## Ключевые файлы
+
+| Файл | Описание |
+|------|----------|
+| `services/sync_service.py` | Центральный сервис синхронизации (450 строк) |
+| `webapp/api/activity.py` | REST API для истории активности (275 строк) |
+| `webapp/api/websocket.py` | WebSocket sync handlers |
+| `ios/.../WebSocketService.swift` | iOS WebSocket + WSSyncMessage |
+| `ios/.../Notification+Extensions.swift` | iOS sync notifications |
+| `migrations/versions/018_user_activity_log.py` | Таблицы для activity log |
+
+## Таблица user_activity_log
+
+```sql
+CREATE TABLE user_activity_log (
+    id              SERIAL PRIMARY KEY,
+    user_id         BIGINT NOT NULL,
+    action_type     TEXT NOT NULL,       -- 'settings_change', 'trade', 'exchange_switch'
+    action_category TEXT NOT NULL,       -- 'settings', 'trading', 'auth', 'exchange'
+    source          TEXT NOT NULL,       -- 'ios', 'webapp', 'telegram', 'api'
+    entity_type     TEXT,                -- 'strategy_settings', 'user_settings', 'position'
+    old_value       JSONB,
+    new_value       JSONB,
+    telegram_notified   BOOLEAN DEFAULT FALSE,
+    webapp_notified     BOOLEAN DEFAULT FALSE,
+    ios_notified        BOOLEAN DEFAULT FALSE,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+```
+
+## Использование SyncService
+
+```python
+from services.sync_service import sync_service
+
+# Логирование смены биржи
+await sync_service.sync_exchange_switch(
+    user_id=uid,
+    source="webapp",  # или "telegram", "ios"
+    old_exchange="bybit",
+    new_exchange="hyperliquid"
+)
+
+# Логирование изменения настроек
+await sync_service.sync_settings_change(
+    user_id=uid,
+    source="ios",
+    setting_name="strategy_oi",
+    old_value=None,
+    new_value=str(settings)
+)
+```
+
+## Activity API Endpoints
+
+| Endpoint | Описание |
+|----------|----------|
+| `GET /api/activity/history` | Полная история с фильтрами |
+| `GET /api/activity/recent` | Последние 10 активностей |
+| `GET /api/activity/by-source/{source}` | Фильтр по ios/webapp/telegram |
+| `GET /api/activity/settings-changes` | Только изменения настроек |
+| `GET /api/activity/sync-status` | Статус доставки уведомлений |
+| `POST /api/activity/trigger-sync` | Ручной запрос синхронизации |
+| `GET /api/activity/stats` | Статистика по source/type/day |
+
+## WebSocket Sync Messages
+
+```json
+// iOS → Server (WebSocketService.swift)
+{
+    "type": "exchange_switched",
+    "source": "ios",
+    "data": {
+        "exchange": "hyperliquid",
+        "timestamp": "2026-01-25T20:00:00Z"
+    }
+}
+
+// Server → iOS (handleSyncMessage)
+{
+    "type": "settings_changed",
+    "source": "webapp",
+    "data": {
+        "strategy": "oi",
+        "setting": "tp_percent",
+        "old_value": "5.0",
+        "new_value": "8.0"
+    }
+}
+```
+
+## iOS Notification Names
+
+```swift
+// ios/LyxenTrading/Extensions/Notification+Extensions.swift
+extension Notification.Name {
+    static let exchangeSwitched = Notification.Name("exchangeSwitched")
+    static let accountTypeSwitched = Notification.Name("accountTypeSwitched")
+    static let settingsChanged = Notification.Name("settingsChanged")
+    static let syncRequested = Notification.Name("syncRequested")
+}
+```
+
+## Graceful Fallbacks (Модульная независимость)
+
+Каждый модуль работает **автономно**:
+
+| Модуль | Автономная работа | При синхронизации |
+|--------|-------------------|-------------------|
+| **iOS App** | UserDefaults сохраняет локально | WS + REST sync при подключении |
+| **WebApp** | REST API работает без бота | Логирует в activity_log |
+| **Telegram Bot** | Полная функциональность без WebApp | Отправляет sync при доступности |
+| **SyncService** | try/except на все операции | Не ломает основной функционал |
+
+```python
+# services/sync_service.py - graceful fallback pattern
+try:
+    from services.sync_service import sync_service
+    asyncio.create_task(sync_service.sync_exchange_switch(...))
+except Exception as e:
+    logger.warning(f"Sync logging failed: {e}")
+    # Основная операция продолжается без синхронизации
+```
+
+---
+
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: Cross-Platform Sync System (Jan 25, 2026)
+- **Добавлено:** Полная кросс-платформенная синхронизация iOS ↔ WebApp ↔ Telegram
+- **Файлы:**
+  - `services/sync_service.py` - центральный сервис (450 строк)
+  - `webapp/api/activity.py` - REST API для истории (275 строк)
+  - `migrations/versions/018_user_activity_log.py` - таблицы БД
+  - `ios/.../WebSocketService.swift` - WSSyncMessage + handlers
+  - `ios/.../Notification+Extensions.swift` - sync notifications
+  - `webapp/api/websocket.py` - exchange_switched, settings_changed handlers
+  - `webapp/api/users.py` - sync_service интеграция в endpoints
+  - `bot.py` - sync logging при смене биржи
+- **Результат:** Изменения на любой платформе синхронизируются с остальными
+- **Commit:** a075891
 
 ### ✅ FEAT: iOS Exchange Switcher with Server Sync (Jan 25, 2026)
 - **Проблема:** iOS приложение не синхронизировало exchange/accountType изменения с сервером
@@ -1848,7 +2036,7 @@ static let wsURL = baseURL
 ---
 
 *Last updated: 25 января 2026*
-*Version: 3.24.0*
+*Version: 3.28.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
@@ -1861,3 +2049,5 @@ static let wsURL = baseURL
 *Translations: 15 languages, 1521 keys, common button keys*
 *Branding: Lyxen (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
+*Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot (user_activity_log table)*
+*iOS SwiftUI: 28 files, WebSocketService sync, Notification+Extensions*
