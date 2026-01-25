@@ -24627,6 +24627,7 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # With new multitenancy architecture, we just toggle the hl_testnet flag
         # Each network has its own credentials stored separately
+        from core.db_postgres import get_conn
         with get_conn() as conn:
             conn.execute("""
                 UPDATE users SET hl_testnet = ? WHERE user_id = ?
