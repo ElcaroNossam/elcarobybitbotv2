@@ -181,65 +181,69 @@ class OKXDataFetcher:
     
     def __init__(self):
         self.session: Optional[aiohttp.ClientSession] = None
+        self._max_retries = 2
         
     async def get_session(self) -> aiohttp.ClientSession:
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            timeout = aiohttp.ClientTimeout(total=15, connect=5)
+            connector = aiohttp.TCPConnector(limit=10, limit_per_host=5, force_close=True)
+            self.session = aiohttp.ClientSession(timeout=timeout, connector=connector)
         return self.session
         
     async def close(self):
         if self.session and not self.session.closed:
             await self.session.close()
+            self.session = None
+    
+    async def _fetch_with_retry(self, url: str, params: dict) -> Optional[dict]:
+        """Fetch with retry logic for connection issues"""
+        session = await self.get_session()
+        for attempt in range(self._max_retries + 1):
+            try:
+                async with session.get(url, params=params) as resp:
+                    if resp.status == 200:
+                        return await resp.json()
+                    return None
+            except (aiohttp.ClientError, ConnectionResetError, TimeoutError) as e:
+                if attempt < self._max_retries:
+                    logger.debug(f"OKX retry {attempt + 1}/{self._max_retries}: {e}")
+                    await self.close()  # Reset session
+                    continue
+                logger.warning(f"OKX fetch failed after {self._max_retries + 1} attempts: {e}")
+                return None
+            except Exception as e:
+                logger.error(f"OKX unexpected error: {e}")
+                return None
+        return None
     
     async def fetch_futures_tickers(self) -> List[dict]:
         """Fetch OKX futures 24hr ticker data"""
-        session = await self.get_session()
-        try:
-            async with session.get(f"{OKX_API}/api/v5/market/tickers", params={"instType": "SWAP"}) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    if data.get('code') == '0':
-                        tickers = data.get('data', [])
-                        # Filter USDT pairs
-                        usdt_pairs = [t for t in tickers if t.get('instId', '').endswith('-USDT-SWAP')]
-                        usdt_pairs.sort(key=lambda x: float(x.get('volCcy24h', 0)), reverse=True)
-                        return usdt_pairs[:50]
-                return []
-        except Exception as e:
-            logger.error(f"Error fetching OKX futures tickers: {e}")
-            return []
+        data = await self._fetch_with_retry(f"{OKX_API}/api/v5/market/tickers", {"instType": "SWAP"})
+        if data and data.get('code') == '0':
+            tickers = data.get('data', [])
+            # Filter USDT pairs
+            usdt_pairs = [t for t in tickers if t.get('instId', '').endswith('-USDT-SWAP')]
+            usdt_pairs.sort(key=lambda x: float(x.get('volCcy24h', 0)), reverse=True)
+            return usdt_pairs[:50]
+        return []
     
     async def fetch_spot_tickers(self) -> List[dict]:
         """Fetch OKX spot 24hr ticker data"""
-        session = await self.get_session()
-        try:
-            async with session.get(f"{OKX_API}/api/v5/market/tickers", params={"instType": "SPOT"}) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    if data.get('code') == '0':
-                        tickers = data.get('data', [])
-                        usdt_pairs = [t for t in tickers if t.get('instId', '').endswith('-USDT')]
-                        usdt_pairs.sort(key=lambda x: float(x.get('volCcy24h', 0)), reverse=True)
-                        return usdt_pairs[:50]
-                return []
-        except Exception as e:
-            logger.error(f"Error fetching OKX spot tickers: {e}")
-            return []
+        data = await self._fetch_with_retry(f"{OKX_API}/api/v5/market/tickers", {"instType": "SPOT"})
+        if data and data.get('code') == '0':
+            tickers = data.get('data', [])
+            usdt_pairs = [t for t in tickers if t.get('instId', '').endswith('-USDT')]
+            usdt_pairs.sort(key=lambda x: float(x.get('volCcy24h', 0)), reverse=True)
+            return usdt_pairs[:50]
+        return []
     
     async def fetch_funding_rates(self) -> Dict[str, float]:
         """Fetch OKX funding rates"""
-        session = await self.get_session()
-        try:
-            async with session.get(f"{OKX_API}/api/v5/public/funding-rate", params={"instType": "SWAP"}) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    if data.get('code') == '0':
-                        rates = data.get('data', [])
-                        return {r['instId']: float(r.get('fundingRate', 0)) for r in rates}
-                return {}
-        except Exception as e:
-            logger.error(f"Error fetching OKX funding rates: {e}")
-            return {}
+        data = await self._fetch_with_retry(f"{OKX_API}/api/v5/public/funding-rate", {"instType": "SWAP"})
+        if data and data.get('code') == '0':
+            rates = data.get('data', [])
+            return {r['instId']: float(r.get('fundingRate', 0)) for r in rates}
+        return {}
     
     def process_ticker(self, ticker: dict, funding_rates: Dict[str, float]) -> dict:
         """Process OKX ticker to unified format"""
