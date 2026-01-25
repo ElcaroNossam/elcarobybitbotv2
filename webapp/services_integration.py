@@ -319,7 +319,8 @@ def set_user_field_service(user_id: int, field: str, value: Any) -> None:
 def get_trade_stats_service(
     user_id: int,
     strategy: Optional[str] = None,
-    period: int = 30
+    period: int = 30,
+    exchange: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get trade statistics using services
@@ -329,11 +330,11 @@ def get_trade_stats_service(
     
     With:
         from webapp.services_integration import get_trade_stats_service
-        stats = get_trade_stats_service(user_id, strategy, period)
+        stats = get_trade_stats_service(user_id, strategy, period, exchange)
     """
     try:
         import db
-        return db.get_trade_stats(user_id, strategy, period)
+        return db.get_trade_stats(user_id, strategy=strategy, period=str(period), exchange=exchange)
     except Exception as e:
         logger.error(f"get_trade_stats_service error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -10483,7 +10483,7 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
             )
             
             # Get active positions from DB to enrich with stored TP/SL
-            db_positions = db.get_active_positions(uid, account_type=account_type)
+            db_positions = db.get_active_positions(uid, account_type=account_type, exchange=exchange_type)
             db_by_symbol = {p['symbol']: p for p in db_positions}
             
             # Convert to dicts for backward compatibility
@@ -11081,8 +11081,9 @@ async def show_all_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
     
     # Get DB positions for strategy info
-    demo_db = db.get_active_positions(uid, account_type="demo")
-    real_db = db.get_active_positions(uid, account_type="real")
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    demo_db = db.get_active_positions(uid, account_type="demo", exchange=user_exchange)
+    real_db = db.get_active_positions(uid, account_type="real", exchange=user_exchange)
     
     total_pnl = 0.0
     total_im = 0.0
@@ -12561,7 +12562,8 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             
             # Get active position info for strategy
-            active_pos = get_active_positions(uid, account_type=account_type)
+            user_exchange = db.get_exchange_type(uid) or "bybit"
+            active_pos = get_active_positions(uid, account_type=account_type, exchange=user_exchange)
             ap = next((a for a in active_pos if a["symbol"] == symbol), None)
             strategy = ap.get("strategy") if ap else None
             strategy_display = {
@@ -12716,7 +12718,8 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         errors = 0
         total_pnl = 0.0
         closed_positions = []
-        active_list = get_active_positions(uid, account_type=account_type)
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        active_list = get_active_positions(uid, account_type=account_type, exchange=user_exchange)
         
         for pos in positions:
             try:
@@ -13095,7 +13098,8 @@ async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_
         if not account_types:
             return 0.0
         
-        db_positions = db.get_active_positions(user_id, account_type=account_type)
+        user_exchange = db.get_exchange_type(user_id) or "bybit"
+        db_positions = db.get_active_positions(user_id, account_type=account_type, exchange=user_exchange)
         
         # Build a mapping of symbol -> strategy from DB
         symbol_strategy_map = {p["symbol"]: p.get("strategy") for p in db_positions}
@@ -13166,8 +13170,11 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     creds = db.get_all_user_credentials(uid)
     default_account = "real" if creds.get("real_api_key") else "demo"
     
+    # Get user's active exchange for 4D multitenancy filtering
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    
     # Default: all strategies, all time, detected account
-    stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account)
+    stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account, exchange=user_exchange)
     period_label = t.get('stats_period_all', 'All time')
     
     # Get unrealized PnL from open positions for the selected account
@@ -13245,7 +13252,8 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Special handling for Manual trades (NULL strategy)
     if strategy == "manual":
         from db import get_trade_stats_unknown
-        stats = get_trade_stats_unknown(uid, period=period, account_type=account_type)
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        stats = get_trade_stats_unknown(uid, period=period, account_type=account_type, exchange=user_exchange)
         # Format manual stats with minimal info
         strat_display = "✋ Manual"
         account_display = ACCOUNT_DISPLAY_NAMES.get(account_type, account_type.capitalize())
@@ -13265,7 +13273,8 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Get stats based on selection
     strat_filter = None if strategy == "all" else strategy
-    stats = get_trade_stats(uid, strategy=strat_filter, period=period, account_type=account_type)
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    stats = get_trade_stats(uid, strategy=strat_filter, period=period, account_type=account_type, exchange=user_exchange)
     
     # OPTIMIZED: Get unrealized PnL and API PnL in parallel
     async def get_api_pnl():
@@ -16093,7 +16102,7 @@ async def monitor_positions_loop(app: Application):
                         
                         open_positions = await fetch_open_positions(uid, account_type=current_account_type)
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
-                        active = get_active_positions(uid, account_type=current_account_type)
+                        active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         
                         existing_syms = {ap.get("symbol") for ap in active if ap.get("symbol")}
                         tf_map = {ap.get('symbol'): ap.get('timeframe', '24h') for ap in active if ap.get('symbol')}
@@ -16168,7 +16177,7 @@ async def monitor_positions_loop(app: Application):
                                         remove_pending_limit_order(uid, order_id)
 
                         # Refresh active positions for this account type
-                        active = get_active_positions(uid, account_type=current_account_type)
+                        active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         existing_syms = {ap.get("symbol") for ap in active if ap.get("symbol")}
                         tf_map = {ap.get("symbol"): ap.get("timeframe", "24h") for ap in active if ap.get("symbol")}
                         
@@ -16521,7 +16530,7 @@ async def monitor_positions_loop(app: Application):
                                     if "no open positions" not in str(e).lower():
                                         logger.error(f"Errors with SL/TP for {sym}: {e}")
 
-                        active = get_active_positions(uid, account_type=current_account_type)
+                        active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
 
                         for ap in active:
                             sym = ap.get("symbol")
@@ -16835,7 +16844,7 @@ async def monitor_positions_loop(app: Application):
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
 
-                        active = get_active_positions(uid, account_type=current_account_type)
+                        active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         tf_map = { ap['symbol']: ap.get('timeframe','15m') for ap in active }  # Default 15m
                         strategy_map = { ap['symbol']: ap.get('strategy') for ap in active }
                         # Use current_account_type as fallback instead of hardcoded 'demo'
@@ -17249,7 +17258,7 @@ async def monitor_positions_loop(app: Application):
                         if now - _last_stale_cleanup.get(cleanup_key, 0) >= cleanup_interval:
                             _last_stale_cleanup[cleanup_key] = now
                             # Get DB positions for this account
-                            db_positions = get_active_positions(uid, account_type=current_account_type)
+                            db_positions = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                             # Find stale: in DB but not on exchange
                             for db_pos in db_positions:
                                 db_sym = db_pos.get("symbol")

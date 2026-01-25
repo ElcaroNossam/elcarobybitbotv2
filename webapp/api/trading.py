@@ -1214,7 +1214,7 @@ async def get_trading_stats(
     
     try:
         # Use db module's get_trade_stats which works with PostgreSQL
-        stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=account_type)
+        stats = db.get_trade_stats(user_id, strategy=None, period=period, account_type=account_type, exchange=exchange)
         
         # Map database field names to API response field names
         total = stats.get("total", 0)

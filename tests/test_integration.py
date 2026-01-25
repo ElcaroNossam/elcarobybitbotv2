@@ -63,7 +63,8 @@ class TestDatabaseIntegration:
             timeframe="4h",
             signal_id=None,
             strategy="elcaro",
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"  # 4D schema
         )
         
         # Get positions
@@ -200,7 +201,8 @@ class TestTradingWorkflow:
                 timeframe="4h",
                 signal_id=None,
                 strategy=None,
-                account_type="demo"
+                account_type="demo",
+                exchange="bybit"  # 4D schema
             )
         
         # Get all positions
@@ -236,7 +238,8 @@ class TestTradingWorkflow:
             timeframe="4h",
             signal_id=None,
             strategy=None,
-            account_type="demo"
+            account_type="demo",
+            exchange="bybit"  # 4D schema
         )
         
         positions = db.get_active_positions(test_user_id)

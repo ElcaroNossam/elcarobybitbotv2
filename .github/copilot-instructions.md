@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.25.0 | Обновлено: 25 января 2026
+# Версия: 3.26.0 | Обновлено: 25 января 2026
 # =============================================
 
 ---
@@ -696,6 +696,25 @@ keyboard = build_keyboard([
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: Full Multitenancy Exchange Parameter Propagation (Jan 25, 2026)
+- **Проблема:** Многие вызовы `get_trade_stats()`, `get_active_positions()`, `get_trade_stats_unknown()` не передавали `exchange` параметр
+- **Причина:** При аудите 4D схемы (user_id, strategy, side, exchange) обнаружено ~15 мест без передачи exchange
+- **Исправленные файлы:**
+  - `bot.py` - 12 вызовов get_active_positions() с добавлением exchange=current_exchange/user_exchange
+  - `bot.py` - 3 вызова get_trade_stats() с добавлением exchange=user_exchange
+  - `bot.py` - 1 вызов get_trade_stats_unknown() с добавлением exchange
+  - `core/db_async.py` - добавлен exchange параметр в async get_active_positions()
+  - `webapp/api/trading.py` - добавлен exchange в get_trade_stats() вызов
+  - `webapp/services_integration.py` - добавлен exchange параметр в get_trade_stats_service()
+  - `tests/test_integration.py` - добавлен exchange в 3 теста add_active_position()
+- **Ключевые места:**
+  - Monitor loops: все 5 вызовов get_active_positions() теперь передают current_exchange
+  - Stats handlers: cmd_trade_stats + on_stats_callback передают user_exchange
+  - Close handlers: manual close + close all передают user_exchange
+  - Stale cleanup: передаёт current_exchange
+- **Результат:** Все запросы к БД теперь корректно фильтруют по exchange для 4D multitenancy
+- **Commit:** pending
 
 ### ✅ CRITICAL: SQLite → PostgreSQL Migration for WebApp API (Jan 25, 2026)
 - **Проблема:** 3 API файла (marketplace.py, admin.py, backtest.py) использовали sqlite3.connect вместо PostgreSQL!

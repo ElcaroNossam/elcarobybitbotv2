@@ -232,18 +232,30 @@ async def remove_active_position(user_id: int, symbol: str, account_type: str = 
         """, user_id, symbol, account_type)
 
 
-async def get_active_positions(user_id: int, account_type: str = None) -> List[Dict[str, Any]]:
-    """Get active positions for user"""
+async def get_active_positions(user_id: int, account_type: str = None, exchange: str = None) -> List[Dict[str, Any]]:
+    """Get active positions for user with multitenancy support.
+    
+    Args:
+        user_id: User's Telegram ID
+        account_type: 'demo', 'real', 'testnet', 'mainnet'
+        exchange: 'bybit', 'hyperliquid' - for 4D schema filtering
+    """
     async with get_connection() as conn:
+        query = "SELECT * FROM active_positions WHERE user_id = $1"
+        params = [user_id]
+        param_idx = 2
+        
         if account_type:
-            rows = await conn.fetch("""
-                SELECT * FROM active_positions 
-                WHERE user_id = $1 AND account_type = $2
-            """, user_id, account_type)
-        else:
-            rows = await conn.fetch("""
-                SELECT * FROM active_positions WHERE user_id = $1
-            """, user_id)
+            query += f" AND account_type = ${param_idx}"
+            params.append(account_type)
+            param_idx += 1
+        
+        if exchange:
+            query += f" AND exchange = ${param_idx}"
+            params.append(exchange)
+            param_idx += 1
+        
+        rows = await conn.fetch(query, *params)
         return [dict(row) for row in rows]
 
 
