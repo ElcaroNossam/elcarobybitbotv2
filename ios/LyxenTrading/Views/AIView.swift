@@ -2,13 +2,14 @@
 //  AIView.swift
 //  LyxenTrading
 //
-//  AI analysis and market sentiment view
+//  AI analysis and market sentiment view with localization
 //
 
 import SwiftUI
 
 struct AIView: View {
     @StateObject private var ai = AIService.shared
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var selectedSymbol = "BTCUSDT"
     @State private var selectedTimeframe = "1h"
     @State private var showingSymbolPicker = false
@@ -56,7 +57,8 @@ struct AIView: View {
                 }
                 .padding()
             }
-            .navigationTitle("AI Analysis")
+            .navigationTitle("ai_title".localized)
+            .withRTLSupport()
             .refreshable {
                 await ai.fetchMarketSentiment()
             }

@@ -2,13 +2,14 @@
 //  ActivityView.swift
 //  LyxenTrading
 //
-//  Cross-platform activity sync view
+//  Cross-platform activity sync view with localization
 //
 
 import SwiftUI
 
 struct ActivityView: View {
     @StateObject private var activity = ActivityService.shared
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var selectedSource: String?
     @State private var selectedCategory: String?
     
@@ -78,9 +79,9 @@ struct ActivityView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    Text("No Activity")
+                    Text("activity_title".localized)
                         .font(.headline)
-                    Text("Your cross-platform activity will appear here")
+                    Text("activity_no_recent".localized)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -92,8 +93,9 @@ struct ActivityView: View {
                 .listStyle(PlainListStyle())
             }
         }
-        .navigationTitle("Activity")
+        .navigationTitle("activity_title".localized)
         .navigationBarTitleDisplayMode(.inline)
+        .withRTLSupport()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {

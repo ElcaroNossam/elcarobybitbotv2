@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  LyxenTrading
 //
-//  User settings and configuration
+//  User settings and configuration with full localization support
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var tradingService: TradingService
+    @ObservedObject var localization = LocalizationManager.shared
     
     @State private var showLogoutConfirmation = false
     @State private var showAPIKeySheet = false
@@ -51,7 +52,7 @@ struct SettingsView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: "crown.fill")
                                                 .font(.caption2)
-                                            Text("Premium")
+                                            Text("premium_active".localized)
                                                 .font(.caption2.weight(.medium))
                                         }
                                         .foregroundColor(.lyxenYellow)
@@ -61,7 +62,7 @@ struct SettingsView: View {
                             .padding(.vertical, 8)
                         }
                     } header: {
-                        Text("Account")
+                        Text("settings_account".localized)
                     }
                     .listRowBackground(Color.lyxenCard)
                     
@@ -74,7 +75,7 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "arrow.left.arrow.right.circle.fill",
                                 iconColor: .lyxenPrimary,
-                                title: "Default Exchange",
+                                title: "settings_exchange".localized,
                                 value: appState.selectedExchange.displayName
                             )
                         }
@@ -84,8 +85,8 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "key.fill",
                                 iconColor: .lyxenYellow,
-                                title: "API Keys",
-                                value: "Configure"
+                                title: "settings_api_keys".localized,
+                                value: ""
                             )
                         }
                         
@@ -96,7 +97,7 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "dial.medium.fill",
                                 iconColor: .lyxenOrange,
-                                title: "Default Leverage",
+                                title: "settings_leverage".localized,
                                 value: "10x"
                             )
                         }
@@ -108,12 +109,12 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "shield.fill",
                                 iconColor: .lyxenGreen,
-                                title: "Risk Management",
+                                title: "settings_risk".localized,
                                 value: ""
                             )
                         }
                     } header: {
-                        Text("Trading")
+                        Text("settings_trading".localized)
                     }
                     .listRowBackground(Color.lyxenCard)
                     
@@ -125,24 +126,36 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "bell.fill",
                                 iconColor: .lyxenBlue,
-                                title: "Notifications",
+                                title: "settings_notifications".localized,
                                 value: ""
                             )
                         }
                     } header: {
-                        Text("Notifications")
+                        Text("settings_notifications".localized)
                     }
                     .listRowBackground(Color.lyxenCard)
                     
                     // App Section
                     Section {
+                        // Language
+                        NavigationLink {
+                            LanguageSettingsView()
+                        } label: {
+                            SettingsRow(
+                                icon: "globe",
+                                iconColor: .lyxenBlue,
+                                title: "settings_language".localized,
+                                value: "\(localization.currentLanguage.flag) \(localization.currentLanguage.displayName)"
+                            )
+                        }
+                        
                         NavigationLink {
                             AppearanceSettingsView()
                         } label: {
                             SettingsRow(
                                 icon: "paintbrush.fill",
                                 iconColor: .purple,
-                                title: "Appearance",
+                                title: "settings_appearance".localized,
                                 value: "Dark"
                             )
                         }
@@ -153,7 +166,7 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "info.circle.fill",
                                 iconColor: .lyxenTextSecondary,
-                                title: "About",
+                                title: "settings_about".localized,
                                 value: "v1.0.0"
                             )
                         }
@@ -163,7 +176,7 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "hand.raised.fill",
                                 iconColor: .lyxenTextMuted,
-                                title: "Privacy Policy",
+                                title: "settings_privacy".localized,
                                 value: "",
                                 showChevron: false
                             )
@@ -174,13 +187,13 @@ struct SettingsView: View {
                             SettingsRow(
                                 icon: "doc.text.fill",
                                 iconColor: .lyxenTextMuted,
-                                title: "Terms of Service",
+                                title: "settings_terms".localized,
                                 value: "",
                                 showChevron: false
                             )
                         }
                     } header: {
-                        Text("App")
+                        Text("settings_app".localized)
                     }
                     .listRowBackground(Color.lyxenCard)
                     
@@ -189,7 +202,7 @@ struct SettingsView: View {
                         Button(action: { showLogoutConfirmation = true }) {
                             HStack {
                                 Spacer()
-                                Text("Log Out")
+                                Text("settings_logout".localized)
                                     .foregroundColor(.lyxenRed)
                                     .fontWeight(.medium)
                                 Spacer()
@@ -201,19 +214,20 @@ struct SettingsView: View {
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Settings")
+            .navigationTitle("settings_title".localized)
             .navigationBarTitleDisplayMode(.large)
-            .alert("Log Out", isPresented: $showLogoutConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Log Out", role: .destructive) {
+            .alert("settings_logout".localized, isPresented: $showLogoutConfirmation) {
+                Button("common_cancel".localized, role: .cancel) {}
+                Button("settings_logout".localized, role: .destructive) {
                     authManager.logout()
                 }
             } message: {
-                Text("Are you sure you want to log out?")
+                Text("settings_logout_confirm".localized)
             }
             .sheet(isPresented: $showAPIKeySheet) {
                 APIKeysSheetView()
             }
+            .withRTLSupport()
         }
     }
 }

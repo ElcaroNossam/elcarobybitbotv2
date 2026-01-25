@@ -10,6 +10,7 @@ import SwiftUI
 struct PortfolioView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var tradingService: TradingService
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var isRefreshing = false
     
     var body: some View {
@@ -40,7 +41,8 @@ struct PortfolioView: View {
                     await tradingService.refreshAll()
                 }
             }
-            .navigationTitle("Portfolio")
+            .navigationTitle("portfolio_title".localized)
+            .withRTLSupport()
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -95,7 +97,7 @@ struct PortfolioView: View {
     private var balanceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Total Balance")
+                Text("portfolio_balance".localized)
                     .font(.subheadline)
                     .foregroundColor(.lyxenTextSecondary)
                 Spacer()
@@ -112,7 +114,7 @@ struct PortfolioView: View {
                 
                 HStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Available")
+                        Text("portfolio_available".localized)
                             .font(.caption)
                             .foregroundColor(.lyxenTextSecondary)
                         Text("$\(balance.available.formattedPrice)")

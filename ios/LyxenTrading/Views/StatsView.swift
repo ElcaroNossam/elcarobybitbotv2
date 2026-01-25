@@ -2,7 +2,7 @@
 //  StatsView.swift
 //  LyxenTrading
 //
-//  Trading statistics dashboard view
+//  Trading statistics dashboard view with localization
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import SwiftUI
 struct StatsView: View {
     @StateObject private var stats = StatsService.shared
     @EnvironmentObject private var appState: AppState
+    @ObservedObject var localization = LocalizationManager.shared
     
     var body: some View {
         NavigationView {
@@ -47,7 +48,8 @@ struct StatsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Statistics")
+            .navigationTitle("stats_title".localized)
+            .withRTLSupport()
             .refreshable {
                 await stats.refreshAll(accountType: appState.accountType)
             }

@@ -4,6 +4,7 @@
 //
 //  Professional Trading Platform for iOS
 //  Integrated with Lyxen Backend API
+//  Full localization support for 15 languages
 //
 
 import SwiftUI
@@ -13,6 +14,7 @@ struct LyxenTradingApp: App {
     @StateObject private var authManager = AuthManager.shared
     @StateObject private var appState = AppState.shared
     @StateObject private var tradingService = TradingService.shared
+    @StateObject private var localization = LocalizationManager.shared
     
     init() {
         configureAppearance()
@@ -24,7 +26,9 @@ struct LyxenTradingApp: App {
                 .environmentObject(authManager)
                 .environmentObject(appState)
                 .environmentObject(tradingService)
+                .environmentObject(localization)
                 .preferredColorScheme(.dark)
+                .withRTLSupport()
         }
     }
     
@@ -53,6 +57,7 @@ struct LyxenTradingApp: App {
 struct RootView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var appState: AppState
+    @ObservedObject var localization = LocalizationManager.shared
     
     var body: some View {
         Group {
@@ -68,10 +73,10 @@ struct RootView: View {
         .onAppear {
             authManager.checkAuthStatus()
         }
-        .alert("Error", isPresented: $appState.showError) {
-            Button("OK") { appState.clearError() }
+        .alert("common_error".localized, isPresented: $appState.showError) {
+            Button("common_ok".localized) { appState.clearError() }
         } message: {
-            Text(appState.errorMessage ?? "Unknown error")
+            Text(appState.errorMessage ?? "error_unknown".localized)
         }
     }
 }

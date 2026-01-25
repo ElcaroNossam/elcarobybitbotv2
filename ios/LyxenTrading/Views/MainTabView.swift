@@ -2,7 +2,7 @@
 //  MainTabView.swift
 //  LyxenTrading
 //
-//  Main tab navigation with all features
+//  Main tab navigation with all features and localization
 //
 
 import SwiftUI
@@ -11,45 +11,47 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var tradingService: TradingService
+    @ObservedObject var localization = LocalizationManager.shared
     
     var body: some View {
         TabView(selection: $selectedTab) {
             // Portfolio Tab
             PortfolioView()
                 .tabItem {
-                    Label("Portfolio", systemImage: "chart.pie.fill")
+                    Label("nav_portfolio".localized, systemImage: "chart.pie.fill")
                 }
                 .tag(0)
             
             // Trading Tab
             TradingView()
                 .tabItem {
-                    Label("Trade", systemImage: "arrow.left.arrow.right")
+                    Label("nav_trading".localized, systemImage: "arrow.left.arrow.right")
                 }
                 .tag(1)
             
             // Positions Tab
             PositionsView()
                 .tabItem {
-                    Label("Positions", systemImage: "list.bullet.rectangle")
+                    Label("nav_positions".localized, systemImage: "list.bullet.rectangle")
                 }
                 .tag(2)
             
             // More Tab (contains additional features)
             MoreView()
                 .tabItem {
-                    Label("More", systemImage: "square.grid.2x2.fill")
+                    Label("nav_more".localized, systemImage: "square.grid.2x2.fill")
                 }
                 .tag(3)
             
             // Settings Tab
             SettingsView()
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("nav_settings".localized, systemImage: "gearshape.fill")
                 }
                 .tag(4)
         }
         .tint(Color.lyxenPrimary)
+        .withRTLSupport()
         .onAppear {
             Task {
                 await tradingService.refreshAll()
@@ -61,6 +63,8 @@ struct MainTabView: View {
 
 // MARK: - More View (Hub for additional features)
 struct MoreView: View {
+    @ObservedObject var localization = LocalizationManager.shared
+    
     var body: some View {
         NavigationView {
             List {
@@ -78,7 +82,7 @@ struct MoreView: View {
                 NavigationLink(destination: StatsView()) {
                     MoreMenuItem(
                         icon: "chart.bar.fill",
-                        title: "Statistics",
+                        title: "stats_title".localized,
                         subtitle: "Trading performance analytics",
                         color: .blue
                     )
@@ -88,7 +92,7 @@ struct MoreView: View {
                 NavigationLink(destination: ScreenerView()) {
                     MoreMenuItem(
                         icon: "magnifyingglass.circle.fill",
-                        title: "Screener",
+                        title: "screener_title".localized,
                         subtitle: "Market scanner & filters",
                         color: .orange
                     )
@@ -98,7 +102,7 @@ struct MoreView: View {
                 NavigationLink(destination: AIView()) {
                     MoreMenuItem(
                         icon: "cpu",
-                        title: "AI Analysis",
+                        title: "ai_title".localized,
                         subtitle: "AI-powered market insights",
                         color: .green
                     )
@@ -108,7 +112,7 @@ struct MoreView: View {
                 NavigationLink(destination: SignalsView()) {
                     MoreMenuItem(
                         icon: "bell.fill",
-                        title: "Signals",
+                        title: "signals_title".localized,
                         subtitle: "Trading signals & alerts",
                         color: .red
                     )
@@ -118,15 +122,16 @@ struct MoreView: View {
                 NavigationLink(destination: ActivityView()) {
                     MoreMenuItem(
                         icon: "arrow.triangle.2.circlepath",
-                        title: "Activity",
+                        title: "activity_title".localized,
                         subtitle: "Cross-platform sync history",
                         color: .cyan
                     )
                 }
             }
             .listStyle(InsetGroupedListStyle())
-            .navigationTitle("More")
+            .navigationTitle("nav_more".localized)
         }
+        .withRTLSupport()
     }
 }
 

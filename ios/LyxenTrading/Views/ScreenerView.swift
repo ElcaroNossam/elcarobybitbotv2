@@ -2,13 +2,14 @@
 //  ScreenerView.swift
 //  LyxenTrading
 //
-//  Market screener view with filters
+//  Market screener view with filters and localization
 //
 
 import SwiftUI
 
 struct ScreenerView: View {
     @StateObject private var screener = ScreenerService.shared
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var searchText = ""
     @State private var selectedSymbol: ScreenerSymbol?
     @State private var showingDetail = false
@@ -64,8 +65,9 @@ struct ScreenerView: View {
                     .listStyle(PlainListStyle())
                 }
             }
-            .navigationTitle("Screener")
-            .searchable(text: $searchText, prompt: "Search symbols")
+            .navigationTitle("screener_title".localized)
+            .searchable(text: $searchText, prompt: "market_search".localized)
+            .withRTLSupport()
             .refreshable {
                 await screener.refreshAll()
             }

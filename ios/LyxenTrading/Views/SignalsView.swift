@@ -2,13 +2,14 @@
 //  SignalsView.swift
 //  LyxenTrading
 //
-//  Trading signals view
+//  Trading signals view with localization
 //
 
 import SwiftUI
 
 struct SignalsView: View {
     @StateObject private var signalsService = SignalsService.shared
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var selectedTab = 0
     @State private var selectedStrategy: String?
     
@@ -17,9 +18,9 @@ struct SignalsView: View {
             VStack(spacing: 0) {
                 // Tab Picker
                 Picker("", selection: $selectedTab) {
-                    Text("Active").tag(0)
-                    Text("All").tag(1)
-                    Text("Stats").tag(2)
+                    Text("signals_active".localized).tag(0)
+                    Text("common_all".localized).tag(1)
+                    Text("stats_title".localized).tag(2)
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding()
@@ -39,7 +40,8 @@ struct SignalsView: View {
                     EmptyView()
                 }
             }
-            .navigationTitle("Signals")
+            .navigationTitle("signals_title".localized)
+            .withRTLSupport()
             .refreshable {
                 await signalsService.refreshAll()
             }

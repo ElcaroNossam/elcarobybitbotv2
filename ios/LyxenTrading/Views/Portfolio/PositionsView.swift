@@ -10,6 +10,7 @@ import SwiftUI
 struct PositionsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var tradingService: TradingService
+    @ObservedObject var localization = LocalizationManager.shared
     @State private var selectedTab = 0
     @State private var showCloseConfirmation = false
     @State private var positionToClose: Position?
@@ -34,8 +35,9 @@ struct PositionsView: View {
                     .tabViewStyle(.page(indexDisplayMode: .never))
                 }
             }
-            .navigationTitle("Positions")
+            .navigationTitle("positions_title".localized)
             .navigationBarTitleDisplayMode(.large)
+            .withRTLSupport()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { Task { await tradingService.refreshAll() } }) {
@@ -44,9 +46,9 @@ struct PositionsView: View {
                     }
                 }
             }
-            .alert("Close Position", isPresented: $showCloseConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Close", role: .destructive) {
+            .alert("positions_close".localized, isPresented: $showCloseConfirmation) {
+                Button("common_cancel".localized, role: .cancel) {}
+                Button("positions_close".localized, role: .destructive) {
                     if let position = positionToClose {
                         closePosition(position)
                     }
@@ -66,8 +68,8 @@ struct PositionsView: View {
     // MARK: - Tab Selector
     private var tabSelector: some View {
         HStack(spacing: 0) {
-            ForEach(["Positions", "Orders"].indices, id: \.self) { index in
-                let title = ["Positions", "Orders"][index]
+            ForEach(["positions_title".localized, "orders_title".localized].indices, id: \.self) { index in
+                let title = ["positions_title".localized, "orders_title".localized][index]
                 let count = index == 0 ? tradingService.positions.count : tradingService.orders.count
                 
                 Button(action: { withAnimation { selectedTab = index } }) {
