@@ -18,6 +18,7 @@ struct User: Codable, Identifiable {
     let lang: String?
     let exchangeType: String?
     let tradingMode: String?
+    let hlTestnet: Bool?
     let isAllowed: Bool?
     let isPremium: Bool?
     let licenseType: String?
@@ -33,6 +34,7 @@ struct User: Codable, Identifiable {
         case lang
         case exchangeType = "exchange_type"
         case tradingMode = "trading_mode"
+        case hlTestnet = "hl_testnet"
         case isAllowed = "is_allowed"
         case isPremium = "is_premium"
         case licenseType = "license_type"

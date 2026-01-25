@@ -72,9 +72,14 @@ async def get_settings(
     """Get user settings for specified exchange."""
     user_id = user["user_id"]
     creds = db.get_all_user_credentials(user_id)
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    # Common global settings for all responses
+    exchange_type = db.get_exchange_type(user_id) or "bybit"
+    trading_mode = creds.get("trading_mode", "demo")
+    hl_testnet = hl_creds.get("hl_testnet", False)
     
     if exchange == "hyperliquid":
-        hl_creds = db.get_hl_credentials(user_id)
         # Check both new architecture and legacy format
         has_key = bool(
             hl_creds.get("hl_testnet_private_key") or 
@@ -82,21 +87,30 @@ async def get_settings(
             hl_creds.get("hl_private_key")
         )
         return {
+            # Global settings
+            "exchange_type": exchange_type,
+            "trading_mode": trading_mode,
+            "hl_testnet": hl_testnet,
+            # Exchange-specific settings
             "percent": creds.get("hl_percent", 5),
             "leverage": creds.get("hl_leverage", 10),
             "tp_percent": creds.get("hl_tp_percent", 2),
             "sl_percent": creds.get("hl_sl_percent", 1),
-            "testnet": hl_creds.get("hl_testnet", False),
+            "testnet": hl_testnet,
             "has_key": has_key,
             "wallet": hl_creds.get("hl_wallet_address", "")[:10] + "..." if hl_creds.get("hl_wallet_address") else None,
         }
     else:
         return {
+            # Global settings
+            "exchange_type": exchange_type,
+            "trading_mode": trading_mode,
+            "hl_testnet": hl_testnet,
+            # Exchange-specific settings
             "percent": creds.get("percent", 5),
             "leverage": creds.get("leverage", 10),
             "tp_percent": creds.get("tp_percent", 2),
             "sl_percent": creds.get("sl_percent", 1),
-            "trading_mode": creds.get("trading_mode", "demo"),
             "enable_scryptomera": creds.get("enable_scryptomera", False),
             "enable_elcaro": creds.get("enable_elcaro", False),
             "enable_wyckoff": creds.get("enable_wyckoff", False),
@@ -115,12 +129,17 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
     """Get current authenticated user info for quick UI setup."""
     user_id = user["user_id"]
     creds = db.get_all_user_credentials(user_id)
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    # Get exchange type from correct field
+    exchange_type = db.get_exchange_type(user_id) or "bybit"
     
     return {
         "user": {
             "user_id": user_id,
-            "exchange_type": creds.get("exchange_mode") or creds.get("active_exchange") or "bybit",
+            "exchange_type": exchange_type,
             "trading_mode": creds.get("trading_mode", "demo"),
+            "hl_testnet": hl_creds.get("hl_testnet", False),
             "leverage": creds.get("leverage", 10),
             "language": creds.get("lang", "en"),
             "is_allowed": creds.get("is_allowed", False),

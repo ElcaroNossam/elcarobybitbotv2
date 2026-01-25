@@ -24625,12 +24625,14 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         current_testnet = hl_creds.get("hl_testnet", False)
         new_testnet = not current_testnet
         
-        set_hl_credentials(
-            uid,
-            hl_creds["hl_private_key"],
-            hl_creds.get("hl_vault_address"),
-            new_testnet
-        )
+        # With new multitenancy architecture, we just toggle the hl_testnet flag
+        # Each network has its own credentials stored separately
+        with get_conn() as conn:
+            conn.execute("""
+                UPDATE users SET hl_testnet = ? WHERE user_id = ?
+            """, (new_testnet, uid))
+            conn.commit()
+        db.invalidate_user_cache(uid)
         
         network = "Testnet" if new_testnet else "Mainnet"
         await q.edit_message_text(

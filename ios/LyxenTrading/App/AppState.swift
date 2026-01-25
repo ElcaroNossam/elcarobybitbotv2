@@ -73,11 +73,99 @@ class AppState: ObservableObject {
             currentAccountType = tradingMode == .real ? .real : .demo
         }
         savePreferences()
+        
+        // Sync with server in background
+        Task {
+            await syncExchangeWithServer(exchange: exchange)
+        }
     }
     
     func switchAccountType(to type: AccountType) {
         currentAccountType = type
         savePreferences()
+        
+        // Sync with server in background
+        Task {
+            await syncAccountTypeWithServer(accountType: type)
+        }
+    }
+    
+    // MARK: - Server Sync
+    
+    /// Sync exchange preference with server
+    private func syncExchangeWithServer(exchange: Exchange) async {
+        do {
+            let _: EmptyResponse = try await NetworkService.shared.post(
+                Config.Endpoints.switchExchange,
+                body: ["exchange_type": exchange.rawValue]
+            )
+            print("✅ Exchange synced with server: \(exchange.rawValue)")
+        } catch {
+            print("⚠️ Failed to sync exchange with server: \(error.localizedDescription)")
+            // Local preference is still saved, will sync on next opportunity
+        }
+    }
+    
+    /// Sync account type preference with server
+    private func syncAccountTypeWithServer(accountType: AccountType) async {
+        do {
+            let _: EmptyResponse = try await NetworkService.shared.post(
+                Config.Endpoints.switchAccountType,
+                body: ["account_type": accountType.rawValue]
+            )
+            print("✅ Account type synced with server: \(accountType.rawValue)")
+        } catch {
+            print("⚠️ Failed to sync account type with server: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Load exchange preference from server on login
+    func syncFromServer() async {
+        do {
+            let serverSettings: ServerSettings = try await NetworkService.shared.get(
+                Config.Endpoints.settings
+            )
+            
+            await MainActor.run {
+                if let exchangeRaw = serverSettings.exchangeType,
+                   let exchange = Exchange(rawValue: exchangeRaw) {
+                    self.currentExchange = exchange
+                }
+                
+                if let modeRaw = serverSettings.tradingMode,
+                   let mode = TradingMode(rawValue: modeRaw) {
+                    self.tradingMode = mode
+                }
+                
+                // Set appropriate account type based on exchange and mode
+                if currentExchange == .hyperliquid {
+                    currentAccountType = serverSettings.hlTestnet == true ? .testnet : .mainnet
+                } else {
+                    currentAccountType = tradingMode == .real ? .real : .demo
+                }
+                
+                savePreferences()
+            }
+            print("✅ Settings synced from server")
+        } catch {
+            print("⚠️ Failed to sync settings from server: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Helper Models
+
+struct EmptyResponse: Codable {}
+
+struct ServerSettings: Codable {
+    let exchangeType: String?
+    let tradingMode: String?
+    let hlTestnet: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case exchangeType = "exchange_type"
+        case tradingMode = "trading_mode"
+        case hlTestnet = "hl_testnet"
     }
 }
 

@@ -193,10 +193,14 @@ class AuthManager: ObservableObject {
             currentUser = user
             isAuthenticated = true
             
-            // Update app state
+            // Update app state from user data
             if let exchangeRaw = user.exchangeType, let exchange = Exchange(rawValue: exchangeRaw) {
                 AppState.shared.currentExchange = exchange
             }
+            
+            // Sync full settings from server (trading mode, account type, etc.)
+            await AppState.shared.syncFromServer()
+            
         } catch {
             print("Failed to fetch user: \(error)")
             // Don't logout on network errors - only on 401
