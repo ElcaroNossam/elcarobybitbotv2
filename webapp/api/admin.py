@@ -674,3 +674,449 @@ async def refresh_rankings(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ PAYMENTS & SUBSCRIPTIONS MANAGEMENT ============
+
+@router.get("/payments")
+async def get_all_payments(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    status: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all payment history with filters."""
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        offset = (page - 1) * limit
+        
+        # Build query based on filters
+        where_clause = ""
+        params = []
+        if status:
+            where_clause = "WHERE p.status = %s"
+            params.append(status)
+        
+        cur.execute(f"""
+            SELECT p.*, u.username, u.first_name
+            FROM payment_history p
+            LEFT JOIN users u ON p.user_id = u.user_id
+            {where_clause}
+            ORDER BY p.created_at DESC
+            LIMIT %s OFFSET %s
+        """, params + [limit, offset])
+        
+        payments = []
+        for row in cur.fetchall():
+            payments.append({
+                "id": row["id"],
+                "user_id": row["user_id"],
+                "username": row.get("username"),
+                "first_name": row.get("first_name"),
+                "amount": float(row["amount"]) if row["amount"] else 0,
+                "currency": row["currency"],
+                "payment_type": row["payment_type"],
+                "status": row["status"],
+                "tx_hash": row.get("tx_hash"),
+                "license_type": row.get("license_type"),
+                "license_days": row.get("license_days"),
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+                "confirmed_at": str(row["confirmed_at"]) if row.get("confirmed_at") else None,
+            })
+        
+        # Get totals
+        cur.execute("SELECT COUNT(*) as cnt FROM payment_history")
+        row = cur.fetchone()
+        total = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM payment_history WHERE status = 'pending'")
+        row = cur.fetchone()
+        pending = row['cnt'] if row else 0
+        
+        cur.execute("SELECT COALESCE(SUM(amount), 0) as total FROM payment_history WHERE status = 'confirmed'")
+        row = cur.fetchone()
+        total_revenue = float(row['total']) if row else 0
+        
+        return {
+            "total": total,
+            "pending": pending,
+            "total_revenue": total_revenue,
+            "page": page,
+            "pages": (total + limit - 1) // limit,
+            "list": payments
+        }
+
+
+@router.post("/payments/{payment_id}/approve")
+async def approve_payment(
+    payment_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Approve a pending payment and activate subscription."""
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Get payment details
+        cur.execute("SELECT * FROM payment_history WHERE id = %s", (payment_id,))
+        payment = cur.fetchone()
+        
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        if payment["status"] != "pending":
+            raise HTTPException(status_code=400, detail="Payment is not pending")
+        
+        # Update payment status
+        cur.execute("""
+            UPDATE payment_history 
+            SET status = 'confirmed', confirmed_at = NOW()
+            WHERE id = %s
+        """, (payment_id,))
+        
+        # Activate user subscription
+        user_id = payment["user_id"]
+        license_type = payment.get("license_type") or "premium"
+        license_days = payment.get("license_days") or 30
+        
+        expires_at = (datetime.utcnow() + timedelta(days=license_days)).isoformat()
+        
+        db.set_user_field(user_id, "license_type", license_type)
+        db.set_user_field(user_id, "license_expires", expires_at)
+        db.set_user_field(user_id, "is_allowed", 1)
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": f"Payment approved. User {user_id} now has {license_type} until {expires_at}",
+            "expires": expires_at
+        }
+
+
+@router.post("/payments/{payment_id}/reject")
+async def reject_payment(
+    payment_id: int,
+    reason: str = "Payment rejected by admin",
+    admin: dict = Depends(require_admin)
+):
+    """Reject a payment."""
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE payment_history 
+            SET status = 'rejected'
+            WHERE id = %s
+        """, (payment_id,))
+        conn.commit()
+        
+        return {"success": True, "message": "Payment rejected", "reason": reason}
+
+
+# ============ USER BALANCE & PNL ============
+
+@router.get("/users/{user_id}/balance")
+async def get_user_balance_details(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Get detailed balance and PnL info for a user."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    
+    creds = db.get_all_user_credentials(user_id)
+    if not creds:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get positions count
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Active positions
+        cur.execute("""
+            SELECT COUNT(*) as cnt, account_type, exchange
+            FROM active_positions 
+            WHERE user_id = %s
+            GROUP BY account_type, exchange
+        """, (user_id,))
+        positions_by_account = {}
+        for row in cur.fetchall():
+            key = f"{row.get('exchange', 'bybit')}:{row['account_type']}"
+            positions_by_account[key] = row['cnt']
+        
+        # Trade stats
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total_trades,
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+                SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losses,
+                COALESCE(SUM(pnl), 0) as total_pnl,
+                COALESCE(AVG(pnl), 0) as avg_pnl
+            FROM trade_logs
+            WHERE user_id = %s
+        """, (user_id,))
+        
+        stats_row = cur.fetchone()
+        trade_stats = {
+            "total_trades": stats_row["total_trades"] or 0,
+            "wins": stats_row["wins"] or 0,
+            "losses": stats_row["losses"] or 0,
+            "total_pnl": float(stats_row["total_pnl"] or 0),
+            "avg_pnl": float(stats_row["avg_pnl"] or 0),
+            "winrate": round((stats_row["wins"] or 0) / max(stats_row["total_trades"] or 1, 1) * 100, 1)
+        }
+        
+        # Recent trades
+        cur.execute("""
+            SELECT symbol, side, pnl, pnl_pct, exit_reason, ts, account_type
+            FROM trade_logs
+            WHERE user_id = %s
+            ORDER BY ts DESC
+            LIMIT 20
+        """, (user_id,))
+        
+        recent_trades = []
+        for row in cur.fetchall():
+            recent_trades.append({
+                "symbol": row["symbol"],
+                "side": row["side"],
+                "pnl": float(row["pnl"]) if row["pnl"] else 0,
+                "pnl_pct": float(row["pnl_pct"]) if row.get("pnl_pct") else 0,
+                "exit_reason": row.get("exit_reason"),
+                "ts": str(row["ts"]) if row["ts"] else None,
+                "account_type": row.get("account_type", "demo")
+            })
+        
+        # Payment history
+        cur.execute("""
+            SELECT * FROM payment_history
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 10
+        """, (user_id,))
+        
+        payments = []
+        for row in cur.fetchall():
+            payments.append({
+                "id": row["id"],
+                "amount": float(row["amount"]) if row["amount"] else 0,
+                "currency": row["currency"],
+                "payment_type": row["payment_type"],
+                "status": row["status"],
+                "created_at": str(row["created_at"]) if row["created_at"] else None
+            })
+    
+    return {
+        "user_id": user_id,
+        "username": creds.get("username"),
+        "first_name": creds.get("first_name"),
+        "license_type": creds.get("license_type"),
+        "license_expires": creds.get("license_expires"),
+        "is_lifetime": creds.get("is_lifetime", False),
+        "exchange_type": creds.get("exchange_type", "bybit"),
+        "trading_mode": creds.get("trading_mode", "demo"),
+        "positions_by_account": positions_by_account,
+        "trade_stats": trade_stats,
+        "recent_trades": recent_trades,
+        "payments": payments
+    }
+
+
+@router.post("/users/{user_id}/subscription")
+async def update_user_subscription(
+    user_id: int,
+    license_type: str = "premium",
+    days: int = 30,
+    admin: dict = Depends(require_admin)
+):
+    """Manually set user subscription."""
+    
+    expires_at = (datetime.utcnow() + timedelta(days=days)).isoformat()
+    
+    db.set_user_field(user_id, "license_type", license_type)
+    db.set_user_field(user_id, "license_expires", expires_at)
+    db.set_user_field(user_id, "is_allowed", 1)
+    
+    return {
+        "success": True,
+        "message": f"Subscription set to {license_type} for {days} days",
+        "expires": expires_at
+    }
+
+
+@router.post("/users/{user_id}/lifetime")
+async def grant_lifetime(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Grant lifetime subscription."""
+    
+    db.set_user_field(user_id, "is_lifetime", 1)
+    db.set_user_field(user_id, "license_type", "lifetime")
+    db.set_user_field(user_id, "is_allowed", 1)
+    
+    return {"success": True, "message": f"User {user_id} now has lifetime access"}
+
+
+@router.delete("/users/{user_id}/subscription")
+async def revoke_subscription(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Revoke user subscription."""
+    
+    db.set_user_field(user_id, "license_type", None)
+    db.set_user_field(user_id, "license_expires", None)
+    db.set_user_field(user_id, "is_lifetime", 0)
+    
+    return {"success": True, "message": f"Subscription revoked for user {user_id}"}
+
+
+@router.post("/users/{user_id}/settings")
+async def update_user_settings(
+    user_id: int,
+    percent: Optional[float] = None,
+    leverage: Optional[int] = None,
+    tp_percent: Optional[float] = None,
+    sl_percent: Optional[float] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Update user trading settings."""
+    
+    if percent is not None:
+        db.set_user_field(user_id, "percent", percent)
+    if leverage is not None:
+        db.set_user_field(user_id, "leverage", leverage)
+    if tp_percent is not None:
+        db.set_user_field(user_id, "tp_percent", tp_percent)
+    if sl_percent is not None:
+        db.set_user_field(user_id, "sl_percent", sl_percent)
+    
+    return {"success": True, "message": "Settings updated"}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Delete a user and all their data."""
+    
+    if user_id == ADMIN_ID:
+        raise HTTPException(status_code=400, detail="Cannot delete admin")
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Delete related data first
+        cur.execute("DELETE FROM active_positions WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM trade_logs WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM payment_history WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM user_strategy_settings WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM custom_strategies WHERE user_id = %s", (user_id,))
+        
+        # Delete user
+        cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+        
+        conn.commit()
+        affected = cur.rowcount
+        
+        return {"success": affected > 0, "message": f"User {user_id} deleted"}
+
+
+# ============ DASHBOARD SUMMARY ============
+
+@router.get("/dashboard")
+async def get_dashboard(
+    admin: dict = Depends(require_admin)
+):
+    """Get comprehensive admin dashboard data."""
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Users stats
+        cur.execute("SELECT COUNT(*) as cnt FROM users")
+        total_users = cur.fetchone()['cnt'] or 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
+        active_users = cur.fetchone()['cnt'] or 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = TRUE")
+        premium_users = cur.fetchone()['cnt'] or 0
+        
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE DATE(created_at) = CURRENT_DATE")
+        new_today = cur.fetchone()['cnt'] or 0
+        
+        # Revenue stats
+        cur.execute("""
+            SELECT 
+                COALESCE(SUM(amount), 0) as total_revenue,
+                COUNT(*) as total_payments
+            FROM payment_history 
+            WHERE status = 'confirmed'
+        """)
+        rev_row = cur.fetchone()
+        total_revenue = float(rev_row['total_revenue']) if rev_row else 0
+        total_payments = rev_row['total_payments'] or 0
+        
+        # This month revenue
+        cur.execute("""
+            SELECT COALESCE(SUM(amount), 0) as revenue
+            FROM payment_history 
+            WHERE status = 'confirmed' 
+            AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        row = cur.fetchone()
+        month_revenue = float(row['revenue']) if row else 0
+        
+        # Pending payments
+        cur.execute("SELECT COUNT(*) as cnt FROM payment_history WHERE status = 'pending'")
+        pending_payments = cur.fetchone()['cnt'] or 0
+        
+        # Positions stats
+        cur.execute("SELECT COUNT(*) as cnt FROM active_positions")
+        total_positions = cur.fetchone()['cnt'] or 0
+        
+        # Trades stats
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+                COALESCE(SUM(pnl), 0) as total_pnl
+            FROM trade_logs
+        """)
+        trades_row = cur.fetchone()
+        
+        # Today's trades
+        cur.execute("""
+            SELECT COUNT(*) as cnt, COALESCE(SUM(pnl), 0) as pnl
+            FROM trade_logs
+            WHERE DATE(ts) = CURRENT_DATE
+        """)
+        today_row = cur.fetchone()
+        
+        return {
+            "users": {
+                "total": total_users,
+                "active": active_users,
+                "premium": premium_users,
+                "new_today": new_today
+            },
+            "revenue": {
+                "total": total_revenue,
+                "this_month": month_revenue,
+                "total_payments": total_payments,
+                "pending": pending_payments
+            },
+            "trading": {
+                "active_positions": total_positions,
+                "total_trades": trades_row['total'] or 0,
+                "wins": trades_row['wins'] or 0,
+                "total_pnl": float(trades_row['total_pnl'] or 0),
+                "today_trades": today_row['cnt'] or 0,
+                "today_pnl": float(today_row['pnl'] or 0)
+            }
+        }

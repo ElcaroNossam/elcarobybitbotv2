@@ -540,6 +540,10 @@ def create_app() -> FastAPI:
     
     @app.get("/admin", response_class=HTMLResponse)
     async def admin_panel(request: Request):
+        return templates.TemplateResponse("admin/dashboard.html", {"request": request})
+    
+    @app.get("/admin/legacy", response_class=HTMLResponse)
+    async def admin_panel_legacy(request: Request):
         return templates.TemplateResponse("admin/index.html", {"request": request})
     
     # Terminal routes
