@@ -1095,6 +1095,66 @@ async def settings_sync_websocket(websocket: WebSocket, user_id: int, token: Opt
                             "value": value
                         })
                 
+                elif msg_type == "exchange_switched":
+                    # Broadcast exchange switch to all user's devices
+                    source = message.get("source", "unknown")
+                    data = message.get("data", {})
+                    
+                    for ws in settings_sync_ws.user_connections.get(user_id, set()):
+                        if ws != websocket:
+                            try:
+                                await ws.send_json({
+                                    "type": "exchange_switched",
+                                    "source": source,
+                                    "data": data
+                                })
+                            except Exception:
+                                pass
+                    
+                    # Log activity
+                    try:
+                        from services.sync_service import sync_service
+                        await sync_service.sync_exchange_switch(
+                            user_id=user_id,
+                            source=source,
+                            old_exchange=None,
+                            new_exchange=data.get("exchange")
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to log exchange switch: {e}")
+                
+                elif msg_type == "account_switched":
+                    # Broadcast account type switch to all user's devices
+                    source = message.get("source", "unknown")
+                    data = message.get("data", {})
+                    
+                    for ws in settings_sync_ws.user_connections.get(user_id, set()):
+                        if ws != websocket:
+                            try:
+                                await ws.send_json({
+                                    "type": "account_switched",
+                                    "source": source,
+                                    "data": data
+                                })
+                            except Exception:
+                                pass
+                
+                elif msg_type == "settings_changed":
+                    # Broadcast settings change to all user's devices
+                    source = message.get("source", "unknown")
+                    data = message.get("data", {})
+                    
+                    for ws in settings_sync_ws.user_connections.get(user_id, set()):
+                        if ws != websocket:
+                            try:
+                                await ws.send_json({
+                                    "type": "settings_changed",
+                                    "source": source,
+                                    "data": data
+                                })
+                            except Exception:
+                                pass
+                
             except asyncio.TimeoutError:
                 try:
                     await websocket.send_json({"type": "ping"})

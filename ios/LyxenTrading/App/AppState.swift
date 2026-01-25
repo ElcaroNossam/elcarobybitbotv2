@@ -74,6 +74,9 @@ class AppState: ObservableObject {
         }
         savePreferences()
         
+        // Notify via WebSocket for cross-platform sync
+        WebSocketService.shared.sendExchangeSwitch(to: exchange.rawValue)
+        
         // Sync with server in background
         Task {
             await syncExchangeWithServer(exchange: exchange)
@@ -83,6 +86,9 @@ class AppState: ObservableObject {
     func switchAccountType(to type: AccountType) {
         currentAccountType = type
         savePreferences()
+        
+        // Notify via WebSocket for cross-platform sync
+        WebSocketService.shared.sendAccountTypeSwitch(to: type.rawValue, exchange: currentExchange.rawValue)
         
         // Sync with server in background
         Task {

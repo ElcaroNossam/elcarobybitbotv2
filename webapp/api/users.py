@@ -297,6 +297,19 @@ async def switch_exchange(
     
     logger.info(f"User {user_id} switched from {old_exchange} to {data.exchange}")
     
+    # Log activity for cross-platform sync
+    try:
+        from services.sync_service import sync_service
+        import asyncio
+        asyncio.create_task(sync_service.sync_exchange_switch(
+            user_id=user_id,
+            source="webapp",
+            old_exchange=old_exchange,
+            new_exchange=data.exchange
+        ))
+    except Exception as e:
+        logger.warning(f"Failed to log exchange switch activity: {e}")
+    
     return {
         "success": True,
         "exchange": data.exchange,
@@ -424,6 +437,23 @@ async def switch_account_type(
         logger.warning(f"Account type switch connection test failed: {e}")
     
     logger.info(f"User {user_id} switched account type from {old_mode} to {new_mode} ({exchange})")
+    
+    # Log activity for cross-platform sync
+    try:
+        from services.sync_service import sync_service
+        import asyncio
+        asyncio.create_task(sync_service.log_activity(
+            user_id=user_id,
+            action_type="account_type_switch",
+            action_category="settings",
+            source="webapp",
+            entity_type="account",
+            old_value=old_mode,
+            new_value=new_mode,
+            details={"exchange": exchange}
+        ))
+    except Exception as e:
+        logger.warning(f"Failed to log account type switch activity: {e}")
     
     return {
         "success": True,
@@ -969,6 +999,26 @@ async def update_strategy_settings(
     
     logger.info(f"User {user_id} updated {strategy_name} settings for {data.exchange}/{data.account_type}: {updated_fields}")
     
+    # Log activity for cross-platform sync
+    try:
+        from services.sync_service import sync_service
+        import asyncio
+        asyncio.create_task(sync_service.sync_settings_change(
+            user_id=user_id,
+            source="webapp",
+            setting_name=f"strategy_{strategy_name}",
+            old_value=None,  # Not tracking old value for bulk updates
+            new_value=str(data.settings),
+            details={
+                "strategy": strategy_name,
+                "exchange": data.exchange,
+                "account_type": data.account_type,
+                "updated_fields": updated_fields
+            }
+        ))
+    except Exception as e:
+        logger.warning(f"Failed to log strategy settings activity: {e}")
+    
     return {
         "success": True, 
         "strategy": strategy_name, 
@@ -1119,5 +1169,26 @@ async def update_strategy_settings_mobile(
         updated.append("order_type")
     
     logger.info(f"User {user_id} updated {strategy_name}/{side} via mobile: {updated}")
+    
+    # Log activity for cross-platform sync (from iOS)
+    try:
+        from services.sync_service import sync_service
+        import asyncio
+        asyncio.create_task(sync_service.sync_settings_change(
+            user_id=user_id,
+            source="ios",  # Mobile endpoint = iOS
+            setting_name=f"strategy_{strategy_name}_{side}",
+            old_value=None,
+            new_value=str({k: settings.get(k) for k in updated}),
+            details={
+                "strategy": strategy_name,
+                "side": side,
+                "exchange": exchange,
+                "account_type": account_type,
+                "updated_fields": updated
+            }
+        ))
+    except Exception as e:
+        logger.warning(f"Failed to log mobile strategy settings activity: {e}")
     
     return {"success": True, "strategy": strategy_name, "side": side, "updated_fields": updated}

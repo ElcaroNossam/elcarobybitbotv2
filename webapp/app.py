@@ -480,6 +480,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"ton_payments router not available: {e}")
     
+    # Activity Log & Cross-Platform Sync API
+    try:
+        from webapp.api import activity
+        app.include_router(activity.router, prefix="/api", tags=["activity", "sync"])
+        logger.info("✅ Activity Log API loaded at /api/activity")
+    except ImportError as e:
+        logger.warning(f"activity router not available: {e}")
+    
     # ELC Blockchain API (wallets, deposits, withdrawals, sovereign operations)
     try:
         from webapp.api import blockchain

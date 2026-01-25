@@ -22816,6 +22816,19 @@ async def cmd_hl_switch(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     set_exchange_type(uid, new_exchange)
     
+    # Log activity for cross-platform sync
+    try:
+        from services.sync_service import sync_service
+        import asyncio
+        asyncio.create_task(sync_service.sync_exchange_switch(
+            user_id=uid,
+            source="telegram",
+            old_exchange=current,
+            new_exchange=new_exchange
+        ))
+    except Exception as e:
+        logger.warning(f"Failed to log exchange switch activity: {e}")
+    
     await update.message.reply_text(
         f"✅ Switched to *{new_exchange.upper()}*\n\n"
         f"All new trades will execute on {new_exchange.upper()}.",

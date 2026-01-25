@@ -50,6 +50,41 @@ struct WSOrderBookMessage: Codable {
     let asks: [[Double]]
 }
 
+// MARK: - Settings Sync Messages (NEW)
+struct WSSyncMessage: Codable {
+    let type: String  // "settings_changed", "exchange_switched", "account_switched", "sync_request"
+    let source: String  // "webapp", "telegram", "ios"
+    let action: String?
+    let data: WSSyncData?
+    
+    enum CodingKeys: String, CodingKey {
+        case type
+        case source
+        case action
+        case data
+    }
+}
+
+struct WSSyncData: Codable {
+    let exchange: String?
+    let accountType: String?
+    let strategy: String?
+    let setting: String?
+    let oldValue: String?
+    let newValue: String?
+    let timestamp: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case exchange
+        case accountType = "account_type"
+        case strategy
+        case setting
+        case oldValue = "old_value"
+        case newValue = "new_value"
+        case timestamp
+    }
+}
+
 // MARK: - WebSocket Service
 class WebSocketService: NSObject, ObservableObject {
     static let shared = WebSocketService()
@@ -65,6 +100,7 @@ class WebSocketService: NSObject, ObservableObject {
     
     private let tickerSubject = PassthroughSubject<WSTickerMessage, Never>()
     private let tradeSubject = PassthroughSubject<WSTradeMessage, Never>()
+    private let syncSubject = PassthroughSubject<WSSyncMessage, Never>()
     
     var tickerPublisher: AnyPublisher<WSTickerMessage, Never> {
         tickerSubject.eraseToAnyPublisher()
@@ -72,6 +108,10 @@ class WebSocketService: NSObject, ObservableObject {
     
     var tradePublisher: AnyPublisher<WSTradeMessage, Never> {
         tradeSubject.eraseToAnyPublisher()
+    }
+    
+    var syncPublisher: AnyPublisher<WSSyncMessage, Never> {
+        syncSubject.eraseToAnyPublisher()
     }
     
     private override init() {
@@ -185,6 +225,15 @@ class WebSocketService: NSObject, ObservableObject {
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
         
+        // Try to decode as sync message first (settings sync)
+        if let sync = try? JSONDecoder().decode(WSSyncMessage.self, from: data),
+           ["settings_changed", "exchange_switched", "account_switched", "sync_request"].contains(sync.type) {
+            print("📡 Sync message received: \(sync.type) from \(sync.source)")
+            syncSubject.send(sync)
+            handleSyncMessage(sync)
+            return
+        }
+        
         // Try to decode as ticker
         if let ticker = try? JSONDecoder().decode(WSTickerMessage.self, from: data) {
             DispatchQueue.main.async {
@@ -200,6 +249,83 @@ class WebSocketService: NSObject, ObservableObject {
             tradeSubject.send(trade)
             return
         }
+    }
+    
+    // MARK: - Sync Message Handling
+    private func handleSyncMessage(_ sync: WSSyncMessage) {
+        // Don't handle our own messages
+        if sync.source == "ios" { return }
+        
+        DispatchQueue.main.async {
+            switch sync.type {
+            case "exchange_switched":
+                if let newExchange = sync.data?.exchange {
+                    print("🔄 Exchange switched to \(newExchange) from \(sync.source)")
+                    AppState.shared.selectedExchange = newExchange == "hyperliquid" ? .hyperliquid : .bybit
+                    NotificationCenter.default.post(name: .exchangeSwitched, object: nil, userInfo: ["exchange": newExchange, "source": sync.source])
+                }
+                
+            case "account_switched":
+                if let newAccountType = sync.data?.accountType {
+                    print("🔄 Account switched to \(newAccountType) from \(sync.source)")
+                    AppState.shared.selectedAccountType = newAccountType
+                    NotificationCenter.default.post(name: .accountTypeSwitched, object: nil, userInfo: ["accountType": newAccountType, "source": sync.source])
+                }
+                
+            case "settings_changed":
+                print("⚙️ Settings changed from \(sync.source)")
+                NotificationCenter.default.post(name: .settingsChanged, object: nil, userInfo: ["sync": sync])
+                
+            case "sync_request":
+                // Server requests sync - reload all data
+                print("🔄 Sync request from server")
+                NotificationCenter.default.post(name: .syncRequested, object: nil)
+                
+            default:
+                break
+            }
+        }
+    }
+    
+    // MARK: - Send Sync Updates
+    func sendExchangeSwitch(to exchange: String) {
+        let message: [String: Any] = [
+            "type": "exchange_switched",
+            "source": "ios",
+            "data": [
+                "exchange": exchange,
+                "timestamp": ISO8601DateFormatter().string(from: Date())
+            ]
+        ]
+        send(message)
+    }
+    
+    func sendAccountTypeSwitch(to accountType: String, exchange: String) {
+        let message: [String: Any] = [
+            "type": "account_switched",
+            "source": "ios",
+            "data": [
+                "account_type": accountType,
+                "exchange": exchange,
+                "timestamp": ISO8601DateFormatter().string(from: Date())
+            ]
+        ]
+        send(message)
+    }
+    
+    func sendSettingsChange(strategy: String, setting: String, oldValue: Any?, newValue: Any?) {
+        let message: [String: Any] = [
+            "type": "settings_changed",
+            "source": "ios",
+            "data": [
+                "strategy": strategy,
+                "setting": setting,
+                "old_value": String(describing: oldValue ?? ""),
+                "new_value": String(describing: newValue ?? ""),
+                "timestamp": ISO8601DateFormatter().string(from: Date())
+            ]
+        ]
+        send(message)
     }
     
     // MARK: - Reconnection
