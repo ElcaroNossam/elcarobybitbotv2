@@ -2,13 +2,14 @@
 //  LoginView.swift
 //  LyxenTrading
 //
-//  Authentication screen
+//  Authentication screen with localization
 //
 
 import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var authManager: AuthManager
+    @ObservedObject var localization = LocalizationManager.shared
     
     @State private var email = ""
     @State private var password = ""
@@ -35,6 +36,13 @@ struct LoginView: View {
                 
                 ScrollView {
                     VStack(spacing: 32) {
+                        // Language Picker at top
+                        HStack {
+                            Spacer()
+                            CompactLanguagePicker()
+                        }
+                        .padding(.horizontal)
+                        
                         // Logo
                         logoSection
                         
@@ -51,11 +59,12 @@ struct LoginView: View {
                         #endif
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, 60)
+                    .padding(.top, 20)
                 }
             }
-            .alert("Error", isPresented: .constant(authManager.errorMessage != nil)) {
-                Button("OK") { authManager.clearError() }
+            .withRTLSupport()
+            .alert("common_error".localized, isPresented: .constant(authManager.errorMessage != nil)) {
+                Button("common_ok".localized) { authManager.clearError() }
             } message: {
                 Text(authManager.errorMessage ?? "")
             }
@@ -95,7 +104,7 @@ struct LoginView: View {
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             
-            Text("Professional Trading Platform")
+            Text("auth_welcome".localized)
                 .font(.subheadline)
                 .foregroundColor(.lyxenTextSecondary)
         }
@@ -107,7 +116,7 @@ struct LoginView: View {
             // Email Field
             LyxenTextField(
                 icon: "envelope.fill",
-                placeholder: "Email",
+                placeholder: "auth_email".localized,
                 text: $email
             )
             .keyboardType(.emailAddress)
@@ -116,7 +125,7 @@ struct LoginView: View {
             // Password Field
             LyxenSecureField(
                 icon: "lock.fill",
-                placeholder: "Password",
+                placeholder: "auth_password".localized,
                 text: $password
             )
             
@@ -144,7 +153,7 @@ struct LoginView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text(isRegistering ? "Create Account" : "Sign In")
+                        Text(isRegistering ? "auth_register".localized : "auth_login".localized)
                             .fontWeight(.semibold)
                     }
                 }
