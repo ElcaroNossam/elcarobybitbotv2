@@ -290,7 +290,7 @@ class ErrorMonitor:
     """
     
     # Error types that should only be reported once per day per user
-    DAILY_LIMIT_ERRORS = {"API_KEY_EXPIRED", "API_KEY_MISSING"}
+    DAILY_LIMIT_ERRORS = {"API_KEY_EXPIRED", "API_KEY_MISSING", "INSUFFICIENT_BALANCE", "EQUITY_ZERO"}
     
     def __init__(self, admin_id: int = ADMIN_ID, report_interval: int = 300):
         self.admin_id = admin_id
