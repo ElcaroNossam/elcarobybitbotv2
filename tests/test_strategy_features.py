@@ -16,9 +16,9 @@ class TestStrategyFeaturesConfig:
         assert isinstance(bot.STRATEGY_FEATURES, dict)
     
     def test_all_strategies_defined(self):
-        """All 6 strategies should be defined in STRATEGY_FEATURES."""
+        """All 7 strategies should be defined in STRATEGY_FEATURES."""
         import bot
-        expected = {"scryptomera", "scalper", "elcaro", "fibonacci", "oi", "rsi_bb"}
+        expected = {"scryptomera", "scalper", "elcaro", "fibonacci", "oi", "rsi_bb", "manual"}
         actual = set(bot.STRATEGY_FEATURES.keys())
         assert expected == actual, f"Missing: {expected - actual}, Extra: {actual - expected}"
     
@@ -27,7 +27,7 @@ class TestStrategyFeaturesConfig:
         import bot
         expected_keys = {
             "order_type", "coins_group", "leverage", "use_atr", "direction",
-            "side_settings", "percent", "sl_tp", "atr_params", "hl_settings", "min_quality"
+            "side_settings", "percent", "sl_tp", "atr_params", "min_quality"
         }
         for strat, features in bot.STRATEGY_FEATURES.items():
             actual_keys = set(features.keys())
@@ -61,13 +61,12 @@ class TestStrategyFeaturesLogic:
         import bot
         strat = bot.STRATEGY_FEATURES["scryptomera"]
         
-        assert strat["order_type"], "Scryptomera should show order_type"
+        # order_type moved to per-side settings
         assert strat["coins_group"], "Scryptomera should show coins_group"
         assert strat["leverage"], "Scryptomera should show leverage"
         assert strat["use_atr"], "Scryptomera should show ATR toggle"
         assert strat["direction"], "Scryptomera should show direction"
         assert strat["side_settings"], "Scryptomera should have side settings"
-        assert strat["hl_settings"], "Scryptomera should show HL settings"
         assert strat["percent"], "Scryptomera should show percent"
         assert strat["sl_tp"], "Scryptomera should show SL/TP"
         assert strat["atr_params"], "Scryptomera should show ATR params"

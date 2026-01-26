@@ -216,27 +216,30 @@ class TestStrategySettingsFallback:
         """When no custom settings, returns defaults."""
         settings = get_strategy_settings(TEST_USER_ID, "elcaro", "bybit", "demo")
         
-        # Should have default structure
-        assert "percent" in settings
-        assert "sl_percent" in settings
-        assert "tp_percent" in settings
+        # Should have default structure (4D schema with side-specific settings)
+        assert "long_percent" in settings or "percent" in settings
+        assert "long_sl_percent" in settings or "sl_percent" in settings
+        assert "long_tp_percent" in settings or "tp_percent" in settings
     
     def test_custom_settings_override(self):
         """Custom settings override defaults."""
-        # Insert custom settings
+        # Insert custom settings (4D schema)
         with db.get_conn() as conn:
             conn.execute("""
-                INSERT OR REPLACE INTO user_strategy_settings 
-                (user_id, strategy, exchange, account_type, percent, sl_percent, tp_percent)
-                VALUES (?, 'elcaro', 'bybit', 'demo', 2.5, 5.0, 15.0)
+                INSERT INTO user_strategy_settings 
+                (user_id, strategy, side, exchange, percent, sl_percent, tp_percent)
+                VALUES (%s, 'elcaro', 'long', 'bybit', 2.5, 5.0, 15.0)
+                ON CONFLICT (user_id, strategy, side, exchange) DO UPDATE SET
+                percent = EXCLUDED.percent, sl_percent = EXCLUDED.sl_percent, tp_percent = EXCLUDED.tp_percent
             """, (TEST_USER_ID,))
             conn.commit()
         
         settings = get_strategy_settings(TEST_USER_ID, "elcaro", "bybit", "demo")
         
-        assert settings["percent"] == 2.5
-        assert settings["sl_percent"] == 5.0
-        assert settings["tp_percent"] == 15.0
+        # 4D schema returns long_* prefixed settings
+        assert settings.get("long_percent") == 2.5 or settings.get("percent") == 2.5
+        assert settings.get("long_sl_percent") == 5.0 or settings.get("sl_percent") == 5.0
+        assert settings.get("long_tp_percent") == 15.0 or settings.get("tp_percent") == 15.0
 
 
 class TestRoutingPolicyEnums:
