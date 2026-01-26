@@ -23847,10 +23847,21 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "exchange:settings":
-        # Show exchange settings menu
+        # Show exchange settings menu with toggle buttons
         bybit_enabled = db.is_bybit_enabled(uid)
         hl_enabled = db.is_hl_enabled(uid)
         current_exchange = get_exchange_type(uid)
+        
+        # Check if credentials are configured
+        creds = get_all_user_credentials(uid) or {}
+        hl_creds = db.get_hl_credentials(uid) or {}
+        
+        bybit_configured = bool(creds.get("demo_api_key") or creds.get("real_api_key"))
+        hl_configured = bool(
+            hl_creds.get("hl_testnet_private_key") or 
+            hl_creds.get("hl_mainnet_private_key") or 
+            hl_creds.get("hl_private_key")
+        )
         
         bybit_status = "✅ ON" if bybit_enabled else "❌ OFF"
         hl_status = "✅ ON" if hl_enabled else "❌ OFF"
@@ -23859,23 +23870,65 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "⚙️ *Exchange Settings*\n\n"
             f"*Active Exchange:* {'🔷 HyperLiquid' if current_exchange == 'hyperliquid' else '🟠 Bybit'}\n\n"
             "*Trading Status:*\n"
-            f"• 🟠 Bybit: {bybit_status}\n"
-            f"• 🔷 HyperLiquid: {hl_status}\n\n"
-            "_Use /api command to manage API keys and enable/disable exchanges._\n"
-            "_Use Strategy Settings to set trading mode (Demo/Real/Both) per strategy._"
+            f"• 🟠 Bybit: {bybit_status} {'(configured)' if bybit_configured else '(not configured)'}\n"
+            f"• 🔷 HyperLiquid: {hl_status} {'(configured)' if hl_configured else '(not configured)'}\n\n"
+            "_Toggle trading on each exchange below._\n"
+            "_⚠️ Even if API keys are set, you can disable trading on an exchange._"
         )
         
-        keyboard = [
-            [InlineKeyboardButton("🔑 API Settings", callback_data="api:settings")],
-            [InlineKeyboardButton("📈 Strategy Settings", callback_data="strat_set:back")],
-            [InlineKeyboardButton("🔙 Back", callback_data="main_menu")]
-        ]
+        keyboard = []
+        
+        # Bybit toggle button
+        if bybit_configured:
+            bybit_btn_text = f"🟠 Bybit: {'✅ ON → Turn OFF' if bybit_enabled else '❌ OFF → Turn ON'}"
+            keyboard.append([InlineKeyboardButton(bybit_btn_text, callback_data="exchange:toggle_bybit")])
+        else:
+            keyboard.append([InlineKeyboardButton("🟠 Bybit: ⚠️ Not configured", callback_data="api:settings")])
+        
+        # HyperLiquid toggle button
+        if hl_configured:
+            hl_btn_text = f"🔷 HyperLiquid: {'✅ ON → Turn OFF' if hl_enabled else '❌ OFF → Turn ON'}"
+            keyboard.append([InlineKeyboardButton(hl_btn_text, callback_data="exchange:toggle_hl")])
+        else:
+            keyboard.append([InlineKeyboardButton("🔷 HyperLiquid: ⚠️ Not configured", callback_data="api:hl_settings")])
+        
+        keyboard.append([InlineKeyboardButton("─────────────", callback_data="noop")])
+        keyboard.append([InlineKeyboardButton("🔑 API Settings", callback_data="api:settings")])
+        keyboard.append([InlineKeyboardButton("📈 Strategy Settings", callback_data="strat_set:back")])
+        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="main_menu")])
         
         await q.edit_message_text(
             text,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+    
+    elif data == "exchange:toggle_bybit":
+        # Toggle Bybit trading enabled/disabled
+        current = db.is_bybit_enabled(uid)
+        new_val = not current
+        db.set_bybit_enabled(uid, new_val)
+        
+        status = "✅ ON" if new_val else "❌ OFF"
+        await q.answer(f"Bybit Trading: {status}", show_alert=False)
+        
+        # Refresh exchange settings menu
+        # Recursively handle exchange:settings
+        q.data = "exchange:settings"
+        return await on_exchange_callback(update, ctx)
+    
+    elif data == "exchange:toggle_hl":
+        # Toggle HyperLiquid trading enabled/disabled
+        current = db.is_hl_enabled(uid)
+        new_val = not current
+        db.set_hl_enabled(uid, new_val)
+        
+        status = "✅ ON" if new_val else "❌ OFF"
+        await q.answer(f"HyperLiquid Trading: {status}", show_alert=False)
+        
+        # Refresh exchange settings menu
+        q.data = "exchange:settings"
+        return await on_exchange_callback(update, ctx)
     
     elif data == "main_menu":
         await q.edit_message_text("Use /start to return to main menu.")
