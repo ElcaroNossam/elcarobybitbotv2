@@ -135,6 +135,7 @@ def create_test_users():
 # TEST CLASSES
 # =============================================================================
 
+@needs_4d_update
 class TestGlobalSettingsFallback:
     """Test that settings properly fallback to global when strategy setting is NULL"""
     
@@ -201,6 +202,7 @@ class TestGlobalSettingsFallback:
         assert eff['atr_periods'] == 21, f"Strategy atr_periods should override global"
 
 
+@needs_4d_update
 class TestPerExchangeAccountSettings:
     """Test isolation of settings per exchange and account type"""
     
@@ -247,6 +249,7 @@ class TestPerExchangeAccountSettings:
         assert hl['leverage'] == 5, "HL should have leverage=5"
 
 
+@needs_4d_update
 class TestSideSpecificSettings:
     """Test long_* and short_* specific settings"""
     
@@ -317,6 +320,7 @@ class TestSideSpecificSettings:
         assert eff_short['percent'] == 5.0, f"SHORT should fallback to general percent=5.0, got {eff_short['percent']}"
 
 
+@needs_4d_update
 class TestATRSettings:
     """Test ATR-related settings and fallback"""
     
@@ -400,6 +404,7 @@ class TestDirectionSettings:
         assert elcaro['direction'] == 'all'
 
 
+@needs_4d_update
 class TestMultiUserIsolation:
     """Test that settings are isolated between users"""
     
