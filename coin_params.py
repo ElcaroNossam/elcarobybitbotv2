@@ -23,6 +23,13 @@ DEFAULT_ATR_STEP_PCT = float(os.getenv("DEFAULT_ATR_STEP_PCT", "0.3"))        # 
 DEFAULT_BE_ENABLED = os.getenv("DEFAULT_BE_ENABLED", "0") == "1"       # BE disabled by default
 DEFAULT_BE_TRIGGER_PCT = float(os.getenv("DEFAULT_BE_TRIGGER_PCT", "1.0"))  # Trigger % to move to BE
 
+# Partial Take Profit (срез маржи) defaults - close X% of position at +Y% profit
+DEFAULT_PARTIAL_TP_ENABLED = os.getenv("DEFAULT_PARTIAL_TP_ENABLED", "0") == "1"  # Disabled by default
+DEFAULT_PARTIAL_TP_1_TRIGGER_PCT = float(os.getenv("DEFAULT_PARTIAL_TP_1_TRIGGER_PCT", "2.0"))  # Step 1 trigger
+DEFAULT_PARTIAL_TP_1_CLOSE_PCT = float(os.getenv("DEFAULT_PARTIAL_TP_1_CLOSE_PCT", "30.0"))     # Step 1 close %
+DEFAULT_PARTIAL_TP_2_TRIGGER_PCT = float(os.getenv("DEFAULT_PARTIAL_TP_2_TRIGGER_PCT", "5.0"))  # Step 2 trigger
+DEFAULT_PARTIAL_TP_2_CLOSE_PCT = float(os.getenv("DEFAULT_PARTIAL_TP_2_CLOSE_PCT", "30.0"))     # Step 2 close %
+
 # Order type default
 DEFAULT_ORDER_TYPE = os.getenv("DEFAULT_ORDER_TYPE", "market")      # market/limit
 DEFAULT_LIMIT_OFFSET_PCT = float(os.getenv("DEFAULT_LIMIT_OFFSET_PCT", "0.1"))  # Limit order offset %
@@ -54,6 +61,12 @@ STRATEGY_DEFAULTS = {
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "be_enabled": 1 if DEFAULT_BE_ENABLED else 0,  # Break-Even
         "be_trigger_pct": DEFAULT_BE_TRIGGER_PCT,       # BE trigger %
+        # Partial Take Profit (срез маржи)
+        "partial_tp_enabled": DEFAULT_PARTIAL_TP_ENABLED,
+        "partial_tp_1_trigger_pct": DEFAULT_PARTIAL_TP_1_TRIGGER_PCT,
+        "partial_tp_1_close_pct": DEFAULT_PARTIAL_TP_1_CLOSE_PCT,
+        "partial_tp_2_trigger_pct": DEFAULT_PARTIAL_TP_2_TRIGGER_PCT,
+        "partial_tp_2_close_pct": DEFAULT_PARTIAL_TP_2_CLOSE_PCT,
         "order_type": DEFAULT_ORDER_TYPE,
         "limit_offset_pct": DEFAULT_LIMIT_OFFSET_PCT,
         "dca_enabled": 1 if DEFAULT_DCA_ENABLED else 0,
@@ -73,6 +86,12 @@ STRATEGY_DEFAULTS = {
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "be_enabled": 1 if DEFAULT_BE_ENABLED else 0,  # Break-Even
         "be_trigger_pct": DEFAULT_BE_TRIGGER_PCT,       # BE trigger %
+        # Partial Take Profit (срез маржи)
+        "partial_tp_enabled": DEFAULT_PARTIAL_TP_ENABLED,
+        "partial_tp_1_trigger_pct": DEFAULT_PARTIAL_TP_1_TRIGGER_PCT,
+        "partial_tp_1_close_pct": DEFAULT_PARTIAL_TP_1_CLOSE_PCT,
+        "partial_tp_2_trigger_pct": DEFAULT_PARTIAL_TP_2_TRIGGER_PCT,
+        "partial_tp_2_close_pct": DEFAULT_PARTIAL_TP_2_CLOSE_PCT,
         "order_type": DEFAULT_ORDER_TYPE,
         "limit_offset_pct": DEFAULT_LIMIT_OFFSET_PCT,
         "dca_enabled": 1 if DEFAULT_DCA_ENABLED else 0,

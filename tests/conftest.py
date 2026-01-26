@@ -51,6 +51,7 @@ def pytest_collection_modifyitems(config, items):
         'test_integration.py',
         'test_close_all.py',
         'test_exchange_router.py',
+        'test_partial_tp_and_be.py',  # Partial TP and Break-Even tests
     }
     
     for item in items:

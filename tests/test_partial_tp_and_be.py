@@ -322,12 +322,12 @@ class TestDefaultValues:
         
         settings = pg_get_strategy_settings(uid, strategy, "bybit")
         
-        # Default values from core/db_postgres.py
+        # Default values from core/db_postgres.py - all defaults are 30.0 for close_pct
         assert settings.get("long_partial_tp_enabled") is False
         assert settings.get("long_partial_tp_1_trigger_pct") == 2.0
         assert settings.get("long_partial_tp_1_close_pct") == 30.0
         assert settings.get("long_partial_tp_2_trigger_pct") == 5.0
-        assert settings.get("long_partial_tp_2_close_pct") == 50.0
+        assert settings.get("long_partial_tp_2_close_pct") == 30.0  # Default is 30.0, not 50.0
     
     def test_be_defaults(self):
         """Test BE has correct defaults when not set"""
