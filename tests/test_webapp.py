@@ -103,7 +103,7 @@ class TestAuthAPI:
 class TestUsersAPI:
     """User settings and profile endpoints."""
     
-    def test_get_settings_bybit(self, client, auth_headers, test_user_data):
+    def test_get_settings_bybit(self, client, auth_headers, pg_test_user):
         """Test GET /api/users/settings for Bybit."""
         response = client.get("/api/users/settings?exchange=bybit", headers=auth_headers)
         assert response.status_code == 200
@@ -114,7 +114,7 @@ class TestUsersAPI:
         assert "tp_percent" in data
         assert "sl_percent" in data
     
-    def test_get_settings_hyperliquid(self, client, auth_headers):
+    def test_get_settings_hyperliquid(self, client, auth_headers, pg_test_user):
         """Test GET /api/users/settings for HyperLiquid."""
         response = client.get("/api/users/settings?exchange=hyperliquid", headers=auth_headers)
         assert response.status_code == 200
@@ -122,7 +122,7 @@ class TestUsersAPI:
         assert "testnet" in data
         assert "percent" in data
     
-    def test_update_settings(self, client, auth_headers):
+    def test_update_settings(self, client, auth_headers, pg_test_user):
         """Test PUT /api/users/settings."""
         payload = {
             "exchange": "bybit",
@@ -136,19 +136,19 @@ class TestUsersAPI:
         response = client.put("/api/users/settings", json=payload, headers=auth_headers)
         assert response.status_code == 200
     
-    def test_switch_exchange(self, client, auth_headers):
+    def test_switch_exchange(self, client, auth_headers, pg_test_user):
         """Test POST /api/users/exchange."""
         payload = {"exchange": "hyperliquid", "reconnect": True}
         response = client.post("/api/users/exchange", json=payload, headers=auth_headers)
         assert response.status_code in [200, 400]
     
-    def test_switch_account_type(self, client, auth_headers):
+    def test_switch_account_type(self, client, auth_headers, pg_test_user):
         """Test POST /api/users/switch-account-type."""
         payload = {"account_type": "demo", "exchange": "bybit"}
         response = client.post("/api/users/switch-account-type", json=payload, headers=auth_headers)
         assert response.status_code in [200, 400]
     
-    def test_change_language(self, client, auth_headers):
+    def test_change_language(self, client, auth_headers, pg_test_user):
         """Test POST /api/users/language."""
         response = client.post("/api/users/language", json={"language": "ru"}, headers=auth_headers)
         assert response.status_code == 200

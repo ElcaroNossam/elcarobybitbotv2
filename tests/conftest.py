@@ -498,6 +498,40 @@ def test_user_id() -> int:
 
 
 @pytest.fixture
+def pg_test_user(test_user_id):
+    """Create test user in PostgreSQL database for integration tests.
+    
+    This fixture ensures the test user exists in elcaro_test PostgreSQL database.
+    Used by webapp tests that hit real API endpoints.
+    """
+    if not POSTGRES_AVAILABLE:
+        pytest.skip("PostgreSQL not available")
+    
+    import psycopg2
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    
+    # Insert or update test user
+    cur.execute("""
+        INSERT INTO users (user_id, username, lang, exchange_type, trading_mode, is_allowed)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (user_id) DO UPDATE SET 
+            username = EXCLUDED.username,
+            exchange_type = EXCLUDED.exchange_type,
+            trading_mode = EXCLUDED.trading_mode,
+            is_allowed = EXCLUDED.is_allowed
+    """, (test_user_id, "testuser", "en", "bybit", "demo", 1))
+    conn.commit()
+    
+    yield test_user_id
+    
+    # Cleanup - remove test user
+    cur.execute("DELETE FROM users WHERE user_id = %s", (test_user_id,))
+    conn.commit()
+    conn.close()
+
+
+@pytest.fixture
 def test_user_data(test_db, test_user_id) -> dict:
     """Create test user in database"""
     cursor = test_db.cursor()
