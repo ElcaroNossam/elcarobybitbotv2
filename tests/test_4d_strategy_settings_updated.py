@@ -526,9 +526,9 @@ class TestStrategyFeaturesIntegration:
     
     def test_all_strategies_supported(self):
         """All strategies in STRATEGY_FEATURES can have 4D settings"""
-        from coin_params import STRATEGY_FEATURES
+        import bot
         
-        strategies = list(STRATEGY_FEATURES.keys())
+        strategies = list(bot.STRATEGY_FEATURES.keys())
         
         # Each strategy should support 4D schema
         for strategy in strategies:
@@ -539,7 +539,10 @@ class TestStrategyFeaturesIntegration:
     
     def test_strategy_specific_defaults(self):
         """Each strategy may have specific default values"""
-        from coin_params import STRATEGY_FEATURES, STRATEGY_DEFAULTS
+        from coin_params import STRATEGY_DEFAULTS
+        import bot
         
         # STRATEGY_DEFAULTS has side-specific defaults
         assert 'long' in STRATEGY_DEFAULTS or isinstance(STRATEGY_DEFAULTS, dict)
+        # STRATEGY_FEATURES exists in bot
+        assert hasattr(bot, 'STRATEGY_FEATURES')
