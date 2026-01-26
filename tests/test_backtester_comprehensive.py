@@ -7,7 +7,9 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import numpy as np
-import pandas as pd
+
+# Conditional pandas import for environments without it
+pd = pytest.importorskip("pandas")
 
 
 # ============================================================================

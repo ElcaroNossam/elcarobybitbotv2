@@ -3,6 +3,7 @@ PyTest Configuration and Fixtures
 Shared fixtures for all tests
 
 Updated for PostgreSQL architecture (Jan 2026)
+Supports both SQLite (for isolated tests) and PostgreSQL (for integration tests)
 """
 
 import asyncio
@@ -20,6 +21,46 @@ os.environ['TESTING'] = 'true'
 os.environ['JWT_SECRET'] = 'test_jwt_secret_key'
 os.environ['TELEGRAM_TOKEN'] = 'test:token'
 os.environ['DATABASE_URL'] = 'postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro_test'
+
+# Check if PostgreSQL is available
+def _is_postgres_available():
+    """Check if test PostgreSQL database is accessible"""
+    try:
+        import psycopg2
+        conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=2)
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+POSTGRES_AVAILABLE = _is_postgres_available()
+
+def pytest_collection_modifyitems(config, items):
+    """Automatically skip tests requiring PostgreSQL if not available"""
+    if POSTGRES_AVAILABLE:
+        return
+    
+    skip_pg = pytest.mark.skip(reason="PostgreSQL database 'elcaro_test' not available")
+    
+    # Files that require PostgreSQL - these call db.* functions directly
+    pg_required_files = {
+        'test_webapp.py',
+        'test_autologin.py',
+        'test_full_strategy_trading.py',
+        'test_routing_policy.py',
+        'test_strategy_settings.py',
+        'test_multi_user_integration.py',
+        'test_multi_user_strategy_settings.py',
+        'test_positions_display.py',
+        'test_strategy_settings_integration.py',
+        'test_integration.py',
+        'test_elcaro_parser.py',
+    }
+    
+    for item in items:
+        # Skip if file is in the list of PG-required tests
+        if any(f in str(item.fspath) for f in pg_required_files):
+            item.add_marker(skip_pg)
 
 
 @pytest.fixture(scope="session")
