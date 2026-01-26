@@ -934,19 +934,19 @@ STRATEGY_FEATURES = {
         "dca": True,             # DCA averaging support
     },
     "elcaro": {
-        "order_type": False,     # Lyxen signals have their own order logic
+        "order_type": False,     # Order type is per-side now
         "limit_offset": False,
         "coins_group": True,
-        "leverage": False,       # From signal
-        "use_atr": False,        # ATR managed by signal
+        "leverage": True,        # User-configured leverage (NOT from signal anymore!)
+        "use_atr": True,         # ATR trailing toggle (user settings)
         "direction": True,
-        "side_settings": True,   # Only percent per side
+        "side_settings": True,   # LONG/SHORT separate settings
         "percent": True,         # Global percent for this strategy
-        "sl_tp": False,          # From signal
-        "atr_params": False,     # From signal
+        "sl_tp": True,           # User-configured SL/TP (NOT from signal anymore!)
+        "atr_params": True,      # ATR params from user settings
         "hl_settings": True,
         "min_quality": False,
-        "dca": False,            # Signal-based, no manual DCA
+        "dca": False,            # No DCA for Lyxen signals
     },
     "fibonacci": {
         "order_type": True,      # Market/Limit toggle

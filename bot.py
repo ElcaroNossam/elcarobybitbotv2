@@ -6712,15 +6712,15 @@ STRATEGY_FEATURES = {
         "min_quality": False,
     },
     "elcaro": {
-        "order_type": False,     # Lyxen signals have their own order logic
+        "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
         "coins_group": True,
-        "leverage": False,       # From signal
-        "use_atr": False,        # ATR managed by signal
+        "leverage": True,        # User-configured leverage
+        "use_atr": True,         # ATR trailing toggle
         "direction": True,
-        "side_settings": True,   # Only percent per side
+        "side_settings": True,   # LONG/SHORT separate settings
         "percent": True,         # General percent (fallback)
-        "sl_tp": False,          # From signal - no SL/TP settings
-        "atr_params": False,     # From signal
+        "sl_tp": True,           # User-configured SL/TP (NOT from signal anymore!)
+        "atr_params": True,      # ATR params from user settings
         "min_quality": False,
     },
     "fibonacci": {
@@ -8048,18 +8048,18 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             if len(settings_lines) > 1:
                 lines.extend(settings_lines[2:])  # Skip header and empty line
             
-            # Special info for Lyxen/Fibonacci - AI signals
+            # Info for Lyxen/Fibonacci strategies
             if strategy in ("elcaro", "fibonacci"):
                 lines.append("")
                 lines.append("━━━━━━━━━━━━━━━━━━")
                 if strategy == "elcaro":
                     lines.append(t.get('elcaro_ai_info', '🤖 *AI-Powered Trading*'))
                     lines.append("")
-                    lines.append(t.get('elcaro_ai_desc', '_Entry, SL, TP, ATR, Leverage - all parsed from AI signals automatically._'))
+                    lines.append(t.get('elcaro_ai_desc_new', '_Your SL/TP/ATR/Leverage settings apply to all Lyxen signals._'))
                 else:
                     lines.append(t.get('fibonacci_info', '📐 *Fibonacci Extension*'))
                     lines.append("")
-                    lines.append(t.get('fibonacci_desc', '_Entry, SL, TP - from Fibonacci levels in signal._'))
+                    lines.append(t.get('fibonacci_desc_new', '_Your SL/TP/ATR settings apply to all Fibonacci signals._'))
             
             await query.message.edit_text(
                 "\n".join(lines),
@@ -15721,75 +15721,36 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if elcaro_trigger:
-                # Lyxen mode: все параметры берём из сигнала, а не из настроек пользователя
-                elcaro_mode = parsed_elcaro.get("elcaro_mode", False)
+                # Lyxen (Elcaro) strategy - ALL parameters from USER SETTINGS, not signal
+                # Signal only provides: symbol, side, entry price
+                elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
+                params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
+                                                  exchange=ctx_exchange, account_type=ctx_account_type)
                 
-                if elcaro_mode:
-                    # Новый формат - все параметры из сигнала
-                    elcaro_sl_pct = parsed_elcaro.get("sl_pct", 3.0)
-                    elcaro_tp_pct = parsed_elcaro.get("tp_pct", 6.0)
-                    elcaro_atr_periods = parsed_elcaro.get("atr_periods", 14)
-                    elcaro_atr_mult = parsed_elcaro.get("atr_multiplier", 1.5)
-                    elcaro_atr_trigger = parsed_elcaro.get("atr_trigger_pct", 30.0)
-                    elcaro_leverage = parsed_elcaro.get("leverage", 20)
-                    elcaro_timeframe = parsed_elcaro.get("timeframe", "60m")
-                    elcaro_entry = parsed_elcaro.get("price", spot_price)
-                    elcaro_sl = parsed_elcaro.get("sl")
-                    elcaro_tp = parsed_elcaro.get("tp")
-                    
-                    # Используем percent из настроек пользователя (риск на сделку)
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
-                                                      exchange=ctx_exchange, account_type=ctx_account_type)
-                    risk_pct = params["percent"]
-                    
-                    # SL/TP из сигнала имеют приоритет
-                    sl_pct = elcaro_sl_pct
-                    tp_pct = elcaro_tp_pct
-                    
-                    logger.debug(f"[{uid}] Lyxen signal: SL={sl_pct}%, TP={tp_pct}%, "
-                                f"ATR={elcaro_atr_periods}/x{elcaro_atr_mult}/trigger={elcaro_atr_trigger}%, "
-                                f"leverage={elcaro_leverage}")
-                else:
-                    # Legacy формат - используем настройки пользователя, но СИГНАЛ имеет приоритет
-                    elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
-                    params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
-                                                      exchange=ctx_exchange, account_type=ctx_account_type)
-                    risk_pct = params["percent"]
-                    elcaro_entry = parsed_elcaro.get("price", spot_price)
-                    elcaro_sl = parsed_elcaro.get("sl")
-                    elcaro_tp = parsed_elcaro.get("tp")
-                    elcaro_leverage = elcaro_strat_settings.get("leverage")  # Use user's strategy settings
-                    elcaro_timeframe = parsed_elcaro.get("interval", "60m")
-                    elcaro_atr_periods = None
-                    elcaro_atr_mult = None
-                    elcaro_atr_trigger = None
-                    
-                    # Fix #8: SIGNAL SL/TP has priority over user settings for Lyxen
-                    # First try to calculate SL% from signal prices
-                    sl_pct = None
-                    tp_pct = None
-                    if elcaro_sl and elcaro_entry:
-                        sl_pct = abs((elcaro_sl - elcaro_entry) / elcaro_entry * 100)
-                    if elcaro_tp and elcaro_entry:
-                        tp_pct = abs((elcaro_tp - elcaro_entry) / elcaro_entry * 100)
-                    
-                    # Fallback to user settings only if signal doesn't provide values
-                    if not sl_pct or sl_pct <= 0:
-                        sl_pct = params["sl_pct"]
-                    if not tp_pct or tp_pct <= 0:
-                        tp_pct = params["tp_pct"]
-                    
-                    # Final fallback to defaults
-                    if not sl_pct or sl_pct <= 0:
-                        sl_pct = 3.0
-                    if not tp_pct or tp_pct <= 0:
-                        tp_pct = 6.0
+                # Entry price from signal
+                elcaro_entry = parsed_elcaro.get("price", spot_price)
+                elcaro_timeframe = parsed_elcaro.get("timeframe") or parsed_elcaro.get("interval", "60m")
+                
+                # ALL trading params from USER SETTINGS (not from signal!)
+                risk_pct = params["percent"]
+                sl_pct = params["sl_pct"]
+                tp_pct = params["tp_pct"]
+                elcaro_leverage = elcaro_strat_settings.get("leverage") or params.get("leverage")
+                
+                # ATR from user settings
+                use_atr = elcaro_strat_settings.get("use_atr", False)
+                elcaro_atr_periods = elcaro_strat_settings.get("atr_periods") if use_atr else None
+                elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if use_atr else None
+                elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if use_atr else None
+                
+                logger.debug(f"[{uid}] Lyxen signal using USER settings: Entry%={risk_pct}%, SL={sl_pct}%, TP={tp_pct}%, "
+                            f"Leverage={elcaro_leverage}, ATR={'ON' if use_atr else 'OFF'}")
 
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
 
-                    # Set leverage from signal if available
-                    if elcaro_mode and elcaro_leverage:
+                    # Set leverage from user settings
+                    if elcaro_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=elcaro_leverage, account_type=ctx_account_type)
                             logger.debug(f"[{uid}] Elcaro: set leverage={elcaro_leverage} for {symbol}")
@@ -15802,7 +15763,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     entry_diff_pct = abs(spot_price - elcaro_entry) / spot_price * 100 if elcaro_entry else 0
                     use_limit_entry = elcaro_entry and entry_diff_pct > 0.3
                     
-                    order_leverage = elcaro_leverage if elcaro_mode and elcaro_leverage else None
+                    order_leverage = elcaro_leverage
                     
                     if use_limit_entry:
                         # Limit order at Entry price from signal
@@ -15857,19 +15818,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             if bybit_result and bybit_result.get("success"):
                                 await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                             
-                            # Calculate exact SL/TP prices
-                            if elcaro_mode and elcaro_sl and elcaro_tp:
-                                # Use exact prices from signal
-                                actual_sl = elcaro_sl
-                                actual_tp = elcaro_tp
+                            # Calculate SL/TP prices from user settings percentages
+                            if side == "Buy":
+                                actual_sl = spot_price * (1 - sl_pct / 100)
+                                actual_tp = spot_price * (1 + tp_pct / 100)
                             else:
-                                # Calculate from percentages
-                                if side == "Buy":
-                                    actual_sl = spot_price * (1 - sl_pct / 100)
-                                    actual_tp = spot_price * (1 + tp_pct / 100)
-                                else:
-                                    actual_sl = spot_price * (1 + sl_pct / 100)
-                                    actual_tp = spot_price * (1 - tp_pct / 100)
+                                actual_sl = spot_price * (1 + sl_pct / 100)
+                                actual_tp = spot_price * (1 - tp_pct / 100)
                             
                             # Set TP/SL
                             await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
@@ -15885,9 +15840,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 accounts_lines.extend(f'• {acc}' for acc in skipped_accounts)
                             accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'• Qty: {qty}'
                             
-                            # ATR info line
+                            # ATR info line (from user settings)
                             atr_info = ""
-                            if elcaro_mode and elcaro_atr_periods:
+                            if use_atr and elcaro_atr_periods:
                                 atr_info = f"📉 ATR: {elcaro_atr_periods} | ×{elcaro_atr_mult} | Trigger: {elcaro_atr_trigger}%\n"
                             
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
@@ -15944,24 +15899,32 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
             if fibonacci_trigger:
                 # Fibonacci Extension Strategy
-                # All parameters come from the signal
+                # Signal provides: entry zone, quality info
+                # ALL trading params (SL/TP/ATR) from USER SETTINGS
                 fibo_entry = parsed_fibonacci.get("entry", spot_price)
                 fibo_entry_low = parsed_fibonacci.get("entry_low")
                 fibo_entry_high = parsed_fibonacci.get("entry_high")
-                fibo_sl = parsed_fibonacci.get("sl")
-                fibo_tp = parsed_fibonacci.get("tp")
-                fibo_sl_pct = parsed_fibonacci.get("sl_pct", 3.0)
-                fibo_tp_pct = parsed_fibonacci.get("tp_pct", 6.0)
                 quality_grade = parsed_fibonacci.get("quality_grade", "B")
                 quality_score = parsed_fibonacci.get("quality_score", 50)
                 trigger_info = parsed_fibonacci.get("trigger_info", "")
                 
-                # Get user settings (percent, leverage)
+                # Get ALL params from user settings (not from signal!)
                 strat_settings = db.get_strategy_settings(uid, "fibonacci", ctx_exchange, ctx_account_type)
                 params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
                 risk_pct = params["percent"]
                 user_leverage = strat_settings.get("leverage", 10)
+                fibo_sl_pct = params["sl_pct"]  # From user settings!
+                fibo_tp_pct = params["tp_pct"]  # From user settings!
+                
+                # ATR from user settings
+                use_atr = strat_settings.get("use_atr", False)
+                fibo_atr_periods = strat_settings.get("atr_periods") if use_atr else None
+                fibo_atr_mult = strat_settings.get("atr_multiplier_sl") if use_atr else None
+                fibo_atr_trigger = strat_settings.get("atr_trigger_pct") if use_atr else None
+                
+                logger.debug(f"[{uid}] Fibonacci using USER settings: Entry%={risk_pct}%, SL={fibo_sl_pct}%, TP={fibo_tp_pct}%, "
+                            f"Leverage={user_leverage}, ATR={'ON' if use_atr else 'OFF'}")
                 
                 # Quality filter - skip if quality score too low
                 min_quality = strat_settings.get("min_quality", 50)
@@ -16055,9 +16018,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             if bybit_result and bybit_result.get("success"):
                                 await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                             
-                            # Use exact SL/TP from signal
-                            actual_sl = fibo_sl if fibo_sl else (spot_price * (1 - fibo_sl_pct / 100) if side == "Buy" else spot_price * (1 + fibo_sl_pct / 100))
-                            actual_tp = fibo_tp if fibo_tp else (spot_price * (1 + fibo_tp_pct / 100) if side == "Buy" else spot_price * (1 - fibo_tp_pct / 100))
+                            # Calculate SL/TP from user settings percentages
+                            if side == "Buy":
+                                actual_sl = spot_price * (1 - fibo_sl_pct / 100)
+                                actual_tp = spot_price * (1 + fibo_tp_pct / 100)
+                            else:
+                                actual_sl = spot_price * (1 + fibo_sl_pct / 100)
+                                actual_tp = spot_price * (1 - fibo_tp_pct / 100)
                             
                             # Set TP/SL
                             await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
@@ -16073,6 +16040,11 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 accounts_lines.extend(f'  • {acc}' for acc in skipped_accounts)
                             accounts_str = '\n'.join(accounts_lines) if accounts_lines else f'  • Qty: {qty}'
                             
+                            # ATR info if enabled
+                            atr_info = ""
+                            if use_atr and fibo_atr_periods:
+                                atr_info = f"\n📉 ATR: {fibo_atr_periods} | ×{fibo_atr_mult} | Trigger: {fibo_atr_trigger}%"
+                            
                             signal_info = (
                                 f"📐 *Fibonacci* {'📈 LONG' if side=='Buy' else '📉 SHORT'}\n"
                                 f"🪙 {symbol}\n"
@@ -16080,7 +16052,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 f"🎯 Zone: {fibo_entry_low:.6g} – {fibo_entry_high:.6g}\n"
                                 f"🛑 SL: {actual_sl:.6g} ({fibo_sl_pct:.2f}%)\n"
                                 f"✅ TP: {actual_tp:.6g} ({fibo_tp_pct:.2f}%)\n"
-                                f"🟢 Quality: {quality_grade} ({quality_score}/100)\n\n"
+                                f"🟢 Quality: {quality_grade} ({quality_score}/100){atr_info}\n\n"
                                 f"*Opened on:*\n{accounts_str}"
                             )
                             if trigger_info:
