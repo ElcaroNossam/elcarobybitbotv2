@@ -1302,5 +1302,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Nedostatečné prostředky na účtu pro otevření pozice. Dobijte zůstatek nebo zmenšete velikost pozice.',
+    'error_order_too_small': '📉 Velikost objednávky příliš malá (minimum $5). Zvyšte Entry% nebo dobijte zůstatek.',
+    'error_api_key_expired': '🔑 API klíč vypršel nebo je neplatný. Aktualizujte API klíče v nastavení.',
+    'error_api_key_missing': '🔑 API klíče nejsou nakonfigurovány. Přidejte klíče Bybit v menu 🔗 API Keys.',
+    'error_rate_limit': '⏳ Příliš mnoho požadavků. Počkejte minutu a zkuste znovu.',
+    'error_position_not_found': '📊 Pozice nenalezena nebo již uzavřena.',
+    'error_leverage_error': '⚙️ Chyba nastavení páky. Zkuste nastavit páku ručně na burze.',
+    'error_network_error': '🌐 Problém se sítí. Zkuste to později.',
+    'error_sl_tp_invalid': '⚠️ Nelze nastavit SL/TP: cena příliš blízko aktuální. Bude aktualizováno v dalším cyklu.',
+    'error_equity_zero': '💰 Zůstatek vašeho účtu je nulový. Dobijte Demo nebo Real účet pro obchodování.',
 
 }

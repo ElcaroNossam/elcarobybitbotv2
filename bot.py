@@ -296,23 +296,39 @@ class ErrorMonitor:
         self.bot = None
         self._lock = asyncio.Lock()
         
-        # Error type to user-friendly message mapping
-        self.user_messages = {
-            "INSUFFICIENT_BALANCE": "💰 Недостаточно средств на аккаунте для открытия позиции. Пополните баланс или уменьшите размер позиции.",
-            "ORDER_TOO_SMALL": "📉 Размер ордера слишком мал (минимум $5). Увеличьте Entry% или пополните баланс.",
-            "API_KEY_EXPIRED": "🔑 API ключ истёк или недействителен. Обновите API ключи в настройках.",
-            "API_KEY_MISSING": "🔑 API ключи не настроены. Добавьте ключи Bybit в меню 🔗 API Keys.",
-            "RATE_LIMIT": "⏳ Слишком много запросов. Подождите минуту и попробуйте снова.",
-            "POSITION_NOT_FOUND": "📊 Позиция не найдена или уже закрыта.",
-            "LEVERAGE_ERROR": "⚙️ Ошибка установки плеча. Попробуйте установить плечо вручную в терминале биржи.",
-            "NETWORK_ERROR": "🌐 Проблема с сетью. Попробуйте позже.",
-            "SL_TP_INVALID": "⚠️ Невозможно установить SL/TP: цена слишком близко к текущей. SL/TP будут обновлены при следующем цикле.",
-            "EQUITY_ZERO": "💰 На аккаунте нулевой баланс. Пополните Demo или Real аккаунт для торговли.",
+        # Error type to translation key mapping
+        self.error_keys = {
+            "INSUFFICIENT_BALANCE": "error_insufficient_balance",
+            "ORDER_TOO_SMALL": "error_order_too_small",
+            "API_KEY_EXPIRED": "error_api_key_expired",
+            "API_KEY_MISSING": "error_api_key_missing",
+            "RATE_LIMIT": "error_rate_limit",
+            "POSITION_NOT_FOUND": "error_position_not_found",
+            "LEVERAGE_ERROR": "error_leverage_error",
+            "NETWORK_ERROR": "error_network_error",
+            "SL_TP_INVALID": "error_sl_tp_invalid",
+            "EQUITY_ZERO": "error_equity_zero",
         }
     
     def set_bot(self, bot):
         """Set bot instance for sending messages"""
         self.bot = bot
+    
+    def _get_user_message(self, error_type: str, user_id: int) -> str | None:
+        """Get localized error message for user"""
+        key = self.error_keys.get(error_type)
+        if not key:
+            return None
+        try:
+            lang = db.get_user_lang(user_id) or "en"
+            texts = LANGS.get(lang, LANGS.get("en", {}))
+            return texts.get(key)
+        except Exception:
+            # Fallback to English
+            try:
+                return LANGS.get("en", {}).get(key)
+            except Exception:
+                return None
     
     async def record_error(
         self,
@@ -344,16 +360,17 @@ class ErrorMonitor:
             self.errors.append(error)
             
             # Notify user with friendly message
-            if notify_user and user_id and self.bot and error_type in self.user_messages:
+            if notify_user and user_id and self.bot and error_type in self.error_keys:
                 try:
-                    user_msg = self.user_messages[error_type]
-                    if symbol:
-                        user_msg = f"📊 *{symbol}*\n\n{user_msg}"
-                    await self.bot.send_message(
-                        user_id,
-                        user_msg,
-                        parse_mode="Markdown"
-                    )
+                    user_msg = self._get_user_message(error_type, user_id)
+                    if user_msg:
+                        if symbol:
+                            user_msg = f"📊 *{symbol}*\n\n{user_msg}"
+                        await self.bot.send_message(
+                            user_id,
+                            user_msg,
+                            parse_mode="Markdown"
+                        )
                 except Exception as e:
                     logger.debug(f"Could not send user notification: {e}")
             

@@ -1337,5 +1337,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 ポジションを開くための残高が不足しています。残高をチャージするか、ポジションサイズを減らしてください。',
+    'error_order_too_small': '📉 注文サイズが小さすぎます（最小$5）。Entry%を増やすか、残高をチャージしてください。',
+    'error_api_key_expired': '🔑 APIキーが期限切れまたは無効です。設定でAPIキーを更新してください。',
+    'error_api_key_missing': '🔑 APIキーが設定されていません。🔗 API KeysメニューでBybitキーを追加してください。',
+    'error_rate_limit': '⏳ リクエストが多すぎます。1分待ってから再試行してください。',
+    'error_position_not_found': '📊 ポジションが見つからないか、既にクローズされています。',
+    'error_leverage_error': '⚙️ レバレッジ設定エラー。取引所で手動でレバレッジを設定してみてください。',
+    'error_network_error': '🌐 ネットワークの問題。後でもう一度お試しください。',
+    'error_sl_tp_invalid': '⚠️ SL/TPを設定できません：価格が現在価格に近すぎます。次のサイクルで更新されます。',
+    'error_equity_zero': '💰 アカウント残高がゼロです。取引するにはDemoまたはRealアカウントをチャージしてください。',
 
 }

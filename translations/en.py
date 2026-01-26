@@ -1518,4 +1518,18 @@ Daily rewards • Instant unstaking''',
     # Hardcore trading phrase
     'hardcore_mode': '💀 *HARDCORE MODE*: No mercy, no regrets. Only profit or death! 🔥',
     'spot_freq_hourly': '⏰ Hourly',
+    
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Insufficient funds in your account to open a position. Top up your balance or reduce position size.',
+    'error_order_too_small': '📉 Order size too small (minimum $5). Increase Entry% or top up your balance.',
+    'error_api_key_expired': '🔑 API key expired or invalid. Update your API keys in settings.',
+    'error_api_key_missing': '🔑 API keys not configured. Add Bybit keys in 🔗 API Keys menu.',
+    'error_rate_limit': '⏳ Too many requests. Wait a minute and try again.',
+    'error_position_not_found': '📊 Position not found or already closed.',
+    'error_leverage_error': '⚙️ Leverage setting error. Try setting leverage manually on the exchange.',
+    'error_network_error': '🌐 Network issue. Try again later.',
+    'error_sl_tp_invalid': '⚠️ Cannot set SL/TP: price too close to current. Will retry on next cycle.',
+    'error_equity_zero': '💰 Your account balance is zero. Top up Demo or Real account to trade.',
 }

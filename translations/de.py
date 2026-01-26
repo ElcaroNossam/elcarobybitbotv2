@@ -1415,5 +1415,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Nicht genügend Guthaben auf Ihrem Konto, um eine Position zu eröffnen. Laden Sie Ihr Guthaben auf oder reduzieren Sie die Positionsgröße.',
+    'error_order_too_small': '📉 Ordergröße zu klein (Minimum $5). Erhöhen Sie Entry% oder laden Sie Ihr Guthaben auf.',
+    'error_api_key_expired': '🔑 API-Schlüssel abgelaufen oder ungültig. Aktualisieren Sie Ihre API-Schlüssel in den Einstellungen.',
+    'error_api_key_missing': '🔑 API-Schlüssel nicht konfiguriert. Fügen Sie Bybit-Schlüssel im Menü 🔗 API Keys hinzu.',
+    'error_rate_limit': '⏳ Zu viele Anfragen. Warten Sie eine Minute und versuchen Sie es erneut.',
+    'error_position_not_found': '📊 Position nicht gefunden oder bereits geschlossen.',
+    'error_leverage_error': '⚙️ Fehler bei der Hebeleinstellung. Versuchen Sie, den Hebel manuell an der Börse einzustellen.',
+    'error_network_error': '🌐 Netzwerkproblem. Versuchen Sie es später erneut.',
+    'error_sl_tp_invalid': '⚠️ SL/TP kann nicht gesetzt werden: Preis zu nah am aktuellen. Wird beim nächsten Zyklus aktualisiert.',
+    'error_equity_zero': '💰 Ihr Kontostand ist null. Laden Sie Demo- oder Real-Konto auf, um zu handeln.',
 
 }

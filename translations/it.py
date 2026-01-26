@@ -1305,5 +1305,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Fondi insufficienti sul tuo account per aprire una posizione. Ricarica il saldo o riduci la dimensione della posizione.',
+    'error_order_too_small': '📉 Dimensione ordine troppo piccola (minimo $5). Aumenta Entry% o ricarica il saldo.',
+    'error_api_key_expired': '🔑 Chiave API scaduta o non valida. Aggiorna le tue chiavi API nelle impostazioni.',
+    'error_api_key_missing': '🔑 Chiavi API non configurate. Aggiungi le chiavi Bybit nel menu 🔗 API Keys.',
+    'error_rate_limit': '⏳ Troppe richieste. Attendi un minuto e riprova.',
+    'error_position_not_found': '📊 Posizione non trovata o già chiusa.',
+    'error_leverage_error': '⚙️ Errore nell\'impostazione della leva. Prova a impostarla manualmente sull\'exchange.',
+    'error_network_error': '🌐 Problema di rete. Riprova più tardi.',
+    'error_sl_tp_invalid': '⚠️ Impossibile impostare SL/TP: prezzo troppo vicino a quello attuale. Sarà aggiornato al prossimo ciclo.',
+    'error_equity_zero': '💰 Il saldo del tuo account è zero. Ricarica l\'account Demo o Real per fare trading.',
 
 }

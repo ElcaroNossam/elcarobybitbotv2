@@ -1323,5 +1323,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Nepakanka lėšų sąskaitoje pozicijai atidaryti. Papildykite balansą arba sumažinkite pozicijos dydį.',
+    'error_order_too_small': '📉 Užsakymo dydis per mažas (minimumas $5). Padidinkite Entry% arba papildykite balansą.',
+    'error_api_key_expired': '🔑 API raktas pasibaigęs arba negaliojantis. Atnaujinkite API raktus nustatymuose.',
+    'error_api_key_missing': '🔑 API raktai nesukonfigūruoti. Pridėkite Bybit raktus meniu 🔗 API Keys.',
+    'error_rate_limit': '⏳ Per daug užklausų. Palaukite minutę ir bandykite dar kartą.',
+    'error_position_not_found': '📊 Pozicija nerasta arba jau uždaryta.',
+    'error_leverage_error': '⚙️ Sverto nustatymo klaida. Pabandykite nustatyti svertą rankiniu būdu biržoje.',
+    'error_network_error': '🌐 Tinklo problema. Bandykite vėliau.',
+    'error_sl_tp_invalid': '⚠️ Nepavyksta nustatyti SL/TP: kaina per arti dabartinės. Bus atnaujinta kitame cikle.',
+    'error_equity_zero': '💰 Jūsų sąskaitos balansas lygus nuliui. Papildykite Demo arba Real sąskaitą prekybai.',
 
 }

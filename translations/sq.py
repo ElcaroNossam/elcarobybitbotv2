@@ -1313,5 +1313,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 Fonde të pamjaftueshme në llogarinë tuaj për të hapur pozicion. Rimbushni bilancin ose zvogëloni madhësinë e pozicionit.',
+    'error_order_too_small': '📉 Madhësia e porosisë shumë e vogël (minimumi $5). Rritni Entry% ose rimbushni bilancin.',
+    'error_api_key_expired': '🔑 Çelësi API ka skaduar ose është i pavlefshëm. Përditësoni çelësat API në cilësimet.',
+    'error_api_key_missing': '🔑 Çelësat API nuk janë konfiguruar. Shtoni çelësat Bybit në menunë 🔗 API Keys.',
+    'error_rate_limit': '⏳ Shumë kërkesa. Prisni një minutë dhe provoni përsëri.',
+    'error_position_not_found': '📊 Pozicioni nuk u gjet ose është mbyllur tashmë.',
+    'error_leverage_error': '⚙️ Gabim në vendosjen e levës. Provoni ta vendosni levën manualisht në bursë.',
+    'error_network_error': '🌐 Problem me rrjetin. Provoni më vonë.',
+    'error_sl_tp_invalid': '⚠️ Nuk mund të vendoset SL/TP: çmimi shumë afër atij aktual. Do të përditësohet në ciklin e ardhshëm.',
+    'error_equity_zero': '💰 Bilanci i llogarisë suaj është zero. Rimbushni llogarinë Demo ose Real për të tregtuar.',
 
 }

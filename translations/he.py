@@ -1337,5 +1337,18 @@ Max: 100,000 ELC''',
 
     'daily_margin_exhausted':      '📊 <b>MARGIN ALERT</b> - {account_type} margin exhausted. Positions: {open_count}. Missed: {missed_count}',
 
+    # =====================================================
+    # ERROR MONITOR USER MESSAGES
+    # =====================================================
+    'error_insufficient_balance': '💰 אין מספיק כספים בחשבונך לפתיחת פוזיציה. טען את היתרה או הקטן את גודל הפוזיציה.',
+    'error_order_too_small': '📉 גודל ההזמנה קטן מדי (מינימום $5). הגדל Entry% או טען את היתרה.',
+    'error_api_key_expired': '🔑 מפתח API פג תוקף או לא תקין. עדכן את מפתחות ה-API בהגדרות.',
+    'error_api_key_missing': '🔑 מפתחות API לא מוגדרים. הוסף מפתחות Bybit בתפריט 🔗 API Keys.',
+    'error_rate_limit': '⏳ יותר מדי בקשות. המתן דקה ונסה שוב.',
+    'error_position_not_found': '📊 הפוזיציה לא נמצאה או כבר נסגרה.',
+    'error_leverage_error': '⚙️ שגיאה בהגדרת המינוף. נסה להגדיר את המינוף ידנית בבורסה.',
+    'error_network_error': '🌐 בעיית רשת. נסה מאוחר יותר.',
+    'error_sl_tp_invalid': '⚠️ לא ניתן להגדיר SL/TP: המחיר קרוב מדי לנוכחי. יעודכן במחזור הבא.',
+    'error_equity_zero': '💰 יתרת החשבון שלך אפס. טען חשבון Demo או Real כדי לסחור.',
 
 }
