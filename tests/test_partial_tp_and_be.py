@@ -18,9 +18,18 @@ import db
 from core.db_postgres import (
     pg_get_strategy_settings,
     pg_set_strategy_setting,
-    ALLOWED_FIELDS,
-    BOOLEAN_FIELDS,
 )
+
+# Define expected fields locally for testing
+EXPECTED_PARTIAL_TP_FIELDS = [
+    "partial_tp_enabled",
+    "partial_tp_1_trigger_pct",
+    "partial_tp_1_close_pct",
+    "partial_tp_2_trigger_pct",
+    "partial_tp_2_close_pct",
+]
+
+EXPECTED_BE_FIELDS = ["be_enabled", "be_trigger_pct"]
 
 # Test users
 TEST_USERS = [
@@ -63,31 +72,52 @@ def cleanup_test_users():
 class TestPartialTPFieldsExist:
     """Test that Partial TP fields are properly defined"""
     
-    def test_partial_tp_fields_in_allowed_fields(self):
-        """Verify Partial TP fields are in ALLOWED_FIELDS"""
-        partial_tp_fields = [
-            "partial_tp_enabled",
-            "partial_tp_1_trigger_pct",
-            "partial_tp_1_close_pct",
-            "partial_tp_2_trigger_pct",
-            "partial_tp_2_close_pct",
-        ]
-        for field in partial_tp_fields:
-            assert field in ALLOWED_FIELDS, f"Field {field} not in ALLOWED_FIELDS"
+    def test_partial_tp_fields_can_be_set(self):
+        """Verify Partial TP fields can be set successfully"""
+        uid = TEST_USERS[0]
+        strategy = "oi"
+        
+        # Try setting each field - if it works, the field is allowed
+        for field in EXPECTED_PARTIAL_TP_FIELDS:
+            if field == "partial_tp_enabled":
+                result = pg_set_strategy_setting(uid, strategy, "long", field, True, "bybit")
+            else:
+                result = pg_set_strategy_setting(uid, strategy, "long", field, 5.0, "bybit")
+            assert result is True, f"Failed to set {field}"
     
-    def test_partial_tp_enabled_is_boolean(self):
-        """Verify partial_tp_enabled is marked as boolean"""
-        assert "partial_tp_enabled" in BOOLEAN_FIELDS, "partial_tp_enabled should be in BOOLEAN_FIELDS"
+    def test_partial_tp_enabled_stored_as_boolean(self):
+        """Verify partial_tp_enabled is stored as boolean"""
+        uid = TEST_USERS[0]
+        strategy = "rsi_bb"
+        
+        pg_set_strategy_setting(uid, strategy, "long", "partial_tp_enabled", True, "bybit")
+        settings = pg_get_strategy_settings(uid, strategy, "bybit")
+        
+        # Should be True (boolean), not 1 or "true"
+        assert settings.get("long_partial_tp_enabled") is True
     
-    def test_be_fields_in_allowed_fields(self):
-        """Verify BE fields are in ALLOWED_FIELDS"""
-        be_fields = ["be_enabled", "be_trigger_pct"]
-        for field in be_fields:
-            assert field in ALLOWED_FIELDS, f"Field {field} not in ALLOWED_FIELDS"
+    def test_be_fields_can_be_set(self):
+        """Verify BE fields can be set successfully"""
+        uid = TEST_USERS[0]
+        strategy = "scalper"
+        
+        for field in EXPECTED_BE_FIELDS:
+            if field == "be_enabled":
+                result = pg_set_strategy_setting(uid, strategy, "long", field, True, "bybit")
+            else:
+                result = pg_set_strategy_setting(uid, strategy, "long", field, 1.5, "bybit")
+            assert result is True, f"Failed to set {field}"
     
-    def test_be_enabled_is_boolean(self):
-        """Verify be_enabled is marked as boolean"""
-        assert "be_enabled" in BOOLEAN_FIELDS, "be_enabled should be in BOOLEAN_FIELDS"
+    def test_be_enabled_stored_as_boolean(self):
+        """Verify be_enabled is stored as boolean"""
+        uid = TEST_USERS[0]
+        strategy = "elcaro"
+        
+        pg_set_strategy_setting(uid, strategy, "long", "be_enabled", True, "bybit")
+        settings = pg_get_strategy_settings(uid, strategy, "bybit")
+        
+        # Should be True (boolean), not 1 or "true"
+        assert settings.get("long_be_enabled") is True
 
 
 class TestPartialTPSettings:
