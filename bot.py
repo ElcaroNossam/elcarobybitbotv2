@@ -1490,6 +1490,16 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     real_key_status = "✅" if real_key else "❌"
     real_secret_status = "✅" if real_secret else "❌"
     
+    # Get margin mode settings
+    bybit_margin = "cross"
+    hl_margin = "cross"
+    if uid:
+        bybit_margin = db.get_user_field(uid, "bybit_margin_mode") or "cross"
+        hl_margin = db.get_user_field(uid, "hl_margin_mode") or "cross"
+    
+    bybit_margin_icon = "🔄" if bybit_margin == "cross" else "📦"
+    hl_margin_icon = "🔄" if hl_margin == "cross" else "📦"
+    
     buttons = [
         # ─── Exchange Trading Toggles ───
         [InlineKeyboardButton(t.get('section_exchanges', '══ 🔗 EXCHANGE TRADING ══'), callback_data="noop")],
@@ -1520,9 +1530,20 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         ],
         [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Real", callback_data="api:test_real")],
         
+        # ─── Bybit Margin Mode ───
+        [InlineKeyboardButton(t.get('section_margin', '══ 📊 MARGIN MODE ══'), callback_data="noop")],
+        [InlineKeyboardButton(
+            f"{bybit_margin_icon} Bybit: {bybit_margin.upper()}",
+            callback_data="api:bybit_margin"
+        )],
+        
         # ─── HyperLiquid ───
         [InlineKeyboardButton(t.get('menu_section_hl', '══ 🔷 HYPERLIQUID ══'), callback_data="noop")],
         [InlineKeyboardButton(f"{hl_cfg_status} " + t.get('menu_hl_settings', '⚙️ HyperLiquid Settings'), callback_data="api:hl_settings")],
+        [InlineKeyboardButton(
+            f"{hl_margin_icon} Margin: {hl_margin.upper()}",
+            callback_data="api:hl_margin"
+        )],
         
         # ─── Actions ───
         [
@@ -1740,6 +1761,35 @@ Use the buttons below to configure:"""
         
         status = "🟢 ON" if new_val else "🔴 OFF"
         await q.answer(f"HyperLiquid Trading: {status}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Margin Mode Toggle ───
+    if action == "bybit_margin":
+        current = db.get_user_field(uid, "bybit_margin_mode") or "cross"
+        new_mode = "isolated" if current == "cross" else "cross"
+        db.set_user_field(uid, "bybit_margin_mode", new_mode)
+        
+        mode_emoji = "📦 ISOLATED" if new_mode == "isolated" else "🔄 CROSS"
+        await q.answer(f"Bybit Margin Mode: {mode_emoji}", show_alert=True)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "hl_margin":
+        current = db.get_user_field(uid, "hl_margin_mode") or "cross"
+        new_mode = "isolated" if current == "cross" else "cross"
+        db.set_user_field(uid, "hl_margin_mode", new_mode)
+        
+        mode_emoji = "📦 ISOLATED" if new_mode == "isolated" else "🔄 CROSS"
+        await q.answer(f"HyperLiquid Margin Mode: {mode_emoji}", show_alert=True)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)

@@ -146,6 +146,9 @@ USER_FIELDS_WHITELIST = {
     "hl_testnet_wallet_address",  # HL testnet wallet address
     "hl_mainnet_private_key",  # HL mainnet private key
     "hl_mainnet_wallet_address",  # HL mainnet wallet address
+    # Margin mode settings
+    "bybit_margin_mode",  # 'cross' or 'isolated' for Bybit
+    "hl_margin_mode",  # 'cross' or 'isolated' for HyperLiquid
 }
 
 
