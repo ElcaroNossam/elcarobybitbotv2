@@ -525,6 +525,178 @@ async def get_profile(user: dict = Depends(get_current_user)):
     }
 
 
+# ========== GLOBAL TRADING SETTINGS ==========
+
+@router.get("/global-settings")
+async def get_global_settings(user: dict = Depends(get_current_user)):
+    """Get global trading settings (DCA, order type, spot, etc.)"""
+    user_id = user["user_id"]
+    cfg = db.get_user_config(user_id)
+    
+    # Parse spot_settings if it's a JSON string
+    spot_settings = cfg.get("spot_settings", {})
+    if isinstance(spot_settings, str):
+        try:
+            import json
+            spot_settings = json.loads(spot_settings)
+        except:
+            spot_settings = {}
+    
+    return {
+        # Order settings
+        "global_order_type": cfg.get("global_order_type", "market"),
+        "limit_offset_pct": cfg.get("limit_offset_pct", 0.1),
+        
+        # DCA settings (futures)
+        "dca_enabled": bool(cfg.get("dca_enabled", 0)),
+        "dca_pct_1": cfg.get("dca_pct_1", 10.0),
+        "dca_pct_2": cfg.get("dca_pct_2", 25.0),
+        
+        # Spot DCA settings
+        "spot_enabled": bool(cfg.get("spot_enabled", 0)),
+        "spot_settings": {
+            "trading_mode": spot_settings.get("trading_mode", "demo"),
+            "strategy": spot_settings.get("strategy", "fixed"),
+            "dca_amount": spot_settings.get("dca_amount", 10.0),
+            "auto_dca": bool(spot_settings.get("auto_dca", False)),
+            "tp_enabled": bool(spot_settings.get("tp_enabled", False)),
+            "tp_percent": spot_settings.get("tp_percent", 10.0),
+            "coins": spot_settings.get("coins", ["BTC", "ETH"]),
+            "portfolio": spot_settings.get("portfolio", "custom"),
+            "dip_threshold": spot_settings.get("dip_threshold", 5.0),
+            "fear_threshold": spot_settings.get("fear_threshold", 25),
+        },
+        
+        # ATR settings (global)
+        "use_atr": bool(cfg.get("use_atr", 0)),
+        "atr_periods": cfg.get("atr_periods", 7),
+        "atr_multiplier_sl": cfg.get("atr_multiplier_sl", 1.0),
+        "atr_trigger_pct": cfg.get("atr_trigger_pct", 2.0),
+        "atr_step_pct": cfg.get("atr_step_pct", 0.5),
+        
+        # Live trading confirmation
+        "live_enabled": bool(cfg.get("live_enabled", 0)),
+    }
+
+
+@router.put("/global-settings")
+async def update_global_settings(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update global trading settings."""
+    user_id = user["user_id"]
+    
+    # Allowed fields for update
+    allowed_fields = {
+        "global_order_type", "limit_offset_pct",
+        "dca_enabled", "dca_pct_1", "dca_pct_2",
+        "spot_enabled",
+        "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
+        "live_enabled"
+    }
+    
+    updated = {}
+    for key, value in data.items():
+        if key in allowed_fields:
+            # Convert booleans to int for SQLite compatibility
+            if key in ("dca_enabled", "spot_enabled", "use_atr", "live_enabled"):
+                value = 1 if value else 0
+            db.set_user_field(user_id, key, value)
+            updated[key] = value
+    
+    return {"success": True, "updated": updated}
+
+
+@router.put("/spot-settings")
+async def update_spot_settings(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Update spot DCA settings."""
+    user_id = user["user_id"]
+    
+    # Get current spot_settings
+    cfg = db.get_user_config(user_id)
+    spot_settings = cfg.get("spot_settings", {})
+    if isinstance(spot_settings, str):
+        try:
+            import json
+            spot_settings = json.loads(spot_settings)
+        except:
+            spot_settings = {}
+    
+    # Allowed spot fields
+    allowed_spot_fields = {
+        "trading_mode", "strategy", "dca_amount", "auto_dca", "tp_enabled",
+        "tp_percent", "coins", "portfolio", "dip_threshold", "fear_threshold"
+    }
+    
+    # Update spot_settings
+    for key, value in data.items():
+        if key in allowed_spot_fields:
+            spot_settings[key] = value
+    
+    # Save back as JSON
+    import json
+    db.set_user_field(user_id, "spot_settings", json.dumps(spot_settings))
+    
+    return {"success": True, "spot_settings": spot_settings}
+
+
+@router.get("/exchange-trading-status")
+async def get_exchange_trading_status(user: dict = Depends(get_current_user)):
+    """Get trading enabled/disabled status for each exchange."""
+    user_id = user["user_id"]
+    
+    bybit_enabled = db.is_bybit_enabled(user_id)
+    hl_enabled = db.is_hl_enabled(user_id)
+    exchange_type = db.get_exchange_type(user_id)
+    
+    # Check configured
+    creds = db.get_all_user_credentials(user_id)
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    bybit_configured = bool(creds.get("demo_api_key") or creds.get("real_api_key"))
+    hl_configured = bool(
+        hl_creds.get("hl_testnet_private_key") or 
+        hl_creds.get("hl_mainnet_private_key") or 
+        hl_creds.get("hl_private_key")
+    )
+    
+    return {
+        "active_exchange": exchange_type,
+        "bybit": {
+            "enabled": bybit_enabled,
+            "configured": bybit_configured,
+        },
+        "hyperliquid": {
+            "enabled": hl_enabled,
+            "configured": hl_configured,
+        }
+    }
+
+
+@router.put("/exchange-trading-status/{exchange}")
+async def toggle_exchange_trading(
+    exchange: str,
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Enable/disable trading on specific exchange."""
+    user_id = user["user_id"]
+    enabled = data.get("enabled", True)
+    
+    if exchange == "bybit":
+        db.set_bybit_enabled(user_id, enabled)
+    elif exchange == "hyperliquid":
+        db.set_hl_enabled(user_id, enabled)
+    else:
+        return {"success": False, "error": f"Unknown exchange: {exchange}"}
+    
+    return {"success": True, "exchange": exchange, "enabled": enabled}
+
+
 # ========== API KEYS MANAGEMENT ==========
 
 @router.get("/api-keys")
@@ -730,6 +902,7 @@ async def test_hl_api(user: dict = Depends(get_current_user)):
 STRATEGY_FEATURES = {
     "scryptomera": {
         "order_type": True,      # Market/Limit toggle
+        "limit_offset": True,    # Limit order offset %
         "coins_group": True,     # Coins filter (ALL/TOP/VOLATILE)
         "leverage": True,        # Leverage setting
         "use_atr": True,         # ATR trailing toggle
@@ -740,9 +913,11 @@ STRATEGY_FEATURES = {
         "atr_params": True,      # ATR params on main screen  
         "hl_settings": True,     # HyperLiquid support
         "min_quality": False,    # Scryptomera doesn't have quality filter
+        "dca": True,             # DCA averaging support
     },
     "scalper": {
         "order_type": True,
+        "limit_offset": True,
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -753,9 +928,11 @@ STRATEGY_FEATURES = {
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
+        "dca": True,             # DCA averaging support
     },
     "elcaro": {
         "order_type": False,     # Lyxen signals have their own order logic
+        "limit_offset": False,
         "coins_group": True,
         "leverage": False,       # From signal
         "use_atr": False,        # ATR managed by signal
@@ -766,9 +943,11 @@ STRATEGY_FEATURES = {
         "atr_params": False,     # From signal
         "hl_settings": True,
         "min_quality": False,
+        "dca": False,            # Signal-based, no manual DCA
     },
     "fibonacci": {
         "order_type": True,      # Market/Limit toggle
+        "limit_offset": True,
         "coins_group": True,
         "leverage": True,
         "use_atr": True,         # ATR trailing option
@@ -779,9 +958,11 @@ STRATEGY_FEATURES = {
         "atr_params": True,      # ATR params
         "hl_settings": True,
         "min_quality": True,     # Fibonacci-specific quality filter
+        "dca": True,
     },
     "oi": {
         "order_type": True,
+        "limit_offset": True,
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -792,9 +973,11 @@ STRATEGY_FEATURES = {
         "atr_params": True,      # Full ATR control
         "hl_settings": True,
         "min_quality": False,
+        "dca": True,
     },
     "rsi_bb": {
         "order_type": True,
+        "limit_offset": True,
         "coins_group": True,
         "leverage": True,
         "use_atr": True,
@@ -805,6 +988,7 @@ STRATEGY_FEATURES = {
         "atr_params": True,
         "hl_settings": True,
         "min_quality": False,
+        "dca": True,
     },
 }
 
@@ -838,10 +1022,20 @@ def _build_strategy_params(strategy: str, db_settings: dict, features: dict) -> 
     if features.get("order_type"):
         params["order_type"] = db_settings.get("order_type") or "market"
     
+    # Limit offset (if strategy supports it)
+    if features.get("limit_offset"):
+        params["limit_offset_pct"] = db_settings.get("limit_offset_pct") if db_settings.get("limit_offset_pct") is not None else 0.1
+    
     # SL/TP (if strategy supports it)
     if features.get("sl_tp"):
         params["sl_percent"] = db_settings.get("sl_percent") if db_settings.get("sl_percent") is not None else 3.0
         params["tp_percent"] = db_settings.get("tp_percent") if db_settings.get("tp_percent") is not None else 8.0
+    
+    # DCA settings (if strategy supports it)
+    if features.get("dca"):
+        params["dca_enabled"] = bool(db_settings.get("dca_enabled", False))
+        params["dca_pct_1"] = db_settings.get("dca_pct_1") if db_settings.get("dca_pct_1") is not None else 10.0
+        params["dca_pct_2"] = db_settings.get("dca_pct_2") if db_settings.get("dca_pct_2") is not None else 25.0
     
     # ATR settings (if strategy supports it)
     if features.get("use_atr"):
@@ -1138,7 +1332,7 @@ async def update_strategy_settings_mobile(
         "enabled", "percent", "tp_percent", "sl_percent", "leverage",
         "use_atr", "atr_trigger_pct", "atr_step_pct", 
         "dca_enabled", "dca_pct_1", "dca_pct_2",
-        "max_positions", "coins_group"
+        "max_positions", "coins_group", "limit_offset_pct", "order_type"
     ]
     
     updated = []
