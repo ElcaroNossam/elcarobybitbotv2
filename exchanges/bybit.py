@@ -1002,6 +1002,10 @@ class BybitExchange(BaseExchange):
             if "margin mode is not modified" in error_str or "110026" in str(e):
                 logger.info(f"Margin mode already set to {mode_upper}")
                 return True
+            # Demo accounts don't support margin mode changes - treat as success
+            if "10032" in str(e) or "demo trading" in error_str:
+                logger.info(f"Margin mode change skipped (demo account): {mode_upper}")
+                return True
             # Check for specific Bybit error codes
             if "3400045" in str(e):
                 # Set margin mode failed - check reasons in response
