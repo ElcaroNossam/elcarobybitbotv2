@@ -3252,20 +3252,20 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         
         # Фильтр по периоду - используем скользящие окна (rolling windows)
         # вместо жёсткой привязки к полуночи
-        now = datetime.datetime.now(ZoneInfo("UTC"))
+        current_time = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
             # Последние 24 часа вместо "с полуночи"
-            start = now - datetime.timedelta(hours=24)
+            start = current_time - datetime.timedelta(hours=24)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "week":
             # Последние 7 дней
-            start = now - datetime.timedelta(days=7)
+            start = current_time - datetime.timedelta(days=7)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         elif period == "month":
             # Последние 30 дней
-            start = now - datetime.timedelta(days=30)
+            start = current_time - datetime.timedelta(days=30)
             where_clauses.append("ts >= ?")
             params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         

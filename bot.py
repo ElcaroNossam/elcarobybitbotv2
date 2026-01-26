@@ -804,6 +804,9 @@ def log_calls(func):
             if "should lower than" in err_str or "should higher than" in err_str:
                 # Expected error for positions in deep loss - don't spam logs
                 pass
+            elif "order_too_small" in err_str:
+                # Expected error for small orders - already logged as warning
+                pass
             else:
                 logger.exception(
                     f"✖ {func.__name__}"
@@ -4375,7 +4378,8 @@ async def _bybit_request(user_id: int, method: str, path: str,
                     raise RuntimeError(f"Bybit error {path}: {data}")
                 
                 # SL/TP validation errors - log as warning, not error (expected for deep loss positions)
-                elif ret_code == 10001 and ("should lower than" in ret_msg or "should higher than" in ret_msg):
+                # Bybit returns various phrasings: "should lower than", "should higher than", "should greater", "should less"
+                elif ret_code == 10001 and any(x in ret_msg.lower() for x in ["should lower", "should higher", "should greater", "should less"]):
                     logger.warning(f"Bybit SL/TP validation: {path} - {data.get('retMsg')}")
                     raise RuntimeError(f"Bybit error {path}: {data}")
                 
