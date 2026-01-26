@@ -370,6 +370,15 @@ class LocalizationManager: ObservableObject {
         "exchange_toggle_hint": "Toggle trading on configured exchanges.",
         "save_settings": "Save Settings",
         "settings_saved": "Settings Saved",
+        
+        // Strategy Settings
+        "strategy_settings": "Strategy Settings",
+        "enable_long": "Enable Long",
+        "enable_short": "Enable Short",
+        "entry_percent": "Entry Size %",
+        "take_profit": "Take Profit %",
+        "stop_loss": "Stop Loss %",
+        "leverage": "Leverage",
     ]
     
     // MARK: - Russian
@@ -572,6 +581,15 @@ class LocalizationManager: ObservableObject {
         "exchange_toggle_hint": "Включение/выключение торговли на бирже.",
         "save_settings": "Сохранить",
         "settings_saved": "Настройки сохранены",
+        
+        // Strategy Settings
+        "strategy_settings": "Настройки стратегий",
+        "enable_long": "Включить Long",
+        "enable_short": "Включить Short",
+        "entry_percent": "Размер входа %",
+        "take_profit": "Тейк профит %",
+        "stop_loss": "Стоп лосс %",
+        "leverage": "Плечо",
     ]
     
     // MARK: - Ukrainian

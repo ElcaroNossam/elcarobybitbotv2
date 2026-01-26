@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Strategy Settings | Lyxen Trading</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/mobile.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --bg-card: rgba(255, 255, 255, 0.02);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #dc2626;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f97316;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --gradient-primary: linear-gradient(135deg, #dc2626, #991b1b);
+            --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
+            --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(220, 38, 38, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 40%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        .back-btn:hover { color: var(--text-primary); }
+        
+        .page-title { font-size: 1.25rem; font-weight: 600; }
+        
+        /* Main */
+        .main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+        
+        /* Context Selector */
+        .context-selector {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .context-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .context-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .context-select {
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            min-width: 150px;
+            cursor: pointer;
+        }
+        
+        /* Strategy Chips */
+        .strategy-chips {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .strategy-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .strategy-chip:hover {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
+        .strategy-chip.active {
+            border-color: var(--chip-color, var(--accent-primary));
+            background: rgba(var(--chip-rgb, 220, 38, 38), 0.1);
+        }
+        
+        .strategy-chip.active .chip-icon {
+            color: var(--chip-color, var(--accent-primary));
+        }
+        
+        .chip-icon {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+        
+        .chip-label {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        /* Long/Short Tabs */
+        .side-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        
+        .side-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        .side-tab:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .side-tab.long.active {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+            color: var(--accent-green);
+        }
+        
+        .side-tab.short.active {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+            color: var(--accent-red);
+        }
+        
+        .side-tab i { font-size: 1.1rem; }
+        
+        /* Settings Card */
+        .settings-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-title i {
+            font-size: 1.25rem;
+            color: var(--accent-primary);
+        }
+        
+        .card-title h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* Toggle Switch */
+        .toggle {
+            width: 52px;
+            height: 28px;
+            background: var(--bg-tertiary);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle.active {
+            background: var(--accent-green);
+        }
+        
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s;
+        }
+        
+        .toggle.active::after {
+            transform: translateX(24px);
+        }
+        
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .form-input {
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        .form-select {
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        /* Collapsible Section */
+        .collapse-section {
+            border-top: 1px solid var(--border-color);
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+        
+        .collapse-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        
+        .collapse-header h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        .collapse-header h4 i {
+            color: var(--accent-orange);
+        }
+        
+        .collapse-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .collapse-content.active {
+            display: block;
+        }
+        
+        /* Save Button */
+        .save-section {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-card);
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .notification.success { border-color: var(--accent-green); }
+        .notification.success i { color: var(--accent-green); }
+        .notification.error { border-color: var(--accent-red); }
+        .notification.error i { color: var(--accent-red); }
+        
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.active { display: flex; }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main { padding: 16px; }
+            .header { padding: 12px 16px; }
+            .context-selector { flex-direction: column; gap: 12px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .save-section { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+        }
+        
+        /* Light theme */
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border-color: rgba(0, 0, 0, 0.08);
+        }
+    </style>
+    <script src="/static/js/lyxen-theme.js"></script>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="/settings" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Settings</span>
+            </a>
+        </div>
+        <h1 class="page-title">Strategy Settings</h1>
+        <div></div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Context Selector -->
+        <div class="context-selector">
+            <div class="context-group">
+                <span class="context-label">Exchange</span>
+                <select id="exchange" class="context-select" onchange="loadSettings()">
+                    <option value="bybit">Bybit</option>
+                    <option value="hyperliquid">HyperLiquid</option>
+                </select>
+            </div>
+            <div class="context-group">
+                <span class="context-label">Account</span>
+                <select id="accountType" class="context-select" onchange="loadSettings()">
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Strategy Chips -->
+        <div class="strategy-chips">
+            <div class="strategy-chip active" data-strategy="oi" style="--chip-color: #3b82f6; --chip-rgb: 59, 130, 246;" onclick="selectStrategy('oi')">
+                <i class="fas fa-chart-bar chip-icon"></i>
+                <span class="chip-label">Open Interest</span>
+            </div>
+            <div class="strategy-chip" data-strategy="scryptomera" style="--chip-color: #8b5cf6; --chip-rgb: 139, 92, 246;" onclick="selectStrategy('scryptomera')">
+                <i class="fas fa-wave-square chip-icon"></i>
+                <span class="chip-label">Scryptomera</span>
+            </div>
+            <div class="strategy-chip" data-strategy="scalper" style="--chip-color: #f97316; --chip-rgb: 249, 115, 22;" onclick="selectStrategy('scalper')">
+                <i class="fas fa-bolt chip-icon"></i>
+                <span class="chip-label">Scalper</span>
+            </div>
+            <div class="strategy-chip" data-strategy="elcaro" style="--chip-color: #22c55e; --chip-rgb: 34, 197, 94;" onclick="selectStrategy('elcaro')">
+                <i class="fas fa-brain chip-icon"></i>
+                <span class="chip-label">LYXEN AI</span>
+            </div>
+            <div class="strategy-chip" data-strategy="fibonacci" style="--chip-color: #06b6d4; --chip-rgb: 6, 182, 212;" onclick="selectStrategy('fibonacci')">
+                <i class="fas fa-ruler chip-icon"></i>
+                <span class="chip-label">Fibonacci</span>
+            </div>
+            <div class="strategy-chip" data-strategy="rsi_bb" style="--chip-color: #ec4899; --chip-rgb: 236, 72, 153;" onclick="selectStrategy('rsi_bb')">
+                <i class="fas fa-chart-line chip-icon"></i>
+                <span class="chip-label">RSI + BB</span>
+            </div>
+        </div>
+        
+        <!-- Long/Short Tabs -->
+        <div class="side-tabs">
+            <div class="side-tab long active" onclick="selectSide('long')">
+                <i class="fas fa-arrow-up"></i>
+                <span>LONG</span>
+            </div>
+            <div class="side-tab short" onclick="selectSide('short')">
+                <i class="fas fa-arrow-down"></i>
+                <span>SHORT</span>
+            </div>
+        </div>
+        
+        <!-- Settings Card -->
+        <div id="settingsCard" class="settings-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-cog"></i>
+                    <h3 id="cardTitle">Long Settings</h3>
+                </div>
+                <div class="toggle" id="enableToggle" onclick="toggleEnabled()"></div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Entry Size %</label>
+                    <input type="number" id="percent" class="form-input" value="1" min="0.1" max="100" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Take Profit %</label>
+                    <input type="number" id="tp_percent" class="form-input" value="8" min="0.1" max="100" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stop Loss %</label>
+                    <input type="number" id="sl_percent" class="form-input" value="3" min="0.1" max="50" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Leverage</label>
+                    <select id="leverage" class="form-select">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                        <option value="5">5x</option>
+                        <option value="10" selected>10x</option>
+                        <option value="20">20x</option>
+                        <option value="25">25x</option>
+                        <option value="50">50x</option>
+                        <option value="75">75x</option>
+                        <option value="100">100x</option>
+                        <option value="125">125x</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Order Type</label>
+                    <select id="order_type" class="form-select">
+                        <option value="market">Market</option>
+                        <option value="limit">Limit</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- ATR Section -->
+            <div class="collapse-section">
+                <div class="collapse-header" onclick="toggleSection('atr')">
+                    <h4>
+                        <i class="fas fa-wave-square"></i>
+                        ATR Trailing Stop
+                    </h4>
+                    <div class="toggle" id="atrToggle" onclick="event.stopPropagation(); toggleAtr()"></div>
+                </div>
+                <div id="atrContent" class="collapse-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Trigger Profit %</label>
+                            <input type="number" id="atr_trigger_pct" class="form-input" value="0.5" min="0.1" max="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Trail Step %</label>
+                            <input type="number" id="atr_step_pct" class="form-input" value="0.25" min="0.05" max="5" step="0.05">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DCA Section -->
+            <div class="collapse-section">
+                <div class="collapse-header" onclick="toggleSection('dca')">
+                    <h4>
+                        <i class="fas fa-plus-circle"></i>
+                        DCA (Dollar Cost Averaging)
+                    </h4>
+                    <div class="toggle" id="dcaToggle" onclick="event.stopPropagation(); toggleDca()"></div>
+                </div>
+                <div id="dcaContent" class="collapse-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Level 1 (Drawdown %)</label>
+                            <input type="number" id="dca_pct_1" class="form-input" value="10" min="1" max="50" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Level 2 (Drawdown %)</label>
+                            <input type="number" id="dca_pct_2" class="form-input" value="25" min="5" max="100" step="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Save Section -->
+        <div class="save-section">
+            <button class="btn btn-secondary" onclick="copyToAllAccounts()">
+                <i class="fas fa-copy"></i>
+                Copy to All Accounts
+            </button>
+            <button class="btn btn-primary" onclick="saveSettings()">
+                <i class="fas fa-save"></i>
+                Save Settings
+            </button>
+        </div>
+    </main>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Settings saved!</span>
+    </div>
+    
+    <!-- Loading -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script>
+        // State
+        let currentStrategy = 'oi';
+        let currentSide = 'long';
+        let longSettings = {};
+        let shortSettings = {};
+        let currentUser = null;
+        
+        // Auth
+        async function initAuth() {
+            const token = localStorage.getItem('lyxen_token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) {
+                    localStorage.removeItem('lyxen_token');
+                    window.location.href = '/login';
+                    return false;
+                }
+                
+                currentUser = await res.json();
+                return true;
+            } catch (e) {
+                console.error('Auth error:', e);
+                return false;
+            }
+        }
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('lyxen_token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        // Strategy Selection
+        function selectStrategy(strategy) {
+            currentStrategy = strategy;
+            
+            document.querySelectorAll('.strategy-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.strategy === strategy);
+            });
+            
+            loadSettings();
+        }
+        
+        // Side Selection
+        function selectSide(side) {
+            currentSide = side;
+            
+            document.querySelectorAll('.side-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.classList.contains(side));
+            });
+            
+            document.getElementById('cardTitle').textContent = 
+                side === 'long' ? 'Long Settings' : 'Short Settings';
+            
+            updateUI();
+        }
+        
+        // Exchange change handler
+        document.getElementById('exchange').addEventListener('change', function() {
+            const accountSelect = document.getElementById('accountType');
+            if (this.value === 'bybit') {
+                accountSelect.innerHTML = `
+                    <option value="demo">Demo</option>
+                    <option value="real">Real</option>
+                `;
+            } else {
+                accountSelect.innerHTML = `
+                    <option value="testnet">Testnet</option>
+                    <option value="mainnet">Mainnet</option>
+                `;
+            }
+        });
+        
+        // Load Settings
+        async function loadSettings() {
+            showLoading(true);
+            
+            const exchange = document.getElementById('exchange').value;
+            const accountType = document.getElementById('accountType').value;
+            
+            try {
+                const res = await fetch(
+                    `/api/users/strategy-settings/mobile?strategy=${currentStrategy}&exchange=${exchange}&account_type=${accountType}`,
+                    { headers: getAuthHeaders() }
+                );
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Parse long and short settings
+                    for (const item of data) {
+                        if (item.side === 'long') {
+                            longSettings = item;
+                        } else if (item.side === 'short') {
+                            shortSettings = item;
+                        }
+                    }
+                    
+                    updateUI();
+                }
+            } catch (e) {
+                console.error('Failed to load settings:', e);
+                showNotification('Failed to load settings', 'error');
+            }
+            
+            showLoading(false);
+        }
+        
+        // Update UI
+        function updateUI() {
+            const settings = currentSide === 'long' ? longSettings : shortSettings;
+            
+            // Enable toggle
+            const enableToggle = document.getElementById('enableToggle');
+            enableToggle.classList.toggle('active', settings.enabled !== false);
+            
+            // Form values
+            document.getElementById('percent').value = settings.percent || 1;
+            document.getElementById('tp_percent').value = settings.tp_percent || 8;
+            document.getElementById('sl_percent').value = settings.sl_percent || 3;
+            document.getElementById('leverage').value = settings.leverage || 10;
+            document.getElementById('order_type').value = settings.order_type || 'market';
+            
+            // ATR
+            const atrToggle = document.getElementById('atrToggle');
+            atrToggle.classList.toggle('active', settings.use_atr === true);
+            document.getElementById('atrContent').classList.toggle('active', settings.use_atr === true);
+            document.getElementById('atr_trigger_pct').value = settings.atr_trigger_pct || 0.5;
+            document.getElementById('atr_step_pct').value = settings.atr_step_pct || 0.25;
+            
+            // DCA
+            const dcaToggle = document.getElementById('dcaToggle');
+            dcaToggle.classList.toggle('active', settings.dca_enabled === true);
+            document.getElementById('dcaContent').classList.toggle('active', settings.dca_enabled === true);
+            document.getElementById('dca_pct_1').value = settings.dca_pct_1 || 10;
+            document.getElementById('dca_pct_2').value = settings.dca_pct_2 || 25;
+        }
+        
+        // Collect current settings
+        function collectSettings() {
+            return {
+                enabled: document.getElementById('enableToggle').classList.contains('active'),
+                percent: parseFloat(document.getElementById('percent').value),
+                tp_percent: parseFloat(document.getElementById('tp_percent').value),
+                sl_percent: parseFloat(document.getElementById('sl_percent').value),
+                leverage: parseInt(document.getElementById('leverage').value),
+                order_type: document.getElementById('order_type').value,
+                use_atr: document.getElementById('atrToggle').classList.contains('active'),
+                atr_trigger_pct: parseFloat(document.getElementById('atr_trigger_pct').value),
+                atr_step_pct: parseFloat(document.getElementById('atr_step_pct').value),
+                dca_enabled: document.getElementById('dcaToggle').classList.contains('active'),
+                dca_pct_1: parseFloat(document.getElementById('dca_pct_1').value),
+                dca_pct_2: parseFloat(document.getElementById('dca_pct_2').value)
+            };
+        }
+        
+        // Save Settings
+        async function saveSettings() {
+            showLoading(true);
+            
+            const exchange = document.getElementById('exchange').value;
+            const accountType = document.getElementById('accountType').value;
+            
+            // Update current side in memory
+            const currentSettings = collectSettings();
+            if (currentSide === 'long') {
+                longSettings = { ...longSettings, ...currentSettings };
+            } else {
+                shortSettings = { ...shortSettings, ...currentSettings };
+            }
+            
+            // Save both sides
+            try {
+                for (const [side, settings] of [['long', longSettings], ['short', shortSettings]]) {
+                    const body = {
+                        side: side,
+                        exchange: exchange,
+                        account_type: accountType,
+                        enabled: settings.enabled !== false,
+                        percent: settings.percent || 1,
+                        tp_percent: settings.tp_percent || 8,
+                        sl_percent: settings.sl_percent || 3,
+                        leverage: settings.leverage || 10,
+                        order_type: settings.order_type || 'market',
+                        use_atr: settings.use_atr === true,
+                        atr_trigger_pct: settings.atr_trigger_pct || 0.5,
+                        atr_step_pct: settings.atr_step_pct || 0.25,
+                        dca_enabled: settings.dca_enabled === true,
+                        dca_pct_1: settings.dca_pct_1 || 10,
+                        dca_pct_2: settings.dca_pct_2 || 25
+                    };
+                    
+                    await fetch(`/api/users/strategy-settings/mobile/${currentStrategy}`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(body)
+                    });
+                }
+                
+                showNotification('Settings saved successfully!', 'success');
+            } catch (e) {
+                console.error('Save error:', e);
+                showNotification('Failed to save settings', 'error');
+            }
+            
+            showLoading(false);
+        }
+        
+        // Copy to all accounts
+        async function copyToAllAccounts() {
+            if (!confirm('Copy current settings to all exchanges and accounts?')) return;
+            
+            showLoading(true);
+            
+            const currentSettings = collectSettings();
+            if (currentSide === 'long') {
+                longSettings = { ...longSettings, ...currentSettings };
+            } else {
+                shortSettings = { ...shortSettings, ...currentSettings };
+            }
+            
+            const targets = [
+                { exchange: 'bybit', account_type: 'demo' },
+                { exchange: 'bybit', account_type: 'real' },
+                { exchange: 'hyperliquid', account_type: 'testnet' },
+                { exchange: 'hyperliquid', account_type: 'mainnet' }
+            ];
+            
+            let success = 0;
+            
+            for (const target of targets) {
+                for (const [side, settings] of [['long', longSettings], ['short', shortSettings]]) {
+                    try {
+                        const body = {
+                            side: side,
+                            exchange: target.exchange,
+                            account_type: target.account_type,
+                            enabled: settings.enabled !== false,
+                            percent: settings.percent || 1,
+                            tp_percent: settings.tp_percent || 8,
+                            sl_percent: settings.sl_percent || 3,
+                            leverage: settings.leverage || 10,
+                            order_type: settings.order_type || 'market',
+                            use_atr: settings.use_atr === true,
+                            atr_trigger_pct: settings.atr_trigger_pct || 0.5,
+                            atr_step_pct: settings.atr_step_pct || 0.25,
+                            dca_enabled: settings.dca_enabled === true,
+                            dca_pct_1: settings.dca_pct_1 || 10,
+                            dca_pct_2: settings.dca_pct_2 || 25
+                        };
+                        
+                        const res = await fetch(`/api/users/strategy-settings/mobile/${currentStrategy}`, {
+                            method: 'PUT',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify(body)
+                        });
+                        
+                        if (res.ok) success++;
+                    } catch (e) {
+                        console.error(`Failed to copy to ${target.exchange}/${target.account_type}:`, e);
+                    }
+                }
+            }
+            
+            showNotification(`Copied to ${success}/8 combinations`, success === 8 ? 'success' : 'error');
+            showLoading(false);
+        }
+        
+        // Toggle functions
+        function toggleEnabled() {
+            document.getElementById('enableToggle').classList.toggle('active');
+        }
+        
+        function toggleAtr() {
+            const toggle = document.getElementById('atrToggle');
+            toggle.classList.toggle('active');
+            document.getElementById('atrContent').classList.toggle('active', toggle.classList.contains('active'));
+        }
+        
+        function toggleDca() {
+            const toggle = document.getElementById('dcaToggle');
+            toggle.classList.toggle('active');
+            document.getElementById('dcaContent').classList.toggle('active', toggle.classList.contains('active'));
+        }
+        
+        function toggleSection(section) {
+            // Just expand/collapse - toggle handles enable/disable
+        }
+        
+        // Helpers
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notificationText');
+            const icon = notification.querySelector('i');
+            
+            notification.className = `notification ${type}`;
+            text.textContent = message;
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 3000);
+        }
+        
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await initAuth()) {
+                await loadSettings();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -92,6 +92,18 @@ struct SettingsView: View {
                             )
                         }
                         
+                        // Strategy Settings (Long/Short per strategy)
+                        NavigationLink {
+                            StrategySettingsView()
+                        } label: {
+                            SettingsRow(
+                                icon: "slider.horizontal.3",
+                                iconColor: .lyxenBlue,
+                                title: "strategy_settings".localized,
+                                value: ""
+                            )
+                        }
+                        
                         // API Keys
                         Button(action: { showAPIKeySheet = true }) {
                             SettingsRow(

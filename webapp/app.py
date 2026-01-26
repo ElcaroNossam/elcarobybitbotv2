@@ -612,6 +612,11 @@ def create_app() -> FastAPI:
     async def settings_page(request: Request):
         return templates.TemplateResponse("settings.html", {"request": request})
     
+    @app.get("/strategy-settings", response_class=HTMLResponse)
+    async def strategy_settings_page(request: Request):
+        """Strategy settings with Long/Short tabs"""
+        return templates.TemplateResponse("strategy_settings.html", {"request": request})
+    
     @app.get("/portfolio", response_class=HTMLResponse)
     async def portfolio_page(request: Request):
         """Portfolio page redirects to statistics"""
