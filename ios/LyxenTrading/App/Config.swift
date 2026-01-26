@@ -12,7 +12,7 @@ struct Config {
     #if DEBUG
     static let baseURL = "http://localhost:8765"
     #else
-    static let baseURL = "https://fog-cornell-ata-portable.trycloudflare.com"
+    static let baseURL = "https://cinema-attribute-fusion-generators.trycloudflare.com"
     #endif
     
     static let apiURL = "\(baseURL)/api"
