@@ -17239,6 +17239,19 @@ async def monitor_positions_loop(app: Application):
                                     tp_pct = coin_cfg.get("tp_pct", DEFAULT_TP_PCT)
                                 risk_pct_for_dca = float(cfg.get("percent", 1) or 0)
 
+                            # CRITICAL FIX: Use applied_sl_pct/applied_tp_pct from position if saved
+                            # This ensures SL/TP is calculated from the settings at position open time,
+                            # not current user settings (which may have changed!)
+                            if ap_for_sym:
+                                applied_sl = ap_for_sym.get("applied_sl_pct")
+                                applied_tp = ap_for_sym.get("applied_tp_pct")
+                                if applied_sl is not None and applied_sl > 0:
+                                    sl_pct = float(applied_sl)
+                                    logger.debug(f"[{uid}] {sym}: Using applied_sl_pct={sl_pct} from position open time")
+                                if applied_tp is not None and applied_tp > 0:
+                                    tp_pct = float(applied_tp)
+                                    logger.debug(f"[{uid}] {sym}: Using applied_tp_pct={tp_pct} from position open time")
+
                             tf          = tf_map.get(sym, "15m")  # Default to 15m if not in DB for more responsive ATR
                             tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["15m"])
                         
@@ -17388,8 +17401,19 @@ async def monitor_positions_loop(app: Application):
                                         logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
 
                             if not position_use_atr:
-                                # Use side-specific SL/TP for Scryptomera/Scalper strategies
-                                sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                # CRITICAL FIX: Use applied_sl_pct/applied_tp_pct from position if available
+                                # This ensures we use settings from position open time, not current user settings
+                                if ap_for_sym:
+                                    applied_sl = ap_for_sym.get("applied_sl_pct")
+                                    applied_tp = ap_for_sym.get("applied_tp_pct")
+                                    if applied_sl is not None and applied_sl > 0:
+                                        sl_pct = float(applied_sl)
+                                    if applied_tp is not None and applied_tp > 0:
+                                        tp_pct = float(applied_tp)
+                                else:
+                                    # Fallback to current strategy settings if no applied values saved
+                                    sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                
                                 sl0 = round(
                                     entry * (1 - sl_pct/100) if side == "Buy"
                                     else entry * (1 + sl_pct/100),
