@@ -1,11 +1,12 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.32.0 | Обновлено: 26 января 2026
+# Версия: 3.33.0 | Обновлено: 27 января 2026
 # =============================================
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot
 # iOS Full Localization: 15 languages + RTL support
 # 4D Schema: (user_id, strategy, side, exchange)
 # Break-Even (BE): Move SL to entry when profit >= trigger%
+# Partial Take Profit: Close X% at +Y% profit in 2 steps
 
 ---
 
@@ -59,6 +60,29 @@
 - Удалять код который "выглядит неиспользуемым"
 - Рефакторить без запроса
 
+## 🔴 НЕМЕДЛЕННОЕ ИСПРАВЛЕНИЕ ОШИБОК
+
+**При обнаружении ошибок во время выполнения запроса:**
+
+1. **НЕМЕДЛЕННО исправить** - не откладывать на "потом"
+2. **Найти причинно-следственную связь** - почему ошибка возникла
+3. **Проверить все связанные места** - где ещё может быть аналогичная проблема
+4. **Исправить комплексно** - все найденные места, не только первое
+5. **Проверить результат** - убедиться что исправление работает
+
+**Паттерн исправления:**
+```
+1. Увидел ошибку → Читаю код → Нахожу причину
+2. Ищу аналогичные места → grep_search / list_code_usages
+3. Исправляю ВСЕ места → Проверяю get_errors
+4. Тестирую если возможно
+```
+
+**❌ ЗАПРЕЩЕНО:**
+- Игнорировать ошибки "это потом"
+- Исправлять только симптом, не причину
+- Исправлять одно место, когда проблема в нескольких
+
 ---
 
 ## 📝 САМООБНОВЛЕНИЕ ИНСТРУКЦИЙ
@@ -91,10 +115,10 @@
 | Swift файлов | 35+ |
 | **Тестов** | **708 (416 unit + 293 integration)** |
 | Языков перевода | 15 |
-| Ключей перевода | 1521 |
+| Ключей перевода | 1540+ |
 | База данных | PostgreSQL 14 (ONLY) |
 | API endpoints | 127+ |
-| Migration files | 18 |
+| Migration files | 19 |
 | iOS Bundle ID | io.lyxen.LyxenTrading |
 | Xcode | 26.2 (17C52) |
 | **Cross-Platform Sync** | iOS ↔ WebApp ↔ Telegram |
@@ -874,6 +898,33 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: Partial Take Profit (Срез маржи) in 2 Steps (Jan 27, 2026)
+- **Функционал:** Частичное закрытие позиции при достижении % прибыли в 2 шага
+- **Per-Strategy/Side настройки:**
+  - `partial_tp_enabled` - включить/выключить (по умолчанию OFF)
+  - `partial_tp_1_trigger_pct` - % прибыли для Step 1 (default 2.0%)
+  - `partial_tp_1_close_pct` - % позиции для закрытия в Step 1 (default 30%)
+  - `partial_tp_2_trigger_pct` - % прибыли для Step 2 (default 5.0%)
+  - `partial_tp_2_close_pct` - % позиции для закрытия в Step 2 (default 50%)
+- **UI:** Добавлено в Per-Strategy Long/Short меню:
+  - Кнопка toggle Partial TP ON/OFF
+  - Кнопки настройки Step 1 и Step 2 (показываются только когда enabled)
+  - Формат: "📊 Step 1: 30% @ +2.0%" / "📊 Step 2: 50% @ +5.0%"
+- **Изменённые файлы:**
+  - `bot.py` - UI меню, handler `strat_side_ptp:`, prompts
+  - `core/db_postgres.py` - Partial TP в pg_get_strategy_settings, ALLOWED_FIELDS, BOOLEAN_FIELDS
+  - `db.py` - Partial TP columns в _STRATEGY_DB_COLUMNS
+  - `translations/en.py`, `translations/ru.py` - 15+ ключей перевода
+  - `migrations/versions/019_partial_tp_settings.py` - новая миграция
+
+### ✅ FEAT: Break-Even in Per-Strategy Menus (Jan 27, 2026)
+- **Расширение:** BE теперь настраивается отдельно для Long/Short каждой стратегии
+- **UI изменения:**
+  - Добавлена секция BE в `get_strategy_side_keyboard()`
+  - Кнопка toggle BE + кнопка Trigger % (при включённом BE)
+  - CallbackQueryHandler pattern добавлен `strat_side_be:`
+- **Файлы:** bot.py (+100 строк)
 
 ### ✅ FEAT: Break-Even (BE) Feature for All Strategies (Jan 26, 2026)
 - **Функционал:** Перевод SL в безубыток когда прибыль достигает trigger %
@@ -2279,7 +2330,7 @@ static let wsURL = baseURL
 ---
 
 *Last updated: 27 января 2026*
-*Version: 3.31.0*
+*Version: 3.33.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -2290,9 +2341,11 @@ static let wsURL = baseURL
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
 *Exchange Field: All add_active_position/log_exit calls pass exchange correctly*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
-*Translations: 15 languages, 1521 keys, common button keys*
+*Translations: 15 languages, 1540+ keys, common button keys*
 *Branding: Lyxen (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot (user_activity_log table)*
 *iOS SwiftUI: 35+ files, LocalizationManager (15 langs, RTL), WebSocketService sync*
 *iOS Features: Screener, Stats, AI, Signals, Activity - full parity with WebApp*
+*Break-Even (BE): Per-strategy Long/Short settings*
+*Partial Take Profit: Close X% at +Y% profit in 2 steps*
