@@ -133,6 +133,8 @@ USER_FIELDS_WHITELIST = {
     "license_type", "license_expires", "current_license",
     # для совместимости с текущим кодом бота
     "first_seen_ts", "last_seen_ts",
+    # Last viewed account type (for UI persistence)
+    "last_viewed_account",  # 'demo', 'real', 'testnet', 'mainnet' - persists across views
     # HyperLiquid settings
     "hl_testnet",  # 0/1 - testnet or mainnet (legacy, for active context)
     "hl_enabled",  # 0/1 - HL trading enabled
@@ -415,6 +417,59 @@ def get_trading_mode(user_id: int) -> str:
     with get_conn() as conn:
         row = conn.execute("SELECT trading_mode FROM users WHERE user_id=?", (user_id,)).fetchone()
     return row[0] if row and row[0] else "demo"
+
+
+def get_last_viewed_account(user_id: int, exchange: str = 'bybit') -> str:
+    """Get last viewed account type for UI persistence.
+    
+    This is separate from trading_mode - it's just for UI display.
+    User can VIEW demo positions while TRADING on real.
+    
+    Returns:
+        'demo' or 'real' for Bybit
+        'testnet' or 'mainnet' for HyperLiquid
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT last_viewed_account, trading_mode, hl_testnet FROM users WHERE user_id=?", 
+            (user_id,)
+        ).fetchone()
+    
+    if not row:
+        return "demo" if exchange == "bybit" else "testnet"
+    
+    last_viewed = row[0]
+    trading_mode = row[1] or "demo"
+    hl_testnet = row[2]
+    
+    # If last_viewed is set and matches exchange, use it
+    if last_viewed:
+        if exchange == "bybit" and last_viewed in ("demo", "real"):
+            return last_viewed
+        if exchange == "hyperliquid" and last_viewed in ("testnet", "mainnet"):
+            return last_viewed
+    
+    # Default based on trading mode or hl_testnet
+    if exchange == "bybit":
+        if trading_mode == "both":
+            return "demo"  # Default to demo for viewing
+        return trading_mode if trading_mode in ("demo", "real") else "demo"
+    else:
+        return "testnet" if hl_testnet else "mainnet"
+
+
+def set_last_viewed_account(user_id: int, account_type: str):
+    """Save last viewed account type for UI persistence."""
+    if account_type not in ("demo", "real", "testnet", "mainnet"):
+        return
+    ensure_user(user_id)
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET last_viewed_account=? WHERE user_id=?", 
+            (account_type, user_id)
+        )
+        conn.commit()
+    invalidate_user_cache(user_id)
 
 
 def should_show_account_switcher(user_id: int) -> bool:

@@ -10879,11 +10879,16 @@ async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
+    uid = update.effective_user.id
     data = query.data
     if not data.startswith("orders:"):
         return
     
     account_type = data.split(":")[1]  # "demo", "real" or "both"
+    
+    # Save last viewed account for UI persistence
+    if account_type in ("demo", "real"):
+        db.set_last_viewed_account(uid, account_type)
     
     if account_type == "both":
         await show_all_orders(update, ctx)
@@ -10904,17 +10909,14 @@ async def cmd_select_coins(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show positions - auto-selects based on enabled strategies."""
+    """Show positions - uses last viewed account for UI persistence."""
     uid = update.effective_user.id
     
-    # Get effective trading mode based on enabled strategies
-    effective_mode = get_effective_trading_mode(uid)
+    # Get last viewed account (persists user's selection)
+    last_account = db.get_last_viewed_account(uid, 'bybit')
     
-    # Show positions for the effective mode (demo, real, or both)
-    if effective_mode == 'both':
-        await show_all_positions(update, ctx)
-    else:
-        await show_positions_for_account(update, ctx, effective_mode)
+    # Show positions for the last viewed account
+    await show_positions_for_account(update, ctx, last_account)
 
 
 def build_pnl_summary_by_strategy_and_exchange(
@@ -11206,11 +11208,16 @@ async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
+    uid = update.effective_user.id
     data = query.data
     if not data.startswith("positions:"):
         return
     
     account_type = data.split(":")[1]  # "demo", "real" or "both"
+    
+    # Save last viewed account for UI persistence
+    if account_type in ("demo", "real"):
+        db.set_last_viewed_account(uid, account_type)
     
     if account_type == "both":
         await show_all_positions(update, ctx)
@@ -12135,6 +12142,9 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     _, exchange, mode = parts
     logger.info(f"Balance request: exchange={exchange}, mode={mode}")
     
+    # Save last viewed account for UI persistence
+    db.set_last_viewed_account(uid, mode)
+    
     if exchange == "bybit":
         # Fetch Bybit balance for selected mode - OPTIMIZED with parallel fetching
         try:
@@ -12346,11 +12356,10 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = query.data
     t = ctx.t
     
-    # Get current account_type from user_data or default to user's trading_mode
+    # Get current account_type from last_viewed_account or default
     account_type = ctx.user_data.get('positions_account_type')
     if not account_type:
-        trading_mode = db.get_trading_mode(uid)
-        account_type = 'demo' if trading_mode in ('demo', 'both') else 'real'
+        account_type = db.get_last_viewed_account(uid, 'bybit')
         ctx.user_data['positions_account_type'] = account_type
     
     show_switcher = db.should_show_account_switcher(uid)
@@ -12374,6 +12383,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         new_account_type = data.split(":")[2]
         ctx.user_data['positions_account_type'] = new_account_type
         ctx.user_data['positions_page'] = 0  # Reset to first page
+        
+        # Save to DB for persistence across sessions
+        db.set_last_viewed_account(uid, new_account_type)
         
         positions = await fetch_open_positions(uid, account_type=new_account_type)
         
@@ -13223,6 +13235,9 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         strategy = rest[0] if len(rest) > 0 else "all"
         period = rest[1] if len(rest) > 1 else "all"
         account_type = rest[2] if len(rest) > 2 else "demo"
+        # Save to DB for persistence
+        if account_type in ("demo", "real"):
+            db.set_last_viewed_account(uid, account_type)
     elif action == "strat":
         # stats:strat:new_strategy:period:account_type -> switch strategy
         strategy = rest[0] if len(rest) > 0 else "all"
@@ -19424,15 +19439,15 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Balance - works for current exchange, shows directly with switcher if needed
     if text in ["💰 Balance", "💰 HL Balance", "💎 Portfolio", "💎 Портфель",
                  ctx.t.get('button_balance', '💎 Portfolio')]:
-        # Get effective mode for display
-        effective_mode = get_effective_trading_mode(uid)
+        # Get last viewed account for UI (persists user's selection)
+        last_account = db.get_last_viewed_account(uid, active_exchange)
         
         if active_exchange == "hyperliquid":
             # HyperLiquid: use cmd_hl_balance
             return await cmd_hl_balance(update, ctx)
         else:
-            # Bybit: show balance for effective mode (switcher is inside show_balance_for_account)
-            return await show_balance_for_account(update, ctx, effective_mode)
+            # Bybit: show balance for last viewed account (switcher is inside show_balance_for_account)
+            return await show_balance_for_account(update, ctx, last_account)
     
     # Positions - works for current exchange, shows directly with switcher if needed
     if text in ["📊 Positions", "📊 HL Positions", "🎯 Positions", 
@@ -19440,9 +19455,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
         else:
-            # Show positions for effective mode (switcher is inside show_positions_for_account)
-            effective_mode = get_effective_trading_mode(uid)
-            return await show_positions_for_account(update, ctx, effective_mode)
+            # Show positions for last viewed account (switcher is inside show_positions_for_account)
+            last_account = db.get_last_viewed_account(uid, active_exchange)
+            return await show_positions_for_account(update, ctx, last_account)
     
     # Orders - works for current exchange, shows directly with switcher if needed
     if text in ["📈 Orders", "📈 HL Orders", "📊 Orders",
@@ -19450,9 +19465,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
         else:
-            # Show orders for effective mode (switcher is inside show_orders_for_account)
-            effective_mode = get_effective_trading_mode(uid)
-            return await show_orders_for_account(update, ctx, effective_mode)
+            # Show orders for last viewed account (switcher is inside show_orders_for_account)
+            last_account = db.get_last_viewed_account(uid, active_exchange)
+            return await show_orders_for_account(update, ctx, last_account)
     
     # History - works for current exchange
     if text in ["📋 History", "📋 HL History", "📜 History",

@@ -127,6 +127,9 @@ def upgrade(cur):
             -- Notifications
             notification_settings JSONB DEFAULT '{}',
             
+            -- UI State
+            last_viewed_account TEXT,  -- 'demo', 'real', 'testnet', 'mainnet' for UI persistence
+            
             -- Timestamps
             first_seen_ts      BIGINT,
             last_seen_ts       BIGINT,

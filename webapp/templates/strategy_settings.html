@@ -998,6 +998,20 @@
         
         // Init
         document.addEventListener('DOMContentLoaded', async () => {
+            // Restore account type from localStorage
+            const savedAccountType = localStorage.getItem('account_type');
+            const savedExchange = localStorage.getItem('exchange');
+            
+            if (savedExchange && ['bybit', 'hyperliquid'].includes(savedExchange)) {
+                document.getElementById('exchange').value = savedExchange;
+                // Update account options based on exchange
+                document.getElementById('exchange').dispatchEvent(new Event('change'));
+            }
+            
+            if (savedAccountType && ['demo', 'real', 'testnet', 'mainnet'].includes(savedAccountType)) {
+                document.getElementById('accountType').value = savedAccountType;
+            }
+            
             if (await initAuth()) {
                 await loadSettings();
             }

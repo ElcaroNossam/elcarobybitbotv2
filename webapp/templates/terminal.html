@@ -842,6 +842,14 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore account type from localStorage
+            const savedAccountType = localStorage.getItem('account_type');
+            if (savedAccountType && ['demo', 'real', 'testnet', 'mainnet'].includes(savedAccountType)) {
+                state.accountType = savedAccountType;
+                document.getElementById('accountSelect').value = savedAccountType;
+                updateAccountBadge();
+            }
+            
             initTickerTape();
             initTradingView();
             initEventListeners();
@@ -2986,6 +2994,9 @@
             
             const prevAccountType = state.accountType;
             state.accountType = newAccountType;
+            
+            // Save to localStorage for persistence across pages
+            localStorage.setItem('account_type', newAccountType);
             
             try {
                 const token = localStorage.getItem('lyxen_token');
