@@ -1,9 +1,9 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.29.0 | Обновлено: 25 января 2026
+# Версия: 3.30.0 | Обновлено: 26 января 2026
 # =============================================
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot
-# Multitenancy Audit: 115 bugs fixed (15 rounds)
+# iOS Full Localization: 15 languages + RTL support
 
 ---
 
@@ -871,6 +871,39 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ MAJOR: iOS Full Localization - 15 Languages + RTL (Jan 26, 2026)
+- **Проблема:** iOS приложение имело только английский язык, все строки hardcoded
+- **Причина:** iOS не использовал систему переводов, только server имел 15 языков
+- **Решение:** Создана Swift-native система локализации с bundled переводами
+- **Новые файлы:**
+  - `ios/LyxenTrading/Services/LocalizationManager.swift` (808 строк):
+    - AppLanguage enum (15 языков)
+    - Bundled translations для всех языков
+    - RTL detection для Arabic (ar) и Hebrew (he)
+    - Синхронизация с сервером через POST /users/language
+    - String.localized extension
+    - RTLModifier ViewModifier
+  - `ios/LyxenTrading/Views/Settings/LanguageSettingsView.swift` (177 строк):
+    - LanguageRow с флагами
+    - CompactLanguagePicker для LoginView
+    - LanguageGrid для Settings
+- **Локализованные Views:**
+  - MainTabView - tabs Portfolio, Trading, Market, Settings
+  - PortfolioView - Balance, Positions, PnL labels
+  - PositionsView - Side, Entry, Size, Leverage labels
+  - StatsView - Trading Statistics title
+  - ScreenerView - Crypto Screener title, search placeholder
+  - AIView - AI Assistant title
+  - SignalsView - Signals, All, Long, Short tabs
+  - ActivityView - Activity, Recent, Settings labels
+  - LoginView - Email, Password, Login/Register buttons + CompactLanguagePicker
+  - SettingsView - Language selection menu
+- **RTL Support:**
+  - .withRTLSupport() modifier на root WindowGroup
+  - Автоматическое зеркалирование UI для Arabic/Hebrew
+- **Языки (15):** EN, RU, UK, DE, ES, FR, IT, JA, ZH, AR, HE, PL, CS, LT, SQ
+- **Commits:** 1a8c9d7, 6b04bca
 
 ### ✅ CRITICAL: Multitenancy Audit Round 15 - Missing Exchange Filters (Jan 25, 2026)
 - **Проблема:** Функции `get_pending_limit_orders()` и `was_position_recently_closed()` не фильтровали по exchange
@@ -1936,15 +1969,17 @@ async def verify_usdt_jetton_transfer(...)
 
 ---
 
-# 📱 iOS РАЗРАБОТКА (NEW! Jan 25, 2026)
+# 📱 iOS РАЗРАБОТКА (UPDATED: Jan 26, 2026)
 
 ## Статистика iOS приложения
 
 | Метрика | Значение |
 |---------|----------|
-| Swift файлов | 26 |
-| Views | 12 |
-| Services | 4 |
+| Swift файлов | 35+ |
+| Views | 18 |
+| Services | 8 |
+| Languages | 15 (full parity with server) |
+| RTL Support | Arabic (ar), Hebrew (he) |
 | Xcode версия | 26.2 (17C52) |
 | iOS Target | 26.2 |
 | Bundle ID | io.lyxen.LyxenTrading |
@@ -1953,37 +1988,139 @@ async def verify_usdt_jetton_transfer(...)
 ## Структура iOS проекта
 
 ```
-ios/LyxenTrading/LyxenTrading/
+ios/LyxenTrading/
 ├── LyxenTrading.xcodeproj
-├── LyxenTrading/
-│   ├── App/
-│   │   ├── LyxenTradingApp.swift   # @main entry point
-│   │   ├── AppState.swift          # Global state management
-│   │   └── Config.swift            # API URLs, endpoints
-│   ├── Views/
-│   │   ├── LoginView.swift         # Auth screen
-│   │   ├── MainTabView.swift       # Tab navigation
-│   │   ├── PortfolioView.swift     # Balance, PnL
-│   │   ├── PositionsView.swift     # Open positions
-│   │   ├── TradingView.swift       # Trading interface
-│   │   ├── MarketView.swift        # Market data
-│   │   ├── SettingsView.swift      # User settings
-│   │   └── ...
-│   ├── Services/
-│   │   ├── NetworkService.swift    # HTTP + JWT auth
-│   │   ├── TradingService.swift    # Trading API calls
-│   │   ├── WebSocketService.swift  # Real-time updates
-│   │   └── AuthManager.swift       # Auth state
-│   ├── Models/
-│   │   ├── Models.swift            # Position, Order, Balance
-│   │   ├── AuthModels.swift        # Login, Token
-│   │   └── ViewModels.swift        # Observable objects
-│   ├── Extensions/
-│   │   └── Color+Extensions.swift  # Lyxen color scheme
-│   ├── Utils/
-│   │   └── Utilities.swift         # Formatters, helpers
-│   └── Assets.xcassets/
-│       └── AppIcon.appiconset/     # 1024x1024 icon
+├── App/
+│   ├── LyxenTradingApp.swift       # @main entry + RTL support
+│   ├── AppState.swift              # Global state + server sync
+│   └── Config.swift                # API URLs (fog-cornell-ata-portable)
+├── Views/
+│   ├── Auth/
+│   │   └── LoginView.swift         # Auth + CompactLanguagePicker
+│   ├── Portfolio/
+│   │   ├── PortfolioView.swift     # Balance, PnL (localized)
+│   │   └── PositionsView.swift     # Open positions (localized)
+│   ├── Settings/
+│   │   ├── SettingsView.swift      # User settings + language picker
+│   │   └── LanguageSettingsView.swift  # Full language selection UI ⭐NEW
+│   ├── MainTabView.swift           # Tab navigation (localized)
+│   ├── StatsView.swift             # Trading statistics (localized)
+│   ├── ScreenerView.swift          # Crypto screener (localized) ⭐NEW
+│   ├── AIView.swift                # AI assistant (localized) ⭐NEW
+│   ├── SignalsView.swift           # Trading signals (localized) ⭐NEW
+│   ├── ActivityView.swift          # Activity history (localized) ⭐NEW
+│   ├── TradingView.swift           # Trading interface
+│   └── MarketView.swift            # Market data
+├── Services/
+│   ├── NetworkService.swift        # HTTP + JWT auth
+│   ├── TradingService.swift        # Trading API calls
+│   ├── WebSocketService.swift      # Real-time updates
+│   ├── AuthManager.swift           # Auth state
+│   ├── LocalizationManager.swift   # 15-language localization ⭐NEW (808 lines)
+│   ├── ScreenerService.swift       # Screener API ⭐NEW
+│   ├── AIService.swift             # AI chat API ⭐NEW
+│   └── SignalService.swift         # Signals API ⭐NEW
+├── Models/
+│   ├── Models.swift                # Position, Order, Balance
+│   ├── AuthModels.swift            # Login, Token
+│   └── ViewModels.swift            # Observable objects
+├── Extensions/
+│   ├── Color+Extensions.swift      # Lyxen color scheme
+│   └── Notification+Extensions.swift # Sync notifications
+├── Utils/
+│   └── Utilities.swift             # Formatters, helpers
+└── Assets.xcassets/
+    └── AppIcon.appiconset/         # 1024x1024 icon
+```
+
+## 🌍 iOS Локализация (15 языков)
+
+### Поддерживаемые языки
+
+| Код | Язык | Флаг | RTL |
+|-----|------|------|-----|
+| en | English | 🇬🇧 | No |
+| ru | Русский | 🇷🇺 | No |
+| uk | Українська | 🇺🇦 | No |
+| de | Deutsch | 🇩🇪 | No |
+| es | Español | 🇪🇸 | No |
+| fr | Français | 🇫🇷 | No |
+| it | Italiano | 🇮🇹 | No |
+| ja | 日本語 | 🇯🇵 | No |
+| zh | 中文 | 🇨🇳 | No |
+| ar | العربية | 🇸🇦 | **Yes** |
+| he | עברית | 🇮🇱 | **Yes** |
+| pl | Polski | 🇵🇱 | No |
+| cs | Čeština | 🇨🇿 | No |
+| lt | Lietuvių | 🇱🇹 | No |
+| sq | Shqip | 🇦🇱 | No |
+
+### Использование LocalizationManager
+
+```swift
+import SwiftUI
+
+// Использование в View
+Text("portfolio".localized)
+Text("positions".localized)
+
+// RTL поддержка (автоматически для ar/he)
+.withRTLSupport()
+
+// Смена языка
+LocalizationManager.shared.currentLanguage = .arabic
+// Автоматически синхронизируется с сервером через POST /users/language
+
+// Доступ к языку
+let lang = LocalizationManager.shared.currentLanguage  // AppLanguage enum
+let isRTL = LocalizationManager.shared.isRTL          // Bool
+```
+
+### Добавление новых переводов
+
+```swift
+// LocalizationManager.swift
+private static let translations: [AppLanguage: [String: String]] = [
+    .english: [
+        "portfolio": "Portfolio",
+        "new_key": "New Text",  // <-- Добавить
+    ],
+    .russian: [
+        "portfolio": "Портфель",
+        "new_key": "Новый текст",  // <-- Добавить
+    ],
+    // ... для всех 15 языков
+]
+```
+
+### RTL Modifier
+
+```swift
+// Автоматическое зеркалирование UI для Arabic/Hebrew
+struct RTLModifier: ViewModifier {
+    @ObservedObject var manager = LocalizationManager.shared
+    
+    func body(content: Content) -> some View {
+        content
+            .environment(\.layoutDirection, manager.isRTL ? .rightToLeft : .leftToRight)
+    }
+}
+
+// Использование на root view (LyxenTradingApp.swift)
+WindowGroup {
+    ContentView()
+        .withRTLSupport()
+}
+```
+
+### Синхронизация языка с сервером
+
+```swift
+// При смене языка автоматически вызывается:
+private func syncLanguageWithServer(_ language: AppLanguage) {
+    // POST /users/language { "language": "ru" }
+    NetworkService.shared.post("/users/language", body: ["language": language.rawValue])
+}
 ```
 
 ## iOS CLI команды
@@ -2027,7 +2164,7 @@ open ./build/LyxenTrading.xcarchive
 #if DEBUG
 static let baseURL = "http://localhost:8765"
 #else
-static let baseURL = "https://YOUR-CLOUDFLARE-URL.trycloudflare.com"
+static let baseURL = "https://fog-cornell-ata-portable.trycloudflare.com"
 #endif
 
 static let apiURL = "\(baseURL)/api"
@@ -2035,6 +2172,12 @@ static let wsURL = baseURL
     .replacingOccurrences(of: "https://", with: "wss://")
     .replacingOccurrences(of: "http://", with: "ws://")
 ```
+
+> ⚠️ **Cloudflare URL меняется при рестарте tunnel!** Проверить актуальный:
+> ```bash
+> ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
+>   'tail -20 /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep trycloudflare'
+> ```
 
 ## Apple Developer Program
 
@@ -2053,8 +2196,8 @@ static let wsURL = baseURL
 
 ---
 
-*Last updated: 25 января 2026*
-*Version: 3.28.0*
+*Last updated: 26 января 2026*
+*Version: 3.29.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, exchange, account_type)*
@@ -2068,4 +2211,5 @@ static let wsURL = baseURL
 *Branding: Lyxen (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot (user_activity_log table)*
-*iOS SwiftUI: 28 files, WebSocketService sync, Notification+Extensions*
+*iOS SwiftUI: 35+ files, LocalizationManager (15 langs, RTL), WebSocketService sync*
+*iOS Features: Screener, Stats, AI, Signals, Activity - full parity with WebApp*
