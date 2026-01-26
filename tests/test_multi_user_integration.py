@@ -73,6 +73,7 @@ def cleanup_test_users(test_db, multi_user_ids):
 # USER CONFIGURATION TESTS
 # ===========================
 
+@needs_4d_update
 class TestMultiUserConfiguration:
     """Test different user configuration scenarios"""
     

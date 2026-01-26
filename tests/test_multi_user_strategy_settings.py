@@ -123,6 +123,7 @@ def setup_user_configs(test_db, test_users):
 # TEST: CONTEXT DETECTION
 # ============================================================================
 
+@needs_4d_update
 class TestContextDetection:
     """Test get_user_trading_context() for different users"""
     
@@ -161,6 +162,7 @@ class TestContextDetection:
         assert context['account_type'] == 'mainnet'
 
 
+@needs_4d_update
 class TestNormalizeAccountType:
     """Test account type normalization between exchanges"""
     

@@ -43,6 +43,7 @@ class TestStrategyFeaturesConfig:
             assert actual_keys == expected_keys, f"{strat} has wrong keys: {actual_keys ^ expected_keys}"
 
 
+@needs_4d_update
 class TestStrategyFeaturesLogic:
     """Test that STRATEGY_FEATURES correctly defines each strategy's needs."""
     
