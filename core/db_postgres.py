@@ -1885,6 +1885,9 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                     result[f"{prefix}dca_pct_2"] = row.get('dca_pct_2', 25.0)
                     result[f"{prefix}max_positions"] = row.get('max_positions', 0)
                     result[f"{prefix}coins_group"] = row.get('coins_group', 'ALL')
+                    # Break-Even settings
+                    result[f"{prefix}be_enabled"] = row.get('be_enabled', False)
+                    result[f"{prefix}be_trigger_pct"] = row.get('be_trigger_pct', 1.0)
     
     # Add strategy-level settings to result
     result["trading_mode"] = trading_mode
@@ -1913,6 +1916,9 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             result[f"{prefix}dca_pct_2"] = defaults.get("dca_pct_2", 25.0)
             result[f"{prefix}max_positions"] = defaults.get("max_positions", 0)
             result[f"{prefix}coins_group"] = defaults.get("coins_group", "ALL")
+            # Break-Even defaults
+            result[f"{prefix}be_enabled"] = defaults.get("be_enabled", False)
+            result[f"{prefix}be_trigger_pct"] = defaults.get("be_trigger_pct", 1.0)
     
     return result
 
@@ -2011,11 +2017,11 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
         'max_positions', 'coins_group', 'trading_mode', 'direction',
-        'account_type'
+        'account_type', 'be_enabled', 'be_trigger_pct'  # Break-Even
     }
     
     # Boolean fields that need conversion from int to bool for PostgreSQL
-    BOOLEAN_FIELDS = {'enabled', 'use_atr', 'dca_enabled'}
+    BOOLEAN_FIELDS = {'enabled', 'use_atr', 'dca_enabled', 'be_enabled'}
     
     if field not in ALLOWED_FIELDS:
         logger.warning(f"Field '{field}' not in allowed fields for _pg_set_side_setting")

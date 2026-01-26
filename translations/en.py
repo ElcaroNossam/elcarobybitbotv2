@@ -1035,6 +1035,8 @@ _Top traders rarely exceed 10x._
     'be_enabled_label':              '🔒 Break-Even',
     'be_trigger_label':              '🎯 BE Trigger %',
     'prompt_be_trigger':             'Enter Break-Even Trigger % (e.g., 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG BE Trigger %\n\nEnter profit % to move SL to entry:',
+    'prompt_short_be_trigger':       '📉 SHORT BE Trigger %\n\nEnter profit % to move SL to entry:',
     'param_be_trigger':              '🎯 BE Trigger %',
     'be_moved_to_entry':             '🔒 {symbol}: SL moved to break-even @ {entry}',
     'be_status_enabled':             '✅ BE: {trigger}%',
