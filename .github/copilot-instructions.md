@@ -1,10 +1,11 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.31.0 | Обновлено: 27 января 2026
+# Версия: 3.32.0 | Обновлено: 26 января 2026
 # =============================================
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot
 # iOS Full Localization: 15 languages + RTL support
 # 4D Schema: (user_id, strategy, side, exchange)
+# Break-Even (BE): Move SL to entry when profit >= trigger%
 
 ---
 
@@ -873,6 +874,29 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: Break-Even (BE) Feature for All Strategies (Jan 26, 2026)
+- **Функционал:** Перевод SL в безубыток когда прибыль достигает trigger %
+- **Глобальные настройки:**
+  - `be_enabled` - включить/выключить BE (по умолчанию OFF)
+  - `be_trigger_pct` - % прибыли для активации BE (по умолчанию 1.0%)
+- **UI:** Добавлено в Global Settings меню:
+  - Кнопка toggle BE ON/OFF
+  - Кнопка настройки BE Settings
+  - Отображение статуса BE в меню
+- **Логика мониторинга:**
+  - Проверяет move_pct >= be_trigger_pct
+  - Если SL ещё не на уровне entry → перемещает SL на entry
+  - Кэш `_be_triggered` предотвращает повторные попытки
+  - Уведомление пользователю о переводе в БУ
+- **Изменённые файлы:**
+  - `bot.py` - UI меню, callback handlers, логика в мониторинге (+180 строк)
+  - `db.py` - BE колонки в _STRATEGY_DB_COLUMNS
+  - `coin_params.py` - DEFAULT_BE_ENABLED, DEFAULT_BE_TRIGGER_PCT
+  - `translations/en.py`, `translations/ru.py` - переводы BE
+  - `migrations/versions/001_initial_users.py` - BE колонки в users
+  - `migrations/versions/005_strategy_settings.py` - BE колонки в strategy_settings
+- **Commit:** 6a59dac
 
 ### ✅ FEAT: Comprehensive 4D Schema Tests (Jan 27, 2026)
 - **Добавлено:** 33 новых теста для проверки 4D схемы `(user_id, strategy, side, exchange)`
