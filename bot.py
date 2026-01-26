@@ -5337,6 +5337,30 @@ async def _place_order_impl(
     timeInForce: str = "GTC",
     account_type: str = None,
 ):
+    # Check minimum notional value (5 USDT for Bybit) BEFORE sending order
+    MIN_NOTIONAL = 5.0
+    # Get current price for notional calculation
+    try:
+        ticker = await _bybit_request(
+            user_id, "GET", "/v5/market/tickers",
+            params={"category": "linear", "symbol": symbol},
+            account_type=account_type
+        )
+        current_price = float(ticker["list"][0]["lastPrice"])
+        notional = qty * current_price
+        
+        if notional < MIN_NOTIONAL:
+            logger.warning(
+                f"[{user_id}] Order notional ${notional:.2f} < ${MIN_NOTIONAL} min for {symbol}. "
+                f"Skipping order (qty={qty}, price={current_price})"
+            )
+            raise ValueError(f"ORDER_TOO_SMALL: notional ${notional:.2f} < ${MIN_NOTIONAL} minimum")
+    except ValueError:
+        raise  # Re-raise our ORDER_TOO_SMALL error
+    except Exception as e:
+        logger.warning(f"[{user_id}] Could not check notional for {symbol}: {e}")
+        # Continue anyway - Bybit will reject if too small
+    
     # Нормализация количества/цены под шаги инструмента
     qty_str, price_str, min_qty, max_qty, tick_size = await normalize_qty_price(
         user_id, symbol, orderType, qty, price, account_type=account_type
