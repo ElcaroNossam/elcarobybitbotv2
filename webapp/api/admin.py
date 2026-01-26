@@ -48,7 +48,7 @@ async def get_users(
         row = cur.fetchone()
         total = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
         row = cur.fetchone()
         active = row['cnt'] if row else 0
         
@@ -56,7 +56,7 @@ async def get_users(
         row = cur.fetchone()
         premium = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = TRUE")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_banned = 1")
         row = cur.fetchone()
         banned = row['cnt'] if row else 0
         
@@ -253,6 +253,7 @@ async def create_license(
     
     license_key = f"LYXEN-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
     expires_at = (datetime.utcnow() + timedelta(days=data.days)).isoformat()
+    expires_ts = int((datetime.utcnow() + timedelta(days=data.days)).timestamp())
     
     with get_db() as conn:
         cur = conn.cursor()
@@ -281,7 +282,7 @@ async def create_license(
     # If user_id provided, activate license for user
     if data.user_id:
         db.set_user_field(data.user_id, "license_type", data.license_type)
-        db.set_user_field(data.user_id, "license_expires", expires_at)
+        db.set_user_field(data.user_id, "license_expires", expires_ts)
     
     return {
         "success": True,
@@ -329,7 +330,7 @@ async def get_stats(
         row = cur.fetchone()
         total_users = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
         row = cur.fetchone()
         active_users = row['cnt'] if row else 0
         
@@ -781,9 +782,10 @@ async def approve_payment(
         license_days = payment.get("license_days") or 30
         
         expires_at = (datetime.utcnow() + timedelta(days=license_days)).isoformat()
+        expires_ts = int((datetime.utcnow() + timedelta(days=license_days)).timestamp())
         
         db.set_user_field(user_id, "license_type", license_type)
-        db.set_user_field(user_id, "license_expires", expires_at)
+        db.set_user_field(user_id, "license_expires", expires_ts)
         db.set_user_field(user_id, "is_allowed", 1)
         
         conn.commit()
@@ -934,9 +936,10 @@ async def update_user_subscription(
     """Manually set user subscription."""
     
     expires_at = (datetime.utcnow() + timedelta(days=days)).isoformat()
+    expires_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
     
     db.set_user_field(user_id, "license_type", license_type)
-    db.set_user_field(user_id, "license_expires", expires_at)
+    db.set_user_field(user_id, "license_expires", expires_ts)
     db.set_user_field(user_id, "is_allowed", 1)
     
     return {
@@ -1041,7 +1044,7 @@ async def get_dashboard(
         cur.execute("SELECT COUNT(*) as cnt FROM users")
         total_users = cur.fetchone()['cnt'] or 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = TRUE AND is_banned = FALSE")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
         active_users = cur.fetchone()['cnt'] or 0
         
         cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = TRUE")

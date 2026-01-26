@@ -336,7 +336,7 @@ def complete_ton_payment(payment_id: str, tx_hash: str, from_wallet: str = None)
             UPDATE users 
             SET current_license = %s, 
                 license_expires = %s,
-                is_allowed = TRUE
+                is_allowed = 1
             WHERE user_id = %s
         """, (license_type, new_expires, user_id))
         
