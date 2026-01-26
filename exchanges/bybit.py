@@ -959,31 +959,55 @@ class BybitExchange(BaseExchange):
             "updated_time": result.get("updatedTime")
         }
     
-    async def set_margin_mode(self, symbol: str, margin_mode: str = "ISOLATED") -> bool:
-        """Set margin mode for a symbol (ISOLATED or CROSS)"""
-        symbol = symbol.upper()
-        if not symbol.endswith("USDT"):
-            symbol = f"{symbol}USDT"
+    async def set_margin_mode(self, margin_mode: str = "ISOLATED_MARGIN") -> bool:
+        """Set account-level margin mode
         
-        trade_mode = 1 if margin_mode.upper() == "ISOLATED" else 0
+        Args:
+            margin_mode: One of:
+                - "ISOLATED_MARGIN" - Isolated margin mode (default)
+                - "REGULAR_MARGIN" - Cross margin mode  
+                - "PORTFOLIO_MARGIN" - Portfolio margin mode
+                
+        Note: This is an ACCOUNT-LEVEL setting, not per-symbol.
+              Per-symbol margin switching was deprecated by Bybit.
+              See: https://bybit-exchange.github.io/docs/v5/account/set-margin-mode
+        """
+        # Normalize margin mode value
+        mode_upper = margin_mode.upper()
+        valid_modes = ["ISOLATED_MARGIN", "REGULAR_MARGIN", "PORTFOLIO_MARGIN"]
+        
+        # Handle legacy values for backwards compatibility
+        if mode_upper == "ISOLATED":
+            mode_upper = "ISOLATED_MARGIN"
+        elif mode_upper == "CROSS":
+            mode_upper = "REGULAR_MARGIN"
+        
+        if mode_upper not in valid_modes:
+            logger.error(f"Invalid margin mode: {margin_mode}. Must be one of {valid_modes}")
+            return False
         
         try:
             await self._request(
                 "POST",
-                "/v5/position/switch-isolated",
+                "/v5/account/set-margin-mode",
                 {
-                    "category": "linear",
-                    "symbol": symbol,
-                    "tradeMode": trade_mode,
-                    "buyLeverage": "10",
-                    "sellLeverage": "10"
+                    "setMarginMode": mode_upper
                 }
             )
+            logger.info(f"Successfully set account margin mode to {mode_upper}")
             return True
         except Exception as e:
-            if "margin mode is not modified" in str(e).lower() or "110026" in str(e):
+            error_str = str(e).lower()
+            # If already in this mode, consider it success
+            if "margin mode is not modified" in error_str or "110026" in str(e):
+                logger.info(f"Margin mode already set to {mode_upper}")
                 return True
-            logger.error(f"Set margin mode failed: {e}")
+            # Check for specific Bybit error codes
+            if "3400045" in str(e):
+                # Set margin mode failed - check reasons in response
+                logger.error(f"Set margin mode failed - requirements not met: {e}")
+            else:
+                logger.error(f"Set margin mode failed: {e}")
             return False
     
     async def set_position_mode(self, mode: str = "MergedSingle") -> bool:
