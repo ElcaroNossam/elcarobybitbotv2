@@ -5630,7 +5630,8 @@ async def _place_order_impl(
     timeInForce: str = "GTC",
     account_type: str = None,
 ):
-    # Check minimum notional value (5 USDT for Bybit) BEFORE sending order
+    # Check minimum notional value for Bybit BEFORE sending order
+    # Bybit requires 5 USDT minimum, we use 5.0 here as final check
     MIN_NOTIONAL = 5.0
     # Get current price for notional calculation
     try:
@@ -5645,7 +5646,7 @@ async def _place_order_impl(
         if notional < MIN_NOTIONAL:
             logger.warning(
                 f"[{user_id}] Order notional ${notional:.2f} < ${MIN_NOTIONAL} min for {symbol}. "
-                f"Skipping order (qty={qty}, price={current_price})"
+                f"Skipping order (qty={qty:.4f}, price={current_price:.4f})"
             )
             # Record error for admin reporting
             asyncio.create_task(error_monitor.record_error(
@@ -6001,10 +6002,13 @@ async def place_order_for_targets(
                     )
                     
                     # Check minimum notional value ($5 on Bybit) and adjust qty/leverage if needed
-                    MIN_NOTIONAL = 5.0  # Bybit minimum order value
+                    # Use 6.0 as target to have 20% buffer above Bybit's 5 USDT minimum
+                    # This prevents edge cases where price drops slightly between calculation and order
+                    MIN_NOTIONAL_TARGET = 6.0  # Target notional (with buffer)
+                    MIN_NOTIONAL_BYBIT = 5.0   # Bybit's actual minimum
                     notional_value = target_qty * entry_price
                     
-                    if notional_value < MIN_NOTIONAL:
+                    if notional_value < MIN_NOTIONAL_TARGET:
                         # Get instrument info for proper qty rounding and max leverage
                         inst = await _bybit_request(
                             user_id, "GET", "/v5/market/instruments-info",
@@ -6019,8 +6023,8 @@ async def place_order_for_targets(
                         leverage_filter = inst["list"][0].get("leverageFilter", {})
                         symbol_max_leverage = int(float(leverage_filter.get("maxLeverage", 50)))
                         
-                        # Calculate minimum qty needed to reach min notional
-                        min_qty_for_notional = MIN_NOTIONAL / entry_price
+                        # Calculate minimum qty needed to reach min notional (with buffer)
+                        min_qty_for_notional = MIN_NOTIONAL_TARGET / entry_price
                         # Round up to step_qty
                         adjusted_qty = math.ceil(min_qty_for_notional / step_qty) * step_qty
                         adjusted_qty = max(adjusted_qty, min_qty)
@@ -6034,7 +6038,7 @@ async def place_order_for_targets(
                         new_leverage = min(new_leverage, symbol_max_leverage)  # Cap at symbol's max leverage
                         
                         logger.info(
-                            f"[{user_id}] Notional ${notional_value:.2f} < ${MIN_NOTIONAL} min. "
+                            f"[{user_id}] Notional ${notional_value:.2f} < ${MIN_NOTIONAL_TARGET} target (bybit min=${MIN_NOTIONAL_BYBIT}). "
                             f"Adjusting: qty {target_qty:.4f} -> {adjusted_qty:.4f}, "
                             f"leverage {target_leverage}x -> {new_leverage}x (max={symbol_max_leverage}x)"
                         )
