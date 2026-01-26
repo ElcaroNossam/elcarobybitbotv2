@@ -73,6 +73,8 @@ struct SideSettings: Codable {
     }
 }
 
+// StrategySettingsUpdateRequest is defined in Models.swift
+
 // MARK: - Main View
 struct StrategySettingsView: View {
     @ObservedObject var appState = AppState.shared
@@ -192,9 +194,9 @@ struct StrategySettingsView: View {
             
             // Main Parameters
             VStack(spacing: 16) {
-                SettingsRow(label: "entry_percent".localized, value: settings.percent, range: 0.1...100, step: 0.1, suffix: "%")
-                SettingsRow(label: "take_profit".localized, value: settings.tpPercent, range: 0.1...100, step: 0.1, suffix: "%")
-                SettingsRow(label: "stop_loss".localized, value: settings.slPercent, range: 0.1...50, step: 0.1, suffix: "%")
+                StrategySettingsRow(label: "entry_percent".localized, value: settings.percent, range: 0.1...100, step: 0.1, suffix: "%")
+                StrategySettingsRow(label: "take_profit".localized, value: settings.tpPercent, range: 0.1...100, step: 0.1, suffix: "%")
+                StrategySettingsRow(label: "stop_loss".localized, value: settings.slPercent, range: 0.1...50, step: 0.1, suffix: "%")
                 LeverageRow(label: "leverage".localized, value: settings.leverage)
                 
                 // Order Type
@@ -243,12 +245,12 @@ struct StrategySettingsView: View {
             
             if settings.wrappedValue.useAtr {
                 VStack(spacing: 12) {
-                    SettingsRow(label: "atr_trigger".localized, value: Binding(
+                    StrategySettingsRow(label: "atr_trigger".localized, value: Binding(
                         get: { settings.wrappedValue.atrTriggerPct ?? 0.5 },
                         set: { settings.wrappedValue.atrTriggerPct = $0 }
                     ), range: 0.1...10, step: 0.1, suffix: "%")
                     
-                    SettingsRow(label: "atr_step".localized, value: Binding(
+                    StrategySettingsRow(label: "atr_step".localized, value: Binding(
                         get: { settings.wrappedValue.atrStepPct ?? 0.25 },
                         set: { settings.wrappedValue.atrStepPct = $0 }
                     ), range: 0.1...5, step: 0.05, suffix: "%")
@@ -277,8 +279,8 @@ struct StrategySettingsView: View {
             
             if settings.wrappedValue.dcaEnabled {
                 VStack(spacing: 12) {
-                    SettingsRow(label: "dca_level_1".localized, value: settings.dcaPct1, range: 1...50, step: 1, suffix: "%")
-                    SettingsRow(label: "dca_level_2".localized, value: settings.dcaPct2, range: 5...100, step: 1, suffix: "%")
+                    StrategySettingsRow(label: "dca_level_1".localized, value: settings.dcaPct1, range: 1...50, step: 1, suffix: "%")
+                    StrategySettingsRow(label: "dca_level_2".localized, value: settings.dcaPct2, range: 5...100, step: 1, suffix: "%")
                 }
                 .transition(.opacity)
             }
@@ -377,27 +379,27 @@ struct StrategySettingsView: View {
             // Save both sides
             for (side, settings) in [("long", longSettings), ("short", shortSettings)] {
                 do {
-                    let body: [String: Any] = [
-                        "side": side,
-                        "exchange": exchange,
-                        "account_type": accountType,
-                        "enabled": settings.enabled,
-                        "percent": settings.percent,
-                        "tp_percent": settings.tpPercent,
-                        "sl_percent": settings.slPercent,
-                        "leverage": settings.leverage,
-                        "use_atr": settings.useAtr,
-                        "atr_trigger_pct": settings.atrTriggerPct ?? 0.5,
-                        "atr_step_pct": settings.atrStepPct ?? 0.25,
-                        "dca_enabled": settings.dcaEnabled,
-                        "dca_pct_1": settings.dcaPct1,
-                        "dca_pct_2": settings.dcaPct2,
-                        "order_type": settings.orderType
-                    ]
+                    let request = StrategySettingsUpdateRequest(
+                        side: side,
+                        exchange: exchange,
+                        accountType: accountType,
+                        enabled: settings.enabled,
+                        percent: settings.percent,
+                        tpPercent: settings.tpPercent,
+                        slPercent: settings.slPercent,
+                        leverage: settings.leverage,
+                        useAtr: settings.useAtr,
+                        atrTriggerPct: settings.atrTriggerPct ?? 0.5,
+                        atrStepPct: settings.atrStepPct ?? 0.25,
+                        dcaEnabled: settings.dcaEnabled,
+                        dcaPct1: settings.dcaPct1,
+                        dcaPct2: settings.dcaPct2,
+                        orderType: settings.orderType
+                    )
                     
                     let _: EmptyResponse = try await NetworkService.shared.put(
                         "/users/strategy-settings/mobile/\(selectedStrategy.id)",
-                        body: body
+                        body: request
                     )
                 } catch {
                     print("Failed to save \(side) settings: \(error)")
@@ -497,7 +499,7 @@ struct SideTab: View {
     }
 }
 
-struct SettingsRow: View {
+struct StrategySettingsRow: View {
     let label: String
     @Binding var value: Double
     let range: ClosedRange<Double>

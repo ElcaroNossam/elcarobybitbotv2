@@ -152,8 +152,8 @@ async def get_subscribed_users() -> List[int]:
     async with get_connection() as conn:
         rows = await conn.fetch("""
             SELECT user_id FROM users 
-            WHERE is_allowed = TRUE 
-            AND is_banned = FALSE
+            WHERE is_allowed = 1 
+            AND is_banned = 0
             AND (
                 trade_scryptomera = TRUE OR 
                 trade_scalper = TRUE OR 
@@ -170,8 +170,8 @@ async def get_active_trading_users() -> List[int]:
     async with get_connection() as conn:
         rows = await conn.fetch("""
             SELECT user_id FROM users 
-            WHERE is_allowed = TRUE 
-            AND is_banned = FALSE
+            WHERE is_allowed = 1 
+            AND is_banned = 0
             AND (
                 (demo_api_key IS NOT NULL AND demo_api_key != '') OR
                 (real_api_key IS NOT NULL AND real_api_key != '')

@@ -169,28 +169,28 @@ struct PortfolioView: View {
             GridItem(.flexible())
         ], spacing: 12) {
             if let stats = tradingService.tradingStats {
-                StatCard(
+                PortfolioStatCard(
                     title: "Total Trades",
                     value: "\(stats.totalTradesCount)",
                     icon: "chart.bar.fill",
                     color: .lyxenBlue
                 )
                 
-                StatCard(
+                PortfolioStatCard(
                     title: "Win Rate",
                     value: String(format: "%.1f%%", stats.winRateValue),
                     icon: "target",
                     color: stats.winRateValue >= 50 ? .lyxenGreen : .lyxenRed
                 )
                 
-                StatCard(
+                PortfolioStatCard(
                     title: "Total PnL",
                     value: (stats.totalPnl ?? 0).formattedCurrency,
                     icon: "dollarsign.circle.fill",
                     color: (stats.totalPnl ?? 0) >= 0 ? .lyxenGreen : .lyxenRed
                 )
                 
-                StatCard(
+                PortfolioStatCard(
                     title: "Avg PnL",
                     value: stats.avgPnl.formattedCurrency,
                     icon: "chart.line.uptrend.xyaxis",
@@ -198,7 +198,7 @@ struct PortfolioView: View {
                 )
             } else {
                 ForEach(0..<4) { _ in
-                    StatCard(
+                    PortfolioStatCard(
                         title: "--",
                         value: "--",
                         icon: "chart.bar.fill",
@@ -286,7 +286,7 @@ struct PortfolioView: View {
 }
 
 // MARK: - Stat Card
-struct StatCard: View {
+struct PortfolioStatCard: View {
     let title: String
     let value: String
     let icon: String

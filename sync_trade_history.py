@@ -301,7 +301,7 @@ async def sync_all_users(days: int = 7, dry_run: bool = False):
             rows = conn.execute("""
                 SELECT DISTINCT user_id FROM users 
                 WHERE (demo_api_key IS NOT NULL OR real_api_key IS NOT NULL)
-                AND is_banned = FALSE
+                AND is_banned = 0
             """).fetchall()
             users = [row[0] for row in rows]
     

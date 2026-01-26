@@ -70,7 +70,7 @@ struct TradeHistoryView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 // All filter
-                FilterChip(
+                TradeFilterChip(
                     title: "All",
                     isSelected: selectedStrategy == nil,
                     action: { selectedStrategy = nil }
@@ -78,7 +78,7 @@ struct TradeHistoryView: View {
                 
                 // Strategy filters
                 ForEach(strategies, id: \.self) { strategy in
-                    FilterChip(
+                    TradeFilterChip(
                         title: strategy.capitalized,
                         isSelected: selectedStrategy == strategy,
                         action: { selectedStrategy = strategy }
@@ -124,7 +124,7 @@ struct TradeHistoryView: View {
 }
 
 // MARK: - Filter Chip
-struct FilterChip: View {
+struct TradeFilterChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void

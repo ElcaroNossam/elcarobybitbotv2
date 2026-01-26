@@ -396,9 +396,10 @@ class WebSocketService: NSObject, ObservableObject {
                 }
                 
             case "account_switched":
-                if let newAccountType = sync.data?.accountType {
+                if let newAccountType = sync.data?.accountType,
+                   let accountType = AccountType(rawValue: newAccountType) {
                     print("🔄 Account switched to \(newAccountType) from \(sync.source)")
-                    AppState.shared.selectedAccountType = newAccountType
+                    AppState.shared.selectedAccountType = accountType
                     NotificationCenter.default.post(name: .accountTypeSwitched, object: nil, userInfo: ["accountType": newAccountType, "source": sync.source])
                 }
                 

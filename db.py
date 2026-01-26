@@ -294,12 +294,12 @@ def delete_user(user_id: int):
 def ban_user(user_id: int):
     """Блокировка пользователя: бан + снятие одобрения."""
     ensure_user(user_id)
-    execute_write("UPDATE users SET is_banned=TRUE, is_allowed=FALSE WHERE user_id=%s", (user_id,))
+    execute_write("UPDATE users SET is_banned=1, is_allowed=0 WHERE user_id=%s", (user_id,))
 
 def allow_user(user_id: int):
     """Одобрение пользователя: снимаем бан и ставим флаг допуска."""
     ensure_user(user_id)
-    execute_write("UPDATE users SET is_allowed=TRUE, is_banned=FALSE WHERE user_id=%s", (user_id,))
+    execute_write("UPDATE users SET is_allowed=1, is_banned=0 WHERE user_id=%s", (user_id,))
 
 # ------------------------------------------------------------------------------------
 # Users

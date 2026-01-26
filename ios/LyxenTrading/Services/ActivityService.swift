@@ -87,6 +87,25 @@ struct SyncStatus: Codable {
     }
 }
 
+// MARK: - Activity Log Request
+struct ActivityLogRequest: Codable {
+    let actionType: String
+    let actionCategory: String
+    let source: String
+    var entityType: String?
+    var oldValue: String?
+    var newValue: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case actionType = "action_type"
+        case actionCategory = "action_category"
+        case source
+        case entityType = "entity_type"
+        case oldValue = "old_value"
+        case newValue = "new_value"
+    }
+}
+
 // MARK: - Activity Service
 class ActivityService: ObservableObject {
     static let shared = ActivityService()
@@ -186,18 +205,18 @@ class ActivityService: ObservableObject {
         newValue: String? = nil
     ) async {
         do {
-            var body: [String: Any] = [
-                "action_type": actionType,
-                "action_category": category,
-                "source": "ios"
-            ]
-            if let entityType = entityType { body["entity_type"] = entityType }
-            if let oldValue = oldValue { body["old_value"] = oldValue }
-            if let newValue = newValue { body["new_value"] = newValue }
+            var request = ActivityLogRequest(
+                actionType: actionType,
+                actionCategory: category,
+                source: "ios"
+            )
+            request.entityType = entityType
+            request.oldValue = oldValue
+            request.newValue = newValue
             
             let _: APIResponse<EmptyResponse> = try await network.post(
                 Config.Endpoints.activityHistory,
-                body: body
+                body: request
             )
         } catch {
             print("Failed to log activity: \(error)")

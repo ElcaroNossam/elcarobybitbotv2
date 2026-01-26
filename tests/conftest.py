@@ -46,15 +46,11 @@ def pytest_collection_modifyitems(config, items):
     pg_required_files = {
         'test_webapp.py',
         'test_autologin.py',
-        'test_full_strategy_trading.py',
-        'test_routing_policy.py',
         'test_strategy_settings.py',
-        'test_multi_user_integration.py',
-        'test_multi_user_strategy_settings.py',
-        'test_positions_display.py',
         'test_strategy_settings_integration.py',
         'test_integration.py',
-        'test_elcaro_parser.py',
+        'test_close_all.py',
+        'test_exchange_router.py',
     }
     
     for item in items:

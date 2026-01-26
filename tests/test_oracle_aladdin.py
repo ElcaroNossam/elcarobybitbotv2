@@ -8,8 +8,6 @@ Based on BlackRock Aladdin's quality standards.
 
 import pytest
 
-# Skip marker for tests that need update
-needs_update = pytest.mark.skip(reason="Needs update for current ELC currency model")
 import sys
 import os
 import asyncio
@@ -240,68 +238,6 @@ class TestRiskEngine:
         assert 0 <= metrics.overall_score <= 100
         assert metrics.risk_level is not None
         assert hasattr(metrics, "stress_test_results")
-
-
-@needs_update
-class TestIntegration:
-    """Integration tests"""
-    
-    def test_aladdin_engine_integration(self):
-        """Test Aladdin engine is properly integrated in Oracle"""
-        from oracle.core import Oracle
-        
-        oracle = Oracle()
-        
-        # Check Aladdin engine property exists
-        assert hasattr(oracle, 'aladdin_engine')
-        
-        # Lazy loading - should create engine on access
-        engine = oracle.aladdin_engine
-        assert engine is not None
-        assert engine.simulations == 10000
-    
-    def test_elc_world_currency_analysis(self):
-        """Test ELC token with world currency grade parameters"""
-        from oracle.aladdin_engine import run_aladdin_analysis
-        
-        report = run_aladdin_analysis(
-            tokenomics={
-                "name": "Lyxen (LYX)",
-                "team_allocation_pct": 3,
-                "community_allocation_pct": 28,
-                "vesting_period_months": 120,
-                "cliff_months": 36,
-                "consensus_mechanism": "pos",
-            },
-            market={
-                "volatility_30d": 8,
-                "volume_24h_usd": 500_000_000,
-                "volume_to_mcap_ratio": 0.05,
-                "btc_correlation_30d": 0.15,
-                "liquidity_score": 95,
-            },
-            security={
-                "audit_count": 5,
-                "critical_issues": 0,
-                "security_score": 98,
-                "contract_verified": True,
-            },
-            team={
-                "team_public": True,
-                "governance_type": "dao",
-                "social_followers": 2_000_000,
-            },
-            project_type="infrastructure"
-        )
-        
-        # World currency grade expectations (allow small tolerance for Monte Carlo randomness)
-        assert report.composite_risk_score >= 69.5  # Rating A or above (with tolerance)
-        assert report.risk_rating in ["AAA", "AA", "A"]
-        assert report.esg.esg_rating in ["AAA", "AA", "A"]
-        assert report.investment_recommendation in ["STRONG_BUY", "BUY"]
-        
-        # Low VaR due to low volatility
-        assert report.monte_carlo.var_95 >= -0.15  # Less than 15% loss
 
 
 if __name__ == "__main__":

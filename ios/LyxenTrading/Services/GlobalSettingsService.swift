@@ -74,6 +74,62 @@ struct ExchangeStatus: Codable {
     }
 }
 
+// MARK: - Settings Update Requests
+struct DCASettingsUpdate: Codable {
+    let dcaEnabled: Bool
+    let dcaPct1: Double
+    let dcaPct2: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case dcaEnabled = "dca_enabled"
+        case dcaPct1 = "dca_pct_1"
+        case dcaPct2 = "dca_pct_2"
+    }
+}
+
+struct OrderTypeUpdate: Codable {
+    let orderType: String
+    let limitOffsetPct: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case orderType = "order_type"
+        case limitOffsetPct = "limit_offset_pct"
+    }
+}
+
+struct SpotSettingsUpdate: Codable {
+    let spotEnabled: Bool
+    let spotDcaEnabled: Bool
+    let spotDcaPct: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case spotEnabled = "spot_enabled"
+        case spotDcaEnabled = "spot_dca_enabled"
+        case spotDcaPct = "spot_dca_pct"
+    }
+}
+
+struct ATRSettingsUpdate: Codable {
+    let useAtr: Bool
+    let atrPeriods: Int
+    let atrMultiplierSl: Double
+    let atrTriggerPct: Double
+    let atrStepPct: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case useAtr = "use_atr"
+        case atrPeriods = "atr_periods"
+        case atrMultiplierSl = "atr_multiplier_sl"
+        case atrTriggerPct = "atr_trigger_pct"
+        case atrStepPct = "atr_step_pct"
+    }
+}
+
+struct ExchangeToggleUpdate: Codable {
+    let exchange: String
+    let enabled: Bool
+}
+
 // MARK: - Service
 
 class GlobalSettingsService: ObservableObject {
@@ -101,48 +157,42 @@ class GlobalSettingsService: ObservableObject {
         }
     }
     
-    // MARK: - Update Global Settings
+    // MARK: - Update DCA Settings
     @MainActor
-    func updateGlobalSettings(_ updates: [String: Any]) async -> Bool {
+    func updateDCASettings(enabled: Bool, pct1: Double, pct2: Double) async -> Bool {
         do {
-            let _: EmptyResponse = try await network.put("/users/global-settings", body: updates)
+            let update = DCASettingsUpdate(dcaEnabled: enabled, dcaPct1: pct1, dcaPct2: pct2)
+            let _: EmptyResponse = try await network.put("/users/global-settings", body: update)
             await fetchGlobalSettings()
             return true
         } catch {
-            print("Failed to update global settings: \(error)")
+            print("Failed to update DCA settings: \(error)")
             AppState.shared.showError(error.localizedDescription)
             return false
         }
     }
     
-    // MARK: - Update DCA Settings
-    @MainActor
-    func updateDCASettings(enabled: Bool, pct1: Double, pct2: Double) async -> Bool {
-        return await updateGlobalSettings([
-            "dca_enabled": enabled,
-            "dca_pct_1": pct1,
-            "dca_pct_2": pct2
-        ])
-    }
-    
     // MARK: - Update Order Type
     @MainActor
     func updateOrderType(_ orderType: String, limitOffsetPct: Double = 0.1) async -> Bool {
-        return await updateGlobalSettings([
-            "order_type": orderType,
-            "limit_offset_pct": limitOffsetPct
-        ])
+        do {
+            let update = OrderTypeUpdate(orderType: orderType, limitOffsetPct: limitOffsetPct)
+            let _: EmptyResponse = try await network.put("/users/global-settings", body: update)
+            await fetchGlobalSettings()
+            return true
+        } catch {
+            print("Failed to update order type: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
+        }
     }
     
     // MARK: - Update Spot Settings
     @MainActor
     func updateSpotSettings(enabled: Bool, dcaEnabled: Bool, dcaPct: Double) async -> Bool {
         do {
-            let _: EmptyResponse = try await network.put("/users/spot-settings", body: [
-                "spot_enabled": enabled,
-                "spot_dca_enabled": dcaEnabled,
-                "spot_dca_pct": dcaPct
-            ])
+            let update = SpotSettingsUpdate(spotEnabled: enabled, spotDcaEnabled: dcaEnabled, spotDcaPct: dcaPct)
+            let _: EmptyResponse = try await network.put("/users/spot-settings", body: update)
             await fetchGlobalSettings()
             return true
         } catch {
@@ -161,13 +211,22 @@ class GlobalSettingsService: ObservableObject {
         triggerPct: Double = 0.5,
         stepPct: Double = 0.25
     ) async -> Bool {
-        return await updateGlobalSettings([
-            "use_atr": useAtr,
-            "atr_periods": periods,
-            "atr_multiplier_sl": multiplierSl,
-            "atr_trigger_pct": triggerPct,
-            "atr_step_pct": stepPct
-        ])
+        do {
+            let update = ATRSettingsUpdate(
+                useAtr: useAtr,
+                atrPeriods: periods,
+                atrMultiplierSl: multiplierSl,
+                atrTriggerPct: triggerPct,
+                atrStepPct: stepPct
+            )
+            let _: EmptyResponse = try await network.put("/users/global-settings", body: update)
+            await fetchGlobalSettings()
+            return true
+        } catch {
+            print("Failed to update ATR settings: \(error)")
+            AppState.shared.showError(error.localizedDescription)
+            return false
+        }
     }
     
     // MARK: - Fetch Exchange Status
@@ -185,10 +244,8 @@ class GlobalSettingsService: ObservableObject {
     @MainActor
     func toggleExchange(_ exchange: String, enabled: Bool) async -> Bool {
         do {
-            let _: EmptyResponse = try await network.put("/users/exchange-trading-status", body: [
-                "exchange": exchange,
-                "enabled": enabled
-            ])
+            let update = ExchangeToggleUpdate(exchange: exchange, enabled: enabled)
+            let _: EmptyResponse = try await network.put("/users/exchange-trading-status", body: update)
             await fetchExchangeStatus()
             return true
         } catch {

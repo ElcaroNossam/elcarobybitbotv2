@@ -136,7 +136,7 @@ class StatsService: ObservableObject {
         
         do {
             let response: APIResponse<DashboardStats> = try await network.get(
-                Config.Endpoints.statsDashboard,
+                Config.Endpoints.dashboard,
                 params: ["account_type": accountType]
             )
             
@@ -153,7 +153,7 @@ class StatsService: ObservableObject {
     func fetchPnlHistory(period: StatsPeriod = .week, accountType: String = "demo") async {
         do {
             let response: APIResponse<[PnlHistoryPoint]> = try await network.get(
-                Config.Endpoints.statsPnlHistory,
+                Config.Endpoints.pnlHistory,
                 params: [
                     "period": period.rawValue,
                     "account_type": accountType
@@ -173,7 +173,7 @@ class StatsService: ObservableObject {
     func fetchStrategyReports(accountType: String = "demo") async {
         do {
             let response: APIResponse<[StrategyReport]> = try await network.get(
-                Config.Endpoints.statsStrategyReport,
+                Config.Endpoints.strategyReport,
                 params: ["account_type": accountType]
             )
             
@@ -190,7 +190,7 @@ class StatsService: ObservableObject {
     func fetchPositionsSummary(accountType: String = "demo") async {
         do {
             let response: APIResponse<PositionsSummary> = try await network.get(
-                Config.Endpoints.statsPositionsSummary,
+                Config.Endpoints.positionsSummary,
                 params: ["account_type": accountType]
             )
             

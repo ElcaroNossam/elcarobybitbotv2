@@ -689,3 +689,36 @@ struct SimpleResponse: Codable {
     let message: String?
     let error: String?
 }
+
+// MARK: - Strategy Settings Update Request (for API calls)
+struct StrategySettingsUpdateRequest: Codable {
+    let side: String
+    let exchange: String
+    let accountType: String
+    let enabled: Bool
+    let percent: Double
+    let tpPercent: Double
+    let slPercent: Double
+    let leverage: Int
+    let useAtr: Bool
+    let atrTriggerPct: Double
+    let atrStepPct: Double
+    let dcaEnabled: Bool
+    let dcaPct1: Double
+    let dcaPct2: Double
+    let orderType: String
+    
+    enum CodingKeys: String, CodingKey {
+        case side, exchange, enabled, percent, leverage
+        case accountType = "account_type"
+        case tpPercent = "tp_percent"
+        case slPercent = "sl_percent"
+        case useAtr = "use_atr"
+        case atrTriggerPct = "atr_trigger_pct"
+        case atrStepPct = "atr_step_pct"
+        case dcaEnabled = "dca_enabled"
+        case dcaPct1 = "dca_pct_1"
+        case dcaPct2 = "dca_pct_2"
+        case orderType = "order_type"
+    }
+}

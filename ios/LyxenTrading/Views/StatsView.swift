@@ -21,7 +21,7 @@ struct StatsView: View {
                         Task {
                             await stats.fetchPnlHistory(
                                 period: stats.selectedPeriod,
-                                accountType: appState.accountType
+                                accountType: appState.currentAccountType.rawValue
                             )
                         }
                     }
@@ -51,7 +51,7 @@ struct StatsView: View {
             .navigationTitle("stats_title".localized)
             .withRTLSupport()
             .refreshable {
-                await stats.refreshAll(accountType: appState.accountType)
+                await stats.refreshAll(accountType: appState.currentAccountType.rawValue)
             }
             .overlay {
                 if stats.isLoading && stats.dashboard == nil {
@@ -59,7 +59,7 @@ struct StatsView: View {
                 }
             }
             .task {
-                await stats.refreshAll(accountType: appState.accountType)
+                await stats.refreshAll(accountType: appState.currentAccountType.rawValue)
             }
         }
     }

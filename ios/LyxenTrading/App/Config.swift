@@ -7,12 +7,13 @@ import Foundation
 
 struct Config {
     // API Configuration
-    // DEBUG: localhost for iOS Simulator
+    // DEBUG: Use production URL for real device testing
     // RELEASE: Production Cloudflare URL
     #if DEBUG
-    static let baseURL = "http://localhost:8765"
+    // For simulator use localhost, for real device use production URL
+    static let baseURL = "https://gardens-clarity-pen-damaged.trycloudflare.com"
     #else
-    static let baseURL = "https://virtue-montana-decide-forecast.trycloudflare.com"
+    static let baseURL = "https://gardens-clarity-pen-damaged.trycloudflare.com"
     #endif
     
     static let apiURL = "\(baseURL)/api"

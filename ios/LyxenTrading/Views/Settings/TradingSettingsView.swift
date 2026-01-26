@@ -247,18 +247,27 @@ struct TradingSettingsView: View {
             // Save all settings
             var success = true
             
-            // Global settings (DCA, order type, ATR)
-            success = await service.updateGlobalSettings([
-                "dca_enabled": dcaEnabled,
-                "dca_pct_1": dcaPct1,
-                "dca_pct_2": dcaPct2,
-                "order_type": orderType,
-                "limit_offset_pct": limitOffsetPct,
-                "use_atr": useAtr,
-                "atr_periods": atrPeriods,
-                "atr_trigger_pct": atrTriggerPct,
-                "atr_step_pct": atrStepPct
-            ]) && success
+            // DCA settings
+            success = await service.updateDCASettings(
+                enabled: dcaEnabled,
+                pct1: dcaPct1,
+                pct2: dcaPct2
+            ) && success
+            
+            // Order type settings
+            success = await service.updateOrderType(
+                orderType,
+                limitOffsetPct: limitOffsetPct
+            ) && success
+            
+            // ATR settings
+            success = await service.updateATRSettings(
+                useAtr: useAtr,
+                periods: atrPeriods,
+                multiplierSl: 1.5,  // Default multiplier
+                triggerPct: atrTriggerPct,
+                stepPct: atrStepPct
+            ) && success
             
             // Spot settings
             success = await service.updateSpotSettings(

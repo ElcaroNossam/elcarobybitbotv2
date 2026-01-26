@@ -366,5 +366,4 @@ class APIKeysViewModel: ObservableObject {
     }
 }
 
-// MARK: - Empty Response
-struct EmptyResponse: Codable {}
+// EmptyResponse is defined in AppState.swift

@@ -102,24 +102,16 @@ class StrategyService: ObservableObject {
     @MainActor
     func updateStrategySettings(
         strategy: String,
-        side: String,
-        exchange: String = "bybit",
-        accountType: String = "demo",
-        settings: [String: Any]
+        request: StrategySettingsUpdateRequest
     ) async -> Bool {
         do {
-            var body = settings
-            body["side"] = side
-            body["exchange"] = exchange
-            body["account_type"] = accountType
-            
             let _: APIResponse<EmptyResponse> = try await network.put(
                 "\(Config.Endpoints.strategySettingsMobile)/\(strategy)",
-                body: body
+                body: request
             )
             
             // Refresh settings after update
-            await fetchStrategySettings(strategy: strategy, exchange: exchange, accountType: accountType)
+            await fetchStrategySettings(strategy: strategy, exchange: request.exchange, accountType: request.accountType)
             return true
         } catch {
             print("Failed to update strategy settings: \(error)")
