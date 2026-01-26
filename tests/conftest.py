@@ -199,7 +199,7 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             use_atr INTEGER DEFAULT 0,
             applied_sl_pct REAL,
             applied_tp_pct REAL,
-            PRIMARY KEY(user_id, symbol, account_type),
+            PRIMARY KEY(user_id, symbol, account_type, exchange),
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     """)
@@ -237,7 +237,8 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             exit_ts INTEGER,
             exit_order_type TEXT,
             strategy TEXT,
-            account_type TEXT DEFAULT 'demo'
+            account_type TEXT DEFAULT 'demo',
+            exchange TEXT DEFAULT 'bybit'
         )
     """)
     
