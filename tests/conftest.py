@@ -62,9 +62,20 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Create an event loop for the test session"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    """Create an event loop for the test session with proper cleanup"""
+    import warnings
+    warnings.filterwarnings("ignore", category=ResourceWarning)
+    
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     yield loop
+    
+    # Proper cleanup to avoid ResourceWarning
+    try:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(loop.shutdown_default_executor())
+    except Exception:
+        pass
     loop.close()
 
 
