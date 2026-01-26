@@ -264,15 +264,15 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
         )
     """)
     
-    # Create user_strategy_settings table for strategy-specific settings
+    # Create user_strategy_settings table with 4D schema (user_id, strategy, side, exchange)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_strategy_settings (
             user_id INTEGER NOT NULL,
             strategy TEXT NOT NULL,
+            side TEXT NOT NULL DEFAULT 'long',
             exchange TEXT NOT NULL DEFAULT 'bybit',
-            account_type TEXT NOT NULL DEFAULT 'demo',
             
-            -- General settings
+            -- Trading settings per side
             enabled INTEGER DEFAULT 1,
             percent REAL,
             sl_percent REAL,
@@ -280,37 +280,39 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
             leverage INTEGER,
             
             -- ATR settings
-            use_atr INTEGER,
-            atr_periods INTEGER,
-            atr_multiplier_sl REAL,
-            atr_trigger_pct REAL,
+            use_atr INTEGER DEFAULT 0,
+            atr_periods INTEGER DEFAULT 14,
+            atr_multiplier_sl REAL DEFAULT 1.5,
+            atr_trigger_pct REAL DEFAULT 1.0,
+            atr_step_pct REAL DEFAULT 0.5,
             
             -- Other settings
             order_type TEXT DEFAULT 'market',
-            coins_group TEXT,
+            limit_offset_pct REAL DEFAULT 0.1,
+            coins_group TEXT DEFAULT 'TOP',
             direction TEXT DEFAULT 'all',
-            trading_mode TEXT DEFAULT 'all',
+            trading_mode TEXT DEFAULT 'demo',
+            account_type TEXT DEFAULT 'demo',
             
-            -- Side-specific settings for LONG
-            long_percent REAL,
-            long_sl_percent REAL,
-            long_tp_percent REAL,
-            long_atr_periods INTEGER,
-            long_atr_multiplier_sl REAL,
-            long_atr_trigger_pct REAL,
+            -- DCA settings
+            dca_enabled INTEGER DEFAULT 0,
+            dca_pct_1 REAL DEFAULT 10.0,
+            dca_pct_2 REAL DEFAULT 25.0,
             
-            -- Side-specific settings for SHORT
-            short_percent REAL,
-            short_sl_percent REAL,
-            short_tp_percent REAL,
-            short_atr_periods INTEGER,
-            short_atr_multiplier_sl REAL,
-            short_atr_trigger_pct REAL,
+            -- Position limits
+            max_positions INTEGER DEFAULT 0,
             
             -- Fibonacci-specific
             min_quality INTEGER DEFAULT 50,
             
-            PRIMARY KEY (user_id, strategy, exchange, account_type),
+            -- Extra JSON settings
+            settings TEXT DEFAULT '{}',
+            
+            -- Timestamps
+            updated_at DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            
+            -- 4D PRIMARY KEY: (user_id, strategy, side, exchange)
+            PRIMARY KEY (user_id, strategy, side, exchange),
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     """)
