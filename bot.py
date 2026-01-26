@@ -286,7 +286,11 @@ class ErrorMonitor:
     - Collects errors with full context
     - Sends detailed reports to admin
     - Sends user-friendly messages to affected users
+    - Rate-limits certain error types (e.g., API_KEY_EXPIRED once per day per user)
     """
+    
+    # Error types that should only be reported once per day per user
+    DAILY_LIMIT_ERRORS = {"API_KEY_EXPIRED", "API_KEY_MISSING"}
     
     def __init__(self, admin_id: int = ADMIN_ID, report_interval: int = 300):
         self.admin_id = admin_id
@@ -295,6 +299,9 @@ class ErrorMonitor:
         self.last_admin_report = 0
         self.bot = None
         self._lock = asyncio.Lock()
+        
+        # Track daily-limited errors: {(user_id, error_type): last_notified_date}
+        self._daily_notified: dict[tuple[int, str], str] = {}
         
         # Error type to translation key mapping
         self.error_keys = {
@@ -345,6 +352,19 @@ class ErrorMonitor:
     ):
         """Record an error and optionally notify user"""
         async with self._lock:
+            today = dt.now().strftime("%Y-%m-%d")
+            
+            # Check if this is a daily-limited error type
+            if error_type in self.DAILY_LIMIT_ERRORS and user_id:
+                key = (user_id, error_type)
+                last_notified = self._daily_notified.get(key)
+                if last_notified == today:
+                    # Already notified today, skip recording and notifications
+                    logger.debug(f"Skipping daily-limited error {error_type} for user {user_id} (already notified today)")
+                    return
+                # Mark as notified today
+                self._daily_notified[key] = today
+            
             error = ErrorRecord(
                 timestamp=dt.now(),
                 user_id=user_id,
