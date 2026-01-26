@@ -514,12 +514,13 @@ def test_user_id() -> int:
     return 123456789
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def pg_test_user(test_user_id):
     """Create test user in PostgreSQL database for integration tests.
     
     This fixture ensures the test user exists in elcaro_test PostgreSQL database.
     Used by webapp tests that hit real API endpoints.
+    Scoped to class level to avoid user recreation between tests.
     """
     if not POSTGRES_AVAILABLE:
         pytest.skip("PostgreSQL not available")
@@ -539,13 +540,11 @@ def pg_test_user(test_user_id):
             is_allowed = EXCLUDED.is_allowed
     """, (test_user_id, "testuser", "en", "bybit", "demo", 1))
     conn.commit()
+    conn.close()
     
     yield test_user_id
     
-    # Cleanup - remove test user
-    cur.execute("DELETE FROM users WHERE user_id = %s", (test_user_id,))
-    conn.commit()
-    conn.close()
+    # No cleanup - user persists for test reruns (gets updated via ON CONFLICT)
 
 
 @pytest.fixture
