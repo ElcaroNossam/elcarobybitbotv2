@@ -80,6 +80,18 @@ struct SettingsView: View {
                             )
                         }
                         
+                        // Trading Settings (DCA, Order Type, ATR, Spot)
+                        NavigationLink {
+                            TradingSettingsView()
+                        } label: {
+                            SettingsRow(
+                                icon: "gearshape.2.fill",
+                                iconColor: .lyxenPurple,
+                                title: "trading_settings".localized,
+                                value: ""
+                            )
+                        }
+                        
                         // API Keys
                         Button(action: { showAPIKeySheet = true }) {
                             SettingsRow(

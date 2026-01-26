@@ -30,6 +30,7 @@ extension Color {
     static let lyxenYellow = Color(hex: "#FFD600")
     static let lyxenOrange = Color(hex: "#FF9100")
     static let lyxenBlue = Color(hex: "#2196F3")
+    static let lyxenPurple = Color(hex: "#9C27B0")
     
     // MARK: - Gradient
     static let lyxenGradient = LinearGradient(
