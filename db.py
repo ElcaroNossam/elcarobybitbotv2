@@ -825,16 +825,20 @@ def get_execution_targets(
     override_policy: str = None
 ) -> list[dict]:
     """
-    Get list of execution targets based on strategy's trading_mode and enabled exchanges.
+    Get list of execution targets based on strategy's trading_mode and CURRENT ACTIVE EXCHANGE.
     
     Returns list of dicts with keys: exchange, env, account_type
     
     Logic:
+    - Get user's current active exchange (exchange_type: bybit or hyperliquid)
     - Get strategy's trading_mode (demo/real/both/global)
     - If global, use user's trading_mode
-    - If demo: Bybit Demo + HL Testnet (if enabled)
-    - If real: Bybit Real + HL Mainnet (if enabled)
-    - If both: all enabled account types on all enabled exchanges
+    - If demo: Demo for current exchange (Bybit Demo OR HL Testnet)
+    - If real: Real for current exchange (Bybit Real OR HL Mainnet)
+    - If both: BOTH account types on CURRENT exchange only (Demo+Real OR Testnet+Mainnet)
+    
+    IMPORTANT: "both" mode does NOT mean both exchanges! It means both account types
+    (demo+real for Bybit, testnet+mainnet for HyperLiquid) on the CURRENT active exchange.
     
     Safety: Filters out live targets if live_enabled=False
     """
@@ -853,14 +857,19 @@ def get_execution_targets(
     # Determine which account types to use based on mode
     # demo → demo for Bybit, testnet for HL
     # real → real for Bybit, mainnet for HL
-    # both → all configured accounts
+    # both → all configured accounts ON CURRENT ACTIVE EXCHANGE (not all exchanges!)
     
     bybit_enabled = is_bybit_enabled(user_id)
     hl_enabled = is_hl_enabled(user_id)
     
+    # Get user's current active exchange
+    current_exchange = get_exchange_type(user_id)  # 'bybit' or 'hyperliquid'
+    
     if strat_mode == "both":
-        # Add all configured accounts for enabled exchanges
-        if bybit_enabled:
+        # FIX: "both" means BOTH account types (demo+real or testnet+mainnet)
+        # on the CURRENT active exchange, NOT both exchanges!
+        
+        if current_exchange == "bybit" and bybit_enabled:
             bybit_types = _get_bybit_account_types(user_id)
             for acc_type in bybit_types:
                 env = "paper" if acc_type == "demo" else "live"
@@ -872,7 +881,7 @@ def get_execution_targets(
                     "account_type": acc_type
                 })
         
-        if hl_enabled:
+        elif current_exchange == "hyperliquid" and hl_enabled:
             hl_types = _get_hl_account_types(user_id)
             for acc_type in hl_types:
                 env = "paper" if acc_type == "testnet" else "live"
@@ -885,8 +894,8 @@ def get_execution_targets(
                 })
     
     elif strat_mode in ("real", "mainnet"):
-        # Real/Mainnet mode
-        if bybit_enabled:
+        # Real/Mainnet mode - use CURRENT active exchange only
+        if current_exchange == "bybit" and bybit_enabled:
             # Check if real credentials exist
             creds = get_all_user_credentials(user_id)
             if creds.get("real_api_key") and creds.get("real_api_secret"):
@@ -897,7 +906,7 @@ def get_execution_targets(
                         "account_type": "real"
                     })
         
-        if hl_enabled:
+        elif current_exchange == "hyperliquid" and hl_enabled:
             hl_creds = get_hl_credentials(user_id)
             has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
             if not has_mainnet and hl_creds.get("hl_private_key") and not hl_creds.get("hl_testnet"):
@@ -909,8 +918,8 @@ def get_execution_targets(
                     "account_type": "mainnet"
                 })
     
-    else:  # demo/testnet mode (default)
-        if bybit_enabled:
+    else:  # demo/testnet mode (default) - use CURRENT active exchange only
+        if current_exchange == "bybit" and bybit_enabled:
             # Check if demo credentials exist
             creds = get_all_user_credentials(user_id)
             if creds.get("demo_api_key") and creds.get("demo_api_secret"):
@@ -920,7 +929,7 @@ def get_execution_targets(
                     "account_type": "demo"
                 })
         
-        if hl_enabled:
+        elif current_exchange == "hyperliquid" and hl_enabled:
             hl_creds = get_hl_credentials(user_id)
             has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
             if not has_testnet and hl_creds.get("hl_private_key") and hl_creds.get("hl_testnet"):
