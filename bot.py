@@ -388,6 +388,7 @@ class ErrorMonitor:
             self.last_admin_report = time.time()
             
             # Get errors from last report interval
+            from datetime import timedelta
             cutoff = dt.now() - timedelta(seconds=self.report_interval)
             recent_errors = [e for e in self.errors if e.timestamp >= cutoff]
             
@@ -1016,8 +1017,14 @@ def log_calls(func):
             if "should lower than" in err_str or "should higher than" in err_str:
                 # Expected error for positions in deep loss - don't spam logs
                 pass
+            elif "should greater" in err_str or "should less" in err_str:
+                # Another format of SL/TP validation error
+                pass
             elif "order_too_small" in err_str:
                 # Expected error for small orders - already logged as warning
+                pass
+            elif "leverage invalid" in err_str:
+                # Expected error when leverage already set or position open
                 pass
             else:
                 logger.exception(
