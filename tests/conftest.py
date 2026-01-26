@@ -508,9 +508,9 @@ def test_db(temp_db_path) -> Generator[sqlite3.Connection, None, None]:
     conn.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def test_user_id() -> int:
-    """Standard test user ID"""
+    """Standard test user ID (class-scoped for consistency with pg_test_user)"""
     return 123456789
 
 
