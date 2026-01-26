@@ -1028,6 +1028,17 @@ _Top traders rarely exceed 10x._
     'param_atr_periods':             '📈 ATR Periods',
     'param_atr_mult':                '📉 ATR Multiplier (SL step)',
     'param_atr_trigger':             '🎯 ATR Trigger %',
+    
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *Break-Even Settings*',
+    'be_settings_desc':              '_Move SL to entry when profit reaches trigger %_',
+    'be_enabled_label':              '🔒 Break-Even',
+    'be_trigger_label':              '🎯 BE Trigger %',
+    'prompt_be_trigger':             'Enter Break-Even Trigger % (e.g., 1.0):',
+    'param_be_trigger':              '🎯 BE Trigger %',
+    'be_moved_to_entry':             '🔒 {symbol}: SL moved to break-even @ {entry}',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: Off',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Terms of Service are unavailable. Please contact the admin.',

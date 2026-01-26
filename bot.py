@@ -3698,7 +3698,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
                               exchange: str = None, account_type: str = None) -> dict:
     """
     Get trading parameters for a specific strategy.
-    Returns dict with: percent (risk%), sl_pct, tp_pct, use_atr
+    Returns dict with: percent (risk%), sl_pct, tp_pct, use_atr, be_enabled, be_trigger_pct
     Falls back to global user settings if per-strategy not set.
     
     For ALL strategies, if side is provided, uses side-specific settings (long_percent, short_sl_percent, etc.)
@@ -3726,6 +3726,19 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         use_atr = bool(strat_use_atr)
     else:
         use_atr = bool(cfg.get("use_atr", 1))  # Default to ATR enabled
+    
+    # Determine BE settings: strategy-specific takes priority over global
+    strat_be_enabled = strat_settings.get("be_enabled")
+    if strat_be_enabled is not None:
+        be_enabled = bool(strat_be_enabled)
+    else:
+        be_enabled = bool(cfg.get("be_enabled", 0))  # Default to BE disabled
+    
+    strat_be_trigger = strat_settings.get("be_trigger_pct")
+    if strat_be_trigger is not None and strat_be_trigger > 0:
+        be_trigger_pct = float(strat_be_trigger)
+    else:
+        be_trigger_pct = float(cfg.get("be_trigger_pct", 1.0))  # Default 1%
     
     # For ALL strategies, check for side-specific settings first if side is provided
     if side:
@@ -3757,11 +3770,22 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         else:
             _, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid, side=side)
         
+        # Get side-specific BE settings
+        side_be_enabled = strat_settings.get(f"{side_prefix}_be_enabled")
+        if side_be_enabled is not None:
+            be_enabled = bool(side_be_enabled)
+        
+        side_be_trigger = strat_settings.get(f"{side_prefix}_be_trigger_pct")
+        if side_be_trigger is not None and side_be_trigger > 0:
+            be_trigger_pct = float(side_be_trigger)
+        
         return {
             "percent": percent,
             "sl_pct": sl_pct,
             "tp_pct": tp_pct,
             "use_atr": use_atr,
+            "be_enabled": be_enabled,
+            "be_trigger_pct": be_trigger_pct,
         }
     
     # Default behavior when side is not provided
@@ -3780,6 +3804,8 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         "sl_pct": sl_pct,
         "tp_pct": tp_pct,
         "use_atr": use_atr,
+        "be_enabled": be_enabled,
+        "be_trigger_pct": be_trigger_pct,
     }
 
 
@@ -3925,6 +3951,7 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str], bool] = {}
+_be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
 
@@ -6652,6 +6679,14 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
         status_parts.append(f"Mult: {atr_mult}")
     if atr_trig is not None:
         status_parts.append(f"Trig: {atr_trig}%")
+    
+    # Break-Even status
+    be_enabled = strat_settings.get("be_enabled")
+    be_trigger = strat_settings.get("be_trigger_pct")
+    if be_enabled is not None and be_enabled:
+        be_text = f"BE:{be_trigger}%" if be_trigger else "BE:ON"
+        status_parts.append(f"🔒{be_text}")
+    
     if mode != "global":
         status_parts.append(f"Mode: {mode_text}")
     
@@ -7366,6 +7401,11 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     mode_emoji = {"demo": "🧪", "real": "💰", "both": "🔄"}.get(trading_mode, "🧪")
     mode_label = {"demo": "Demo", "real": "Real", "both": "Both"}.get(trading_mode, "Demo")
     
+    # Break-Even settings
+    be_enabled = cfg.get('be_enabled', 0)
+    be_trigger = cfg.get('be_trigger_pct', 1.0)
+    be_status = "✅" if be_enabled else "❌"
+    
     lines = [t.get('global_settings_header', '🌐 *Global Trading Settings*')]
     lines.append("")
     lines.append(f"📊 Entry %: *{cfg.get('percent', 1)}%*")
@@ -7373,6 +7413,7 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
     lines.append(f"🎯 TP %: *{tp_val}%*")
     lines.append(f"🎚 Leverage: *{cfg.get('leverage', 10)}x*")
     lines.append(f"📉 Stop Mode: *{atr_label}* {atr_status}")
+    lines.append(f"🔒 Break-Even: {be_status} ({be_trigger}%)" if be_enabled else f"🔒 Break-Even: {be_status}")
     lines.append(f"{order_emoji} Order type: *{order_label}*")
     lines.append(f"{mode_emoji} Account: *{mode_label}*")
     lines.append("")
@@ -7381,6 +7422,11 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
         lines.append(f"📈 *Trailing Stop:*")
         lines.append(f"  🎯 Trigger: *{atr_trigger}%* (activate at profit)")
         lines.append(f"  📏 Step: *{atr_step}%* (SL distance from price)")
+        lines.append("")
+    # Break-Even info
+    if be_enabled:
+        lines.append(f"🔒 *Break-Even:*")
+        lines.append(f"  🎯 Trigger: *{be_trigger}%* (move SL to entry)")
         lines.append("")
     lines.append(f"📈 {t.get('limit_ladder', 'Limit Ladder')}: {ladder_status} (*{ladder_count}* orders)")
     lines.append("")
@@ -7392,9 +7438,11 @@ async def _show_global_settings_menu(query, uid: int, t: dict):
         [InlineKeyboardButton(t.get('param_tp', '🎯 Take-Profit %'), callback_data="global_param:tp_percent")],
         [InlineKeyboardButton(t.get('param_leverage', '🎚 Leverage'), callback_data="global_param:leverage")],
         [InlineKeyboardButton(f"{atr_status} 📉 {atr_label}", callback_data="global_param:use_atr")],
+        [InlineKeyboardButton(f"{be_status} 🔒 Break-Even", callback_data="global_be:toggle")],
         [InlineKeyboardButton(f"{order_emoji} Order: {order_label}", callback_data="global_param:order_type")],
         [InlineKeyboardButton(f"{mode_emoji} Account: {mode_label}", callback_data="global_param:trading_mode")],
         [InlineKeyboardButton("⚙️ Trailing Stop Settings", callback_data="global_atr:settings")],
+        [InlineKeyboardButton("⚙️ Break-Even Settings", callback_data="global_be:settings")],
         [InlineKeyboardButton(f"{ladder_status} {t.get('limit_ladder', '📈 Limit Ladder')}", callback_data="global_ladder:toggle")],
         [InlineKeyboardButton(t.get('limit_ladder_settings', '⚙️ Ladder Settings'), callback_data="global_ladder:settings")],
         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:back")],
@@ -7457,6 +7505,52 @@ async def _show_global_atr_settings_menu(query, uid: int, t: dict):
         )
     except Exception as e:
         logger.error(f"Error editing ATR settings message: {e}")
+        await query.message.edit_text(
+            "\n".join(lines),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+
+
+async def _show_global_be_settings_menu(query, uid: int, t: dict):
+    """Helper to display Global Break-Even Settings menu.
+    
+    Break-Even moves SL to entry price when profit reaches trigger %.
+    """
+    cfg = get_user_config(uid)
+    
+    be_enabled = cfg.get('be_enabled', 0)
+    be_trigger = cfg.get('be_trigger_pct', 1.0)
+    
+    lines = [t.get('be_settings_header', '🔒 *Break-Even Settings*')]
+    lines.append("")
+    lines.append(f"📊 Mode: {'✅ Enabled' if be_enabled else '❌ Disabled'}")
+    lines.append("")
+    lines.append(t.get('be_settings_desc', '_Move SL to entry when profit reaches trigger %_'))
+    lines.append("")
+    lines.append(f"🎯 *Trigger %*: {be_trigger}%")
+    lines.append("   _Price moves this % in profit → SL moves to entry_")
+    lines.append("")
+    lines.append("_Example: Trigger=1%_")
+    lines.append("_→ Entry: $100, Price: $101 (+1%)_")
+    lines.append("_→ SL moves from $97 to $100 (breakeven)_")
+    
+    buttons = [
+        [InlineKeyboardButton(
+            f"{'✅' if be_enabled else '❌'} Break-Even: {'ON' if be_enabled else 'OFF'}", 
+            callback_data="global_be:toggle"
+        )],
+        [InlineKeyboardButton(f"🎯 Trigger: {be_trigger}%", callback_data="global_be:trigger")],
+        [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="strat_set:global")],
+    ]
+    
+    try:
+        await query.message.edit_text(
+            "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        logger.error(f"Error editing BE settings message: {e}")
         await query.message.edit_text(
             "\n".join(lines),
             reply_markup=InlineKeyboardMarkup(buttons)
@@ -7706,6 +7800,38 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             prompt,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_ladder:settings")]
+            ])
+        )
+        return
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # ██  GLOBAL BREAK-EVEN SETTINGS HANDLERS  ██
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    # Show BE settings menu
+    if data == "global_be:settings":
+        return await _show_global_be_settings_menu(query, uid, t)
+    
+    # BE toggle
+    if data == "global_be:toggle":
+        current = cfg.get('be_enabled', 0)
+        new_val = 0 if current else 1
+        set_user_field(uid, 'be_enabled', new_val)
+        status = "✅ Break-Even enabled" if new_val else "❌ Break-Even disabled"
+        await query.answer(status)
+        # Return to BE settings menu
+        return await _show_global_be_settings_menu(query, uid, t)
+    
+    # BE Trigger %
+    if data == "global_be:trigger":
+        ctx.user_data["global_setting_mode"] = "be_trigger_pct"
+        await query.message.edit_text(
+            t.get('prompt_be_trigger', '🎯 *Break-Even Trigger %*\n\nEnter the profit % at which SL moves to entry.\n\nCurrent: {current}%\n\nExample: 1 = move SL to entry when +1% profit').format(
+                current=cfg.get('be_trigger_pct', 1.0)
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_be:settings")]
             ])
         )
         return
@@ -16567,6 +16693,7 @@ async def monitor_positions_loop(app: Application):
                                     remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                     reset_pyramid(uid, pos["symbol"])
                                     _atr_triggered.pop((uid, pos["symbol"]), None)
+                                    _be_triggered.pop((uid, pos["symbol"]), None)  # Clear BE cache
                                     _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
                                     _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
                                 except Exception as e:
@@ -16908,6 +17035,7 @@ async def monitor_positions_loop(app: Application):
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
+                                        _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
                                         # Clear new position notification cache
@@ -17193,6 +17321,7 @@ async def monitor_positions_loop(app: Application):
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
+                                        _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
 
@@ -17349,6 +17478,26 @@ async def monitor_positions_loop(app: Application):
                             logger.debug(f"[{uid}] {sym}: ATR params - strategy={pos_strategy}, side={side}, "
                                         f"atr_periods={atr_periods}, atr_mult={atr_mult_sl}, trigger_pct={trigger_pct}, use_atr={position_use_atr}")
 
+                            # Get Break-Even (BE) params: priority is side-specific > strategy settings > global
+                            if pos_strategy:
+                                side_prefix = "long" if side == "Buy" else "short"
+                                
+                                # Get side-specific BE settings, fallback to general, then global
+                                side_be_enabled = strat_settings.get(f"{side_prefix}_be_enabled")
+                                side_be_trigger = strat_settings.get(f"{side_prefix}_be_trigger_pct")
+                                
+                                be_enabled = bool(side_be_enabled) if side_be_enabled is not None else (
+                                    bool(strat_settings.get("be_enabled")) if strat_settings.get("be_enabled") is not None else bool(cfg.get("be_enabled", 0))
+                                )
+                                be_trigger_pct = float(side_be_trigger) if side_be_trigger is not None and side_be_trigger > 0 else (
+                                    float(strat_settings.get("be_trigger_pct")) if strat_settings.get("be_trigger_pct") and strat_settings.get("be_trigger_pct") > 0 else float(cfg.get("be_trigger_pct", 1.0))
+                                )
+                                
+                                logger.debug(f"[{uid}] {sym}: BE params - be_enabled={be_enabled}, be_trigger_pct={be_trigger_pct}")
+                            else:
+                                be_enabled = bool(cfg.get("be_enabled", 0))
+                                be_trigger_pct = float(cfg.get("be_trigger_pct", 1.0))
+
                             mark     = float(pos["markPrice"])
                             move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
                             key = (uid, sym)
@@ -17453,6 +17602,53 @@ async def monitor_positions_loop(app: Application):
                                                     pass
                                     except Exception as e:
                                         logger.error(f"{sym}: DCA −{dca_pct_2}% failed for {uid}: {e}", exc_info=True)
+
+                            # === BREAK-EVEN (BE) LOGIC ===
+                            # Move SL to entry price when profit reaches be_trigger_pct
+                            # This runs BEFORE ATR trailing and fixed SL logic
+                            if be_enabled and move_pct >= be_trigger_pct and not _be_triggered.get(key, False):
+                                # Position is in profit by at least be_trigger_pct - move SL to break-even
+                                be_sl = entry  # Break-even = entry price
+                                
+                                # Check if current SL is worse than entry (not yet at break-even)
+                                should_move_to_be = (
+                                    current_sl is None or
+                                    (side == "Buy" and current_sl < entry) or
+                                    (side == "Sell" and current_sl > entry)
+                                )
+                                
+                                if should_move_to_be:
+                                    try:
+                                        filt = await get_symbol_filters(uid, sym)
+                                        tick = filt["tickSize"]
+                                        # Quantize BE SL to valid price
+                                        be_sl_quantized = quantize_up(be_sl, tick) if side == "Buy" else quantize(be_sl, tick)
+                                        
+                                        await set_trading_stop(uid, sym, sl_price=be_sl_quantized, side_hint=side, account_type=pos_account_type)
+                                        _be_triggered[key] = True
+                                        
+                                        logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to break-even @ {be_sl_quantized:.6f} (was {current_sl}, move_pct={move_pct:.2f}%)")
+                                        
+                                        # Notify user
+                                        try:
+                                            await safe_send_notification(
+                                                bot, uid,
+                                                t.get('be_moved_to_entry', "🔄 Break-Even: {symbol} SL → entry @ {price}").format(
+                                                    symbol=sym,
+                                                    price=be_sl_quantized
+                                                )
+                                            )
+                                        except Exception:
+                                            pass
+                                    except RuntimeError as e:
+                                        if "no open positions" not in str(e).lower():
+                                            logger.warning(f"[{uid}] {sym}: Failed to set BE SL: {e}")
+                                    except Exception as e:
+                                        logger.error(f"[{uid}] {sym}: BE failed: {e}", exc_info=True)
+                                else:
+                                    # SL already at or better than entry
+                                    _be_triggered[key] = True
+                                    logger.debug(f"[BE-ALREADY] {sym} uid={uid} - SL already at/better than entry (sl={current_sl}, entry={entry})")
 
                             if not position_use_atr:
                                 # CRITICAL FIX: Use applied_sl_pct/applied_tp_pct from position if available
@@ -17645,6 +17841,7 @@ async def monitor_positions_loop(app: Application):
                                         remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, db_sym)
                                         _atr_triggered.pop((uid, db_sym), None)
+                                        _be_triggered.pop((uid, db_sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)
                                     except Exception as e:
@@ -20045,6 +20242,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             elif global_setting == "atr_multiplier_sl":  # Fixed: was atr_multiplier
                 if value < 0.1 or value > 10:
                     raise ValueError("ATR Multiplier must be between 0.1 and 10")
+            # Break-Even settings validation
+            elif global_setting == "be_trigger_pct":
+                if value < 0.1 or value > 50:
+                    raise ValueError("BE Trigger must be between 0.1 and 50")
             
             logger.info(f"[GLOBAL-SETTING] uid={uid} saving {global_setting}={value}")
             set_user_field(uid, global_setting, value)
@@ -20059,10 +20260,19 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "atr_step_pct": "ATR Step %",
                 "atr_periods": "ATR Period",  # Fixed
                 "atr_multiplier_sl": "ATR Multiplier",  # Fixed
+                "be_trigger_pct": "BE Trigger %",
             }
             
             # Check if ATR setting - go back to ATR menu
             if global_setting.startswith("atr_"):
+                await update.message.reply_text(
+                    f"✅ {param_names.get(global_setting, global_setting)} → *{value}*\n\nUpdated successfully!",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            # Check if BE setting - go back to BE menu
+            if global_setting.startswith("be_"):
                 await update.message.reply_text(
                     f"✅ {param_names.get(global_setting, global_setting)} → *{value}*\n\nUpdated successfully!",
                     parse_mode="Markdown"

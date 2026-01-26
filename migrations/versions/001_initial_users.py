@@ -90,6 +90,11 @@ def upgrade(cur):
             atr_multiplier_sl  REAL NOT NULL DEFAULT 1.0,
             atr_trigger_pct    REAL NOT NULL DEFAULT 2.0,
             atr_step_pct       REAL NOT NULL DEFAULT 0.5,
+            
+            -- Break-Even settings (move SL to entry price)
+            be_enabled         INTEGER NOT NULL DEFAULT 0,
+            be_trigger_pct     REAL NOT NULL DEFAULT 1.0,
+            
             direction          TEXT NOT NULL DEFAULT 'all',
             global_order_type  TEXT NOT NULL DEFAULT 'market',
             

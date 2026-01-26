@@ -1466,13 +1466,16 @@ DEFAULT_HL_STRATEGY_SETTINGS = {
 _STRATEGY_DB_COLUMNS = [
     "enabled", "percent", "sl_percent", "tp_percent", "leverage",
     "use_atr", "atr_periods", "atr_multiplier_sl", "atr_trigger_pct", "atr_step_pct",
+    "be_enabled", "be_trigger_pct",  # Break-Even settings
     "order_type", "coins_group", "direction", "trading_mode",
     # LONG settings
     "long_percent", "long_sl_percent", "long_tp_percent", "long_leverage", "long_use_atr",
     "long_atr_periods", "long_atr_multiplier_sl", "long_atr_trigger_pct", "long_atr_step_pct",
+    "long_be_enabled", "long_be_trigger_pct",  # Long-specific BE
     # SHORT settings
     "short_percent", "short_sl_percent", "short_tp_percent", "short_leverage", "short_use_atr",
     "short_atr_periods", "short_atr_multiplier_sl", "short_atr_trigger_pct", "short_atr_step_pct",
+    "short_be_enabled", "short_be_trigger_pct",  # Short-specific BE
     "min_quality"
 ]
 
