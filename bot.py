@@ -7256,14 +7256,44 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
             callback_data=f"strat_param:{strategy}:{side}_dca_pct_2"
         )])
     
-    # ─── 14. MAX POSITIONS ───
+    # ─── 14. PARTIAL TAKE PROFIT TOGGLE (срез маржи) ───
+    ptp_enabled = settings.get(f"{side}_partial_tp_enabled")
+    if ptp_enabled is None:
+        ptp_enabled = defaults.get("partial_tp_enabled", 0)
+    ptp_enabled = bool(ptp_enabled)
+    
+    ptp_1_trigger = settings.get(f"{side}_partial_tp_1_trigger_pct") or defaults.get("partial_tp_1_trigger_pct", 2.0)
+    ptp_1_close = settings.get(f"{side}_partial_tp_1_close_pct") or defaults.get("partial_tp_1_close_pct", 30.0)
+    ptp_2_trigger = settings.get(f"{side}_partial_tp_2_trigger_pct") or defaults.get("partial_tp_2_trigger_pct", 5.0)
+    ptp_2_close = settings.get(f"{side}_partial_tp_2_close_pct") or defaults.get("partial_tp_2_close_pct", 30.0)
+    
+    ptp_status = "✅" if ptp_enabled else "❌"
+    buttons.append([InlineKeyboardButton(
+        f"✂️ {t.get('partial_tp_label', 'Partial TP')}: {ptp_status}", 
+        callback_data=f"strat_side_ptp:{strategy}:{side}:toggle"
+    )])
+    
+    # ─── 15. PARTIAL TP PARAMS (only when enabled) ───
+    if ptp_enabled:
+        # Step 1: trigger % + close %
+        buttons.append([InlineKeyboardButton(
+            f"1️⃣ +{ptp_1_trigger}% → ✂️{ptp_1_close}%", 
+            callback_data=f"strat_side_ptp:{strategy}:{side}:step1"
+        )])
+        # Step 2: trigger % + close %
+        buttons.append([InlineKeyboardButton(
+            f"2️⃣ +{ptp_2_trigger}% → ✂️{ptp_2_close}%", 
+            callback_data=f"strat_side_ptp:{strategy}:{side}:step2"
+        )])
+    
+    # ─── 16. MAX POSITIONS ───
     max_pos_label = str(max_positions) if max_positions > 0 else t.get('unlimited', '∞')
     buttons.append([InlineKeyboardButton(
         f"📊 {t.get('max_positions', 'Max Positions')}: {max_pos_label}", 
         callback_data=f"strat_param:{strategy}:{side}_max_positions"
     )])
     
-    # ─── 15. COINS FILTER ───
+    # ─── 17. COINS FILTER ───
     coins_emoji = {"ALL": "🌐", "TOP100": "💎", "VOLATILE": "🔥"}.get(coins_group, "🌐")
     buttons.append([InlineKeyboardButton(
         f"🪙 {t.get('coins_filter', 'Coins')}: {coins_emoji} {coins_group}", 
@@ -8333,6 +8363,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "long_atr_trigger_pct": t.get('prompt_long_atr_trigger', '📈 LONG Trigger % (profit to activate):'),
             "long_atr_step_pct": t.get('prompt_long_atr_step', '📈 LONG Step % (SL distance):'),
             "long_be_trigger_pct": t.get('prompt_long_be_trigger', '📈 LONG BE Trigger % (move SL to entry):'),
+            # LONG Partial TP settings
+            "long_partial_tp_1_trigger_pct": t.get('prompt_long_ptp_1_trigger', '📈 LONG Step 1: Trigger % (profit to close part):'),
+            "long_partial_tp_1_close_pct": t.get('prompt_long_ptp_1_close', '📈 LONG Step 1: Close % (part of position):'),
+            "long_partial_tp_2_trigger_pct": t.get('prompt_long_ptp_2_trigger', '📈 LONG Step 2: Trigger % (profit to close part):'),
+            "long_partial_tp_2_close_pct": t.get('prompt_long_ptp_2_close', '📈 LONG Step 2: Close % (part of position):'),
             # SHORT settings
             "short_percent": t.get('prompt_short_entry_pct', '📉 SHORT Entry % (risk per trade):'),
             "short_sl_percent": t.get('prompt_short_sl_pct', '📉 SHORT Stop-Loss %:'),
@@ -8341,6 +8376,11 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "short_atr_trigger_pct": t.get('prompt_short_atr_trigger', '📉 SHORT Trigger % (profit to activate):'),
             "short_atr_step_pct": t.get('prompt_short_atr_step', '📉 SHORT Step % (SL distance):'),
             "short_be_trigger_pct": t.get('prompt_short_be_trigger', '📉 SHORT BE Trigger % (move SL to entry):'),
+            # SHORT Partial TP settings
+            "short_partial_tp_1_trigger_pct": t.get('prompt_short_ptp_1_trigger', '📉 SHORT Step 1: Trigger % (profit to close part):'),
+            "short_partial_tp_1_close_pct": t.get('prompt_short_ptp_1_close', '📉 SHORT Step 1: Close % (part of position):'),
+            "short_partial_tp_2_trigger_pct": t.get('prompt_short_ptp_2_trigger', '📉 SHORT Step 2: Trigger % (profit to close part):'),
+            "short_partial_tp_2_close_pct": t.get('prompt_short_ptp_2_close', '📉 SHORT Step 2: Close % (part of position):'),
         }
         
         await query.message.edit_text(
@@ -8799,6 +8839,99 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Refresh settings and show side menu
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
         global_cfg = db.get_user_config(uid)  # For fallback display
+        side_emoji = "📈" if side == "long" else "📉"
+        side_label = t.get(f'side_{side}', side.upper())
+        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+        
+        await query.message.edit_text(
+            f"{side_emoji} *{display_name} - {side_label}*\n\n" + 
+            t.get('side_settings_hint', 'Configure settings for this direction:'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
+        )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Side-specific Partial Take Profit toggle and settings (LONG/SHORT)
+    # ─────────────────────────────────────────────────────────────────────────────
+    if data.startswith("strat_side_ptp:"):
+        parts = data.split(":")
+        strategy = parts[1]
+        side = parts[2]  # 'long' or 'short'
+        action = parts[3]  # 'toggle', 'step1', 'step2'
+        
+        # Get context
+        context = get_user_trading_context(uid)
+        account_types = db.get_strategy_account_types(uid, strategy)
+        if not account_types:
+            account_types = [context["account_type"]]
+        primary_account = account_types[0]
+        
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        
+        if action == "toggle":
+            param_name = f"{side}_partial_tp_enabled"
+            current = strat_settings.get(param_name) or 0
+            new_value = 0 if current else 1
+            
+            logger.info(f"[{uid}] {side.upper()} Partial TP toggle for {strategy}: {current} -> {new_value}")
+            
+            db.set_strategy_setting(uid, strategy, param_name, new_value, context["exchange"])
+            
+            status = t.get('partial_tp_status_enabled', '✅ Partial TP enabled') if new_value else t.get('partial_tp_status_disabled', '❌ Partial TP disabled')
+            await query.answer(f"{side.upper()}: {status}")
+            
+        elif action == "step1":
+            # Show step 1 settings menu
+            current_trigger = strat_settings.get(f"{side}_partial_tp_1_trigger_pct") or 2.0
+            current_close = strat_settings.get(f"{side}_partial_tp_1_close_pct") or 30.0
+            
+            await query.message.edit_text(
+                t.get('partial_tp_step1_menu', '✂️ *Partial TP - Step 1*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_').format(
+                    trigger=current_trigger, close=current_close
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(
+                        f"🎯 {t.get('trigger_pct', 'Trigger')}: +{current_trigger}%", 
+                        callback_data=f"strat_param:{strategy}:{side}_partial_tp_1_trigger_pct"
+                    )],
+                    [InlineKeyboardButton(
+                        f"✂️ {t.get('close_pct', 'Close')}: {current_close}%", 
+                        callback_data=f"strat_param:{strategy}:{side}_partial_tp_1_close_pct"
+                    )],
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"strat_side:{strategy}:{side}")]
+                ])
+            )
+            return
+            
+        elif action == "step2":
+            # Show step 2 settings menu
+            current_trigger = strat_settings.get(f"{side}_partial_tp_2_trigger_pct") or 5.0
+            current_close = strat_settings.get(f"{side}_partial_tp_2_close_pct") or 30.0
+            
+            await query.message.edit_text(
+                t.get('partial_tp_step2_menu', '✂️ *Partial TP - Step 2*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_').format(
+                    trigger=current_trigger, close=current_close
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(
+                        f"🎯 {t.get('trigger_pct', 'Trigger')}: +{current_trigger}%", 
+                        callback_data=f"strat_param:{strategy}:{side}_partial_tp_2_trigger_pct"
+                    )],
+                    [InlineKeyboardButton(
+                        f"✂️ {t.get('close_pct', 'Close')}: {current_close}%", 
+                        callback_data=f"strat_param:{strategy}:{side}_partial_tp_2_close_pct"
+                    )],
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"strat_side:{strategy}:{side}")]
+                ])
+            )
+            return
+        
+        # Refresh settings and show side menu
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], primary_account)
+        global_cfg = db.get_user_config(uid)
         side_emoji = "📈" if side == "long" else "📉"
         side_label = t.get(f'side_{side}', side.upper())
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
@@ -25722,7 +25855,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
-    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|strat_side_be:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|global_be:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
+    app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|strat_side_be:|strat_side_ptp:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|global_be:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
 
     try:
         manual_labels = {texts["button_manual_order"] for texts in LANGS.values() if "button_manual_order" in texts}

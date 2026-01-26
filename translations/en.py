@@ -1041,6 +1041,24 @@ _Top traders rarely exceed 10x._
     'be_moved_to_entry':             '🔒 {symbol}: SL moved to break-even @ {entry}',
     'be_status_enabled':             '✅ BE: {trigger}%',
     'be_status_disabled':            '❌ BE: Off',
+    
+    # Partial Take Profit settings UI (срез маржи)
+    'partial_tp_label':              '✂️ Partial TP',
+    'partial_tp_status_enabled':     '✅ Partial TP enabled',
+    'partial_tp_status_disabled':    '❌ Partial TP disabled',
+    'partial_tp_step1_menu':         '✂️ *Partial TP - Step 1*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_',
+    'partial_tp_step2_menu':         '✂️ *Partial TP - Step 2*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_',
+    'trigger_pct':                   'Trigger',
+    'close_pct':                     'Close',
+    'prompt_long_ptp_1_trigger':     '📈 LONG Step 1: Trigger %\n\nEnter profit % to close first part:',
+    'prompt_long_ptp_1_close':       '📈 LONG Step 1: Close %\n\nEnter % of position to close:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG Step 2: Trigger %\n\nEnter profit % to close second part:',
+    'prompt_long_ptp_2_close':       '📈 LONG Step 2: Close %\n\nEnter % of position to close:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT Step 1: Trigger %\n\nEnter profit % to close first part:',
+    'prompt_short_ptp_1_close':      '📉 SHORT Step 1: Close %\n\nEnter % of position to close:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT Step 2: Trigger %\n\nEnter profit % to close second part:',
+    'prompt_short_ptp_2_close':      '📉 SHORT Step 2: Close %\n\nEnter % of position to close:',
+    'partial_tp_executed':           '✂️ {symbol}: Closed {close}% at +{trigger}% profit',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Terms of Service are unavailable. Please contact the admin.',

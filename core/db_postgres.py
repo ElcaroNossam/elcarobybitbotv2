@@ -1888,6 +1888,12 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                     # Break-Even settings
                     result[f"{prefix}be_enabled"] = row.get('be_enabled', False)
                     result[f"{prefix}be_trigger_pct"] = row.get('be_trigger_pct', 1.0)
+                    # Partial Take Profit settings (срез маржи в 2 шага)
+                    result[f"{prefix}partial_tp_enabled"] = row.get('partial_tp_enabled', False)
+                    result[f"{prefix}partial_tp_1_trigger_pct"] = row.get('partial_tp_1_trigger_pct', 2.0)
+                    result[f"{prefix}partial_tp_1_close_pct"] = row.get('partial_tp_1_close_pct', 30.0)
+                    result[f"{prefix}partial_tp_2_trigger_pct"] = row.get('partial_tp_2_trigger_pct', 5.0)
+                    result[f"{prefix}partial_tp_2_close_pct"] = row.get('partial_tp_2_close_pct', 30.0)
     
     # Add strategy-level settings to result
     result["trading_mode"] = trading_mode
@@ -1919,6 +1925,12 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             # Break-Even defaults
             result[f"{prefix}be_enabled"] = defaults.get("be_enabled", False)
             result[f"{prefix}be_trigger_pct"] = defaults.get("be_trigger_pct", 1.0)
+            # Partial Take Profit defaults
+            result[f"{prefix}partial_tp_enabled"] = defaults.get("partial_tp_enabled", False)
+            result[f"{prefix}partial_tp_1_trigger_pct"] = defaults.get("partial_tp_1_trigger_pct", 2.0)
+            result[f"{prefix}partial_tp_1_close_pct"] = defaults.get("partial_tp_1_close_pct", 30.0)
+            result[f"{prefix}partial_tp_2_trigger_pct"] = defaults.get("partial_tp_2_trigger_pct", 5.0)
+            result[f"{prefix}partial_tp_2_close_pct"] = defaults.get("partial_tp_2_close_pct", 30.0)
     
     return result
 
@@ -2017,11 +2029,14 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
         'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
         'max_positions', 'coins_group', 'trading_mode', 'direction',
-        'account_type', 'be_enabled', 'be_trigger_pct'  # Break-Even
+        'account_type', 'be_enabled', 'be_trigger_pct',  # Break-Even
+        # Partial Take Profit (срез маржи)
+        'partial_tp_enabled', 'partial_tp_1_trigger_pct', 'partial_tp_1_close_pct',
+        'partial_tp_2_trigger_pct', 'partial_tp_2_close_pct'
     }
     
     # Boolean fields that need conversion from int to bool for PostgreSQL
-    BOOLEAN_FIELDS = {'enabled', 'use_atr', 'dca_enabled', 'be_enabled'}
+    BOOLEAN_FIELDS = {'enabled', 'use_atr', 'dca_enabled', 'be_enabled', 'partial_tp_enabled'}
     
     if field not in ALLOWED_FIELDS:
         logger.warning(f"Field '{field}' not in allowed fields for _pg_set_side_setting")
