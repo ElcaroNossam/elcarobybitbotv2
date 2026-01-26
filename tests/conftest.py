@@ -11,10 +11,16 @@ import os
 import pytest
 import sqlite3
 import tempfile
+import warnings
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Generator, AsyncGenerator
 from contextlib import contextmanager
+
+# Suppress warnings globally for tests
+warnings.filterwarnings("ignore", category=ResourceWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
 # Test environment setup - MUST be before any imports
 os.environ['TESTING'] = 'true'
