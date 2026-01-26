@@ -258,6 +258,191 @@ else:
     file_h.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
     logger.addHandler(file_h)
 
+# ═══════════════════════════════════════════════════════════════
+# ERROR MONITORING SYSTEM
+# Collects errors and sends detailed reports to admin
+# ═══════════════════════════════════════════════════════════════
+from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime as dt
+
+@dataclass
+class ErrorRecord:
+    """Record of a single error occurrence"""
+    timestamp: dt
+    user_id: int | None
+    username: str | None
+    error_type: str
+    error_message: str
+    function_name: str
+    symbol: str | None = None
+    account_type: str | None = None
+    exchange: str | None = None
+    extra_context: dict = field(default_factory=dict)
+
+class ErrorMonitor:
+    """
+    Centralized error monitoring system.
+    - Collects errors with full context
+    - Sends detailed reports to admin
+    - Sends user-friendly messages to affected users
+    """
+    
+    def __init__(self, admin_id: int = ADMIN_ID, report_interval: int = 300):
+        self.admin_id = admin_id
+        self.report_interval = report_interval  # seconds between admin reports
+        self.errors: deque[ErrorRecord] = deque(maxlen=1000)
+        self.last_admin_report = 0
+        self.bot = None
+        self._lock = asyncio.Lock()
+        
+        # Error type to user-friendly message mapping
+        self.user_messages = {
+            "INSUFFICIENT_BALANCE": "💰 Недостаточно средств на аккаунте для открытия позиции. Пополните баланс или уменьшите размер позиции.",
+            "ORDER_TOO_SMALL": "📉 Размер ордера слишком мал (минимум $5). Увеличьте Entry% или пополните баланс.",
+            "API_KEY_EXPIRED": "🔑 API ключ истёк или недействителен. Обновите API ключи в настройках.",
+            "API_KEY_MISSING": "🔑 API ключи не настроены. Добавьте ключи Bybit в меню 🔗 API Keys.",
+            "RATE_LIMIT": "⏳ Слишком много запросов. Подождите минуту и попробуйте снова.",
+            "POSITION_NOT_FOUND": "📊 Позиция не найдена или уже закрыта.",
+            "LEVERAGE_ERROR": "⚙️ Ошибка установки плеча. Попробуйте установить плечо вручную в терминале биржи.",
+            "NETWORK_ERROR": "🌐 Проблема с сетью. Попробуйте позже.",
+            "SL_TP_INVALID": "⚠️ Невозможно установить SL/TP: цена слишком близко к текущей. SL/TP будут обновлены при следующем цикле.",
+            "EQUITY_ZERO": "💰 На аккаунте нулевой баланс. Пополните Demo или Real аккаунт для торговли.",
+        }
+    
+    def set_bot(self, bot):
+        """Set bot instance for sending messages"""
+        self.bot = bot
+    
+    async def record_error(
+        self,
+        user_id: int | None,
+        error_type: str,
+        error_message: str,
+        function_name: str,
+        username: str | None = None,
+        symbol: str | None = None,
+        account_type: str | None = None,
+        exchange: str | None = None,
+        notify_user: bool = True,
+        **extra_context
+    ):
+        """Record an error and optionally notify user"""
+        async with self._lock:
+            error = ErrorRecord(
+                timestamp=dt.now(),
+                user_id=user_id,
+                username=username,
+                error_type=error_type,
+                error_message=error_message,
+                function_name=function_name,
+                symbol=symbol,
+                account_type=account_type,
+                exchange=exchange,
+                extra_context=extra_context
+            )
+            self.errors.append(error)
+            
+            # Notify user with friendly message
+            if notify_user and user_id and self.bot and error_type in self.user_messages:
+                try:
+                    user_msg = self.user_messages[error_type]
+                    if symbol:
+                        user_msg = f"📊 *{symbol}*\n\n{user_msg}"
+                    await self.bot.send_message(
+                        user_id,
+                        user_msg,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    logger.debug(f"Could not send user notification: {e}")
+            
+            # Check if we should send admin report
+            now = time.time()
+            if now - self.last_admin_report >= self.report_interval:
+                asyncio.create_task(self._send_admin_report())
+    
+    async def _send_admin_report(self):
+        """Send detailed error report to admin"""
+        if not self.bot:
+            return
+            
+        async with self._lock:
+            self.last_admin_report = time.time()
+            
+            # Get errors from last report interval
+            cutoff = dt.now() - timedelta(seconds=self.report_interval)
+            recent_errors = [e for e in self.errors if e.timestamp >= cutoff]
+            
+            if not recent_errors:
+                return
+            
+            # Group by error type
+            by_type: dict[str, list[ErrorRecord]] = {}
+            for err in recent_errors:
+                if err.error_type not in by_type:
+                    by_type[err.error_type] = []
+                by_type[err.error_type].append(err)
+            
+            # Build detailed report
+            lines = [
+                f"🚨 <b>Error Report</b> ({len(recent_errors)} errors in {self.report_interval//60}min)",
+                f"⏰ {dt.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                ""
+            ]
+            
+            for error_type, errors in sorted(by_type.items(), key=lambda x: -len(x[1])):
+                lines.append(f"<b>━━━ {error_type} ({len(errors)}x) ━━━</b>")
+                
+                # Show up to 5 examples per error type
+                for err in errors[:5]:
+                    user_info = f"@{err.username}" if err.username else f"uid:{err.user_id}" if err.user_id else "unknown"
+                    symbol_info = f" | {err.symbol}" if err.symbol else ""
+                    acc_info = f" | {err.account_type}" if err.account_type else ""
+                    exc_info = f" | {err.exchange}" if err.exchange else ""
+                    
+                    lines.append(f"├─ {user_info}{symbol_info}{acc_info}{exc_info}")
+                    lines.append(f"│  📍 {err.function_name}")
+                    
+                    # Truncate long error messages
+                    msg = err.error_message[:150] + "..." if len(err.error_message) > 150 else err.error_message
+                    lines.append(f"│  💬 <code>{msg}</code>")
+                    
+                    # Extra context
+                    if err.extra_context:
+                        ctx_str = ", ".join(f"{k}={v}" for k, v in list(err.extra_context.items())[:3])
+                        lines.append(f"│  📎 {ctx_str}")
+                    
+                    lines.append("│")
+                
+                if len(errors) > 5:
+                    lines.append(f"└─ ... and {len(errors) - 5} more")
+                lines.append("")
+            
+            report = "\n".join(lines)
+            
+            # Send to admin (split if too long)
+            try:
+                if len(report) > 4000:
+                    for i in range(0, len(report), 4000):
+                        await self.bot.send_message(
+                            self.admin_id,
+                            report[i:i+4000],
+                            parse_mode="HTML"
+                        )
+                else:
+                    await self.bot.send_message(
+                        self.admin_id,
+                        report,
+                        parse_mode="HTML"
+                    )
+            except Exception as e:
+                logger.error(f"Failed to send admin error report: {e}")
+
+# Global error monitor instance
+error_monitor = ErrorMonitor(admin_id=ADMIN_ID, report_interval=300)  # Report every 5 minutes
+# ═══════════════════════════════════════════════════════════════
+
 BOT_TOKEN   = os.getenv("TELEGRAM_TOKEN")
 WEBAPP_URL  = os.getenv("WEBAPP_URL", "http://localhost:8765")  # WebApp URL from env or fallback
 BYBIT_DEMO_URL = "https://api-demo.bybit.com"
@@ -788,6 +973,16 @@ def log_calls(func):
                         pass
             # Log as debug to reduce spam
             logger.debug(f"⚠️ {func.__name__} [uid={uid}]: API keys not configured")
+            # Record for admin report
+            if uid:
+                error_type = "API_KEY_EXPIRED" if "expired" in str(e).lower() else "API_KEY_MISSING"
+                asyncio.create_task(error_monitor.record_error(
+                    user_id=uid,
+                    error_type=error_type,
+                    error_message=str(e),
+                    function_name=func.__name__,
+                    notify_user=True
+                ))
             raise
         except Exception as e:
             uid = None
@@ -5358,6 +5553,19 @@ async def _place_order_impl(
                 f"[{user_id}] Order notional ${notional:.2f} < ${MIN_NOTIONAL} min for {symbol}. "
                 f"Skipping order (qty={qty}, price={current_price})"
             )
+            # Record error for admin reporting
+            asyncio.create_task(error_monitor.record_error(
+                user_id=user_id,
+                error_type="ORDER_TOO_SMALL",
+                error_message=f"notional ${notional:.2f} < ${MIN_NOTIONAL} min",
+                function_name="_place_order_impl",
+                symbol=symbol,
+                account_type=account_type,
+                notify_user=True,
+                qty=qty,
+                price=current_price,
+                notional=notional
+            ))
             raise ValueError(f"ORDER_TOO_SMALL: notional ${notional:.2f} < ${MIN_NOTIONAL} minimum")
     except ValueError:
         raise  # Re-raise our ORDER_TOO_SMALL error
@@ -5411,6 +5619,19 @@ async def _place_order_impl(
         if "insufficient" in msg or "balance" in msg or "110007" in msg or "ab not enough" in msg:
             # Log full error and order params for debugging
             logger.error(f"[{user_id}] INSUFFICIENT_BALANCE error. Order body: {body}. Full error: {e}")
+            # Record error for admin reporting
+            asyncio.create_task(error_monitor.record_error(
+                user_id=user_id,
+                error_type="INSUFFICIENT_BALANCE",
+                error_message=str(e),
+                function_name="_place_order_impl",
+                symbol=symbol,
+                account_type=account_type,
+                notify_user=True,
+                side=side,
+                qty=qty,
+                order_type=orderType
+            ))
             raise ValueError("INSUFFICIENT_BALANCE")
 
         # Неправильный position mode — меняем и ретраим
@@ -13938,6 +14159,18 @@ async def calc_qty(
     equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
     
     if equity <= 0:
+        # Record error for admin reporting
+        asyncio.create_task(error_monitor.record_error(
+            user_id=user_id,
+            error_type="EQUITY_ZERO",
+            error_message=f"equity={equity}, account_type={account_type}",
+            function_name="calc_qty",
+            symbol=symbol,
+            account_type=account_type,
+            notify_user=True,
+            risk_pct=risk_pct,
+            sl_pct=sl_pct
+        ))
         raise ValueError(f"Don't have USDT (equity={equity}, account_type={account_type})")
     
     risk_usdt = equity * (risk_pct / 100)
@@ -25023,6 +25256,10 @@ def main():
         logger.info("Notification service initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize notification service: {e}")
+    
+    # Initialize error monitor with bot instance
+    error_monitor.set_bot(app.bot)
+    logger.info("Error monitor initialized")
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
