@@ -438,6 +438,9 @@ async def switch_account_type(
     
     logger.info(f"User {user_id} switched account type from {old_mode} to {new_mode} ({exchange})")
     
+    # Save last viewed account for UI persistence across platforms
+    db.set_last_viewed_account(user_id, new_mode)
+    
     # Log activity for cross-platform sync
     try:
         from services.sync_service import sync_service
