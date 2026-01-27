@@ -21,26 +21,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // App name - configurable via environment for rebranding
-        val appName = System.getenv("APP_NAME") ?: "Lyxen"
+        val appName = System.getenv("APP_NAME") ?: "Enliko"
         resValue("string", "app_name_dynamic", "$appName Trading")
         buildConfigField("String", "APP_NAME", "\"$appName\"")
-        buildConfigField("String", "BASE_URL", "\"https://fog-cornell-ata-portable.trycloudflare.com\"")
-        buildConfigField("String", "WS_URL", "\"wss://fog-cornell-ata-portable.trycloudflare.com\"")
+        buildConfigField("String", "BASE_URL", "\"https://named-supplement-pending-cooking.trycloudflare.com\"")
+        buildConfigField("String", "WS_URL", "\"wss://named-supplement-pending-cooking.trycloudflare.com\"")
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("../keystore/lyxen-release.jks")
+            storeFile = file("../keystore/enliko-release.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = "lyxen"
+            keyAlias = "enliko"
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8765\"")
-            buildConfigField("String", "WS_URL", "\"ws://10.0.2.2:8765\"")
+            buildConfigField("String", "BASE_URL", "\"https://named-supplement-pending-cooking.trycloudflare.com\"")
+            buildConfigField("String", "WS_URL", "\"wss://named-supplement-pending-cooking.trycloudflare.com\"")
         }
         release {
             isMinifyEnabled = true
