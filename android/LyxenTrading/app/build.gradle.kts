@@ -20,6 +20,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
+        // App name - configurable via environment for rebranding
+        val appName = System.getenv("APP_NAME") ?: "Lyxen"
+        resValue("string", "app_name_dynamic", "$appName Trading")
+        buildConfigField("String", "APP_NAME", "\"$appName\"")
         buildConfigField("String", "BASE_URL", "\"https://fog-cornell-ata-portable.trycloudflare.com\"")
         buildConfigField("String", "WS_URL", "\"wss://fog-cornell-ata-portable.trycloudflare.com\"")
     }

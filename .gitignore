@@ -88,3 +88,8 @@ ios/LyxenTrading/build_output/
 serg.pem
 ios/LyxenTrading/.build/
 ios/LyxenTrading/.build/
+
+# Build outputs
+builds/
+android/LyxenTrading/keystore/
+android/LyxenTrading/local.properties

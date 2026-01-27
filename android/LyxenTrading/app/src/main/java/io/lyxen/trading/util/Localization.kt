@@ -5,6 +5,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.intl.Locale
+import io.lyxen.trading.BuildConfig
+
+// App name from BuildConfig (set via environment variable)
+private val APP_NAME = BuildConfig.APP_NAME
 
 enum class AppLanguage(
     val code: String,
@@ -197,7 +201,7 @@ interface Strings {
     val worstTrade: String
     
     object English : Strings {
-        override val appName = "Lyxen Trading"
+        override val appName = "$APP_NAME Trading"
         override val portfolio = "Portfolio"
         override val trading = "Trading"
         override val market = "Market"
@@ -303,7 +307,7 @@ interface Strings {
     }
     
     object Russian : Strings {
-        override val appName = "Lyxen Trading"
+        override val appName = "$APP_NAME Trading"
         override val portfolio = "Портфель"
         override val trading = "Торговля"
         override val market = "Рынок"
@@ -409,7 +413,7 @@ interface Strings {
     }
     
     object Ukrainian : Strings {
-        override val appName = "Lyxen Trading"
+        override val appName = "$APP_NAME Trading"
         override val portfolio = "Портфель"
         override val trading = "Торгівля"
         override val market = "Ринок"
@@ -515,7 +519,7 @@ interface Strings {
     }
     
     object German : Strings {
-        override val appName = "Lyxen Trading"
+        override val appName = "$APP_NAME Trading"
         override val portfolio = "Portfolio"
         override val trading = "Handel"
         override val market = "Markt"

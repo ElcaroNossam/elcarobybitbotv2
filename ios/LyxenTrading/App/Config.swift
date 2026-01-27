@@ -6,6 +6,12 @@
 import Foundation
 
 struct Config {
+    // App Name - configurable for rebranding
+    // Change this value to rebrand the entire app
+    static let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? "Lyxen"
+    static let appDisplayName = "\(appName) Trading"
+    static let bundleId = "io.\(appName.lowercased()).trading"
+    
     // API Configuration
     // DEBUG: Use production URL for real device testing
     // RELEASE: Production Cloudflare URL

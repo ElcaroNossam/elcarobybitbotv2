@@ -129,31 +129,9 @@ struct EmptyStateView: View {
     }
 }
 
-// MARK: - Shimmer Effect
-struct ShimmerView: View {
-    @State private var isAnimating = false
-    
-    var body: some View {
-        LinearGradient(
-            colors: [
-                Color.lyxenCard,
-                Color.lyxenCardHover,
-                Color.lyxenCard
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        .mask(
-            Rectangle()
-                .fill(Color.white)
-        )
-        .offset(x: isAnimating ? 200 : -200)
-        .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: isAnimating)
-        .onAppear {
-            isAnimating = true
-        }
-    }
-}
+// MARK: - Shimmer Effect (for LoadingView components)
+// Note: ShimmerView is defined in ModernFeatures.swift, using typealias for local use
+private typealias LoadingShimmerView = ShimmerView
 
 // MARK: - Skeleton Loading
 struct SkeletonCard: View {
@@ -163,7 +141,7 @@ struct SkeletonCard: View {
         RoundedRectangle(cornerRadius: 12)
             .fill(Color.lyxenCard)
             .frame(height: height)
-            .overlay(ShimmerView())
+            .overlay(LoadingShimmerView())
             .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
