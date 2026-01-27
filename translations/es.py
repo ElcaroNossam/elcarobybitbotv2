@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # Menú principal - Terminal de trading profesional
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> ejecución
 🛡️ <b>Gestión de riesgos</b> integrada
@@ -42,7 +42,7 @@ Bybit • HyperLiquid • Multi-estrategia''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Config',
     'button_indicators':           '📡 Señales',
@@ -51,7 +51,7 @@ Bybit • HyperLiquid • Multi-estrategia''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Lyxen: {state}',
+    'config_trade_elcaro':         '🔥 Enliko: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
@@ -229,7 +229,7 @@ Bybit • HyperLiquid • Multi-estrategia''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Indicadores Lyxen*',
+    'indicators_header':           '📈 *Indicadores Enliko*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Tendencia adaptativa',
@@ -272,7 +272,7 @@ Bybit • HyperLiquid • Multi-estrategia''',
 📊 Tamaño: `{size}`
 📍 {exchange} • {market_type}
 
-_Lyxen IA detectó la oportunidad. Estás dentro._''',
+_Enliko IA detectó la oportunidad. Estás dentro._''',
     'sl_auto_set':                 '🛡️ *¡Capital protegido!* SL @ `{price:.6f}`\n_Gestión de riesgo inteligente activada._',
     'auto_close_position':         '⚡ Posición {symbol} cerrada automáticamente — _IA protegiendo tu capital_',
     'position_closed': '''🏆 *¡TRADE COMPLETADO!*
@@ -329,14 +329,14 @@ _Cada trade es un paso hacia la libertad financiera._
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen Entrada Limit*\n• {symbol} {side}\n• Precio: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Lyxen Limit error: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen Entrada Market*\n• {symbol} {side}\n• Precio: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Lyxen Market error: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko Entrada Limit*\n• {symbol} {side}\n• Precio: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Enliko Limit error: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko Entrada Market*\n• {symbol} {side}\n• Precio: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Enliko Market error: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Entrada Limit*\n• {symbol} {side}\n• Precio: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
@@ -599,7 +599,7 @@ _Cada trade es un paso hacia la libertad financiera._
     'strat_mode_both':             '🔄 Ambos',
     'strat_mode_changed':          '✅ Modo de trading {strategy}: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -613,7 +613,7 @@ _Cada trade es un paso hacia la libertad financiera._
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Configuración DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -720,7 +720,7 @@ _Cada trade es un paso hacia la libertad financiera._
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -757,14 +757,14 @@ _Cada trade es un paso hacia la libertad financiera._
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Apalancamiento',
     'prompt_leverage': 'Introduce el apalancamiento (1-100):',
     'auto_default': 'Auto',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_Todos los parámetros se parsean automáticamente de las señales AI:_',
 
     # Scalper entries
@@ -807,16 +807,16 @@ _Cada trade es un paso hacia la libertad financiera._
 
 Mientras dudas, *847 traders* ya están ganando.
 
-💸 Cada minuto sin Lyxen = oportunidades perdidas
+💸 Cada minuto sin Enliko = oportunidades perdidas
 ⏰ Los mercados no esperan. Tú tampoco deberías.
 
 👉 /subscribe — _Desbloquea tu ventaja injusta AHORA_''',
     'no_license_trading': '''🚨 *TRADING BLOQUEADO*
 
-Tus competidores están ganando AHORA MISMO con Lyxen.
+Tus competidores están ganando AHORA MISMO con Enliko.
 
 ❌ Trading manual = errores emocionales
-✅ Lyxen = precisión IA fría
+✅ Enliko = precisión IA fría
 
 _Deja de mirar. Empieza a ganar._
 
@@ -889,7 +889,7 @@ La pregunta es "¿Puedo permitirme NO tenerlo?"_''',
 _Perfecto para probar las aguas_''',
     'basic_desc': '''✅ Acceso Demo Completo — _Aprendizaje sin riesgo_
 ✅ Cuenta Real: OI, RSI+BB, Scryptomera, Scalper
-⛔ Lyxen, Fibonacci, Spot — _Exclusivo Premium_
+⛔ Enliko, Fibonacci, Spot — _Exclusivo Premium_
 ✅ Soporte Estándar
 ✅ SL/TP Dinámico ATR
 
@@ -906,7 +906,7 @@ _Ver para creer_''',
 ✅ Sin Tarjeta de Crédito
 ⚡ Activación con Un Clic
 
-⚠️ *ADVERTENCIA:* Después de experimentar Lyxen IA,
+⚠️ *ADVERTENCIA:* Después de experimentar Enliko IA,
 el trading manual parecerá... primitivo.
 
 _91% de usuarios de prueba se convierten en clientes._
@@ -930,7 +930,7 @@ _Tu viaje hacia la libertad financiera comienza AHORA._
     
     # Payment
     'payment_select_method': '💳 *Seleccionar Método de Pago*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Pago via ELC',
     'payment_elc_desc': 'Se te cobrará {amount} ELC por {plan} ({period}).',

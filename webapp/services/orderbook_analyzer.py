@@ -1,5 +1,5 @@
 """
-Lyxen Orderbook & Market Microstructure Analysis
+Enliko Orderbook & Market Microstructure Analysis
 Real-time orderbook data fetching and analysis for realistic backtesting
 
 Features:

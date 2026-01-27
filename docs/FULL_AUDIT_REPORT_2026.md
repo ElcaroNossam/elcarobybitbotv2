@@ -130,13 +130,13 @@ except Exception as e:
 | user/dashboard.html | 2 | ✅ Брендинг |
 | Остальные | - | ✅ OK |
 
-### Hardcoded URLs (lyxen.io)
+### Hardcoded URLs (enliko.com)
 
 | Файл | URL | Статус |
 |------|-----|--------|
-| index.html | support@lyxen.io | ⚠️ Email |
-| index_backup.html | support@lyxen.io | ⚠️ Email |
-| index_new.html | support@lyxen.io | ⚠️ Email |
+| index.html | support@enliko.com | ⚠️ Email |
+| index_backup.html | support@enliko.com | ⚠️ Email |
+| index_new.html | support@enliko.com | ⚠️ Email |
 
 **Рекомендация:** Вынести email в config или переменную окружения.
 
@@ -145,8 +145,8 @@ except Exception as e:
 | Файл | Использование | Статус |
 |------|---------------|--------|
 | core.js | `window.Lyxen`, localStorage keys | ✅ OK |
-| terminal-advanced.js | `lyxen_token` | ✅ OK |
-| lyxen-theme.js | Тема | ✅ OK |
+| terminal-advanced.js | `enliko_token` | ✅ OK |
+| enliko-theme.js | Тема | ✅ OK |
 
 ### CSS файлы
 
@@ -176,10 +176,10 @@ static let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? "Lyxen"
 ### Hardcoded URLs
 | Файл | URL | Назначение |
 |------|-----|------------|
-| SettingsView.swift | lyxen.io/privacy | Privacy Policy |
-| SettingsView.swift | lyxen.io/terms | Terms of Service |
-| SubSettingsViews.swift | lyxen.io | Website |
-| SubSettingsViews.swift | support@lyxen.io | Support email |
+| SettingsView.swift | enliko.com/privacy | Privacy Policy |
+| SettingsView.swift | enliko.com/terms | Terms of Service |
+| SubSettingsViews.swift | enliko.com | Website |
+| SubSettingsViews.swift | support@enliko.com | Support email |
 
 ### TODO (2 места)
 | Файл | Строка | Комментарий |
@@ -288,9 +288,9 @@ override val appName = "$APP_NAME Trading"
    - Payment status check (backtest.py:2125)
 
 3. **Вынести hardcoded URLs в config:**
-   - support@lyxen.io → Config.SUPPORT_EMAIL
-   - lyxen.io/privacy → Config.PRIVACY_URL
-   - lyxen.io/terms → Config.TERMS_URL
+   - support@enliko.com → Config.SUPPORT_EMAIL
+   - enliko.com/privacy → Config.PRIVACY_URL
+   - enliko.com/terms → Config.TERMS_URL
 
 ## 🟢 Низкий приоритет
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # תפריט ראשי - מסוף מסחר מקצועי
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> מהירות ביצוע
 🛡️ <b>ניהול סיכונים</b> משולב
@@ -42,7 +42,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ הגדרות',
     'button_indicators':           '💡 אינדיקטורים',
@@ -226,7 +226,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Lyxen אינדיקטורים*',
+    'indicators_header':           '📈 *Enliko אינדיקטורים*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. מגמה אדפטיבית',
@@ -326,14 +326,14 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ שגיאת Lyxen Limit: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ שגיאת Lyxen Market: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ שגיאת Enliko Limit: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko כניסת Market*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ שגיאת Enliko Market: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci כניסת Limit*\n• {symbol} {side}\n• מחיר: {price:.6f}\n• כמות: {qty}\n• SL: {sl_pct}%',
@@ -500,7 +500,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Lyxen: {state}',
+    'config_trade_elcaro':           '🔥 Enliko: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -599,7 +599,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'strat_mode_both':             '🔄 שניהם',
     'strat_mode_changed':          '✅ מצב מסחר {strategy}: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -613,7 +613,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ הגדרות DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -720,7 +720,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -757,14 +757,14 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ מינוף',
     'prompt_leverage': 'הזן מינוף (1-100):',
     'auto_default': 'אוטומטי',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_כל הפרמטרים מנותחים אוטומטית מאותות AI:_',
 
     # Scalper entries
@@ -807,16 +807,16 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
 
 בזמן שאתה מהסס, <b>847 סוחרים</b> כבר מרוויחים.
 
-💸 כל דקה ללא Lyxen = הזדמנויות שהוחמצו
+💸 כל דקה ללא Enliko = הזדמנויות שהוחמצו
 ⏰ השווקים לא מחכים. גם אתה לא צריך.
 
 👉 /subscribe — <i>פתח את היתרון שלך עכשיו</i>''',
     'no_license_trading': '''🚨 <b>המסחר נעול</b>
 
-⚠️ 847 סוחרים מרוויחים עכשיו עם Lyxen.
+⚠️ 847 סוחרים מרוויחים עכשיו עם Enliko.
 
 ❌ מסחר ידני = טעויות רגשיות
-✅ Lyxen = דיוק AI קר
+✅ Enliko = דיוק AI קר
 
 <i>תפסיק לצפות. תתחיל להרוויח.</i>
 
@@ -853,7 +853,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     
     'premium_title': '� *PREMIUM — הבחירה של המנצחים*',
     'premium_desc': '''✅ גישה מלאה לכל התכונות
-✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ כל 5 האסטרטגיות: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ מסחר אמיתי + דמו
 ✅ תמיכה עדיפה
 ✅ SL/TP דינמי מבוסס ATR
@@ -867,7 +867,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'basic_title': '🥈 *תוכנית BASIC*',
     'basic_desc': '''✅ גישה מלאה לחשבון דמו
 ✅ חשבון אמיתי: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — Premium בלבד
+❌ Enliko, Fibonacci, Spot — Premium בלבד
 ✅ תמיכה רגילה
 ✅ SL/TP דינמי מבוסס ATR''',
     'basic_1m': '🥈 חודש 1 — {price} ELC',
@@ -883,7 +883,7 @@ Bybit • HyperLiquid • רב-אסטרטגיה''',
     'trial_activated': '🎉 ניסיון הופעל! יש לך 7 ימים של גישה מלאה לדמו.',
     
     'payment_select_method': '💳 *בחר אמצעי תשלום*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' תשלום דרך ELC',
     'payment_elc_desc': 'יחויבו {amount} ELC עבור {plan} ({period}).',

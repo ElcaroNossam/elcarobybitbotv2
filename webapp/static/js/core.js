@@ -1,5 +1,5 @@
 /**
- * Lyxen - Core Application Logic
+ * Enliko - Core Application Logic
  * Единый JS файл для базового функционала всех страниц
  * v3.19.0
  */
@@ -40,8 +40,8 @@ const CONFIG = {
     STORAGE_KEYS: {
         TOKEN: 'auth_token',
         USER: 'user_data',
-        THEME: 'lyxen_theme',
-        LANG: 'lyxen_lang',
+        THEME: 'enliko_theme',
+        LANG: 'enliko_lang',
         ACCOUNT_TYPE: 'account_type',
         EXCHANGE: 'exchange_type'
     },
@@ -380,7 +380,7 @@ function initApp() {
         TG.BackButton.show();
     }
     
-    console.log('🚀 Lyxen App Initialized');
+    console.log('🚀 Enliko App Initialized');
 }
 
 // Auto-init on DOM ready
@@ -391,7 +391,7 @@ if (document.readyState === 'loading') {
 }
 
 // Export for global access
-window.Lyxen = {
+window.Enliko = {
     CONFIG,
     IS_TELEGRAM,
     TG,

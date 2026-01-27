@@ -572,7 +572,7 @@ async def get_token_info():
         # Return default info
         return {
             'success': True,
-            'name': 'Lyxen Token',
+            'name': 'Enliko Token',
             'symbol': 'ELCARO',
             'decimals': 18,
             'price_usd': 1.0,

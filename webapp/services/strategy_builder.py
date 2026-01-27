@@ -1,5 +1,5 @@
 """
-Lyxen Visual Strategy Builder
+Enliko Visual Strategy Builder
 Create custom trading strategies through visual condition builder
 
 Features:

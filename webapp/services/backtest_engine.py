@@ -90,7 +90,7 @@ class RealBacktestEngine:
             # Core strategies
             "rsibboi": RSIBBOIAnalyzer(),
             "wyckoff": WyckoffAnalyzer(),
-            "elcaro": LyxenAnalyzer(),
+            "elcaro": EnlikoAnalyzer(),
             "scryptomera": ScryptomeraAnalyzer(),
             "scalper": ScalperAnalyzer(),
             # Advanced strategies
@@ -1266,8 +1266,8 @@ class WyckoffAnalyzer:
         return signals
 
 
-class LyxenAnalyzer:
-    """Main Lyxen strategy - Channel breakout with momentum"""
+class EnlikoAnalyzer:
+    """Main Enliko strategy - Channel breakout with momentum"""
     
     @safe_analyze
     def analyze(self, candles: List[Dict]) -> Dict[int, Dict]:

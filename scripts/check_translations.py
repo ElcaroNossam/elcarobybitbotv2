@@ -79,11 +79,11 @@ def main():
     for lang in languages:
         if lang not in all_texts:
             continue
-        lyxen_count = 0
+        enliko_count = 0
         for key, value in all_texts[lang].items():
             if isinstance(value, str) and 'Lyxen' in value:
-                lyxen_count += 1
-        print(f"  {lang}: {lyxen_count} mentions")
+                enliko_count += 1
+        print(f"  {lang}: {enliko_count} mentions")
     
     return 0 if all_synced else 1
 

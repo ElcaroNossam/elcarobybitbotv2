@@ -1,4 +1,4 @@
-# Lyxen Trading Platform - AI Coding Guidelines
+# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
 # Версия: 3.36.0 | Обновлено: 28 января 2026
 # =============================================
@@ -123,8 +123,8 @@
 | База данных | PostgreSQL 14 (ONLY) |
 | API endpoints | 127+ |
 | Migration files | 19 |
-| iOS Bundle ID | io.lyxen.LyxenTrading |
-| **Android Package** | io.lyxen.trading |
+| iOS Bundle ID | io.enliko.EnlikoTrading |
+| **Android Package** | io.enliko.trading |
 | Xcode | 26.2 (17C52) |
 | **Android SDK** | 35 (minSdk 26) |
 | **Cross-Platform Sync** | iOS ↔ WebApp ↔ Telegram ↔ Android |
@@ -133,7 +133,7 @@
 ## Структура проекта
 
 ```
-Lyxen Trading Platform
+Enliko Trading Platform
 ├── bot.py                 # 🔥 Главный бот (25018 строк, 260+ функций)
 ├── db.py                  # 💾 Database layer (PostgreSQL-ONLY, 6K строк)
 ├── db_elcaro.py           # 💎 ELC Token functions (705 строк)
@@ -195,9 +195,9 @@ Lyxen Trading Platform
 │   └── translation_sync.py # Синхронизация переводов
 │
 ├── ios/                   # 📱 iOS приложение (Swift)
-│   └── LyxenTrading/
+│   └── EnlikoTrading/
 │       ├── App/
-│       │   ├── LyxenTradingApp.swift
+│       │   ├── EnlikoTradingApp.swift
 │       │   ├── AppState.swift     # ⭐ Server sync
 │       │   └── Config.swift
 │       ├── Services/
@@ -871,7 +871,7 @@ await sync_service.sync_settings_change(
 ## iOS Notification Names
 
 ```swift
-// ios/LyxenTrading/Extensions/Notification+Extensions.swift
+// ios/EnlikoTrading/Extensions/Notification+Extensions.swift
 extension Notification.Name {
     static let exchangeSwitched = Notification.Name("exchangeSwitched")
     static let accountTypeSwitched = Notification.Name("accountTypeSwitched")
@@ -919,8 +919,8 @@ except Exception as e:
   - Исправлены 11 хардкодов в bot.py на t.get() вызовы
   - Ключи: `terminal_button`, `exchange_mode_activated_bybit`, `exchange_mode_activated_hl`, `error_processing_request`, `unauthorized_admin`, `error_loading_dashboard`, `unauthorized`, `processing_blockchain`, `verifying_payment`, `no_wallet_configured`, `use_start_menu`
 - **iOS/Android проверены:**
-  - `ios/LyxenTrading/Services/LocalizationManager.swift` - 15 языков ✅
-  - `android/LyxenTrading/app/.../util/Localization.kt` - 15 языков ✅
+  - `ios/EnlikoTrading/Services/LocalizationManager.swift` - 15 языков ✅
+  - `android/EnlikoTrading/app/.../util/Localization.kt` - 15 языков ✅
 - **Результат:** Полная синхронизация переводов: 15 языков × 875 ключей
 
 ### ✅ FEAT: Partial Take Profit (Срез маржи) in 2 Steps (Jan 27, 2026)
@@ -1016,14 +1016,14 @@ except Exception as e:
 - **Причина:** iOS не использовал систему переводов, только server имел 15 языков
 - **Решение:** Создана Swift-native система локализации с bundled переводами
 - **Новые файлы:**
-  - `ios/LyxenTrading/Services/LocalizationManager.swift` (808 строк):
+  - `ios/EnlikoTrading/Services/LocalizationManager.swift` (808 строк):
     - AppLanguage enum (15 языков)
     - Bundled translations для всех языков
     - RTL detection для Arabic (ar) и Hebrew (he)
     - Синхронизация с сервером через POST /users/language
     - String.localized extension
     - RTLModifier ViewModifier
-  - `ios/LyxenTrading/Views/Settings/LanguageSettingsView.swift` (177 строк):
+  - `ios/EnlikoTrading/Views/Settings/LanguageSettingsView.swift` (177 строк):
     - LanguageRow с флагами
     - CompactLanguagePicker для LoginView
     - LanguageGrid для Settings
@@ -1079,14 +1079,14 @@ except Exception as e:
 - **Проблема:** iOS приложение не синхронизировало exchange/accountType изменения с сервером
 - **Причина:** AppState сохранял только в UserDefaults (локально)
 - **Исправленные файлы:**
-  - `ios/LyxenTrading/App/AppState.swift`:
+  - `ios/EnlikoTrading/App/AppState.swift`:
     - Добавлен `syncExchangeWithServer(exchange:)` - PUT /users/exchange
     - Добавлен `syncAccountTypeWithServer(accountType:)` - PUT /users/switch-account-type
     - Добавлен `syncFromServer()` - GET /users/settings для загрузки настроек при логине
     - Добавлены структуры `ServerSettings`, `EmptyResponse`
-  - `ios/LyxenTrading/Services/AuthManager.swift`:
+  - `ios/EnlikoTrading/Services/AuthManager.swift`:
     - Добавлен вызов `AppState.shared.syncFromServer()` после fetchCurrentUser()
-  - `ios/LyxenTrading/Models/Models.swift`:
+  - `ios/EnlikoTrading/Models/Models.swift`:
     - Добавлено поле `hlTestnet: Bool?` в User model
   - `webapp/api/users.py`:
     - `/me` endpoint теперь использует `db.get_exchange_type()` вместо legacy полей
@@ -1190,12 +1190,12 @@ except Exception as e:
 - **Решение:** `ALTER TABLE trade_logs ALTER COLUMN qty DROP NOT NULL`
 - **Файл:** migrations/versions/003_trade_logs.py
 
-### ✅ MAJOR: Triacelo → Lyxen Full Rebrand (Jan 24, 2026)
+### ✅ MAJOR: Triacelo → Enliko Full Rebrand (Jan 24, 2026)
 - **Изменения:**
-  - Все упоминания Triacelo/triacelo/TRIACELO заменены на Lyxen/lyxen/LYXEN
+  - Все упоминания Triacelo/triacelo/TRIACELO заменены на Enliko/enliko/LYXEN
   - Затронуто 48 файлов: HTML, JS, CSS, SVG, Python, MD
-  - core.js: `Triacelo.apiGet()` → `Lyxen.apiGet()` etc.
-  - Логотипы, заголовки, футеры - везде Lyxen
+  - core.js: `Triacelo.apiGet()` → `Enliko.apiGet()` etc.
+  - Логотипы, заголовки, футеры - везде Enliko
 - **Файлы:** 48 файлов во всём проекте
 - **Commit:** pending
 
@@ -2276,14 +2276,14 @@ sealed class LoadingState<out T> {
 | Languages | 15 (full parity with iOS/server) |
 | RTL Support | Arabic (ar), Hebrew (he) |
 | Android SDK | 35 (targetSdk) / 26 (minSdk) |
-| Package | io.lyxen.trading |
+| Package | io.enliko.trading |
 | Architecture | MVVM + Clean Architecture |
 | DI | Hilt 2.53.1 |
 
 ## Структура Android проекта
 
 ```
-android/LyxenTrading/
+android/EnlikoTrading/
 ├── settings.gradle.kts
 ├── build.gradle.kts
 ├── gradle/
@@ -2295,11 +2295,11 @@ android/LyxenTrading/
 │   ├── proguard-rules.pro
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── java/io/lyxen/trading/
-│       │   ├── LyxenApplication.kt     # @HiltAndroidApp
+│       ├── java/io/enliko/trading/
+│       │   ├── EnlikoApplication.kt     # @HiltAndroidApp
 │       │   ├── MainActivity.kt         # Entry point
 │       │   ├── data/
-│       │   │   ├── api/LyxenApi.kt     # Retrofit API
+│       │   │   ├── api/EnlikoApi.kt     # Retrofit API
 │       │   │   ├── models/Models.kt    # Data classes
 │       │   │   ├── repository/PreferencesRepository.kt
 │       │   │   └── websocket/WebSocketService.kt
@@ -2345,7 +2345,7 @@ android/LyxenTrading/
 
 ```bash
 # Debug build
-cd android/LyxenTrading
+cd android/EnlikoTrading
 ./gradlew assembleDebug
 
 # Release AAB for Play Store
@@ -2384,16 +2384,16 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 | RTL Support | Arabic (ar), Hebrew (he) |
 | Xcode версия | 26.2 (17C52) |
 | iOS Target | 26.2 |
-| Bundle ID | io.lyxen.LyxenTrading |
+| Bundle ID | io.enliko.EnlikoTrading |
 | Team ID | NDGY75Y29A |
 
 ## Структура iOS проекта
 
 ```
-ios/LyxenTrading/
-├── LyxenTrading.xcodeproj
+ios/EnlikoTrading/
+├── EnlikoTrading.xcodeproj
 ├── App/
-│   ├── LyxenTradingApp.swift       # @main entry + RTL support
+│   ├── EnlikoTradingApp.swift       # @main entry + RTL support
 │   ├── AppState.swift              # Global state + server sync
 │   └── Config.swift                # API URLs (fog-cornell-ata-portable)
 ├── Views/
@@ -2427,7 +2427,7 @@ ios/LyxenTrading/
 │   ├── AuthModels.swift            # Login, Token
 │   └── ViewModels.swift            # Observable objects
 ├── Extensions/
-│   ├── Color+Extensions.swift      # Lyxen color scheme
+│   ├── Color+Extensions.swift      # Enliko color scheme
 │   └── Notification+Extensions.swift # Sync notifications
 ├── Utils/
 │   └── Utilities.swift             # Formatters, helpers
@@ -2508,7 +2508,7 @@ struct RTLModifier: ViewModifier {
     }
 }
 
-// Использование на root view (LyxenTradingApp.swift)
+// Использование на root view (EnlikoTradingApp.swift)
 WindowGroup {
     ContentView()
         .withRTLSupport()
@@ -2538,26 +2538,26 @@ xcodes install "26.2"
 xcrun xctrace list devices
 
 # Билд для устройства
-cd ios/LyxenTrading/LyxenTrading
-xcodebuild -project LyxenTrading.xcodeproj \
-  -scheme LyxenTrading \
+cd ios/EnlikoTrading/EnlikoTrading
+xcodebuild -project EnlikoTrading.xcodeproj \
+  -scheme EnlikoTrading \
   -configuration Release \
   -destination generic/platform=iOS \
   build
 
 # Создать архив для TestFlight
-xcodebuild -project LyxenTrading.xcodeproj \
-  -scheme LyxenTrading \
+xcodebuild -project EnlikoTrading.xcodeproj \
+  -scheme EnlikoTrading \
   -configuration Release \
   -destination generic/platform=iOS \
-  -archivePath ./build/LyxenTrading.xcarchive \
+  -archivePath ./build/EnlikoTrading.xcarchive \
   archive
 
 # Установить на iPhone через ios-deploy
-ios-deploy --bundle /path/to/LyxenTrading.app
+ios-deploy --bundle /path/to/EnlikoTrading.app
 
 # Открыть архив в Organizer
-open ./build/LyxenTrading.xcarchive
+open ./build/EnlikoTrading.xcarchive
 ```
 
 ## Config.swift - API Endpoints
@@ -2590,10 +2590,10 @@ static let wsURL = baseURL
 
 ## TestFlight Deployment
 
-1. Создать App в App Store Connect (Bundle ID: io.lyxen.LyxenTrading)
+1. Создать App в App Store Connect (Bundle ID: io.enliko.EnlikoTrading)
 2. Добавить аккаунт в Xcode → Settings → Accounts
 3. Создать архив: `xcodebuild archive`
-4. Открыть в Organizer: `open ./build/LyxenTrading.xcarchive`
+4. Открыть в Organizer: `open ./build/EnlikoTrading.xcarchive`
 5. Distribute App → TestFlight & App Store → Upload
 
 ---
@@ -2611,7 +2611,7 @@ static let wsURL = baseURL
 *Exchange Field: All add_active_position/log_exit calls pass exchange correctly*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1540+ keys, common button keys*
-*Branding: Lyxen (renamed from Triacelo)*
+*Branding: Enliko (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
 *iOS SwiftUI: 35+ files, LocalizationManager (15 langs, RTL), WebSocketService sync*

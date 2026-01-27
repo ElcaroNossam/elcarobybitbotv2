@@ -1,5 +1,5 @@
 """
-Lyxen Multi-Timeframe Analysis System
+Enliko Multi-Timeframe Analysis System
 Analyze multiple timeframes simultaneously for better trading decisions
 
 Features:

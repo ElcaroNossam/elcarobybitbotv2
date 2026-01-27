@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # メインメニュー - プロフェッショナル取引ターミナル
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> 約定速度
 🛡️ <b>リスク管理</b>内蔵
@@ -42,7 +42,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ スキャルパー',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 フィボナッチ',
     'button_settings':             '⚙️ 設定',
     'button_indicators':           '💡 インジケーター',
@@ -226,7 +226,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Lyxen インジケーター*',
+    'indicators_header':           '📈 *Enliko インジケーター*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. アダプティブ・トレンド',
@@ -326,14 +326,14 @@ Bybit • HyperLiquid • マルチ戦略''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen 指値エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Lyxen 指値エラー: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen 成行エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Lyxen 成行エラー: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko 指値エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Enliko 指値エラー: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko 成行エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Enliko 成行エラー: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci 指値エントリー*\n• {symbol} {side}\n• 価格: {price:.6f}\n• 数量: {qty}\n• SL: {sl_pct}%',
@@ -500,7 +500,7 @@ Bybit • HyperLiquid • マルチ戦略''',
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Lyxen: {state}',
+    'config_trade_elcaro':           '🔥 Enliko: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -599,7 +599,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'strat_mode_both':             '🔄 両方',
     'strat_mode_changed':          '✅ {strategy} 取引モード: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -613,7 +613,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA設定',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -720,7 +720,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -757,14 +757,14 @@ Bybit • HyperLiquid • マルチ戦略''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ レバレッジ',
     'prompt_leverage': 'レバレッジを入力 (1-100):',
     'auto_default': '自動',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_すべてのパラメータはAIシグナルから自動で解析されます:_',
 
     # Scalper entries
@@ -807,16 +807,16 @@ Bybit • HyperLiquid • マルチ戦略''',
 
 迷っている間に、<b>847人のトレーダー</b>がすでに利益を上げています。
 
-💸 Lyxenなしの毎分 = 逃したチャンス
+💸 Enlikoなしの毎分 = 逃したチャンス
 ⏰ 市場は待ってくれません。あなたも待つべきではない。
 
 👉 /subscribe — <i>今すぐ不当な優位性を解除</i>''',
     'no_license_trading': '''🚨 <b>取引ロック</b>
 
-⚠️ 847人のトレーダーが今まさにLyxenで稼いでいます。
+⚠️ 847人のトレーダーが今まさにEnlikoで稼いでいます。
 
 ❌ 手動取引 = 感情的なミス
-✅ Lyxen = 冷静なAIの精度
+✅ Enliko = 冷静なAIの精度
 
 <i>見ているだけをやめて。稼ぎ始めよう。</i>
 
@@ -853,7 +853,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     
     'premium_title': '� *PREMIUM — 勝者の選択*',
     'premium_desc': '''✅ 全機能へのフルアクセス
-✅ 5つの戦略すべて: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ 5つの戦略すべて: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ 実取引 + デモ取引
 ✅ 優先サポート
 ✅ ATRベースの動的SL/TP
@@ -867,7 +867,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'basic_title': '🥈 *ベーシックプラン*',
     'basic_desc': '''✅ デモ口座へのフルアクセス
 ✅ 実口座: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — Premiumのみ
+❌ Enliko, Fibonacci, Spot — Premiumのみ
 ✅ 標準サポート
 ✅ ATRベースの動的SL/TP''',
     'basic_1m': '🥈 1ヶ月 — {price} ELC',
@@ -883,9 +883,9 @@ Bybit • HyperLiquid • マルチ戦略''',
     'trial_activated': '🎉 トライアル有効化！7日間のフルデモアクセスがあります。',
     
     'payment_select_method': '💳 *支払い方法を選択*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
-    'payment_elc_title': '◈ Lyxen Coin (ELC)での支払い',
+    'payment_elc_title': '◈ Enliko Coin (ELC)での支払い',
     'payment_elc_desc': '{plan}（{period}）に{amount} ELCが請求されます。',
     'payment_ton_title': '💎 TONでの支払い',
     'payment_ton_desc': '''正確に*{amount} TON*を以下に送金:

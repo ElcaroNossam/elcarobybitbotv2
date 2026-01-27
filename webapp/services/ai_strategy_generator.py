@@ -1,5 +1,5 @@
 """
-Lyxen AI Strategy Generator
+Enliko AI Strategy Generator
 Uses AI/ML techniques to generate and optimize trading strategies:
 - GPT-powered strategy generation (if API key available)
 - Rule-based intelligent generation

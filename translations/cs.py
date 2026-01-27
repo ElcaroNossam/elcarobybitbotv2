@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # Hlavní menu - Profesionální obchodní terminál
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> rychlost provedení
 🛡️ <b>Řízení rizik</b> integrované
@@ -42,7 +42,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Konfigurace',
     'button_indicators':           '💡 Indikátory',
@@ -51,7 +51,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Lyxen: {state}',
+    'config_trade_elcaro':         '🔥 Enliko: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
@@ -229,7 +229,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Indikátory Lyxen*',
+    'indicators_header':           '📈 *Indikátory Enliko*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Adaptivní trend',
@@ -329,14 +329,14 @@ Bybit • HyperLiquid • Multi-strategie''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Lyxen Limit chyba: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Lyxen Market chyba: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Enliko Limit chyba: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko Market vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Enliko Market chyba: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Limit vstup*\n• {symbol} {side}\n• Cena: {price:.6f}\n• Množství: {qty}\n• SL: {sl_pct}%',
@@ -599,7 +599,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'strat_mode_both':             '🔄 Oba',
     'strat_mode_changed':          '✅ Režim obchodování {strategy}: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -613,7 +613,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Nastavení DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -720,7 +720,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -757,14 +757,14 @@ Bybit • HyperLiquid • Multi-strategie''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Páka',
     'prompt_leverage': 'Zadejte páku (1-100):',
     'auto_default': 'Auto',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_Všechny parametry jsou automaticky parsovány z AI signálů:_',
 
     # Scalper entries
@@ -818,7 +818,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     
     'premium_title': '� *PREMIUM — Volba vítězů*',
     'premium_desc': '''✅ Plný přístup ke všem funkcím
-✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ Všech 5 strategií: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ Skutečné + Demo obchodování
 ✅ Prioritní podpora
 ✅ Dynamický SL/TP založený na ATR
@@ -832,7 +832,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'basic_title': '🥈 *BASIC PLÁN*',
     'basic_desc': '''✅ Plný přístup k demo účtu
 ✅ Skutečný účet: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — pouze Premium
+❌ Enliko, Fibonacci, Spot — pouze Premium
 ✅ Standardní podpora
 ✅ Dynamický SL/TP založený na ATR''',
     'basic_1m': '🥈 1 měsíc — {price} ELC',
@@ -848,7 +848,7 @@ Bybit • HyperLiquid • Multi-strategie''',
     'trial_activated': '🎉 Zkušební verze aktivována! Máte 7 dní plného demo přístupu.',
     
     'payment_select_method': '💳 *Vyberte způsob platby*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Platba přes ELC',
     'payment_elc_desc': 'Bude vám účtováno {amount} ELC za {plan} ({period}).',

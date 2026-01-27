@@ -1,5 +1,5 @@
 """
-Lyxen Walk-Forward Analysis & Parameter Optimization
+Enliko Walk-Forward Analysis & Parameter Optimization
 Prevent overfitting with rolling optimization and validation
 
 Features:

@@ -90,7 +90,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "noreply@lyxen.com")
+SMTP_FROM = os.getenv("SMTP_FROM", "noreply@enliko.com")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 # Redis for verification codes (multi-worker support)
@@ -416,7 +416,7 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
     # Send verification email
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">🚀 Welcome to Lyxen!</h2>
+        <h2 style="color: #dc2626;">🚀 Welcome to Enliko!</h2>
         <p>Your verification code is:</p>
         <div style="background: #1a1a1a; color: #22c55e; font-size: 32px; font-weight: bold; 
                     padding: 20px; text-align: center; border-radius: 8px; letter-spacing: 8px;">
@@ -427,7 +427,7 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
     </div>
     """
     
-    background_tasks.add_task(send_email, email, "Lyxen Verification Code", html)
+    background_tasks.add_task(send_email, email, "Enliko Verification Code", html)
     
     return {
         "success": True,
@@ -565,7 +565,7 @@ async def forgot_password(data: PasswordResetRequest, background_tasks: Backgrou
     </div>
     """
     
-    background_tasks.add_task(send_email, email, "Lyxen Password Reset", html)
+    background_tasks.add_task(send_email, email, "Enliko Password Reset", html)
     
     return {"success": True, "message": "If email exists, reset code was sent"}
 

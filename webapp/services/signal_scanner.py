@@ -1,5 +1,5 @@
 """
-Lyxen Real-Time Signal Scanner
+Enliko Real-Time Signal Scanner
 Scans multiple symbols and strategies for trading signals:
 - Multi-symbol parallel scanning
 - Multi-strategy detection

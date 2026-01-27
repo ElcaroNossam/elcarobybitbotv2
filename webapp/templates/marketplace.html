@@ -7,13 +7,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Strategy Marketplace - Lyxen Trading</title>
+    <title>Strategy Marketplace - Enliko Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         :root {
-            /* Unified Lyxen Design System */
+            /* Unified Enliko Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -647,7 +647,7 @@
             <div class="logo-icon">
                 <i class="fas fa-bolt"></i>
             </div>
-            <span class="logo-text">Lyxen</span>
+            <span class="logo-text">Enliko</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -780,8 +780,8 @@
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="payment-details">
-                        <h4>Lyxen Coin (ELC)</h4>
-                        <p>Pay with Lyxen Coin (ELC)</p>
+                        <h4>Enliko Coin (ELC)</h4>
+                        <p>Pay with Enliko Coin (ELC)</p>
                     </div>
                     <div class="payment-price" id="trcPrice"></div>
                 </div>
@@ -803,12 +803,12 @@
         let selectedPaymentMethod = 'ton';
         
         function getAuthHeaders() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
         async function initAuth() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             if (token) {
                 try {
                     const res = await fetch('/api/auth/me', { headers: getAuthHeaders() });
@@ -881,8 +881,8 @@
             return [
                 {
                     id: 1,
-                    name: "Lyxen Pro Scalper",
-                    author: "Lyxen Team",
+                    name: "Enliko Pro Scalper",
+                    author: "Enliko Team",
                     author_id: "511692487",
                     description: "Professional scalping strategy using RSI, Bollinger Bands, and Open Interest analysis. Optimized for high-frequency trading on volatile pairs.",
                     profit_percent: 127.5,
@@ -1214,7 +1214,7 @@
                 }
             });
             
-            localStorage.setItem('lyxen_language', lang);
+            localStorage.setItem('enliko_language', lang);
             document.getElementById('langMenu').classList.remove('show');
         }
         
@@ -1244,12 +1244,12 @@
                 }
             });
             
-            localStorage.setItem('lyxen_theme', theme);
+            localStorage.setItem('enliko_theme', theme);
             document.getElementById('themeMenu').classList.remove('show');
         }
         
         function initLanguageAndTheme() {
-            const savedLang = localStorage.getItem('lyxen_language') || 'en';
+            const savedLang = localStorage.getItem('enliko_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 const flag = document.getElementById('currentLangFlag');
@@ -1262,7 +1262,7 @@
                 });
             }
             
-            const savedTheme = localStorage.getItem('lyxen_theme') || 'dark';
+            const savedTheme = localStorage.getItem('enliko_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             

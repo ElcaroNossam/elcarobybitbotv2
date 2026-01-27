@@ -949,7 +949,7 @@ STRATEGY_FEATURES = {
         "atr_params": True,      # ATR params from user settings
         "hl_settings": True,
         "min_quality": False,
-        "dca": False,            # No DCA for Lyxen signals
+        "dca": False,            # No DCA for Enliko signals
     },
     "fibonacci": {
         "order_type": True,      # Market/Limit toggle

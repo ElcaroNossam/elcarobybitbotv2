@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # Menu principal - Terminal de trading professionnel
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> exécution
 🛡️ <b>Gestion des risques</b> intégrée
@@ -38,7 +38,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Config',
     'button_indicators':           '💡 Indicateurs',
@@ -222,7 +222,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Indicateurs Lyxen*',
+    'indicators_header':           '📈 *Indicateurs Enliko*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Tendance adaptative',
@@ -265,7 +265,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
         '💎 {symbol} @ {entry:.6f}\n'
         '📊 Taille: {size}\n'
         '📍 {exchange} • {market_type}\n\n'
-        '<i>L\'IA Lyxen travaille pour vous 24/7</i>'
+        '<i>L\'IA Enliko travaille pour vous 24/7</i>'
     ),
     'sl_auto_set':                 '🛑 SL défini automatiquement : {price:.6f}',
     'auto_close_position':         '⏱ Position {symbol} (TF={tf}) ouverte > {tf} et perdante, clôturée auto.',
@@ -322,14 +322,14 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Lyxen Limit erreur: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen Entrée Market*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Lyxen Market erreur: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Enliko Limit erreur: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko Entrée Market*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Enliko Market erreur: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Entrée Limit*\n• {symbol} {side}\n• Prix: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
@@ -496,7 +496,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Lyxen: {state}',
+    'config_trade_elcaro':           '🔥 Enliko: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -595,7 +595,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'strat_mode_both':             '🔄 Les deux',
     'strat_mode_changed':          '✅ Mode de trading {strategy}: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -609,7 +609,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Paramètres DCA',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -716,7 +716,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -753,14 +753,14 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Levier',
     'prompt_leverage': 'Entrez le levier (1-100) :',
     'auto_default': 'Auto',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_Tous les paramètres sont parsés automatiquement depuis les signaux AI :_',
 
     # Scalper entries
@@ -800,7 +800,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     
     # License status messages
     'no_license': '🚨 <b>ACCÈS REFUSÉ</b>\n\n⚠️ Pendant que vous lisez ceci, les traders Premium font des profits.\n\n💎 Débloquez votre potentiel: /subscribe\n\n<i>Chaque minute d\'attente = argent perdu</i>',
-    'no_license_trading': '🚨 <b>TRADING BLOQUÉ</b>\n\n⚠️ 847 traders profitent EN CE MOMENT avec Lyxen.\n\n💎 Rejoignez-les: /subscribe\n\n<i>Le marché n\'attend personne.</i>',
+    'no_license_trading': '🚨 <b>TRADING BLOQUÉ</b>\n\n⚠️ 847 traders profitent EN CE MOMENT avec Enliko.\n\n💎 Rejoignez-les: /subscribe\n\n<i>Le marché n\'attend personne.</i>',
     'license_required': '⚠️ Cette fonctionnalité nécessite un abonnement {required}.\n\nUtilisez /subscribe pour mettre à niveau.',
     'trial_demo_only': '⚠️ La licence d\'essai ne permet que le trading démo.\n\nPassez à Premium ou Basic pour le trading réel: /subscribe',
     'basic_strategy_limit': '⚠️ La licence Basic sur compte réel ne permet que: {strategies}\n\nPassez à Premium pour toutes les stratégies: /subscribe',
@@ -820,7 +820,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     # Premium plan - BLACK RHETORIC: Authority + Social Proof
     'premium_title': '👑 *PREMIUM — Le Choix des Gagnants*',
     'premium_desc': '''✅ Accès complet à toutes les fonctionnalités
-✅ Les 5 stratégies: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ Les 5 stratégies: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ Trading Réel + Démo
 ✅ Support prioritaire
 ✅ SL/TP dynamique basé sur ATR
@@ -835,7 +835,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     'basic_title': '🥈 *PLAN BASIC*',
     'basic_desc': '''✅ Accès complet au compte démo
 ✅ Compte réel: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — Premium uniquement
+❌ Enliko, Fibonacci, Spot — Premium uniquement
 ✅ Support standard
 ✅ SL/TP dynamique basé sur ATR''',
     'basic_1m': '🥈 1 Mois — {price} ELC',
@@ -853,7 +853,7 @@ Bybit • HyperLiquid • Multi-stratégie''',
     
     # Payment
     'payment_select_method': '💳 *Sélectionner le Mode de Paiement*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Paiement via ELC',
     'payment_elc_desc': 'Vous serez facturé {amount} ELC pour {plan} ({period}).',

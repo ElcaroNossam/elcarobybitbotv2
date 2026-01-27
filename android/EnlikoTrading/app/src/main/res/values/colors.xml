@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Colors -->
+    <color name="enliko_primary">#6C5CE7</color>
+    <color name="enliko_primary_dark">#5849C4</color>
+    <color name="enliko_primary_variant">#A29BFE</color>
+    
+    <!-- Trading Colors -->
+    <color name="long_green">#00D9A5</color>
+    <color name="long_green_dark">#00B386</color>
+    <color name="short_red">#FF5B5B</color>
+    <color name="short_red_dark">#E04848</color>
+    
+    <!-- Neutral Colors -->
+    <color name="neutral_gray">#64748B</color>
+    <color name="warning_yellow">#FFB545</color>
+    
+    <!-- Dark Theme -->
+    <color name="dark_background">#0D0D0F</color>
+    <color name="dark_surface">#1A1A1E</color>
+    <color name="dark_surface_elevated">#252529</color>
+    <color name="dark_on_surface">#FFFFFF</color>
+    <color name="dark_on_surface_variant">#A0A0A5</color>
+    
+    <!-- Light Theme -->
+    <color name="light_background">#FAFAFA</color>
+    <color name="light_surface">#FFFFFF</color>
+    <color name="light_surface_elevated">#F5F5F5</color>
+    <color name="light_on_surface">#121212</color>
+    <color name="light_on_surface_variant">#666666</color>
+</resources>

@@ -489,7 +489,7 @@ class TestAndroidDataPersistence:
         # In Android, DataStore with encryption or EncryptedSharedPreferences
         storage_config = {
             "use_encrypted_datastore": True,
-            "key_alias": "lyxen_auth_key"
+            "key_alias": "enliko_auth_key"
         }
         
         assert storage_config["use_encrypted_datastore"] is True

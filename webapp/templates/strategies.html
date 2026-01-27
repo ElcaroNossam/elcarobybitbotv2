@@ -7,13 +7,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Strategy Builder - Lyxen Trading</title>
+    <title>Strategy Builder - Enliko Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         :root {
-            /* Unified Lyxen Design System */
+            /* Unified Enliko Design System */
             --bg-primary: #0a0a0a;
             --bg-secondary: #111111;
             --bg-tertiary: #1a1a1a;
@@ -687,7 +687,7 @@
             .strategy-card { padding: 12px; }
         }
     </style>
-    <script src="/static/js/lyxen-theme.js"></script>
+    <script src="/static/js/enliko-theme.js"></script>
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -695,7 +695,7 @@
     <header class="header">
         <a href="/" class="logo">
             <div class="logo-icon"><i class="fas fa-bolt"></i></div>
-            <span class="logo-text">Lyxen</span>
+            <span class="logo-text">Enliko</span>
         </a>
         <nav class="nav-links">
             <a href="/terminal">Terminal</a>
@@ -1007,12 +1007,12 @@
         
         // Auth helper
         function getAuthHeaders() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
         async function initAuth() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             if (!token) {
                 // Redirect to login or use demo mode
                 console.log('No auth token, using demo mode');
@@ -1025,7 +1025,7 @@
                     const data = await res.json();
                     USER_ID = data.user_id;
                 } else {
-                    localStorage.removeItem('lyxen_token');
+                    localStorage.removeItem('enliko_token');
                     USER_ID = 'demo';
                 }
             } catch (e) {

@@ -1,5 +1,5 @@
 """
-Lyxen WebApp Services
+Enliko WebApp Services
 Professional trading services for backtesting, optimization, and paper trading.
 
 Uses lazy imports to avoid circular dependencies.

@@ -80,7 +80,7 @@ class TestBiometricAuthentication:
     def test_biometric_keystore_integration_android(self):
         """Интеграция с Android Keystore"""
         keystore_config = {
-            "key_name": "lyxen_biometric_key",
+            "key_name": "enliko_biometric_key",
             "keystore": "AndroidKeyStore",
             "algorithm": "AES",
             "block_mode": "CBC",
@@ -93,12 +93,12 @@ class TestBiometricAuthentication:
     def test_biometric_keychain_integration_ios(self):
         """Интеграция с iOS Keychain"""
         keychain_config = {
-            "service": "io.lyxen.LyxenTrading",
+            "service": "io.enliko.LyxenTrading",
             "access_group": None,
             "accessibility": "afterFirstUnlock"
         }
         
-        assert "lyxen" in keychain_config["service"].lower()
+        assert "enliko" in keychain_config["service"].lower()
 
 
 class TestHapticFeedback:

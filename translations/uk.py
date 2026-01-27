@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
     # Головне меню - Професійний термінал
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> виконання
 🛡️ <b>Ризик-менеджмент</b> вбудований
@@ -38,7 +38,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Конфіг',
     'button_indicators':           '💡 Індикатори',
@@ -47,7 +47,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'toggle_rsi_bb_status':        '📊 {feature}: {status}',
     'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
     'config_trade_scalper':        '🎯 Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Lyxen: {state}',
+    'config_trade_elcaro':         '🔥 Enliko: {state}',
     'config_trade_fibonacci':      '📐 Fibonacci: {state}',
 
     # Inline buttons for manual order
@@ -225,7 +225,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Індикатори Lyxen*',
+    'indicators_header':           '📈 *Індикатори Enliko*',
     'indicator_1':                 '1. RSI + BB (Індекс відносної сили + Смуги Боллінджера)',
     'indicator_2':                 '2. Торговий хаос (Trading Chaos)',
     'indicator_3':                 '3. Адаптивний тренд',
@@ -269,7 +269,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
         '💎 {symbol} @ {entry:.6f}\n'
         '📊 Розмір: {size}\n'
         '📍 {exchange} • {market_type}\n\n'
-        '<i>AI Lyxen працює для вас 24/7</i>'
+        '<i>AI Enliko працює для вас 24/7</i>'
     ),
     'sl_auto_set':                 '�️ *Захист активний:* SL @ {price:.6f}\n_Твій капітал під охороною._',
     'auto_close_position':         '⚡ *Авто-вихід:* {symbol} закрито (TF={tf})\n_AI захистив тебе від подальших втрат._',
@@ -331,7 +331,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
         '_⚡ Бий швидко. Не залишай слідів._'
     ),
     
-    # Lyxen - Вогняний стиль (теплова карта, зони ліквідності)
+    # Enliko - Вогняний стиль (теплова карта, зони ліквідності)
     'elcaro_entry': (
         '🔥 *LYXEN* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
@@ -416,7 +416,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'elcaro_closed': (
         '🔥 *ПОЛУМЯ ЗГАСЛО*\n\n'
         '🪙 *{symbol}* закрито по *{reason}*\n'
-        '📊 Стратегія: `Lyxen`\n'
+        '📊 Стратегія: `Enliko`\n'
         '📈 Вхід: `{entry:.8f}`\n'
         '📉 Вихід: `{exit:.8f}`\n'
         '💰 *Брутто PnL: `{pnl:+.2f} USDT ({pct:+.2f}%)`*\n'
@@ -495,14 +495,14 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Швидкі гроші для швидких розумів._',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap) - Вогняний стиль (ліквідність, зони пожежі)
-    'elcaro_limit_entry':          '🔥 *Lyxen Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Пастка встановлена. Ліквідність згорить._',
-    'elcaro_limit_error':          '❌ Lyxen помилка: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Попіл ліквідності — наша здобич._',
-    'elcaro_market_error':         '❌ Lyxen помилка\n🪙 {symbol} {side}\n\n{msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}\n_🔥 Зони горять. Розумні збирають попіл._',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap) - Вогняний стиль (ліквідність, зони пожежі)
+    'elcaro_limit_entry':          '🔥 *Enliko Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Пастка встановлена. Ліквідність згорить._',
+    'elcaro_limit_error':          '❌ Enliko помилка: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko Маркет*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Попіл ліквідності — наша здобич._',
+    'elcaro_market_error':         '❌ Enliko помилка\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}\n_🔥 Зони горять. Розумні збирають попіл._',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci - Математичний стиль (золотий переріз)
     'fibonacci_limit_entry':         '📐 *Fibonacci Ліміт*\n• {symbol} {side}\n• Ціна: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Рівняння запущено. Природа не помиляється._',
@@ -763,7 +763,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'strat_mode_both':             '🔄 Обидва',
     'strat_mode_changed':          '✅ Режим торгівлі {strategy}: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
     
@@ -778,7 +778,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ Налаштування DCA',
     'dca_settings_header':           '⚙️ *Налаштування DCA (Фʼючерси)*\n\n',
@@ -885,7 +885,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'Весь час',
     'stats_period_today':            '24 години',
     'stats_period_week':             'Тиждень',
@@ -927,7 +927,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'select_coins_for_strategy': '🪙 *Виберіть групу монет для {name}*',
     'group_global': '📊 Глобальна (загальне налаштування)',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_info': '🤖 *AI-трейдинг*',
     'elcaro_ai_desc': '_Всі параметри парсяться з AI-сигналів автоматично:_',
 
@@ -963,7 +963,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     
     # License status messages
     'no_license': '🚨 <b>ДОСТУП ЗАБЛОКОВАНО</b>\n\n⚠️ Поки ви читаєте це, Premium трейдери заробляють.\n\n💎 Розблокуйте свій потенціал: /subscribe\n\n<i>Кожна хвилина очікування = втрачені гроші</i>',
-    'no_license_trading': '🚨 <b>ТРЕЙДИНГ ЗАБЛОКОВАНО</b>\n\n⚠️ 847 трейдерів ЗАРАЗ заробляють з Lyxen.\n\n💎 Приєднуйтеся: /subscribe\n\n<i>Ринок не чекає на нікого.</i>',
+    'no_license_trading': '🚨 <b>ТРЕЙДИНГ ЗАБЛОКОВАНО</b>\n\n⚠️ 847 трейдерів ЗАРАЗ заробляють з Enliko.\n\n💎 Приєднуйтеся: /subscribe\n\n<i>Ринок не чекає на нікого.</i>',
     'license_required': '⚠️ Ця функція потребує підписки {required}.\n\nВикористайте /subscribe для оновлення.',
     'trial_demo_only': '⚠️ Пробна ліцензія дозволяє лише демо-торгівлю.\n\nОновіться до Premium або Basic для реальної торгівлі: /subscribe',
     'basic_strategy_limit': '⚠️ Basic ліцензія на реальному акаунті дозволяє лише: {strategies}\n\nОновіться до Premium для всіх стратегій: /subscribe',
@@ -983,7 +983,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     # Premium plan - BLACK RHETORIC: Authority + Social Proof
     'premium_title': '👑 *PREMIUM — Вибір Переможців*',
     'premium_desc': '''✅ Повний доступ до всіх функцій
-✅ Всі 5 стратегій: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ Всі 5 стратегій: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ Реальна + Демо торгівля
 ✅ Пріоритетна підтримка
 ✅ Динамічний SL/TP на основі ATR
@@ -998,7 +998,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     'basic_title': '🥈 *БАЗОВИЙ ПЛАН*',
     'basic_desc': '''✅ Повний доступ до демо-акаунту
 ✅ Реальний акаунт: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — лише Premium
+❌ Enliko, Fibonacci, Spot — лише Premium
 ✅ Стандартна підтримка
 ✅ Динамічний SL/TP на основі ATR''',
     'basic_1m': '🥈 1 Місяць — {price} ELC',
@@ -1016,7 +1016,7 @@ Bybit • HyperLiquid • Мульти-стратегії''',
     
     # Payment
     'payment_select_method': '💳 *Оберіть спосіб оплати*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Оплата через ELC',
     'payment_elc_desc': 'З вас буде списано {amount} ELC за {plan} ({period}).',

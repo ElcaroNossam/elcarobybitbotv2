@@ -215,9 +215,9 @@ GENESIS_TIMESTAMP = 1704067200  # 2024-01-01 00:00:00 UTC
 ELC_TO_USDT_RATE = 1.0  # Base rate, actual rate from get_elc_usd_rate()
 
 # Network configuration
-MAINNET_RPC = "https://rpc.lyxen.io"
-TESTNET_RPC = "https://testnet.lyxen.io"
-EXPLORER_URL = "https://explorer.lyxen.io"
+MAINNET_RPC = "https://rpc.enliko.com"
+TESTNET_RPC = "https://testnet.enliko.com"
+EXPLORER_URL = "https://explorer.enliko.com"
 
 # ============================================
 # MONETARY POLICY CONFIGURATION
@@ -246,7 +246,7 @@ LIQUIDATION_RATIO = 1.50        # 150% collateral ratio for CDPs
 # WALLET CONFIGURATION
 # ============================================
 
-WALLET_SEED_PREFIX = "lyxen_wallet_v2_sovereign_"
+WALLET_SEED_PREFIX = "enliko_wallet_v2_sovereign_"
 
 # System wallets
 MASTER_WALLET_ADDRESS = "0xELC000000000000000000000000000000001"

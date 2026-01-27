@@ -6644,7 +6644,7 @@ async def cmd_toggle_elcaro(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     emoji = ctx.t["emoji_long"] if new else ctx.t["emoji_short"]
     status = ctx.t['status_enabled'] if new else ctx.t['status_disabled']
-    feature_name = ctx.t.get('feature_elcaro', 'Lyxen')
+    feature_name = ctx.t.get('feature_elcaro', 'Enliko')
 
     await update.message.reply_text(
         f"{emoji} {feature_name}: {status}",
@@ -6775,7 +6775,7 @@ STRATEGY_NAMES_MAP = {
     "rsi_bb": "RSI+BB",
     "scryptomera": "Scryptomera",
     "scalper": "Scalper",
-    "elcaro": "Lyxen",
+    "elcaro": "Enliko",
     "fibonacci": "Fibonacci",
     "webapp": "WebApp",
     "manual": "Manual",
@@ -6998,7 +6998,7 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
         ("rsi_bb", "trade_rsi_bb", "📉", "RSI+BB"),
         ("scryptomera", "trade_scryptomera", "🔮", "Scryptomera"),
         ("scalper", "trade_scalper", "🎯", "Scalper"),
-        ("elcaro", "trade_elcaro", "🔥", "Lyxen"),
+        ("elcaro", "trade_elcaro", "🔥", "Enliko"),
         ("fibonacci", "trade_fibonacci", "📐", "Fibonacci"),
         ("manual", "trade_manual", "✋", "Manual"),  # Manual trading strategy
     ]
@@ -7110,7 +7110,7 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     
     long_status = "✅" if long_enabled else "❌"
     if strategy == "elcaro":
-        # Lyxen only has entry % (SL/TP from signal)
+        # Enliko only has entry % (SL/TP from signal)
         long_info = f"{l_pct}%"
     else:
         atr_icon = "📊" if l_atr else "🎯"
@@ -8375,14 +8375,14 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             if len(settings_lines) > 1:
                 lines.extend(settings_lines[2:])  # Skip header and empty line
             
-            # Info for Lyxen/Fibonacci strategies
+            # Info for Enliko/Fibonacci strategies
             if strategy in ("elcaro", "fibonacci"):
                 lines.append("")
                 lines.append("━━━━━━━━━━━━━━━━━━")
                 if strategy == "elcaro":
                     lines.append(t.get('elcaro_ai_info', '🤖 *AI-Powered Trading*'))
                     lines.append("")
-                    lines.append(t.get('elcaro_ai_desc_new', '_Your SL/TP/ATR/Leverage settings apply to all Lyxen signals._'))
+                    lines.append(t.get('elcaro_ai_desc_new', '_Your SL/TP/ATR/Leverage settings apply to all Enliko signals._'))
                 else:
                     lines.append(t.get('fibonacci_info', '📐 *Fibonacci Extension*'))
                     lines.append("")
@@ -9345,7 +9345,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "trade_rsi_bb": "📉 RSI+BB", 
         "trade_scryptomera": "🔮 Scryptomera",
         "trade_scalper": "🎯 Scalper",
-        "trade_elcaro": "🔥 Lyxen",
+        "trade_elcaro": "🔥 Enliko",
         "trade_fibonacci": "📐 Fibonacci",
     }
     active_strategies = [name for key, name in strategy_map.items() if cfg.get(key, 0)]
@@ -9616,7 +9616,7 @@ async def cmd_show_config(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ("rsi_bb", "📊 RSI+BB", "trade_rsi_bb"),
         ("scryptomera", "🐱 Scryptomera", "trade_scryptomera"),
         ("scalper", "⚡ Scalper", "trade_scalper"),
-        ("elcaro", "🔥 Lyxen", "trade_elcaro"),
+        ("elcaro", "🔥 Enliko", "trade_elcaro"),
     ]
     
     global_lbl = ctx.t.get('global_default', 'Global')
@@ -12334,7 +12334,7 @@ def format_position_detail(p: dict, t: dict) -> str:
     strategy_names = {
         "scryptomera": "📰 Scryptomera",
         "scalper": "⚡ Scalper", 
-        "elcaro": "🎯 Lyxen",
+        "elcaro": "🎯 Enliko",
         "wyckoff": "📊 Wyckoff",
         "oi": "📈 OI Delta",
         "fibonacci": "🔢 Fibonacci",
@@ -13353,7 +13353,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "scalper": "Scalper", 
                 "rsi_bb": "RSI+BB",
                 "oi": "OI",
-                "elcaro": "Lyxen",
+                "elcaro": "Enliko",
                 "fibonacci": "Fibonacci",
                 "webapp": "WebApp",
             }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
@@ -13550,7 +13550,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         "scalper": "Scalper",
                         "rsi_bb": "RSI+BB",
                         "oi": "OI",
-                        "elcaro": "Lyxen",
+                        "elcaro": "Enliko",
                         "fibonacci": "Fibonacci",
                         "webapp": "WebApp",
                     }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
@@ -13652,7 +13652,7 @@ STRATEGY_DISPLAY_NAMES = {
     "rsi_bb": "📊 RSI+BB",
     "scryptomera": "🐱 Scryptomera",
     "scalper": "⚡ Scalper",
-    "elcaro": "🔥 Lyxen",
+    "elcaro": "🔥 Enliko",
     "fibonacci": "📐 Fibonacci",
     "manual": "✋ Manual",
     "all": "📈 All",
@@ -13816,7 +13816,7 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         ("rsi_bb", t.get('stats_rsi_bb', '📊 RSI+BB')),
         ("scryptomera", t.get('stats_scryptomera', '🐱 Scryptomera')),
         ("scalper", t.get('stats_scalper', '⚡ Scalper')),
-        ("elcaro", t.get('stats_elcaro', '🔥 Lyxen')),
+        ("elcaro", t.get('stats_elcaro', '🔥 Enliko')),
         ("fibonacci", t.get('stats_fibonacci', '📐 Fibonacci')),
         ("manual", t.get('stats_manual', '✋ Manual')),
         ("spot", t.get('stats_spot', '💹 Spot')),
@@ -15048,8 +15048,8 @@ def parse_oi_signal(text: str) -> dict | None:
         "score": score,
     }
 
-# --- Lyxen parser (new format) ---
-# Header: "Lyxen" on first line (optional - can detect by structure)
+# --- Enliko parser (new format) ---
+# Header: "Enliko" on first line (optional - can detect by structure)
 ELCARO_RE_HDR = re.compile(r'^Elcaro\s*$', re.I | re.M)
 # Symbol line: 🔔 FILUSDT 📉 SHORT or 🔔 BTCUSDT 📈 LONG or 🔔 XRPUSDT 📉 SHORT 🟢⚪️⚪️
 # More flexible pattern - allows emojis and extra characters between symbol and side
@@ -15071,7 +15071,7 @@ ELCARO_RE_RR = re.compile(r'📊\s*RR\s*[:：]\s*' + NUM + r'\s*:\s*1', re.I)
 ELCARO_RE_ATR_EXIT = re.compile(r'ATR\s*Exit\s*[:：]\s*[✅✓]', re.I)
 
 def is_elcaro_signal(text: str) -> bool:
-    """Check if message is Lyxen signal - by header OR by structure."""
+    """Check if message is Enliko signal - by header OR by structure."""
     # Has explicit header
     if ELCARO_RE_HDR.search(text):
         return True
@@ -15091,12 +15091,12 @@ def is_elcaro_signal(text: str) -> bool:
     # Additional indicators that strengthen the match
     has_additional = has_atr_exit or has_atr or has_tf_lev
     
-    # If core match and at least one additional indicator, it's Lyxen
+    # If core match and at least one additional indicator, it's Enliko
     return core_match and has_additional
 
 def parse_elcaro_signal(text: str) -> dict | None:
     """
-    Парсит сигнал от Lyxen (новый формат с ATR параметрами).
+    Парсит сигнал от Enliko (новый формат с ATR параметрами).
     
     Формат:
         🔔 XRPUSDT 📉 SHORT 🟢⚪️⚪️
@@ -15129,7 +15129,7 @@ def parse_elcaro_signal(text: str) -> dict | None:
         "side": side,
         "price": entry_price,
         "entry": entry_price,  # Explicit entry price for limit orders
-        "elcaro_mode": True,  # Flag for special Lyxen handling
+        "elcaro_mode": True,  # Flag for special Enliko handling
     }
     
     # Timeframe and leverage
@@ -15725,7 +15725,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     logger.info(f"[{uid}] {symbol}: RSI_BB direction filter - signal={signal_direction}, allowed={rsi_bb_direction} → skip")
                     rsi_bb_trigger = False
 
-            # Check Lyxen direction filter
+            # Check Enliko direction filter
             if elcaro_trigger:
                 elcaro_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
                 elcaro_direction = elcaro_settings.get("direction", "all")
@@ -16216,7 +16216,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if elcaro_trigger:
-                # Lyxen (Elcaro) strategy - ALL parameters from USER SETTINGS, not signal
+                # Enliko (Elcaro) strategy - ALL parameters from USER SETTINGS, not signal
                 # Signal only provides: symbol, side, entry price
                 elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
                 params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
@@ -16238,7 +16238,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if use_atr else None
                 elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if use_atr else None
                 
-                logger.debug(f"[{uid}] Lyxen signal using USER settings: Entry%={risk_pct}%, SL={sl_pct}%, TP={tp_pct}%, "
+                logger.debug(f"[{uid}] Enliko signal using USER settings: Entry%={risk_pct}%, SL={sl_pct}%, TP={tp_pct}%, "
                             f"Leverage={elcaro_leverage}, ATR={'ON' if use_atr else 'OFF'}")
 
                 try:
@@ -16250,9 +16250,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             await set_leverage(uid, symbol, leverage=elcaro_leverage, account_type=ctx_account_type)
                             logger.debug(f"[{uid}] Elcaro: set leverage={elcaro_leverage} for {symbol}")
                         except Exception as e:
-                            logger.warning(f"[{uid}] Lyxen: failed to set leverage: {e}")
+                            logger.warning(f"[{uid}] Enliko: failed to set leverage: {e}")
 
-                    # Lyxen: automatically decide Market vs Limit based on Entry price
+                    # Enliko: automatically decide Market vs Limit based on Entry price
                     # If current price is close to Entry (within 0.3%) - use Market
                     # Otherwise use Limit at Entry price
                     entry_diff_pct = abs(spot_price - elcaro_entry) / spot_price * 100 if elcaro_entry else 0
@@ -16376,7 +16376,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             if not handled:
                                 await ctx.bot.send_message(
                                     uid,
-                                    t.get('elcaro_market_error', "❌ Lyxen error: {msg}").format(
+                                    t.get('elcaro_market_error', "❌ Enliko error: {msg}").format(
                                         msg=str(e)[:100], symbol=symbol, side=side
                                     )
                                 )
@@ -16386,7 +16386,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     if not handled:
                         await ctx.bot.send_message(
                             uid,
-                            t.get('elcaro_market_error', "❌ Lyxen error: {msg}").format(
+                            t.get('elcaro_market_error', "❌ Enliko error: {msg}").format(
                                 msg=str(e)[:100], symbol=symbol, side=side
                             )
                         )
@@ -17442,7 +17442,7 @@ async def monitor_positions_loop(app: Application):
                                                 position_strategy = "scryptomera"
                                             elif "⚡" in raw_msg and "Scalper" in raw_msg:
                                                 position_strategy = "scalper"
-                                            elif "🚀 Lyxen" in raw_msg or "Lyxen" in raw_msg or "ELCARO" in raw_upper:
+                                            elif "🚀 Enliko" in raw_msg or "Enliko" in raw_msg or "ELCARO" in raw_upper:
                                                 position_strategy = "elcaro"
                                             elif "Fibonacci" in raw_msg or "FIBONACCI EXTENSION" in raw_upper:
                                                 position_strategy = "fibonacci"
@@ -17536,7 +17536,7 @@ async def monitor_positions_loop(app: Application):
                                         "scalper": "Scalper", 
                                         "rsi_bb": "RSI+BB",
                                         "oi": "OI",
-                                        "elcaro": "Lyxen",
+                                        "elcaro": "Enliko",
                                         "fibonacci": "Fibonacci",
                                         "webapp": "WebApp",
                                     }.get(strategy_name, strategy_name.title() if strategy_name and strategy_name != "manual" and strategy_name != "unknown" else "Unknown")
@@ -20378,7 +20378,7 @@ async def show_user_card(q, ctx, target_uid: int):
     if user["trade_rsi_bb"]: strategies.append("RSI")
     if user["trade_scryptomera"]: strategies.append("Scrypto")
     if user["trade_scalper"]: strategies.append("Scalp")
-    if user["trade_elcaro"]: strategies.append("Lyxen")
+    if user["trade_elcaro"]: strategies.append("Enliko")
     strategies_str = ", ".join(strategies) if strategies else "—"
     
     card_text = t.get('admin_user_card', '''👤 *User Card*
@@ -21667,7 +21667,7 @@ def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboa
             f"💎 Pay ${ton_price:.0f} USDT (TON)",
             callback_data=f"sub:ton:{plan}:{period}"
         )],
-        # Secondary: ELC (Lyxen Coin)
+        # Secondary: ELC (Enliko Coin)
         [InlineKeyboardButton(
             f"🪙 Pay {trc_price:.0f} ELC (~${trc_price:.0f})",
             callback_data=f"sub:trc:{plan}:{period}"
@@ -22136,7 +22136,7 @@ async def cmd_wallet(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if isinstance(transactions, Exception):
         transactions = []
     
-    text = t.get("wallet_header", "🪙 *Lyxen Coin (ELC) Wallet*")
+    text = t.get("wallet_header", "🪙 *Enliko Coin (ELC) Wallet*")
     text += f"\n\n📍 *Address:*\n`{wallet.address}`"
     text += f"\n\n💰 *Available:* {balance_info['available']:.2f} ELC"
     text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} ELC"
@@ -22199,7 +22199,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if isinstance(transactions, Exception):
             transactions = []
         
-        text = t.get("wallet_header", "🪙 *Lyxen Coin (ELC) Wallet*")
+        text = t.get("wallet_header", "🪙 *Enliko Coin (ELC) Wallet*")
         text += f"\n\n📍 *Address:*\n`{wallet.address}`"
         text += f"\n\n💰 *Available:* {balance_info['available']:.2f} ELC"
         text += f"\n🔒 *Staked:* {balance_info['staked']:.2f} ELC"
@@ -22644,7 +22644,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Get user's ELC balance
         user_balance = await get_elc_balance(uid)
         
-        text = t.get("payment_select_method", "💳 *Payment with Lyxen Coin (ELC)*")
+        text = t.get("payment_select_method", "💳 *Payment with Enliko Coin (ELC)*")
         text += f"\n\n📦 *Plan:* {plan.title()}\n⏰ *Period:* {period_text}"
         text += f"\n\n🪙 *Price:* {trc_price:.0f} ELC (~${trc_price:.0f})"
         text += f"\n💰 *Your Balance:* {user_balance:.2f} ELC"
@@ -22699,13 +22699,13 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 payment_type="ELC",
                 amount=trc_price,
                 currency="ELC",
-                notes=f"Paid with Lyxen Coin. {message}"
+                notes=f"Paid with Enliko Coin. {message}"
             )
             
             if result.get("success"):
                 new_balance = await get_elc_balance(uid)
                 await q.edit_message_text(
-                    t.get("payment_success_elc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} ELC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} ELC\n\nThank you for using Lyxen!").format(
+                    t.get("payment_success_elc", "✅ *Payment Successful!*\n\n🪙 Paid: {amount:.0f} ELC\n📦 Plan: {plan}\n⏰ Period: {period}\n\n💰 New Balance: {balance:.2f} ELC\n\nThank you for using Enliko!").format(
                         amount=trc_price, plan=plan.title(), period=period_text, balance=new_balance
                     ),
                     parse_mode="Markdown",
@@ -22991,7 +22991,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # TODO: Implement automatic TON transaction verification
             text = t.get("ton_verification_manual",
                 "📩 *Manual Verification Required*\n\n"
-                "Please send your TON transaction hash to @LyxenSupport\n\n"
+                "Please send your TON transaction hash to @EnlikoSupport\n\n"
                 "Include:\n"
                 "• Payment ID: `{payment_id}`\n"
                 "• Transaction Hash: (from your wallet)\n\n"
@@ -23002,7 +23002,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 text,
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💬 Contact Support", url="https://t.me/LyxenSupport")],
+                    [InlineKeyboardButton("💬 Contact Support", url="https://t.me/EnlikoSupport")],
                     [InlineKeyboardButton("🔄 Check Again", callback_data=f"sub:ton_verify:{payment_id}")],
                     [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                 ])

@@ -1,5 +1,5 @@
 """
-Technical Indicators Library for Lyxen Trading Platform
+Technical Indicators Library for Enliko Trading Platform
 Complete implementation of all trading indicators
 """
 import math

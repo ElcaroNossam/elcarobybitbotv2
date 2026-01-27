@@ -1,5 +1,5 @@
 """
-Lyxen Paper Trading Module
+Enliko Paper Trading Module
 Simulates real trading without risking actual capital:
 - Virtual balance tracking
 - Position management

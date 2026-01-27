@@ -33,7 +33,7 @@
 **Before:**
 ```kotlin
 // PreferencesRepository.kt - INSECURE
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "lyxen_prefs")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "enliko_prefs")
 
 suspend fun saveAuthToken(token: String) {
     context.dataStore.edit { preferences ->
@@ -43,7 +43,7 @@ suspend fun saveAuthToken(token: String) {
 ```
 
 **Attack Vector:**
-- ADB backup extraction: `adb backup -apk io.lyxen.trading`
+- ADB backup extraction: `adb backup -apk io.enliko.trading`
 - Root device access
 - Malware with BACKUP permission
 
@@ -115,8 +115,8 @@ private val securePrefs: SharedPreferences by lazy {
 **After (Fixed):**
 ```xml
 <full-backup-content>
-    <exclude domain="sharedpref" path="lyxen_secure_prefs.xml"/>
-    <exclude domain="file" path="datastore/lyxen_prefs.preferences_pb"/>
+    <exclude domain="sharedpref" path="enliko_secure_prefs.xml"/>
+    <exclude domain="file" path="datastore/enliko_prefs.preferences_pb"/>
     <exclude domain="cache" path="."/>
 </full-backup-content>
 ```
@@ -255,14 +255,14 @@ func print(_ items: Any...) { }
 
 ```bash
 # Android - Test encrypted storage
-adb shell run-as io.lyxen.trading cat shared_prefs/lyxen_secure_prefs.xml
+adb shell run-as io.enliko.trading cat shared_prefs/enliko_secure_prefs.xml
 # Should be encrypted/unreadable
 
 # Android - Test certificate pinning
 # Use proxy (Charles/Burp) - should fail with cert error
 
 # Android - Test backup exclusion
-adb backup -f backup.ab io.lyxen.trading
+adb backup -f backup.ab io.enliko.trading
 # Sensitive data should NOT be in backup
 ```
 

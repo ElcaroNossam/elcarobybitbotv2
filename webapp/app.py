@@ -304,7 +304,7 @@ def create_app() -> FastAPI:
     is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
     
     app = FastAPI(
-        title="Lyxen Trading Terminal",
+        title="Enliko Trading Terminal",
         description="Professional Trading Terminal with AI Analysis, Backtesting & Statistics",
         version="2.0.0",
         docs_url=None if is_production else "/api/docs",

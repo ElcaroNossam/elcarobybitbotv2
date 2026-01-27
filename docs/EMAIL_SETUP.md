@@ -84,7 +84,7 @@
    SMTP_PORT=465
    SMTP_USER=resend
    SMTP_PASSWORD=re_xxxxxxxxxxxx  # API Key
-   SMTP_FROM=noreply@lyxen.io     # Твой верифицированный домен!
+   SMTP_FROM=noreply@enliko.com     # Твой верифицированный домен!
    SMTP_USE_TLS=false             # Используем SSL на 465
    ```
 
@@ -104,7 +104,7 @@
    SMTP_PORT=587
    SMTP_USER=apikey
    SMTP_PASSWORD=SG.xxxxxxxxxxxx
-   SMTP_FROM=noreply@lyxen.io
+   SMTP_FROM=noreply@enliko.com
    SMTP_USE_TLS=true
    ```
 
@@ -147,7 +147,7 @@ curl -X POST https://bills-send-prostores-relate.trycloudflare.com/api/auth/emai
 TXT @ "v=spf1 include:_spf.google.com include:amazonses.com ~all"
 
 # DMARC (политика аутентификации)  
-TXT _dmarc "v=DMARC1; p=none; rua=mailto:admin@lyxen.io"
+TXT _dmarc "v=DMARC1; p=none; rua=mailto:admin@enliko.com"
 ```
 
 ---

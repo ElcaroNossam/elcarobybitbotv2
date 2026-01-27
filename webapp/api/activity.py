@@ -204,7 +204,7 @@ async def trigger_sync(
     
     # Determine source
     user_agent = request.headers.get("user-agent", "").lower()
-    if "lyxentrading" in user_agent or "ios" in user_agent:
+    if "enlikotrading" in user_agent or "ios" in user_agent:
         source = "ios"
     else:
         source = "webapp"

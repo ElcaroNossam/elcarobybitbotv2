@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Settings | Lyxen Trading</title>
+    <title>Settings | Enliko Trading</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -638,7 +638,7 @@
         <div class="header-left">
             <a href="/" class="logo">
                 <div class="logo-icon">🚀</div>
-                <span class="logo-text">Lyxen</span>
+                <span class="logo-text">Enliko</span>
             </a>
             <nav class="nav-links">
                 <a href="/dashboard">Dashboard</a>
@@ -857,7 +857,7 @@
             
             <!-- Strategy Tabs -->
             <div class="strategy-tabs">
-                <div class="strategy-tab active" data-strategy="lyxen" onclick="selectStrategyTab('lyxen')">Lyxen AI</div>
+                <div class="strategy-tab active" data-strategy="enliko" onclick="selectStrategyTab('enliko')">Enliko AI</div>
                 <div class="strategy-tab" data-strategy="scryptomera" onclick="selectStrategyTab('scryptomera')">Scryptomera</div>
                 <div class="strategy-tab" data-strategy="scalper" onclick="selectStrategyTab('scalper')">Scalper</div>
                 <div class="strategy-tab" data-strategy="fibonacci" onclick="selectStrategyTab('fibonacci')">Fibonacci</div>
@@ -865,23 +865,23 @@
                 <div class="strategy-tab" data-strategy="oi" onclick="selectStrategyTab('oi')">OI</div>
             </div>
             
-            <!-- Lyxen AI Settings -->
-            <div id="strategy-lyxen" class="strategy-panel active">
+            <!-- Enliko AI Settings -->
+            <div id="strategy-enliko" class="strategy-panel active">
                 <div class="strategy-enable">
                     <div class="toggle-label">
-                        <span>Enable Lyxen AI</span>
+                        <span>Enable Enliko AI</span>
                         <small>AI-powered signals with ATR trailing - Settings from signals</small>
                     </div>
-                    <div class="toggle" id="toggle_lyxen" onclick="toggleStrategyEnabled('lyxen')"></div>
+                    <div class="toggle" id="toggle_enliko" onclick="toggleStrategyEnabled('enliko')"></div>
                 </div>
                 <div class="form-grid strategy-params">
                     <div class="form-group">
                         <label class="form-label">Position Size %</label>
-                        <input type="number" id="lyxen_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
+                        <input type="number" id="enliko_percent" class="form-input" value="5" min="0.1" max="100" step="0.1">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Direction</label>
-                        <select id="lyxen_direction" class="form-select">
+                        <select id="enliko_direction" class="form-select">
                             <option value="all">ALL</option>
                             <option value="long">LONG Only</option>
                             <option value="short">SHORT Only</option>
@@ -1296,7 +1296,7 @@
         let settings = {};
         
         async function initAuth() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             if (!token) {
                 window.location.href = '/login';
                 return false;
@@ -1308,7 +1308,7 @@
                 });
                 
                 if (!res.ok) {
-                    localStorage.removeItem('lyxen_token');
+                    localStorage.removeItem('enliko_token');
                     window.location.href = '/login';
                     return false;
                 }
@@ -1322,7 +1322,7 @@
         }
         
         function getAuthHeaders() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             return {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -1352,7 +1352,7 @@
             document.getElementById('sl_percent').value = settings.sl_percent || 1;
             
             // Update toggles
-            updateToggle('toggle_lyxen', settings.enable_lyxen);
+            updateToggle('toggle_enliko', settings.enable_enliko);
             updateToggle('toggle_wyckoff', settings.enable_wyckoff);
             updateToggle('toggle_scryptomera', settings.enable_scryptomera);
             updateToggle('toggle_scalper', settings.enable_scalper);
@@ -1395,7 +1395,7 @@
                         leverage: parseInt(document.getElementById('leverage').value),
                         tp_percent: parseFloat(document.getElementById('tp_percent').value),
                         sl_percent: parseFloat(document.getElementById('sl_percent').value),
-                        enable_lyxen: settings.enable_lyxen || false,
+                        enable_enliko: settings.enable_enliko || false,
                         enable_wyckoff: settings.enable_wyckoff || false,
                         enable_scryptomera: settings.enable_scryptomera || false,
                         enable_scalper: settings.enable_scalper || false
@@ -1450,7 +1450,7 @@
         }
         
         function logout() {
-            localStorage.removeItem('lyxen_token');
+            localStorage.removeItem('enliko_token');
             window.location.href = '/login';
         }
         
@@ -1623,7 +1623,7 @@
         
         // Strategy Settings Functions
         let strategySettings = {};
-        let currentStrategy = 'lyxen';
+        let currentStrategy = 'enliko';
         let strategyExchange = 'bybit';
         let strategyAccountType = 'demo';
         

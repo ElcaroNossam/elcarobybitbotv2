@@ -637,11 +637,11 @@ async def get_app_config(
                 "push_notifications": True
             },
             "links": {
-                "support": "https://t.me/lyxen_support",
-                "telegram_bot": "https://t.me/lyxen_bybit_bot",
-                "website": "https://lyxen.com",
-                "terms": "https://lyxen.com/terms",
-                "privacy": "https://lyxen.com/privacy"
+                "support": "https://t.me/enliko_support",
+                "telegram_bot": "https://t.me/enliko_bybit_bot",
+                "website": "https://enliko.com",
+                "terms": "https://enliko.com/terms",
+                "privacy": "https://enliko.com/privacy"
             },
             "rate_limits": {
                 "api_calls_per_minute": 60,

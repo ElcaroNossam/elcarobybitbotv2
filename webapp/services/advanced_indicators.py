@@ -1,5 +1,5 @@
 """
-Lyxen Advanced Technical Indicators Library
+Enliko Advanced Technical Indicators Library
 50+ Professional Trading Indicators with Full Customization
 
 Categories:

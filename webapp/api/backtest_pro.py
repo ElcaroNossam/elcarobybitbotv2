@@ -1,5 +1,5 @@
 """
-Lyxen Pro Backtest API v2.0
+Enliko Pro Backtest API v2.0
 Advanced backtesting endpoints with strategy builder, AI optimization, and real-time paper trading
 """
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query, Depends
@@ -518,7 +518,7 @@ async def list_available_strategies():
         },
         {
             "id": "elcaro",
-            "name": "Lyxen Channel Breakout",
+            "name": "Enliko Channel Breakout",
             "category": "breakout",
             "description": "Channel breakout with momentum confirmation and volume filter",
             "recommended_timeframes": ["1h", "4h"],

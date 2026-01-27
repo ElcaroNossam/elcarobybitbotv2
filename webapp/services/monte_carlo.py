@@ -1,5 +1,5 @@
 """
-Lyxen Monte Carlo Simulation & Stress Testing
+Enliko Monte Carlo Simulation & Stress Testing
 Advanced statistical analysis for backtesting robustness
 
 Features:

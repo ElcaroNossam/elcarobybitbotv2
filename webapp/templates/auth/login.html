@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Login - Lyxen Trading</title>
+    <title>Login - Enliko Trading</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -385,10 +385,10 @@
     <div class="login-card">
         <div class="logo">
             <div class="logo-icon">🚀</div>
-            <span class="logo-text">Lyxen</span>
+            <span class="logo-text">Enliko</span>
         </div>
         
-        <h1>Welcome to Lyxen Trading</h1>
+        <h1>Welcome to Enliko Trading</h1>
         <p class="subtitle">
             AI-powered trading with automated strategies and multi-exchange support
         </p>
@@ -475,7 +475,7 @@
         let countdownInterval = null;
         
         // Check if already logged in
-        if (localStorage.getItem('lyxen_token')) {
+        if (localStorage.getItem('enliko_token')) {
             window.location.href = '/dashboard';
         }
         
@@ -525,7 +525,7 @@
                 let initData = tg?.initData;
                 
                 if (!initData) {
-                    showMessage('Please open this page from Telegram bot (@lyxen_bybit_bot)', 'info');
+                    showMessage('Please open this page from Telegram bot (@enliko_bybit_bot)', 'info');
                     setLoading(btn, false);
                     return;
                 }
@@ -539,10 +539,10 @@
                 const data = await res.json();
                 
                 if (res.ok && data.token) {
-                    localStorage.setItem('lyxen_token', data.token);
-                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
+                    localStorage.setItem('enliko_token', data.token);
+                    localStorage.setItem('enliko_user', JSON.stringify(data.user));
                     if (data.user && data.user.user_id) {
-                        localStorage.setItem('lyxen_user_id', data.user.user_id.toString());
+                        localStorage.setItem('enliko_user_id', data.user.user_id.toString());
                     }
                     showMessage('Login successful! Redirecting...', 'success');
                     setTimeout(() => window.location.href = '/dashboard', 500);
@@ -633,10 +633,10 @@
                 
                 if (data.status === 'approved' && data.token) {
                     clearIntervals();
-                    localStorage.setItem('lyxen_token', data.token);
-                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
+                    localStorage.setItem('enliko_token', data.token);
+                    localStorage.setItem('enliko_user', JSON.stringify(data.user));
                     if (data.user && data.user.user_id) {
-                        localStorage.setItem('lyxen_user_id', data.user.user_id.toString());
+                        localStorage.setItem('enliko_user_id', data.user.user_id.toString());
                     }
                     showMessage('Login approved! Redirecting...', 'success');
                     setTimeout(() => window.location.href = '/dashboard', 500);

@@ -36,7 +36,7 @@ def get_bot_name() -> str:
 
 
 def get_bundle_prefix() -> str:
-    """Get the bundle prefix (e.g., 'io.lyxen')"""
+    """Get the bundle prefix (e.g., 'io.enliko')"""
     return _APP_BUNDLE_PREFIX
 
 

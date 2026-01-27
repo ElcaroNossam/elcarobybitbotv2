@@ -1,5 +1,5 @@
 """
-Lyxen Advanced Risk Management & Position Sizing
+Enliko Advanced Risk Management & Position Sizing
 Professional risk management tools for backtesting
 
 Features:

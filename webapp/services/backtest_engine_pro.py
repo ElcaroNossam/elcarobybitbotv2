@@ -1,5 +1,5 @@
 """
-Lyxen Pro Backtest Engine V2
+Enliko Pro Backtest Engine V2
 Professional-grade backtesting with advanced features:
 - Commission & slippage modeling
 - Trailing stops
@@ -683,7 +683,7 @@ class ProBacktestEngine:
         """Load strategy analyzers from backtest_engine"""
         try:
             from webapp.services.backtest_engine import (
-                RSIBBOIAnalyzer, WyckoffAnalyzer, LyxenAnalyzer,
+                RSIBBOIAnalyzer, WyckoffAnalyzer, EnlikoAnalyzer,
                 ScryptomeraAnalyzer, ScalperAnalyzer, MeanReversionAnalyzer,
                 TrendFollowingAnalyzer, BreakoutAnalyzer, DCAAnalyzer,
                 GridAnalyzer, MomentumAnalyzer, VolatilityBreakoutAnalyzer,
@@ -692,7 +692,7 @@ class ProBacktestEngine:
             return {
                 "rsibboi": RSIBBOIAnalyzer(),
                 "wyckoff": WyckoffAnalyzer(),
-                "elcaro": LyxenAnalyzer(),
+                "elcaro": EnlikoAnalyzer(),
                 "scryptomera": ScryptomeraAnalyzer(),
                 "scalper": ScalperAnalyzer(),
                 "mean_reversion": MeanReversionAnalyzer(),

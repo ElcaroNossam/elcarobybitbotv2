@@ -1,5 +1,5 @@
 """
-Lyxen Strategy Optimizer
+Enliko Strategy Optimizer
 Advanced optimization algorithms for trading strategies:
 - Grid Search
 - Random Search

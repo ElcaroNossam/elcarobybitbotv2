@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Lyxen Trading Terminal v2.0 - Professional Trading</title>
+    <title>Enliko Trading Terminal v2.0 - Professional Trading</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
@@ -49,7 +49,7 @@
             <div class="header-left">
                 <a href="/dashboard" class="logo">
                     <div class="logo-icon"><i class="fas fa-rocket"></i></div>
-                    <span>Lyxen</span>
+                    <span>Enliko</span>
                 </a>
                 <div class="symbol-selector" onclick="openSymbolModal()">
                     <div class="symbol-info">
@@ -421,8 +421,8 @@
                                 <button class="strategy-btn" data-strategy="scalper" onclick="applyStrategySettings('scalper')" title="Scalper">
                                     ⚡ Scalper
                                 </button>
-                                <button class="strategy-btn" data-strategy="lyxen" onclick="applyStrategySettings('lyxen')" title="Lyxen">
-                                    🤖 Lyxen
+                                <button class="strategy-btn" data-strategy="enliko" onclick="applyStrategySettings('enliko')" title="Enliko">
+                                    🤖 Enliko
                                 </button>
                                 <button class="strategy-btn" data-strategy="wyckoff" onclick="applyStrategySettings('wyckoff')" title="Wyckoff">
                                     📊 Wyckoff
@@ -747,17 +747,17 @@
             const params = new URLSearchParams(window.location.search);
             const authToken = params.get('auth_token');
             if (authToken) {
-                localStorage.setItem('lyxen_token', authToken);
+                localStorage.setItem('enliko_token', authToken);
                 fetch('/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 })
                 .then(res => res.json())
                 .then(user => {
                     if (user && user.user_id) {
-                        localStorage.setItem('lyxen_user_id', user.user_id.toString());
-                        localStorage.setItem('lyxen_user', JSON.stringify(user));
-                        if (user.language) localStorage.setItem('lyxen_language', user.language);
-                        if (user.exchange_type) localStorage.setItem('lyxen_exchange', user.exchange_type);
+                        localStorage.setItem('enliko_user_id', user.user_id.toString());
+                        localStorage.setItem('enliko_user', JSON.stringify(user));
+                        if (user.language) localStorage.setItem('enliko_language', user.language);
+                        if (user.exchange_type) localStorage.setItem('enliko_exchange', user.exchange_type);
                     }
                 })
                 .catch(err => console.error('Auth error:', err));
@@ -1211,7 +1211,7 @@
         // Load strategy settings from API
         async function loadStrategySettings() {
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) return;
                 
                 const params = new URLSearchParams({
@@ -1356,7 +1356,7 @@
             }
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) return;
                 
                 const tpPct = parseFloat(document.getElementById('tpInput').value) || 8;
@@ -1619,7 +1619,7 @@
                 state.errors.positions = null;
                 setLoading(posTable, true, 'Loading positions...');
                 
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) {
                     showTableError('positionsBody', 10, 'Please log in to view positions');
                     return;
@@ -1659,7 +1659,7 @@
                 state.errors.orders = null;
                 setLoading(ordersTable, true, 'Loading orders...');
                 
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) {
                     showTableError('ordersBody', 8, 'Please log in to view orders');
                     return;
@@ -1697,7 +1697,7 @@
             try {
                 state.loading.balance = true;
                 
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) return;
                 
                 const params = new URLSearchParams({
@@ -1749,7 +1749,7 @@
                     const strategyIcons = {
                         'scryptomera': '📰',
                         'scalper': '⚡',
-                        'lyxen': '🤖',
+                        'enliko': '🤖',
                         'wyckoff': '📊',
                         'manual': '👤'
                     };
@@ -1887,7 +1887,7 @@
             if (!state.symbol) {
                 errors.push('Select a trading pair');
             }
-            if (!localStorage.getItem('lyxen_token')) {
+            if (!localStorage.getItem('enliko_token')) {
                 showNotification('Please log in to trade', 'error');
                 return;
             }
@@ -1961,7 +1961,7 @@
                 state.loading.order = true;
                 if (submitBtn) submitBtn.classList.add('btn-loading');
                 
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/order', {
                     method: 'POST',
                     headers: { 
@@ -1998,7 +1998,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/close', {
                     method: 'POST',
                     headers: { 
@@ -2031,7 +2031,7 @@
             if (!tp && !sl) return;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/modify-tpsl', {
                     method: 'POST',
                     headers: { 
@@ -2068,7 +2068,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/order', {
                     method: 'DELETE',
                     headers: { 
@@ -2109,7 +2109,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/close-all', {
                     method: 'POST',
                     headers: { 
@@ -2149,7 +2149,7 @@
             if (!confirmed) return;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const params = new URLSearchParams({
                     exchange: state.exchange || 'bybit',
                     account_type: state.accountType || 'demo'
@@ -2470,7 +2470,7 @@
         // Enhanced WebSocket connection with orderbook streaming
         function connectAdvancedWebSocket() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const userId = localStorage.getItem('lyxen_user_id') || 0;
+            const userId = localStorage.getItem('enliko_user_id') || 0;
             
             const ws = new WebSocket(`${proto}//${location.host}/ws/terminal/${userId}`);
             
@@ -2715,7 +2715,7 @@
             }
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/dca-ladder', {
                     method: 'POST',
                     headers: {
@@ -2827,7 +2827,7 @@
         
         async function loadUserSettings() {
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 if (!token) return;
                 
                 const res = await fetch('/api/users/me', {
@@ -2944,7 +2944,7 @@
             state.exchange = newExchange;
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/users/exchange', {
                     method: 'POST',
                     headers: { 
@@ -2999,7 +2999,7 @@
             localStorage.setItem('account_type', newAccountType);
             
             try {
-                const token = localStorage.getItem('lyxen_token');
+                const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/users/switch-account-type', {
                     method: 'POST',
                     headers: { 
@@ -3160,15 +3160,15 @@
         // ============================================================
         
         function connectSettingsSyncWebSocket() {
-            let userId = localStorage.getItem('lyxen_user_id');
+            let userId = localStorage.getItem('enliko_user_id');
             
-            // Fallback: try to get from lyxen_user object
+            // Fallback: try to get from enliko_user object
             if (!userId) {
                 try {
-                    const userObj = JSON.parse(localStorage.getItem('lyxen_user') || '{}');
+                    const userObj = JSON.parse(localStorage.getItem('enliko_user') || '{}');
                     if (userObj.user_id) {
                         userId = userObj.user_id.toString();
-                        localStorage.setItem('lyxen_user_id', userId);
+                        localStorage.setItem('enliko_user_id', userId);
                     }
                 } catch (e) {}
             }
@@ -3352,7 +3352,7 @@
             });
             
             // Save to localStorage
-            localStorage.setItem('lyxen_language', lang);
+            localStorage.setItem('enliko_language', lang);
             
             // Close menu
             document.getElementById('langMenu').classList.remove('show');
@@ -3400,7 +3400,7 @@
             });
             
             // Save to localStorage
-            localStorage.setItem('lyxen_theme', theme);
+            localStorage.setItem('enliko_theme', theme);
             
             // Close menu
             document.getElementById('themeMenu').classList.remove('show');
@@ -3411,7 +3411,7 @@
         // Initialize language and theme from localStorage
         function initLanguageAndTheme() {
             // Language
-            const savedLang = localStorage.getItem('lyxen_language') || 'en';
+            const savedLang = localStorage.getItem('enliko_language') || 'en';
             const langData = LANGUAGES[savedLang];
             if (langData) {
                 document.getElementById('currentLangFlag').textContent = langData.flag;
@@ -3424,7 +3424,7 @@
             }
             
             // Theme
-            const savedTheme = localStorage.getItem('lyxen_theme') || 'dark';
+            const savedTheme = localStorage.getItem('enliko_theme') || 'dark';
             const html = document.documentElement;
             const icon = document.getElementById('themeIcon');
             
@@ -3465,7 +3465,7 @@
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            const savedTheme = localStorage.getItem('lyxen_theme');
+            const savedTheme = localStorage.getItem('enliko_theme');
             if (savedTheme === 'system') {
                 const html = document.documentElement;
                 if (e.matches) {

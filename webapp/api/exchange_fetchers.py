@@ -1,5 +1,5 @@
 """
-Exchange data fetchers for Lyxen Screener
+Exchange data fetchers for Enliko Screener
 Supports: Binance, Bybit, OKX
 """
 import aiohttp

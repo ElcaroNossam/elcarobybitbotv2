@@ -2,7 +2,7 @@
 # translations/lt.py — lietuvių
 TEXTS = {
     # Pagrindinis meniu - Profesionalus prekybos terminalas
-    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> vykdymo greitis
 🛡️ <b>Rizikos valdymas</b> integruotas
@@ -38,7 +38,7 @@ Bybit • HyperLiquid • Multi-strategija''',
     'button_toggle_rsi_bb':        '📊 RSI+BB',
     'button_scryptomera':          '🔮 Scryptomera',
     'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Lyxen',
+    'button_elcaro':               '🔥 Enliko',
     'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Nustatymai',
     'button_indicators':           '💡 Indikatoriai',
@@ -222,7 +222,7 @@ Bybit • HyperLiquid • Multi-strategija''',
     'status_disabled':             '❌',
 
     # Indicators
-    'indicators_header':           '📈 *Lyxen indikatoriai*',
+    'indicators_header':           '📈 *Enliko indikatoriai*',
     'indicator_1':                 '1. RSI + BB',
     'indicator_2':                 '2. Trading Chaos',
     'indicator_3':                 '3. Adaptyvus trendas',
@@ -322,14 +322,14 @@ Bybit • HyperLiquid • Multi-strategija''',
     'scalper_analysis':            '⚡ Scalper: {side} @ {price}',
     'feature_scalper':             'Scalper',
 
-    # Lyxen (Heatmap)
-    'elcaro_limit_entry':          '🔥 *Lyxen Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_limit_error':          '❌ Lyxen Limit klaida: {msg}',
-    'elcaro_market_entry':         '🔥 *Lyxen Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Lyxen: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_error':         '❌ Lyxen Market klaida: {msg}',
-    'elcaro_analysis':             '🔥 Lyxen Heatmap: {side} @ {price}',
-    'feature_elcaro':              'Lyxen',
+    # Enliko (Heatmap)
+    'elcaro_limit_entry':          '🔥 *Enliko Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error':          '❌ Enliko Limit klaida: {msg}',
+    'elcaro_market_entry':         '🔥 *Enliko Market įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error':         '❌ Enliko Market klaida: {msg}',
+    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}',
+    'feature_elcaro':              'Enliko',
 
     # Fibonacci (Fibonacci Extension)
     'fibonacci_limit_entry':         '📐 *Fibonacci Limit įėjimas*\n• {symbol} {side}\n• Kaina: {price:.6f}\n• Kiekis: {qty}\n• SL: {sl_pct}%',
@@ -496,7 +496,7 @@ Bybit • HyperLiquid • Multi-strategija''',
 
     # Scalper Strategy
     'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Lyxen: {state}',
+    'config_trade_elcaro':           '🔥 Enliko: {state}',
     'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
@@ -595,7 +595,7 @@ Bybit • HyperLiquid • Multi-strategija''',
     'strat_mode_both':             '🔄 Abu',
     'strat_mode_changed':          '✅ {strategy} prekybos režimas: {mode}',
 
-    # Lyxen (Heatmap)
+    # Enliko (Heatmap)
 
     # Fibonacci (Fibonacci Extension)
 
@@ -609,7 +609,7 @@ Bybit • HyperLiquid • Multi-strategija''',
     'strat_rsi_bb':                  '📊 RSI+BB',
     'strat_scryptomera':             '🔮 Scryptomera',
     'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Lyxen',
+    'strat_elcaro':                  '🔥 Enliko',
     'strat_fibonacci':                 '📐 Fibonacci',
     'dca_settings':                  '⚙️ DCA nustatymai',
     'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
@@ -716,7 +716,7 @@ Bybit • HyperLiquid • Multi-strategija''',
     'stats_rsi_bb':                  '📊 RSI+BB',
     'stats_scryptomera':             '🐱 Scryptomera',
     'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Lyxen',
+    'stats_elcaro':                  '🔥 Enliko',
     'stats_period_all':              'All time',
     'stats_period_today':            '24h',
     'stats_period_week':             'Week',
@@ -753,14 +753,14 @@ Bybit • HyperLiquid • Multi-strategija''',
     'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
     'group_global': '📊 Global (use common setting)',
 
-    # Lyxen AI settings
+    # Enliko AI settings
 
     # Leverage settings
     'param_leverage': '⚡ Svertas',
     'prompt_leverage': 'Įveskite svertą (1-100):',
     'auto_default': 'Automatinis',
 
-    # Lyxen AI
+    # Enliko AI
     'elcaro_ai_desc': '_Visi parametrai automatiškai išanalizuojami iš AI signalų:_',
 
     # Scalper entries
@@ -803,16 +803,16 @@ Bybit • HyperLiquid • Multi-strategija''',
 
 Kol dvejojate, <b>847 prekiautojai</b> jau uždirba.
 
-💸 Kiekviena minutė be Lyxen = praleistos galimybės
+💸 Kiekviena minutė be Enliko = praleistos galimybės
 ⏰ Rinkos nelaukia. Jūs taip pat neturėtumėte.
 
 👉 /subscribe — <i>Atrakinkite savo nesąžiningą pranašumą DABAR</i>''',
     'no_license_trading': '''🚨 <b>PREKYBA UŽRAKINTA</b>
 
-⚠️ 847 prekiautojai uždirba ŠIUO METU su Lyxen.
+⚠️ 847 prekiautojai uždirba ŠIUO METU su Enliko.
 
 ❌ Rankinė prekyba = emocionės klaidos
-✅ Lyxen = šaltas AI tikslumas
+✅ Enliko = šaltas AI tikslumas
 
 <i>Nustokite žiūrėti. Pradėkite uždirbti.</i>
 
@@ -849,7 +849,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     
     'premium_title': '� *PREMIUM — Laimėtojų pasirinkimas*',
     'premium_desc': '''✅ Pilna prieiga prie visų funkcijų
-✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Lyxen
+✅ Visos 5 strategijos: OI, RSI+BB, Scryptomera, Scalper, Enliko
 ✅ Reali + Demo prekyba
 ✅ Prioritetinė pagalba
 ✅ Dinaminis SL/TP pagal ATR
@@ -863,7 +863,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     'basic_title': '🥈 *BASIC PLANAS*',
     'basic_desc': '''✅ Pilna prieiga prie demo sąskaitos
 ✅ Reali sąskaita: OI, RSI+BB, Scryptomera, Scalper
-❌ Lyxen, Fibonacci, Spot — tik Premium
+❌ Enliko, Fibonacci, Spot — tik Premium
 ✅ Standartinė pagalba
 ✅ Dinaminis SL/TP pagal ATR''',
     'basic_1m': '🥈 1 mėnuo — {price} ELC',
@@ -879,7 +879,7 @@ Profesionalai naudoja <b>visas</b> strategijas. Todėl jie profesionalai.
     'trial_activated': '🎉 Bandomoji versija aktyvuota! Turite 7 dienas pilnos demo prieigos.',
     
     'payment_select_method': '💳 *Pasirinkite mokėjimo būdą*',
-    'btn_pay_elc': '◈ Lyxen Coin (ELC)',
+    'btn_pay_elc': '◈ Enliko Coin (ELC)',
     'btn_pay_ton': '💎 TON',
     'payment_elc_title': ' Mokėjimas per ELC',
     'payment_elc_desc': 'Bus nuskaičiuota {amount} ELC už {plan} ({period}).',

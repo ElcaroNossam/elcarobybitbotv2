@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Trading Statistics | Lyxen</title>
+    <title>Trading Statistics | Enliko</title>
     
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -693,7 +693,7 @@
                     <span class="filter-label">Strategy:</span>
                     <select class="filter-select" id="strategyFilter">
                         <option value="all">All Strategies</option>
-                        <option value="elcaro">Lyxen</option>
+                        <option value="elcaro">Enliko</option>
                         <option value="scryptomera">Scryptomera</option>
                         <option value="scalper">Scalper</option>
                         <option value="wyckoff">Wyckoff</option>
@@ -807,7 +807,7 @@
         
         // Get auth token
         function getToken() {
-            return localStorage.getItem('lyxen_token') || sessionStorage.getItem('lyxen_token');
+            return localStorage.getItem('enliko_token') || sessionStorage.getItem('enliko_token');
         }
         
         // Auto-login via Telegram WebApp
@@ -823,10 +823,10 @@
                 
                 const data = await res.json();
                 if (res.ok && data.token) {
-                    localStorage.setItem('lyxen_token', data.token);
-                    localStorage.setItem('lyxen_user', JSON.stringify(data.user));
+                    localStorage.setItem('enliko_token', data.token);
+                    localStorage.setItem('enliko_user', JSON.stringify(data.user));
                     if (data.user?.user_id) {
-                        localStorage.setItem('lyxen_user_id', data.user.user_id.toString());
+                        localStorage.setItem('enliko_user_id', data.user.user_id.toString());
                     }
                     return true;
                 }
@@ -879,7 +879,7 @@
                     if (resp.status === 401) {
                         // Token expired, try re-login via Telegram
                         if (tg?.initData) {
-                            localStorage.removeItem('lyxen_token');
+                            localStorage.removeItem('enliko_token');
                             const success = await autoLoginTelegram();
                             if (success) {
                                 loadStats(); // Retry

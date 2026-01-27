@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Strategy Settings | Lyxen Trading</title>
+    <title>Strategy Settings | Enliko Trading</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -513,7 +513,7 @@
             --border-color: rgba(0, 0, 0, 0.08);
         }
     </style>
-    <script src="/static/js/lyxen-theme.js"></script>
+    <script src="/static/js/enliko-theme.js"></script>
 </head>
 <body>
     <div class="bg-pattern"></div>
@@ -719,7 +719,7 @@
         
         // Auth
         async function initAuth() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             if (!token) {
                 window.location.href = '/login';
                 return false;
@@ -731,7 +731,7 @@
                 });
                 
                 if (!res.ok) {
-                    localStorage.removeItem('lyxen_token');
+                    localStorage.removeItem('enliko_token');
                     window.location.href = '/login';
                     return false;
                 }
@@ -745,7 +745,7 @@
         }
         
         function getAuthHeaders() {
-            const token = localStorage.getItem('lyxen_token');
+            const token = localStorage.getItem('enliko_token');
             return {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
