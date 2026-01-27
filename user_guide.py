@@ -309,8 +309,8 @@ def generate_user_guide_pdf(lang: str = "en") -> BytesIO:
 
 def _get_english_content():
     return {
-        "title": "Lyxen Trading Bot - User Guide",
-        "intro": "Welcome to the Lyxen Trading Bot! This comprehensive platform supports automated cryptocurrency trading on Bybit and HyperLiquid exchanges, featuring advanced AI analysis, ATR trailing stops, and Web3 wallet integration.",
+        "title": "Enliko Trading Bot - User Guide",
+        "intro": "Welcome to the Enliko Trading Bot! This comprehensive platform supports automated cryptocurrency trading on Bybit and HyperLiquid exchanges, featuring advanced AI analysis, ATR trailing stops, and Web3 wallet integration.",
         
         "quick_start_title": "Quick Start",
         "quick_start_steps": [
@@ -368,7 +368,7 @@ def _get_english_content():
             "Timeframe: Uses 15m candles for ATR calculation",
             "Auto-adjust: Trail distance increases in volatile markets, tightens in calm markets",
         ],
-        "atr_tip": "💡 ATR trailing lets profits run during strong trends while protecting gains. Highly recommended for momentum strategies like OI and Lyxen.",
+        "atr_tip": "💡 ATR trailing lets profits run during strong trends while protecting gains. Highly recommended for momentum strategies like OI and Enliko.",
         
         "coldwallet_title": "Cold Wallet Trading (HyperLiquid)",
         "coldwallet_description": "Trade on HyperLiquid without exposing your private keys:",
@@ -438,7 +438,7 @@ def _get_english_content():
                 "tip": "Requires low-latency execution. Best on high-volume pairs. Consider higher leverage.",
             },
             {
-                "name": "🔥 Lyxen",
+                "name": "🔥 Enliko",
                 "description": "Premium signal strategy with pre-calculated parameters. Uses signal-provided SL/TP levels.",
                 "params": [
                     "Entry %: Position size (signal may override)",
@@ -603,8 +603,8 @@ def _get_english_content():
 
 def _get_russian_content():
     return {
-        "title": "Lyxen Trading Bot - Руководство",
-        "intro": "Добро пожаловать в Lyxen Trading Bot! Комплексная платформа для автоматической торговли криптовалютами на биржах Bybit и HyperLiquid с AI-анализом, ATR trailing stop и интеграцией Web3 кошельков.",
+        "title": "Enliko Trading Bot - Руководство",
+        "intro": "Добро пожаловать в Enliko Trading Bot! Комплексная платформа для автоматической торговли криптовалютами на биржах Bybit и HyperLiquid с AI-анализом, ATR trailing stop и интеграцией Web3 кошельков.",
         
         "quick_start_title": "Быстрый старт",
         "quick_start_steps": [
@@ -662,7 +662,7 @@ def _get_russian_content():
             "Таймфрейм: Использует 15m свечи для расчёта ATR",
             "Авто-подстройка: Расстояние увеличивается на волатильных рынках, сужается на спокойных",
         ],
-        "atr_tip": "💡 ATR trailing позволяет прибыли расти при сильных трендах, защищая при этом накопленную прибыль. Рекомендуется для моментум-стратегий OI и Lyxen.",
+        "atr_tip": "💡 ATR trailing позволяет прибыли расти при сильных трендах, защищая при этом накопленную прибыль. Рекомендуется для моментум-стратегий OI и Enliko.",
         
         "coldwallet_title": "Торговля с холодного кошелька (HyperLiquid)",
         "coldwallet_description": "Торгуйте на HyperLiquid не раскрывая приватные ключи:",
@@ -732,7 +732,7 @@ def _get_russian_content():
                 "tip": "Требует быстрого исполнения. Лучше на высоколиквидных парах. Можно использовать большее плечо.",
             },
             {
-                "name": "🔥 Lyxen",
+                "name": "🔥 Enliko",
                 "description": "Премиум стратегия с заранее рассчитанными параметрами. Использует уровни SL/TP из сигнала.",
                 "params": [
                     "Entry %: Размер позиции (сигнал может переопределить)",
@@ -897,8 +897,8 @@ def _get_russian_content():
 
 def _get_ukrainian_content():
     return {
-        "title": "Lyxen Trading Bot - Посібник",
-        "intro": "Ласкаво просимо до Lyxen Trading Bot! Комплексна платформа для автоматичної торгівлі криптовалютами на біржах Bybit та HyperLiquid з AI-аналізом, ATR trailing stop та інтеграцією Web3 гаманців.",
+        "title": "Enliko Trading Bot - Посібник",
+        "intro": "Ласкаво просимо до Enliko Trading Bot! Комплексна платформа для автоматичної торгівлі криптовалютами на біржах Bybit та HyperLiquid з AI-аналізом, ATR trailing stop та інтеграцією Web3 гаманців.",
         
         "quick_start_title": "Швидкий старт",
         "quick_start_steps": [
@@ -956,7 +956,7 @@ def _get_ukrainian_content():
             "Таймфрейм: Використовує 15m свічки для розрахунку ATR",
             "Авто-підлаштування: Відстань збільшується на волатильних ринках, звужується на спокійних",
         ],
-        "atr_tip": "💡 ATR trailing дозволяє прибутку зростати при сильних трендах, захищаючи при цьому накопичений прибуток. Рекомендується для моментум-стратегій OI та Lyxen.",
+        "atr_tip": "💡 ATR trailing дозволяє прибутку зростати при сильних трендах, захищаючи при цьому накопичений прибуток. Рекомендується для моментум-стратегій OI та Enliko.",
         
         "coldwallet_title": "Торгівля з холодного гаманця (HyperLiquid)",
         "coldwallet_description": "Торгуйте на HyperLiquid не розкриваючи приватні ключі:",
@@ -1026,7 +1026,7 @@ def _get_ukrainian_content():
                 "tip": "Потребує швидкого виконання. Краще на високоліквідних парах. Можна використовувати більше плече.",
             },
             {
-                "name": "🔥 Lyxen",
+                "name": "🔥 Enliko",
                 "description": "Преміум стратегія з заздалегідь розрахованими параметрами. Використовує рівні SL/TP з сигналу.",
                 "params": [
                     "Entry %: Розмір позиції (сигнал може перевизначити)",

@@ -1,6 +1,6 @@
 """
-LYXEN Token (ERC-20) - Smart Contract Interface
-Native token for Lyxen trading platform
+ENLIKO Token (ERC-20) - Smart Contract Interface
+Native token for Enliko trading platform
 """
 import logging
 from decimal import Decimal, ROUND_DOWN
@@ -11,7 +11,7 @@ from .web3_client import Web3Client
 logger = logging.getLogger(__name__)
 
 
-# LYXEN Token Smart Contract ABI
+# ENLIKO Token Smart Contract ABI
 ELCARO_TOKEN_ABI = [
     # ERC-20 Standard
     {"constant": True, "inputs": [], "name": "name", "outputs": [{"name": "", "type": "string"}], "type": "function"},
@@ -28,7 +28,7 @@ ELCARO_TOKEN_ABI = [
     {"anonymous": False, "inputs": [{"indexed": True, "name": "from", "type": "address"}, {"indexed": True, "name": "to", "type": "address"}, {"indexed": False, "name": "value", "type": "uint256"}], "name": "Transfer", "type": "event"},
     {"anonymous": False, "inputs": [{"indexed": True, "name": "owner", "type": "address"}, {"indexed": True, "name": "spender", "type": "address"}, {"indexed": False, "name": "value", "type": "uint256"}], "name": "Approval", "type": "event"},
     
-    # Extended functions (Lyxen specific)
+    # Extended functions (Enliko specific)
     {"constant": False, "inputs": [{"name": "_to", "type": "address"}, {"name": "_amount", "type": "uint256"}], "name": "mint", "outputs": [{"name": "", "type": "bool"}], "type": "function"},
     {"constant": False, "inputs": [{"name": "_amount", "type": "uint256"}], "name": "burn", "outputs": [{"name": "", "type": "bool"}], "type": "function"},
     {"constant": True, "inputs": [], "name": "owner", "outputs": [{"name": "", "type": "address"}], "type": "function"},
@@ -48,9 +48,9 @@ class TokenInfo:
     contract_address: str
 
 
-class LyxenToken:
+class EnlikoToken:
     """
-    LYXEN Token - ERC-20 token for Lyxen platform.
+    ENLIKO Token - ERC-20 token for Enliko platform.
     
     Features:
     - Standard ERC-20 functionality
@@ -74,7 +74,7 @@ class LyxenToken:
     
     def __init__(self, web3_client: Web3Client, contract_address: Optional[str] = None):
         """
-        Initialize LYXEN token interface.
+        Initialize ENLIKO token interface.
         
         Args:
             web3_client: Web3Client instance
@@ -88,12 +88,12 @@ class LyxenToken:
             contract_address = self.CONTRACT_ADDRESSES.get(network_key)
             
             if not contract_address or contract_address == '0x0000000000000000000000000000000000000000':
-                raise ValueError(f"LYXEN token not deployed on {network_key}")
+                raise ValueError(f"ENLIKO token not deployed on {network_key}")
         
         self.contract_address = contract_address
         self.contract = web3_client.get_contract(contract_address, ELCARO_TOKEN_ABI)
         
-        logger.info(f"LyxenToken initialized at {contract_address}")
+        logger.info(f"EnlikoToken initialized at {contract_address}")
     
     async def get_info(self) -> TokenInfo:
         """Get token information"""
@@ -139,7 +139,7 @@ class LyxenToken:
         
         Args:
             to_address: Recipient address
-            amount: Amount in LYXEN tokens
+            amount: Amount in ENLIKO tokens
         
         Returns:
             Transaction receipt
@@ -273,7 +273,7 @@ class LyxenToken:
 # Utility functions for token conversions
 def usd_to_elcaro(usd_amount: float, elcaro_price_usd: float = 1.0) -> float:
     """
-    Convert USD to LYXEN tokens.
+    Convert USD to ENLIKO tokens.
     
     Args:
         usd_amount: Amount in USD
@@ -301,7 +301,7 @@ def elcaro_to_usd(elcaro_amount: float, elcaro_price_usd: float = 1.0) -> float:
 
 # Price oracle (simple version - in production use Chainlink or similar)
 class TokenPriceOracle:
-    """Simple price oracle for LYXEN token"""
+    """Simple price oracle for ENLIKO token"""
     
     # Initial price: 1 ELCARO = $1 USD
     BASE_PRICE_USD = 1.0
@@ -328,7 +328,7 @@ class TokenPriceOracle:
             period_months: 1, 3, 6, 12
         
         Returns:
-            Price in LYXEN tokens
+            Price in ENLIKO tokens
         """
         # Subscription prices in USD
         prices = {

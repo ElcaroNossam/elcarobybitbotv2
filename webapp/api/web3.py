@@ -166,7 +166,7 @@ async def get_wallet_info(user: Dict = Depends(get_current_user)):
 
 @router.post("/wallet/refresh-balance")
 async def refresh_token_balance(user: Dict = Depends(get_current_user)):
-    """Refresh LYXEN token balance from blockchain"""
+    """Refresh ENLIKO token balance from blockchain"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     
@@ -462,7 +462,7 @@ async def purchase_subscription_with_tokens(
     request: SubscriptionPurchaseRequest,
     user: Dict = Depends(get_current_user)
 ):
-    """Purchase subscription with LYXEN tokens"""
+    """Purchase subscription with ENLIKO tokens"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     
@@ -544,7 +544,7 @@ async def get_transaction_history(
 
 @router.get("/token/info")
 async def get_token_info():
-    """Get LYXEN token information"""
+    """Get ENLIKO token information"""
     if not WEB3_AVAILABLE:
         raise HTTPException(status_code=503, detail="Web3 not configured")
     

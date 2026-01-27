@@ -1176,7 +1176,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
+    'elc_balance_title': '💰 <b>ENLIKO Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1186,7 +1186,7 @@ Bybit • HyperLiquid • マルチ戦略''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy ENLIKO (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1266,7 +1266,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *ENLIKO* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1322,7 +1322,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *ENLIKO CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

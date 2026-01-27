@@ -166,7 +166,7 @@ from .optimizations import (
 
 from .blockchain import (
     # Core
-    LyxenBlockchain,
+    EnlikoBlockchain,
     ELCWallet,
     ELCTransaction,
     TransactionType,
@@ -342,7 +342,7 @@ __all__ = [
     "clear_auth_error_cache",
     
     # Blockchain and ELC
-    "LyxenBlockchain",
+    "EnlikoBlockchain",
     "ELCWallet",
     "ELCTransaction",
     "TransactionType",

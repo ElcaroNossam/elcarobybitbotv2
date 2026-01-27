@@ -219,7 +219,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     # ─────────────────────────────────────────────────────────────────────────
     # ELC Token Commands
     # ─────────────────────────────────────────────────────────────────────────
-    'elc_balance_title':           '💰 <b>LYXEN Balance</b>',
+    'elc_balance_title':           '💰 <b>ENLIKO Balance</b>',
     'elc_available':               'Available',
     'elc_staked':                  'Staked',
     'elc_locked':                  'Locked',
@@ -229,7 +229,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     'btn_elc_history':             '📊 History',
     'btn_connect_wallet':          '🔗 Connect Wallet',
     'btn_disconnect_wallet':       '🔓 Disconnect',
-    'elc_buy_title':               '🛒 <b>Buy LYXEN (ELC)</b>',
+    'elc_buy_title':               '🛒 <b>Buy ENLIKO (ELC)</b>',
     'elc_current_price':           '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee':            '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint':           '<i>Purchase ELC with USDT on TON Network</i>',
@@ -557,7 +557,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     
     # Enliko - Heatmap signal
     'elcaro_entry': (
-        '🔥 *LYXEN* {side_emoji} *{side}*\n'
+        '🔥 *ENLIKO* {side_emoji} *{side}*\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
         '💰 Entry: `{price:.6f}`\n'
@@ -627,7 +627,7 @@ Bybit • HyperLiquid • Multi-strategy''',
     ),
     
     'elcaro_closed': (
-        '🔥 *LYXEN CLOSED* `{symbol}`\n\n'
+        '🔥 *ENLIKO CLOSED* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'

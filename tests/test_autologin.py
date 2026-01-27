@@ -1,5 +1,5 @@
 """
-Auto-login Tests for Lyxen Trading Bot
+Auto-login Tests for Enliko Trading Bot
 Tests all auto-login scenarios to prevent regressions
 """
 
@@ -147,7 +147,7 @@ class TestDashboardAutoLogin:
         
         # Should return 200 and HTML
         assert response.status_code == 200
-        assert "Lyxen" in response.text or "Dashboard" in response.text
+        assert "Enliko" in response.text or "Dashboard" in response.text
         assert "dashboard" in response.text.lower()
         
         print(f"✅ Dashboard with start param test passed for user {test_user_id}")

@@ -93,7 +93,7 @@ class TestBiometricAuthentication:
     def test_biometric_keychain_integration_ios(self):
         """Интеграция с iOS Keychain"""
         keychain_config = {
-            "service": "io.enliko.LyxenTrading",
+            "service": "io.enliko.EnlikoTrading",
             "access_group": None,
             "accessibility": "afterFirstUnlock"
         }

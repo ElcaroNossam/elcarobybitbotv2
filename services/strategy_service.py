@@ -53,7 +53,7 @@ class StrategySettings:
 # Built-in system strategies
 SYSTEM_STRATEGIES = {
     "elcaro": {
-        "name": "Lyxen",
+        "name": "Enliko",
         "description": "Channel breakout with momentum confirmation",
         "icon": "🎯",
         "default_settings": {"tp_percent": 4.0, "sl_percent": 2.0, "risk_per_trade": 1.0}

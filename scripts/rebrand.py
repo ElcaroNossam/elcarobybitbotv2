@@ -28,10 +28,10 @@ REBRAND_TARGETS = [
     ('.env.example', 'APP_NAME=', 'env'),
     
     # iOS
-    ('ios/LyxenTrading/App/Config.swift', 'appName', 'swift'),
+    ('ios/EnlikoTrading/App/Config.swift', 'appName', 'swift'),
     
     # Android
-    ('android/LyxenTrading/app/build.gradle.kts', 'APP_NAME', 'gradle'),
+    ('android/EnlikoTrading/app/build.gradle.kts', 'APP_NAME', 'gradle'),
     
     # Python config
     ('config/settings.py', 'APP_NAME', 'python'),
@@ -53,7 +53,7 @@ HTML_TEMPLATES = [
 ]
 
 
-def find_app_name_occurrences(current_name: str = "Lyxen") -> List[Tuple[str, int, str]]:
+def find_app_name_occurrences(current_name: str = "Enliko") -> List[Tuple[str, int, str]]:
     """Find all occurrences of app name in the project"""
     occurrences = []
     
@@ -148,8 +148,8 @@ def apply_rebrand(old_name: str, new_name: str):
     print(f"\n✅ Rebrand complete! Updated {updated_count} files.")
     print(f"\n⚠️  IMPORTANT: After rebranding, you must:")
     print(f"   1. Update APP_NAME in .env file")
-    print(f"   2. Rebuild iOS: cd ios/LyxenTrading && xcodebuild")
-    print(f"   3. Rebuild Android: cd android/LyxenTrading && ./gradlew assembleDebug")
+    print(f"   2. Rebuild iOS: cd ios/EnlikoTrading && xcodebuild")
+    print(f"   3. Rebuild Android: cd android/EnlikoTrading && ./gradlew assembleDebug")
     print(f"   4. Restart the bot: sudo systemctl restart elcaro-bot")
 
 
@@ -167,7 +167,7 @@ def check_current_branding():
             print(f"   .env.example: APP_NAME={match.group(1)}")
     
     # Check iOS Config.swift
-    ios_config = PROJECT_ROOT / 'ios/LyxenTrading/App/Config.swift'
+    ios_config = PROJECT_ROOT / 'ios/EnlikoTrading/App/Config.swift'
     if ios_config.exists():
         content = ios_config.read_text()
         match = re.search(r'environment\["APP_NAME"\] \?\? "(\w+)"', content)
@@ -175,7 +175,7 @@ def check_current_branding():
             print(f"   iOS Config.swift: default={match.group(1)}")
     
     # Check Android build.gradle.kts
-    android_gradle = PROJECT_ROOT / 'android/LyxenTrading/app/build.gradle.kts'
+    android_gradle = PROJECT_ROOT / 'android/EnlikoTrading/app/build.gradle.kts'
     if android_gradle.exists():
         content = android_gradle.read_text()
         match = re.search(r'System\.getenv\("APP_NAME"\) \?: "(\w+)"', content)
@@ -191,8 +191,8 @@ def check_current_branding():
             print(f"   core/branding.py: default={match.group(1)}")
     
     # Count occurrences
-    occurrences = find_app_name_occurrences("Lyxen")
-    print(f"\n   Total 'Lyxen' occurrences: {len(occurrences)}")
+    occurrences = find_app_name_occurrences("Enliko")
+    print(f"\n   Total 'Enliko' occurrences: {len(occurrences)}")
     print("=" * 50)
 
 
@@ -201,8 +201,8 @@ def main():
     parser.add_argument('--check', action='store_true', help='Check current branding')
     parser.add_argument('--preview', type=str, help='Preview rebrand to new name')
     parser.add_argument('--apply', type=str, help='Apply rebrand to new name')
-    parser.add_argument('--from', dest='old_name', type=str, default='Lyxen', 
-                        help='Current app name (default: Lyxen)')
+    parser.add_argument('--from', dest='old_name', type=str, default='Enliko', 
+                        help='Current app name (default: Enliko)')
     
     args = parser.parse_args()
     

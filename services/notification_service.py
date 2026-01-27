@@ -1,5 +1,5 @@
 """
-Advanced Notification Service for Lyxen Bot
+Advanced Notification Service for Enliko Bot
 PostgreSQL Multitenancy Architecture
 Sends personalized notifications about:
 - Position closed/opened

@@ -1,5 +1,5 @@
 """
-PostgreSQL Sync Database Layer for Lyxen Trading Platform
+PostgreSQL Sync Database Layer for Enliko Trading Platform
 ==========================================================
 Drop-in replacement for SQLite db.py functions using psycopg2.
 

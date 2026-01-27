@@ -1,8 +1,8 @@
 """
-Lyxen Blockchain Module - ELC Token Implementation
+Enliko Blockchain Module - ELC Token Implementation
 =====================================================
 
-Lyxen Coin (ELC) - Next-Generation Global Stablecoin
+Enliko Coin (ELC) - Next-Generation Global Stablecoin
 =======================================================
 
 ELC is designed to replace USDT/USDC by solving ALL their problems:
@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 # The sole owner/creator with full monetary authority
 SOVEREIGN_OWNER_ID = 511692487  # Your Telegram user ID
-SOVEREIGN_OWNER_NAME = "Lyxen Foundation"
+SOVEREIGN_OWNER_NAME = "Enliko Foundation"
 SOVEREIGN_OWNER_TITLE = "Supreme Monetary Authority"
 
 # Owner privileges (like Federal Reserve Chairman)
@@ -81,12 +81,12 @@ OWNER_PRIVILEGES = {
 }
 
 # ============================================
-# TOKEN CONFIGURATION - ELC (LYXEN COIN)
+# TOKEN CONFIGURATION - ELC (ENLIKO COIN)
 # ============================================
 
 ELC_SYMBOL = "ELC"
-ELC_NAME = "Lyxen Coin"
-ELC_FULL_NAME = "Lyxen Global Reserve Currency"
+ELC_NAME = "Enliko Coin"
+ELC_FULL_NAME = "Enliko Global Reserve Currency"
 ELC_DECIMALS = 18
 ELC_TOTAL_SUPPLY = 1_000_000_000_000  # 1 trillion tokens (like USD M2 supply)
 ELC_INITIAL_CIRCULATION = 100_000_000  # 100M initial circulation
@@ -205,7 +205,7 @@ def get_elc_price_info() -> Dict[str, Any]:
 # ============================================
 
 CHAIN_ID = 8888
-CHAIN_NAME = "Lyxen Chain"
+CHAIN_NAME = "Enliko Chain"
 CHAIN_SYMBOL = "ELC"
 BLOCK_TIME = 3  # seconds
 MAX_TRANSACTIONS_PER_BLOCK = 10000
@@ -258,7 +258,7 @@ BURN_ADDRESS = "0xELC000000000000000000000000000000DEAD"
 # ============================================
 # UNIFIED LICENSE PRICING (in ELC = USD)
 # ============================================
-# All tokens are 1:1 with USD: ELC (LYXEN)
+# All tokens are 1:1 with USD: ELC (ENLIKO)
 
 LICENSE_PRICES_ELC = {
     "premium": {1: 100, 3: 270, 6: 480, 12: 840},
@@ -627,7 +627,7 @@ class ELCWallet:
 
 @dataclass
 class ELCTransaction:
-    """Transaction on Lyxen blockchain"""
+    """Transaction on Enliko blockchain"""
     tx_hash: str
     from_address: str
     to_address: str
@@ -662,7 +662,7 @@ class ELCTransaction:
 
 @dataclass
 class ELCBlock:
-    """Block on Lyxen blockchain"""
+    """Block on Enliko blockchain"""
     number: int
     hash: str
     previous_hash: str
@@ -687,12 +687,12 @@ class ELCBlock:
 
 
 # ============================================
-# LYXEN BLOCKCHAIN CLASS
+# ENLIKO BLOCKCHAIN CLASS
 # ============================================
 
-class LyxenBlockchain:
+class EnlikoBlockchain:
     """
-    Lyxen Blockchain - Sovereign Monetary System
+    Enliko Blockchain - Sovereign Monetary System
     ================================================
     
     A complete replacement for USDT/USDC with:
@@ -776,7 +776,7 @@ class LyxenBlockchain:
         # Initialize reserves with simulated assets
         self._init_reserves()
         
-        logger.info(f"LyxenBlockchain initialized. Chain ID: {CHAIN_ID}")
+        logger.info(f"EnlikoBlockchain initialized. Chain ID: {CHAIN_ID}")
         logger.info(f"Sovereign Owner: {SOVEREIGN_OWNER_ID}")
         logger.info(f"Initial Supply: {self._current_supply:,.0f} ELC")
         logger.info(f"Reserve Ratio: {self._monetary_policy.reserve_ratio * 100:.0f}%")
@@ -826,7 +826,7 @@ class LyxenBlockchain:
                 amount=reserve_value * 0.30,
                 usd_value=reserve_value * 0.30,
                 last_audit=datetime.utcnow(),
-                custodian="Lyxen Treasury",
+                custodian="Enliko Treasury",
                 proof_hash=self._generate_hash(f"reserve_usd_{time.time()}")
             ),
             "usd_tbills": ReserveAsset(
@@ -842,7 +842,7 @@ class LyxenBlockchain:
                 amount=reserve_value * 0.15 / 100000,  # ~$100k per BTC
                 usd_value=reserve_value * 0.15,
                 last_audit=datetime.utcnow(),
-                custodian="Lyxen Cold Storage",
+                custodian="Enliko Cold Storage",
                 proof_hash=self._generate_hash(f"reserve_btc_{time.time()}")
             ),
             "gold": ReserveAsset(
@@ -850,7 +850,7 @@ class LyxenBlockchain:
                 amount=reserve_value * 0.10 / 2000,  # ~$2k per oz
                 usd_value=reserve_value * 0.10,
                 last_audit=datetime.utcnow(),
-                custodian="Lyxen Vault",
+                custodian="Enliko Vault",
                 proof_hash=self._generate_hash(f"reserve_gold_{time.time()}")
             ),
             "eth": ReserveAsset(
@@ -858,7 +858,7 @@ class LyxenBlockchain:
                 amount=reserve_value * 0.05 / 4000,  # ~$4k per ETH
                 usd_value=reserve_value * 0.05,
                 last_audit=datetime.utcnow(),
-                custodian="Lyxen Cold Storage",
+                custodian="Enliko Cold Storage",
                 proof_hash=self._generate_hash(f"reserve_eth_{time.time()}")
             ),
         }
@@ -1725,7 +1725,7 @@ class LyxenBlockchain:
 # GLOBAL INSTANCE
 # ============================================
 
-blockchain = LyxenBlockchain()
+blockchain = EnlikoBlockchain()
 
 
 # ============================================
@@ -1838,7 +1838,7 @@ async def pay_license(user_id: int, license_type: str, months: int) -> Tuple[boo
 
 async def pay_license_elc(user_id: int, license_type: str, months: int) -> Tuple[bool, str, float]:
     """
-    Pay for license with ELC (LYXEN tokens)
+    Pay for license with ELC (ENLIKO tokens)
     
     Args:
         user_id: User ID

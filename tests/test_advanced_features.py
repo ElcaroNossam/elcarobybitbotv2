@@ -1,5 +1,5 @@
 """
-Lyxen Advanced System Tests
+Enliko Advanced System Tests
 Tests for: Position Calculator, Screener, Backtest Engine, Trading Terminal
 
 Run: python -m pytest tests/test_advanced_features.py -v

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fix TRC -> ELC token naming across the entire project.
-TRC was the old name, ELC (Lyxen Coin) is the new unified token.
+TRC was the old name, ELC (Enliko Coin) is the new unified token.
 """
 
 import os
@@ -39,7 +39,7 @@ for lang in ['en', 'ru', 'de', 'fr', 'es', 'it', 'pl', 'cs', 'lt', 'sq', 'uk', '
 REPLACEMENTS = [
     # Comments/docs
     ('TRC Token Implementation', 'ELC Token Implementation'),
-    ('Lyxen Coin (TRC)', 'Lyxen Coin (ELC)'),
+    ('Enliko Coin (TRC)', 'Enliko Coin (ELC)'),
     ('TRC is designed', 'ELC is designed'),
     ('SOLVED BY TRC', 'SOLVED BY ELC'),
     ('backing TRC', 'backing ELC'),
@@ -134,13 +134,13 @@ REPLACEMENTS = [
     ('price_trc', 'price_elc'),
     
     # Comments in bot.py
-    ('LYXEN COIN (TRC)', 'LYXEN COIN (ELC)'),
+    ('ENLIKO COIN (TRC)', 'ENLIKO COIN (ELC)'),
     ('(TRC)', '(ELC)'),
     ('replace TRC', 'deprecated'),
     ('same as TRC', 'same as USDT'),
     ('TRC + ELC', 'ELC'),
     ('TRC prices', 'ELC prices'),
-    ('TRC (Lyxen', 'ELC (Lyxen'),
+    ('TRC (Enliko', 'ELC (Enliko'),
     ('# Secondary: TRC', '# Payment: ELC'),
     
     # UI strings in wallet functions

@@ -813,7 +813,7 @@ Bybit • HyperLiquid • 多策略''',
     'trial_demo_only': '⚠️ 试用许可证仅允许模拟交易。\n\n升级到Premium或Basic进行实盘交易: /subscribe',
     'basic_strategy_limit': '⚠️ Basic许可证在实盘账户仅允许: {strategies}\n\n升级到Premium解锁所有策略: /subscribe',
     
-    'subscribe_menu_header': '� <b>LYXEN VIP访问</b>',
+    'subscribe_menu_header': '� <b>ENLIKO VIP访问</b>',
     'subscribe_menu_info': '🔓 解锁精英交易者策略:',
     'btn_premium': '💎 高级版',
     'btn_basic': '🥈 基础版', 
@@ -1146,7 +1146,7 @@ Bybit • HyperLiquid • 多策略''',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>LYXEN Balance</b>',
+    'elc_balance_title': '💰 <b>ENLIKO Balance</b>',
     'elc_available': 'Available',
     'elc_staked': 'Staked',
     'elc_locked': 'Locked',
@@ -1156,7 +1156,7 @@ Bybit • HyperLiquid • 多策略''',
     'btn_elc_history': '📊 History',
     'btn_connect_wallet': '🔗 Connect Wallet',
     'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy LYXEN (ELC)</b>',
+    'elc_buy_title': '🛒 <b>Buy ENLIKO (ELC)</b>',
     'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
     'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
@@ -1236,7 +1236,7 @@ Max: 100,000 ELC''',
 *Accounts:*
 {accounts}
 {atr_info}''',
-    'elcaro_entry': '''🔥 *LYXEN* {side_emoji} *{side}*
+    'elcaro_entry': '''🔥 *ENLIKO* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
 💰 Entry: `{price:.6f}`
@@ -1292,7 +1292,7 @@ Max: 100,000 ELC''',
 💸 Fee: `{fee:.4f} USDT`
 💵 *Net: `{net_pnl:+.2f} USDT`*
 📍 {exchange} • {market_type}''',
-    'elcaro_closed': '''🔥 *LYXEN CLOSED* `{symbol}`
+    'elcaro_closed': '''🔥 *ENLIKO CLOSED* `{symbol}`
 
 📌 Reason: `{reason}`
 🟢 Entry: `{entry:.8f}`

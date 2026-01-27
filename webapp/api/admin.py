@@ -251,7 +251,7 @@ async def create_license(
 ):
     """Create a new license."""
     
-    license_key = f"LYXEN-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+    license_key = f"ENLIKO-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
     expires_at = (datetime.utcnow() + timedelta(days=data.days)).isoformat()
     expires_ts = int((datetime.utcnow() + timedelta(days=data.days)).timestamp())
     

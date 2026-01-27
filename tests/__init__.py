@@ -1,5 +1,5 @@
 """
-Backend Test Suite for Lyxen Trading Bot
+Backend Test Suite for Enliko Trading Bot
 
 Test categories:
 - Unit tests: Individual components

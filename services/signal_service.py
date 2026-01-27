@@ -251,7 +251,7 @@ class SignalParser:
         return signal
     
     def _parse_elcaro(self, text: str) -> Optional[TradingSignal]:
-        """Parse Lyxen signal format"""
+        """Parse Enliko signal format"""
         signal = self._parse_generic(text, SignalSource.ELCARO)
         if signal:
             signal.metadata["parser"] = "elcaro"

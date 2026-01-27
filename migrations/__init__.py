@@ -1,5 +1,5 @@
 """
-Database Migration System for Lyxen Trading Platform
+Database Migration System for Enliko Trading Platform
 ======================================================
 
 This module provides a clean, versioned migration system for PostgreSQL.

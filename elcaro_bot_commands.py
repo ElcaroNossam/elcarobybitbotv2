@@ -1,5 +1,5 @@
 """
-LYXEN Token Bot Commands
+ENLIKO Token Bot Commands
 
 Telegram bot commands for ELCARO (ELC) token:
 - View balance
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------------------------
 
 async def cmd_elc_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show user's LYXEN token balance."""
+    """Show user's ENLIKO token balance."""
     user_id = update.effective_user.id
     t = ctx.t  # translations
     
@@ -453,7 +453,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 def register_elc_handlers(app):
     """
-    Register LYXEN token handlers.
+    Register ENLIKO token handlers.
     
     Call this from bot.py:
         from elcaro_bot_commands import register_elc_handlers
@@ -467,4 +467,4 @@ def register_elc_handlers(app):
     # Callback query handler for all elc: callbacks
     app.add_handler(CallbackQueryHandler(elc_callback_handler, pattern="^elc:"))
     
-    logger.info("✅ LYXEN token handlers registered")
+    logger.info("✅ ENLIKO token handlers registered")

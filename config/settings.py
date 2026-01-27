@@ -17,7 +17,7 @@ load_dotenv(BASE_DIR / ".env")
 # ===================
 # APP BRANDING (Configurable via ENV)
 # ===================
-APP_NAME = os.getenv("APP_NAME", "Lyxen")
+APP_NAME = os.getenv("APP_NAME", "Enliko")
 APP_DISPLAY_NAME = f"{APP_NAME} Trading"
 APP_TERMINAL_NAME = f"{APP_NAME} Trading Terminal"
 APP_BOT_NAME = f"{APP_NAME} Trading Bot"

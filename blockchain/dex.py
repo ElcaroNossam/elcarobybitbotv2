@@ -190,7 +190,7 @@ class Position:
 # AMM (Automated Market Maker)
 # ------------------------------------------------------------------------------------
 
-class LyxenAMM:
+class EnlikoAMM:
     """
     Automated Market Maker for ELCARO DEX.
     
@@ -628,7 +628,7 @@ class PerpetualFutures:
 # Main DEX Contract
 # ------------------------------------------------------------------------------------
 
-class LyxenDEX:
+class EnlikoDEX:
     """
     Main DEX contract integrating AMM, Order Book, and Perpetuals.
     
@@ -640,7 +640,7 @@ class LyxenDEX:
     """
     
     def __init__(self):
-        self.amm = LyxenAMM()
+        self.amm = EnlikoAMM()
         self.order_books: Dict[str, OrderBook] = {}
         self.perpetuals = PerpetualFutures()
         

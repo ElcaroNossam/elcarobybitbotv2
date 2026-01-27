@@ -50,7 +50,7 @@ class WalletAuth:
         """
         timestamp = int(datetime.now().timestamp())
         
-        message = f"""Welcome to Lyxen Trading Platform!
+        message = f"""Welcome to Enliko Trading Platform!
 
 Sign this message to prove you own this wallet.
 
@@ -105,10 +105,10 @@ This won't cost any gas or funds.
 
 # JavaScript code for WebApp (to be included in templates)
 WALLET_CONNECT_JS = """
-// Lyxen Web3 Wallet Integration
+// Enliko Web3 Wallet Integration
 // Add to webapp/static/js/wallet.js
 
-class LyxenWallet {
+class EnlikoWallet {
     constructor() {
         this.provider = null;
         this.account = null;
@@ -261,7 +261,7 @@ class LyxenWallet {
         }
     }
     
-    // Get LYXEN token balance
+    // Get ENLIKO token balance
     async getTokenBalance(tokenAddress) {
         if (!this.account) {
             return 0;
@@ -353,7 +353,7 @@ class LyxenWallet {
 }
 
 // Initialize global wallet instance
-window.elcaroWallet = new LyxenWallet();
+window.elcaroWallet = new EnlikoWallet();
 
 // Helper functions
 async function connectWallet() {

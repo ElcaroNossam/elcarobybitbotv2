@@ -164,7 +164,7 @@ from db import (
     get_user_usage_report,
 )
 
-# LYXEN Token functions
+# ENLIKO Token functions
 from db_elcaro import (
     get_elc_balance,
     check_elc_balance,
@@ -953,7 +953,7 @@ SIGNAL_CHANNEL_IDS = _parse_chat_ids("SIGNAL_CHANNEL_IDS", "SIGNAL_CHANNEL_ID", 
 SIGNAL_CHANNEL_IDS = list(dict.fromkeys(SIGNAL_CHANNEL_IDS))
 
 # =====================================================
-# LICENSE PRICING - LYXEN COIN (ELC)
+# LICENSE PRICING - ENLIKO COIN (ELC)
 # 1 ELC = 1 USDT (pegged stablecoin)
 # Premium: $100/mo, $90/mo x3, $80/mo x6, $70/mo x12
 # =====================================================
@@ -964,7 +964,7 @@ from core.blockchain import (
     blockchain, get_elc_balance, get_elc_wallet, pay_with_elc,
     deposit_elc, reward_elc, get_license_price_elc, pay_license,
     LICENSE_PRICES_ELC, ELC_SYMBOL, ELC_NAME,
-    # ELC payments (LYXEN Super Token)
+    # ELC payments (ENLIKO Super Token)
     pay_license_elc, get_license_price, get_subscription_options,
     LICENSE_PRICES_ELC,
     # Sovereign owner operations
@@ -994,7 +994,7 @@ TRIAL_DAYS = 7   # Trial duration
 # ELC Payment wallet (platform master wallet)
 ELC_MASTER_WALLET = "0xELC000000000000000000000000000000001"
 
-# ELC/LYXEN Token - Our super token (1:1 with USD)
+# ELC/ENLIKO Token - Our super token (1:1 with USD)
 # ELC will eventually deprecated as the primary payment token
 ELC_PRICE_USD = 1.0  # 1 ELC = 1 USD
 
@@ -16344,7 +16344,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             side_emoji = '📈' if side == 'Buy' else '📉'
                             
                             signal_info = t.get('elcaro_entry', (
-                                '🔥 *LYXEN* {side_emoji} *{side}*\n'
+                                '🔥 *ENLIKO* {side_emoji} *{side}*\n'
                                 '━━━━━━━━━━━━━━━━\n'
                                 '🪙 `{symbol}`\n'
                                 '💰 Entry: `{price:.6f}`\n'
@@ -21657,7 +21657,7 @@ def get_payment_method_keyboard(t: dict, plan: str, period: int) -> InlineKeyboa
     ton_price = elc_price
     
     buttons = [
-        # Primary: ELC (LYXEN Token - Super Token)
+        # Primary: ELC (ENLIKO Token - Super Token)
         [InlineKeyboardButton(
             f"⭐ Pay {elc_price:.0f} ELC (~${elc_price:.0f})",
             callback_data=f"sub:elc:{plan}:{period}"
@@ -22282,8 +22282,8 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         elc_balance = get_elc_balance(uid)
         trc_balance = await get_elc_balance(uid)
         
-        text = t.get("wallet_buy_elc_header", "💎 *Buy LYXEN (ELC) Tokens*")
-        text += "\n\n⭐ *LYXEN is the Super Token!*"
+        text = t.get("wallet_buy_elc_header", "💎 *Buy ENLIKO (ELC) Tokens*")
+        text += "\n\n⭐ *ENLIKO is the Super Token!*"
         text += "\n• 1 ELC = 1 USD (stable price)"
         text += "\n• Use for all platform payments"
         text += "\n• Future governance rights"

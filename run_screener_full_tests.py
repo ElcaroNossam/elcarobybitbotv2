@@ -469,7 +469,7 @@ async def test_screener_cache():
 async def main():
     """Run all screener tests"""
     logger.info("="*80)
-    logger.info("🔍 LYXEN SCREENER - FULL TEST SUITE")
+    logger.info("🔍 ENLIKO SCREENER - FULL TEST SUITE")
     logger.info("Testing: Binance, Bybit, OKX, HyperLiquid")
     logger.info("Mode: Real Market Data (Live)")
     logger.info("="*80)

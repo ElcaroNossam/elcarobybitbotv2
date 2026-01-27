@@ -1,6 +1,6 @@
 """
-LYXEN Token Payment API
-Complete payment system using LYXEN token only
+ENLIKO Token Payment API
+Complete payment system using ENLIKO token only
 Buy ELC with USDT on TON, use for all platform services
 
 Synchronized with bot.py LICENSE_PRICES
@@ -91,13 +91,13 @@ class SubmitSignedOrderRequest(BaseModel):
 
 @router.get("/elc/info")
 async def get_elc_info():
-    """Get LYXEN token information and current price
+    """Get ENLIKO token information and current price
     
     NOTE: Token contracts not yet deployed. Values are placeholders.
     DO NOT use contract_addresses in production until real addresses are set.
     """
     return {
-        "token_name": "LYXEN Token",
+        "token_name": "ENLIKO Token",
         "ticker": "ELC",
         "total_supply": 1_000_000_000,
         "circulating_supply": 450_000_000,
@@ -291,7 +291,7 @@ async def get_subscription_prices():
     
     return {
         "currency": "ELC",
-        "note": "All prices in LYXEN tokens. 1 ELC = $1 USD",
+        "note": "All prices in ENLIKO tokens. 1 ELC = $1 USD",
         "plans": plans_data,
         "payment_methods": options["currencies"],
         "how_to_buy_elc": "/api/payments/elc/buy"
@@ -359,7 +359,7 @@ async def create_subscription_payment(
             payment_type="ELC",
             amount=elc_price,
             currency="ELC",
-            notes=f"Paid with LYXEN token via webapp"
+            notes=f"Paid with ENLIKO token via webapp"
         )
         
         if not result.get("success"):

@@ -1,5 +1,5 @@
 """
-TON Payment Gateway - Buy LYXEN tokens with USDT
+TON Payment Gateway - Buy ENLIKO tokens with USDT
 Supports TON, jUSDT, and direct wallet connections
 """
 import asyncio
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class TONPaymentGateway:
     """
-    TON Payment Gateway for LYXEN token purchases
+    TON Payment Gateway for ENLIKO token purchases
     Handles USDT → ELC conversions on TON blockchain
     """
     
@@ -343,7 +343,7 @@ class TONPaymentGateway:
 
 class ELCAROPaymentManager:
     """
-    High-level payment manager for LYXEN ecosystem
+    High-level payment manager for ENLIKO ecosystem
     Handles all payment-related operations
     """
     

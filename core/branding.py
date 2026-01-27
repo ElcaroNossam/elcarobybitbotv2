@@ -5,8 +5,8 @@ Centralized app name management for easy rebranding via ENV variable
 import os
 from typing import Optional
 
-# Get app name from environment, default to Lyxen
-_APP_NAME: str = os.getenv("APP_NAME", "Lyxen")
+# Get app name from environment, default to Enliko
+_APP_NAME: str = os.getenv("APP_NAME", "Enliko")
 
 # Derived names
 _APP_DISPLAY_NAME: str = f"{_APP_NAME} Trading"
@@ -16,22 +16,22 @@ _APP_BUNDLE_PREFIX: str = f"io.{_APP_NAME.lower()}"
 
 
 def get_app_name() -> str:
-    """Get the base app name (e.g., 'Lyxen')"""
+    """Get the base app name (e.g., 'Enliko')"""
     return _APP_NAME
 
 
 def get_display_name() -> str:
-    """Get the display name (e.g., 'Lyxen Trading')"""
+    """Get the display name (e.g., 'Enliko Trading')"""
     return _APP_DISPLAY_NAME
 
 
 def get_terminal_name() -> str:
-    """Get the terminal name (e.g., 'Lyxen Trading Terminal')"""
+    """Get the terminal name (e.g., 'Enliko Trading Terminal')"""
     return _APP_TERMINAL_NAME
 
 
 def get_bot_name() -> str:
-    """Get the bot name (e.g., 'Lyxen Trading Bot')"""
+    """Get the bot name (e.g., 'Enliko Trading Bot')"""
     return _APP_BOT_NAME
 
 
@@ -43,10 +43,10 @@ def get_bundle_prefix() -> str:
 def format_text(text: str, app_name: Optional[str] = None) -> str:
     """
     Replace {APP_NAME} placeholder in text with actual app name.
-    Also handles legacy 'Lyxen' replacements if app_name is different.
+    Also handles legacy 'Enliko' replacements if app_name is different.
     
     Args:
-        text: Text with {APP_NAME} placeholder or hardcoded 'Lyxen'
+        text: Text with {APP_NAME} placeholder or hardcoded 'Enliko'
         app_name: Override app name (optional)
     
     Returns:

@@ -73,15 +73,15 @@ def main():
         print("⚠️ SOME LANGUAGES NEED SYNC")
     print("=" * 60)
     
-    # Count Lyxen mentions
-    print("\n📛 APP NAME 'Lyxen' mentions by language:")
+    # Count Enliko mentions
+    print("\n📛 APP NAME 'Enliko' mentions by language:")
     print("-" * 40)
     for lang in languages:
         if lang not in all_texts:
             continue
         enliko_count = 0
         for key, value in all_texts[lang].items():
-            if isinstance(value, str) and 'Lyxen' in value:
+            if isinstance(value, str) and 'Enliko' in value:
                 enliko_count += 1
         print(f"  {lang}: {enliko_count} mentions")
     

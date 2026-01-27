@@ -31,7 +31,7 @@ def init_web3_tables():
             ("wallet_network", "TEXT"),  # 'polygon', 'bsc', etc.
             ("wallet_verified", "INTEGER DEFAULT 0"),
             ("wallet_connected_at", "BIGINT"),
-            ("elcaro_balance", "REAL DEFAULT 0"),  # Cached LYXEN token balance
+            ("elcaro_balance", "REAL DEFAULT 0"),  # Cached ENLIKO token balance
             ("balance_updated_at", "BIGINT"),
         ]
         
@@ -111,7 +111,7 @@ def init_web3_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_listing_seller ON blockchain_listings(seller_address)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_listing_status ON blockchain_listings(status)")
         
-        # Subscriptions paid with LYXEN tokens
+        # Subscriptions paid with ENLIKO tokens
         cur.execute("""
             CREATE TABLE IF NOT EXISTS blockchain_subscriptions (
                 id SERIAL PRIMARY KEY,
@@ -199,7 +199,7 @@ def get_user_wallet(user_id: int) -> Optional[Dict[str, Any]]:
 
 
 def update_token_balance(user_id: int, balance: float):
-    """Update cached LYXEN token balance"""
+    """Update cached ENLIKO token balance"""
     with get_conn() as conn:
         conn.execute("""
             UPDATE users SET

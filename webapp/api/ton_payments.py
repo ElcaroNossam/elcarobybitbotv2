@@ -2,7 +2,7 @@
 TON Payments API - Subscription purchases via TON blockchain
 Supports: USDT (Jetton), TON native
 
-Integration with LYXEN token ecosystem
+Integration with ENLIKO token ecosystem
 """
 import os
 import logging

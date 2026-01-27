@@ -12,7 +12,7 @@
 ║   Inspired by BlackRock's Aladdin                                            ║
 ║                                                                               ║
 ║   Version: 1.0.0                                                             ║
-║   (c) 2024-2026 Lyxen                                                       ║
+║   (c) 2024-2026 Enliko                                                       ║
 ║                                                                               ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
@@ -93,7 +93,7 @@ from oracle.portfolio_optimizer import PortfolioOptimizer, Asset, AllocationResu
 from oracle.report_generator import ReportGenerator, ReportConfig
 
 __version__ = "1.0.0"
-__author__ = "Lyxen Oracle Team"
+__author__ = "Enliko Oracle Team"
 
 __all__ = [
     # Core

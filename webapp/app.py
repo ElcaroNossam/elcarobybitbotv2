@@ -431,11 +431,11 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"strategy_builder_api router not available: {e}")
     
-    # LYXEN Token Payment System (USDT → ELC, Cold Wallet Trading)
+    # ENLIKO Token Payment System (USDT → ELC, Cold Wallet Trading)
     try:
         from webapp.api import elcaro_payments
         app.include_router(elcaro_payments.router, prefix="/api/elcaro", tags=["elcaro-payments"])
-        logger.info("✅ LYXEN payment system loaded")
+        logger.info("✅ ENLIKO payment system loaded")
     except ImportError as e:
         logger.warning(f"elcaro_payments router not available: {e}")
     

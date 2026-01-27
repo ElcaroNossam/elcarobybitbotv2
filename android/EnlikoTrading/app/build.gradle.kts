@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "io.lyxen.trading"
+    namespace = "io.enliko.trading"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.lyxen.trading"
+        applicationId = "io.enliko.trading"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

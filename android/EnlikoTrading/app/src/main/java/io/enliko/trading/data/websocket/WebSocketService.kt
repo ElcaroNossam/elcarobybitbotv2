@@ -34,7 +34,7 @@ class WebSocketService @Inject constructor(
 ) {
     companion object {
         private const val TAG = "WebSocketService"
-        private const val WS_URL = "wss://fog-cornell-ata-portable.trycloudflare.com/ws"
+        private const val WS_URL = "wss://donald-pink-sending-requesting.trycloudflare.com/ws"
         private const val RECONNECT_DELAY_MS = 5000L
         private const val PING_INTERVAL_MS = 30000L
     }

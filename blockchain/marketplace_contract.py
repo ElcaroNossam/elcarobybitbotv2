@@ -1,6 +1,6 @@
 """
 Strategy Marketplace Smart Contract Interface
-Buy, sell, and trade strategy NFTs using LYXEN tokens
+Buy, sell, and trade strategy NFTs using ENLIKO tokens
 """
 import logging
 from typing import Dict, Any, Optional, List
@@ -65,7 +65,7 @@ class StrategyMarketplace:
     
     Features:
     - List strategies for sale
-    - Buy strategies with LYXEN tokens
+    - Buy strategies with ENLIKO tokens
     - Creator royalties on resales (5-10%)
     - Platform fee (2.5%)
     - Subscription payments with tokens
@@ -74,7 +74,7 @@ class StrategyMarketplace:
     Flow:
     1. User creates strategy → gets NFT
     2. List NFT on marketplace with price
-    3. Buyer approves LYXEN tokens
+    3. Buyer approves ENLIKO tokens
     4. Buyer purchases → tokens transferred
     5. Creator gets royalty, seller gets payment
     6. Buyer receives NFT + strategy access
@@ -119,7 +119,7 @@ class StrategyMarketplace:
         
         Args:
             token_id: Strategy NFT token ID
-            price: Price in LYXEN tokens
+            price: Price in ENLIKO tokens
             royalty_percent: Creator royalty (default 5%)
         
         Returns:
@@ -168,7 +168,7 @@ class StrategyMarketplace:
         Returns:
             Transaction receipt
         """
-        # Note: Buyer must approve LYXEN tokens BEFORE calling this
+        # Note: Buyer must approve ENLIKO tokens BEFORE calling this
         return await self.client.call_contract_function(
             self.contract_address,
             MARKETPLACE_ABI,
@@ -264,7 +264,7 @@ class StrategyMarketplace:
         months: int
     ) -> Dict[str, Any]:
         """
-        Purchase subscription with LYXEN tokens.
+        Purchase subscription with ENLIKO tokens.
         
         Args:
             plan: 'basic' or 'premium'
@@ -273,7 +273,7 @@ class StrategyMarketplace:
         Returns:
             Transaction receipt
         """
-        # Note: User must approve LYXEN tokens BEFORE calling this
+        # Note: User must approve ENLIKO tokens BEFORE calling this
         return await self.client.call_contract_function(
             self.contract_address,
             MARKETPLACE_ABI,

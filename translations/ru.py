@@ -218,7 +218,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     # ─────────────────────────────────────────────────────────────────────────
     # ELC Token Commands
     # ─────────────────────────────────────────────────────────────────────────
-    'elc_balance_title':           '💰 <b>Баланс LYXEN</b>',
+    'elc_balance_title':           '💰 <b>Баланс ENLIKO</b>',
     'elc_available':               'Доступно',
     'elc_staked':                  'В стейке',
     'elc_locked':                  'Заблокировано',
@@ -228,7 +228,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     'btn_elc_history':             '📊 История',
     'btn_connect_wallet':          '🔗 Подключить кошелёк',
     'btn_disconnect_wallet':       '🔓 Отключить',
-    'elc_buy_title':               '🛒 <b>Покупка LYXEN (ELC)</b>',
+    'elc_buy_title':               '🛒 <b>Покупка ENLIKO (ELC)</b>',
     'elc_current_price':           '💵 Текущая цена: <b>$1.00 USD / ELC</b>',
     'elc_platform_fee':            '🔥 Комиссия платформы: <b>0.5%</b>',
     'elc_purchase_hint':           '<i>Покупка ELC за USDT в сети TON</i>',
@@ -562,7 +562,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     
     # Enliko - анализ ликвидности
     'elcaro_entry': (
-        '🔥 *LYXEN* {side_emoji} *{side}*\n'
+        '🔥 *ENLIKO* {side_emoji} *{side}*\n'
         '━━━━━━━━━━━━━━━━\n'
         '🪙 `{symbol}`\n'
         '💰 Вход: `{price:.6f}`\n'
@@ -640,7 +640,7 @@ Bybit • HyperLiquid • Мульти-стратегии''',
     ),
     
     'elcaro_closed': (
-        '🔥 *LYXEN ЗАКРЫТ*\n\n'
+        '🔥 *ENLIKO ЗАКРЫТ*\n\n'
         '🪙 *{symbol}* по *{reason}*\n'
         '📊 Стратегия: `Enliko`\n'
         '📈 Вход: `{entry:.8f}`\n'
