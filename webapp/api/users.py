@@ -78,6 +78,7 @@ async def get_settings(
     exchange_type = db.get_exchange_type(user_id) or "bybit"
     trading_mode = creds.get("trading_mode", "demo")
     hl_testnet = hl_creds.get("hl_testnet", False)
+    user_lang = creds.get("lang", "en")
     
     if exchange == "hyperliquid":
         # Check both new architecture and legacy format
@@ -91,6 +92,7 @@ async def get_settings(
             "exchange_type": exchange_type,
             "trading_mode": trading_mode,
             "hl_testnet": hl_testnet,
+            "lang": user_lang,
             # Exchange-specific settings
             "percent": creds.get("hl_percent", 5),
             "leverage": creds.get("hl_leverage", 10),
@@ -106,6 +108,7 @@ async def get_settings(
             "exchange_type": exchange_type,
             "trading_mode": trading_mode,
             "hl_testnet": hl_testnet,
+            "lang": user_lang,
             # Exchange-specific settings
             "percent": creds.get("percent", 5),
             "leverage": creds.get("leverage", 10),

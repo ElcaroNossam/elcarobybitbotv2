@@ -982,6 +982,96 @@
     }
 }
 
+/* Mobile */
+@media (max-width: 768px) {
+    .analytics-grid,
+    .positions-grid,
+    .orders-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .dca-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .dca-summary-item {
+        padding: 10px;
+    }
+    
+    .dca-summary-value {
+        font-size: 1rem;
+    }
+    
+    .panel-header {
+        padding: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .panel-body {
+        padding: 12px;
+    }
+    
+    .analytics-card,
+    .position-card,
+    .order-card {
+        padding: 12px;
+    }
+    
+    .shortcuts-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .shortcut-btn {
+        padding: 10px;
+        font-size: 12px;
+        min-height: 44px;
+    }
+    
+    .dca-orders {
+        max-height: 200px;
+    }
+    
+    .dca-order {
+        padding: 8px;
+        font-size: 12px;
+    }
+    
+    .alerts-list {
+        max-height: 200px;
+    }
+    
+    .alert-item {
+        padding: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .alert-actions button {
+        min-height: 36px;
+        min-width: 36px;
+    }
+}
+
+/* Extra small */
+@media (max-width: 375px) {
+    .dca-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .shortcuts-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .shortcut-btn {
+        padding: 8px;
+        font-size: 11px;
+    }
+}
+
 
 /* ============================================================
    CUSTOM SCROLLBAR

@@ -268,6 +268,36 @@
             margin-bottom: 20px;
             opacity: 0.3;
         }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            h1 { font-size: 1.5rem; }
+            .subtitle { font-size: 0.9rem; }
+            .controls { 
+                padding: 12px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .filter-input { width: 100%; }
+            th, td { padding: 10px 8px; font-size: 0.85rem; }
+            .symbol { font-size: 0.95rem; }
+            .metric-badge { font-size: 0.75rem; padding: 3px 6px; }
+            table { font-size: 0.85rem; }
+        }
+        
+        @media (max-width: 375px) {
+            body { padding: 8px; }
+            h1 { font-size: 1.2rem; }
+            .subtitle { font-size: 0.8rem; }
+            .controls { padding: 10px; gap: 8px; }
+            th, td { padding: 6px 4px; font-size: 0.75rem; }
+            .symbol { font-size: 0.85rem; }
+            .metric-badge { font-size: 0.65rem; padding: 2px 4px; }
+            .connection-status { font-size: 0.7rem; padding: 6px 10px; }
+            .loading { font-size: 1rem; padding: 20px; }
+            .spinner { width: 30px; height: 30px; }
+        }
     </style>
     
     <!-- Mobile Responsive CSS -->

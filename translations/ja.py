@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
-    'welcome':                     '''🔥 <b>ようこそ、アルファトレーダー！</b>
+    # メインメニュー - プロフェッショナル取引ターミナル
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
-あなたがこれを読んでいる間に — <b>847人のトレーダー</b>がすでにLyxenで利益を上げています。
+⚡ <b>&lt; 100ms</b> 約定速度
+🛡️ <b>リスク管理</b>内蔵
+💎 <b>24/7</b> 自動取引
 
-⚡ <b>&lt; 100ms</b> 実行速度
-🛡️ <b>664のセキュリティテスト</b>に合格
-💎 <b>24/7</b> AI駆動トレード
-
-<i>ライバルは眠りません。Lyxenも。</i>
-
-経済的自由への道を選んでください：''',
-    'no_strategies':               '❌ なし — <i>アクティブな戦略がないと毎秒お金を失っています</i>',
-    'guide_caption':               '📚 <b>エリートトレードの秘密</b>\n\n⚠️ この情報はトップトレーダーに<b>不当な優位性</b>を与えました。\n\n<i>読了時間：3分。潜在的利益：無限大。</i>',
-    'privacy_caption':             '📜 <b>あなたのセキュリティ = 私たちの執念</b>\n\n🔐 銀行級の暗号化\n✅ データ共有なし。永遠に。\n\n<i>あなたは安全な手の中にいます。</i>',
+Bybit • HyperLiquid • マルチ戦略''',
+    'no_strategies':               '❌ アクティブな戦略がありません',
+    'guide_caption':               '📚 <b>ユーザーガイド</b>\n\nAPI設定、戦略、リスク管理。',
+    'privacy_caption':             '📜 <b>プライバシーポリシー</b>\n\n🔐 暗号化保存\n✅ データ共有なし',
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive
@@ -651,6 +647,37 @@ TEXTS = {
     'param_atr_periods':             '📈 ATR期間',
     'param_atr_mult':                '📉 ATR倍率（SLステップ）',
     'param_atr_trigger':             '🎯 ATRトリガー%',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *ブレークイーブン設定*',
+    'be_settings_desc':              '_利益がトリガー%に達したらSLをエントリー価格に移動_',
+    'be_enabled_label':              '🔒 ブレークイーブン',
+    'be_trigger_label':              '🎯 BEトリガー %',
+    'prompt_be_trigger':             'ブレークイーブントリガー%を入力（例：1.0）:',
+    'prompt_long_be_trigger':        '📈 LONG BEトリガー%\n\nSLをエントリーに移動する利益%を入力:',
+    'prompt_short_be_trigger':       '📉 SHORT BEトリガー%\n\nSLをエントリーに移動する利益%を入力:',
+    'param_be_trigger':              '🎯 BEトリガー %',
+    'be_moved_to_entry':             '🔒 {symbol}: SLをブレークイーブン @ {entry} に移動',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: オフ',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ 部分利確',
+    'partial_tp_status_enabled':     '✅ 部分利確有効',
+    'partial_tp_status_disabled':    '❌ 部分利確無効',
+    'partial_tp_step1_menu':         '✂️ *部分利確 - ステップ1*\n\n+{trigger}%の利益でポジションの{close}%を決済\n\n_パラメータを選択:_',
+    'partial_tp_step2_menu':         '✂️ *部分利確 - ステップ2*\n\n+{trigger}%の利益でポジションの{close}%を決済\n\n_パラメータを選択:_',
+    'trigger_pct':                   'トリガー',
+    'close_pct':                     '決済',
+    'prompt_long_ptp_1_trigger':     '📈 LONG ステップ1: トリガー%\n\n最初の部分を決済する利益%を入力:',
+    'prompt_long_ptp_1_close':       '📈 LONG ステップ1: 決済%\n\n決済するポジション%を入力:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG ステップ2: トリガー%\n\n2番目の部分を決済する利益%を入力:',
+    'prompt_long_ptp_2_close':       '📈 LONG ステップ2: 決済%\n\n決済するポジション%を入力:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT ステップ1: トリガー%\n\n最初の部分を決済する利益%を入力:',
+    'prompt_short_ptp_1_close':      '📉 SHORT ステップ1: 決済%\n\n決済するポジション%を入力:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT ステップ2: トリガー%\n\n2番目の部分を決済する利益%を入力:',
+    'prompt_short_ptp_2_close':      '📉 SHORT ステップ2: 決済%\n\n決済するポジション%を入力:',
+    'partial_tp_executed':           '✂️ {symbol}: +{trigger}%の利益で{close}%を決済',
 
     # Hardcoded strings fix
     'terms_unavailable':             '利用規約が利用できません。管理者に連絡してください。',
@@ -1350,5 +1377,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 ネットワークの問題。後でもう一度お試しください。',
     'error_sl_tp_invalid': '⚠️ SL/TPを設定できません：価格が現在価格に近すぎます。次のサイクルで更新されます。',
     'error_equity_zero': '💰 アカウント残高がゼロです。取引するにはDemoまたはRealアカウントをチャージしてください。',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 ターミナル',
+    'exchange_mode_activated_bybit': '🟠 *Bybitモード有効*',
+    'exchange_mode_activated_hl': '🔷 *HyperLiquidモード有効*',
+    'error_processing_request': '⚠️ リクエストの処理中にエラーが発生しました',
+    'unauthorized_admin': '❌ 権限がありません。このコマンドは管理者専用です。',
+    'error_loading_dashboard': '❌ ダッシュボードの読み込みエラー。',
+    'unauthorized': '❌ 権限がありません。',
+    'processing_blockchain': '⏳ ブロックチェーン取引を処理中...',
+    'verifying_payment': '⏳ TONブロックチェーンで支払いを検証中...',
+    'no_wallet_configured': '❌ ウォレットが設定されていません。',
+    'use_start_menu': 'メインメニューに戻るには /start を使用してください。',
 }

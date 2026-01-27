@@ -314,4 +314,42 @@
     .page-title {
         font-size: 16px;
     }
+    
+    .header-actions {
+        gap: var(--space-xs);
+    }
+    
+    .header-btn {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+    }
+}
+
+/* Extra small mobile */
+@media (max-width: 375px) {
+    .header {
+        height: 52px;
+        padding: 0 var(--space-sm);
+    }
+    
+    .page-title {
+        font-size: 14px;
+    }
+    
+    .logo-icon {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .header-actions {
+        gap: 4px;
+    }
+    
+    .header-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 6px;
+        font-size: 12px;
+    }
 }

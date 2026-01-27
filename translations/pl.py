@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
-    'welcome':                     '''🔥 <b>Witaj, Trader Alpha!</b>
+    # Menu główne - Profesjonalny terminal handlowy
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
-Podczas gdy to czytasz — <b>847 traderów</b> już zarabia z Lyxen.
+⚡ <b>&lt; 100ms</b> realizacja
+🛡️ <b>Zarządzanie ryzykiem</b> wbudowane
+💎 <b>24/7</b> automatyczny trading
 
-⚡ <b>&lt; 100ms</b> prędkość realizacji
-🛡️ <b>664 testów bezpieczeństwa</b> zaliczonych
-💎 <b>24/7</b> trading z AI
-
-<i>Twoja konkurencja nie śpi. Lyxen też nie.</i>
-
-Wybierz swoją drogę do wolności finansowej:''',
-    'no_strategies':               '❌ Brak — <i>Tracisz pieniądze co sekundę bez aktywnych strategii</i>',
-    'guide_caption':               '📚 <b>SEKRETY ELITARNYCH Traderów</b>\n\n⚠️ Te informacje dały naszym najlepszym traderom <b>nieuczciwą przewagę</b>.\n\n<i>Czas czytania: 3 min. Potencjalny zysk: nieograniczony.</i>',
-    'privacy_caption':             '📜 <b>Twoje Bezpieczeństwo = Nasza Obsesja</b>\n\n🔐 Szyfrowanie bankowe\n✅ Brak udostępniania danych. Nigdy.\n\n<i>Jesteś w dobrych rękach.</i>',
+Bybit • HyperLiquid • Multi-strategia''',
+    'no_strategies':               '❌ Brak aktywnych strategii',
+    'guide_caption':               '📚 <b>Podręcznik użytkownika</b>\n\nKonfiguracja API, strategie, zarządzanie ryzykiem.',
+    'privacy_caption':             '📜 <b>Prywatność</b>\n\n🔐 Szyfrowane przechowywanie\n✅ Brak udostępniania danych',
     'button_api':                  '� Podłącz API',
     'button_secret':               '🔑 Klucz Tajny',
     'button_api_settings':         '⚙️ Config API',
@@ -648,6 +644,37 @@ Wybierz swoją drogę do wolności finansowej:''',
     'param_atr_periods':             '📈 Okresy ATR',
     'param_atr_mult':                '📉 Mnożnik ATR (krok SL)',
     'param_atr_trigger':             '🎯 Aktywacja ATR %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *Ustawienia Break-Even*',
+    'be_settings_desc':              '_Przesuń SL do ceny wejścia gdy zysk osiągnie % aktywacji_',
+    'be_enabled_label':              '🔒 Break-Even',
+    'be_trigger_label':              '🎯 Aktywacja BE %',
+    'prompt_be_trigger':             'Wprowadź % aktywacji Break-Even (np. 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG Aktywacja BE %\n\nWprowadź % zysku do przesunięcia SL do wejścia:',
+    'prompt_short_be_trigger':       '📉 SHORT Aktywacja BE %\n\nWprowadź % zysku do przesunięcia SL do wejścia:',
+    'param_be_trigger':              '🎯 Aktywacja BE %',
+    'be_moved_to_entry':             '🔒 {symbol}: SL przesunięty do break-even @ {entry}',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: Wyłączony',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ Częściowy TP',
+    'partial_tp_status_enabled':     '✅ Częściowy TP włączony',
+    'partial_tp_status_disabled':    '❌ Częściowy TP wyłączony',
+    'partial_tp_step1_menu':         '✂️ *Częściowy TP - Krok 1*\n\nZamknij {close}% pozycji przy +{trigger}% zysku\n\n_Wybierz parametr:_',
+    'partial_tp_step2_menu':         '✂️ *Częściowy TP - Krok 2*\n\nZamknij {close}% pozycji przy +{trigger}% zysku\n\n_Wybierz parametr:_',
+    'trigger_pct':                   'Aktywacja',
+    'close_pct':                     'Zamknij',
+    'prompt_long_ptp_1_trigger':     '📈 LONG Krok 1: % Aktywacji\n\nWprowadź % zysku do zamknięcia pierwszej części:',
+    'prompt_long_ptp_1_close':       '📈 LONG Krok 1: % Zamknięcia\n\nWprowadź % pozycji do zamknięcia:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG Krok 2: % Aktywacji\n\nWprowadź % zysku do zamknięcia drugiej części:',
+    'prompt_long_ptp_2_close':       '📈 LONG Krok 2: % Zamknięcia\n\nWprowadź % pozycji do zamknięcia:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT Krok 1: % Aktywacji\n\nWprowadź % zysku do zamknięcia pierwszej części:',
+    'prompt_short_ptp_1_close':      '📉 SHORT Krok 1: % Zamknięcia\n\nWprowadź % pozycji do zamknięcia:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT Krok 2: % Aktywacji\n\nWprowadź % zysku do zamknięcia drugiej części:',
+    'prompt_short_ptp_2_close':      '📉 SHORT Krok 2: % Zamknięcia\n\nWprowadź % pozycji do zamknięcia:',
+    'partial_tp_executed':           '✂️ {symbol}: Zamknięto {close}% przy +{trigger}% zysku',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Regulamin niedostępny. Skontaktuj się z administratorem.',
@@ -1318,5 +1345,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 Problem z siecią. Spróbuj później.',
     'error_sl_tp_invalid': '⚠️ Nie można ustawić SL/TP: cena zbyt blisko aktualnej. Zostanie zaktualizowane w następnym cyklu.',
     'error_equity_zero': '💰 Saldo Twojego konta wynosi zero. Doładuj konto Demo lub Real, aby handlować.',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 Terminal',
+    'exchange_mode_activated_bybit': '🟠 *Tryb Bybit aktywowany*',
+    'exchange_mode_activated_hl': '🔷 *Tryb HyperLiquid aktywowany*',
+    'error_processing_request': '⚠️ Błąd przetwarzania żądania',
+    'unauthorized_admin': '❌ Brak autoryzacji. To polecenie jest tylko dla administratora.',
+    'error_loading_dashboard': '❌ Błąd ładowania panelu.',
+    'unauthorized': '❌ Brak autoryzacji.',
+    'processing_blockchain': '⏳ Przetwarzanie transakcji blockchain...',
+    'verifying_payment': '⏳ Weryfikacja płatności w blockchain TON...',
+    'no_wallet_configured': '❌ Portfel nie skonfigurowany.',
+    'use_start_menu': 'Użyj /start aby wrócić do menu głównego.',
 }

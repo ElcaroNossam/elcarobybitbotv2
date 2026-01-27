@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 # translations/lt.py — lietuvių
 TEXTS = {
-    # Main menu
-    'welcome':                     '👋 Sveiki! Pasirinkite veiksmą:',
-    'no_strategies':               '❌ Nėra',
-    'guide_caption':               '📚 Prekybos boto naudotojo vadovas\n\nPerskaitykite šį vadovą, kad sužinotumėte, kaip konfigruoti strategijas ir efektyviai naudoti botą.',
-    'privacy_caption':             '📜 Privatumo politika ir naudojimo sąlygos\n\nAtidžiai perskaitykite šį dokumentą.',
+    # Pagrindinis meniu - Profesionalus prekybos terminalas
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+
+⚡ <b>&lt; 100ms</b> vykdymo greitis
+🛡️ <b>Rizikos valdymas</b> integruotas
+💎 <b>24/7</b> automatinė prekyba
+
+Bybit • HyperLiquid • Multi-strategija''',
+    'no_strategies':               '❌ Nėra aktyvių strategijų',
+    'guide_caption':               '📚 <b>Naudotojo vadovas</b>\n\nAPI nustatymai, strategijos, rizikos valdymas.',
+    'privacy_caption':             '📜 <b>Privatumas</b>\n\n🔐 Šifruota saugykla\n✅ Jokio duomenų dalijimosi',
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Slaptas',
     'button_api_settings':         '🔑 API',
@@ -637,6 +643,37 @@ TEXTS = {
     'param_atr_periods':             '📈 ATR periodai',
     'param_atr_mult':                '📉 ATR daugiklis (SL žingsnis)',
     'param_atr_trigger':             '🎯 ATR aktyvavimas %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *Break-Even nustatymai*',
+    'be_settings_desc':              '_Perkelti SL į įėjimo kainą kai pelnas pasiekia aktyvavimo %_',
+    'be_enabled_label':              '🔒 Break-Even',
+    'be_trigger_label':              '🎯 BE aktyvavimas %',
+    'prompt_be_trigger':             'Įveskite Break-Even aktyvavimo % (pvz. 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG BE aktyvavimas %\n\nĮveskite pelno % SL perkėlimui į įėjimą:',
+    'prompt_short_be_trigger':       '📉 SHORT BE aktyvavimas %\n\nĮveskite pelno % SL perkėlimui į įėjimą:',
+    'param_be_trigger':              '🎯 BE aktyvavimas %',
+    'be_moved_to_entry':             '🔒 {symbol}: SL perkeltas į break-even @ {entry}',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: Išjungta',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ Dalinis TP',
+    'partial_tp_status_enabled':     '✅ Dalinis TP įjungtas',
+    'partial_tp_status_disabled':    '❌ Dalinis TP išjungtas',
+    'partial_tp_step1_menu':         '✂️ *Dalinis TP - 1 žingsnis*\n\nUždaryti {close}% pozicijos esant +{trigger}% pelnui\n\n_Pasirinkite parametrą:_',
+    'partial_tp_step2_menu':         '✂️ *Dalinis TP - 2 žingsnis*\n\nUždaryti {close}% pozicijos esant +{trigger}% pelnui\n\n_Pasirinkite parametrą:_',
+    'trigger_pct':                   'Aktyvavimas',
+    'close_pct':                     'Uždaryti',
+    'prompt_long_ptp_1_trigger':     '📈 LONG 1 žingsnis: Aktyvavimo %\n\nĮveskite pelno % pirmai daliai uždaryti:',
+    'prompt_long_ptp_1_close':       '📈 LONG 1 žingsnis: Uždarymo %\n\nĮveskite pozicijos % uždarymui:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG 2 žingsnis: Aktyvavimo %\n\nĮveskite pelno % antrai daliai uždaryti:',
+    'prompt_long_ptp_2_close':       '📈 LONG 2 žingsnis: Uždarymo %\n\nĮveskite pozicijos % uždarymui:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT 1 žingsnis: Aktyvavimo %\n\nĮveskite pelno % pirmai daliai uždaryti:',
+    'prompt_short_ptp_1_close':      '📉 SHORT 1 žingsnis: Uždarymo %\n\nĮveskite pozicijos % uždarymui:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT 2 žingsnis: Aktyvavimo %\n\nĮveskite pelno % antrai daliai uždaryti:',
+    'prompt_short_ptp_2_close':      '📉 SHORT 2 žingsnis: Uždarymo %\n\nĮveskite pozicijos % uždarymui:',
+    'partial_tp_executed':           '✂️ {symbol}: Uždaryta {close}% esant +{trigger}% pelnui',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Paslaugų sąlygos nepasiekiamos. Susisiekite su administratoriumi.',
@@ -1336,5 +1373,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 Tinklo problema. Bandykite vėliau.',
     'error_sl_tp_invalid': '⚠️ Nepavyksta nustatyti SL/TP: kaina per arti dabartinės. Bus atnaujinta kitame cikle.',
     'error_equity_zero': '💰 Jūsų sąskaitos balansas lygus nuliui. Papildykite Demo arba Real sąskaitą prekybai.',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 Terminalas',
+    'exchange_mode_activated_bybit': '🟠 *Bybit režimas aktyvuotas*',
+    'exchange_mode_activated_hl': '🔷 *HyperLiquid režimas aktyvuotas*',
+    'error_processing_request': '⚠️ Užklausos apdorojimo klaida',
+    'unauthorized_admin': '❌ Neautorizuota. Ši komanda tik administratoriui.',
+    'error_loading_dashboard': '❌ Skydelio įkėlimo klaida.',
+    'unauthorized': '❌ Neautorizuota.',
+    'processing_blockchain': '⏳ Apdorojama blockchain transakcija...',
+    'verifying_payment': '⏳ Tikrinamas mokėjimas TON blockchain...',
+    'no_wallet_configured': '❌ Piniginė nesukonfigūruota.',
+    'use_start_menu': 'Naudokite /start norėdami grįžti į pagrindinį meniu.',
 }

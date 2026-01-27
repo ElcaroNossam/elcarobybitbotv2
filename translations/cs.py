@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
-    'welcome':                     '''🔥 <b>Vítej, Alpha Tradere!</b>
+    # Hlavní menu - Profesionální obchodní terminál
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
-Zatímco čteš toto — <b>847 traderů</b> už vydělává s Lyxen.
+⚡ <b>&lt; 100ms</b> rychlost provedení
+🛡️ <b>Řízení rizik</b> integrované
+💎 <b>24/7</b> automatické obchodování
 
-⚡ <b>&lt; 100ms</b> rychlost exekuce
-🛡️ <b>664 bezpečnostních testů</b> prošlo
-💎 <b>24/7</b> AI-řízené obchodování
-
-<i>Tvoí konkurenti nespí. Lyxen taky ne.</i>
-
-Vyber si cestu k finanční svobodě:''',
-    'no_strategies':               '❌ Žádné — <i>Každou sekundu bez strategií ztrácíš peníze</i>',
-    'guide_caption':               '📚 <b>TAJEMSTVÍ ELÍTNÍCH TRADERŮ</b>\n\n⚠️ Tyto informace daly našim top traderům <b>nespravedlivou výhodu</b>.\n\n<i>Čas čtení: 3 min. Potenciální zisk: neomezený.</i>',
-    'privacy_caption':             '📜 <b>Tvoje bezpečnost = Naše posedlost</b>\n\n🔐 Bankovní šifrování\n✅ Žádné sdílení dat. Nikdy.\n\n<i>Jsi v bezpečných rukou.</i>',
+Bybit • HyperLiquid • Multi-strategie''',
+    'no_strategies':               '❌ Žádné aktivní strategie',
+    'guide_caption':               '📚 <b>Uživatelská příručka</b>\n\nNastavení API, strategie, řízení rizik.',
+    'privacy_caption':             '📜 <b>Soukromí</b>\n\n🔐 Šifrované úložiště\n✅ Žádné sdílení dat',
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive
@@ -651,6 +647,37 @@ Vyber si cestu k finanční svobodě:''',
     'param_atr_periods':             '📈 Periody ATR',
     'param_atr_mult':                '📉 Násobitel ATR (krok SL)',
     'param_atr_trigger':             '🎯 Aktivace ATR %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *Nastavení Break-Even*',
+    'be_settings_desc':              '_Přesunout SL na vstupní cenu když zisk dosáhne % aktivace_',
+    'be_enabled_label':              '🔒 Break-Even',
+    'be_trigger_label':              '🎯 Aktivace BE %',
+    'prompt_be_trigger':             'Zadejte % aktivace Break-Even (např. 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG Aktivace BE %\n\nZadejte % zisku pro přesun SL na vstup:',
+    'prompt_short_be_trigger':       '📉 SHORT Aktivace BE %\n\nZadejte % zisku pro přesun SL na vstup:',
+    'param_be_trigger':              '🎯 Aktivace BE %',
+    'be_moved_to_entry':             '🔒 {symbol}: SL přesunut na break-even @ {entry}',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: Vypnuto',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ Částečný TP',
+    'partial_tp_status_enabled':     '✅ Částečný TP zapnut',
+    'partial_tp_status_disabled':    '❌ Částečný TP vypnut',
+    'partial_tp_step1_menu':         '✂️ *Částečný TP - Krok 1*\n\nZavřít {close}% pozice při +{trigger}% zisku\n\n_Vyberte parametr:_',
+    'partial_tp_step2_menu':         '✂️ *Částečný TP - Krok 2*\n\nZavřít {close}% pozice při +{trigger}% zisku\n\n_Vyberte parametr:_',
+    'trigger_pct':                   'Aktivace',
+    'close_pct':                     'Zavřít',
+    'prompt_long_ptp_1_trigger':     '📈 LONG Krok 1: % Aktivace\n\nZadejte % zisku pro zavření první části:',
+    'prompt_long_ptp_1_close':       '📈 LONG Krok 1: % Zavření\n\nZadejte % pozice k zavření:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG Krok 2: % Aktivace\n\nZadejte % zisku pro zavření druhé části:',
+    'prompt_long_ptp_2_close':       '📈 LONG Krok 2: % Zavření\n\nZadejte % pozice k zavření:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT Krok 1: % Aktivace\n\nZadejte % zisku pro zavření první části:',
+    'prompt_short_ptp_1_close':      '📉 SHORT Krok 1: % Zavření\n\nZadejte % pozice k zavření:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT Krok 2: % Aktivace\n\nZadejte % zisku pro zavření druhé části:',
+    'prompt_short_ptp_2_close':      '📉 SHORT Krok 2: % Zavření\n\nZadejte % pozice k zavření:',
+    'partial_tp_executed':           '✂️ {symbol}: Zavřeno {close}% při +{trigger}% zisku',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Podmínky služby nejsou dostupné. Kontaktujte administrátora.',
@@ -1315,5 +1342,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 Problém se sítí. Zkuste to později.',
     'error_sl_tp_invalid': '⚠️ Nelze nastavit SL/TP: cena příliš blízko aktuální. Bude aktualizováno v dalším cyklu.',
     'error_equity_zero': '💰 Zůstatek vašeho účtu je nulový. Dobijte Demo nebo Real účet pro obchodování.',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 Terminál',
+    'exchange_mode_activated_bybit': '🟠 *Režim Bybit aktivován*',
+    'exchange_mode_activated_hl': '🔷 *Režim HyperLiquid aktivován*',
+    'error_processing_request': '⚠️ Chyba zpracování požadavku',
+    'unauthorized_admin': '❌ Neautorizováno. Tento příkaz je pouze pro administrátora.',
+    'error_loading_dashboard': '❌ Chyba načítání panelu.',
+    'unauthorized': '❌ Neautorizováno.',
+    'processing_blockchain': '⏳ Zpracování blockchain transakce...',
+    'verifying_payment': '⏳ Ověřování platby na blockchainu TON...',
+    'no_wallet_configured': '❌ Peněženka není nakonfigurována.',
+    'use_start_menu': 'Použijte /start pro návrat do hlavního menu.',
 }

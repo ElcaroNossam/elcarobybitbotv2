@@ -501,6 +501,39 @@
             .overview-value { font-size: 1rem; }
             .overview-label { font-size: 0.65rem; }
         }
+        
+        @media (max-width: 375px) {
+            .container { padding: 8px !important; }
+            .overview-bar { 
+                flex-direction: column;
+                gap: 6px;
+            }
+            .overview-card { 
+                padding: 8px 10px;
+                width: 100%;
+            }
+            .overview-value { font-size: 0.95rem; }
+            .overview-label { font-size: 0.6rem; }
+            .screener-table th,
+            .screener-table td { 
+                padding: 6px 4px;
+                font-size: 0.7rem;
+            }
+            .filter-btn { 
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+            .search-box input {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+            .coin-info .symbol { font-size: 0.8rem; }
+            .coin-info .name { font-size: 0.65rem; }
+            .exchange-btn { 
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+        }
     
         .exchange-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
         .exchange-btn.active { background: linear-gradient(135deg, var(--green), #00cc6a); border-color: transparent; color: #000; font-weight: 600; }

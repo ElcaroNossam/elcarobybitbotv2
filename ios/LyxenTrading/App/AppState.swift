@@ -150,6 +150,15 @@ class AppState: ObservableObject {
                     currentAccountType = tradingMode == .real ? .real : .demo
                 }
                 
+                // Sync language from server
+                if let serverLang = serverSettings.lang,
+                   let appLanguage = AppLanguage(rawValue: serverLang) {
+                    // Only update if different to avoid server sync loop
+                    if LocalizationManager.shared.currentLanguage != appLanguage {
+                        LocalizationManager.shared.setLanguageWithoutSync(appLanguage)
+                    }
+                }
+                
                 savePreferences()
             }
             print("✅ Settings synced from server")
@@ -167,11 +176,13 @@ struct ServerSettings: Codable {
     let exchangeType: String?
     let tradingMode: String?
     let hlTestnet: Bool?
+    let lang: String?
     
     enum CodingKeys: String, CodingKey {
         case exchangeType = "exchange_type"
         case tradingMode = "trading_mode"
         case hlTestnet = "hl_testnet"
+        case lang
     }
 }
 

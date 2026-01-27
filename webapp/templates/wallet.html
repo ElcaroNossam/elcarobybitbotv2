@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
     <title>ELC Wallet - Lyxen</title>
     <link rel="stylesheet" href="/static/css/elcaro-design-system.css">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -355,11 +360,42 @@
         
         .hidden { display: none; }
         
-        @media (max-width: 600px) {
+        /* Responsive - Tablet */
+        @media (max-width: 1024px) {
+            .container { padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .header h1 { font-size: 1.5rem; }
+            .balance-card { padding: 24px 16px; }
+            .balance-value { font-size: 2.5rem; }
+            .balance-usd { font-size: 1rem; }
+            .actions { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .action-btn { padding: 16px 12px; }
+            .action-btn .icon { font-size: 1.5rem; }
+            .action-btn .label { font-size: 0.85rem; }
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stat-card { padding: 16px; }
+            .section-title { font-size: 1.1rem; }
+            .network-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .network-item { padding: 12px 10px; font-size: 12px; }
+            .transaction-item { padding: 14px 12px; }
+            .transaction-amount { font-size: 1rem; }
+            /* Modal improvements */
+            .modal-content { padding: 20px 16px; width: 95%; }
+            .modal-content h2 { font-size: 1.25rem; }
+            .modal-content input { padding: 14px; font-size: 16px; }
+            .modal-content button { padding: 14px; font-size: 0.95rem; }
+        }
+
+        /* Extra small */
+        @media (max-width: 375px) {
+            .balance-value { font-size: 2rem; }
             .actions { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .network-grid { grid-template-columns: repeat(2, 1fr); }
-            .balance-value { font-size: 36px; }
+            .action-btn { flex-direction: row; gap: 12px; padding: 14px; }
         }
     </style>
 </head>

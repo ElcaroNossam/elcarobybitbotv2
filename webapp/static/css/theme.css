@@ -1055,6 +1055,38 @@ a:hover {
     }
 }
 
+/* Extra small mobile */
+@media (max-width: 375px) {
+    .header {
+        padding: 0 var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+    
+    .page-content {
+        padding: var(--spacing-sm);
+    }
+    
+    .position-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        width: 100%;
+    }
+    
+    .language-selector {
+        width: 100%;
+    }
+    
+    .language-option {
+        padding: 12px;
+    }
+    
+    .language-flag {
+        font-size: 1.25rem;
+    }
+}
+
 /* Animations */
 .fade-in {
     animation: fadeIn 0.3s ease;

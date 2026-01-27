@@ -1,26 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
-    'welcome': (
-        '🚀 <b>欢迎来到 LYXEN！</b>\n\n'
-        '📊 <b>847名交易者</b>正在用Lyxen获利\n'
-        '⚡ 执行速度 < 100ms | 🔒 664项安全测试\n\n'
-        '<i>没有策略的每一秒 = 损失的金钱</i>'
-    ),
-    'no_strategies':               '⚠️ 没有活跃策略 — 您正在损失利润！',
-    'guide_caption': (
-        '📚 <b>精英交易者的秘密</b>\n\n'
-        '847+交易者使用的专业策略\n'
-        '巨大的盈利潜力\n\n'
-        '<i>您的安全 = 我们的执念</i>'
-    ),
-    'privacy_caption': (
-        '🔒 <b>银行级加密</b>\n\n'
-        '您的API：AES-256加密\n'
-        '无法访问您的资金\n'
-        '安全性：664项测试通过\n\n'
-        '<i>我们不存储您的资金。真的。</i>'
-    ),
+    # 主菜单 - 专业交易终端
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+
+⚡ <b>&lt; 100ms</b> 执行速度
+🛡️ <b>风险管理</b>内置
+💎 <b>24/7</b> 自动交易
+
+Bybit • HyperLiquid • 多策略''',
+    'no_strategies':               '❌ 无活跃策略',
+    'guide_caption':               '📚 <b>用户指南</b>\n\nAPI设置、策略、风险管理。',
+    'privacy_caption':             '📜 <b>隐私政策</b>\n\n🔐 加密存储\n✅ 不共享数据',
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 密钥',
     'button_api_settings':         '🔑 API',
@@ -653,6 +643,37 @@ TEXTS = {
     'param_atr_periods':             '📈 ATR 周期',
     'param_atr_mult':                '📉 ATR 乘数（SL步幅）',
     'param_atr_trigger':             '🎯 ATR 触发 %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *保本设置*',
+    'be_settings_desc':              '_当利润达到触发%时将止损移至入场价_',
+    'be_enabled_label':              '🔒 保本',
+    'be_trigger_label':              '🎯 保本触发 %',
+    'prompt_be_trigger':             '输入保本触发%（例如：1.0）:',
+    'prompt_long_be_trigger':        '📈 LONG 保本触发%\n\n输入将止损移至入场价的利润%:',
+    'prompt_short_be_trigger':       '📉 SHORT 保本触发%\n\n输入将止损移至入场价的利润%:',
+    'param_be_trigger':              '🎯 保本触发 %',
+    'be_moved_to_entry':             '🔒 {symbol}: 止损已移至保本价 @ {entry}',
+    'be_status_enabled':             '✅ 保本: {trigger}%',
+    'be_status_disabled':            '❌ 保本: 关闭',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ 部分止盈',
+    'partial_tp_status_enabled':     '✅ 部分止盈已启用',
+    'partial_tp_status_disabled':    '❌ 部分止盈已禁用',
+    'partial_tp_step1_menu':         '✂️ *部分止盈 - 步骤1*\n\n在+{trigger}%利润时平仓{close}%仓位\n\n_选择参数:_',
+    'partial_tp_step2_menu':         '✂️ *部分止盈 - 步骤2*\n\n在+{trigger}%利润时平仓{close}%仓位\n\n_选择参数:_',
+    'trigger_pct':                   '触发',
+    'close_pct':                     '平仓',
+    'prompt_long_ptp_1_trigger':     '📈 LONG 步骤1: 触发%\n\n输入平仓第一部分的利润%:',
+    'prompt_long_ptp_1_close':       '📈 LONG 步骤1: 平仓%\n\n输入要平仓的仓位%:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG 步骤2: 触发%\n\n输入平仓第二部分的利润%:',
+    'prompt_long_ptp_2_close':       '📈 LONG 步骤2: 平仓%\n\n输入要平仓的仓位%:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT 步骤1: 触发%\n\n输入平仓第一部分的利润%:',
+    'prompt_short_ptp_1_close':      '📉 SHORT 步骤1: 平仓%\n\n输入要平仓的仓位%:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT 步骤2: 触发%\n\n输入平仓第二部分的利润%:',
+    'prompt_short_ptp_2_close':      '📉 SHORT 步骤2: 平仓%\n\n输入要平仓的仓位%:',
+    'partial_tp_executed':           '✂️ {symbol}: 在+{trigger}%利润时平仓{close}%',
 
     # Hardcoded strings fix
     'terms_unavailable':             '服务条款不可用。请联系管理员。',
@@ -1326,5 +1347,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 网络问题。请稍后重试。',
     'error_sl_tp_invalid': '⚠️ 无法设置止损/止盈：价格太接近当前价格。将在下一周期更新。',
     'error_equity_zero': '💰 您的账户余额为零。请充值Demo或Real账户以进行交易。',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 终端',
+    'exchange_mode_activated_bybit': '🟠 *Bybit模式已激活*',
+    'exchange_mode_activated_hl': '🔷 *HyperLiquid模式已激活*',
+    'error_processing_request': '⚠️ 处理请求时出错',
+    'unauthorized_admin': '❌ 未授权。此命令仅限管理员使用。',
+    'error_loading_dashboard': '❌ 加载仪表板失败。',
+    'unauthorized': '❌ 未授权。',
+    'processing_blockchain': '⏳ 正在处理区块链交易...',
+    'verifying_payment': '⏳ 正在TON区块链上验证付款...',
+    'no_wallet_configured': '❌ 未配置钱包。',
+    'use_start_menu': '使用 /start 返回主菜单。',
 }

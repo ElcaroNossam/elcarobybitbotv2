@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO + Authority + Exclusivity
-    'welcome':                     '''🔥 <b>שלום, סוחר אלפא!</b>
-
-בזמן שאתה קורא את זה — <b>847 סוחרים</b> כבר מרוויחים עם Lyxen.
+    # תפריט ראשי - מסוף מסחר מקצועי
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
 
 ⚡ <b>&lt; 100ms</b> מהירות ביצוע
-🛡️ <b>664 בדיקות אבטחה</b> עברו
-💎 <b>24/7</b> מסחר מונחה בינה מלאכותית
+🛡️ <b>ניהול סיכונים</b> משולב
+💎 <b>24/7</b> מסחר אוטומטי
 
-<i>המתחרים שלך לא ישנים. גם Lyxen לא.</i>
-
-בחר את הדרך שלך לחופש פיננסי:''',
-    'no_strategies':               '❌ אין — <i>אתה מפסיד כסף כל שנייה ללא אסטרטגיות פעילות</i>',
-    'guide_caption':               '📚 <b>סודות מסחר האליטות</b>\n\n⚠️ המידע הזה נתן לסוחרים המובילים שלנו <b>יתרון לא הוגן</b>.\n\n<i>זמן קריאה: 3 דקות. רווח פוטנציאלי: אין סוף.</i>',
-    'privacy_caption':             '📜 <b>האבטחה שלך = האובססיה שלנו</b>\n\n🔐 הצפנה ברמת בנק\n✅ אין שיתוף נתונים. אף פעם.\n\n<i>אתה בידיים בטוחות.</i>',
+Bybit • HyperLiquid • רב-אסטרטגיה''',
+    'no_strategies':               '❌ אין אסטרטגיות פעילות',
+    'guide_caption':               '📚 <b>מדריך למשתמש</b>\n\nהגדרת API, אסטרטגיות, ניהול סיכונים.',
+    'privacy_caption':             '📜 <b>מדיניות פרטיות</b>\n\n🔐 אחסון מוצפן\n✅ ללא שיתוף נתונים',
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive
@@ -651,6 +647,37 @@ TEXTS = {
     'param_atr_periods':             '📈 תקופות ATR',
     'param_atr_mult':                '📉 מכפיל ATR (צעד SL)',
     'param_atr_trigger':             '🎯 הפעלת ATR %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *הגדרות נקודת איזון*',
+    'be_settings_desc':              '_הזז עצירת הפסד למחיר כניסה כאשר הרווח מגיע לאחוז ההפעלה_',
+    'be_enabled_label':              '🔒 נקודת איזון',
+    'be_trigger_label':              '🎯 הפעלת נקודת איזון %',
+    'prompt_be_trigger':             'הזן אחוז הפעלת נקודת איזון (לדוגמה: 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG הפעלת נקודת איזון %\n\nהזן אחוז רווח להזזת עצירת הפסד לכניסה:',
+    'prompt_short_be_trigger':       '📉 SHORT הפעלת נקודת איזון %\n\nהזן אחוז רווח להזזת עצירת הפסד לכניסה:',
+    'param_be_trigger':              '🎯 הפעלת נקודת איזון %',
+    'be_moved_to_entry':             '🔒 {symbol}: עצירת הפסד הועברה לנקודת איזון @ {entry}',
+    'be_status_enabled':             '✅ נקודת איזון: {trigger}%',
+    'be_status_disabled':            '❌ נקודת איזון: כבוי',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ לקיחת רווח חלקית',
+    'partial_tp_status_enabled':     '✅ לקיחת רווח חלקית מופעלת',
+    'partial_tp_status_disabled':    '❌ לקיחת רווח חלקית מושבתת',
+    'partial_tp_step1_menu':         '✂️ *לקיחת רווח חלקית - שלב 1*\n\nסגור {close}% מהפוזיציה ברווח +{trigger}%\n\n_בחר פרמטר:_',
+    'partial_tp_step2_menu':         '✂️ *לקיחת רווח חלקית - שלב 2*\n\nסגור {close}% מהפוזיציה ברווח +{trigger}%\n\n_בחר פרמטר:_',
+    'trigger_pct':                   'הפעלה',
+    'close_pct':                     'סגירה',
+    'prompt_long_ptp_1_trigger':     '📈 LONG שלב 1: אחוז הפעלה\n\nהזן אחוז רווח לסגירת חלק ראשון:',
+    'prompt_long_ptp_1_close':       '📈 LONG שלב 1: אחוז סגירה\n\nהזן אחוז פוזיציה לסגירה:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG שלב 2: אחוז הפעלה\n\nהזן אחוז רווח לסגירת חלק שני:',
+    'prompt_long_ptp_2_close':       '📈 LONG שלב 2: אחוז סגירה\n\nהזן אחוז פוזיציה לסגירה:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT שלב 1: אחוז הפעלה\n\nהזן אחוז רווח לסגירת חלק ראשון:',
+    'prompt_short_ptp_1_close':      '📉 SHORT שלב 1: אחוז סגירה\n\nהזן אחוז פוזיציה לסגירה:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT שלב 2: אחוז הפעלה\n\nהזן אחוז רווח לסגירת חלק שני:',
+    'prompt_short_ptp_2_close':      '📉 SHORT שלב 2: אחוז סגירה\n\nהזן אחוז פוזיציה לסגירה:',
+    'partial_tp_executed':           '✂️ {symbol}: נסגר {close}% ברווח +{trigger}%',
 
     # Hardcoded strings fix
     'terms_unavailable':             'תנאי השימוש אינם זמינים. אנא פנה למנהל.',
@@ -1350,5 +1377,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 בעיית רשת. נסה מאוחר יותר.',
     'error_sl_tp_invalid': '⚠️ לא ניתן להגדיר SL/TP: המחיר קרוב מדי לנוכחי. יעודכן במחזור הבא.',
     'error_equity_zero': '💰 יתרת החשבון שלך אפס. טען חשבון Demo או Real כדי לסחור.',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 טרמינל',
+    'exchange_mode_activated_bybit': '🟠 *מצב Bybit הופעל*',
+    'exchange_mode_activated_hl': '🔷 *מצב HyperLiquid הופעל*',
+    'error_processing_request': '⚠️ שגיאה בעיבוד הבקשה',
+    'unauthorized_admin': '❌ לא מורשה. פקודה זו למנהל בלבד.',
+    'error_loading_dashboard': '❌ שגיאה בטעינת לוח הבקרה.',
+    'unauthorized': '❌ לא מורשה.',
+    'processing_blockchain': '⏳ מעבד עסקת בלוקצ\'יין...',
+    'verifying_payment': '⏳ מאמת תשלום בבלוקצ\'יין TON...',
+    'no_wallet_configured': '❌ ארנק לא מוגדר.',
+    'use_start_menu': 'השתמש ב-/start לחזרה לתפריט הראשי.',
 }

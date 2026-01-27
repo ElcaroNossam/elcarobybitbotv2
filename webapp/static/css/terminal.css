@@ -1284,3 +1284,50 @@
         grid-column: span 1;
     }
 }
+
+/* Extra small mobile */
+@media (max-width: 375px) {
+    .trading-panel {
+        padding: 10px;
+    }
+    
+    .trading-form-group {
+        margin-bottom: 8px;
+    }
+    
+    .trading-input {
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    .trading-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .summary-card {
+        padding: 10px;
+    }
+    
+    .summary-value {
+        font-size: 1.1rem;
+    }
+    
+    .modal-content {
+        margin: 10px;
+        padding: 16px;
+    }
+    
+    .modal-header h2 {
+        font-size: 16px;
+    }
+    
+    .tabs {
+        gap: 4px;
+    }
+    
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}

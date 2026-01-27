@@ -78,14 +78,21 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 class LocalizationManager: ObservableObject {
     static let shared = LocalizationManager()
     
+    /// Flag to skip server sync (used when loading from server)
+    private var skipNextSync = false
+    
     @Published var currentLanguage: AppLanguage {
         didSet {
             saveLanguage()
             loadTranslations()
             
-            // Sync with server
-            Task {
-                await syncLanguageWithServer()
+            // Sync with server unless skipped
+            if skipNextSync {
+                skipNextSync = false
+            } else {
+                Task {
+                    await syncLanguageWithServer()
+                }
             }
         }
     }
@@ -124,6 +131,13 @@ class LocalizationManager: ObservableObject {
     
     /// Set language and trigger updates
     func setLanguage(_ language: AppLanguage) {
+        currentLanguage = language
+    }
+    
+    /// Set language without syncing to server (used when loading from server)
+    func setLanguageWithoutSync(_ language: AppLanguage) {
+        guard language != currentLanguage else { return }
+        skipNextSync = true
         currentLanguage = language
     }
     

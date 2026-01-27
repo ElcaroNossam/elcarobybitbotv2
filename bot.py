@@ -426,7 +426,7 @@ class ErrorMonitor:
                 asyncio.create_task(self._send_admin_report())
     
     async def _send_admin_report(self):
-        """Send detailed error report to admin"""
+        """Send detailed error report to admin with inline action buttons"""
         if not self.bot:
             return
             
@@ -441,64 +441,114 @@ class ErrorMonitor:
             if not recent_errors:
                 return
             
-            # Group by error type
-            by_type: dict[str, list[ErrorRecord]] = {}
+            # Group by user for actionable report
+            by_user: dict[int, list[ErrorRecord]] = {}
             for err in recent_errors:
-                if err.error_type not in by_type:
-                    by_type[err.error_type] = []
-                by_type[err.error_type].append(err)
+                uid = err.user_id or 0
+                if uid not in by_user:
+                    by_user[uid] = []
+                by_user[uid].append(err)
             
-            # Build detailed report
+            # Build detailed report with user context
             lines = [
                 f"🚨 <b>Error Report</b> ({len(recent_errors)} errors in {self.report_interval//60}min)",
                 f"⏰ {dt.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                f"👥 <b>{len(by_user)} users affected</b>",
                 ""
             ]
             
-            for error_type, errors in sorted(by_type.items(), key=lambda x: -len(x[1])):
-                lines.append(f"<b>━━━ {error_type} ({len(errors)}x) ━━━</b>")
+            # Collect error IDs for buttons (max 8 buttons per report)
+            button_data = []
+            
+            for user_id, errors in sorted(by_user.items(), key=lambda x: -len(x[1])):
+                # Get user info
+                user_info = "unknown"
+                if user_id:
+                    err = errors[0]
+                    user_info = f"@{err.username}" if err.username else f"uid:{user_id}"
                 
-                # Show up to 5 examples per error type
-                for err in errors[:5]:
-                    user_info = f"@{err.username}" if err.username else f"uid:{err.user_id}" if err.user_id else "unknown"
+                lines.append(f"<b>━━━ {user_info} ({len(errors)}x) ━━━</b>")
+                
+                # Group by error type for this user
+                by_type: dict[str, list[ErrorRecord]] = {}
+                for err in errors:
+                    if err.error_type not in by_type:
+                        by_type[err.error_type] = []
+                    by_type[err.error_type].append(err)
+                
+                for error_type, type_errors in sorted(by_type.items(), key=lambda x: -len(x[1])):
+                    err = type_errors[0]
                     symbol_info = f" | {err.symbol}" if err.symbol else ""
                     acc_info = f" | {err.account_type}" if err.account_type else ""
                     exc_info = f" | {err.exchange}" if err.exchange else ""
                     
-                    lines.append(f"├─ {user_info}{symbol_info}{acc_info}{exc_info}")
-                    lines.append(f"│  📍 {err.function_name}")
+                    lines.append(f"├─ <b>{error_type}</b> ({len(type_errors)}x){symbol_info}{acc_info}{exc_info}")
                     
                     # Truncate long error messages
-                    msg = err.error_message[:150] + "..." if len(err.error_message) > 150 else err.error_message
+                    msg = err.error_message[:120] + "..." if len(err.error_message) > 120 else err.error_message
                     lines.append(f"│  💬 <code>{msg}</code>")
                     
                     # Extra context
                     if err.extra_context:
                         ctx_str = ", ".join(f"{k}={v}" for k, v in list(err.extra_context.items())[:3])
                         lines.append(f"│  📎 {ctx_str}")
-                    
-                    lines.append("│")
                 
-                if len(errors) > 5:
-                    lines.append(f"└─ ... and {len(errors) - 5} more")
+                # Store user_id for button (max 8 users)
+                if len(button_data) < 8 and user_id:
+                    button_data.append((user_id, user_info, len(errors)))
+                
                 lines.append("")
             
             report = "\n".join(lines)
             
-            # Send to admin (split if too long)
+            # Build inline keyboard with quick actions
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = []
+            
+            # User action buttons (2 per row)
+            row = []
+            for user_id, user_info, count in button_data:
+                short_name = user_info[:10] if len(user_info) > 10 else user_info
+                row.append(InlineKeyboardButton(
+                    f"✅ {short_name} ({count})",
+                    callback_data=f"admin:approve_user:{user_id}"
+                ))
+                if len(row) == 2:
+                    keyboard.append(row)
+                    row = []
+            if row:
+                keyboard.append(row)
+            
+            # Bottom action buttons
+            keyboard.append([
+                InlineKeyboardButton("✅ Approve All", callback_data="admin:errors_approve_all"),
+                InlineKeyboardButton("📋 Details", callback_data="admin:errors_list:0"),
+            ])
+            keyboard.append([
+                InlineKeyboardButton("👥 By User", callback_data="admin:errors_by_user"),
+                InlineKeyboardButton("🔄 Refresh", callback_data="admin:errors_menu"),
+            ])
+            
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            # Send to admin
             try:
                 if len(report) > 4000:
+                    # For long reports, send without buttons first, then buttons
                     for i in range(0, len(report), 4000):
+                        is_last = i + 4000 >= len(report)
                         await self.bot.send_message(
                             self.admin_id,
                             report[i:i+4000],
-                            parse_mode="HTML"
+                            parse_mode="HTML",
+                            reply_markup=reply_markup if is_last else None
                         )
                 else:
                     await self.bot.send_message(
                         self.admin_id,
                         report,
-                        parse_mode="HTML"
+                        parse_mode="HTML",
+                        reply_markup=reply_markup
                     )
             except Exception as e:
                 logger.error(f"Failed to send admin error report: {e}")
@@ -1467,7 +1517,8 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 
     except Exception as e:
         logger.error(f"2FA callback error: {e}")
-        await q.edit_message_text("⚠️ Error processing request")
+        t = get_texts(uid)
+        await q.edit_message_text(t.get("error_processing_request", "⚠️ Error processing request"))
 
 # ------------------------------------------------------------------------------------
 # API Settings Menu
@@ -21633,14 +21684,16 @@ async def cmd_sovereign(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     
     if not is_sovereign_owner(uid):
-        await update.message.reply_text("❌ Unauthorized. This command is only for the Sovereign Owner.")
+        t = get_texts(uid)
+        await update.message.reply_text(t.get("unauthorized_admin", "❌ Unauthorized. This command is only for the Sovereign Owner."))
         return
     
     # Get comprehensive dashboard
     dashboard = await get_owner_dashboard(uid)
     
     if not dashboard:
-        await update.message.reply_text("❌ Error loading dashboard.")
+        t = get_texts(uid)
+        await update.message.reply_text(t.get("error_loading_dashboard", "❌ Error loading dashboard."))
         return
     
     treasury = dashboard["treasury"]
@@ -21719,7 +21772,8 @@ async def on_sovereign_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     
     if not is_sovereign_owner(uid):
-        await q.edit_message_text("❌ Unauthorized.")
+        t = get_texts(uid)
+        await q.edit_message_text(t.get("unauthorized", "❌ Unauthorized."))
         return
     
     data = q.data  # sovereign:xxx
@@ -22737,7 +22791,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         period = int(parts[3]) if len(parts) > 3 else 1
         period_text = f"{period} month{'s' if period > 1 else ''}"
         
-        await q.edit_message_text("⏳ Processing blockchain transaction...", parse_mode="Markdown")
+        t = get_texts(uid)
+        await q.edit_message_text(t.get("processing_blockchain", "⏳ Processing blockchain transaction..."), parse_mode="Markdown")
         
         # Call blockchain service
         result = purchase_license_with_elc(
@@ -22891,7 +22946,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Verify TON payment
         payment_id = parts[2] if len(parts) > 2 else ""
         
-        await q.edit_message_text("⏳ Verifying payment on TON blockchain...", parse_mode="Markdown")
+        t = get_texts(uid)
+        await q.edit_message_text(t.get("verifying_payment", "⏳ Verifying payment on TON blockchain..."), parse_mode="Markdown")
         
         try:
             from core.db_postgres import execute_one, get_conn
@@ -24971,7 +25027,8 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         testnet = hl_creds.get("hl_testnet", False)
         
         if not wallet:
-            await q.edit_message_text("❌ No wallet configured.")
+            t = get_texts(uid)
+            await q.edit_message_text(t.get("no_wallet_configured", "❌ No wallet configured."))
             return
         
         try:
@@ -25267,9 +25324,10 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
         # Send new keyboard to update ReplyKeyboard
+        t = get_texts(uid)
         await ctx.bot.send_message(
             chat_id=uid,
-            text="🟠 *Bybit mode activated*",
+            text=t.get("exchange_mode_activated_bybit", "🟠 *Bybit mode activated*"),
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
@@ -25295,9 +25353,10 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
         # Send new keyboard to update ReplyKeyboard
+        t = get_texts(uid)
         await ctx.bot.send_message(
             chat_id=uid,
-            text="🔷 *HyperLiquid mode activated*",
+            text=t.get("exchange_mode_activated_hl", "🔷 *HyperLiquid mode activated*"),
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
@@ -25330,9 +25389,10 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     "All trading operations will now use HyperLiquid DEX.",
                     parse_mode="Markdown"
                 )
+                t = get_texts(uid)
                 await ctx.bot.send_message(
                     chat_id=uid,
-                    text="🔷 *HyperLiquid mode activated*",
+                    text=t.get("exchange_mode_activated_hl", "🔷 *HyperLiquid mode activated*"),
                     parse_mode="Markdown",
                     reply_markup=main_menu_keyboard(ctx, user_id=uid)
                 )
@@ -25350,9 +25410,10 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "All trading operations will now use Bybit.",
                 parse_mode="Markdown"
             )
+            t = get_texts(uid)
             await ctx.bot.send_message(
                 chat_id=uid,
-                text="🟠 *Bybit mode activated*",
+                text=t.get("exchange_mode_activated_bybit", "🟠 *Bybit mode activated*"),
                 parse_mode="Markdown",
                 reply_markup=main_menu_keyboard(ctx, user_id=uid)
             )
@@ -25475,7 +25536,8 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await on_exchange_callback(update, ctx)
     
     elif data == "main_menu":
-        await q.edit_message_text("Use /start to return to main menu.")
+        t = get_texts(uid)
+        await q.edit_message_text(t.get("use_start_menu", "Use /start to return to main menu."))
 
 
 def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboardMarkup]:

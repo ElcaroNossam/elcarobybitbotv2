@@ -1563,4 +1563,19 @@ Daily rewards • Instant unstaking''',
     'error_network_error': '🌐 Network issue. Try again later.',
     'error_sl_tp_invalid': '⚠️ Cannot set SL/TP: price too close to current. Will retry on next cycle.',
     'error_equity_zero': '💰 Your account balance is zero. Top up Demo or Real account to trade.',
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 Terminal',
+    'exchange_mode_activated_bybit': '🟠 *Bybit mode activated*',
+    'exchange_mode_activated_hl': '🔷 *HyperLiquid mode activated*',
+    'error_processing_request': '⚠️ Error processing request',
+    'unauthorized_admin': '❌ Unauthorized. This command is only for the Sovereign Owner.',
+    'error_loading_dashboard': '❌ Error loading dashboard.',
+    'unauthorized': '❌ Unauthorized.',
+    'processing_blockchain': '⏳ Processing blockchain transaction...',
+    'verifying_payment': '⏳ Verifying payment on TON blockchain...',
+    'no_wallet_configured': '❌ No wallet configured.',
+    'use_start_menu': 'Use /start to return to main menu.',
 }

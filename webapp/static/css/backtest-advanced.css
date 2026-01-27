@@ -822,3 +822,135 @@
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
+
+/* ===== RESPONSIVE STYLES ===== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .live-content {
+        grid-template-columns: 1fr;
+        padding: 16px;
+    }
+    
+    .live-chart-container {
+        height: 350px;
+    }
+    
+    .live-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .live-content {
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .live-chart-container {
+        height: 280px;
+        border-radius: 10px;
+    }
+    
+    .chart-info-badge {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    
+    .live-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .live-stat-card {
+        padding: 10px;
+        border-radius: 8px;
+    }
+    
+    .live-stat-card .value {
+        font-size: 1.1rem;
+    }
+    
+    .live-stat-card .label {
+        font-size: 0.7rem;
+    }
+    
+    .live-sidebar {
+        gap: 10px;
+    }
+    
+    /* Strategy cards */
+    .strategy-card {
+        padding: 14px;
+    }
+    
+    .strategy-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .strategy-name {
+        font-size: 14px;
+    }
+    
+    /* Buttons */
+    .btn-live {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    
+    /* Results table */
+    .results-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .results-table {
+        min-width: 500px;
+        font-size: 11px;
+    }
+    
+    .results-table th,
+    .results-table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    
+    /* Metrics grid */
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .metric-card {
+        padding: 12px;
+    }
+    
+    .metric-value {
+        font-size: 1.1rem;
+    }
+    
+    .metric-label {
+        font-size: 0.7rem;
+    }
+}
+
+/* Extra small */
+@media (max-width: 375px) {
+    .live-chart-container {
+        height: 220px;
+    }
+    
+    .live-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .live-stat-card .value {
+        font-size: 1rem;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}

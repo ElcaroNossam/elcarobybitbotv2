@@ -1287,6 +1287,574 @@ button, a, [role="button"], .clickable {
 }
 
 /* ============================================
+   MARKETPLACE PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .marketplace-header {
+        padding: 16px !important;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .marketplace-header h1 {
+        font-size: 1.25rem !important;
+    }
+    
+    .marketplace-stats {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    
+    .marketplace-stat-card {
+        padding: 12px !important;
+    }
+    
+    .marketplace-filters {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .filter-select, .sort-select {
+        flex: 1;
+        min-width: 140px;
+    }
+    
+    .strategies-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+    
+    .strategy-card {
+        padding: 16px !important;
+    }
+    
+    .strategy-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .strategy-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px;
+    }
+    
+    .strategy-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .strategy-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .strategies-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* ============================================
+   PRICING PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .pricing-header {
+        padding: 60px 16px 40px !important;
+        text-align: center;
+    }
+    
+    .pricing-header h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    .pricing-header p {
+        font-size: 0.9rem !important;
+    }
+    
+    .pricing-toggle {
+        margin: 24px auto;
+    }
+    
+    .pricing-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px;
+        padding: 0 16px;
+    }
+    
+    .pricing-card {
+        padding: 24px 20px !important;
+    }
+    
+    .pricing-card.featured {
+        transform: none !important;
+        order: -1;
+    }
+    
+    .price-value {
+        font-size: 2.5rem !important;
+    }
+    
+    .features-list {
+        font-size: 0.85rem;
+    }
+    
+    .features-list li {
+        padding: 8px 0;
+    }
+    
+    /* Payment method selector */
+    .payment-methods {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .payment-method {
+        width: 100%;
+        padding: 14px !important;
+    }
+    
+    /* FAQ section */
+    .faq-section {
+        padding: 40px 16px;
+    }
+    
+    .faq-item {
+        padding: 16px !important;
+    }
+    
+    .faq-question {
+        font-size: 0.9rem !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .pricing-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .pricing-card.featured {
+        grid-column: span 2;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+}
+
+/* ============================================
+   STATISTICS PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .stats-header {
+        padding: 16px !important;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .stats-header h1 {
+        font-size: 1.25rem !important;
+    }
+    
+    .time-filters {
+        display: flex;
+        overflow-x: auto;
+        gap: 6px;
+        padding-bottom: 8px;
+        width: 100%;
+    }
+    
+    .time-filter-btn {
+        flex-shrink: 0;
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .stats-overview {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    
+    .stat-card {
+        padding: 14px 12px !important;
+    }
+    
+    .stat-value {
+        font-size: 1.2rem !important;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem !important;
+    }
+    
+    .chart-container {
+        height: 250px !important;
+        padding: 12px !important;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .chart-legend {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .trades-section {
+        padding: 12px !important;
+    }
+    
+    .trades-table-container {
+        overflow-x: auto;
+        margin: 0 -12px;
+        padding: 0 12px;
+    }
+    
+    .trades-table {
+        min-width: 600px;
+        font-size: 0.75rem !important;
+    }
+    
+    .trades-table th, .trades-table td {
+        padding: 8px 6px !important;
+        white-space: nowrap;
+    }
+    
+    /* Strategy breakdown */
+    .strategy-breakdown {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    
+    .strategy-stat-card {
+        padding: 14px !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .stats-overview {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+    
+    .strategy-breakdown {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* ============================================
+   LEADERBOARD PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .leaderboard-header {
+        padding: 60px 16px 30px !important;
+        text-align: center;
+    }
+    
+    .leaderboard-header h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .top-traders {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .top-trader-card {
+        width: 100%;
+        padding: 20px !important;
+    }
+    
+    .top-trader-card.first {
+        order: -1;
+    }
+    
+    .rank-badge {
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 1.25rem !important;
+    }
+    
+    .trader-pnl {
+        font-size: 1.5rem !important;
+    }
+    
+    .leaderboard-table-container {
+        overflow-x: auto;
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+    
+    .leaderboard-table {
+        min-width: 600px;
+        font-size: 0.8rem !important;
+    }
+    
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 10px 8px !important;
+    }
+    
+    .trader-avatar {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .time-period-tabs {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+    
+    .period-tab {
+        flex-shrink: 0;
+        padding: 8px 16px !important;
+        font-size: 0.85rem !important;
+    }
+}
+
+/* ============================================
+   STRATEGY BUILDER PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .builder-layout {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .builder-sidebar {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        background: var(--bg-secondary);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .builder-sidebar.active {
+        display: block;
+        transform: translateX(0);
+    }
+    
+    .builder-main {
+        padding: 16px !important;
+    }
+    
+    .builder-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .builder-header h1 {
+        font-size: 1.25rem !important;
+    }
+    
+    .strategy-blocks {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    
+    .block-card {
+        padding: 14px !important;
+    }
+    
+    .block-icon {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 1rem !important;
+    }
+    
+    .condition-builder {
+        padding: 12px !important;
+    }
+    
+    .condition-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .condition-row select, .condition-row input {
+        width: 100% !important;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+    
+    /* Mobile toggle for sidebar */
+    .builder-mobile-toggle {
+        display: flex !important;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: white;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+        z-index: 999;
+    }
+}
+
+/* ============================================
+   WALLET PAGE - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .wallet-header {
+        padding: 16px !important;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .wallet-balance-card {
+        padding: 20px 16px !important;
+    }
+    
+    .balance-amount {
+        font-size: 2rem !important;
+    }
+    
+    .balance-usd {
+        font-size: 0.9rem !important;
+    }
+    
+    .wallet-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .wallet-actions .btn {
+        width: 100%;
+    }
+    
+    .wallet-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+    
+    .wallet-card {
+        padding: 16px !important;
+    }
+    
+    .transactions-list {
+        gap: 10px;
+    }
+    
+    .transaction-item {
+        padding: 14px 12px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .transaction-amount {
+        font-size: 1rem !important;
+    }
+    
+    .token-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+    }
+    
+    .token-stat-card {
+        padding: 12px !important;
+    }
+    
+    /* Connect wallet modal */
+    .wallet-connect-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .wallet-option {
+        width: 100%;
+        padding: 14px !important;
+    }
+}
+
+/* ============================================
+   LANDING PAGE ADDITIONAL - RESPONSIVE
+   ============================================ */
+@media (max-width: 767px) {
+    .cta-section {
+        padding: 60px 16px !important;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .cta-buttons .btn {
+        width: 100%;
+    }
+    
+    .partners-section {
+        padding: 40px 16px;
+    }
+    
+    .partners-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px;
+    }
+    
+    .partner-logo {
+        height: 40px;
+    }
+    
+    .testimonials-section {
+        padding: 60px 16px;
+    }
+    
+    .testimonials-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+    
+    .testimonial-card {
+        padding: 20px 16px !important;
+    }
+    
+    .footer {
+        padding: 40px 16px 20px;
+    }
+    
+    .footer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 32px;
+        text-align: center;
+    }
+    
+    .footer-social {
+        justify-content: center;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    
+    .footer-links {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+/* ============================================
    CUSTOM SCROLLBARS - CROSS PLATFORM
    ============================================ */
 /* Webkit (Chrome, Safari, newer Edge) */
@@ -1324,5 +1892,782 @@ button, a, [role="button"], .clickable {
     
     .hide-scrollbar-mobile::-webkit-scrollbar {
         display: none;
+    }
+}
+
+/* ============================================
+   ADDITIONAL HEADER IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    /* Compact header for all pages */
+    .header, .navbar, .page-header {
+        padding: 10px 16px !important;
+        min-height: 56px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* Logo always visible and clickable */
+    .logo {
+        flex-shrink: 0;
+    }
+    
+    .logo-icon {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1rem !important;
+    }
+    
+    .logo-text, .logo span {
+        font-size: 1.1rem !important;
+    }
+    
+    /* Hide nav links, show hamburger */
+    .nav-links {
+        display: none !important;
+    }
+    
+    .mobile-menu-btn, .hamburger-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 1.25rem;
+        cursor: pointer;
+    }
+    
+    /* Header actions compact */
+    .header-actions, .header-right {
+        gap: 6px !important;
+    }
+    
+    .header-actions .btn {
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Icon buttons in header */
+    .header-icon-btn, .icon-btn {
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Account selector compact */
+    .account-selector {
+        gap: 6px !important;
+        flex-wrap: wrap;
+    }
+    
+    .exchange-select, .account-select {
+        padding: 8px 10px !important;
+        font-size: 0.75rem !important;
+        min-width: auto;
+    }
+    
+    .demo-badge, .account-badge {
+        padding: 4px 8px !important;
+        font-size: 0.65rem !important;
+    }
+    
+    /* WebSocket status compact */
+    .ws-status {
+        padding: 6px 10px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    .ws-dot {
+        width: 6px !important;
+        height: 6px !important;
+    }
+    
+    /* Language selector */
+    .lang-selector .lang-btn,
+    .theme-switcher .theme-btn {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .lang-menu, .theme-menu {
+        right: 0;
+        left: auto;
+        min-width: 150px;
+    }
+    
+    /* Wallet connect button */
+    .wallet-connect-btn {
+        padding: 8px 12px !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .wallet-connect-btn span {
+        display: none;
+    }
+}
+
+/* ============================================
+   BUTTON IMPROVEMENTS - ALL SCREENS
+   ============================================ */
+@media (max-width: 767px) {
+    /* All buttons minimum touch target */
+    .btn, button, [role="button"], a.btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+    
+    /* Small buttons */
+    .btn-sm, .btn-small {
+        min-height: 36px;
+        min-width: 36px;
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Large buttons */
+    .btn-lg, .btn-large {
+        min-height: 52px;
+        padding: 16px 24px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Icon-only buttons */
+    .btn-icon, .icon-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0 !important;
+        min-width: 44px;
+    }
+    
+    /* Button groups */
+    .btn-group, .button-group {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* CTA buttons full width on mobile */
+    .btn-cta, .btn-primary-cta {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   TABLE IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    /* All tables responsive */
+    .table-container, .data-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+    
+    table {
+        min-width: 500px;
+        font-size: 0.75rem;
+    }
+    
+    table th, table td {
+        padding: 10px 8px !important;
+        white-space: nowrap;
+    }
+    
+    /* Sticky first column */
+    table th:first-child,
+    table td:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--bg-card, #1a1a1a);
+        z-index: 5;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Table action buttons */
+    table .btn, table button {
+        min-height: 32px;
+        min-width: 32px;
+        padding: 6px 10px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+/* ============================================
+   CARD IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    .card, .panel, .box {
+        padding: 16px !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px;
+    }
+    
+    .card-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    .card-title {
+        font-size: 1rem !important;
+    }
+    
+    .card-subtitle {
+        font-size: 0.8rem !important;
+    }
+    
+    .card-body {
+        padding: 0;
+    }
+    
+    .card-footer {
+        padding-top: 12px;
+        margin-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+}
+
+/* ============================================
+   GRID IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    /* Force 1 column on very small screens */
+    .grid, .row, [class*="grid-"] {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* Allow 2 columns for compact items */
+    .grid-2-mobile, .stats-grid, .overview-bar {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+}
+
+@media (min-width: 375px) and (max-width: 767px) {
+    /* Slightly larger phones can handle more */
+    .grid-auto-mobile {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    }
+}
+
+/* ============================================
+   DROPDOWN IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    .dropdown-menu, .dropdown-content, select {
+        min-width: 160px;
+        font-size: 0.9rem;
+    }
+    
+    .dropdown-item {
+        padding: 12px 16px !important;
+        min-height: 44px;
+    }
+    
+    /* Select inputs */
+    select {
+        min-height: 44px;
+        padding: 10px 14px !important;
+        padding-right: 36px;
+        background-position: right 12px center;
+    }
+}
+
+/* ============================================
+   TABS IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    .tabs, .tab-list, .nav-tabs {
+        display: flex;
+        overflow-x: auto;
+        gap: 4px;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tab, .tab-btn, .nav-tab {
+        flex-shrink: 0;
+        padding: 10px 16px !important;
+        font-size: 0.85rem !important;
+        white-space: nowrap;
+        min-height: 40px;
+    }
+    
+    .tab-content, .tab-pane {
+        padding: 16px 0;
+    }
+}
+
+/* ============================================
+   INPUT IMPROVEMENTS - MOBILE
+   ============================================ */
+@media (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    textarea {
+        min-height: 48px;
+        padding: 12px 16px !important;
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        border-radius: 10px !important;
+    }
+    
+    /* Search inputs */
+    .search-input, .search-box input {
+        padding-left: 44px !important;
+    }
+    
+    .search-icon {
+        left: 14px;
+    }
+    
+    /* Number inputs with spinners */
+    input[type="number"] {
+        padding-right: 8px !important;
+    }
+    
+    /* Range inputs */
+    input[type="range"] {
+        height: 44px;
+    }
+    
+    /* Checkbox and radio larger */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 22px;
+        height: 22px;
+    }
+    
+    /* Form labels */
+    label, .form-label {
+        font-size: 0.85rem !important;
+        margin-bottom: 6px;
+    }
+    
+    /* Form helper text */
+    .form-hint, .helper-text {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ============================================
+   EXTRA SMALL SCREENS (375px and below)
+   iPhone SE, iPhone Mini, small Android
+   ============================================ */
+@media screen and (max-width: 375px) {
+    /* Root font size reduction */
+    html {
+        font-size: 14px;
+    }
+    
+    /* Container padding */
+    .container, .content, .main-content, .page-content {
+        padding: 8px !important;
+    }
+    
+    /* Headers */
+    h1, .page-title {
+        font-size: 1.25rem !important;
+    }
+    
+    h2, .section-title {
+        font-size: 1.1rem !important;
+    }
+    
+    h3, .card-title {
+        font-size: 1rem !important;
+    }
+    
+    /* Cards - tighter padding */
+    .card, .panel, .box, .widget {
+        padding: 10px !important;
+        border-radius: 8px !important;
+    }
+    
+    /* Buttons - compact */
+    .btn, button, [type="submit"] {
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+        min-height: 38px !important;
+    }
+    
+    .btn-sm {
+        padding: 5px 8px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Button groups - stack vertically */
+    .btn-group, .button-group, .action-buttons {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+    
+    .btn-group .btn, .button-group .btn {
+        width: 100% !important;
+    }
+    
+    /* Tables - super compact */
+    table {
+        font-size: 0.7rem !important;
+    }
+    
+    th, td {
+        padding: 6px 4px !important;
+    }
+    
+    /* Stats cards - single column */
+    .stats-grid, .metrics-grid, .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+    
+    .stat-card, .metric-card, .kpi-card {
+        padding: 10px !important;
+    }
+    
+    .stat-value, .metric-value {
+        font-size: 1.1rem !important;
+    }
+    
+    .stat-label, .metric-label {
+        font-size: 0.7rem !important;
+    }
+    
+    /* Navigation */
+    .nav-tabs, .tabs {
+        gap: 4px !important;
+    }
+    
+    .nav-tabs .tab, .tabs .tab {
+        padding: 6px 8px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Forms */
+    input, select, textarea {
+        font-size: 16px !important; /* Prevent iOS zoom */
+        padding: 8px !important;
+        min-height: 40px !important;
+    }
+    
+    /* Input with icon */
+    .input-with-icon input {
+        padding-left: 32px !important;
+    }
+    
+    .input-icon {
+        left: 8px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Form groups */
+    .form-group, .field-group {
+        margin-bottom: 12px !important;
+    }
+    
+    /* Modal dialogs */
+    .modal, .dialog, .popup {
+        padding: 12px !important;
+        max-width: calc(100vw - 16px) !important;
+        margin: 8px !important;
+    }
+    
+    .modal-header, .dialog-header {
+        padding: 10px 12px !important;
+    }
+    
+    .modal-body, .dialog-body {
+        padding: 12px !important;
+    }
+    
+    .modal-footer, .dialog-footer {
+        padding: 10px 12px !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    /* Trading interface */
+    .position-card, .order-card, .trade-card {
+        padding: 10px !important;
+    }
+    
+    .position-symbol, .coin-name {
+        font-size: 0.9rem !important;
+    }
+    
+    .position-pnl, .pnl-value {
+        font-size: 0.85rem !important;
+    }
+    
+    /* Price displays */
+    .price, .price-value {
+        font-size: 0.85rem !important;
+    }
+    
+    .price-change {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Charts */
+    .chart-container, .tradingview-widget {
+        height: 200px !important;
+        min-height: 180px !important;
+    }
+    
+    /* Header */
+    .header, .navbar, .top-bar {
+        padding: 8px 10px !important;
+    }
+    
+    .logo {
+        font-size: 1rem !important;
+    }
+    
+    .logo img {
+        height: 24px !important;
+    }
+    
+    /* Footer */
+    footer, .footer {
+        padding: 12px !important;
+    }
+    
+    .footer-links {
+        flex-direction: column !important;
+        gap: 8px !important;
+        text-align: center;
+    }
+    
+    /* Badges and tags */
+    .badge, .tag, .chip, .label {
+        padding: 2px 6px !important;
+        font-size: 0.65rem !important;
+    }
+    
+    /* Tooltips */
+    .tooltip {
+        max-width: 200px !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Lists */
+    .list-item, li {
+        padding: 8px !important;
+    }
+    
+    /* Avatars */
+    .avatar {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .avatar-sm {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    
+    /* Dropdown menus */
+    .dropdown-menu, .select-dropdown {
+        min-width: 140px !important;
+        max-width: calc(100vw - 20px) !important;
+    }
+    
+    .dropdown-item {
+        padding: 8px 10px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    /* Grid layouts force single column */
+    .grid-2, .grid-3, .grid-4, 
+    .col-2, .col-3, .col-4 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Flex wrap */
+    .flex-row {
+        flex-wrap: wrap !important;
+    }
+    
+    /* Hide less important elements */
+    .hide-xs, .hidden-xs {
+        display: none !important;
+    }
+    
+    /* Spacing utilities */
+    .p-1, .px-1, .py-1 { padding: 4px !important; }
+    .p-2, .px-2, .py-2 { padding: 6px !important; }
+    .p-3, .px-3, .py-3 { padding: 8px !important; }
+    .m-1, .mx-1, .my-1 { margin: 4px !important; }
+    .m-2, .mx-2, .my-2 { margin: 6px !important; }
+    .m-3, .mx-3, .my-3 { margin: 8px !important; }
+    .gap-1 { gap: 4px !important; }
+    .gap-2 { gap: 6px !important; }
+    .gap-3 { gap: 8px !important; }
+    
+    /* Text utilities */
+    .text-sm { font-size: 0.7rem !important; }
+    .text-base { font-size: 0.8rem !important; }
+    .text-lg { font-size: 0.9rem !important; }
+    .text-xl { font-size: 1rem !important; }
+    
+    /* Truncate long text */
+    .truncate-xs {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* ============================================
+   LANDSCAPE ORIENTATION
+   ============================================ */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    /* Reduce vertical spacing */
+    .container, .content {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    
+    /* Shorter headers */
+    .header, .navbar {
+        padding: 6px 12px !important;
+    }
+    
+    /* Hide non-essential elements */
+    .hero-section, .banner {
+        display: none !important;
+    }
+    
+    /* Reduce card margins */
+    .card, .panel {
+        margin-bottom: 8px !important;
+    }
+    
+    /* Shorter modals */
+    .modal, .dialog {
+        max-height: 90vh !important;
+    }
+    
+    .modal-body {
+        max-height: 50vh !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Charts adapt to landscape */
+    .chart-container {
+        height: 180px !important;
+    }
+}
+
+/* ============================================
+   NOTCH AND SAFE AREA SUPPORT (iPhone X+)
+   ============================================ */
+@supports (padding: max(0px)) {
+    .header, .navbar, .top-bar {
+        padding-top: max(12px, env(safe-area-inset-top)) !important;
+        padding-left: max(12px, env(safe-area-inset-left)) !important;
+        padding-right: max(12px, env(safe-area-inset-right)) !important;
+    }
+    
+    footer, .footer, .bottom-bar {
+        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        padding-left: max(12px, env(safe-area-inset-left)) !important;
+        padding-right: max(12px, env(safe-area-inset-right)) !important;
+    }
+    
+    .modal, .dialog {
+        padding-left: max(16px, env(safe-area-inset-left)) !important;
+        padding-right: max(16px, env(safe-area-inset-right)) !important;
+    }
+    
+    /* Bottom navigation */
+    .bottom-nav, .tab-bar {
+        padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    }
+}
+
+/* ============================================
+   HIGH DPI / RETINA DISPLAYS
+   ============================================ */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Sharper borders */
+    .card, .panel, .box {
+        border-width: 0.5px;
+    }
+    
+    /* Thinner dividers */
+    hr, .divider {
+        height: 0.5px;
+    }
+}
+
+/* ============================================
+   DARK MODE MOBILE ADJUSTMENTS
+   ============================================ */
+@media screen and (max-width: 768px) {
+    [data-theme="dark"],
+    .dark-mode,
+    .dark {
+        /* Ensure sufficient contrast on mobile */
+        --text-secondary: #a0a0a0;
+        --border-color: #3a3a3a;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY: REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .skeleton, .shimmer {
+        animation: none !important;
+    }
+}
+
+/* ============================================
+   PRINT STYLES (Mobile print)
+   ============================================ */
+@media print {
+    .header, .navbar, .footer, 
+    .sidebar, .mobile-menu,
+    .btn, button,
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        font-size: 12pt !important;
+    }
+    
+    .card, .panel {
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 }

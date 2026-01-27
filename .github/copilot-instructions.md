@@ -1,6 +1,6 @@
 # Lyxen Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.35.0 | Обновлено: 27 января 2026
+# Версия: 3.36.0 | Обновлено: 28 января 2026
 # =============================================
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
 # iOS Full Localization: 15 languages + RTL support
@@ -9,6 +9,7 @@
 # 4D Schema: (user_id, strategy, side, exchange)
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
+# Translations: 15 languages × 875 keys = Full sync
 
 ---
 
@@ -903,6 +904,24 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ FEAT: Full Localization Audit & Sync (Jan 28, 2026)
+- **Проблема:** 13 языков имели 848 ключей, а EN/RU имели 875 ключей (разница 27 ключей)
+- **Причина:** Новые ключи для Break-Even и Partial Take Profit не были добавлены во все языки
+- **Исправленные файлы:**
+  - Все 15 языковых файлов теперь имеют **875 ключей**
+  - Добавлены 27 ключей BE/PTP в: ar, cs, de, es, fr, he, it, ja, lt, pl, sq, uk, zh
+  - Добавлены 11 ключей hardcoded strings fix во все языки
+- **Новые ключи перевода (27 для BE/PTP):**
+  - BE: `be_settings_header`, `be_settings_desc`, `be_enabled_label`, `be_trigger_label`, `prompt_be_trigger`, `prompt_long_be_trigger`, `prompt_short_be_trigger`, `param_be_trigger`, `be_moved_to_entry`, `be_status_enabled`, `be_status_disabled`
+  - PTP: `partial_tp_label`, `partial_tp_status_enabled`, `partial_tp_status_disabled`, `partial_tp_step1_menu`, `partial_tp_step2_menu`, `trigger_pct`, `close_pct`, `prompt_long_ptp_*`, `prompt_short_ptp_*`, `partial_tp_executed`
+- **Hardcoded strings fix:**
+  - Исправлены 11 хардкодов в bot.py на t.get() вызовы
+  - Ключи: `terminal_button`, `exchange_mode_activated_bybit`, `exchange_mode_activated_hl`, `error_processing_request`, `unauthorized_admin`, `error_loading_dashboard`, `unauthorized`, `processing_blockchain`, `verifying_payment`, `no_wallet_configured`, `use_start_menu`
+- **iOS/Android проверены:**
+  - `ios/LyxenTrading/Services/LocalizationManager.swift` - 15 языков ✅
+  - `android/LyxenTrading/app/.../util/Localization.kt` - 15 языков ✅
+- **Результат:** Полная синхронизация переводов: 15 языков × 875 ключей
 
 ### ✅ FEAT: Partial Take Profit (Срез маржи) in 2 Steps (Jan 27, 2026)
 - **Функционал:** Частичное закрытие позиции при достижении % прибыли в 2 шага

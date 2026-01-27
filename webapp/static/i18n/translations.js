@@ -421,9 +421,30 @@ class I18n {
             this.currentLang = lang;
             localStorage.setItem('lang', lang);
             this.updatePage();
+            
+            // Sync with server
+            this.syncWithServer(lang);
             return true;
         }
         return false;
+    }
+    
+    async syncWithServer(lang) {
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+            
+            await fetch('/api/users/language', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ language: lang })
+            });
+        } catch (e) {
+            console.warn('Failed to sync language with server:', e);
+        }
     }
     
     getLang() {

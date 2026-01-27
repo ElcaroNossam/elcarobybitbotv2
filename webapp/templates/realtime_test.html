@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Real-Time Market Data Test</title>
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         * {
             margin: 0;
@@ -220,6 +221,103 @@
         .change.negative {
             background: rgba(244, 67, 54, 0.3);
             color: #f44336;
+        }
+        
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+            
+            .controls {
+                padding: 12px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+            }
+            
+            .btn {
+                flex: 1;
+                min-width: 120px;
+                margin-right: 0;
+                min-height: 44px;
+            }
+            
+            .status {
+                margin-left: 0;
+                flex: 1 1 100%;
+                text-align: center;
+                margin-top: 10px;
+            }
+            
+            .exchange-tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                padding: 14px;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .symbol-card {
+                padding: 14px;
+            }
+            
+            .symbol-name {
+                font-size: 1.2em;
+            }
+            
+            .price {
+                font-size: 1.5em;
+            }
+            
+            .meta {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            
+            .stats {
+                flex-wrap: wrap;
+                gap: 15px;
+                padding: 12px;
+            }
+            
+            .stat-item {
+                flex: 1;
+                min-width: 80px;
+            }
+            
+            .stat-value {
+                font-size: 1.5em;
+            }
+        }
+        
+        @media (max-width: 375px) {
+            h1 {
+                font-size: 1.25em;
+            }
+            
+            .price {
+                font-size: 1.3em;
+            }
+            
+            .stat-value {
+                font-size: 1.2em;
+            }
+            
+            .meta {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>

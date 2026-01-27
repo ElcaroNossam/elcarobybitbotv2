@@ -1,26 +1,16 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
-    # Main menu - BLACK RHETORIC: FOMO, Social Proof, Urgency
-    'welcome': (
-        '🚀 <b>MIRË SE ERDHIT NË LYXEN!</b>\n\n'
-        '📊 <b>847 tregtues</b> po fitojnë pjesë me Lyxen tani\n'
-        '⚡ Ekzekutim < 100ms | 🔒 664 teste sigurie\n\n'
-        '<i>Çdo sekondë pa strategji = para të humbura</i>'
-    ),
-    'no_strategies':               '⚠️ Asnjë strategji aktive — po humbni fitime!',
-    'guide_caption': (
-        '📚 <b>SEKRETET E TREGTUESVE ELITE</b>\n\n'
-        'Strategjitë profesionale të përdorura nga 847+ tregtues\n'
-        'Mundësitë të fitimit MASSIVE\n\n'
-        '<i>Siguria juaj = Obsesioni ynë</i>'
-    ),
-    'privacy_caption': (
-        '🔒 <b>ENKRIPTIM I NIVELIT BANKAR</b>\n\n'
-        'API juaj: enkriptuar AES-256\n'
-        'Asnjë akses në fondet tuaja\n'
-        'Siguria: 664 teste kalojnë\n\n'
-        '<i>Ne nuk ruajmë paratë tuaja. Me të vërtetë.</i>'
-    ),
+    # Menyja kryesore - Terminal profesional tregtimi
+    'welcome':                     '''🔥 <b>Lyxen Trading Terminal</b>
+
+⚡ <b>&lt; 100ms</b> shpejtësia e ekzekutimit
+🛡️ <b>Menaxhimi i rrezikut</b> i integruar
+💎 <b>24/7</b> tregtim automatik
+
+Bybit • HyperLiquid • Multi-strategji''',
+    'no_strategies':               '❌ Asnjë strategji aktive',
+    'guide_caption':               '📚 <b>Udhëzuesi i përdoruesit</b>\n\nKonfigurimi i API, strategjitë, menaxhimi i rrezikut.',
+    'privacy_caption':             '📜 <b>Privatësia</b>\n\n🔐 Ruajtje e enkriptuar\n✅ Asnjë ndarje të dhënave',
     'button_api':                  '🔑 API',
     'button_secret':               '🔒 Sekret',
     'button_api_settings':         '🔑 API',
@@ -653,6 +643,37 @@ TEXTS = {
     'param_atr_periods':             '📈 Periudhat ATR',
     'param_atr_mult':                '📉 Shumëzuesi ATR (hapi SL)',
     'param_atr_trigger':             '🎯 Aktivizimi ATR %',
+
+    # Break-Even settings UI
+    'be_settings_header':            '🔒 *Cilësimet Break-Even*',
+    'be_settings_desc':              '_Zhvendos SL në çmimin e hyrjes kur fitimi arrin % e aktivizimit_',
+    'be_enabled_label':              '🔒 Break-Even',
+    'be_trigger_label':              '🎯 Aktivizimi BE %',
+    'prompt_be_trigger':             'Vendosni % e aktivizimit Break-Even (p.sh. 1.0):',
+    'prompt_long_be_trigger':        '📈 LONG Aktivizimi BE %\n\nVendosni % e fitimit për të zhvendosur SL në hyrje:',
+    'prompt_short_be_trigger':       '📉 SHORT Aktivizimi BE %\n\nVendosni % e fitimit për të zhvendosur SL në hyrje:',
+    'param_be_trigger':              '🎯 Aktivizimi BE %',
+    'be_moved_to_entry':             '🔒 {symbol}: SL u zhvendos në break-even @ {entry}',
+    'be_status_enabled':             '✅ BE: {trigger}%',
+    'be_status_disabled':            '❌ BE: Joaktiv',
+
+    # Partial Take Profit settings UI
+    'partial_tp_label':              '✂️ TP Parciale',
+    'partial_tp_status_enabled':     '✅ TP Parciale aktive',
+    'partial_tp_status_disabled':    '❌ TP Parciale joaktive',
+    'partial_tp_step1_menu':         '✂️ *TP Parciale - Hapi 1*\n\nMbylle {close}% të pozicionit në +{trigger}% fitim\n\n_Zgjidh parametrin:_',
+    'partial_tp_step2_menu':         '✂️ *TP Parciale - Hapi 2*\n\nMbylle {close}% të pozicionit në +{trigger}% fitim\n\n_Zgjidh parametrin:_',
+    'trigger_pct':                   'Aktivizimi',
+    'close_pct':                     'Mbyll',
+    'prompt_long_ptp_1_trigger':     '📈 LONG Hapi 1: % Aktivizimi\n\nVendosni % e fitimit për mbylljen e pjesës së parë:',
+    'prompt_long_ptp_1_close':       '📈 LONG Hapi 1: % Mbyllje\n\nVendosni % e pozicionit për mbyllje:',
+    'prompt_long_ptp_2_trigger':     '📈 LONG Hapi 2: % Aktivizimi\n\nVendosni % e fitimit për mbylljen e pjesës së dytë:',
+    'prompt_long_ptp_2_close':       '📈 LONG Hapi 2: % Mbyllje\n\nVendosni % e pozicionit për mbyllje:',
+    'prompt_short_ptp_1_trigger':    '📉 SHORT Hapi 1: % Aktivizimi\n\nVendosni % e fitimit për mbylljen e pjesës së parë:',
+    'prompt_short_ptp_1_close':      '📉 SHORT Hapi 1: % Mbyllje\n\nVendosni % e pozicionit për mbyllje:',
+    'prompt_short_ptp_2_trigger':    '📉 SHORT Hapi 2: % Aktivizimi\n\nVendosni % e fitimit për mbylljen e pjesës së dytë:',
+    'prompt_short_ptp_2_close':      '📉 SHORT Hapi 2: % Mbyllje\n\nVendosni % e pozicionit për mbyllje:',
+    'partial_tp_executed':           '✂️ {symbol}: U mbyll {close}% në +{trigger}% fitim',
 
     # Hardcoded strings fix
     'terms_unavailable':             'Kushtet e shërbimit nuk janë të disponueshme. Kontaktoni administratorin.',
@@ -1326,5 +1347,19 @@ Max: 100,000 ELC''',
     'error_network_error': '🌐 Problem me rrjetin. Provoni më vonë.',
     'error_sl_tp_invalid': '⚠️ Nuk mund të vendoset SL/TP: çmimi shumë afër atij aktual. Do të përditësohet në ciklin e ardhshëm.',
     'error_equity_zero': '💰 Bilanci i llogarisë suaj është zero. Rimbushni llogarinë Demo ose Real për të tregtuar.',
-
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # =====================================================
+    'terminal_button': '💻 Terminali',
+    'exchange_mode_activated_bybit': '🟠 *Modaliteti Bybit u aktivizua*',
+    'exchange_mode_activated_hl': '🔷 *Modaliteti HyperLiquid u aktivizua*',
+    'error_processing_request': '⚠️ Gabim në përpunimin e kërkesës',
+    'unauthorized_admin': '❌ I paautorizuar. Kjo komandë është vetëm për administratorin.',
+    'error_loading_dashboard': '❌ Gabim në ngarkimin e panelit.',
+    'unauthorized': '❌ I paautorizuar.',
+    'processing_blockchain': '⏳ Duke përpunuar transaksionin blockchain...',
+    'verifying_payment': '⏳ Duke verifikuar pagesën në blockchain TON...',
+    'no_wallet_configured': '❌ Portofoli nuk është konfiguruar.',
+    'use_start_menu': 'Përdorni /start për t\'u kthyer te menyja kryesore.',
 }
