@@ -405,7 +405,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             wallet_type = data.split(":")[-1]
             
             # Generate connection instructions
-            webapp_url = os.getenv("WEBAPP_URL", "https://named-supplement-pending-cooking.trycloudflare.com")
+            webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
             
             text = (
                 f"{t.get('elc_connect_steps_title', wallet=wallet_type.title())}\n\n"

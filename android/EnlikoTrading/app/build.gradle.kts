@@ -24,8 +24,8 @@ android {
         val appName = System.getenv("APP_NAME") ?: "Enliko"
         resValue("string", "app_name_dynamic", "$appName Trading")
         buildConfigField("String", "APP_NAME", "\"$appName\"")
-        buildConfigField("String", "BASE_URL", "\"https://named-supplement-pending-cooking.trycloudflare.com\"")
-        buildConfigField("String", "WS_URL", "\"wss://named-supplement-pending-cooking.trycloudflare.com\"")
+        buildConfigField("String", "BASE_URL", "\"https://enliko.com\"")
+        buildConfigField("String", "WS_URL", "\"wss://enliko.com\"")
     }
 
     signingConfigs {
@@ -39,8 +39,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://named-supplement-pending-cooking.trycloudflare.com\"")
-            buildConfigField("String", "WS_URL", "\"wss://named-supplement-pending-cooking.trycloudflare.com\"")
+            buildConfigField("String", "BASE_URL", "\"https://enliko.com\"")
+            buildConfigField("String", "WS_URL", "\"wss://enliko.com\"")
         }
         release {
             isMinifyEnabled = true

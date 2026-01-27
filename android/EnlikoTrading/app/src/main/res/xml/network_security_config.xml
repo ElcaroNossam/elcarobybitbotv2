@@ -11,7 +11,7 @@
     Current pins are SHA-256 of the server's public key.
     
     To generate pin:
-    echo | openssl s_client -servername named-supplement-pending-cooking.trycloudflare.com -connect named-supplement-pending-cooking.trycloudflare.com:443 2>/dev/null | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+    echo | openssl s_client -servername enliko.com -connect enliko.com:443 2>/dev/null | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
 -->
 <network-security-config>
     
@@ -29,23 +29,23 @@
         </trust-anchors>
     </debug-overrides>
     
-    <!-- Production domain: Cloudflare Tunnel -->
+    <!-- Production domain: enliko.com with Let's Encrypt SSL -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">trycloudflare.com</domain>
+        <domain includeSubdomains="true">enliko.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
         <!-- 
             Certificate pinning for production
-            These are Cloudflare's intermediate certificate pins
-            Pin 1: Cloudflare Inc ECC CA-3
-            Pin 2: DigiCert TLS RSA SHA256 2020 CA1 (backup)
+            These are Let's Encrypt intermediate certificate pins
+            Pin 1: Let's Encrypt R3
+            Pin 2: Let's Encrypt E1 (backup)
         -->
         <pin-set expiration="2027-01-01">
-            <!-- Cloudflare Inc ECC CA-3 -->
-            <pin digest="SHA-256">Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=</pin>
-            <!-- DigiCert backup pin -->
-            <pin digest="SHA-256">RRM1dGqnDFsCJXBTHky16vi1obOlCgFFn/yOhI/y+ho=</pin>
+            <!-- Let's Encrypt R3 -->
+            <pin digest="SHA-256">jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=</pin>
+            <!-- ISRG Root X1 backup pin -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
         </pin-set>
     </domain-config>
     

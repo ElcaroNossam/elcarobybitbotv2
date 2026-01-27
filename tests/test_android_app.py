@@ -433,14 +433,14 @@ class TestAndroidNetworking:
     
     def test_api_base_url_format(self):
         """API base URL в правильном формате"""
-        base_url = "https://named-supplement-pending-cooking.trycloudflare.com/api"
+        base_url = "https://enliko.com/api"
         
         assert base_url.startswith("https://")
         assert base_url.endswith("/api")
     
     def test_websocket_url_format(self):
         """WebSocket URL в правильном формате"""
-        ws_url = "wss://named-supplement-pending-cooking.trycloudflare.com/ws"
+        ws_url = "wss://enliko.com/ws"
         
         assert ws_url.startswith("wss://")
         assert ws_url.endswith("/ws")
