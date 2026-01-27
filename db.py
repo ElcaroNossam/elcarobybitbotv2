@@ -6444,3 +6444,548 @@ def get_error_stats() -> dict:
     except Exception as e:
         _logger.error(f"Failed to get error stats: {e}")
         return {"pending": 0, "by_type": {}, "top_users": []}
+
+
+# ════════════════════════════════════════════════════════════════════════════════════════
+# ADMIN: COMPREHENSIVE DASHBOARD & SYSTEM FUNCTIONS
+# ════════════════════════════════════════════════════════════════════════════════════════
+
+def get_admin_dashboard() -> dict:
+    """Get comprehensive admin dashboard with all statistics."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # === USERS ===
+            cur.execute("SELECT COUNT(*) FROM users")
+            total_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
+            active_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+            premium_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'basic'")
+            basic_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE is_banned = 1")
+            banned_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE exchange_type = 'hyperliquid'")
+            hl_users = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE")
+            new_today = cur.fetchone()[0]
+            
+            # === POSITIONS ===
+            cur.execute("SELECT COUNT(*) FROM active_positions")
+            total_positions = cur.fetchone()[0]
+            
+            cur.execute("""
+                SELECT exchange, account_type, COUNT(*) 
+                FROM active_positions 
+                GROUP BY exchange, account_type
+            """)
+            positions_by_account = {f"{r[0]}:{r[1]}": r[2] for r in cur.fetchall()}
+            
+            cur.execute("""
+                SELECT strategy, COUNT(*) 
+                FROM active_positions 
+                GROUP BY strategy 
+                ORDER BY COUNT(*) DESC
+                LIMIT 10
+            """)
+            positions_by_strategy = {r[0] or "unknown": r[1] for r in cur.fetchall()}
+            
+            # === TRADES ===
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+                    COALESCE(SUM(pnl), 0) as total_pnl,
+                    COALESCE(AVG(pnl), 0) as avg_pnl
+                FROM trade_logs
+            """)
+            row = cur.fetchone()
+            total_trades = row[0] or 0
+            wins = row[1] or 0
+            total_pnl = float(row[2] or 0)
+            avg_pnl = float(row[3] or 0)
+            winrate = round(wins / max(total_trades, 1) * 100, 1)
+            
+            cur.execute("""
+                SELECT COUNT(*), COALESCE(SUM(pnl), 0)
+                FROM trade_logs
+                WHERE DATE(ts) = CURRENT_DATE
+            """)
+            row = cur.fetchone()
+            today_trades = row[0] or 0
+            today_pnl = float(row[1] or 0)
+            
+            cur.execute("""
+                SELECT COUNT(*), COALESCE(SUM(pnl), 0)
+                FROM trade_logs
+                WHERE ts >= NOW() - INTERVAL '7 days'
+            """)
+            row = cur.fetchone()
+            week_trades = row[0] or 0
+            week_pnl = float(row[1] or 0)
+            
+            # === SIGNALS ===
+            cur.execute("SELECT COUNT(*) FROM signals")
+            total_signals = cur.fetchone()[0]
+            
+            cur.execute("SELECT COUNT(*) FROM signals WHERE DATE(open_ts) = CURRENT_DATE")
+            today_signals = cur.fetchone()[0]
+            
+            cur.execute("""
+                SELECT strategy, COUNT(*) 
+                FROM signals 
+                GROUP BY strategy 
+                ORDER BY COUNT(*) DESC
+                LIMIT 5
+            """)
+            signals_by_strategy = {r[0] or "unknown": r[1] for r in cur.fetchall()}
+            
+            # === PAYMENTS ===
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as revenue
+                FROM payment_history
+            """)
+            row = cur.fetchone()
+            payments = {
+                "total": row[0] or 0,
+                "completed": row[1] or 0,
+                "pending": row[2] or 0,
+                "revenue": float(row[3] or 0)
+            }
+            
+            # === ERRORS ===
+            cur.execute("""
+                SELECT COUNT(*) FROM admin_error_log 
+                WHERE status NOT IN ('approved', 'resolved')
+            """)
+            pending_errors = cur.fetchone()[0]
+            
+            cur.execute("""
+                SELECT COUNT(*) FROM admin_error_log 
+                WHERE last_seen >= NOW() - INTERVAL '1 hour'
+            """)
+            errors_last_hour = cur.fetchone()[0]
+            
+            return {
+                "users": {
+                    "total": total_users,
+                    "active": active_users,
+                    "premium": premium_users,
+                    "basic": basic_users,
+                    "banned": banned_users,
+                    "hyperliquid": hl_users,
+                    "new_today": new_today
+                },
+                "positions": {
+                    "total": total_positions,
+                    "by_account": positions_by_account,
+                    "by_strategy": positions_by_strategy
+                },
+                "trades": {
+                    "total": total_trades,
+                    "wins": wins,
+                    "winrate": winrate,
+                    "total_pnl": total_pnl,
+                    "avg_pnl": avg_pnl,
+                    "today": today_trades,
+                    "today_pnl": today_pnl,
+                    "week": week_trades,
+                    "week_pnl": week_pnl
+                },
+                "signals": {
+                    "total": total_signals,
+                    "today": today_signals,
+                    "by_strategy": signals_by_strategy
+                },
+                "payments": payments,
+                "errors": {
+                    "pending": pending_errors,
+                    "last_hour": errors_last_hour
+                }
+            }
+    except Exception as e:
+        _logger.error(f"Failed to get admin dashboard: {e}")
+        return {}
+
+
+def get_all_positions_admin(
+    exchange: str = None,
+    account_type: str = None,
+    strategy: str = None,
+    limit: int = 100,
+    offset: int = 0
+) -> tuple[list, int]:
+    """Get all positions across all users for admin view."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Build WHERE clause
+            conditions = []
+            params = []
+            
+            if exchange:
+                conditions.append("p.exchange = %s")
+                params.append(exchange)
+            if account_type:
+                conditions.append("p.account_type = %s")
+                params.append(account_type)
+            if strategy:
+                conditions.append("p.strategy = %s")
+                params.append(strategy)
+            
+            where = "WHERE " + " AND ".join(conditions) if conditions else ""
+            
+            # Count total
+            cur.execute(f"SELECT COUNT(*) FROM active_positions p {where}", params)
+            total = cur.fetchone()[0]
+            
+            # Get positions with user info
+            cur.execute(f"""
+                SELECT 
+                    p.user_id, p.symbol, p.side, p.entry_price, p.size,
+                    p.leverage, p.sl_price, p.tp_price, p.strategy,
+                    p.exchange, p.account_type, p.open_ts,
+                    u.username, u.first_name
+                FROM active_positions p
+                LEFT JOIN users u ON p.user_id = u.user_id
+                {where}
+                ORDER BY p.open_ts DESC
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
+            
+            positions = []
+            for row in cur.fetchall():
+                positions.append({
+                    "user_id": row[0],
+                    "symbol": row[1],
+                    "side": row[2],
+                    "entry_price": float(row[3]) if row[3] else 0,
+                    "size": float(row[4]) if row[4] else 0,
+                    "leverage": row[5],
+                    "sl_price": float(row[6]) if row[6] else None,
+                    "tp_price": float(row[7]) if row[7] else None,
+                    "strategy": row[8],
+                    "exchange": row[9] or "bybit",
+                    "account_type": row[10] or "demo",
+                    "open_ts": str(row[11]) if row[11] else None,
+                    "username": row[12],
+                    "first_name": row[13]
+                })
+            
+            return positions, total
+            
+    except Exception as e:
+        _logger.error(f"Failed to get all positions: {e}")
+        return [], 0
+
+
+def get_all_trades_admin(
+    exchange: str = None,
+    account_type: str = None,
+    strategy: str = None,
+    pnl_filter: str = None,  # 'win', 'loss'
+    limit: int = 100,
+    offset: int = 0
+) -> tuple[list, int]:
+    """Get all trades across all users for admin view."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Build WHERE clause
+            conditions = []
+            params = []
+            
+            if exchange:
+                conditions.append("t.exchange = %s")
+                params.append(exchange)
+            if account_type:
+                conditions.append("t.account_type = %s")
+                params.append(account_type)
+            if strategy:
+                conditions.append("t.strategy = %s")
+                params.append(strategy)
+            if pnl_filter == 'win':
+                conditions.append("t.pnl > 0")
+            elif pnl_filter == 'loss':
+                conditions.append("t.pnl < 0")
+            
+            where = "WHERE " + " AND ".join(conditions) if conditions else ""
+            
+            # Count total
+            cur.execute(f"SELECT COUNT(*) FROM trade_logs t {where}", params)
+            total = cur.fetchone()[0]
+            
+            # Get trades with user info
+            cur.execute(f"""
+                SELECT 
+                    t.id, t.user_id, t.symbol, t.side, t.entry_price, t.exit_price,
+                    t.pnl, t.pnl_pct, t.exit_reason, t.strategy,
+                    t.exchange, t.account_type, t.ts,
+                    u.username, u.first_name
+                FROM trade_logs t
+                LEFT JOIN users u ON t.user_id = u.user_id
+                {where}
+                ORDER BY t.ts DESC
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
+            
+            trades = []
+            for row in cur.fetchall():
+                trades.append({
+                    "id": row[0],
+                    "user_id": row[1],
+                    "symbol": row[2],
+                    "side": row[3],
+                    "entry_price": float(row[4]) if row[4] else 0,
+                    "exit_price": float(row[5]) if row[5] else 0,
+                    "pnl": float(row[6]) if row[6] else 0,
+                    "pnl_pct": float(row[7]) if row[7] else 0,
+                    "exit_reason": row[8],
+                    "strategy": row[9],
+                    "exchange": row[10] or "bybit",
+                    "account_type": row[11] or "demo",
+                    "ts": str(row[12]) if row[12] else None,
+                    "username": row[13],
+                    "first_name": row[14]
+                })
+            
+            return trades, total
+            
+    except Exception as e:
+        _logger.error(f"Failed to get all trades: {e}")
+        return [], 0
+
+
+def get_all_signals_admin(
+    strategy: str = None,
+    symbol: str = None,
+    side: str = None,
+    limit: int = 100,
+    offset: int = 0
+) -> tuple[list, int]:
+    """Get all signals for admin view."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Build WHERE clause
+            conditions = []
+            params = []
+            
+            if strategy:
+                conditions.append("strategy = %s")
+                params.append(strategy)
+            if symbol:
+                conditions.append("symbol ILIKE %s")
+                params.append(f"%{symbol}%")
+            if side:
+                conditions.append("side = %s")
+                params.append(side)
+            
+            where = "WHERE " + " AND ".join(conditions) if conditions else ""
+            
+            # Count total
+            cur.execute(f"SELECT COUNT(*) FROM signals {where}", params)
+            total = cur.fetchone()[0]
+            
+            # Get signals
+            cur.execute(f"""
+                SELECT 
+                    id, symbol, side, strategy, entry_price, sl_price, tp_price,
+                    timeframe, open_ts, exchange
+                FROM signals
+                {where}
+                ORDER BY open_ts DESC
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
+            
+            signals = []
+            for row in cur.fetchall():
+                signals.append({
+                    "id": row[0],
+                    "symbol": row[1],
+                    "side": row[2],
+                    "strategy": row[3],
+                    "entry_price": float(row[4]) if row[4] else 0,
+                    "sl_price": float(row[5]) if row[5] else None,
+                    "tp_price": float(row[6]) if row[6] else None,
+                    "timeframe": row[7],
+                    "open_ts": str(row[8]) if row[8] else None,
+                    "exchange": row[9] or "bybit"
+                })
+            
+            return signals, total
+            
+    except Exception as e:
+        _logger.error(f"Failed to get all signals: {e}")
+        return [], 0
+
+
+def delete_signal_admin(signal_id: int) -> bool:
+    """Delete a signal by ID."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM signals WHERE id = %s", (signal_id,))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to delete signal {signal_id}: {e}")
+        return False
+
+
+def get_system_health() -> dict:
+    """Get system health metrics."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Database status
+            cur.execute("SELECT 1")
+            db_healthy = cur.fetchone() is not None
+            
+            # Connection pool stats
+            pool = get_pool()
+            pool_stats = {
+                "min_conn": pool.minconn if pool else 0,
+                "max_conn": pool.maxconn if pool else 0
+            }
+            
+            # Recent activity
+            cur.execute("""
+                SELECT COUNT(*) FROM trade_logs 
+                WHERE ts >= NOW() - INTERVAL '1 hour'
+            """)
+            trades_last_hour = cur.fetchone()[0]
+            
+            cur.execute("""
+                SELECT COUNT(*) FROM signals 
+                WHERE open_ts >= NOW() - INTERVAL '1 hour'
+            """)
+            signals_last_hour = cur.fetchone()[0]
+            
+            cur.execute("""
+                SELECT COUNT(*) FROM admin_error_log 
+                WHERE last_seen >= NOW() - INTERVAL '1 hour'
+            """)
+            errors_last_hour = cur.fetchone()[0]
+            
+            # Users online (based on recent activity - simplified)
+            cur.execute("""
+                SELECT COUNT(DISTINCT user_id) FROM trade_logs 
+                WHERE ts >= NOW() - INTERVAL '24 hours'
+            """)
+            active_users_24h = cur.fetchone()[0]
+            
+            return {
+                "status": "healthy" if db_healthy else "unhealthy",
+                "database": {
+                    "connected": db_healthy,
+                    "pool": pool_stats
+                },
+                "activity": {
+                    "trades_last_hour": trades_last_hour,
+                    "signals_last_hour": signals_last_hour,
+                    "errors_last_hour": errors_last_hour,
+                    "active_users_24h": active_users_24h
+                },
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+    except Exception as e:
+        _logger.error(f"Failed to get system health: {e}")
+        return {"status": "error", "error": str(e)}
+
+
+def pause_user_trading(user_id: int) -> bool:
+    """Pause trading for a specific user."""
+    try:
+        pg_set_user_field(user_id, "trading_paused", 1)
+        invalidate_user_cache(user_id)
+        return True
+    except Exception as e:
+        _logger.error(f"Failed to pause user {user_id}: {e}")
+        return False
+
+
+def resume_user_trading(user_id: int) -> bool:
+    """Resume trading for a specific user."""
+    try:
+        pg_set_user_field(user_id, "trading_paused", 0)
+        invalidate_user_cache(user_id)
+        return True
+    except Exception as e:
+        _logger.error(f"Failed to resume user {user_id}: {e}")
+        return False
+
+
+def add_broadcast_message(message: str, target: str = "all", admin_id: int = None) -> int:
+    """Add a broadcast message to queue."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO notification_queue 
+                (target_type, message, created_by, status, created_at)
+                VALUES (%s, %s, %s, 'pending', NOW())
+                RETURNING id
+            """, (target, message, admin_id))
+            result = cur.fetchone()
+            conn.commit()
+            return result[0] if result else 0
+    except Exception as e:
+        _logger.error(f"Failed to add broadcast: {e}")
+        return 0
+
+
+def get_pending_broadcasts() -> list:
+    """Get pending broadcast messages."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, target_type, message, created_at
+                FROM notification_queue
+                WHERE status = 'pending'
+                ORDER BY created_at DESC
+                LIMIT 50
+            """)
+            return [{
+                "id": r[0],
+                "target": r[1],
+                "message": r[2],
+                "created_at": str(r[3]) if r[3] else None
+            } for r in cur.fetchall()]
+    except Exception as e:
+        _logger.error(f"Failed to get pending broadcasts: {e}")
+        return []
+
+
+def mark_broadcast_sent(broadcast_id: int, sent_count: int = 0) -> bool:
+    """Mark broadcast as sent."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE notification_queue 
+                SET status = 'sent', sent_count = %s, sent_at = NOW()
+                WHERE id = %s
+            """, (sent_count, broadcast_id))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to mark broadcast sent: {e}")
+        return False

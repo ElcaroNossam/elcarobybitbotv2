@@ -18986,9 +18986,14 @@ async def cmd_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton(t.get('admin_users_management', '👥 Users'), callback_data="admin:users_menu"),
          InlineKeyboardButton(t.get('admin_licenses', '🔑 Licenses'), callback_data="adm_lic:menu")],
-        [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
+        [InlineKeyboardButton("📈 Positions", callback_data="admin:positions_menu"),
+         InlineKeyboardButton("📊 Trades", callback_data="admin:trades_menu")],
+        [InlineKeyboardButton("📡 Signals", callback_data="admin:signals_menu"),
          InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
-        [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
+        [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
+         InlineKeyboardButton("🔧 System", callback_data="admin:system_menu")],
+        [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu"),
+         InlineKeyboardButton("📢 Broadcast", callback_data="admin:broadcast_menu")],
         [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
          InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
         [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -19017,9 +19022,14 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(t.get('admin_users_management', '👥 Users'), callback_data="admin:users_menu"),
              InlineKeyboardButton(t.get('admin_licenses', '🔑 Licenses'), callback_data="adm_lic:menu")],
-            [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
+            [InlineKeyboardButton("📈 Positions", callback_data="admin:positions_menu"),
+             InlineKeyboardButton("📊 Trades", callback_data="admin:trades_menu")],
+            [InlineKeyboardButton("📡 Signals", callback_data="admin:signals_menu"),
              InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
-            [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
+            [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
+             InlineKeyboardButton("🔧 System", callback_data="admin:system_menu")],
+            [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu"),
+             InlineKeyboardButton("📢 Broadcast", callback_data="admin:broadcast_menu")],
             [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
              InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
             [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -19647,6 +19657,406 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(f"📨 User notified about {len(errors)} errors!", show_alert=True)
         except Exception as e:
             await q.answer(f"❌ Failed to notify: {e}", show_alert=True)
+
+    # =====================================================
+    # POSITIONS MENU - Admin view all positions
+    # =====================================================
+    elif cmd == "positions_menu":
+        dashboard = db.get_admin_dashboard()
+        pos_data = dashboard.get("positions", {})
+        
+        text = "📈 *All Positions*\n\n"
+        text += f"📊 *Total:* {pos_data.get('total', 0)}\n\n"
+        
+        if pos_data.get("by_account"):
+            text += "*By Account:*\n"
+            for acc, count in pos_data["by_account"].items():
+                text += f"• {acc}: {count}\n"
+            text += "\n"
+        
+        if pos_data.get("by_strategy"):
+            text += "*By Strategy:*\n"
+            for strat, count in list(pos_data["by_strategy"].items())[:5]:
+                text += f"• {strat}: {count}\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📋 List All", callback_data="admin:positions_list:0")],
+            [InlineKeyboardButton("🎮 Demo", callback_data="admin:positions_filter:demo:0"),
+             InlineKeyboardButton("💰 Real", callback_data="admin:positions_filter:real:0")],
+            [InlineKeyboardButton("🟠 Bybit", callback_data="admin:positions_exchange:bybit:0"),
+             InlineKeyboardButton("🔷 HyperLiquid", callback_data="admin:positions_exchange:hyperliquid:0")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("positions_list:") or cmd.startswith("positions_filter:") or cmd.startswith("positions_exchange:"):
+        parts = cmd.split(":")
+        page = int(parts[-1]) if parts[-1].isdigit() else 0
+        
+        # Parse filters
+        account_type = None
+        exchange = None
+        if "filter" in cmd:
+            account_type = parts[1] if len(parts) > 1 else None
+        elif "exchange" in cmd:
+            exchange = parts[1] if len(parts) > 1 else None
+        
+        per_page = 8
+        positions, total = db.get_all_positions_admin(
+            exchange=exchange,
+            account_type=account_type,
+            limit=per_page,
+            offset=page * per_page
+        )
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        
+        if not positions:
+            await q.edit_message_text(
+                "✅ No positions found.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:positions_menu")]
+                ])
+            )
+            return
+        
+        filter_label = account_type or exchange or "all"
+        text = f"📈 *Positions ({filter_label})* — Page {page + 1}/{total_pages}\n\n"
+        
+        keyboard = []
+        for pos in positions:
+            side_emoji = "🟢" if pos["side"] == "Buy" else "🔴"
+            username = pos.get("username") or str(pos["user_id"])
+            text += f"{side_emoji} `{username}` | {pos['symbol']} | ${pos['entry_price']:.2f}\n"
+            
+            # Button to view user or close position
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"👤 {username[:12]}",
+                    callback_data=f"admin:user:{pos['user_id']}"
+                ),
+                InlineKeyboardButton(
+                    f"❌ Close",
+                    callback_data=f"admin:close_pos:{pos['user_id']}:{pos['symbol']}:{filter_label}:{page}"
+                )
+            ])
+        
+        # Navigation
+        nav_row = []
+        base_cmd = cmd.rsplit(":", 1)[0]  # Remove page number
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"{base_cmd.replace('admin:', 'admin:')}:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"{base_cmd.replace('admin:', 'admin:')}:{page + 1}"))
+        if nav_row:
+            keyboard.append(nav_row)
+        
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:positions_menu")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("close_pos:"):
+        # Close position for user
+        parts = cmd.split(":")
+        target_uid = int(parts[1])
+        symbol = parts[2]
+        filter_label = parts[3] if len(parts) > 3 else "all"
+        page = int(parts[4]) if len(parts) > 4 else 0
+        
+        db.pg_remove_active_position(target_uid, symbol)
+        await q.answer(f"✅ Position {symbol} removed for user {target_uid}", show_alert=True)
+        
+        # Refresh list
+        q.data = f"admin:positions_list:{page}"
+        await on_admin_cb(update, ctx)
+
+    # =====================================================
+    # TRADES MENU - Admin view all trades
+    # =====================================================
+    elif cmd == "trades_menu":
+        dashboard = db.get_admin_dashboard()
+        trades_data = dashboard.get("trades", {})
+        
+        text = "📊 *All Trades*\n\n"
+        text += f"📈 *Total:* {trades_data.get('total', 0)}\n"
+        text += f"✅ *Wins:* {trades_data.get('wins', 0)} ({trades_data.get('winrate', 0):.1f}%)\n"
+        text += f"💰 *Total PnL:* ${trades_data.get('total_pnl', 0):.2f}\n"
+        text += f"📊 *Avg PnL:* ${trades_data.get('avg_pnl', 0):.2f}\n\n"
+        text += f"📅 *Today:* {trades_data.get('today', 0)} trades (${trades_data.get('today_pnl', 0):.2f})\n"
+        text += f"📆 *Week:* {trades_data.get('week', 0)} trades (${trades_data.get('week_pnl', 0):.2f})\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📋 All Trades", callback_data="admin:trades_list:all:0")],
+            [InlineKeyboardButton("✅ Wins", callback_data="admin:trades_pnl:win:0"),
+             InlineKeyboardButton("❌ Losses", callback_data="admin:trades_pnl:loss:0")],
+            [InlineKeyboardButton("🎮 Demo", callback_data="admin:trades_filter:demo:0"),
+             InlineKeyboardButton("💰 Real", callback_data="admin:trades_filter:real:0")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("trades_list:") or cmd.startswith("trades_filter:") or cmd.startswith("trades_pnl:"):
+        parts = cmd.split(":")
+        page = int(parts[-1]) if parts[-1].isdigit() else 0
+        
+        # Parse filters
+        account_type = None
+        pnl_filter = None
+        filter_label = "all"
+        
+        if "filter" in cmd:
+            account_type = parts[1]
+            filter_label = account_type
+        elif "pnl" in cmd:
+            pnl_filter = parts[1]
+            filter_label = pnl_filter
+        
+        per_page = 10
+        trades, total = db.get_all_trades_admin(
+            account_type=account_type,
+            pnl_filter=pnl_filter,
+            limit=per_page,
+            offset=page * per_page
+        )
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        
+        if not trades:
+            await q.edit_message_text(
+                "📭 No trades found.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:trades_menu")]
+                ])
+            )
+            return
+        
+        text = f"📊 *Trades ({filter_label})* — Page {page + 1}/{total_pages}\n\n"
+        
+        for trade in trades:
+            pnl_emoji = "✅" if trade["pnl"] > 0 else "❌" if trade["pnl"] < 0 else "➖"
+            side_emoji = "🟢" if trade["side"] == "Buy" else "🔴"
+            username = trade.get("username") or str(trade["user_id"])
+            text += f"{pnl_emoji} {side_emoji} `{username}` | {trade['symbol']} | ${trade['pnl']:.2f}\n"
+        
+        # Navigation
+        nav_row = []
+        base_cmd = f"admin:{cmd.split(':')[0]}:{filter_label}"
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"{base_cmd}:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"{base_cmd}:{page + 1}"))
+        
+        keyboard = []
+        if nav_row:
+            keyboard.append(nav_row)
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:trades_menu")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # =====================================================
+    # SIGNALS MENU - Admin view all signals
+    # =====================================================
+    elif cmd == "signals_menu":
+        dashboard = db.get_admin_dashboard()
+        signals_data = dashboard.get("signals", {})
+        
+        text = "📡 *Signals Management*\n\n"
+        text += f"📊 *Total:* {signals_data.get('total', 0)}\n"
+        text += f"📅 *Today:* {signals_data.get('today', 0)}\n\n"
+        
+        if signals_data.get("by_strategy"):
+            text += "*By Strategy:*\n"
+            for strat, count in signals_data["by_strategy"].items():
+                text += f"• {strat}: {count}\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📋 All Signals", callback_data="admin:signals_list:all:0")],
+            [InlineKeyboardButton("🟢 Long", callback_data="admin:signals_side:Buy:0"),
+             InlineKeyboardButton("🔴 Short", callback_data="admin:signals_side:Sell:0")],
+            [InlineKeyboardButton("🎯 OI", callback_data="admin:signals_strat:oi:0"),
+             InlineKeyboardButton("📈 RSI", callback_data="admin:signals_strat:rsi_bb:0")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("signals_list:") or cmd.startswith("signals_side:") or cmd.startswith("signals_strat:"):
+        parts = cmd.split(":")
+        page = int(parts[-1]) if parts[-1].isdigit() else 0
+        
+        # Parse filters
+        side = None
+        strategy = None
+        filter_label = "all"
+        
+        if "side" in cmd:
+            side = parts[1]
+            filter_label = "Long" if side == "Buy" else "Short"
+        elif "strat" in cmd:
+            strategy = parts[1]
+            filter_label = strategy
+        
+        per_page = 10
+        signals, total = db.get_all_signals_admin(
+            side=side,
+            strategy=strategy,
+            limit=per_page,
+            offset=page * per_page
+        )
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        
+        if not signals:
+            await q.edit_message_text(
+                "📭 No signals found.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:signals_menu")]
+                ])
+            )
+            return
+        
+        text = f"📡 *Signals ({filter_label})* — Page {page + 1}/{total_pages}\n\n"
+        
+        keyboard = []
+        for sig in signals:
+            side_emoji = "🟢" if sig["side"] == "Buy" else "🔴"
+            text += f"{side_emoji} {sig['symbol']} | {sig['strategy']} | ${sig['entry_price']:.2f}\n"
+            
+            # Delete button
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"🗑 #{sig['id']} {sig['symbol']}",
+                    callback_data=f"admin:del_signal:{sig['id']}:{filter_label}:{page}"
+                )
+            ])
+        
+        # Navigation
+        nav_row = []
+        base_cmd = f"admin:{cmd.split(':')[0].replace('admin:', '')}:{filter_label}"
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("◀️", callback_data=f"{base_cmd}:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("▶️", callback_data=f"{base_cmd}:{page + 1}"))
+        if nav_row:
+            keyboard.append(nav_row)
+        
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:signals_menu")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("del_signal:"):
+        parts = cmd.split(":")
+        signal_id = int(parts[1])
+        filter_label = parts[2] if len(parts) > 2 else "all"
+        page = int(parts[3]) if len(parts) > 3 else 0
+        
+        success = db.delete_signal_admin(signal_id)
+        if success:
+            await q.answer(f"✅ Signal #{signal_id} deleted!", show_alert=True)
+        else:
+            await q.answer("❌ Failed to delete", show_alert=True)
+        
+        # Refresh list
+        q.data = f"admin:signals_list:{filter_label}:{page}"
+        await on_admin_cb(update, ctx)
+
+    # =====================================================
+    # SYSTEM MENU - Health monitoring
+    # =====================================================
+    elif cmd == "system_menu":
+        health = db.get_system_health()
+        activity = health.get("activity", {})
+        db_info = health.get("database", {})
+        
+        status_emoji = "✅" if health.get("status") == "healthy" else "⚠️"
+        
+        text = f"🔧 *System Status* {status_emoji}\n\n"
+        text += f"*Database:*\n"
+        text += f"• Connected: {'✅' if db_info.get('connected') else '❌'}\n"
+        text += f"• Pool: {db_info.get('pool', {}).get('min_conn', 0)}-{db_info.get('pool', {}).get('max_conn', 0)} connections\n\n"
+        
+        text += f"*Last Hour Activity:*\n"
+        text += f"• Trades: {activity.get('trades_last_hour', 0)}\n"
+        text += f"• Signals: {activity.get('signals_last_hour', 0)}\n"
+        text += f"• Errors: {activity.get('errors_last_hour', 0)}\n"
+        text += f"• Active users (24h): {activity.get('active_users_24h', 0)}\n\n"
+        
+        text += f"📅 *Updated:* {health.get('timestamp', 'N/A')}"
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 Refresh", callback_data="admin:system_menu")],
+            [InlineKeyboardButton("🗄️ DB Tables", callback_data="admin:system_db_tables")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd == "system_db_tables":
+        # Show database table stats
+        text = "🗄️ *Database Tables*\n\n"
+        
+        with db.get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                ORDER BY table_name
+            """)
+            tables = [r[0] for r in cur.fetchall()]
+            
+            for table in tables[:20]:  # Limit to 20
+                cur.execute(f"SELECT COUNT(*) FROM {table}")
+                count = cur.fetchone()[0]
+                text += f"• {table}: {count}\n"
+        
+        keyboard = [
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:system_menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # =====================================================
+    # BROADCAST MENU - Send messages to users
+    # =====================================================
+    elif cmd == "broadcast_menu":
+        pending = db.get_pending_broadcasts()
+        
+        text = "📢 *Broadcast Messages*\n\n"
+        text += f"📋 Pending broadcasts: {len(pending)}\n\n"
+        
+        if pending:
+            text += "*Pending:*\n"
+            for bc in pending[:5]:
+                text += f"• #{bc['id']}: {bc['message'][:50]}...\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("✏️ New Broadcast", callback_data="admin:broadcast_new")],
+            [InlineKeyboardButton("📨 Send to All", callback_data="admin:broadcast_target:all")],
+            [InlineKeyboardButton("💎 Premium Only", callback_data="admin:broadcast_target:premium"),
+             InlineKeyboardButton("✅ Active Only", callback_data="admin:broadcast_target:active")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd == "broadcast_new" or cmd.startswith("broadcast_target:"):
+        # Set mode to receive broadcast message
+        target = "all"
+        if "target:" in cmd:
+            target = cmd.split(":")[1]
+        
+        ctx.user_data["mode"] = "admin_broadcast"
+        ctx.user_data["broadcast_target"] = target
+        
+        target_labels = {
+            "all": "всем пользователям",
+            "premium": "только Premium",
+            "active": "только активным"
+        }
+        
+        await q.edit_message_text(
+            f"✏️ *Введите текст сообщения*\n\n"
+            f"Будет отправлено: {target_labels.get(target, target)}\n\n"
+            f"Используйте Markdown для форматирования.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="admin:broadcast_menu")]
+            ])
+        )
 
     # =====================================================
     # PAYMENTS MENU
@@ -20333,6 +20743,66 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data=f"admin:user:{target_uid}")]
                     ])
                 )
+        return
+
+    # Handle admin broadcast message
+    if mode == "admin_broadcast" and uid == ADMIN_ID:
+        ctx.user_data.pop("mode", None)
+        target = ctx.user_data.pop("broadcast_target", "all")
+        t = LANGS.get(ctx.user_data.get("lang", DEFAULT_LANG), LANGS[DEFAULT_LANG])
+        
+        # Get users based on target
+        all_users = get_all_users()
+        
+        if target == "premium":
+            users_to_notify = [u for u in all_users if get_user_field(u, "license_type") in ("premium", "lifetime") or get_user_field(u, "is_lifetime")]
+        elif target == "active":
+            users_to_notify = [u for u in all_users if get_user_field(u, "is_allowed") and not get_user_field(u, "is_banned")]
+        else:
+            users_to_notify = all_users
+        
+        # Send to all users
+        sent_count = 0
+        failed_count = 0
+        
+        status_msg = await update.message.reply_text(
+            f"📨 Sending broadcast to {len(users_to_notify)} users...",
+            parse_mode="Markdown"
+        )
+        
+        for target_uid in users_to_notify:
+            try:
+                await ctx.bot.send_message(
+                    target_uid,
+                    f"📢 *Announcement*\n\n{text}",
+                    parse_mode="Markdown"
+                )
+                sent_count += 1
+            except Exception:
+                failed_count += 1
+            
+            # Update status every 50 users
+            if (sent_count + failed_count) % 50 == 0:
+                try:
+                    await status_msg.edit_text(
+                        f"📨 Sending... {sent_count + failed_count}/{len(users_to_notify)}\n"
+                        f"✅ Sent: {sent_count}\n"
+                        f"❌ Failed: {failed_count}"
+                    )
+                except:
+                    pass
+        
+        # Final status
+        await status_msg.edit_text(
+            f"✅ *Broadcast Complete!*\n\n"
+            f"📨 Total users: {len(users_to_notify)}\n"
+            f"✅ Sent: {sent_count}\n"
+            f"❌ Failed: {failed_count}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Back", callback_data="admin:broadcast_menu")]
+            ])
+        )
         return
 
     if mode == "update_tpsl":

@@ -1123,3 +1123,277 @@ async def get_dashboard(
                 "today_pnl": float(today_row['pnl'] or 0)
             }
         }
+
+
+# ============ COMPREHENSIVE DASHBOARD ============
+
+@router.get("/dashboard/full")
+async def get_full_dashboard(
+    admin: dict = Depends(require_admin)
+):
+    """Get comprehensive admin dashboard with all statistics."""
+    return db.get_admin_dashboard()
+
+
+# ============ ALL POSITIONS (ADMIN VIEW) ============
+
+@router.get("/positions")
+async def get_all_positions(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    exchange: Optional[str] = None,
+    account_type: Optional[str] = None,
+    strategy: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all positions across all users."""
+    offset = (page - 1) * limit
+    positions, total = db.get_all_positions_admin(
+        exchange=exchange,
+        account_type=account_type,
+        strategy=strategy,
+        limit=limit,
+        offset=offset
+    )
+    
+    return {
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit,
+        "list": positions
+    }
+
+
+@router.post("/positions/{user_id}/{symbol}/close")
+async def admin_close_position(
+    user_id: int,
+    symbol: str,
+    admin: dict = Depends(require_admin)
+):
+    """Force close a specific position for a user."""
+    # Get position details
+    positions = db.pg_get_active_positions(user_id)
+    position = next((p for p in positions if p.get("symbol") == symbol), None)
+    
+    if not position:
+        raise HTTPException(status_code=404, detail=f"Position {symbol} not found for user {user_id}")
+    
+    # Remove from database
+    db.pg_remove_active_position(user_id, symbol)
+    
+    return {
+        "success": True,
+        "message": f"Position {symbol} removed for user {user_id}",
+        "note": "Position removed from tracking. Manual close on exchange may be required."
+    }
+
+
+# ============ ALL TRADES (ADMIN VIEW) ============
+
+@router.get("/trades")
+async def get_all_trades(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    exchange: Optional[str] = None,
+    account_type: Optional[str] = None,
+    strategy: Optional[str] = None,
+    pnl_filter: Optional[str] = Query(None, description="Filter: 'win' or 'loss'"),
+    admin: dict = Depends(require_admin)
+):
+    """Get all trades across all users."""
+    offset = (page - 1) * limit
+    trades, total = db.get_all_trades_admin(
+        exchange=exchange,
+        account_type=account_type,
+        strategy=strategy,
+        pnl_filter=pnl_filter,
+        limit=limit,
+        offset=offset
+    )
+    
+    return {
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit,
+        "list": trades
+    }
+
+
+# ============ ALL SIGNALS (ADMIN VIEW) ============
+
+@router.get("/signals")
+async def get_all_signals(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    strategy: Optional[str] = None,
+    symbol: Optional[str] = None,
+    side: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all signals."""
+    offset = (page - 1) * limit
+    signals, total = db.get_all_signals_admin(
+        strategy=strategy,
+        symbol=symbol,
+        side=side,
+        limit=limit,
+        offset=offset
+    )
+    
+    return {
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit,
+        "list": signals
+    }
+
+
+@router.delete("/signals/{signal_id}")
+async def delete_signal(
+    signal_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Delete a signal."""
+    success = db.delete_signal_admin(signal_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Signal not found")
+    return {"success": True, "message": f"Signal {signal_id} deleted"}
+
+
+# ============ SYSTEM HEALTH ============
+
+@router.get("/system/health")
+async def get_system_health(
+    admin: dict = Depends(require_admin)
+):
+    """Get system health metrics."""
+    return db.get_system_health()
+
+
+# ============ USER TRADING CONTROL ============
+
+@router.post("/users/{user_id}/pause-trading")
+async def pause_user_trading(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Pause trading for a specific user."""
+    success = db.pause_user_trading(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to pause trading")
+    return {"success": True, "message": f"Trading paused for user {user_id}"}
+
+
+@router.post("/users/{user_id}/resume-trading")
+async def resume_user_trading(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Resume trading for a specific user."""
+    success = db.resume_user_trading(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to resume trading")
+    return {"success": True, "message": f"Trading resumed for user {user_id}"}
+
+
+# ============ BROADCASTS ============
+
+class BroadcastRequest(BaseModel):
+    message: str
+    target: str = "all"  # 'all', 'premium', 'active', 'bybit', 'hyperliquid'
+
+
+@router.post("/broadcast")
+async def create_broadcast(
+    request: BroadcastRequest,
+    admin: dict = Depends(require_admin)
+):
+    """Create a broadcast message to send to users."""
+    broadcast_id = db.add_broadcast_message(
+        message=request.message,
+        target=request.target,
+        admin_id=admin.get("user_id")
+    )
+    
+    if not broadcast_id:
+        raise HTTPException(status_code=500, detail="Failed to create broadcast")
+    
+    return {
+        "success": True,
+        "broadcast_id": broadcast_id,
+        "message": "Broadcast created. Use /send endpoint to send."
+    }
+
+
+@router.get("/broadcast/pending")
+async def get_pending_broadcasts(
+    admin: dict = Depends(require_admin)
+):
+    """Get pending broadcast messages."""
+    broadcasts = db.get_pending_broadcasts()
+    return {"list": broadcasts}
+
+
+# ============ ERROR MANAGEMENT (API) ============
+
+@router.get("/errors")
+async def get_admin_errors(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    """Get pending admin errors."""
+    offset = (page - 1) * limit
+    errors = db.get_pending_admin_errors(limit=limit + offset)
+    page_errors = errors[offset:offset + limit]
+    total = len(errors)
+    
+    return {
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit,
+        "list": page_errors
+    }
+
+
+@router.get("/errors/stats")
+async def get_error_stats(
+    admin: dict = Depends(require_admin)
+):
+    """Get error statistics."""
+    return db.get_error_stats()
+
+
+@router.post("/errors/{error_id}/approve")
+async def approve_error(
+    error_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Approve (silence) an error."""
+    success = db.approve_admin_error(error_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Error not found")
+    return {"success": True, "message": "Error approved"}
+
+
+@router.post("/errors/approve-all")
+async def approve_all_errors(
+    admin: dict = Depends(require_admin)
+):
+    """Approve all pending errors."""
+    errors = db.get_pending_admin_errors(limit=1000)
+    count = 0
+    for err in errors:
+        if db.approve_admin_error(err["id"]):
+            count += 1
+    return {"success": True, "approved": count}
+
+
+@router.post("/errors/user/{user_id}/approve")
+async def approve_user_errors(
+    user_id: int,
+    admin: dict = Depends(require_admin)
+):
+    """Approve all errors for a specific user."""
+    count = db.approve_all_user_errors(user_id)
+    return {"success": True, "approved": count}
