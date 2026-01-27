@@ -1168,22 +1168,28 @@ async def get_all_positions(
 async def admin_close_position(
     user_id: int,
     symbol: str,
+    exchange: Optional[str] = Query(None, description="Exchange: bybit or hyperliquid"),
+    account_type: Optional[str] = Query(None, description="Account type: demo, real, testnet, mainnet"),
     admin: dict = Depends(require_admin)
 ):
     """Force close a specific position for a user."""
-    # Get position details
-    positions = db.pg_get_active_positions(user_id)
+    # MULTITENANCY: Get position with exchange filter
+    positions = db.pg_get_active_positions(user_id, exchange=exchange)
     position = next((p for p in positions if p.get("symbol") == symbol), None)
     
     if not position:
         raise HTTPException(status_code=404, detail=f"Position {symbol} not found for user {user_id}")
     
-    # Remove from database
-    db.pg_remove_active_position(user_id, symbol)
+    # MULTITENANCY: Use position's exchange and account_type for removal
+    pos_exchange = position.get("exchange") or exchange or "bybit"
+    pos_account_type = position.get("account_type") or account_type or "demo"
+    
+    # Remove from database with correct exchange/account_type
+    db.pg_remove_active_position(user_id, symbol, exchange=pos_exchange, account_type=pos_account_type)
     
     return {
         "success": True,
-        "message": f"Position {symbol} removed for user {user_id}",
+        "message": f"Position {symbol} removed for user {user_id} on {pos_exchange}/{pos_account_type}",
         "note": "Position removed from tracking. Manual close on exchange may be required."
     }
 

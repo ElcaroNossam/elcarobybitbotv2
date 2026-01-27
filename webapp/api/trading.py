@@ -19,6 +19,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from hl_adapter import HLAdapter
 
+# CROSS-PLATFORM: Import sync service for activity logging
+try:
+    from services.sync_service import sync_service
+    SYNC_SERVICE_AVAILABLE = True
+except ImportError:
+    sync_service = None
+    SYNC_SERVICE_AVAILABLE = False
+
 # NEW: Use services integration layer
 try:
     from webapp.services_integration import (
@@ -604,6 +612,23 @@ async def close_position(
                 account_type=req.account_type
             )
             if result.get("success"):
+                # CROSS-PLATFORM: Log activity for sync
+                if SYNC_SERVICE_AVAILABLE and sync_service:
+                    try:
+                        import asyncio
+                        asyncio.create_task(sync_service.sync_trade_action(
+                            user_id=user_id,
+                            source="webapp",
+                            action="close",
+                            trade_data={
+                                "symbol": req.symbol,
+                                "exchange": req.exchange,
+                                "account_type": req.account_type,
+                                "action": "close_position"
+                            }
+                        ))
+                    except Exception:
+                        pass
                 return {"success": True, "message": result.get("message")}
             return {"success": False, "error": result.get("error")}
         except Exception as e:
