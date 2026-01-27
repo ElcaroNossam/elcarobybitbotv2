@@ -7,7 +7,6 @@ Endpoints for trading signals list and management.
 from fastapi import APIRouter, Depends, Query
 from typing import Optional, List
 from datetime import datetime, timedelta
-import random
 import logging
 
 from webapp.api.auth import get_current_user
@@ -83,8 +82,13 @@ async def get_signals(
         
     except Exception as e:
         logger.error(f"Error fetching signals: {e}")
-        # Return mock data
-        return _get_mock_signals(limit)
+        # Return empty list on error, not mock data
+        return {
+            "success": False,
+            "data": [],
+            "count": 0,
+            "error": "Failed to fetch signals"
+        }
 
 
 @router.get("/active")
@@ -204,36 +208,4 @@ async def get_signal_stats(
     }
 
 
-def _get_mock_signals(limit: int = 20):
-    """Generate mock signals for demo"""
-    symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
-    strategies = ["oi", "scryptomera", "scalper", "elcaro", "manual"]
-    statuses = ["executed", "executed", "executed", "expired", "cancelled"]
-    
-    signals = []
-    for i in range(min(limit, 20)):
-        symbol = random.choice(symbols)
-        side = random.choice(["Buy", "Sell"])
-        price = random.uniform(100, 100000) if "BTC" in symbol else random.uniform(10, 5000)
-        pnl = random.uniform(-50, 150) if random.random() > 0.3 else random.uniform(-100, -10)
-        
-        signals.append({
-            "id": i + 1,
-            "symbol": symbol,
-            "side": side,
-            "strategy": random.choice(strategies),
-            "entry_price": round(price, 2),
-            "stop_loss": round(price * (0.97 if side == "Buy" else 1.03), 2),
-            "take_profit": round(price * (1.05 if side == "Buy" else 0.95), 2),
-            "confidence": random.uniform(0.5, 0.95),
-            "status": random.choice(statuses),
-            "created_at": (datetime.now() - timedelta(hours=random.randint(1, 72))).isoformat(),
-            "executed_at": (datetime.now() - timedelta(hours=random.randint(0, 24))).isoformat() if random.random() > 0.3 else None,
-            "pnl": round(pnl, 2) if random.random() > 0.2 else None
-        })
-    
-    return {
-        "success": True,
-        "data": signals,
-        "count": len(signals)
-    }
+# Mock signals function removed - production code should not return fake data

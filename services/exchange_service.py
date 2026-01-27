@@ -461,16 +461,84 @@ class HyperLiquidAdapter(ExchangeAdapter):
         leverage: int = 1,
         reduce_only: bool = False
     ) -> OrderResult:
-        """Place order on HyperLiquid"""
+        """Place order on HyperLiquid using exchange action endpoint"""
         self._check_premium()
-        # HyperLiquid order logic would go here
-        # This is a placeholder for the actual implementation
-        raise NotImplementedError("HyperLiquid order placement not yet implemented")
+        
+        # HyperLiquid order format
+        is_buy = side == OrderSide.BUY
+        order_request = {
+            "type": "order",
+            "orders": [{
+                "a": symbol.replace("USDT", ""),  # Asset (e.g., BTC, ETH)
+                "b": is_buy,                       # Buy side
+                "p": str(price) if price else None,
+                "s": str(quantity),               # Size
+                "r": reduce_only,
+                "t": {
+                    "limit": {"tif": "Gtc"}
+                } if order_type == OrderType.LIMIT else {"market": {}}
+            }],
+            "grouping": "na"
+        }
+        
+        try:
+            # POST to /exchange endpoint with signed action
+            result = await self._request("POST", "/exchange", order_request)
+            
+            order_id = ""
+            status = "rejected"
+            
+            if result.get("status") == "ok":
+                status = "submitted"
+                response = result.get("response", {})
+                data = response.get("data", {})
+                statuses = data.get("statuses", [])
+                if statuses:
+                    if "filled" in statuses[0]:
+                        order_id = str(statuses[0]["filled"].get("oid", ""))
+                        status = "filled"
+                    elif "resting" in statuses[0]:
+                        order_id = str(statuses[0]["resting"].get("oid", ""))
+                        status = "open"
+            
+            return OrderResult(
+                order_id=order_id,
+                symbol=symbol,
+                side=side,
+                order_type=order_type,
+                quantity=quantity,
+                price=price,
+                status=status,
+                raw_response=result
+            )
+        except Exception as e:
+            return OrderResult(
+                order_id="",
+                symbol=symbol,
+                side=side,
+                order_type=order_type,
+                quantity=quantity,
+                price=price,
+                status="error",
+                error=str(e)
+            )
     
     async def cancel_order(self, symbol: str, order_id: str) -> bool:
         """Cancel order on HyperLiquid"""
         self._check_premium()
-        raise NotImplementedError("HyperLiquid order cancellation not yet implemented")
+        
+        try:
+            cancel_request = {
+                "type": "cancel",
+                "cancels": [{
+                    "a": symbol.replace("USDT", ""),
+                    "o": int(order_id)
+                }]
+            }
+            result = await self._request("POST", "/exchange", cancel_request)
+            return result.get("status") == "ok"
+        except Exception:
+            return False
     
     async def get_open_orders(self, symbol: Optional[str] = None) -> List[Dict]:
         """Get open orders from HyperLiquid"""

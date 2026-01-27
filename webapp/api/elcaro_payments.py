@@ -106,10 +106,11 @@ async def get_elc_info():
         "networks": ["TON", "Polygon", "BSC"],
         "primary_network": "TON",
         "contract_addresses": {
-            # PLACEHOLDER: Replace with real contract addresses before launch
-            "ton": None,  # TODO: Deploy and add TON contract
-            "polygon": None,  # TODO: Deploy and add Polygon contract
-            "bsc": None  # TODO: Deploy and add BSC contract
+            # NOTE: Contracts are pending deployment - set via environment variables
+            # Example: ELC_CONTRACT_TON, ELC_CONTRACT_POLYGON, ELC_CONTRACT_BSC
+            "ton": os.getenv("ELC_CONTRACT_TON"),
+            "polygon": os.getenv("ELC_CONTRACT_POLYGON"),
+            "bsc": os.getenv("ELC_CONTRACT_BSC")
         },
         "dex_pairs": {
             "ton": ["ELC/TON", "ELC/USDT"],
@@ -209,7 +210,7 @@ async def get_elc_balance(user: dict = Depends(get_current_user)):
             "total_elc": balance.get("total", 0),
             "usd_value": balance.get("total", 0) * 1.0,  # $1 per ELC
             "available_for_trading": balance.get("available", 0),
-            "staking_rewards_pending": 0  # TODO: Calculate actual rewards
+            "staking_rewards_pending": balance.get("pending_rewards", 0)  # From DB when staking is live
         }
     except Exception as e:
         logger.error(f"Get ELC balance error: {e}")

@@ -203,18 +203,20 @@ class ColdWalletTrading:
                 testnet=False
             )
             
-            # Submit signed order to HL
-            # This would use HL's API endpoint for signed orders
-            # For now, return mock success
+            # Submit signed order to HyperLiquid using their agent API
+            # HyperLiquid requires orders signed with private key or via approved agent
+            # This endpoint is for users who sign via MetaMask
             
-            logger.info(f"Signed order submitted for user {user_id}")
+            # For now, cold wallet trading is not fully implemented
+            # Users should use private key trading via hl_adapter.py
+            logger.warning(f"Cold wallet trading is experimental. User {user_id} attempted order submission.")
             
             return {
-                "success": True,
-                "order_id": f"HL-{user_id}-{int(order_data.get('sz', 0) * 1000)}",
-                "status": "submitted",
-                "wallet_address": wallet_address,
-                "message": "Order submitted to HyperLiquid"
+                "success": False,
+                "error": "Cold wallet trading is not yet available. Please configure your private key in API Settings for trading.",
+                "order_id": None,
+                "status": "not_implemented",
+                "wallet_address": wallet_address
             }
         except Exception as e:
             logger.error(f"Order submission error: {e}")

@@ -24,6 +24,7 @@ import logging
 
 from webapp.api.auth import get_current_user
 from core.rate_limiter import RateLimiter
+from core.db_postgres import execute, execute_one
 
 logger = logging.getLogger(__name__)
 
@@ -664,19 +665,78 @@ async def save_custom_strategy(
         json.dumps(request.strategy.dict(), sort_keys=True).encode()
     ).hexdigest()[:16]
     
-    # TODO: Save to database
-    result = {
-        "strategy_id": strategy_hash,
-        "name": request.strategy.name,
-        "owner_id": user_id,
-        "is_public": request.is_public,
-        "price_usd": request.price_usd if request.is_public else None,
-        "tags": request.tags,
-        "created_at": datetime.utcnow().isoformat(),
-        "status": "active" if not request.is_public else "pending_review"
-    }
-    
-    return result
+    # Save to database
+    try:
+        # Check if strategy with same name already exists
+        existing = execute_one(
+            "SELECT id FROM custom_strategies WHERE user_id = %s AND name = %s",
+            (user_id, request.strategy.name)
+        )
+        
+        strategy_dict = request.strategy.dict()
+        
+        if existing:
+            # Update existing strategy
+            execute("""
+                UPDATE custom_strategies SET
+                    description = %s,
+                    entry_conditions = %s,
+                    exit_conditions = %s,
+                    indicators = %s,
+                    timeframe = %s,
+                    tp_percent = %s,
+                    sl_percent = %s,
+                    is_public = %s,
+                    updated_at = NOW()
+                WHERE user_id = %s AND name = %s
+            """, (
+                strategy_dict.get("description", ""),
+                json.dumps(strategy_dict.get("entry_conditions", [])),
+                json.dumps(strategy_dict.get("exit_conditions", [])),
+                json.dumps(strategy_dict.get("indicators", [])),
+                strategy_dict.get("timeframe", "15m"),
+                strategy_dict.get("take_profit_pct", 8.0),
+                strategy_dict.get("stop_loss_pct", 3.0),
+                request.is_public,
+                user_id,
+                request.strategy.name
+            ))
+            strategy_id = existing["id"]
+        else:
+            # Insert new strategy
+            result = execute_one("""
+                INSERT INTO custom_strategies 
+                    (user_id, name, description, entry_conditions, exit_conditions, 
+                     indicators, timeframe, tp_percent, sl_percent, is_public)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                user_id,
+                request.strategy.name,
+                strategy_dict.get("description", ""),
+                json.dumps(strategy_dict.get("entry_conditions", [])),
+                json.dumps(strategy_dict.get("exit_conditions", [])),
+                json.dumps(strategy_dict.get("indicators", [])),
+                strategy_dict.get("timeframe", "15m"),
+                strategy_dict.get("take_profit_pct", 8.0),
+                strategy_dict.get("stop_loss_pct", 3.0),
+                request.is_public
+            ))
+            strategy_id = result["id"] if result else strategy_hash
+        
+        return {
+            "strategy_id": str(strategy_id),
+            "name": request.strategy.name,
+            "owner_id": user_id,
+            "is_public": request.is_public,
+            "price_usd": request.price_usd if request.is_public else None,
+            "tags": request.tags,
+            "created_at": datetime.utcnow().isoformat(),
+            "status": "active" if not request.is_public else "pending_review"
+        }
+    except Exception as e:
+        logger.error(f"Error saving strategy: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save strategy")
 
 
 @router.get("/my-strategies")
@@ -689,8 +749,38 @@ async def get_user_strategies(
     **REQUIRES:** JWT Authentication
     """
     user_id = current_user['user_id']
-    # TODO: Fetch from database
-    return []
+    
+    try:
+        rows = execute("""
+            SELECT id, name, description, timeframe, tp_percent, sl_percent,
+                   is_active, is_public, total_trades, win_rate, total_pnl,
+                   created_at, updated_at
+            FROM custom_strategies
+            WHERE user_id = %s
+            ORDER BY updated_at DESC
+        """, (user_id,))
+        
+        strategies = []
+        for row in (rows or []):
+            strategies.append({
+                "strategy_id": str(row["id"]),
+                "name": row["name"],
+                "description": row["description"],
+                "timeframe": row["timeframe"],
+                "tp_percent": row["tp_percent"],
+                "sl_percent": row["sl_percent"],
+                "is_active": row["is_active"],
+                "is_public": row["is_public"],
+                "total_trades": row["total_trades"],
+                "win_rate": row["win_rate"],
+                "total_pnl": row["total_pnl"],
+                "created_at": str(row["created_at"]) if row["created_at"] else None,
+                "updated_at": str(row["updated_at"]) if row["updated_at"] else None
+            })
+        return strategies
+    except Exception as e:
+        logger.error(f"Error fetching strategies: {e}")
+        return []
 
 
 @router.delete("/delete/{strategy_id}")
@@ -704,8 +794,31 @@ async def delete_strategy(
     **REQUIRES:** JWT Authentication
     """
     user_id = current_user['user_id']
-    # TODO: Delete from database
-    return {"status": "deleted", "strategy_id": strategy_id}
+    
+    try:
+        # Verify ownership before deleting
+        strategy = execute_one(
+            "SELECT user_id FROM custom_strategies WHERE id = %s",
+            (strategy_id,)
+        )
+        
+        if not strategy:
+            raise HTTPException(status_code=404, detail="Strategy not found")
+        
+        if strategy["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this strategy")
+        
+        execute(
+            "DELETE FROM custom_strategies WHERE id = %s AND user_id = %s",
+            (strategy_id, user_id)
+        )
+        
+        return {"status": "deleted", "strategy_id": strategy_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting strategy: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete strategy")
 
 
 # ======================= HELPER FUNCTIONS =======================
