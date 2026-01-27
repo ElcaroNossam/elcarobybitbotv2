@@ -6183,3 +6183,264 @@ def is_strategy_enabled(user_id: int, strategy: str, exchange: str = "bybit") ->
 def get_defaults() -> dict:
     """Get default settings from ENV."""
     return _get_default_settings()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# ADMIN ERROR LOG - For admin error management with approve/notify
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+def log_admin_error(
+    user_id: int,
+    error_type: str,
+    error_message: str,
+    error_code: str = None,
+    context: dict = None,
+    exchange: str = "bybit",
+    account_type: str = "demo"
+) -> int | None:
+    """
+    Log error for admin review. If same error exists (not approved), increment counter.
+    Returns error_id or None.
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Try to find existing error (same user, type, code, exchange, account)
+            cur.execute("""
+                SELECT id, occurrence_count FROM admin_error_log 
+                WHERE user_id = %s AND error_type = %s 
+                  AND COALESCE(error_code, '') = COALESCE(%s, '')
+                  AND exchange = %s AND account_type = %s
+                  AND status != 'approved'
+                LIMIT 1
+            """, (user_id, error_type, error_code, exchange, account_type))
+            
+            existing = cur.fetchone()
+            
+            if existing:
+                # Update existing error - increment counter
+                error_id, count = existing[0], existing[1]
+                cur.execute("""
+                    UPDATE admin_error_log 
+                    SET occurrence_count = %s,
+                        last_seen = NOW(),
+                        error_message = %s,
+                        context = %s
+                    WHERE id = %s
+                """, (count + 1, error_message, json.dumps(context or {}), error_id))
+                conn.commit()
+                return error_id
+            else:
+                # Insert new error
+                cur.execute("""
+                    INSERT INTO admin_error_log 
+                    (user_id, error_type, error_code, error_message, context, exchange, account_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (user_id, error_type, error_code, error_message, 
+                      json.dumps(context or {}), exchange, account_type))
+                result = cur.fetchone()
+                conn.commit()
+                return result[0] if result else None
+                
+    except Exception as e:
+        _logger.error(f"Failed to log admin error: {e}")
+        return None
+
+
+def get_pending_admin_errors(limit: int = 50) -> list[dict]:
+    """Get all pending (non-approved) errors for admin review."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT 
+                    e.id, e.user_id, e.error_type, e.error_code, e.error_message,
+                    e.context, e.exchange, e.account_type, e.status,
+                    e.occurrence_count, e.first_seen, e.last_seen,
+                    u.username, u.first_name
+                FROM admin_error_log e
+                LEFT JOIN users u ON e.user_id = u.user_id
+                WHERE e.status NOT IN ('approved', 'resolved')
+                ORDER BY e.last_seen DESC
+                LIMIT %s
+            """, (limit,))
+            
+            rows = cur.fetchall()
+            errors = []
+            for row in rows:
+                errors.append({
+                    "id": row[0],
+                    "user_id": row[1],
+                    "error_type": row[2],
+                    "error_code": row[3],
+                    "error_message": row[4],
+                    "context": _safe_json_loads(row[5], {}),
+                    "exchange": row[6],
+                    "account_type": row[7],
+                    "status": row[8],
+                    "occurrence_count": row[9],
+                    "first_seen": row[10],
+                    "last_seen": row[11],
+                    "username": row[12],
+                    "first_name": row[13],
+                })
+            return errors
+            
+    except Exception as e:
+        _logger.error(f"Failed to get pending admin errors: {e}")
+        return []
+
+
+def get_admin_errors_by_user(user_id: int, include_approved: bool = False) -> list[dict]:
+    """Get errors for a specific user."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            if include_approved:
+                cur.execute("""
+                    SELECT id, error_type, error_code, error_message, context,
+                           exchange, account_type, status, occurrence_count, 
+                           first_seen, last_seen, admin_note
+                    FROM admin_error_log 
+                    WHERE user_id = %s
+                    ORDER BY last_seen DESC
+                    LIMIT 100
+                """, (user_id,))
+            else:
+                cur.execute("""
+                    SELECT id, error_type, error_code, error_message, context,
+                           exchange, account_type, status, occurrence_count, 
+                           first_seen, last_seen, admin_note
+                    FROM admin_error_log 
+                    WHERE user_id = %s AND status NOT IN ('approved', 'resolved')
+                    ORDER BY last_seen DESC
+                    LIMIT 100
+                """, (user_id,))
+            
+            rows = cur.fetchall()
+            return [{
+                "id": r[0], "error_type": r[1], "error_code": r[2],
+                "error_message": r[3], "context": _safe_json_loads(r[4], {}),
+                "exchange": r[5], "account_type": r[6], "status": r[7],
+                "occurrence_count": r[8], "first_seen": r[9], "last_seen": r[10],
+                "admin_note": r[11]
+            } for r in rows]
+            
+    except Exception as e:
+        _logger.error(f"Failed to get errors for user {user_id}: {e}")
+        return []
+
+
+def approve_admin_error(error_id: int, admin_note: str = None) -> bool:
+    """Approve (silence) an error - it won't be shown again."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE admin_error_log 
+                SET status = 'approved', 
+                    approved_at = NOW(),
+                    admin_note = COALESCE(%s, admin_note)
+                WHERE id = %s
+            """, (admin_note, error_id))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to approve error {error_id}: {e}")
+        return False
+
+
+def approve_all_user_errors(user_id: int, error_type: str = None) -> int:
+    """Approve all errors for a user (optionally filtered by type)."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            if error_type:
+                cur.execute("""
+                    UPDATE admin_error_log 
+                    SET status = 'approved', approved_at = NOW()
+                    WHERE user_id = %s AND error_type = %s 
+                      AND status NOT IN ('approved', 'resolved')
+                """, (user_id, error_type))
+            else:
+                cur.execute("""
+                    UPDATE admin_error_log 
+                    SET status = 'approved', approved_at = NOW()
+                    WHERE user_id = %s AND status NOT IN ('approved', 'resolved')
+                """, (user_id,))
+            conn.commit()
+            return cur.rowcount
+    except Exception as e:
+        _logger.error(f"Failed to approve all errors for user {user_id}: {e}")
+        return 0
+
+
+def mark_error_notified(error_id: int) -> bool:
+    """Mark that user was notified about this error."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE admin_error_log 
+                SET status = 'notified', notified_at = NOW()
+                WHERE id = %s
+            """, (error_id,))
+            conn.commit()
+            return cur.rowcount > 0
+    except Exception as e:
+        _logger.error(f"Failed to mark error {error_id} as notified: {e}")
+        return False
+
+
+def get_error_stats() -> dict:
+    """Get error statistics for admin dashboard."""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Total pending
+            cur.execute("""
+                SELECT COUNT(*) FROM admin_error_log 
+                WHERE status NOT IN ('approved', 'resolved')
+            """)
+            pending = cur.fetchone()[0]
+            
+            # By error type
+            cur.execute("""
+                SELECT error_type, COUNT(*), SUM(occurrence_count)
+                FROM admin_error_log 
+                WHERE status NOT IN ('approved', 'resolved')
+                GROUP BY error_type
+                ORDER BY COUNT(*) DESC
+            """)
+            by_type = {r[0]: {"count": r[1], "total_occurrences": r[2]} for r in cur.fetchall()}
+            
+            # By user (top 10)
+            cur.execute("""
+                SELECT e.user_id, u.username, u.first_name, COUNT(*), SUM(e.occurrence_count)
+                FROM admin_error_log e
+                LEFT JOIN users u ON e.user_id = u.user_id
+                WHERE e.status NOT IN ('approved', 'resolved')
+                GROUP BY e.user_id, u.username, u.first_name
+                ORDER BY SUM(e.occurrence_count) DESC
+                LIMIT 10
+            """)
+            by_user = [{
+                "user_id": r[0], 
+                "username": r[1], 
+                "first_name": r[2],
+                "error_count": r[3], 
+                "total_occurrences": r[4]
+            } for r in cur.fetchall()]
+            
+            return {
+                "pending": pending,
+                "by_type": by_type,
+                "top_users": by_user
+            }
+            
+    except Exception as e:
+        _logger.error(f"Failed to get error stats: {e}")
+        return {"pending": 0, "by_type": {}, "top_users": []}

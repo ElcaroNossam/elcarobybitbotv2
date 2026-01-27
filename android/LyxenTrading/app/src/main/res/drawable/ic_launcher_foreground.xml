@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Lyxen "L" logo -->
+    <group
+        android:translateX="27"
+        android:translateY="27">
+        <!-- Main L shape -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,8 L12,38 L20,38 L20,16 L42,16 L42,8 L12,8 Z"/>
+        <!-- Bottom bar of L -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,38 L12,46 L42,46 L42,38 L12,38 Z"/>
+        <!-- Decorative accent -->
+        <path
+            android:fillColor="#00D9A5"
+            android:pathData="M36,22 L42,22 L42,38 L36,38 Z"/>
+    </group>
+</vector>

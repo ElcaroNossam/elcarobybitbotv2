@@ -1,0 +1,82 @@
+package io.lyxen.trading.ui.screens.trading
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.lyxen.trading.data.api.LyxenApi
+import io.lyxen.trading.data.models.Order
+import io.lyxen.trading.data.repository.PreferencesRepository
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class TradingUiState(
+    val isLoading: Boolean = false,
+    val orders: List<Order> = emptyList(),
+    val selectedSymbol: String = "BTCUSDT",
+    val leverage: Int = 10,
+    val slPercent: Double = 3.0,
+    val tpPercent: Double = 8.0,
+    val orderType: String = "market",
+    val error: String? = null,
+    val accountType: String = "demo"
+)
+
+@HiltViewModel
+class TradingViewModel @Inject constructor(
+    private val api: LyxenApi,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(TradingUiState())
+    val uiState: StateFlow<TradingUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.accountType.collect { accountType ->
+                _uiState.update { it.copy(accountType = accountType) }
+                loadOrders()
+            }
+        }
+    }
+
+    fun loadOrders() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val response = api.getOrders(_uiState.value.accountType)
+                if (response.isSuccessful) {
+                    _uiState.update { 
+                        it.copy(isLoading = false, orders = response.body() ?: emptyList()) 
+                    }
+                } else {
+                    _uiState.update { 
+                        it.copy(isLoading = false, error = "Failed to load orders") 
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun setSymbol(symbol: String) {
+        _uiState.update { it.copy(selectedSymbol = symbol) }
+    }
+
+    fun setLeverage(leverage: Int) {
+        _uiState.update { it.copy(leverage = leverage) }
+    }
+
+    fun setSlPercent(sl: Double) {
+        _uiState.update { it.copy(slPercent = sl) }
+    }
+
+    fun setTpPercent(tp: Double) {
+        _uiState.update { it.copy(tpPercent = tp) }
+    }
+
+    fun setOrderType(type: String) {
+        _uiState.update { it.copy(orderType = type) }
+    }
+}

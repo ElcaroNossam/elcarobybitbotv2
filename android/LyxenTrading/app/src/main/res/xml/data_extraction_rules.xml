@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ Data Extraction Rules for Lyxen Trading App
+    
+    SECURITY: Prevent sensitive data extraction via:
+    - Cloud backup (Google Drive)
+    - Device-to-device transfer
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Exclude all sensitive data from cloud backup -->
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="file" path="datastore/"/>
+        <exclude domain="database" path="."/>
+    </cloud-backup>
+    
+    <device-transfer>
+        <!-- Exclude sensitive data from device transfer -->
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="file" path="datastore/"/>
+        <exclude domain="database" path="."/>
+    </device-transfer>
+</data-extraction-rules>

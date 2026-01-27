@@ -379,6 +379,32 @@ class ErrorMonitor:
             )
             self.errors.append(error)
             
+            # Save to database for admin management
+            try:
+                error_code = None
+                # Extract error code from message (e.g., "110007" from Bybit)
+                import re
+                code_match = re.search(r"'retCode':\s*(\d+)", error_message)
+                if code_match:
+                    error_code = code_match.group(1)
+                
+                context = {
+                    "function": function_name,
+                    "symbol": symbol,
+                    **extra_context
+                }
+                db.log_admin_error(
+                    user_id=user_id or 0,
+                    error_type=error_type,
+                    error_message=error_message[:1000],  # Truncate long messages
+                    error_code=error_code,
+                    context=context,
+                    exchange=exchange or "bybit",
+                    account_type=account_type or "demo"
+                )
+            except Exception as e:
+                logger.debug(f"Could not save error to admin log: {e}")
+            
             # Notify user with friendly message
             if notify_user and user_id and self.bot and error_type in self.error_keys:
                 try:
@@ -18962,6 +18988,7 @@ async def cmd_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
          InlineKeyboardButton(t.get('admin_licenses', '🔑 Licenses'), callback_data="adm_lic:menu")],
         [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
          InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
+        [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
         [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
          InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
         [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -18992,6 +19019,7 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
              InlineKeyboardButton(t.get('admin_licenses', '🔑 Licenses'), callback_data="adm_lic:menu")],
             [InlineKeyboardButton(t.get('admin_payments', '💳 Payments'), callback_data="admin:payments_menu"),
              InlineKeyboardButton(t.get('admin_reports', '📊 Reports'), callback_data="admin:reports_menu")],
+            [InlineKeyboardButton("🚨 Errors", callback_data="admin:errors_menu")],
             [InlineKeyboardButton(t['admin_pause_all'],  callback_data="admin:pause"),
              InlineKeyboardButton(t['admin_resume_all'], callback_data="admin:resume")],
             [InlineKeyboardButton(t['admin_close_longs'],  callback_data="admin:close_longs"),
@@ -19371,6 +19399,254 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     except Exception:
                         pass
         await q.edit_message_text(t['admin_canceled_limits_total'].format(count=canceled))
+
+    # =====================================================
+    # ERRORS MENU - Admin error management
+    # =====================================================
+    elif cmd == "errors_menu":
+        stats = db.get_error_stats()
+        pending = stats.get("pending", 0)
+        by_type = stats.get("by_type", {})
+        
+        text = "🚨 *Error Management*\n\n"
+        text += f"📊 Pending errors: *{pending}*\n\n"
+        
+        if by_type:
+            text += "*By Type:*\n"
+            for etype, data in sorted(by_type.items(), key=lambda x: -x[1].get("total_occurrences", 0)):
+                count = data.get("count", 0)
+                total = data.get("total_occurrences", 0)
+                text += f"• {etype}: {count} ({total}x)\n"
+        
+        keyboard = [
+            [InlineKeyboardButton("📋 View All Errors", callback_data="admin:errors_list:0")],
+            [InlineKeyboardButton("👥 By User", callback_data="admin:errors_by_user")],
+            [InlineKeyboardButton("✅ Approve All", callback_data="admin:errors_approve_all")],
+            [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:menu")],
+        ]
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("errors_list:"):
+        # Paginated list of errors
+        page = int(cmd.split(":")[1]) if ":" in cmd else 0
+        per_page = 5
+        errors = db.get_pending_admin_errors(limit=50)
+        total = len(errors)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        start = page * per_page
+        end = start + per_page
+        page_errors = errors[start:end]
+        
+        if not page_errors:
+            text = "✅ No pending errors!"
+            keyboard = [[InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_menu")]]
+            await q.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+        
+        text = f"🚨 *Pending Errors* ({page + 1}/{total_pages})\n\n"
+        keyboard = []
+        
+        for err in page_errors:
+            user_id = err["user_id"]
+            username = err.get("username") or err.get("first_name") or str(user_id)
+            error_type = err["error_type"]
+            count = err["occurrence_count"]
+            last_seen = err["last_seen"]
+            last_str = last_seen.strftime("%d.%m %H:%M") if last_seen else "?"
+            
+            text += f"*{error_type}* ({count}x)\n"
+            text += f"├ User: `{username}` ({user_id})\n"
+            text += f"├ Last: {last_str}\n"
+            text += f"└ {err['error_message'][:80]}...\n\n"
+            
+            # Buttons for each error: Approve | Notify User
+            keyboard.append([
+                InlineKeyboardButton(f"✅ #{err['id']}", callback_data=f"admin:err_approve:{err['id']}"),
+                InlineKeyboardButton(f"📨 Notify", callback_data=f"admin:err_notify:{err['id']}:{user_id}"),
+            ])
+        
+        # Pagination
+        nav_row = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"admin:errors_list:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(f"{page + 1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("➡️", callback_data=f"admin:errors_list:{page + 1}"))
+        keyboard.append(nav_row)
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_menu")])
+        
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd == "errors_by_user":
+        # Show errors grouped by user
+        stats = db.get_error_stats()
+        top_users = stats.get("top_users", [])
+        
+        if not top_users:
+            text = "✅ No pending errors!"
+            keyboard = [[InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_menu")]]
+            await q.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+        
+        text = "👥 *Errors by User*\n\n"
+        keyboard = []
+        
+        for u in top_users[:10]:
+            user_id = u["user_id"]
+            username = u.get("username") or u.get("first_name") or str(user_id)
+            error_count = u["error_count"]
+            total_occ = u["total_occurrences"]
+            
+            text += f"• `{username}`: {error_count} errors ({total_occ}x)\n"
+            keyboard.append([
+                InlineKeyboardButton(f"👤 {username}", callback_data=f"admin:user_errors:{user_id}"),
+                InlineKeyboardButton("✅ Approve All", callback_data=f"admin:approve_user:{user_id}"),
+            ])
+        
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_menu")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("user_errors:"):
+        # Show errors for specific user
+        user_id = int(cmd.split(":")[1])
+        errors = db.get_admin_errors_by_user(user_id)
+        
+        if not errors:
+            text = f"✅ No pending errors for user {user_id}!"
+            keyboard = [[InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_by_user")]]
+            await q.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+        
+        # Get username
+        user = db.pg_get_user(user_id)
+        username = user.get("username") or user.get("first_name") or str(user_id) if user else str(user_id)
+        
+        text = f"🚨 *Errors for {username}*\n\n"
+        keyboard = []
+        
+        for err in errors[:10]:
+            error_type = err["error_type"]
+            count = err["occurrence_count"]
+            text += f"• *{error_type}* ({count}x)\n"
+            text += f"  {err['error_message'][:60]}...\n\n"
+            
+            keyboard.append([
+                InlineKeyboardButton(f"✅ Approve #{err['id']}", callback_data=f"admin:err_approve:{err['id']}"),
+            ])
+        
+        keyboard.append([
+            InlineKeyboardButton("✅ Approve All", callback_data=f"admin:approve_user:{user_id}"),
+            InlineKeyboardButton("📨 Notify User", callback_data=f"admin:notify_user:{user_id}"),
+        ])
+        keyboard.append([InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:errors_by_user")])
+        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    elif cmd.startswith("err_approve:"):
+        # Approve single error
+        error_id = int(cmd.split(":")[1])
+        success = db.approve_admin_error(error_id)
+        if success:
+            await q.answer("✅ Error approved!", show_alert=True)
+        else:
+            await q.answer("❌ Failed to approve", show_alert=True)
+        # Refresh list
+        await on_admin_cb(update, ctx)
+    
+    elif cmd.startswith("approve_user:"):
+        # Approve all errors for user
+        user_id = int(cmd.split(":")[1])
+        count = db.approve_all_user_errors(user_id)
+        await q.answer(f"✅ Approved {count} errors!", show_alert=True)
+        # Go back to errors by user
+        cmd = "errors_by_user"
+        q.data = "admin:errors_by_user"
+        await on_admin_cb(update, ctx)
+    
+    elif cmd == "errors_approve_all":
+        # Approve all pending errors
+        errors = db.get_pending_admin_errors(limit=1000)
+        count = 0
+        for err in errors:
+            if db.approve_admin_error(err["id"]):
+                count += 1
+        await q.answer(f"✅ Approved {count} errors!", show_alert=True)
+        q.data = "admin:errors_menu"
+        await on_admin_cb(update, ctx)
+    
+    elif cmd.startswith("err_notify:"):
+        # Notify user about error and mark as notified
+        parts = cmd.split(":")
+        error_id = int(parts[1])
+        target_user_id = int(parts[2])
+        
+        # Get error details
+        errors = db.get_admin_errors_by_user(target_user_id, include_approved=True)
+        err = next((e for e in errors if e["id"] == error_id), None)
+        
+        if err:
+            error_type = err["error_type"]
+            
+            # Build user-friendly message based on error type
+            msg = "⚠️ *Важное уведомление*\n\n"
+            
+            if error_type == "INSUFFICIENT_BALANCE":
+                msg += "💰 На вашем аккаунте недостаточно средств для открытия позиций.\n\n"
+                msg += "Пожалуйста, пополните баланс или уменьшите Entry% в настройках стратегий.\n\n"
+                msg += f"📊 Биржа: {err.get('exchange', 'bybit').upper()}\n"
+                msg += f"🎮 Аккаунт: {err.get('account_type', 'demo')}"
+            elif error_type == "API_KEY_EXPIRED":
+                msg += "🔑 Ваши API ключи устарели или недействительны.\n\n"
+                msg += "Пожалуйста, обновите API ключи в настройках."
+            elif error_type == "API_KEY_MISSING":
+                msg += "🔑 API ключи не настроены.\n\n"
+                msg += "Настройте API ключи для начала торговли."
+            else:
+                msg += f"Обнаружена проблема: {error_type}\n\n"
+                msg += "Пожалуйста, проверьте настройки вашего аккаунта."
+            
+            try:
+                await ctx.bot.send_message(target_user_id, msg, parse_mode="Markdown")
+                db.mark_error_notified(error_id)
+                await q.answer("📨 User notified!", show_alert=True)
+            except Exception as e:
+                await q.answer(f"❌ Failed to notify: {e}", show_alert=True)
+        else:
+            await q.answer("❌ Error not found", show_alert=True)
+    
+    elif cmd.startswith("notify_user:"):
+        # Notify user about all their errors
+        target_user_id = int(cmd.split(":")[1])
+        errors = db.get_admin_errors_by_user(target_user_id)
+        
+        if not errors:
+            await q.answer("No errors to notify about", show_alert=True)
+            return
+        
+        # Group by error type
+        error_types = set(e["error_type"] for e in errors)
+        
+        msg = "⚠️ *Важное уведомление от администратора*\n\n"
+        msg += "Обнаружены следующие проблемы:\n\n"
+        
+        for etype in error_types:
+            count = sum(1 for e in errors if e["error_type"] == etype)
+            if etype == "INSUFFICIENT_BALANCE":
+                msg += f"💰 Недостаточно средств ({count}x)\n"
+            elif etype == "API_KEY_EXPIRED":
+                msg += f"🔑 Проблема с API ключами ({count}x)\n"
+            else:
+                msg += f"• {etype} ({count}x)\n"
+        
+        msg += "\nПожалуйста, проверьте настройки вашего аккаунта."
+        
+        try:
+            await ctx.bot.send_message(target_user_id, msg, parse_mode="Markdown")
+            # Mark all as notified
+            for err in errors:
+                db.mark_error_notified(err["id"])
+            await q.answer(f"📨 User notified about {len(errors)} errors!", show_alert=True)
+        except Exception as e:
+            await q.answer(f"❌ Failed to notify: {e}", show_alert=True)
 
     # =====================================================
     # PAYMENTS MENU
