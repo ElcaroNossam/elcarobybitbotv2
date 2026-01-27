@@ -1,5 +1,5 @@
 #!/bin/bash
-# Cloudflare Tunnel Manager for Lyxen Bot WebApp
+# Cloudflare Tunnel Manager for Enliko Bot WebApp
 # Manages tunnel lifecycle, monitors health, auto-restarts
 
 PROJECT_DIR="/home/ubuntu/project/elcarobybitbotv2"

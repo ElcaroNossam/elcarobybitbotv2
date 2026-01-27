@@ -1,4 +1,4 @@
-# Lyxen Trading Platform v2.1.0
+# Enliko Trading Platform v2.1.0
 
 **Multi-exchange async trading bot + WebApp + Real-time Screener**
 

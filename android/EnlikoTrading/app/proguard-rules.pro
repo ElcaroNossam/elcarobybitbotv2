@@ -21,8 +21,8 @@
 # ========================================
 # Keep data models for Retrofit/Gson serialization
 # ========================================
--keepclassmembers class io.lyxen.trading.data.models.** { *; }
--keep class io.lyxen.trading.data.models.** { *; }
+-keepclassmembers class io.enliko.trading.data.models.** { *; }
+-keep class io.enliko.trading.data.models.** { *; }
 
 # Retrofit
 -keepattributes Signature

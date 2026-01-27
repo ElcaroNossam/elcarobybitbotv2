@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # ═══════════════════════════════════════════════════════════════════════════════
-# Lyxen Trading Platform - Full Stack Startup Script
+# Enliko Trading Platform - Full Stack Startup Script
 # Bot + WebApp + Screener + ngrok
 # ═══════════════════════════════════════════════════════════════════════════════
 #
@@ -61,7 +61,7 @@ BOLD='\033[1m'
 print_banner() {
     echo ""
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}⚡ Lyxen Trading Platform v2.1.0${NC}                           ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}${GREEN}⚡ Enliko Trading Platform v2.1.0${NC}                           ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}  ${BLUE}Bot + WebApp + Real-time Screener + Analytics${NC}                ${CYAN}║${NC}"
     echo -e "${CYAN}║${NC}  ${PURPLE}Bybit + HyperLiquid | Futures + Spot${NC}                         ${CYAN}║${NC}"
     echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"

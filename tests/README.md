@@ -1,6 +1,6 @@
 # Backend Testing Guide
 
-Comprehensive test suite for Lyxen Trading Bot backend.
+Comprehensive test suite for Enliko Trading Bot backend.
 
 ## Test Structure
 

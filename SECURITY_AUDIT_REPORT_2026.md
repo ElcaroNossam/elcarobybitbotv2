@@ -1,4 +1,4 @@
-# 🔒 Lyxen Trading Platform - Security Audit Report
+# 🔒 Enliko Trading Platform - Security Audit Report
 
 **Дата:** 16 января 2026  
 **Версия проекта:** 3.8.0  

@@ -1,4 +1,4 @@
-# 📧 Email Setup для Lyxen Trading Platform
+# 📧 Email Setup для Enliko Trading Platform
 
 ## Что уже готово (сделано мной):
 
@@ -11,7 +11,7 @@
 - Гостевой доступ (`/guest`)
 
 ✅ **Красивые HTML шаблоны** для писем:
-- Verification code с брендингом Lyxen
+- Verification code с брендингом Enliko
 - Password reset с безопасными инструкциями
 
 ✅ **Redis + Memory fallback** для кодов верификации
@@ -34,7 +34,7 @@
 
 2. **Создай App Password:**
    - Перейди: https://myaccount.google.com/apppasswords
-   - Выбери "Mail" и "Other (Custom name)" → "Lyxen"
+   - Выбери "Mail" и "Other (Custom name)" → "Enliko"
    - Скопируй 16-символьный пароль
 
 3. **Обнови .env на сервере:**
@@ -113,8 +113,8 @@
 ## 📱 iOS Email Login
 
 Email login в iOS уже работает! Файлы:
-- `ios/LyxenTrading/Views/Auth/LoginView.swift` - UI
-- `ios/LyxenTrading/Services/AuthManager.swift` - API calls
+- `ios/EnlikoTrading/Views/Auth/LoginView.swift` - UI
+- `ios/EnlikoTrading/Services/AuthManager.swift` - API calls
 
 ---
 

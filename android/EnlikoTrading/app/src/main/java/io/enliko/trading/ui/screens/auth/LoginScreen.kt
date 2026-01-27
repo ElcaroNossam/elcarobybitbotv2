@@ -77,7 +77,7 @@ fun LoginScreen(
             
             // Logo
             Text(
-                text = "LYXEN",
+                text = "ENLIKO",
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
                 color = EnlikoPrimary

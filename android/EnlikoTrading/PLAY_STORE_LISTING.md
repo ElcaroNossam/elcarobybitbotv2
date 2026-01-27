@@ -1,4 +1,4 @@
-# Lyxen Trading - Google Play Store Listing
+# Enliko Trading - Google Play Store Listing
 
 ## 📦 Release Artifacts (January 27, 2026)
 
@@ -11,7 +11,7 @@
 
 ### Basic Info
 - **Package Name:** `io.enliko.trading`
-- **App Name:** Lyxen Trading
+- **App Name:** Enliko Trading
 - **Version:** 1.0.0
 - **Version Code:** 1
 - **Min SDK:** 26 (Android 8.0)
@@ -22,7 +22,7 @@
 - **Key Alias:** enliko
 - **Algorithm:** RSA 2048-bit
 - **Validity:** 10,000 days (until ~2053)
-- **CN:** Lyxen Trading, O=Lyxen, L=London, C=GB
+- **CN:** Enliko Trading, O=Enliko, L=London, C=GB
 
 ---
 
@@ -30,7 +30,7 @@
 
 ### App Name (30 characters max)
 ```
-Lyxen Trading
+Enliko Trading
 ```
 
 ### Short Description (80 characters max)
@@ -40,7 +40,7 @@ AI-powered crypto trading bot. Automated signals for Bybit & HyperLiquid.
 
 ### Full Description (4000 characters max)
 ```
-Lyxen Trading - Your Professional Crypto Trading Assistant
+Enliko Trading - Your Professional Crypto Trading Assistant
 
 🚀 AUTOMATED TRADING
 Connect your Bybit or HyperLiquid exchange and let AI-powered strategies work for you. No manual trading required.
@@ -163,7 +163,7 @@ Content must include:
 
 ## 📞 Developer Contact
 
-- **Developer Name:** Lyxen Trading Ltd
+- **Developer Name:** Enliko Trading Ltd
 - **Email:** support@enliko.com
 - **Website:** https://enliko.com
 - **Privacy Policy:** https://enliko.com/privacy
@@ -226,9 +226,9 @@ Content must include:
 
 ```
 File: keystore/enliko-release.jks
-Password: LyxenTrading2026
+Password: EnlikoTrading2026
 Key Alias: enliko
-Key Password: LyxenTrading2026
+Key Password: EnlikoTrading2026
 ```
 
 **Backup locations:**

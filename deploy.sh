@@ -1,5 +1,5 @@
 #!/bin/bash
-# Lyxen Bot Deploy Script
+# Enliko Bot Deploy Script
 # Usage: ./deploy.sh [message]
 
 set -e
@@ -15,7 +15,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}=== Lyxen Bot Deploy ===${NC}"
+echo -e "${YELLOW}=== Enliko Bot Deploy ===${NC}"
 
 # Check for changes
 if ! git diff --quiet; then

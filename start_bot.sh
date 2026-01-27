@@ -17,7 +17,7 @@ export USE_POSTGRES=1
 export DATABASE_URL="postgresql://elcaro:elcaro_prod_2026@127.0.0.1:5432/elcaro"
 export REDIS_URL="redis://127.0.0.1:6379/0"
 
-echo "[$(date)] Starting Lyxen services (PostgreSQL mode)..." >> "$LOG_FILE"
+echo "[$(date)] Starting Enliko services (PostgreSQL mode)..." >> "$LOG_FILE"
 
 # Kill any existing uvicorn/cloudflared processes gracefully
 echo "[$(date)] Cleaning up old processes..." >> "$LOG_FILE"

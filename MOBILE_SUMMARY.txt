@@ -1,5 +1,5 @@
 ╔════════════════════════════════════════════════════════════════╗
-║   LYXEN MOBILE OPTIMIZATION - COMPLETE ✅                     ║
+║   ENLIKO MOBILE OPTIMIZATION - COMPLETE ✅                     ║
 ║   Date: December 25, 2025 | Version: 2.0.0                    ║
 ╚════════════════════════════════════════════════════════════════╝
 
@@ -122,5 +122,5 @@ Templates: webapp/templates/*.html
 
 ╔════════════════════════════════════════════════════════════════╗
 ║  "Making crypto trading accessible on every device" 🚀        ║
-║  - Lyxen Development Team                                     ║
+║  - Enliko Development Team                                     ║
 ╚════════════════════════════════════════════════════════════════╝

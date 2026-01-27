@@ -1,4 +1,4 @@
-# 📋 ПОЛНЫЙ АУДИТ LYXEN TRADING PLATFORM
+# 📋 ПОЛНЫЙ АУДИТ ENLIKO TRADING PLATFORM
 ## Дата: 27 января 2026
 ## Версия: 3.36.0
 
@@ -61,9 +61,9 @@ cs.py: 1360 строк
 ```
 
 ### {APP_NAME} Placeholder
-- ✅ iOS: Использует `Config.appName` (fallback на "Lyxen")
+- ✅ iOS: Использует `Config.appName` (fallback на "Enliko")
 - ✅ Android: Использует `BuildConfig.APP_NAME`
-- ℹ️ Переводы: Hardcoded "Lyxen" (допустимо для брендинга)
+- ℹ️ Переводы: Hardcoded "Enliko" (допустимо для брендинга)
 
 ---
 
@@ -122,7 +122,7 @@ except Exception as e:
 
 ### HTML Templates (20 файлов)
 
-| Файл | Hardcoded "Lyxen" | Статус |
+| Файл | Hardcoded "Enliko" | Статус |
 |------|-------------------|--------|
 | strategy_settings.html | 3 | ✅ Брендинг |
 | marketplace.html | 6 | ✅ Брендинг |
@@ -144,7 +144,7 @@ except Exception as e:
 
 | Файл | Использование | Статус |
 |------|---------------|--------|
-| core.js | `window.Lyxen`, localStorage keys | ✅ OK |
+| core.js | `window.Enliko`, localStorage keys | ✅ OK |
 | terminal-advanced.js | `enliko_token` | ✅ OK |
 | enliko-theme.js | Тема | ✅ OK |
 
@@ -170,7 +170,7 @@ except Exception as e:
 ### APP_NAME
 ```swift
 // Config.swift
-static let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? "Lyxen"
+static let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? "Enliko"
 ```
 
 ### Hardcoded URLs
@@ -185,7 +185,7 @@ static let appName = ProcessInfo.processInfo.environment["APP_NAME"] ?? "Lyxen"
 | Файл | Строка | Комментарий |
 |------|--------|-------------|
 | SubSettingsViews.swift | 460 | `// TODO: Save to backend` |
-| LyxenTrading/.../SubSettingsViews.swift | 494 | `// TODO: Save to backend` |
+| EnlikoTrading/.../SubSettingsViews.swift | 494 | `// TODO: Save to backend` |
 
 ---
 
@@ -231,7 +231,7 @@ override val appName = "$APP_NAME Trading"
 | Файл | Описание |
 |------|----------|
 | .github/copilot-instructions.md | Redis broadcaster, TONAPI |
-| ios/LyxenTrading/README.md | iOS TODO list |
+| ios/EnlikoTrading/README.md | iOS TODO list |
 | ios/FEATURE_MATRIX.md | Feature TODO |
 
 ### Тесты и утилиты (6)

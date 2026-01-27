@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LyxenTrading"
+rootProject.name = "EnlikoTrading"
 include(":app")

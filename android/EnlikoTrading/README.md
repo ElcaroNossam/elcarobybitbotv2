@@ -1,6 +1,6 @@
-# Lyxen Trading - Android App
+# Enliko Trading - Android App
 
-Full-featured Android trading application for Lyxen platform with real-time WebSocket updates, 15 language support, and cross-platform sync with iOS and Telegram bot.
+Full-featured Android trading application for Enliko platform with real-time WebSocket updates, 15 language support, and cross-platform sync with iOS and Telegram bot.
 
 ## Features
 
@@ -31,11 +31,11 @@ Full-featured Android trading application for Lyxen platform with real-time WebS
 
 ```
 app/src/main/java/io/enliko/trading/
-├── LyxenApplication.kt          # Hilt Application
+├── EnlikoApplication.kt          # Hilt Application
 ├── MainActivity.kt              # Entry point
 ├── data/
 │   ├── api/
-│   │   └── LyxenApi.kt          # Retrofit API interface
+│   │   └── EnlikoApi.kt          # Retrofit API interface
 │   ├── models/
 │   │   └── Models.kt            # Data classes
 │   ├── repository/
@@ -78,7 +78,7 @@ app/src/main/java/io/enliko/trading/
 ### Debug Build
 
 ```bash
-cd android/LyxenTrading
+cd android/EnlikoTrading
 ./gradlew assembleDebug
 ```
 
@@ -151,4 +151,4 @@ The app syncs with iOS and Telegram bot via:
 
 ## License
 
-Proprietary - Lyxen Trading Platform
+Proprietary - Enliko Trading Platform

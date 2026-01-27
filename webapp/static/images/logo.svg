@@ -30,6 +30,6 @@
     <circle cx="25" cy="33" r="2" fill="#d4a017"/>
   </g>
   
-  <!-- Text: LYXEN -->
-  <text x="56" y="40" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="28" fill="url(#stark-grad)">LYXEN</text>
+  <!-- Text: ENLIKO -->
+  <text x="56" y="40" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="28" fill="url(#stark-grad)">ENLIKO</text>
 </svg>

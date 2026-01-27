@@ -1,7 +1,7 @@
 #!/bin/bash
-# Quick Test Runner for Lyxen Trading Platform
+# Quick Test Runner for Enliko Trading Platform
 
-echo "🚀 Lyxen Trading Platform - Test Suite Runner"
+echo "🚀 Enliko Trading Platform - Test Suite Runner"
 echo "=============================================="
 echo ""
 
