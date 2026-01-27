@@ -336,8 +336,8 @@ def set_user_credentials(user_id: int, api_key: str, api_secret: str, account_ty
         loop = asyncio.get_event_loop()
         if loop.is_running():
             asyncio.create_task(invalidate_client(user_id, account_type=account_type))
-    except Exception:
-        pass  # Ignore if core not available
+    except Exception as e:
+        _logger.debug(f"Could not invalidate client cache: {e}")  # Expected if core not fully loaded
 
 def get_user_credentials(user_id: int, account_type: str = None) -> tuple[str | None, str | None]:
     """Get API credentials for specified account type.
@@ -1532,7 +1532,8 @@ def _migrate_single_strategy(user_id: int, strategy: str, strat_json: dict,
                 VALUES ({', '.join(placeholders)})
                 ON CONFLICT (user_id, strategy, side, exchange) DO UPDATE SET {update_set}
             """, values)
-        except Exception:
+        except Exception as e:
+            _logger.exception(f"Failed to save strategy settings for user {user_id}: {e}")
             return False
     
     return True

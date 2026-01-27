@@ -150,6 +150,20 @@ from .tasks import (
     cancel_all_background_tasks,
 )
 
+# Optimizations (added Jan 27, 2026)
+from .optimizations import (
+    BoundedDict,
+    TTLBoundedDict,
+    run_in_executor,
+    sync_to_async,
+    log_exceptions,
+    CacheCleanupScheduler,
+    cache_cleanup_scheduler,
+    metrics as opt_metrics,
+    batch_query,
+    retry_with_backoff,
+)
+
 from .blockchain import (
     # Core
     LyxenBlockchain,
@@ -383,4 +397,16 @@ __all__ = [
     "gather_with_exceptions",
     "get_active_background_tasks",
     "cancel_all_background_tasks",
+    
+    # Optimizations (added Jan 27, 2026)
+    "BoundedDict",
+    "TTLBoundedDict",
+    "run_in_executor",
+    "sync_to_async",
+    "log_exceptions",
+    "CacheCleanupScheduler",
+    "cache_cleanup_scheduler",
+    "opt_metrics",
+    "batch_query",
+    "retry_with_backoff",
 ]
