@@ -327,7 +327,12 @@ def create_app() -> FastAPI:
     # If CORS_ORIGINS=* allow all origins (for mobile/Telegram WebApp)
     # Otherwise use specific origins list
     cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8765")
+    env_name = os.getenv("ENV", "development").lower()
+    
     if cors_env.strip() == "*":
+        # SECURITY: Warn about wildcard CORS in production
+        if env_name in ("production", "prod"):
+            logger.warning("⚠️ SECURITY: CORS_ORIGINS=* in production! Consider using specific origins.")
         # Allow all origins - needed for Telegram WebApp and mobile
         allowed_origins = ["*"]
         allow_credentials = False  # Can't use credentials with wildcard

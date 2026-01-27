@@ -11,14 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 _secret_key = os.getenv("DJANGO_SECRET_KEY")
 if not _secret_key:
     import warnings
-    if os.getenv("DJANGO_DEBUG", "True") != "True":
+    if os.getenv("DJANGO_DEBUG", "False") != "True":
         raise RuntimeError("DJANGO_SECRET_KEY must be set in production environment")
     # Only use fallback in development
     warnings.warn("DJANGO_SECRET_KEY not set - using insecure development key!", RuntimeWarning)
     _secret_key = "INSECURE-DEV-KEY-DO-NOT-USE-IN-PRODUCTION"
 SECRET_KEY = _secret_key
 
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+# SECURITY: Default DEBUG to False for production safety
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
 # Parse ALLOWED_HOSTS from environment variable (comma-separated)
 allowed_hosts_str = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],elcaro.online,www.elcaro.online")

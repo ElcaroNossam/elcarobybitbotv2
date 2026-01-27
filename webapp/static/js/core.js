@@ -1,8 +1,38 @@
 /**
  * Lyxen - Core Application Logic
  * Единый JS файл для базового функционала всех страниц
- * v3.18.0
+ * v3.19.0
  */
+
+// ===== SECURITY: HTML SANITIZATION =====
+// Simple HTML escape function to prevent XSS
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+
+// Sanitize object for safe HTML rendering
+function sanitizeForHtml(obj) {
+    if (typeof obj === 'string') return escapeHtml(obj);
+    if (typeof obj !== 'object' || obj === null) return obj;
+    const result = Array.isArray(obj) ? [] : {};
+    for (const key in obj) {
+        if (typeof obj[key] === 'string') {
+            result[key] = escapeHtml(obj[key]);
+        } else if (typeof obj[key] === 'object') {
+            result[key] = sanitizeForHtml(obj[key]);
+        } else {
+            result[key] = obj[key];
+        }
+    }
+    return result;
+}
+
+// Global sanitize function
+window.escapeHtml = escapeHtml;
+window.sanitizeForHtml = sanitizeForHtml;
 
 // ===== CONFIGURATION =====
 const CONFIG = {

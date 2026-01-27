@@ -15,6 +15,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Optional
 from pathlib import Path
+from collections import defaultdict
+import time
 
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from pydantic import BaseModel, EmailStr, validator
@@ -38,6 +40,43 @@ if _env_file.exists():
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# =============================================================================
+# RATE LIMITING for auth endpoints
+# =============================================================================
+_rate_limit_attempts: dict = defaultdict(list)  # ip -> [timestamp, ...]
+RATE_LIMIT_WINDOW = 300  # 5 minutes
+RATE_LIMIT_MAX_ATTEMPTS = 5  # max 5 attempts per window for sensitive ops
+RATE_LIMIT_MAX_REGISTER = 3  # max 3 registration attempts per window
+
+
+def check_rate_limit(ip: str, max_attempts: int = RATE_LIMIT_MAX_ATTEMPTS) -> None:
+    """Check if IP has exceeded rate limit, raise HTTPException if so"""
+    now = time.time()
+    # Clean old entries
+    _rate_limit_attempts[ip] = [t for t in _rate_limit_attempts[ip] if now - t < RATE_LIMIT_WINDOW]
+    
+    if len(_rate_limit_attempts[ip]) >= max_attempts:
+        wait_time = int(RATE_LIMIT_WINDOW - (now - _rate_limit_attempts[ip][0]))
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Too many attempts. Please try again in {wait_time} seconds."
+        )
+    
+    _rate_limit_attempts[ip].append(now)
+
+
+def get_client_ip(request: Request) -> str:
+    """Get client IP from request, considering X-Forwarded-For header"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+# =============================================================================
+# JWT CONFIG
+# =============================================================================
 
 # JWT Config
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -342,11 +381,15 @@ def update_email_user_password(email: str, password_hash: str, password_salt: st
 # =============================================================================
 
 @router.post("/register")
-async def email_register(data: EmailRegisterRequest, background_tasks: BackgroundTasks):
+async def email_register(request: Request, data: EmailRegisterRequest, background_tasks: BackgroundTasks):
     """
     Register new user with email.
     Sends verification code to email.
     """
+    # SECURITY: Rate limit registration attempts
+    ip = get_client_ip(request)
+    check_rate_limit(ip, RATE_LIMIT_MAX_REGISTER)
+    
     email = data.email.lower()
     
     # Check if email already registered
@@ -451,6 +494,10 @@ async def email_login(data: EmailLoginRequest, request: Request):
     """
     Login with email and password.
     """
+    # SECURITY: Rate limit login attempts to prevent brute force
+    ip = get_client_ip(request)
+    check_rate_limit(ip, RATE_LIMIT_MAX_ATTEMPTS)
+    
     email = data.email.lower()
     
     user = get_email_user(email)
@@ -524,10 +571,14 @@ async def forgot_password(data: PasswordResetRequest, background_tasks: Backgrou
 
 
 @router.post("/reset-password")
-async def reset_password(data: PasswordResetConfirmRequest):
+async def reset_password(request: Request, data: PasswordResetConfirmRequest):
     """
     Reset password with code.
     """
+    # SECURITY: Rate limit password reset attempts
+    ip = get_client_ip(request)
+    check_rate_limit(ip, RATE_LIMIT_MAX_ATTEMPTS)
+    
     email = data.email.lower()
     
     pending = await _get_password_reset_code(email)

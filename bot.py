@@ -20041,6 +20041,15 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Show database table stats
         text = "🗄️ *Database Tables*\n\n"
         
+        # Whitelist of allowed table names to prevent SQL injection
+        ALLOWED_TABLES = {
+            'users', 'trade_logs', 'active_positions', 'signals', 'pending_limit_orders',
+            'user_licenses', 'user_strategy_settings', 'custom_strategies', 'payment_history',
+            'elc_transactions', 'elc_wallets', 'login_tokens', 'email_users', 'session_tokens',
+            'user_devices', 'user_activity_log', 'backtest_results', 'strategy_marketplace',
+            'strategy_purchases', 'ton_payments', '_migrations'
+        }
+        
         with db.get_conn() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -20052,6 +20061,8 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             tables = [r[0] for r in cur.fetchall()]
             
             for table in tables[:20]:  # Limit to 20
+                if table not in ALLOWED_TABLES:
+                    continue  # Skip unknown tables for security
                 cur.execute(f"SELECT COUNT(*) FROM {table}")
                 count = cur.fetchone()[0]
                 text += f"• {table}: {count}\n"

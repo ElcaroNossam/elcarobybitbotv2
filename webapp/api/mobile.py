@@ -20,6 +20,7 @@ import uuid
 import os
 
 from coin_params import ADMIN_ID
+from webapp.api.security_utils import safe_exception
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ async def mobile_login(
         raise
     except Exception as e:
         logger.exception(f"Mobile login error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="mobile_login")
 
 
 @router.post("/auth/refresh")
@@ -393,8 +394,7 @@ async def get_user_profile(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Profile error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="get_profile")
 
 
 @router.put("/user/settings")
@@ -432,8 +432,7 @@ async def update_user_settings(
         return {"success": True, "updated": list(updates.keys())}
         
     except Exception as e:
-        logger.exception(f"Settings update error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="update_settings")
 
 
 # ============================================
@@ -468,8 +467,7 @@ async def register_push_token(
         return {"success": True, "message": "Push token registered"}
         
     except Exception as e:
-        logger.exception(f"Push token registration error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="register_push_token")
 
 
 @router.get("/notifications/settings")
@@ -502,8 +500,7 @@ async def get_notification_settings(
         }
         
     except Exception as e:
-        logger.exception(f"Get notification settings error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="get_notification_settings")
 
 
 @router.put("/notifications/settings")
@@ -531,8 +528,7 @@ async def update_notification_settings(
         return {"success": True, "settings": settings_dict}
         
     except Exception as e:
-        logger.exception(f"Update notification settings error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="update_notification_settings")
 
 
 # ============================================
@@ -611,8 +607,7 @@ async def get_quick_dashboard(
         }
         
     except Exception as e:
-        logger.exception(f"Quick dashboard error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise safe_exception(500, e, context="quick_dashboard")
 
 
 @router.get("/app/config")

@@ -27,9 +27,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../keystore/lyxen-release.jks")
-            storePassword = "LyxenTrading2026"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
             keyAlias = "lyxen"
-            keyPassword = "LyxenTrading2026"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
 

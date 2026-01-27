@@ -508,6 +508,14 @@
             document.getElementById('todayTrades').textContent = data.trading?.today_trades || 0;
         }
 
+        // Security: HTML escape function
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
         // Users
         async function loadUsers(page = 1) {
             currentUsersPage = page;
@@ -523,15 +531,15 @@
             
             tbody.innerHTML = data.list.map(u => `
                 <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td class="p-3 font-mono text-xs">${u.user_id}</td>
+                    <td class="p-3 font-mono text-xs">${escapeHtml(u.user_id)}</td>
                     <td class="p-3">
-                        <div class="font-medium">${u.first_name || 'N/A'}</div>
-                        <div class="text-xs text-gray-500">@${u.username || 'N/A'}</div>
+                        <div class="font-medium">${escapeHtml(u.first_name) || 'N/A'}</div>
+                        <div class="text-xs text-gray-500">@${escapeHtml(u.username) || 'N/A'}</div>
                     </td>
                     <td class="p-3">
-                        <span class="px-2 py-1 rounded text-xs ${getLicenseClass(u.license_type)}">${u.license_type || 'free'}</span>
+                        <span class="px-2 py-1 rounded text-xs ${getLicenseClass(u.license_type)}">${escapeHtml(u.license_type) || 'free'}</span>
                     </td>
-                    <td class="p-3">${u.exchange_type || 'bybit'}</td>
+                    <td class="p-3">${escapeHtml(u.exchange_type) || 'bybit'}</td>
                     <td class="p-3">
                         ${u.is_banned ? '<span class="text-red-400">Banned</span>' : 
                           u.is_allowed ? '<span class="text-green-400">Active</span>' : 
@@ -539,10 +547,10 @@
                     </td>
                     <td class="p-3">
                         <div class="flex gap-2">
-                            <button onclick="viewUser(${u.user_id})" class="text-purple-400 hover:text-purple-300">View</button>
+                            <button onclick="viewUser(${parseInt(u.user_id) || 0})" class="text-purple-400 hover:text-purple-300">View</button>
                             ${u.is_banned ? 
-                                `<button onclick="unbanUser(${u.user_id})" class="text-green-400 hover:text-green-300">Unban</button>` :
-                                `<button onclick="banUser(${u.user_id})" class="text-red-400 hover:text-red-300">Ban</button>`
+                                `<button onclick="unbanUser(${parseInt(u.user_id) || 0})" class="text-green-400 hover:text-green-300">Unban</button>` :
+                                `<button onclick="banUser(${parseInt(u.user_id) || 0})" class="text-red-400 hover:text-red-300">Ban</button>`
                             }
                         </div>
                     </td>

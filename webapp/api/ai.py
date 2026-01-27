@@ -270,8 +270,8 @@ async def analyze_symbol(
     import random
     import hashlib
     
-    # Deterministic but varying results based on symbol
-    seed = int(hashlib.md5(symbol.encode()).hexdigest()[:8], 16)
+    # Deterministic but varying results based on symbol (using SHA256 instead of MD5)
+    seed = int(hashlib.sha256(symbol.encode()).hexdigest()[:8], 16)
     random.seed(seed)
     
     confidence = random.randint(55, 92)
