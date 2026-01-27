@@ -1,6 +1,7 @@
 """
-Lyxen Trading Platform - Centralized Configuration
+Trading Platform - Centralized Configuration
 Единый конфиг для всех сервисов: Bot, WebApp, Screener, Analytics
+App name is configurable via APP_NAME environment variable
 """
 import os
 from pathlib import Path
@@ -11,6 +12,16 @@ from dotenv import load_dotenv
 # Load .env
 BASE_DIR = Path(__file__).parent.parent
 load_dotenv(BASE_DIR / ".env")
+
+
+# ===================
+# APP BRANDING (Configurable via ENV)
+# ===================
+APP_NAME = os.getenv("APP_NAME", "Lyxen")
+APP_DISPLAY_NAME = f"{APP_NAME} Trading"
+APP_TERMINAL_NAME = f"{APP_NAME} Trading Terminal"
+APP_BOT_NAME = f"{APP_NAME} Trading Bot"
+APP_BUNDLE_PREFIX = f"io.{APP_NAME.lower()}"
 
 @dataclass
 class DatabaseConfig:

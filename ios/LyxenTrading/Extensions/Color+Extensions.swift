@@ -8,29 +8,29 @@
 import SwiftUI
 
 extension Color {
-    // MARK: - Brand Colors
-    static let lyxenPrimary = Color(hex: "#6C5CE7")
-    static let lyxenSecondary = Color(hex: "#A29BFE")
-    static let lyxenAccent = Color(hex: "#00D9FF")
+    // MARK: - Brand Colors (Synced with WebApp - Stark Theme)
+    static let lyxenPrimary = Color(hex: "#DC2626")      // Red - primary accent
+    static let lyxenSecondary = Color(hex: "#D4A017")    // Gold - secondary accent
+    static let lyxenAccent = Color(hex: "#00D4FF")       // Cyan - utility accent
     
     // MARK: - Background Colors
-    static let lyxenBackground = Color(hex: "#0D1117")
-    static let lyxenSurface = Color(hex: "#161B22")
-    static let lyxenCard = Color(hex: "#21262D")
-    static let lyxenCardHover = Color(hex: "#30363D")
+    static let lyxenBackground = Color(hex: "#0A0A0A")   // Primary background
+    static let lyxenSurface = Color(hex: "#111111")      // Secondary background
+    static let lyxenCard = Color(hex: "#141414")         // Card background
+    static let lyxenCardHover = Color(hex: "#1F1F1F")    // Card hover
     
     // MARK: - Text Colors
-    static let lyxenText = Color(hex: "#E6EDF3")
-    static let lyxenTextSecondary = Color(hex: "#8B949E")
-    static let lyxenTextMuted = Color(hex: "#6E7681")
+    static let lyxenText = Color(hex: "#F5F5F5")         // Primary text
+    static let lyxenTextSecondary = Color(hex: "#A1A1A1") // Secondary text
+    static let lyxenTextMuted = Color(hex: "#6B6B6B")    // Muted text
     
     // MARK: - Status Colors
-    static let lyxenGreen = Color(hex: "#00C853")
-    static let lyxenRed = Color(hex: "#FF5252")
-    static let lyxenYellow = Color(hex: "#FFD600")
-    static let lyxenOrange = Color(hex: "#FF9100")
-    static let lyxenBlue = Color(hex: "#2196F3")
-    static let lyxenPurple = Color(hex: "#9C27B0")
+    static let lyxenGreen = Color(hex: "#22C55E")        // Success green
+    static let lyxenRed = Color(hex: "#EF4444")          // Error/danger red
+    static let lyxenYellow = Color(hex: "#EAB308")       // Warning yellow
+    static let lyxenOrange = Color(hex: "#F59E0B")       // Orange
+    static let lyxenBlue = Color(hex: "#2196F3")         // Info blue
+    static let lyxenPurple = Color(hex: "#DC2626")       // Brand (same as primary)
     
     // MARK: - Gradient
     static let lyxenGradient = LinearGradient(

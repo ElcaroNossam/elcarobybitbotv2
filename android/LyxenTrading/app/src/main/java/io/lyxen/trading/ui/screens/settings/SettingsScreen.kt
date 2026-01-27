@@ -24,6 +24,7 @@ import io.lyxen.trading.util.LocalStrings
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    onNavigateToNotifications: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -107,7 +108,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Notifications,
                     title = strings.notifications,
                     subtitle = "Trade alerts and signals",
-                    onClick = { /* Navigate to Notifications */ }
+                    onClick = onNavigateToNotifications
                 )
             }
             

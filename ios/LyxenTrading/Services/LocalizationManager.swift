@@ -393,6 +393,20 @@ class LocalizationManager: ObservableObject {
         "take_profit": "Take Profit %",
         "stop_loss": "Stop Loss %",
         "leverage": "Leverage",
+        
+        // Notifications (synced with Android and WebApp)
+        "notification_categories": "Notification Categories",
+        "notification_preferences": "Preferences",
+        "notification_trades": "Trade Notifications",
+        "notification_trades_desc": "Get notified when trades open or close",
+        "notification_signals": "Trading Signals",
+        "notification_signals_desc": "Receive new trading signal alerts",
+        "notification_price_alerts": "Price Alerts",
+        "notification_price_alerts_desc": "Alert when price targets are reached",
+        "notification_daily_summary": "Daily Summary",
+        "notification_daily_summary_desc": "Daily trading performance report",
+        "notification_sound": "Sound",
+        "notification_vibration": "Vibration",
     ]
     
     // MARK: - Russian
@@ -604,6 +618,20 @@ class LocalizationManager: ObservableObject {
         "take_profit": "Тейк профит %",
         "stop_loss": "Стоп лосс %",
         "leverage": "Плечо",
+        
+        // Notifications (synced with Android and WebApp)
+        "notification_categories": "Категории уведомлений",
+        "notification_preferences": "Настройки",
+        "notification_trades": "Уведомления о сделках",
+        "notification_trades_desc": "Уведомления об открытии и закрытии сделок",
+        "notification_signals": "Торговые сигналы",
+        "notification_signals_desc": "Оповещения о новых сигналах",
+        "notification_price_alerts": "Ценовые алерты",
+        "notification_price_alerts_desc": "Оповещение при достижении целевой цены",
+        "notification_daily_summary": "Ежедневный отчёт",
+        "notification_daily_summary_desc": "Ежедневный отчёт о торговле",
+        "notification_sound": "Звук",
+        "notification_vibration": "Вибрация",
     ]
     
     // MARK: - Ukrainian

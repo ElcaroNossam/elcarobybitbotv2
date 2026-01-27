@@ -18,6 +18,7 @@ import io.lyxen.trading.ui.screens.portfolio.PortfolioScreen
 import io.lyxen.trading.ui.screens.trading.TradingScreen
 import io.lyxen.trading.ui.screens.market.MarketScreen
 import io.lyxen.trading.ui.screens.settings.SettingsScreen
+import io.lyxen.trading.ui.screens.settings.NotificationSettingsScreen
 import io.lyxen.trading.ui.screens.signals.SignalsScreen
 import io.lyxen.trading.util.LocalStrings
 
@@ -109,7 +110,18 @@ fun MainScreen(
                 MarketScreen()
             }
             composable(MainTab.SETTINGS.route) {
-                SettingsScreen(onLogout = onLogout)
+                SettingsScreen(
+                    onLogout = onLogout,
+                    onNavigateToNotifications = {
+                        navController.navigate("notifications")
+                    }
+                )
+            }
+            composable("notifications") {
+                NotificationSettingsScreen(
+                    strings = strings,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }

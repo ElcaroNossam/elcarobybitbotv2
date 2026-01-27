@@ -213,42 +213,8 @@ struct RiskSettingsView: View {
     }
 }
 
-// MARK: - Notification Settings View
-struct NotificationSettingsView: View {
-    @State private var tradeAlerts = true
-    @State private var priceAlerts = true
-    @State private var signalAlerts = true
-    @State private var dailySummary = false
-    
-    var body: some View {
-        ZStack {
-            Color.lyxenBackground.ignoresSafeArea()
-            
-            List {
-                Section {
-                    Toggle("Trade Alerts", isOn: $tradeAlerts)
-                    Toggle("Price Alerts", isOn: $priceAlerts)
-                    Toggle("Signal Alerts", isOn: $signalAlerts)
-                } header: {
-                    Text("Trading")
-                }
-                .listRowBackground(Color.lyxenCard)
-                
-                Section {
-                    Toggle("Daily Summary", isOn: $dailySummary)
-                } header: {
-                    Text("Reports")
-                }
-                .listRowBackground(Color.lyxenCard)
-            }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .tint(.lyxenPrimary)
-        }
-        .navigationTitle("Notifications")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
+// MARK: - NotificationSettingsView moved to NotificationSettingsView.swift
+// (with full localization and improved UI synced with Android/WebApp)
 
 // MARK: - Appearance Settings View
 struct AppearanceSettingsView: View {

@@ -545,7 +545,7 @@ async def get_global_settings(user: dict = Depends(get_current_user)):
         try:
             import json
             spot_settings = json.loads(spot_settings)
-        except:
+        except (json.JSONDecodeError, ValueError):
             spot_settings = {}
     
     return {
@@ -629,7 +629,7 @@ async def update_spot_settings(
         try:
             import json
             spot_settings = json.loads(spot_settings)
-        except:
+        except (json.JSONDecodeError, ValueError):
             spot_settings = {}
     
     # Allowed spot fields

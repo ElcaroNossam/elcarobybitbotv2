@@ -20567,8 +20567,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         f"This NFT represents your premium license on the blockchain!",
                         parse_mode="Markdown"
                     )
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Failed to notify user {target_uid} about NFT: {e}")
             else:
                 await update.message.reply_text(
                     f"❌ Minting failed: {result.get('error', 'Unknown')}",
@@ -20851,8 +20851,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         f"✅ Sent: {sent_count}\n"
                         f"❌ Failed: {failed_count}"
                     )
-                except:
-                    pass
+                except Exception:
+                    pass  # Ignore edit errors during broadcast
         
         # Final status
         await status_msg.edit_text(
@@ -22838,8 +22838,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"🎨 NFT: {result.get('nft_token_id', 'None')}",
                     parse_mode="Markdown"
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to notify admin about blockchain purchase: {e}")
             
             await q.edit_message_text(
                 t.get("payment_success_blockchain",
@@ -23143,8 +23143,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"Use /admin → Licenses → Pending to review.",
                     parse_mode="Markdown"
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to notify admin about license request: {e}")
             
             await q.edit_message_text(
                 t.get("license_request_submitted",
@@ -23688,8 +23688,8 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     f"This NFT represents your premium license on the blockchain!",
                     parse_mode="Markdown"
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to notify user {target_uid} about NFT: {e}")
         else:
             await q.edit_message_text(
                 f"❌ Minting failed: {result.get('error', 'Unknown')}",

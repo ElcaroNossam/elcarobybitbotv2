@@ -93,3 +93,4 @@ ios/LyxenTrading/.build/
 builds/
 android/LyxenTrading/keystore/
 android/LyxenTrading/local.properties
+*.xcuserstate

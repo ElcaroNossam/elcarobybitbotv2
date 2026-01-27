@@ -232,7 +232,7 @@ def import_data(backup_file: str = BACKUP_FILE):
                         elif isinstance(created_at, str):
                             try:
                                 created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                            except:
+                            except ValueError:
                                 created_at = None
                         
                         cur.execute("""

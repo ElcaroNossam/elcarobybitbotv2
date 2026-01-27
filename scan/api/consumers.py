@@ -603,8 +603,8 @@ class ScreenerConsumer(AsyncWebsocketConsumer):
             except Exception:
                 try:
                     await self._safe_send(json.dumps({'type': 'screener_data', 'data': [], 'timestamp': timezone.now().isoformat(), 'market_type': self.market_type}))
-                except:
-                    pass
+                except Exception:
+                    pass  # Ignore send errors on fallback
 
 
 class LiquidationConsumer(AsyncWebsocketConsumer):
