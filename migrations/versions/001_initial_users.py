@@ -67,6 +67,7 @@ def upgrade(cur):
             is_allowed         INTEGER NOT NULL DEFAULT 0,
             is_banned          INTEGER NOT NULL DEFAULT 0,
             terms_accepted     INTEGER NOT NULL DEFAULT 0,
+            disclaimer_accepted INTEGER NOT NULL DEFAULT 0,
             guide_sent         INTEGER NOT NULL DEFAULT 0,
             
             -- HyperLiquid settings

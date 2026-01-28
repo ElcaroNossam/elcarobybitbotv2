@@ -127,7 +127,7 @@ USER_FIELDS_WHITELIST = {
     "limit_ladder_count",    # количество лимиток (1-5)
     "limit_ladder_settings", # JSON: [{"pct_from_entry": 2, "pct_of_deposit": 10}, ...]
     # доступ/согласие
-    "is_allowed", "is_banned", "terms_accepted",
+    "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
     "guide_sent",  # 0/1 - отправлен ли PDF гайд
     # License info (добавлено для admin API)
     "license_type", "license_expires", "current_license",
