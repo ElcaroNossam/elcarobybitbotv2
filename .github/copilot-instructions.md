@@ -947,6 +947,25 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь 2026)
 
+### ✅ iOS Full Audit - All 40+ Files Verified (Jan 28, 2026)
+- **Аудит:** Полная проверка всех Swift файлов iOS приложения
+- **Результат:** **BUILD SUCCEEDED** - все файлы компилируются без ошибок
+- **Проверенные компоненты (40 файлов):**
+  - **App/** (3): EnlikoTradingApp, AppState, Config
+  - **Services/** (12): NetworkService, AuthManager, TradingService, WebSocketService, LocalizationManager, StrategyService, AIService, ActivityService, GlobalSettingsService, ScreenerService, SignalsService, StatsService
+  - **Views/** (22): 6 директорий с view файлами
+  - **Models/** (2): Models, AuthModels
+  - **Extensions/** (2): Color+Extensions, Notification+Extensions
+  - **Utils/** (2): Utilities, ModernFeatures
+- **Исправления подтверждены:**
+  - DisclaimerView.swift → closures вместо @Binding ✅
+  - NetworkService.swift → postIgnoreResponse() добавлен ✅
+- **Архитектура верифицирована:**
+  - Entry flow: EnlikoTradingApp → RootView → Disclaimer → Login → MainTabView
+  - Network flow: AuthManager → NetworkService → JWT → WebSocket
+  - Localization: 15 языков с RTL поддержкой
+- **Команда сборки:** `xcodebuild -project EnlikoTrading.xcodeproj -scheme EnlikoTrading -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build`
+
 ### ✅ FEAT: Deep Localization Audit & Full Sync (Jan 28, 2026)
 - **Проблема:** 12 языков (DE/ES/FR/IT/JA/ZH/AR/HE/PL/CS/LT/SQ) были частично синхронизированы - отсутствовало 64-88 ключей
 - **Причина:** Новые ключи (API settings, balance, positions, orders, exchange, disclaimers) не были добавлены во все языки
@@ -2433,21 +2452,90 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-# 📱 iOS РАЗРАБОТКА (UPDATED: Jan 26, 2026)
+# 📱 iOS РАЗРАБОТКА (UPDATED: Jan 28, 2026 - Full Audit)
+
+## 🔍 iOS Full Audit Results (Jan 28, 2026)
+
+### ✅ Build Status
+- **Xcode Build:** SUCCESS ✅
+- **Target:** iPhone 16 Pro Simulator
+- **Configuration:** Debug
+- **All 40+ Swift files compiled without errors**
+
+### 🔧 Fixes Applied During Audit
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Generic type inference | DisclaimerView.swift | Changed `NetworkService.post()` → `postIgnoreResponse()` |
+| Missing fire-and-forget POST | NetworkService.swift | Added `postIgnoreResponse()` method |
+| Duplicate closing brace | DisclaimerView.swift | Removed extra `}` |
+| Binding vs Closures mismatch | DisclaimerView.swift | Changed from `@Binding` to `onAccept`/`onDecline` closures |
+
+### ✅ Verified Components (40 files)
+
+| Category | Files | Status |
+|----------|-------|--------|
+| **App/** | EnlikoTradingApp, AppState, Config | ✅ All correct |
+| **Services/** | NetworkService, AuthManager, TradingService, WebSocketService, LocalizationManager, StrategyService, AIService, ActivityService, GlobalSettingsService, ScreenerService, SignalsService, StatsService | ✅ All correct |
+| **Views/Auth/** | LoginView, DisclaimerView | ✅ Fixed |
+| **Views/Portfolio/** | PortfolioView, PositionsView, TradeHistoryView | ✅ All correct |
+| **Views/Trading/** | TradingView, MarketView, SymbolPickerView | ✅ All correct |
+| **Views/Settings/** | SettingsView, StrategySettingsView, TradingSettingsView, LanguageSettingsView, NotificationSettingsView, SubSettingsViews | ✅ All correct |
+| **Views/Strategies/** | StrategiesView, BacktestView | ✅ All correct |
+| **Views/** | MainTabView, AIView, ActivityView, ScreenerView, SignalsView, StatsView | ✅ All correct |
+| **Models/** | Models, AuthModels | ✅ All correct |
+| **ViewModels/** | ViewModels | ✅ All correct |
+| **Extensions/** | Color+Extensions, Notification+Extensions | ✅ All correct |
+| **Utils/** | Utilities, ModernFeatures | ✅ All correct |
+
+### 🏗 Architecture Verified
+
+```
+Entry Flow:
+EnlikoTradingApp (@main)
+  └─ RootView
+       ├─ DisclaimerView (if not accepted) → onAccept → onDecline
+       ├─ LoginView (if not authenticated)
+       └─ MainTabView (if authenticated)
+              ├─ PortfolioView (Tab 0)
+              ├─ TradingView (Tab 1)
+              ├─ PositionsView (Tab 2)
+              ├─ MoreView (Tab 3) → Strategies, Stats, Screener, AI, Signals, Activity
+              └─ SettingsView (Tab 4)
+
+Network Flow:
+AuthManager → NetworkService → Config.apiURL (https://enliko.com/api)
+           ↓
+     JWT Token in Keychain
+           ↓
+     Auto-refresh on 401
+           ↓
+     WebSocketService.connectAll() on login
+
+Localization Flow:
+LocalizationManager.shared.currentLanguage
+           ↓
+     Bundled translations (15 languages)
+           ↓
+     String.localized extension
+           ↓
+     RTL auto-detection for ar/he
+```
 
 ## Статистика iOS приложения
 
 | Метрика | Значение |
 |---------|----------|
-| Swift файлов | 35+ |
-| Views | 18 |
-| Services | 8 |
+| Swift файлов | 40+ |
+| Views | 22 |
+| Services | 12 |
 | Languages | 15 (full parity with server) |
 | RTL Support | Arabic (ar), Hebrew (he) |
 | Xcode версия | 26.2 (17C52) |
 | iOS Target | 26.2 |
 | Bundle ID | io.enliko.EnlikoTrading |
 | Team ID | NDGY75Y29A |
+| Build Status | ✅ SUCCESS |
 
 ## Структура iOS проекта
 
@@ -2457,42 +2545,59 @@ ios/EnlikoTrading/
 ├── App/
 │   ├── EnlikoTradingApp.swift       # @main entry + RTL support
 │   ├── AppState.swift              # Global state + server sync
-│   └── Config.swift                # API URLs (fog-cornell-ata-portable)
+│   └── Config.swift                # API URLs (https://enliko.com)
 ├── Views/
 │   ├── Auth/
-│   │   └── LoginView.swift         # Auth + CompactLanguagePicker
+│   │   ├── LoginView.swift         # Auth + CompactLanguagePicker
+│   │   └── DisclaimerView.swift    # Legal disclaimer (closures) ✅FIXED
 │   ├── Portfolio/
 │   │   ├── PortfolioView.swift     # Balance, PnL (localized)
-│   │   └── PositionsView.swift     # Open positions (localized)
+│   │   ├── PositionsView.swift     # Open positions (localized)
+│   │   └── TradeHistoryView.swift  # Trade history
+│   ├── Trading/
+│   │   ├── TradingView.swift       # Order placement
+│   │   ├── MarketView.swift        # Market data
+│   │   └── SymbolPickerView.swift  # Symbol selection
 │   ├── Settings/
 │   │   ├── SettingsView.swift      # User settings + language picker
-│   │   └── LanguageSettingsView.swift  # Full language selection UI ⭐NEW
-│   ├── MainTabView.swift           # Tab navigation (localized)
-│   ├── StatsView.swift             # Trading statistics (localized)
-│   ├── ScreenerView.swift          # Crypto screener (localized) ⭐NEW
-│   ├── AIView.swift                # AI assistant (localized) ⭐NEW
-│   ├── SignalsView.swift           # Trading signals (localized) ⭐NEW
-│   ├── ActivityView.swift          # Activity history (localized) ⭐NEW
-│   ├── TradingView.swift           # Trading interface
-│   └── MarketView.swift            # Market data
+│   │   ├── StrategySettingsView.swift  # Long/Short per strategy
+│   │   ├── TradingSettingsView.swift   # Trading preferences
+│   │   ├── LanguageSettingsView.swift  # Full language selection UI
+│   │   ├── NotificationSettingsView.swift
+│   │   └── SubSettingsViews.swift
+│   ├── Strategies/
+│   │   ├── StrategiesView.swift
+│   │   └── BacktestView.swift
+│   ├── MainTabView.swift           # Tab navigation (5 tabs)
+│   ├── StatsView.swift             # Trading statistics
+│   ├── ScreenerView.swift          # Crypto screener
+│   ├── AIView.swift                # AI assistant
+│   ├── SignalsView.swift           # Trading signals
+│   └── ActivityView.swift          # Cross-platform sync history
 ├── Services/
-│   ├── NetworkService.swift        # HTTP + JWT auth
+│   ├── NetworkService.swift        # HTTP + JWT auth + postIgnoreResponse ✅FIXED
 │   ├── TradingService.swift        # Trading API calls
-│   ├── WebSocketService.swift      # Real-time updates
+│   ├── WebSocketService.swift      # Real-time updates (market + sync)
 │   ├── AuthManager.swift           # Auth state
-│   ├── LocalizationManager.swift   # 15-language localization ⭐NEW (808 lines)
-│   ├── ScreenerService.swift       # Screener API ⭐NEW
-│   ├── AIService.swift             # AI chat API ⭐NEW
-│   └── SignalService.swift         # Signals API ⭐NEW
+│   ├── LocalizationManager.swift   # 15-language localization (1154 lines)
+│   ├── StrategyService.swift       # Strategy settings API
+│   ├── GlobalSettingsService.swift # Global settings API
+│   ├── ScreenerService.swift       # Screener API
+│   ├── AIService.swift             # AI chat API
+│   ├── SignalsService.swift        # Signals API
+│   ├── ActivityService.swift       # Activity sync API
+│   └── StatsService.swift          # Statistics API
 ├── Models/
-│   ├── Models.swift                # Position, Order, Balance
-│   ├── AuthModels.swift            # Login, Token
+│   ├── Models.swift                # Position, Order, Balance, Trade, etc. (725 lines)
+│   └── AuthModels.swift            # Login, Token, Register requests
+├── ViewModels/
 │   └── ViewModels.swift            # Observable objects
 ├── Extensions/
 │   ├── Color+Extensions.swift      # Enliko color scheme
 │   └── Notification+Extensions.swift # Sync notifications
 ├── Utils/
-│   └── Utilities.swift             # Formatters, helpers
+│   ├── Utilities.swift             # Formatters, helpers
+│   └── ModernFeatures.swift        # Biometrics, Haptics, Animations
 └── Assets.xcassets/
     └── AppIcon.appiconset/         # 1024x1024 icon
 ```
@@ -2650,8 +2755,8 @@ static let wsURL = "wss://enliko.com"
 
 ---
 
-*Last updated: 27 января 2026*
-*Version: 3.35.0*
+*Last updated: 28 января 2026*
+*Version: 3.38.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -2666,8 +2771,8 @@ static let wsURL = "wss://enliko.com"
 *Branding: Enliko (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
-*iOS SwiftUI: 35+ files, LocalizationManager (15 langs, RTL), WebSocketService sync*
-*iOS Features: Screener, Stats, AI, Signals, Activity - full parity with WebApp*
+*iOS SwiftUI: 40+ files, BUILD SUCCEEDED, full audit Jan 28 2026*
+*iOS Features: Screener, Stats, AI, Signals, Activity, Strategies - full parity with WebApp*
 *Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
 *Android Features: All 9 screens with ViewModels, WebSocketService, full iOS parity*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First, Adaptive Layout*
