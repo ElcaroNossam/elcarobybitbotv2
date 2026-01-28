@@ -413,7 +413,7 @@
 
         // Auth
         function getToken() {
-            return localStorage.getItem('token') || new URLSearchParams(window.location.search).get('token');
+            return localStorage.getItem('enliko_token') || new URLSearchParams(window.location.search).get('token');
         }
 
         async function api(endpoint, options = {}) {

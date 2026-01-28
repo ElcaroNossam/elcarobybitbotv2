@@ -1214,6 +1214,38 @@
             return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
+        // Auto-login via URL parameter (from bot keyboard)
+        async function autoLoginViaUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const startUserId = params.get('start');
+            
+            if (!startUserId) return false;
+            
+            try {
+                // Use direct-login endpoint (existing API)
+                const res = await fetch('/api/auth/direct-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(startUserId) })
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.access_token) {
+                    localStorage.setItem('enliko_token', data.access_token);
+                    localStorage.setItem('enliko_user_id', startUserId);
+                    if (data.user) {
+                        localStorage.setItem('enliko_user', JSON.stringify(data.user));
+                    }
+                    // Clean URL
+                    window.history.replaceState({}, '', window.location.pathname);
+                    return true;
+                }
+            } catch (e) {
+                console.error('URL auto-login failed:', e);
+            }
+            return false;
+        }
+        
         // Auto-login via Telegram WebApp if needed
         async function autoLoginTelegram() {
             if (!tg?.initData) return false;
@@ -1246,7 +1278,17 @@
             const userId = localStorage.getItem('enliko_user_id');
             console.log('[Auth] Token exists:', !!token, 'User ID:', userId);
             
-            // If no token but we have Telegram WebApp - try auto-login
+            // Try URL-based auto-login first (from bot keyboard)
+            if (!token) {
+                console.log('[Auth] No token, trying URL auto-login');
+                const urlSuccess = await autoLoginViaUrl();
+                if (urlSuccess) {
+                    token = getToken();
+                    console.log('[Auth] URL auto-login successful');
+                }
+            }
+            
+            // If still no token but we have Telegram WebApp - try auto-login
             if (!token && tg?.initData) {
                 console.log('[Auth] No token, attempting Telegram auto-login');
                 const success = await autoLoginTelegram();

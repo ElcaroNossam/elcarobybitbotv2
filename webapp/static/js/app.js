@@ -3,7 +3,7 @@
 // Global app state
 function app() {
     return {
-        isLoggedIn: !!localStorage.getItem('token'),
+        isLoggedIn: !!localStorage.getItem('enliko_token'),
         isAdmin: false,
         user: null,
 
@@ -17,7 +17,7 @@ function app() {
             try {
                 const res = await fetch('/api/auth/me', {
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                        'Authorization': 'Bearer ' + localStorage.getItem('enliko_token')
                     }
                 });
                 
@@ -33,7 +33,7 @@ function app() {
         },
 
         logout() {
-            localStorage.removeItem('token');
+            localStorage.removeItem('enliko_token');
             this.isLoggedIn = false;
             this.user = null;
             window.location.href = '/';
@@ -66,7 +66,7 @@ const Toast = {
 
 // API helper
 async function api(url, options = {}) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('enliko_token');
     
     const res = await fetch(url, {
         ...options,
@@ -78,7 +78,7 @@ async function api(url, options = {}) {
     });
     
     if (res.status === 401) {
-        localStorage.removeItem('token');
+        localStorage.removeItem('enliko_token');
         window.location.href = '/login';
         throw new Error('Unauthorized');
     }
@@ -125,7 +125,7 @@ class WSConnection {
     }
     
     connect() {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('enliko_token');
         this.ws = new WebSocket(`${this.url}?token=${token}`);
         
         this.ws.onopen = () => {

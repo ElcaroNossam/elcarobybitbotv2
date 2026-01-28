@@ -54,7 +54,7 @@
         </div>
     </main>
     <script>
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('enliko_token');
         if (!token) window.location.href = '/login';
         
         async function fetchStats() {

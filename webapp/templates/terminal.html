@@ -743,25 +743,55 @@
         // ========================================
         // AUTH HANDLING - Token from bot auto-login
         // ========================================
-        (function() {
+        (async function() {
             const params = new URLSearchParams(window.location.search);
+            
+            // Method 1: Direct auth_token parameter
             const authToken = params.get('auth_token');
             if (authToken) {
                 localStorage.setItem('enliko_token', authToken);
-                fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                })
-                .then(res => res.json())
-                .then(user => {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    const user = await res.json();
                     if (user && user.user_id) {
                         localStorage.setItem('enliko_user_id', user.user_id.toString());
                         localStorage.setItem('enliko_user', JSON.stringify(user));
                         if (user.language) localStorage.setItem('enliko_language', user.language);
                         if (user.exchange_type) localStorage.setItem('enliko_exchange', user.exchange_type);
                     }
-                })
-                .catch(err => console.error('Auth error:', err));
+                } catch (err) {
+                    console.error('Auth error:', err);
+                }
                 window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            // Method 2: User ID from start parameter (login via direct-login API)
+            const startUserId = params.get('start');
+            if (startUserId) {
+                try {
+                    const res = await fetch('/api/auth/direct-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: parseInt(startUserId) })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.access_token) {
+                        localStorage.setItem('enliko_token', data.access_token);
+                        localStorage.setItem('enliko_user_id', startUserId);
+                        if (data.user) {
+                            localStorage.setItem('enliko_user', JSON.stringify(data.user));
+                            if (data.user.language) localStorage.setItem('enliko_language', data.user.language);
+                            if (data.user.exchange_type) localStorage.setItem('enliko_exchange', data.user.exchange_type);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Direct login error:', err);
+                }
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
             }
         })();
         
@@ -939,7 +969,7 @@
             listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading trades...</div>';
             
             try {
-                const token = localStorage.getItem('auth_token');
+                const token = localStorage.getItem('enliko_token');
                 const response = await fetch(`/api/trading/chart-markers/${state.symbol}?days=30`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -2885,7 +2915,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                        'Authorization': `Bearer ${localStorage.getItem('enliko_token') || ''}`
                     },
                     body: JSON.stringify({ address: walletAddress })
                 });
