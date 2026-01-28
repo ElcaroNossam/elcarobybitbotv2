@@ -1120,7 +1120,7 @@ def get_user_config(user_id: int) -> dict:
             "rsi_lo", "rsi_hi", "bb_touch_k",
             "oi_min_pct", "price_min_pct", "limit_only_default",
             # доступ/согласие
-            "is_allowed", "is_banned", "terms_accepted",
+            "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
             # совместимость
             "first_seen_ts", "last_seen_ts",
         ]
