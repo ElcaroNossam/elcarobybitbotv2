@@ -1,7 +1,8 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.36.0 | Обновлено: 28 января 2026
+# Версия: 3.38.0 | Обновлено: 28 января 2026
 # =============================================
+# Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
 # iOS Full Localization: 15 languages + RTL support
 # Android App: Kotlin + Jetpack Compose
@@ -9,7 +10,7 @@
 # 4D Schema: (user_id, strategy, side, exchange)
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
-# Translations: 15 languages × 875 keys = Full sync
+# Translations: 15 languages × 690 keys = Full sync (Jan 28, 2026)
 
 ---
 
@@ -533,6 +534,9 @@ settings = pg_get_strategy_settings(uid, 'oi')
 | **Python** | `/home/ubuntu/project/elcarobybitbotv2/venv/bin/python` |
 | **Service** | `elcaro-bot` (systemd) |
 | **WebApp Port** | `8765` |
+| **Production URL** | `https://enliko.com` |
+| **API URL** | `https://enliko.com/api` |
+| **Nginx Config** | `/etc/nginx/sites-enabled/enliko.com` |
 
 ## Деплой команды
 
@@ -552,17 +556,22 @@ journalctl -u elcaro-bot -f --no-pager -n 100
 sudo systemctl status elcaro-bot
 ```
 
-## Cloudflare Tunnel
+## Production Domain
 
-WebApp доступен через Cloudflare Quick Tunnel (URL меняется при рестарте!):
+WebApp доступен через собственный домен с nginx + SSL:
 
-```bash
-# Получить текущий URL
-tail -20 /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep trycloudflare
-
-# Обновить .env (БЕЗ рестарта бота!)
-sed -i 's|WEBAPP_URL=.*|WEBAPP_URL=https://NEW-URL.trycloudflare.com|' .env
 ```
+https://enliko.com          # Main WebApp
+https://enliko.com/api      # API endpoints
+https://enliko.com/terminal # Trading terminal
+```
+
+**Конфигурация:**
+- Nginx reverse proxy → localhost:8765
+- SSL сертификаты в `/etc/ssl/enliko.com/`
+- Конфиг: `/etc/nginx/sites-enabled/enliko.com`
+
+> ⚠️ Cloudflare Tunnel больше не используется! Теперь production domain.
 
 ---
 
@@ -905,23 +914,30 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь 2026)
 
-### ✅ FEAT: Full Localization Audit & Sync (Jan 28, 2026)
-- **Проблема:** 13 языков имели 848 ключей, а EN/RU имели 875 ключей (разница 27 ключей)
-- **Причина:** Новые ключи для Break-Even и Partial Take Profit не были добавлены во все языки
-- **Исправленные файлы:**
-  - Все 15 языковых файлов теперь имеют **875 ключей**
-  - Добавлены 27 ключей BE/PTP в: ar, cs, de, es, fr, he, it, ja, lt, pl, sq, uk, zh
-  - Добавлены 11 ключей hardcoded strings fix во все языки
-- **Новые ключи перевода (27 для BE/PTP):**
-  - BE: `be_settings_header`, `be_settings_desc`, `be_enabled_label`, `be_trigger_label`, `prompt_be_trigger`, `prompt_long_be_trigger`, `prompt_short_be_trigger`, `param_be_trigger`, `be_moved_to_entry`, `be_status_enabled`, `be_status_disabled`
-  - PTP: `partial_tp_label`, `partial_tp_status_enabled`, `partial_tp_status_disabled`, `partial_tp_step1_menu`, `partial_tp_step2_menu`, `trigger_pct`, `close_pct`, `prompt_long_ptp_*`, `prompt_short_ptp_*`, `partial_tp_executed`
-- **Hardcoded strings fix:**
-  - Исправлены 11 хардкодов в bot.py на t.get() вызовы
-  - Ключи: `terminal_button`, `exchange_mode_activated_bybit`, `exchange_mode_activated_hl`, `error_processing_request`, `unauthorized_admin`, `error_loading_dashboard`, `unauthorized`, `processing_blockchain`, `verifying_payment`, `no_wallet_configured`, `use_start_menu`
-- **iOS/Android проверены:**
-  - `ios/EnlikoTrading/Services/LocalizationManager.swift` - 15 языков ✅
-  - `android/EnlikoTrading/app/.../util/Localization.kt` - 15 языков ✅
-- **Результат:** Полная синхронизация переводов: 15 языков × 875 ключей
+### ✅ FEAT: Deep Localization Audit & Full Sync (Jan 28, 2026)
+- **Проблема:** 12 языков (DE/ES/FR/IT/JA/ZH/AR/HE/PL/CS/LT/SQ) были частично синхронизированы - отсутствовало 64-88 ключей
+- **Причина:** Новые ключи (API settings, balance, positions, orders, exchange, disclaimers) не были добавлены во все языки
+- **Решение:** Создан скрипт `add_en_keys_to_all.py` для автоматической синхронизации
+- **Результат:** 
+  - **EN (reference):** 658 ключей
+  - **RU/UK:** 658 ключей ✅ Perfect sync
+  - **DE/ES/FR/IT/JA/ZH/AR/HE/PL/CS/LT/SQ:** 956 ключей ✅ All EN keys + 298 legacy keys
+- **Добавленные ключи (88 для DE/ES/FR/IT, 64 для остальных):**
+  - API: `api_bybit_demo`, `api_bybit_real`, `api_hl_testnet`, `api_hl_mainnet`, `api_key_missing`, `api_settings_header`, `api_settings_info`
+  - Balance: `balance_title`, `balance_demo`, `balance_real`, `balance_testnet`, `balance_mainnet`, `balance_margin_used`, `balance_unrealized`, `balance_today_pnl`, `balance_week_pnl`, `balance_empty`, `balance_error`, `balance_display`
+  - Positions: `position_long`, `position_short`, `position_card`, `positions_empty`, `positions_page`, `close_position_confirm`
+  - Orders: `orders_header`, `orders_empty`, `orders_pending`, `orders_cancelled_all`, `order_card`, `order_cancelled`
+  - Buttons: `btn_bybit_demo`, `btn_bybit_real`, `btn_hl_testnet`, `btn_hl_mainnet`, `btn_close_pos`, `btn_cancel_order`, `btn_cancel_all`, `btn_modify_tpsl`, `button_ai_bots`, `button_help`, `button_language`, `button_portfolio`, `button_premium`, `button_screener`
+  - Exchange: `exchange_header`, `exchange_bybit`, `exchange_hyperliquid`, `exchange_selected`
+  - Execution: `execution_header`, `execution_confirm`, `execution_success`, `execution_failed`
+  - Manual: `manual_order_header`, `manual_long`, `manual_short`, `manual_order_confirm`, `manual_order_success`, `manual_order_failed`
+  - Market: `market_header`, `market_btc`, `market_eth`, `market_total_cap`, `market_fear_greed`, `market_last_update`
+  - Other: `signal_header`, `spot_header`, `spot_dca_enabled`, `spot_dca_disabled`, `strategy_info`, `stats_disclaimer`, `terms_title`, `welcome_back`
+- **Утилиты созданы:**
+  - `translations/deep_audit.py` - глубокий аудит всех языков
+  - `translations/sync_translations.py` - проверка синхронизации
+- **Файлы backup сохранены:** `de_old_backup.py`, `es_old_backup.py`, `fr_old_backup.py`, `it_old_backup.py`
+- **Синтаксис проверен:** Все 15 файлов компилируются без ошибок ✅
 
 ### ✅ FEAT: Partial Take Profit (Срез маржи) in 2 Steps (Jan 27, 2026)
 - **Функционал:** Частичное закрытие позиции при достижении % прибыли в 2 шага
@@ -1043,6 +1059,19 @@ except Exception as e:
   - Автоматическое зеркалирование UI для Arabic/Hebrew
 - **Языки (15):** EN, RU, UK, DE, ES, FR, IT, JA, ZH, AR, HE, PL, CS, LT, SQ
 - **Commits:** 1a8c9d7, 6b04bca
+
+### ✅ FIX: Production Domain Migration from Cloudflare (Jan 28, 2026)
+- **Проблема:** Клавиатура бота и некоторые ссылки всё ещё использовали старые Cloudflare URLs (*.trycloudflare.com)
+- **Причина:** После перехода на production domain (enliko.com) не все места были обновлены
+- **Исправленные файлы:**
+  - `bot.py`: 
+    - Изменён дефолт `WEBAPP_URL` с `http://localhost:8765` на `https://enliko.com`
+    - Удалена legacy логика fallback на ngrok_url.txt (3 места)
+  - `.env` (сервер): `WEBAPP_URL=https://enliko.com`
+  - `start_bot.sh`: Уже использовал `https://enliko.com` ✅
+  - `.github/copilot-instructions.md`: Обновлена документация
+- **Результат:** Menu Button теперь ведёт на `https://enliko.com/terminal`, все ссылки актуальны
+- **Commit:** pending
 
 ### ✅ CRITICAL: Multitenancy Audit Round 15 - Missing Exchange Filters (Jan 25, 2026)
 - **Проблема:** Функции `get_pending_limit_orders()` и `was_position_recently_closed()` не фильтровали по exchange
@@ -2563,23 +2592,13 @@ open ./build/EnlikoTrading.xcarchive
 ## Config.swift - API Endpoints
 
 ```swift
-#if DEBUG
-static let baseURL = "http://localhost:8765"
-#else
-static let baseURL = "https://fog-cornell-ata-portable.trycloudflare.com"
-#endif
-
+// Production domain - same for DEBUG and RELEASE
+static let baseURL = "https://enliko.com"
 static let apiURL = "\(baseURL)/api"
-static let wsURL = baseURL
-    .replacingOccurrences(of: "https://", with: "wss://")
-    .replacingOccurrences(of: "http://", with: "ws://")
+static let wsURL = "wss://enliko.com"
 ```
 
-> ⚠️ **Cloudflare URL меняется при рестарте tunnel!** Проверить актуальный:
-> ```bash
-> ssh -i noet-dat.pem ubuntu@ec2-3-66-84-33.eu-central-1.compute.amazonaws.com \
->   'tail -20 /home/ubuntu/project/elcarobybitbotv2/logs/cloudflared.log | grep trycloudflare'
-> ```
+> ✅ **Production domain:** `https://enliko.com` - больше не меняется!
 
 ## Apple Developer Program
 

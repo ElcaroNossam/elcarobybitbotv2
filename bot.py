@@ -558,7 +558,7 @@ error_monitor = ErrorMonitor(admin_id=ADMIN_ID, report_interval=300)  # Report e
 # ═══════════════════════════════════════════════════════════════
 
 BOT_TOKEN   = os.getenv("TELEGRAM_TOKEN")
-WEBAPP_URL  = os.getenv("WEBAPP_URL", "http://localhost:8765")  # WebApp URL from env or fallback
+WEBAPP_URL  = os.getenv("WEBAPP_URL", "https://enliko.com")  # WebApp URL (production domain)
 BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
 BYBIT_BASE  = BYBIT_DEMO_URL  # Default for backward compatibility
@@ -1199,6 +1199,52 @@ def terms_keyboard(t: dict) -> InlineKeyboardMarkup:
         InlineKeyboardButton(t["terms_btn_decline"], callback_data="terms:decline"),
     ]])
 
+
+# ——— Legal Disclaimer Flow (CRITICAL for compliance) ———————————————
+def disclaimer_keyboard(t: dict) -> InlineKeyboardMarkup:
+    """Keyboard for disclaimer acceptance - required for legal compliance."""
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            t.get("disclaimer_accept_btn", "✅ I Understand & Accept"), 
+            callback_data="disclaimer:accept"
+        ),
+    ], [
+        InlineKeyboardButton(
+            t.get("disclaimer_decline_btn", "❌ I Decline"), 
+            callback_data="disclaimer:decline"
+        ),
+    ]])
+
+
+async def show_disclaimer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Show the legal disclaimer that must be accepted before using trading features."""
+    t = get_texts(ctx)
+    chat_id = update.effective_chat.id
+    
+    disclaimer_text = t.get("disclaimer_trading", (
+        "⚠️ *IMPORTANT DISCLAIMER*\n\n"
+        "This platform provides educational tools for learning about cryptocurrency markets.\n\n"
+        "• This is NOT financial advice\n"
+        "• Past performance does not guarantee future results\n"
+        "• Trading involves substantial risk of loss\n"
+        "• You are solely responsible for all decisions\n\n"
+        "By using Enliko, you agree to our Terms of Service."
+    ))
+    
+    await ctx.bot.send_message(
+        chat_id=chat_id,
+        text=disclaimer_text,
+        parse_mode="Markdown",
+        reply_markup=disclaimer_keyboard(t)
+    )
+
+
+def has_accepted_disclaimer(uid: int) -> bool:
+    """Check if user has accepted the legal disclaimer."""
+    cfg = get_user_config(uid) or {}
+    return bool(cfg.get("disclaimer_accepted", 0))
+
+
 # ——— Access control ————————————————————————————————
 def _is_banned(uid: int) -> bool:
     cfg = get_user_config(uid) or {}
@@ -1455,6 +1501,52 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ============================================================================
+# Legal Disclaimer Handler (CRITICAL for compliance)
+# ============================================================================
+@with_texts
+@log_calls
+async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle disclaimer acceptance/decline. Required for legal compliance."""
+    q = update.callback_query
+    await q.answer()
+    uid = update.effective_user.id
+    data = q.data or ""
+    action = data.split(":", 1)[1] if ":" in data else ""
+
+    if action == "accept":
+        set_user_field(uid, "disclaimer_accepted", 1)
+        logger.info(f"[{uid}] Accepted legal disclaimer")
+        
+        accepted_text = ctx.t.get("disclaimer_accepted_msg", (
+            "✅ *Disclaimer Accepted*\n\n"
+            "You have acknowledged that:\n"
+            "• This is an educational platform\n"
+            "• You are responsible for all trading decisions\n"
+            "• Past performance does not guarantee future results\n\n"
+            "Welcome to Enliko Trading Tools!"
+        ))
+        await q.edit_message_text(accepted_text, parse_mode="Markdown")
+        
+        # Show main menu after accepting
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=ctx.t["welcome"],
+            reply_markup=main_menu_keyboard(ctx, update=update),
+        )
+        
+    elif action == "decline":
+        logger.info(f"[{uid}] Declined legal disclaimer")
+        declined_text = ctx.t.get("disclaimer_declined_msg", (
+            "❌ *Disclaimer Declined*\n\n"
+            "You must accept the disclaimer to use Enliko Trading Tools.\n\n"
+            "If you change your mind, use /start to begin again."
+        ))
+        await q.edit_message_text(declined_text, parse_mode="Markdown")
+    else:
+        await q.answer(ctx.t.get("unknown_action", "Unknown action"), show_alert=True)
+
+
+# ============================================================================
 # 2FA Login Confirmation Handler
 # ============================================================================
 @log_calls
@@ -1476,49 +1568,26 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         from webapp.services import telegram_auth
         
-        # Get user language for messages
-        cfg = get_user_config(uid) or {}
-        lang = cfg.get("lang", "en")
-        
-        translations = {
-            "uk": {
-                "approved": "✅ Вхід підтверджено!\n\nТепер ви можете продовжити у браузері.",
-                "denied": "❌ Вхід відхилено.\n\nЯкщо це була не ваша спроба, рекомендуємо змінити налаштування безпеки.",
-                "expired": "⏰ Час підтвердження минув. Спробуйте ще раз.",
-                "error": "⚠️ Помилка обробки. Спробуйте пізніше."
-            },
-            "ru": {
-                "approved": "✅ Вход подтверждён!\n\nТеперь вы можете продолжить в браузере.",
-                "denied": "❌ Вход отклонён.\n\nЕсли это была не ваша попытка, рекомендуем изменить настройки безопасности.",
-                "expired": "⏰ Время подтверждения истекло. Попробуйте ещё раз.",
-                "error": "⚠️ Ошибка обработки. Попробуйте позже."
-            },
-            "en": {
-                "approved": "✅ Login approved!\n\nYou can now continue in your browser.",
-                "denied": "❌ Login denied.\n\nIf this wasn't you, we recommend reviewing your security settings.",
-                "expired": "⏰ Confirmation expired. Please try again.",
-                "error": "⚠️ Processing error. Please try again later."
-            }
-        }
-        t = translations.get(lang, translations["en"])
+        # Get user translations
+        t = get_texts(uid)
         
         if action == "approve":
             success = telegram_auth.confirm_2fa(confirmation_id, approved=True)
             if success:
-                await q.edit_message_text(t["approved"])
+                await q.edit_message_text(t.get("login_approved", "✅ Login approved!\n\nYou can now continue in your browser."))
             else:
-                await q.edit_message_text(t["expired"])
+                await q.edit_message_text(t.get("login_expired", "⏰ Confirmation expired. Please try again."))
         else:  # deny
             success = telegram_auth.confirm_2fa(confirmation_id, approved=False)
             if success:
-                await q.edit_message_text(t["denied"])
+                await q.edit_message_text(t.get("login_denied", "❌ Login denied.\n\nIf this wasn't you, we recommend reviewing your security settings."))
             else:
-                await q.edit_message_text(t["expired"])
+                await q.edit_message_text(t.get("login_expired", "⏰ Confirmation expired. Please try again."))
                 
     except Exception as e:
         logger.error(f"2FA callback error: {e}")
         t = get_texts(uid)
-        await q.edit_message_text(t.get("error_processing_request", "⚠️ Error processing request"))
+        await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
 
 # ------------------------------------------------------------------------------------
 # API Settings Menu
@@ -2762,7 +2831,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                    if qty > 0.00001 and coin not in ("USDT", "USDC", "BUSD", "DAI")}
         
         if not sellable:
-            await q.answer("❌ No coins to sell", show_alert=True)
+            await q.answer(t.get("spot_no_coins", "❌ No coins to sell"), show_alert=True)
             return
         
         buttons = []
@@ -3472,10 +3541,10 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             gain_pct = float(text)
             if gain_pct < 1:
-                await reply_with_keyboard(update, ctx, "❌ Minimum gain trigger is 1%")
+                await reply_with_keyboard(update, ctx, t.get("spot_gain_min", "❌ Minimum gain trigger is 1%"))
                 return True
             if gain_pct > 10000:
-                await reply_with_keyboard(update, ctx, "❌ Maximum gain trigger is 10000%")
+                await reply_with_keyboard(update, ctx, t.get("spot_gain_max", "❌ Maximum gain trigger is 10000%"))
                 return True
             
             level_idx = ctx.user_data.get("spot_edit_tp_level", 0)
@@ -3497,7 +3566,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             )
             return True
         except ValueError:
-            await reply_with_keyboard(update, ctx, "❌ Invalid number. Please enter a valid percentage (e.g. 50)")
+            await reply_with_keyboard(update, ctx, t.get("spot_invalid_pct", "❌ Invalid number. Please enter a valid percentage."))
             return True
     
     if awaiting == "tp_sell":
@@ -3505,10 +3574,10 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         try:
             sell_pct = float(text)
             if sell_pct < 1:
-                await reply_with_keyboard(update, ctx, "❌ Minimum sell amount is 1%")
+                await reply_with_keyboard(update, ctx, t.get("spot_sell_min", "❌ Minimum sell amount is 1%"))
                 return True
             if sell_pct > 100:
-                await reply_with_keyboard(update, ctx, "❌ Maximum sell amount is 100%")
+                await reply_with_keyboard(update, ctx, t.get("spot_sell_max", "❌ Maximum sell amount is 100%"))
                 return True
             
             level_idx = ctx.user_data.pop("spot_edit_tp_level", 0)
@@ -3544,7 +3613,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             )
             return True
         except ValueError:
-            await reply_with_keyboard(update, ctx, "❌ Invalid number. Please enter a valid percentage (e.g. 25)")
+            await reply_with_keyboard(update, ctx, t.get("spot_invalid_pct", "❌ Invalid number. Please enter a valid percentage."))
             return True
     
     # ==================== LIMIT ORDER INPUT ====================
@@ -3639,7 +3708,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
                 await reply_with_keyboard(update, ctx, "❌ Grid count must be between 3 and 50")
                 return True
             if total_investment < 10:
-                await reply_with_keyboard(update, ctx, "❌ Minimum investment is 10 USDT")
+                await reply_with_keyboard(update, ctx, t.get("grid_min_10", "❌ Minimum investment is 10 USDT"))
                 return True
             
             coin = ctx.user_data.pop("spot_grid_coin", "BTC")
@@ -3648,7 +3717,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             spot_settings = cfg.get("spot_settings") or {}
             account_type = spot_settings.get("trading_mode", "demo")
             
-            await update.message.reply_text(f"⏳ Setting up {coin} grid...")
+            await update.message.reply_text(t.get("grid_setup", "⏳ Setting up {coin} grid...").format(coin=coin))
             
             result = await setup_spot_grid(
                 user_id=uid,
@@ -3681,8 +3750,7 @@ async def handle_spot_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
             return True
         except ValueError:
             await update.message.reply_text(
-                "❌ Invalid input. Please enter numbers:\n"
-                "<code>low_price high_price grid_count total_usdt</code>",
+                t.get("grid_invalid_input", "❌ Invalid input. Please enter numbers.") + "\n<code>low_price high_price grid_count total_usdt</code>",
                 parse_mode="HTML"
             )
             return True
@@ -3993,10 +4061,6 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     
     # Build webapp URL with user_id for auto-login
     webapp_url = WEBAPP_URL
-    if webapp_url == "http://localhost:8765":
-        ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-        if ngrok_file.exists():
-            webapp_url = ngrok_file.read_text().strip()
     
     import time
     cache_bust = int(time.time())
@@ -7971,7 +8035,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
     if data.startswith("strat_hl:"):
         strategy = data.split(":")[1]
         if strategy not in STRATEGY_NAMES_MAP:
-            await query.answer("❌ Invalid strategy")
+            await query.answer(t.get("strategy_invalid", "❌ Invalid strategy"))
             return
         
         hl_settings = db.get_hl_strategy_settings(uid, strategy)
@@ -9316,6 +9380,12 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not cfg.get("terms_accepted", 0):
         await reply_with_keyboard(update, ctx, ctx.t['need_terms'])
         await cmd_terms(update, ctx)
+        return
+    
+    # Check if user has accepted legal disclaimer (CRITICAL for compliance)
+    if not cfg.get("disclaimer_accepted", 0):
+        logger.info(f"[{uid}] Showing legal disclaimer (first time)")
+        await show_disclaimer(update, ctx)
         return
     
     # Reset Menu Button to commands menu (remove WebApp button if was set before)
@@ -18603,12 +18673,8 @@ async def start_monitoring(app: Application):
     
     # Setup Menu Button (Dashboard) with WebApp
     try:
-        # Get webapp URL from env, fallback to ngrok file, then default
+        # Get webapp URL from env (production domain)
         webapp_url = WEBAPP_URL
-        if webapp_url == "http://localhost:8765":
-            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-            if ngrok_file.exists():
-                webapp_url = ngrok_file.read_text().strip()
         
         # Check if menu button URL needs update
         last_url_file = Path(__file__).parent / "run" / "last_menu_url.txt"
@@ -20576,7 +20642,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
         except ValueError:
             await update.message.reply_text(
-                "❌ Invalid user ID. Enter a number.",
+                t.get('admin_invalid_user_id', "❌ Invalid user ID. Enter a number."),
                 reply_markup=get_admin_license_keyboard(t)
             )
         return
@@ -20615,7 +20681,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
         except ValueError:
             await update.message.reply_text(
-                "❌ Invalid user ID. Enter a number.",
+                t.get('admin_invalid_user_id', "❌ Invalid user ID. Enter a number."),
                 reply_markup=get_admin_license_keyboard(t)
             )
         return
@@ -22311,7 +22377,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         trc_balance = await get_elc_balance(uid)
         
         if trc_balance < 10:
-            await q.answer("❌ Minimum 10 ELC required for conversion", show_alert=True)
+            await q.answer(t.get("elc_min_convert", "❌ Minimum 10 ELC required for conversion"), show_alert=True)
             return
         
         text = t.get("wallet_convert_header", "🔄 *Convert ELC to ELC*")
@@ -22339,12 +22405,12 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         amount = int(parts[2]) if len(parts) > 2 else 0
         
         if amount < 10:
-            await q.answer("❌ Minimum 10 ELC required", show_alert=True)
+            await q.answer(t.get("elc_min_convert", "❌ Minimum 10 ELC required for conversion"), show_alert=True)
             return
         
         trc_balance = await get_elc_balance(uid)
         if trc_balance < amount:
-            await q.answer("❌ Insufficient ELC balance", show_alert=True)
+            await q.answer(t.get("payment_elc_insufficient", "❌ Insufficient ELC balance").split("\n")[0], show_alert=True)
             return
         
         # Deduct ELC
@@ -22454,7 +22520,7 @@ async def on_wallet_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif action == "stake_all":
         balance = await get_elc_balance(uid)
         if balance < 1:
-            await q.answer("❌ Minimum 1 ELC required for staking", show_alert=True)
+            await q.answer(t.get("elc_min_stake", "❌ Minimum 1 ELC required for staking"), show_alert=True)
             return
         
         success, tx, message = await blockchain.stake(uid, balance)
@@ -24943,13 +25009,6 @@ async def cmd_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Get webapp URL from env, fallback to ngrok file, then localhost
     webapp_url = WEBAPP_URL
-    try:
-        if webapp_url == "http://localhost:8765":
-            ngrok_file = Path(__file__).parent / "run" / "ngrok_url.txt"
-            if ngrok_file.exists():
-                webapp_url = ngrok_file.read_text().strip()
-    except Exception:
-        pass
     
     # Generate auto-login token
     import time
@@ -26672,6 +26731,7 @@ def main():
     app.add_handler(CommandHandler("terms",              cmd_terms))
     app.add_handler(CommandHandler("strategy_settings",  cmd_strategy_settings))
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
+    app.add_handler(CallbackQueryHandler(on_disclaimer_cb, pattern=r"^disclaimer:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
     app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|strat_side_be:|strat_side_ptp:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|global_be:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
