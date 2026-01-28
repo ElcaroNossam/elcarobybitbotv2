@@ -1,221 +1,101 @@
 # -*- coding: utf-8 -*-
+"""
+Enliko Trading Tools — Japanese Translations (日本語)
+Version: 4.0.0 | Updated: 28 January 2026
+LEGAL: Educational platform, not financial advice.
+"""
+
 TEXTS = {
-    # メインメニュー - プロフェッショナル取引ターミナル
-    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
-
-⚡ <b>&lt; 100ms</b> 約定速度
-🛡️ <b>リスク管理</b>内蔵
-💎 <b>24/7</b> 自動取引
-
-Bybit • HyperLiquid • マルチ戦略''',
-    'no_strategies':               '❌ アクティブな戦略がありません',
-    'guide_caption':               '📚 <b>ユーザーガイド</b>\n\nAPI設定、戦略、リスク管理。',
-    'privacy_caption':             '📜 <b>プライバシーポリシー</b>\n\n🔐 暗号化保存\n✅ データ共有なし',
+    # =====================================================
+    # LEGAL DISCLAIMERS (法的免責事項)
+    # =====================================================
+    
+    'disclaimer_trading': (
+        '⚠️ *重要な免責事項*\n\n'
+        'このプラットフォームは暗号通貨市場について学ぶための教育ツールを提供しています。\n'
+        '以下ではありません：\n'
+        '• 金融アドバイス\n'
+        '• 投資推奨\n'
+        '• 保証された利益システム\n\n'
+        '暗号通貨取引には重大な損失リスクがあります。'
+        '投資の一部または全部を失う可能性があります。'
+        '失っても良い資金でのみ取引してください。\n\n'
+        '過去の実績は将来の結果を保証しません。'
+    ),
+    
+    'disclaimer_short': '⚠️ _教育ツールのみ。金融アドバイスではありません。取引にはリスクがあります。_',
+    
+    'disclaimer_execution': (
+        '⚠️ 続行することで、以下を認めます：\n'
+        '• すべての取引決定に責任を負います\n'
+        '• これは教育ツールであり、金融アドバイスではありません\n'
+        '• 暗号通貨取引のリスクを理解しています\n'
+        '• 過去の実績は将来の結果を保証しません'
+    ),
+    
+    # Welcome - Updated with legal positioning
+    'welcome': (
+        '📊 *Enliko Trading Toolsへようこそ*\n\n'
+        '🎯 教育プラットフォーム:\n'
+        '• ポートフォリオ追跡と分析\n'
+        '• 戦略バックテスト\n'
+        '• 市場データ可視化\n'
+        '• リスク管理ツール\n\n'
+        '⚠️ _教育目的のみ。金融アドバイスではありません。_\n'
+        '_取引には重大な損失リスクがあります。_'
+    ),
+    
+    'welcome_back': (
+        '📊 *Enliko Trading Tools*\n\n'
+        '⚠️ _教育プラットフォーム。金融アドバイスではありません。_'
+    ),
     
     # ═══════════════════════════════════════════════════════════════════
     # MODERN MENU BUTTONS - Stylish & Persuasive
     # ═══════════════════════════════════════════════════════════════════
-    'button_api':                  '🔐 API接続',
-    'button_secret':               '🔑 シークレットキー',
-    'button_api_settings':         '⚙️ API設定',
-    'button_balance':              '💎 ポートフォリオ',
     'button_orders':               '📊 注文',
     'button_positions':            '🎯 建玉',
     'button_history':              '📜 履歴',
-    'button_strategies':           '🤖 AIボット',
     'button_api_keys':             '🔑 APIキー',
-    'button_bybit':                '🟠 Bybit',
     'button_hyperliquid':          '🔷 HyperLiquid',
-    'button_switch_bybit':         '🔄 Bybit',
-    'button_switch_hl':            '🔄 HL',
-    'button_subscribe':            '👑 PREMIUM',
-    'button_licenses':             '🎫 ライセンス',
-    'button_admin':                '👑 管理者',
-    'button_percent':              '🎚 取引ごとの％',
-    'button_coins':                '💠 コイングループ',
-    'button_market':               '📈 マーケット',
-    'button_manual_order':         '🎯 スナイパー',
-    'button_update_tpsl':          '🛡️ TP/SL',
-    'button_cancel_order':         '❌ 注文を取消',
-    'button_limit_only':           '🎯 Limitのみ',
-    'button_toggle_oi':            '� OIトラッカー',
-    'button_toggle_rsi_bb':        '📊 RSI+BB',
-    'button_scryptomera':          '🔮 Scryptomera',
-    'button_scalper':              '⚡ スキャルパー',
-    'button_elcaro':               '🔥 Enliko',
-    'button_fibonacci':            '📐 フィボナッチ',
     'button_settings':             '⚙️ 設定',
-    'button_indicators':           '💡 インジケーター',
-    'button_support':              '🆘 サポート',
-    'toggle_oi_status':            '🔀 {feature}: {status}',
-    'toggle_rsi_bb_status':        '📊 {feature}: {status}',
-    'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
 
     # Inline buttons for manual order
-    'button_order_limit':          'Limit',
-    'button_order_market':         'Market',
 
     # ATR / Stop mode
-    'atr_mode_changed':            '🔄 TP/SLモードが *{mode_text}* に変更されました',
-    'atr_mode_wilder':             'Wilder-ATR',
-    'atr_mode_fixed':              '固定％',
 
     # Limits
-    'limit_positions_exceeded':    '🚫 建玉の上限を超えました ({max})',
-    'limit_limit_orders_exceeded': '🚫 指値注文の上限を超えました ({max})',
 
     # Languages
-    'select_language':             '言語を選択:',
-    'language_set':                '言語を設定しました:',
-    'lang_en':                     'English',
 
     # Manual order
-    'order_type_prompt':           '注文タイプを選択:',
-    'limit_order_format': (
-        "指値注文のパラメータを入力:\n"
-        "`SYMBOL SIDE PRICE QTY`\n"
-        "SIDE は LONG または SHORT\n"
-        "例: `BTCUSDT LONG 20000 0.1`\n\n"
-        "取消するには ❌ 注文を取消 を送信"
-    ),
-    'market_order_format': (
-        "成行注文のパラメータを入力:\n"
-        "`SYMBOL SIDE QTY`\n"
-        "SIDE は LONG または SHORT\n"
-        "例: `BTCUSDT SHORT 0.1`\n\n"
-        "取消するには ❌ 注文を取消 を送信"
-    ),
-    'order_success':               '✅ 注文を作成しました！',
-    'order_create_error':          '❌ 注文作成に失敗: {msg}',
-    'order_fail_leverage':         (
-        "❌ 注文未作成: Bybit口座のレバレッジがこのサイズに対して高すぎます。\n"
-        "Bybitの設定でレバレッジを下げてください。"
-    ),
-    'order_parse_error':           '❌ 解析に失敗: {error}',
-    'price_error_min':             '❌ 価格エラー: {min}以上である必要があります',
-    'price_error_step':            '❌ 価格エラー: {step}の倍数である必要があります',
-    'qty_error_min':               '❌ 数量エラー: {min}以上である必要があります',
-    'qty_error_step':              '❌ 数量エラー: {step}の倍数である必要があります',
 
     # Loading…
-    'loader':                      '⏳ データを収集中…',
 
     # Market command
-    'market_status_heading':       '*マーケット状況:*',
-    'market_dominance_header':    'ドミナンス上位コイン',
-    'market_total_header':        '総時価総額',
-    'market_indices_header':      '市場指数',
-    'usdt_dominance':              'USDTドミナンス',
-    'btc_dominance':               'BTCドミナンス',
-    'dominance_rising':            '↑ 上昇',
-    'dominance_falling':           '↓ 下降',
-    'dominance_stable':            '↔️ 横ばい',
-    'dominance_unknown':           '❔ データなし',
-    'btc_price':                   'BTC価格',
-    'last_24h':                    '過去24時間',
-    'alt_signal_label':            'アルトコインシグナル',
-    'alt_signal_long':             'LONG',
-    'alt_signal_short':            'SHORT',
-    'alt_signal_neutral':          'NEUTRAL',
-    'latest_news_coindesk':        '*最新ニュース (CoinDesk):*',
 
     # Execution price error
-    'exec_price_not_found':        'クローズの約定価格が見つかりません',
 
     # /account
-    'account_balance':             '💰 残高: `{balance:.2f}`',
-    'account_realized_header':     '📈 *実現損益:*',
-    'account_realized_day':        '  • 今日 : `{pnl:+.2f}` USDT',
-    'account_realized_week':       '  • 7日 : `{pnl:+.2f}` USDT',
-    'account_unreal_header':       '📊 *含み損益:*',
-    'account_unreal_total':        '  • 合計 : `{unreal:+.2f}` USDT',
-    'account_unreal_pct':          '  • IM比率: `{pct:+.2f}%`',
-    'account_error':               '❌ {error}',
 
     # /show_config
-    'config_header':               '🛠 *あなたの設定:*',
-    'config_percent':              '• 🎚 取引％          : `{percent}%`',
-    'config_coins':                '• 💠 コイン         : `{coins}`',
-    'config_limit_only':           '• 🎯 指値のみ       : {state}',
-    'config_atr_mode':             '• 🏧 ATRトレーリングSL : {atr}',
-    'config_trade_oi':             '• 📊 OI取引         : {oi}',
-    'config_trade_rsi_bb':         '• 📈 RSI+BB取引     : {rsi_bb}',
-    'config_tp_pct':               '• 🎯 TP%            : `{tp}%`',
-    'config_sl_pct':               '• 🛑 SL%            : `{sl}%`',
 
     # Open orders
-    'no_open_orders':              '🚫 開いている注文はありません',
-    'open_orders_header':          '*📒 オープン注文:*',
-    'open_orders_item':            (
-        "{idx}️⃣ *{symbol}*\n"
-        "   • サイド: `{side}`\n"
-        "   • 数量  : `{qty}`\n"
-        "   • 価格  : `{price}`\n"
-        "   • ID    : `{id}`"
-    ),
-    'open_orders_error':           '❌ 注文取得エラー: {error}',
 
     # Manual coin selection
-    'enter_coins':                 "記号をカンマ区切りで入力（例）:\n`BTCUSDT,ETHUSDT`",
-    'coins_set_success':           '✅ 選択したコイン: {coins}',
 
     # Positions
-    'no_positions':                '🚫 建玉はありません',
     'positions_header':            '📊 保有中の建玉:',
-    'position_item':               (
-        "— 建玉 #{idx}: {symbol} | {side} (x{leverage})\n"
-        "  • サイズ        : {size}\n"
-        "  • エントリー価格: {avg:.8f}\n"
-        "  • マーク価格    : {mark:.8f}\n"
-        "  • 清算価格      : {liq}\n"
-        "  • 初期証拠金    : {im:.2f}\n"
-        "  • 維持証拠金    : {mm:.2f}\n"
-        "  • ポジション残高: {pm:.2f}\n"
-        "  • テイクプロフィット: {tp}\n"
-        "  • ストップロス      : {sl}\n"
-        "  • 含み損益        : {pnl:+.2f} ({pct:+.2f}%)"
-    ),
-    'position_item_v2':            (
-        "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • サイズ        : {size}\n"
-        "  • エントリー価格: {avg:.8f}\n"
-        "  • マーク価格    : {mark:.8f}\n"
-        "  • 清算価格      : {liq}\n"
-        "  • 初期証拠金    : {im:.2f}\n"
-        "  • 維持証拠金    : {mm:.2f}\n"
-        "  • テイクプロフィット: {tp}\n"
-        "  • ストップロス  : {sl}\n"
-        "  {pnl_emoji} 含み損益    : {pnl:+.2f} ({pct:+.2f}%)"
-    ),
-    'pnl_by_strategy':             '📊 *戦略別 PnL:*',
-    'pnl_by_exchange':             '🏦 *取引所別 PnL:*',
-    'positions_overall':           '含み損益 合計: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *保有中の建玉*',
-    'positions_count':             '建玉',
-    'positions_count_total':       '建玉合計',
-    'total_unrealized_pnl':        '含み損益合計',
-    'total_pnl':                   '合計損益',
-    'btn_close_short':             '決済',
-    'btn_close_all':               '全建玉を決済',
     'btn_close_position':          '建玉を決済',
-    'btn_confirm_close':           '決済を確認',
-    'btn_confirm_close_all':       'はい、全て決済',
     'btn_cancel':                  '❌ キャンセル',
     'btn_back':                    '🔙 戻る',
-    'confirm_close_position':      '建玉を決済',
-    'confirm_close_all':           '全ての建玉を決済',
-    'position_not_found':          '建玉が見つからないか既に決済済み',
     'position_already_closed':     '建玉は既に決済済み',
     'position_closed_success':     '建玉を決済しました',
     'position_close_error':        '決済エラー',
-    'positions_closed':            '建玉決済完了',
-    'errors':                      'エラー',
 
     # % per trade
-    'set_percent_prompt':          '1取引あたりの残高％を入力（例 2.5）:',
-    'percent_set_success':         '✅ 取引％を設定: {pct}%',
 
     # Limit-Only toggle
     'limit_only_toggled':          '🔄 指値のみ: {state}',
@@ -499,105 +379,23 @@ Bybit • HyperLiquid • マルチ戦略''',
     'emoji_neutral': '⚪️',
 
     # Scalper Strategy
-    'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Enliko: {state}',
-    'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
-    'api_settings_title':          '🔑 <b>API Settings</b>',
-    'api_demo_title':              '🧪 Demo Account',
-    'api_real_title':              '💼 Real Account',
     'api_key_set':                 '✅ Set',
-    'api_key_not_set':             '❌ Not set',
-    'api_trading_mode':            '📍 <b>Trading Mode:</b>',
-    'api_mode_demo':               '🧪 Demo',
-    'api_mode_real':               '💼 Real',
-    'api_mode_both':               '🔄 Both',
-    'api_btn_demo_key':            '🧪 Demo API Key',
-    'api_btn_demo_secret':         '🧪 Demo Secret',
-    'api_btn_real_key':            '💼 Real API Key',
-    'api_btn_real_secret':         '💼 Real Secret',
-    'api_btn_delete_demo':         '🗑 Delete Demo',
-    'api_btn_delete_real':         '🗑 Delete Real',
-    'api_btn_mode_demo':           '🧪 Trade Demo',
-    'api_btn_mode_real':           '💼 Trade Real',
-    'api_btn_mode_both':           '🔄 Trade Both',
-    'api_btn_back':                '⬅️ Back',
-    'api_enter_demo_key':          '🧪 Enter your <b>Demo API Key</b>:',
-    'api_enter_demo_secret':       '🧪 Enter your <b>Demo API Secret</b>:',
-    'api_enter_real_key':          '💼 Enter your <b>Real API Key</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_enter_real_secret':       '💼 Enter your <b>Real API Secret</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_key_saved':               '✅ API Key saved successfully!',
-    'api_secret_saved':            '✅ API Secret saved successfully!',
-    'api_deleted':                 '🗑 API credentials deleted for {account}',
-    'api_mode_changed':            '✅ Trading mode changed to: <b>{mode}</b>',
-    'api_mode_both_warning':       '⚠️ <b>Both mode:</b> Signals will be executed on BOTH Demo and Real accounts!',
-    'api_key_hidden':              '••••••••{suffix}',
-    'api_test_connection':         '🔄 Test Connection',
-    'api_connection_ok':           '✅ Connection OK! Balance: {balance} USDT',
-    'api_connection_fail':         '❌ Connection failed: {error}',
     'api_test_success':            '接続成功！',
-    'api_test_no_keys':            'APIキーが設定されていません',
-    'api_test_set_keys':           '先にAPI KeyとSecretを設定してください。',
     'api_test_failed':             '接続失敗',
-    'api_test_error':              'エラー',
-    'api_test_check_keys':         'API認証情報を確認してください。',
-    'api_test_status':             'ステータス',
-    'api_test_connected':          '接続済み',
-    'balance_wallet':              'ウォレット残高',
     'balance_equity':              '資産',
     'balance_available':           '利用可能',
     'api_missing_notice':          '⚠️ 取引所のAPIキーが設定されていません。設定でAPIキーとシークレットを追加してください（🔑 APIと🔒 Secretボタン）。そうしないと、ボットはあなたの代わりに取引できません。',
     'elcaro_ai_info':              '🤖 *AI搭載トレーディング*',
 
     # Spot Trading
-    'api_spot_trading':            '💹 Spot Trading',
-    'api_spot_enabled':            '💹 <b>Spot Trading:</b> ✅ ON',
-    'api_spot_disabled':           '💹 <b>Spot Trading:</b> ❌ OFF',
-    'api_spot_toggled':            'Spot Trading: {status}',
-    'spot_settings_title':         '💹 <b>Spot DCA Settings</b>',
-    'spot_coins':                  '🪙 Coins: {coins}',
-    'spot_coins_label':            'Coins',
-    'spot_dca_amount':             '💵 DCA Amount: {amount} USDT',
-    'spot_dca_amount_label':       'DCA Amount',
-    'spot_dca_frequency':          '⏰ Frequency: {freq}',
     'spot_freq_daily':             'Daily',
     'spot_freq_weekly':            'Weekly',
-    'spot_freq_monthly':           'Monthly',
-    'spot_buy_now':                '💰 Buy Now',
-    'spot_auto_dca':               '🔄 Auto DCA: {status}',
-    'spot_auto_dca_label':         'Auto DCA',
-    'spot_next_buy':               '⏳ Next Buy: {time}',
-    'spot_total_invested':         '📊 Total Invested: {amount} USDT',
     'spot_holdings':               '💎 Holdings: {holdings}',
-    'spot_buy_success':            '✅ Bought {qty} {coin} for {amount} USDT',
-    'spot_buy_failed':             '❌ Spot buy failed: {error}',
     'spot_balance':                '💰 Spot Balance: {balance}',
-    'spot_no_balance':             '❌ No spot balance found',
-    'spot_order_placed':           '✅ Spot order placed: {side} {qty} {coin}',
-    'button_spot_settings':        '💹 Spot Settings',
-    'spot_btn_coins':              '🪙 Coins',
-    'spot_btn_amount':             '💵 Amount',
-    'spot_btn_frequency':          '⏰ Frequency',
-    'spot_btn_auto_toggle':        '🔄 Auto DCA',
-    'spot_btn_buy_now':            '💰 Buy Now',
-    'spot_btn_back':               '⬅️ Back',
-    'spot_enter_amount':           'Enter DCA amount in USDT:',
-    'spot_amount_saved':           '✅ DCA amount set to {amount} USDT',
-    'spot_select_coins':           'Select coins for Spot DCA:',
-    'spot_coins_saved':            '✅ Spot coins set: {coins}',
-    'spot_select_frequency':       'Select DCA frequency:',
-    'spot_frequency_saved':        '✅ Frequency set to {freq}',
-    'spot_auto_enabled':           '✅ Auto DCA enabled',
-    'spot_auto_disabled':          '❌ Auto DCA disabled',
-    'spot_not_enabled':            '❌ Spot trading is not enabled. Enable it in API Settings first.',
 
     # Strategy trading mode
-    'strat_mode_global':           '🌐 グローバル',
-    'strat_mode_demo':             '🧪 デモ',
-    'strat_mode_real':             '💰 リアル',
-    'strat_mode_both':             '🔄 両方',
-    'strat_mode_changed':          '✅ {strategy} 取引モード: {mode}',
 
     # Enliko (Heatmap)
 
@@ -784,8 +582,6 @@ Bybit • HyperLiquid • マルチ戦略''',
     'ladder_orders_placed': '📉 {symbol} に {count} 件の指値注文を発注',
     
     # Spot Trading Mode
-    'spot_trading_mode': '取引モード',
-    'spot_btn_mode': 'モード',
     
     # Stats PnL
     'stats_realized_pnl': '実現',
@@ -1023,16 +819,10 @@ Bybit • HyperLiquid • マルチ戦略''',
     'admin_user_report': '👤 ユーザーレポート',
     'admin_view_report': '📊 レポートを見る',
     'admin_view_user': '👤 ユーザーカード',
-    'all_positions_closed': 'すべてのポジションが決済されました',
     'btn_check_again': '🔄 再確認',
-    'current': '現在',
-    'entry': 'エントリー',
-    'max_positions_reached': '⚠️ 最大ポジション数に達しました。ポジションが決済されるまで新しいシグナルはスキップされます。',
     'payment_session_expired': '❌ 支払いセッションが期限切れです。最初からやり直してください。',
     'payment_ton_not_configured': '❌ TON支払いは設定されていません。',
     'payment_verifying': '⏳ 支払い確認中...',
-    'position': 'ポジション',
-    'size': 'サイズ',
     'stats_fibonacci': '📐 フィボナッチ',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1127,115 +917,20 @@ Bybit • HyperLiquid • マルチ戦略''',
     'wallet_withdraw_success': '''✅ {amount} ELCを{address}に出金しました''',
     'wallet_withdraw_title': '''📤 *ELC出金*''',
 
-    'spot_freq_biweekly': '📅 2週間ごと',
-    'spot_trailing_enabled': '✅ Trailing TP有効: +{activation}%で発動、{trail}%トレール',
-    'spot_trailing_disabled': '❌ Trailing TP無効',
-    'spot_grid_started': '🔲 {coin}のグリッドボット開始: ${low}から${high}まで{levels}レベル',
-    'spot_grid_stopped': '⏹ {coin}のグリッドボット停止',
-    'spot_limit_placed': '📝 指値注文作成: {coin} {amount}を${price}で購入',
-    'spot_limit_cancelled': '❌ {coin}の指値注文がキャンセルされました',
     'spot_freq_hourly': '⏰ 毎時',
 
     # ─── SYNCED FROM EN (placeholders) ───
-    'button_terminal': '💻 Terminal',
     'button_back': '← Back',
     'button_close': '✖️ Close',
     'button_refresh': '🔄 Refresh',
     'button_confirm': '✅ Confirm',
     'button_cancel': '❌ Cancel',
-    'menu_section_demo': '══ 🧪 DEMO ══',
-    'menu_section_real': '══ 💼 REAL ══',
-    'menu_test_connection': '🔄 Test',
-    'menu_delete': '🗑️ Delete',
-    'exchange_bybit_demo': '🟠 Bybit 🎮',
-    'exchange_bybit_real': '🟠 Bybit 💵',
-    'exchange_bybit_both': '🟠 Bybit 🔀',
-    'exchange_hl_testnet': '🔷 HL 🧪',
-    'exchange_hl_mainnet': '🔷 HL 🌐',
-    'not_set': '—',
-    'exch_mode_bybit_only': '🟠 Bybit Only',
-    'exch_mode_hl_only': '🟢 HyperLiquid Only',
-    'exch_mode_both': '🔄 Both Exchanges',
-    'btn_connect_hl': '➕ Connect HyperLiquid',
-    'exch_not_configured': '❌ Not configured',
-    'exch_not_connected': '❌ Not connected',
-    'exch_trading_mode': 'Trading Mode',
-    'exch_active': '🟢 Active',
-    'exch_inactive': '⚪ Inactive',
-    'exch_switch_success': '✅ Switched to {exchange}',
-    'exch_select_mode': 'Select exchange mode:',
-    'toggle_on': '✅ Enabled',
-    'toggle_off': '❌ Disabled',
-    'mode_demo': '🧪 Demo',
-    'mode_real': '💰 Real',
-    'mode_testnet': '🧪 Testnet',
-    'mode_mainnet': '🌐 Mainnet',
     'btn_confirm': '✅ Confirm',
     'btn_refresh': '🔄 Refresh',
     'btn_settings': '⚙️ Settings',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ENLIKO Balance</b>',
-    'elc_available': 'Available',
-    'elc_staked': 'Staked',
-    'elc_locked': 'Locked',
-    'elc_total': 'Total',
-    'elc_value_usd': '💵 Value: ~${value:.2f} USD',
-    'btn_buy_elc': '🛒 Buy ELC',
-    'btn_elc_history': '📊 History',
-    'btn_connect_wallet': '🔗 Connect Wallet',
-    'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ENLIKO (ELC)</b>',
-    'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
-    'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
-    'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
-    'elc_choose_amount': 'Choose amount to buy:',
-    'elc_custom_amount': '✏️ Custom Amount',
-    'elc_custom_amount_title': '✏️ <b>Custom Amount</b>',
-    'elc_custom_prompt': '''Reply with the amount of ELC you want to buy
-Example: <code>2500</code>
-
-Min: 100 ELC
-Max: 100,000 ELC''',
-    'elc_purchase_summary': '🛒 <b>Purchase {amount:.2f} ELC</b>',
-    'elc_cost': 'Cost: <b>{cost:.2f} USDT</b>',
-    'elc_fee_amount': 'Platform Fee: <b>{fee:.2f} USDT</b>',
-    'elc_payment_link': 'Payment Link:',
-    'elc_payment_hint': '<i>Send USDT to this address on TON Network</i>',
-    'btn_open_payment': '🔗 Open Payment',
-    'elc_payment_error': '❌ Failed to create payment. Please try again.',
-    'elc_balance_error': '❌ Failed to get ELC balance. Please try again.',
-    'elc_history_title': '📊 <b>Transaction History</b>',
-    'elc_no_transactions': 'No transactions yet.',
-    'elc_history_error': '❌ Failed to get transaction history. Please try again.',
-    'elc_wallet_connected_title': '🔗 <b>Connected Wallet</b>',
-    'elc_wallet_address': 'Address',
-    'elc_wallet_type': 'Type',
-    'elc_wallet_chain': 'Chain',
-    'elc_wallet_connected_at': 'Connected',
-    'elc_wallet_hint': '<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>',
-    'elc_connect_title': '🔗 <b>Connect Cold Wallet</b>',
-    'elc_connect_desc': 'Trade on HyperLiquid without exposing your private keys!',
-    'elc_supported_wallets': 'Supported wallets:',
-    'elc_wallet_metamask': '• MetaMask (Ethereum, Polygon, BSC)',
-    'elc_wallet_wc': '• WalletConnect (Multi-chain)',
-    'elc_wallet_tonkeeper': '• Tonkeeper (TON Network)',
-    'elc_keys_local': '<i>Your keys never leave your device - all orders are signed locally</i>',
-    'btn_metamask': '🦊 MetaMask',
-    'btn_walletconnect': '🔗 WalletConnect',
-    'btn_tonkeeper': '💎 Tonkeeper',
-    'elc_connect_steps_title': '🔗 <b>Connect {wallet}</b>',
-    'elc_connect_step1': '1. Open our WebApp',
-    'elc_connect_step2': '2. Click \'Connect Wallet\'',
-    'elc_connect_step3': '3. Select {wallet}',
-    'elc_connect_step4': '4. Approve connection in wallet',
-    'elc_connect_keys_hint': '<i>Your private keys stay in your wallet - we only get your public address</i>',
-    'btn_open_webapp': '🌐 Open WebApp',
-    'elc_disconnected_title': '🔓 <b>Wallet Disconnected</b>',
-    'elc_disconnected_msg': 'Your wallet has been successfully disconnected.',
-    'elc_disconnected_hint': '<i>You can reconnect anytime to resume cold wallet trading</i>',
-    'elc_error_generic': '❌ An error occurred. Please try again.',
     'oi_entry': '''🐋 *OI* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
@@ -1392,4 +1087,254 @@ Max: 100,000 ELC''',
     'verifying_payment': '⏳ TONブロックチェーンで支払いを検証中...',
     'no_wallet_configured': '❌ ウォレットが設定されていません。',
     'use_start_menu': 'メインメニューに戻るには /start を使用してください。',
+
+    # 2FA ログイン確認
+    'login_approved': '✅ ログインが承認されました！\n\nブラウザで続行できます。',
+    'login_denied': '❌ ログインが拒否されました。\n\n心当たりがない場合は、セキュリティ設定を確認してください。',
+    'login_expired': '⏰ 確認の有効期限が切れました。もう一度お試しください。',
+    'login_error': '⚠️ 処理エラー。後でもう一度お試しください。',
+
+    # =====================================================
+    # MISSING KEYS (Added from EN - needs translation)
+    # =====================================================
+
+    'api_bybit_demo': '🎮 Bybit Demo',
+    'api_bybit_real': '💎 Bybit Live',
+    'api_hl_mainnet': '🌐 HyperLiquid Mainnet',
+    'api_hl_testnet': '🧪 HyperLiquid Testnet',
+    'api_key_missing': '❌ Not configured',
+    'api_settings_header': '🔗 *Exchange API Configuration*',
+    'api_settings_info': (
+        'Connect your exchange API keys to enable portfolio tracking.\n\n'
+        '⚠️ _Only read & trade permissions needed. Withdrawal NOT required._'
+    ),
+    
+    'balance_demo': '🎮 Demo Account',
+    'balance_display': (
+        '💰 *{account_type} Balance*\n\n'
+        '💵 Equity: `{equity:.2f} USDT`\n'
+        '🔓 Available: `{available:.2f} USDT`\n'
+        '🔒 Margin: `{margin:.2f} USDT`\n\n'
+        '📊 Unrealized: `{unrealized:+.2f} USDT`\n'
+        '📈 Today: `{today_pnl:+.2f} USDT`\n'
+        '📆 Week: `{week_pnl:+.2f} USDT`\n\n'
+        '_{disclaimer}_'
+    ),
+    
+    # =====================================================
+    # POSITIONS
+    # =====================================================
+    
+    'balance_empty': (
+        '📊 *Account Balance*\n\n'
+        '💰 No funds detected in this account.\n\n'
+        '_Tip: Transfer funds to your exchange account to start tracking._'
+    ),
+    
+    'balance_error': '❌ Unable to fetch balance. Check API configuration.',
+    'balance_mainnet': '🌐 Mainnet',
+    'balance_margin_used': 'Used Margin',
+    'balance_real': '💎 Live Account',
+    'balance_testnet': '🧪 Testnet',
+    'balance_title': '💰 *Account Balance*',
+    'balance_today_pnl': 'Today P/L',
+    'balance_unrealized': 'Unrealized P/L',
+    'balance_week_pnl': '7-Day P/L',
+    'btn_bybit_demo': '🎮 Demo',
+
+    # =====================================================
+    # MISSING KEYS (Added from EN - needs translation)
+    # =====================================================
+
+    'btn_bybit_real': '💎 Live',
+    'btn_cancel_all': '❌ Cancel All',
+    'btn_cancel_order': '❌ Cancel Order',
+    'btn_close_pos': '❌ Close',
+    'btn_hl_mainnet': '🌐 Mainnet',
+    'btn_hl_testnet': '🧪 Testnet',
+    'btn_modify_tpsl': '⚙️ TP/SL',
+    'button_ai_bots': '🎯 Strategies',
+    'button_api_bybit': '🟠 Bybit API',
+    'button_api_hl': '🔷 HL API',
+    'button_help': '❓ Help',
+    'button_language': '🌍 Language',
+    'button_portfolio': '💼 Portfolio',
+    'button_premium': '💎 Premium',
+    'button_screener': '📈 Screener',
+    'button_switch_exchange': '🔄 Switch Exchange',
+    'button_webapp': '🌐 WebApp',
+    'close_position_confirm': (
+        '⚠️ *Close Position?*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 P/L: {pnl:+.2f} USDT ({pnl_pct:+.2f}%)\n\n'
+        '_This action cannot be undone._'
+    ),
+    
+    'disclaimer_accept_btn': '✅ I Understand & Accept',
+    'disclaimer_accepted_msg': (
+        '✅ *Disclaimer Accepted*\n\n'
+        'You have acknowledged that:\n'
+        '• This is an educational platform\n'
+        '• You are responsible for all trading decisions\n'
+        '• Past performance does not guarantee future results\n\n'
+        'Welcome to Enliko Trading Tools!'
+    ),
+    'disclaimer_decline_btn': '❌ I Decline',
+    'disclaimer_declined_msg': (
+        '❌ *Disclaimer Declined*\n\n'
+        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'If you change your mind, use /start to begin again.'
+    ),
+    
+    # =====================================================
+    # MAIN MENU BUTTONS
+    # =====================================================
+    
+    'exchange_bybit': '🟠 Bybit',
+    'exchange_header': '🔄 *Select Exchange*',
+    'exchange_hyperliquid': '🔷 HyperLiquid',
+    'exchange_selected': '✅ {exchange} selected.',
+    'execution_confirm': (
+        '⚠️ *Confirm Execution*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Size: {size} USDT\n'
+        '⚡ Leverage: {leverage}x\n'
+        '🔻 SL: {sl_pct}%\n'
+        '🔺 TP: {tp_pct}%\n\n'
+        '⚠️ _Trading involves risk of loss._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'execution_failed': '❌ Order failed: {error}',
+    'execution_header': '📊 *Order Execution*',
+    'execution_success': (
+        '✅ *Order Executed*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Entry: {entry:.6f}\n'
+        '📦 Size: {size}\n'
+        '⚡ Leverage: {leverage}x\n\n'
+        '🔻 SL: {sl_price:.6f}\n'
+        '🔺 TP: {tp_price:.6f}'
+    ),
+    
+    'hl_reset_settings': '🔄 Reset to Bybit',
+    'hl_settings': 'HyperLiquid',
+    'hl_trading_enabled': 'HyperLiquid Enabled',
+    'manual_long': '🟢 LONG',
+    'manual_order_confirm': (
+        '⚠️ *Confirm Order*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Amount: {amount} USDT\n\n'
+        '⚠️ _Trading involves risk._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'manual_order_failed': '❌ Order failed: {error}',
+    'manual_order_header': '📝 *Manual Order*',
+    'manual_order_success': '✅ Order placed: {symbol} {side}',
+    'manual_short': '🔴 SHORT',
+    'market_btc': '₿ BTC: {price} ({change:+.2f}%)',
+    'market_eth': 'Ξ ETH: {price} ({change:+.2f}%)',
+    'market_fear_greed': '📊 Fear & Greed: {value}',
+    'market_header': '📊 *Market Overview*',
+    'market_last_update': '🕐 Updated: {time}',
+    'market_total_cap': '💰 Total Cap: ${cap}',
+    'order_cancelled': '✅ Order cancelled.',
+    'order_card': (
+        '📋 *{symbol}*\n'
+        '├ Type: `{order_type}`\n'
+        '├ Side: `{side}`\n'
+        '├ Price: `{price:.6f}`\n'
+        '├ Qty: `{qty}`\n'
+        '└ Status: `{status}`'
+    ),
+    
+    'orders_cancelled_all': '✅ All orders cancelled.',
+    'orders_empty': '📭 No open orders.',
+    'orders_header': '📋 *Open Orders*',
+    'orders_pending': '⏳ Pending Limit Orders',
+    'portfolio_header': '💼 *Portfolio Overview*',
+    'position_card': (
+        '{side_emoji} *{symbol}*\n'
+        '├ Side: `{side}`\n'
+        '├ Entry: `{entry:.6f}`\n'
+        '├ Size: `{size}`\n'
+        '├ Leverage: `{leverage}x`\n'
+        '├ Mark: `{mark:.6f}`\n'
+        '├ P/L: `{pnl:+.2f} USDT ({pnl_pct:+.2f}%)`\n'
+        '└ Strategy: `{strategy}`'
+    ),
+    
+    'position_long': '🟢 LONG',
+    'position_short': '🔴 SHORT',
+    'positions_empty': '📭 No open positions.',
+    'positions_page': 'Page {current}/{total}',
+    'signal_header': '📊 *Market Analysis*',
+    'spot_dca_disabled': '❌ Spot DCA Disabled',
+    'spot_dca_enabled': '✅ Spot DCA Enabled',
+    'spot_header': '💹 *Spot Trading*',
+    'stats_disclaimer': '⚠️ _Past performance does not guarantee future results._',
+    'strategy_info': (
+        '📊 *Strategy Templates*\n\n'
+        'Configure parameters for market analysis:\n'
+        '• Entry % — Position size calculator\n'
+        '• Stop-Loss % — Risk limit\n'
+        '• Take-Profit % — Target level\n'
+        '• ATR Settings — Volatility-based levels\n\n'
+        '⚠️ _These are educational tools for strategy testing._\n'
+        '_Not financial advice._'
+    ),
+    
+    'terms_title': (
+        '📜 *Terms of Service*\n\n'
+        'By using Enliko Trading Tools, you agree:\n\n'
+        '1. *Educational Purpose*\n'
+        'This platform provides educational tools for learning about '
+        'cryptocurrency markets. It is NOT financial advice.\n\n'
+        '2. *Risk Acknowledgment*\n'
+        'Trading cryptocurrencies involves substantial risk of loss. '
+        'You may lose some or all of your investment.\n\n'
+        '3. *User Responsibility*\n'
+        'You are solely responsible for all trading decisions. '
+        'Past performance does not guarantee future results.\n\n'
+        '4. *No Guarantees*\n'
+        'We do not guarantee profits or specific outcomes. '
+        'Market conditions are unpredictable.\n\n'
+        '5. *Age Requirement*\n'
+        'You must be 18+ years old to use this platform.\n\n'
+        '6. *Jurisdiction*\n'
+        'You are responsible for compliance with your local laws.\n\n'
+        'Do you accept these terms?'
+    ),
+    
+
+    # [AUTO-ADDED FROM EN]
+    'elc_min_convert': '❌ Minimum 10 ELC required for conversion',
+    'elc_min_stake': '❌ Minimum 1 ELC required for staking',
+    'grid_cancelled': '❌ Orders Cancelled: {count}',
+    'grid_failed': '❌ Failed to stop grid: {error}',
+    'grid_invalid_format': '❌ Invalid format. Please enter: low_price high_price grid_count investment',
+    'grid_invalid_input': '❌ Invalid input. Please enter numbers.',
+    'grid_investment': '💵 Investment: ${amount:.2f}',
+    'grid_levels': '🔢 Levels: {count}',
+    'grid_min_10': '❌ Minimum investment is 10 USDT',
+    'grid_orders_placed': '📊 Orders placed: {count}',
+    'grid_range': '📈 Range: ${low:.2f} - ${high:.2f}',
+    'grid_setup': '⏳ Setting up {coin} grid...',
+    'grid_started': '✅ {coin} Grid Bot Started!',
+    'grid_step': '📍 Grid step: ${step:.4f}',
+    'spot_auto_disabled': '❌ Auto DCA disabled',
+    'spot_auto_enabled': '✅ Auto DCA enabled',
+    'spot_gain_max': '❌ Maximum gain trigger is 10000%',
+    'spot_gain_min': '❌ Minimum gain trigger is 1%',
+    'spot_invalid_amount': '❌ Invalid amount. Please enter a number.',
+    'spot_invalid_pct': '❌ Invalid number. Please enter a valid percentage.',
+    'spot_invalid_price': '❌ Invalid price. Please enter a number.',
+    'spot_min_5': '❌ Minimum amount is 5 USDT',
+    'spot_no_balance': '❌ No spot balance found',
+    'spot_no_coins': '❌ No coins to sell',
+    'spot_not_enabled': '❌ Spot trading is not enabled. Enable it in API Settings first.',
+    'spot_sell_max': '❌ Maximum sell amount is 100%',
+    'spot_sell_min': '❌ Minimum sell amount is 1%',
+    'strategy_invalid': '❌ Invalid strategy',
 }

@@ -1,15 +1,20 @@
 package io.enliko.trading.ui.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.enliko.trading.ui.screens.auth.DisclaimerScreen
 import io.enliko.trading.ui.screens.auth.LoginScreen
+import io.enliko.trading.ui.screens.auth.hasAcceptedDisclaimer
 import io.enliko.trading.ui.screens.main.MainScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
 sealed class Screen(val route: String) {
+    object Disclaimer : Screen("disclaimer")
     object Login : Screen("login")
     object Register : Screen("register")
     object Main : Screen("main")
@@ -25,12 +30,35 @@ fun EnlikoNavHost(
 ) {
     val navController = rememberNavController()
     val language = AppLanguage.fromCode(currentLanguage)
+    val context = LocalContext.current
+    val disclaimerAccepted = hasAcceptedDisclaimer(context)
+    
+    // Determine start destination based on disclaimer acceptance and login state
+    val startDestination = when {
+        !disclaimerAccepted -> Screen.Disclaimer.route
+        isLoggedIn -> Screen.Main.route
+        else -> Screen.Login.route
+    }
     
     ProvideStrings(language = language) {
         NavHost(
             navController = navController,
-            startDestination = if (isLoggedIn) Screen.Main.route else Screen.Login.route
+            startDestination = startDestination
         ) {
+            composable(Screen.Disclaimer.route) {
+                DisclaimerScreen(
+                    onAccept = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Disclaimer.route) { inclusive = true }
+                        }
+                    },
+                    onDecline = {
+                        // Close the app - user declined disclaimer
+                        (context as? android.app.Activity)?.finish()
+                    }
+                )
+            }
+            
             composable(Screen.Login.route) {
                 LoginScreen(
                     onLoginSuccess = {

@@ -1,217 +1,98 @@
 # -*- coding: utf-8 -*-
-# translations/lt.py — lietuvių
+"""
+Enliko Trading Tools — Lithuanian Translations (Lietuvių)
+Version: 4.0.0 | Updated: 28 January 2026
+LEGAL: Educational platform, not financial advice.
+"""
+
 TEXTS = {
-    # Pagrindinis meniu - Profesionalus prekybos terminalas
-    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
-
-⚡ <b>&lt; 100ms</b> vykdymo greitis
-🛡️ <b>Rizikos valdymas</b> integruotas
-💎 <b>24/7</b> automatinė prekyba
-
-Bybit • HyperLiquid • Multi-strategija''',
-    'no_strategies':               '❌ Nėra aktyvių strategijų',
-    'guide_caption':               '📚 <b>Naudotojo vadovas</b>\n\nAPI nustatymai, strategijos, rizikos valdymas.',
-    'privacy_caption':             '📜 <b>Privatumas</b>\n\n🔐 Šifruota saugykla\n✅ Jokio duomenų dalijimosi',
-    'button_api':                  '🔑 API',
-    'button_secret':               '🔒 Slaptas',
-    'button_api_settings':         '🔑 API',
-    'button_subscribe':            '💎 Prenumerata',
-    'button_licenses':             '🔑 Licencijos',
-    'button_admin':                '👑 Administratorius',
-    'button_balance':              '� Portfelis',
+    # =====================================================
+    # LEGAL DISCLAIMERS (Teisiniai atsakomybės atsisakymai)
+    # =====================================================
+    
+    'disclaimer_trading': (
+        '⚠️ *SVARBUS PAREIŠKIMAS*\n\n'
+        'Ši platforma teikia švietimo priemones kriptovaliutų rinkoms pažinti.\n'
+        'Tai NĖRA:\n'
+        '• Finansinė konsultacija\n'
+        '• Investicijų rekomendacija\n'
+        '• Garantuoto pelno sistema\n\n'
+        'Prekyba kriptovaliutomis susijusi su didele nuostolių rizika. '
+        'Galite prarasti dalį arba visą savo investiciją. '
+        'Prekiaukite tik tais pinigais, kuriuos galite sau leisti prarasti.\n\n'
+        'Ankstesni rezultatai negarantuoja būsimų rezultatų.'
+    ),
+    
+    'disclaimer_short': '⚠️ _Tik švietimo priemonės. Tai nėra finansinė konsultacija. Prekyba susijusi su rizika._',
+    
+    'disclaimer_execution': (
+        '⚠️ Tęsdami, jūs patvirtinate, kad:\n'
+        '• Esate atsakingi už visus prekybos sprendimus\n'
+        '• Tai švietimo priemonė, ne finansinė konsultacija\n'
+        '• Suprantate kriptovaliutų prekybos riziką\n'
+        '• Ankstesni rezultatai negarantuoja būsimų rezultatų'
+    ),
+    
+    # Welcome - Updated with legal positioning
+    'welcome': (
+        '📊 *Sveiki atvykę į Enliko Trading Tools*\n\n'
+        '🎯 Švietimo platforma:\n'
+        '• Portfelio stebėjimas ir analizė\n'
+        '• Strategijų testavimas\n'
+        '• Rinkos duomenų vizualizacija\n'
+        '• Rizikos valdymo priemonės\n\n'
+        '⚠️ _Tik švietimo tikslais. Tai nėra finansinė konsultacija._\n'
+        '_Prekyba susijusi su didele nuostolių rizika._'
+    ),
+    
+    'welcome_back': (
+        '📊 *Enliko Trading Tools*\n\n'
+        '⚠️ _Švietimo platforma. Tai nėra finansinė konsultacija._'
+    ),
+    
+    # Legacy keys
     'button_orders':               '📊 Įsakymai',
     'button_positions':            '🎯 Pozicijos',
     'button_history':              '📜 Istorija',
-    'button_strategies':           '🤖 AI Botai',
     'button_api_keys':             '🔑 API raktai',
-    'button_bybit':                '🟠 Bybit',
-    'button_switch_bybit':         '🔄 Bybit',
-    'button_switch_hl':            '🔄 HyperLiquid',
-    'button_percent':              '🎚 % vienam sandoriui',
-    'button_coins':                '💠 Monetų grupė',
-    'button_market':               '📈 Rinka',
-    'button_manual_order':         '🎯 Sniper',
-    'button_update_tpsl':          '🛡️ TP/SL',
-    'button_cancel_order':         '❌ Atšaukti įsakymą',
-    'button_limit_only':           '🎯 Tik Limit',
-    'button_toggle_oi':            '� OI Sekiklis',
-    'button_toggle_rsi_bb':        '📊 RSI+BB',
-    'button_scryptomera':          '🔮 Scryptomera',
-    'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Enliko',
-    'button_fibonacci':            '📐 Fibonacci',
     'button_settings':             '⚙️ Nustatymai',
-    'button_indicators':           '💡 Indikatoriai',
-    'button_support':              '🆘 Pagalba',
-    'toggle_oi_status':            '🔀 {feature}: {status}',
-    'toggle_rsi_bb_status':        '📊 {feature}: {status}',
-    'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
 
     # Inline buttons for manual order
-    'button_order_limit':          'Limit',
-    'button_order_market':         'Market',
 
     # ATR / Stop mode
-    'atr_mode_changed':            '🔄 TP/SL režimas dabar: *{mode_text}*',
-    'atr_mode_wilder':             'Wilder-ATR',
-    'atr_mode_fixed':              'Fiksuota %',
 
     # Limits
-    'limit_positions_exceeded':    '🚫 Viršytas atvirų pozicijų limitas ({max})',
-    'limit_limit_orders_exceeded': '🚫 Viršytas Limit įsakymų limitas ({max})',
 
     # Languages
-    'select_language':             'Pasirinkite kalbą:',
-    'language_set':                'Kalba nustatyta:',
-    'lang_en':                     'English',
 
     # Manual order
-    'order_type_prompt':           'Pasirinkite įsakymo tipą:',
-    'limit_order_format': (
-        "Įveskite Limit įsakymo parametrus taip:\n"
-        "`SYMBOL SIDE PRICE QTY`\n"
-        "kur SIDE = LONG arba SHORT\n"
-        "Pavyzdys: `BTCUSDT LONG 20000 0.1`\n\n"
-        "Norėdami atšaukti, siųskite ❌ Atšaukti įsakymą"
-    ),
-    'market_order_format': (
-        "Įveskite Market įsakymo parametrus taip:\n"
-        "`SYMBOL SIDE QTY`\n"
-        "kur SIDE = LONG arba SHORT\n"
-        "Pavyzdys: `BTCUSDT SHORT 0.1`\n\n"
-        "Norėdami atšaukti, siųskite ❌ Atšaukti įsakymą"
-    ),
-    'order_success':               '✅ Įsakymas sėkmingai sukurtas!',
-    'order_create_error':          '❌ Nepavyko sukurti įsakymo: {msg}',
-    'order_fail_leverage':         (
-        "❌ Įsakymas nesukurtas: jūsų Bybit paskyros svertas šiam dydžiui per didelis.\n"
-        "Prašome sumažinti svertą Bybit nustatymuose."
-    ),
-    'order_parse_error':           '❌ Nepavyko apdoroti: {error}',
-    'price_error_min':             '❌ Kainos klaida: turi būti ≥{min}',
-    'price_error_step':            '❌ Kainos klaida: turi būti {step} kartotinis',
-    'qty_error_min':               '❌ Kiekio klaida: turi būti ≥{min}',
-    'qty_error_step':              '❌ Kiekio klaida: turi būti {step} kartotinis',
 
     # Loading…
-    'loader':                      '⏳ Renkami duomenys…',
 
     # Market command
-    'market_status_heading':       '*Rinkos būsena:*',
-    'market_dominance_header':    'Top Monetos pagal Dominavimą',
-    'market_total_header':        'Bendra Rinkos Kapitalizacija',
-    'market_indices_header':      'Rinkos Indeksai',
-    'usdt_dominance':              'USDT dominavimas',
-    'btc_dominance':               'BTC dominavimas',
-    'dominance_rising':            '↑ kyla',
-    'dominance_falling':           '↓ krenta',
-    'dominance_stable':            '↔️ stabili',
-    'dominance_unknown':           '❔ nėra duomenų',
-    'btc_price':                   'BTC kaina',
-    'last_24h':                    'per pastarąsias 24 val.',
-    'alt_signal_label':            'Altkoinų signalas',
-    'alt_signal_long':             'LONG',
-    'alt_signal_short':            'SHORT',
-    'alt_signal_neutral':          'NEUTRAL',
-    'latest_news_coindesk':        '*Naujausios naujienos (CoinDesk):*',
 
     # Execution price error
-    'exec_price_not_found':        'Nepavyko rasti uždarymui reikalingos vykdymo kainos',
 
     # /account
-    'account_balance':             '💰 USDT balansas: `{balance:.2f}`',
-    'account_realized_header':     '📈 *Realizuotas PnL:*',
-    'account_realized_day':        '  • Šiandien: `{pnl:+.2f}` USDT',
-    'account_realized_week':       '  • 7 d.   : `{pnl:+.2f}` USDT',
-    'account_unreal_header':       '📊 *Nerealizuotas PnL:*',
-    'account_unreal_total':        '  • Iš viso: `{unreal:+.2f}` USDT',
-    'account_unreal_pct':          '  • % nuo IM: `{pct:+.2f}%`',
-    'account_error':               '❌ {error}',
 
     # /show_config
-    'config_header':               '🛠 *Jūsų nustatymai:*',
-    'config_percent':              '• 🎚 % vienam sandoriui : `{percent}%`',
-    'config_coins':                '• 💠 Monetos            : `{coins}`',
-    'config_limit_only':           '• 🎯 Tik Limit įsakymai : {state}',
-    'config_atr_mode':             '• 🏧 SL pagal ATR       : {atr}',
-    'config_trade_oi':             '• 📊 Prekyba pagal OI   : {oi}',
-    'config_trade_rsi_bb':         '• 📈 Prekyba RSI+BB     : {rsi_bb}',
-    'config_tp_pct':               '• 🎯 TP%                : `{tp}%`',
-    'config_sl_pct':               '• 🛑 SL%                : `{sl}%`',
 
     # Open orders
-    'no_open_orders':              '🚫 Nėra atvirų įsakymų',
-    'open_orders_header':          '*📒 Atviri įsakymai:*',
-    'open_orders_item':            (
-        "{idx}️⃣ *{symbol}*\n"
-        "   • Pusė : `{side}`\n"
-        "   • Kiekis: `{qty}`\n"
-        "   • Kaina : `{price}`\n"
-        "   • ID    : `{id}`"
-    ),
-    'open_orders_error':           '❌ Klaida gaunant įsakymus: {error}',
 
     # Manual coin selection
-    'enter_coins':                 "Įveskite simbolius, atskirtus kableliais, pvz.:\n`BTCUSDT,ETHUSDT`",
-    'coins_set_success':           '✅ Pasirinktos monetos: {coins}',
 
     # Positions
-    'no_positions':                '🚫 Nėra atvirų pozicijų',
     'positions_header':            '📊 Jūsų atviros pozicijos:',
-    'position_item':               (
-        "— Pozicija #{idx}: {symbol} | {side} (x{leverage})\n"
-        "  • Dydis            : {size}\n"
-        "  • Įėjimo kaina     : {avg:.8f}\n"
-        "  • Žymimoji kaina   : {mark:.8f}\n"
-        "  • Likvidacija      : {liq}\n"
-        "  • Pradinė marža    : {im:.2f}\n"
-        "  • Palaikymo marža  : {mm:.2f}\n"
-        "  • Pozicijos balansas: {pm:.2f}\n"
-        "  • Take Profit      : {tp}\n"
-        "  • Stop Loss        : {sl}\n"
-        "  • Nereal. PnL      : {pnl:+.2f} ({pct:+.2f}%)"
-    ),
-    'position_item_v2':            (
-        "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Dydis          : {size}\n"
-        "  • Įėjimo kaina   : {avg:.8f}\n"
-        "  • Žymimoji kaina : {mark:.8f}\n"
-        "  • Likvidacija    : {liq}\n"
-        "  • Pradinė marža  : {im:.2f}\n"
-        "  • Palaikymo marža: {mm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Nereal. PnL : {pnl:+.2f} ({pct:+.2f}%)"
-    ),
-    'pnl_by_strategy':             '📊 *PnL pagal strategiją:*',
-    'pnl_by_exchange':             '🏦 *PnL pagal biržą:*',
-    'positions_overall':           'Bendras nereal. PnL: {pnl:+.2f} ({pct:+.2f}%)',
 
     # Position management (inline)
-    'open_positions_header':       '📊 *Atviros pozicijos*',
-    'positions_count':             'pozicijos',
-    'positions_count_total':       'Iš viso pozicijų',
-    'total_unrealized_pnl':        'Bendras nereal. P/L',
-    'total_pnl':                   'Bendras P/L',
-    'btn_close_short':             'Uždaryti',
-    'btn_close_all':               'Uždaryti visas pozicijas',
     'btn_close_position':          'Uždaryti poziciją',
-    'btn_confirm_close':           'Patvirtinti uždarymą',
-    'btn_confirm_close_all':       'Taip, uždaryti visas',
     'btn_cancel':                  '❌ Atšaukti',
     'btn_back':                    '🔙 Atgal',
-    'confirm_close_position':      'Uždaryti poziciją',
-    'confirm_close_all':           'Uždaryti VISAS pozicijas',
-    'position_not_found':          'Pozicija nerasta arba jau uždaryta',
     'position_already_closed':     'Pozicija jau uždaryta',
     'position_closed_success':     'Pozicija uždaryta',
     'position_close_error':        'Klaida uždarant poziciją',
-    'positions_closed':            'Pozicijos uždarytos',
-    'errors':                      'Klaidos',
 
     # % per trade
-    'set_percent_prompt':          'Įveskite balanso procentą vienam sandoriui (pvz., 2.5):',
-    'percent_set_success':         '✅ Nustatyta % vienam sandoriui: {pct}%',
 
     # Limit-Only toggle
     'limit_only_toggled':          '🔄 Tik Limit įsakymai: {state}',
@@ -495,105 +376,23 @@ Bybit • HyperLiquid • Multi-strategija''',
     'emoji_neutral': '⚪️',
 
     # Scalper Strategy
-    'config_trade_scalper':          '🎯 Scalper: {state}',
-    'config_trade_elcaro':           '🔥 Enliko: {state}',
-    'config_trade_fibonacci':          '📐 Fibonacci: {state}',
 
     # API Settings
-    'api_settings_title':          '🔑 <b>API Settings</b>',
-    'api_demo_title':              '🧪 Demo Account',
-    'api_real_title':              '💼 Real Account',
     'api_key_set':                 '✅ Set',
-    'api_key_not_set':             '❌ Not set',
-    'api_trading_mode':            '📍 <b>Trading Mode:</b>',
-    'api_mode_demo':               '🧪 Demo',
-    'api_mode_real':               '💼 Real',
-    'api_mode_both':               '🔄 Both',
-    'api_btn_demo_key':            '🧪 Demo API Key',
-    'api_btn_demo_secret':         '🧪 Demo Secret',
-    'api_btn_real_key':            '💼 Real API Key',
-    'api_btn_real_secret':         '💼 Real Secret',
-    'api_btn_delete_demo':         '🗑 Delete Demo',
-    'api_btn_delete_real':         '🗑 Delete Real',
-    'api_btn_mode_demo':           '🧪 Trade Demo',
-    'api_btn_mode_real':           '💼 Trade Real',
-    'api_btn_mode_both':           '🔄 Trade Both',
-    'api_btn_back':                '⬅️ Back',
-    'api_enter_demo_key':          '🧪 Enter your <b>Demo API Key</b>:',
-    'api_enter_demo_secret':       '🧪 Enter your <b>Demo API Secret</b>:',
-    'api_enter_real_key':          '💼 Enter your <b>Real API Key</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_enter_real_secret':       '💼 Enter your <b>Real API Secret</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_key_saved':               '✅ API Key saved successfully!',
-    'api_secret_saved':            '✅ API Secret saved successfully!',
-    'api_deleted':                 '🗑 API credentials deleted for {account}',
-    'api_mode_changed':            '✅ Trading mode changed to: <b>{mode}</b>',
-    'api_mode_both_warning':       '⚠️ <b>Both mode:</b> Signals will be executed on BOTH Demo and Real accounts!',
-    'api_key_hidden':              '••••••••{suffix}',
-    'api_test_connection':         '🔄 Test Connection',
-    'api_connection_ok':           '✅ Connection OK! Balance: {balance} USDT',
-    'api_connection_fail':         '❌ Connection failed: {error}',
     'api_test_success':            'Prisijungimas sėkmingas!',
-    'api_test_no_keys':            'API raktai nenustatyti',
-    'api_test_set_keys':           'Pirmiausia nustatykite API Key ir Secret.',
     'api_test_failed':             'Prisijungimo klaida',
-    'api_test_error':              'Klaida',
-    'api_test_check_keys':         'Patikrinkite savo API duomenis.',
-    'api_test_status':             'Statusas',
-    'api_test_connected':          'Prisijungta',
-    'balance_wallet':              'Piniginės likutis',
     'balance_equity':              'Kapitalas',
     'balance_available':           'Prieinama',
     'api_missing_notice':          '⚠️ Neturite sukonfigūruotų biržos API raktų. Pridėkite savo API raktą ir slaptažodį nustatymuose (🔑 API ir 🔒 Secret mygtukai), kitaip botas negali prekiauti už jus.',
     'elcaro_ai_info':              '🤖 *AI valdoma prekyba*',
 
     # Spot Trading
-    'api_spot_trading':            '💹 Spot Trading',
-    'api_spot_enabled':            '💹 <b>Spot Trading:</b> ✅ ON',
-    'api_spot_disabled':           '💹 <b>Spot Trading:</b> ❌ OFF',
-    'api_spot_toggled':            'Spot Trading: {status}',
-    'spot_settings_title':         '💹 <b>Spot DCA Settings</b>',
-    'spot_coins':                  '🪙 Coins: {coins}',
-    'spot_coins_label':            'Coins',
-    'spot_dca_amount':             '💵 DCA Amount: {amount} USDT',
-    'spot_dca_amount_label':       'DCA Amount',
-    'spot_dca_frequency':          '⏰ Frequency: {freq}',
     'spot_freq_daily':             'Daily',
     'spot_freq_weekly':            'Weekly',
-    'spot_freq_monthly':           'Monthly',
-    'spot_buy_now':                '💰 Buy Now',
-    'spot_auto_dca':               '🔄 Auto DCA: {status}',
-    'spot_auto_dca_label':         'Auto DCA',
-    'spot_next_buy':               '⏳ Next Buy: {time}',
-    'spot_total_invested':         '📊 Total Invested: {amount} USDT',
     'spot_holdings':               '💎 Holdings: {holdings}',
-    'spot_buy_success':            '✅ Bought {qty} {coin} for {amount} USDT',
-    'spot_buy_failed':             '❌ Spot buy failed: {error}',
     'spot_balance':                '💰 Spot Balance: {balance}',
-    'spot_no_balance':             '❌ No spot balance found',
-    'spot_order_placed':           '✅ Spot order placed: {side} {qty} {coin}',
-    'button_spot_settings':        '💹 Spot Settings',
-    'spot_btn_coins':              '🪙 Coins',
-    'spot_btn_amount':             '💵 Amount',
-    'spot_btn_frequency':          '⏰ Frequency',
-    'spot_btn_auto_toggle':        '🔄 Auto DCA',
-    'spot_btn_buy_now':            '💰 Buy Now',
-    'spot_btn_back':               '⬅️ Back',
-    'spot_enter_amount':           'Enter DCA amount in USDT:',
-    'spot_amount_saved':           '✅ DCA amount set to {amount} USDT',
-    'spot_select_coins':           'Select coins for Spot DCA:',
-    'spot_coins_saved':            '✅ Spot coins set: {coins}',
-    'spot_select_frequency':       'Select DCA frequency:',
-    'spot_frequency_saved':        '✅ Frequency set to {freq}',
-    'spot_auto_enabled':           '✅ Auto DCA enabled',
-    'spot_auto_disabled':          '❌ Auto DCA disabled',
-    'spot_not_enabled':            '❌ Spot trading is not enabled. Enable it in API Settings first.',
 
     # Strategy trading mode
-    'strat_mode_global':           '🌐 Globalus',
-    'strat_mode_demo':             '🧪 Demo',
-    'strat_mode_real':             '💰 Realus',
-    'strat_mode_both':             '🔄 Abu',
-    'strat_mode_changed':          '✅ {strategy} prekybos režimas: {mode}',
 
     # Enliko (Heatmap)
 
@@ -780,8 +579,6 @@ Bybit • HyperLiquid • Multi-strategija''',
     'ladder_orders_placed': '📉 Pateikta {count} limitinių užsakymų {symbol}',
     
     # Spot Trading Mode
-    'spot_trading_mode': 'Prekybos režimas',
-    'spot_btn_mode': 'Režimas',
     
     # Stats PnL
     'stats_realized_pnl': 'Realizuotas',
@@ -1019,16 +816,10 @@ Pasirinkite ataskaitos tipą:''',
     'admin_user_report': '👤 Vartotojo ataskaita',
     'admin_view_report': '📊 Žiūrėti ataskaitą',
     'admin_view_user': '👤 Vartotojo kortelė',
-    'all_positions_closed': 'Visos pozicijos uždarytos',
     'btn_check_again': '🔄 Tikrinti vėl',
-    'current': 'Dabartinis',
-    'entry': 'Įėjimas',
-    'max_positions_reached': '⚠️ Pasiektas maksimalus pozicijų skaičius. Nauji signalai bus praleisti kol užsidarys pozicija.',
     'payment_session_expired': '❌ Mokėjimo sesija pasibaigė. Pradėkite iš naujo.',
     'payment_ton_not_configured': '❌ TON mokėjimai nesukonfigūruoti.',
     'payment_verifying': '⏳ Tikrinamas mokėjimas...',
-    'position': 'Pozicija',
-    'size': 'Dydis',
     'stats_fibonacci': '📐 Fibonacci',
 
     "button_hyperliquid": "🔷 HyperLiquid",
@@ -1123,115 +914,20 @@ Kasdieniai atlygiai • Momentinis išėmimas''',
     'wallet_withdraw_success': '''✅ Išimta {amount} ELC į {address}''',
     'wallet_withdraw_title': '''📤 *ELC Išėmimas*''',
 
-    'spot_freq_biweekly': '📅 Kas 2 savaites',
-    'spot_trailing_enabled': '✅ Trailing TP įjungtas: aktyvacija +{activation}%, trail {trail}%',
-    'spot_trailing_disabled': '❌ Trailing TP išjungtas',
-    'spot_grid_started': '🔲 Grid botas paleistas {coin}: {levels} lygiai nuo ${low} iki ${high}',
-    'spot_grid_stopped': '⏹ Grid botas sustabdytas {coin}',
-    'spot_limit_placed': '📝 Limito orderis pateiktas: Pirkti {amount} {coin} už ${price}',
-    'spot_limit_cancelled': '❌ Limito orderis atšauktas {coin}',
     'spot_freq_hourly': '⏰ Kas valandą',
 
     # ─── SYNCED FROM EN (placeholders) ───
-    'button_terminal': '💻 Terminal',
     'button_back': '← Back',
     'button_close': '✖️ Close',
     'button_refresh': '🔄 Refresh',
     'button_confirm': '✅ Confirm',
     'button_cancel': '❌ Cancel',
-    'menu_section_demo': '══ 🧪 DEMO ══',
-    'menu_section_real': '══ 💼 REAL ══',
-    'menu_test_connection': '🔄 Test',
-    'menu_delete': '🗑️ Delete',
-    'exchange_bybit_demo': '🟠 Bybit 🎮',
-    'exchange_bybit_real': '🟠 Bybit 💵',
-    'exchange_bybit_both': '🟠 Bybit 🔀',
-    'exchange_hl_testnet': '🔷 HL 🧪',
-    'exchange_hl_mainnet': '🔷 HL 🌐',
-    'not_set': '—',
-    'exch_mode_bybit_only': '🟠 Bybit Only',
-    'exch_mode_hl_only': '🟢 HyperLiquid Only',
-    'exch_mode_both': '🔄 Both Exchanges',
-    'btn_connect_hl': '➕ Connect HyperLiquid',
-    'exch_not_configured': '❌ Not configured',
-    'exch_not_connected': '❌ Not connected',
-    'exch_trading_mode': 'Trading Mode',
-    'exch_active': '🟢 Active',
-    'exch_inactive': '⚪ Inactive',
-    'exch_switch_success': '✅ Switched to {exchange}',
-    'exch_select_mode': 'Select exchange mode:',
-    'toggle_on': '✅ Enabled',
-    'toggle_off': '❌ Disabled',
-    'mode_demo': '🧪 Demo',
-    'mode_real': '💰 Real',
-    'mode_testnet': '🧪 Testnet',
-    'mode_mainnet': '🌐 Mainnet',
     'btn_confirm': '✅ Confirm',
     'btn_refresh': '🔄 Refresh',
     'btn_settings': '⚙️ Settings',
     'btn_delete': '🗑️ Delete',
     'btn_yes': '✅ Yes',
     'btn_no': '❌ No',
-    'elc_balance_title': '💰 <b>ENLIKO Balance</b>',
-    'elc_available': 'Available',
-    'elc_staked': 'Staked',
-    'elc_locked': 'Locked',
-    'elc_total': 'Total',
-    'elc_value_usd': '💵 Value: ~${value:.2f} USD',
-    'btn_buy_elc': '🛒 Buy ELC',
-    'btn_elc_history': '📊 History',
-    'btn_connect_wallet': '🔗 Connect Wallet',
-    'btn_disconnect_wallet': '🔓 Disconnect',
-    'elc_buy_title': '🛒 <b>Buy ENLIKO (ELC)</b>',
-    'elc_current_price': '💵 Current Price: <b>$1.00 USD / ELC</b>',
-    'elc_platform_fee': '🔥 Platform Fee: <b>0.5%</b>',
-    'elc_purchase_hint': '<i>Purchase ELC with USDT on TON Network</i>',
-    'elc_choose_amount': 'Choose amount to buy:',
-    'elc_custom_amount': '✏️ Custom Amount',
-    'elc_custom_amount_title': '✏️ <b>Custom Amount</b>',
-    'elc_custom_prompt': '''Reply with the amount of ELC you want to buy
-Example: <code>2500</code>
-
-Min: 100 ELC
-Max: 100,000 ELC''',
-    'elc_purchase_summary': '🛒 <b>Purchase {amount:.2f} ELC</b>',
-    'elc_cost': 'Cost: <b>{cost:.2f} USDT</b>',
-    'elc_fee_amount': 'Platform Fee: <b>{fee:.2f} USDT</b>',
-    'elc_payment_link': 'Payment Link:',
-    'elc_payment_hint': '<i>Send USDT to this address on TON Network</i>',
-    'btn_open_payment': '🔗 Open Payment',
-    'elc_payment_error': '❌ Failed to create payment. Please try again.',
-    'elc_balance_error': '❌ Failed to get ELC balance. Please try again.',
-    'elc_history_title': '📊 <b>Transaction History</b>',
-    'elc_no_transactions': 'No transactions yet.',
-    'elc_history_error': '❌ Failed to get transaction history. Please try again.',
-    'elc_wallet_connected_title': '🔗 <b>Connected Wallet</b>',
-    'elc_wallet_address': 'Address',
-    'elc_wallet_type': 'Type',
-    'elc_wallet_chain': 'Chain',
-    'elc_wallet_connected_at': 'Connected',
-    'elc_wallet_hint': '<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>',
-    'elc_connect_title': '🔗 <b>Connect Cold Wallet</b>',
-    'elc_connect_desc': 'Trade on HyperLiquid without exposing your private keys!',
-    'elc_supported_wallets': 'Supported wallets:',
-    'elc_wallet_metamask': '• MetaMask (Ethereum, Polygon, BSC)',
-    'elc_wallet_wc': '• WalletConnect (Multi-chain)',
-    'elc_wallet_tonkeeper': '• Tonkeeper (TON Network)',
-    'elc_keys_local': '<i>Your keys never leave your device - all orders are signed locally</i>',
-    'btn_metamask': '🦊 MetaMask',
-    'btn_walletconnect': '🔗 WalletConnect',
-    'btn_tonkeeper': '💎 Tonkeeper',
-    'elc_connect_steps_title': '🔗 <b>Connect {wallet}</b>',
-    'elc_connect_step1': '1. Open our WebApp',
-    'elc_connect_step2': '2. Click \'Connect Wallet\'',
-    'elc_connect_step3': '3. Select {wallet}',
-    'elc_connect_step4': '4. Approve connection in wallet',
-    'elc_connect_keys_hint': '<i>Your private keys stay in your wallet - we only get your public address</i>',
-    'btn_open_webapp': '🌐 Open WebApp',
-    'elc_disconnected_title': '🔓 <b>Wallet Disconnected</b>',
-    'elc_disconnected_msg': 'Your wallet has been successfully disconnected.',
-    'elc_disconnected_hint': '<i>You can reconnect anytime to resume cold wallet trading</i>',
-    'elc_error_generic': '❌ An error occurred. Please try again.',
     'oi_entry': '''🐋 *OI* {side_emoji} *{side}*
 ────────────────
 🪙 `{symbol}`
@@ -1388,4 +1084,255 @@ Max: 100,000 ELC''',
     'verifying_payment': '⏳ Tikrinamas mokėjimas TON blockchain...',
     'no_wallet_configured': '❌ Piniginė nesukonfigūruota.',
     'use_start_menu': 'Naudokite /start norėdami grįžti į pagrindinį meniu.',
+
+    # 2FA Prisijungimo patvirtinimas
+    'login_approved': '✅ Prisijungimas patvirtintas!\n\nDabar galite tęsti naršyklėje.',
+    'login_denied': '❌ Prisijungimas atmestas.\n\nJei tai nebuvote jūs, patikrinkite saugumo nustatymus.',
+    'login_expired': '⏰ Patvirtinimo laikas baigėsi. Bandykite dar kartą.',
+    'login_error': '⚠️ Apdorojimo klaida. Bandykite vėliau.',
+
+    # =====================================================
+    # MISSING KEYS (Added from EN - needs translation)
+    # =====================================================
+
+    'api_bybit_demo': '🎮 Bybit Demo',
+    'api_bybit_real': '💎 Bybit Live',
+    'api_hl_mainnet': '🌐 HyperLiquid Mainnet',
+    'api_hl_testnet': '🧪 HyperLiquid Testnet',
+    'api_key_missing': '❌ Not configured',
+    'api_settings_header': '🔗 *Exchange API Configuration*',
+    'api_settings_info': (
+        'Connect your exchange API keys to enable portfolio tracking.\n\n'
+        '⚠️ _Only read & trade permissions needed. Withdrawal NOT required._'
+    ),
+    
+    'balance_demo': '🎮 Demo Account',
+    'balance_display': (
+        '💰 *{account_type} Balance*\n\n'
+        '💵 Equity: `{equity:.2f} USDT`\n'
+        '🔓 Available: `{available:.2f} USDT`\n'
+        '🔒 Margin: `{margin:.2f} USDT`\n\n'
+        '📊 Unrealized: `{unrealized:+.2f} USDT`\n'
+        '📈 Today: `{today_pnl:+.2f} USDT`\n'
+        '📆 Week: `{week_pnl:+.2f} USDT`\n\n'
+        '_{disclaimer}_'
+    ),
+    
+    # =====================================================
+    # POSITIONS
+    # =====================================================
+    
+    'balance_empty': (
+        '📊 *Account Balance*\n\n'
+        '💰 No funds detected in this account.\n\n'
+        '_Tip: Transfer funds to your exchange account to start tracking._'
+    ),
+    
+    'balance_error': '❌ Unable to fetch balance. Check API configuration.',
+    'balance_mainnet': '🌐 Mainnet',
+    'balance_margin_used': 'Used Margin',
+    'balance_real': '💎 Live Account',
+    'balance_testnet': '🧪 Testnet',
+    'balance_title': '💰 *Account Balance*',
+    'balance_today_pnl': 'Today P/L',
+    'balance_unrealized': 'Unrealized P/L',
+    'balance_week_pnl': '7-Day P/L',
+    'btn_bybit_demo': '🎮 Demo',
+
+    # =====================================================
+    # MISSING KEYS (Added from EN - needs translation)
+    # =====================================================
+
+    'btn_bybit_real': '💎 Live',
+    'btn_cancel_all': '❌ Cancel All',
+    'btn_cancel_order': '❌ Cancel Order',
+    'btn_close_pos': '❌ Close',
+    'btn_hl_mainnet': '🌐 Mainnet',
+    'btn_hl_testnet': '🧪 Testnet',
+    'btn_modify_tpsl': '⚙️ TP/SL',
+    'button_ai_bots': '🎯 Strategies',
+    'button_api_bybit': '🟠 Bybit API',
+    'button_api_hl': '🔷 HL API',
+    'button_help': '❓ Help',
+    'button_hyperliquid': '🔷 HyperLiquid',
+    'button_language': '🌍 Language',
+    'button_portfolio': '💼 Portfolio',
+    'button_premium': '💎 Premium',
+    'button_screener': '📈 Screener',
+    'button_switch_exchange': '🔄 Switch Exchange',
+    'button_webapp': '🌐 WebApp',
+    'close_position_confirm': (
+        '⚠️ *Close Position?*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 P/L: {pnl:+.2f} USDT ({pnl_pct:+.2f}%)\n\n'
+        '_This action cannot be undone._'
+    ),
+    
+    'disclaimer_accept_btn': '✅ I Understand & Accept',
+    'disclaimer_accepted_msg': (
+        '✅ *Disclaimer Accepted*\n\n'
+        'You have acknowledged that:\n'
+        '• This is an educational platform\n'
+        '• You are responsible for all trading decisions\n'
+        '• Past performance does not guarantee future results\n\n'
+        'Welcome to Enliko Trading Tools!'
+    ),
+    'disclaimer_decline_btn': '❌ I Decline',
+    'disclaimer_declined_msg': (
+        '❌ *Disclaimer Declined*\n\n'
+        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'If you change your mind, use /start to begin again.'
+    ),
+    
+    # =====================================================
+    # MAIN MENU BUTTONS
+    # =====================================================
+    
+    'exchange_bybit': '🟠 Bybit',
+    'exchange_header': '🔄 *Select Exchange*',
+    'exchange_hyperliquid': '🔷 HyperLiquid',
+    'exchange_selected': '✅ {exchange} selected.',
+    'execution_confirm': (
+        '⚠️ *Confirm Execution*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Size: {size} USDT\n'
+        '⚡ Leverage: {leverage}x\n'
+        '🔻 SL: {sl_pct}%\n'
+        '🔺 TP: {tp_pct}%\n\n'
+        '⚠️ _Trading involves risk of loss._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'execution_failed': '❌ Order failed: {error}',
+    'execution_header': '📊 *Order Execution*',
+    'execution_success': (
+        '✅ *Order Executed*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Entry: {entry:.6f}\n'
+        '📦 Size: {size}\n'
+        '⚡ Leverage: {leverage}x\n\n'
+        '🔻 SL: {sl_price:.6f}\n'
+        '🔺 TP: {tp_price:.6f}'
+    ),
+    
+    'hl_reset_settings': '🔄 Reset to Bybit',
+    'hl_settings': 'HyperLiquid',
+    'hl_trading_enabled': 'HyperLiquid Enabled',
+    'manual_long': '🟢 LONG',
+    'manual_order_confirm': (
+        '⚠️ *Confirm Order*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Amount: {amount} USDT\n\n'
+        '⚠️ _Trading involves risk._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'manual_order_failed': '❌ Order failed: {error}',
+    'manual_order_header': '📝 *Manual Order*',
+    'manual_order_success': '✅ Order placed: {symbol} {side}',
+    'manual_short': '🔴 SHORT',
+    'market_btc': '₿ BTC: {price} ({change:+.2f}%)',
+    'market_eth': 'Ξ ETH: {price} ({change:+.2f}%)',
+    'market_fear_greed': '📊 Fear & Greed: {value}',
+    'market_header': '📊 *Market Overview*',
+    'market_last_update': '🕐 Updated: {time}',
+    'market_total_cap': '💰 Total Cap: ${cap}',
+    'order_cancelled': '✅ Order cancelled.',
+    'order_card': (
+        '📋 *{symbol}*\n'
+        '├ Type: `{order_type}`\n'
+        '├ Side: `{side}`\n'
+        '├ Price: `{price:.6f}`\n'
+        '├ Qty: `{qty}`\n'
+        '└ Status: `{status}`'
+    ),
+    
+    'orders_cancelled_all': '✅ All orders cancelled.',
+    'orders_empty': '📭 No open orders.',
+    'orders_header': '📋 *Open Orders*',
+    'orders_pending': '⏳ Pending Limit Orders',
+    'portfolio_header': '💼 *Portfolio Overview*',
+    'position_card': (
+        '{side_emoji} *{symbol}*\n'
+        '├ Side: `{side}`\n'
+        '├ Entry: `{entry:.6f}`\n'
+        '├ Size: `{size}`\n'
+        '├ Leverage: `{leverage}x`\n'
+        '├ Mark: `{mark:.6f}`\n'
+        '├ P/L: `{pnl:+.2f} USDT ({pnl_pct:+.2f}%)`\n'
+        '└ Strategy: `{strategy}`'
+    ),
+    
+    'position_long': '🟢 LONG',
+    'position_short': '🔴 SHORT',
+    'positions_empty': '📭 No open positions.',
+    'positions_page': 'Page {current}/{total}',
+    'signal_header': '📊 *Market Analysis*',
+    'spot_dca_disabled': '❌ Spot DCA Disabled',
+    'spot_dca_enabled': '✅ Spot DCA Enabled',
+    'spot_header': '💹 *Spot Trading*',
+    'stats_disclaimer': '⚠️ _Past performance does not guarantee future results._',
+    'strategy_info': (
+        '📊 *Strategy Templates*\n\n'
+        'Configure parameters for market analysis:\n'
+        '• Entry % — Position size calculator\n'
+        '• Stop-Loss % — Risk limit\n'
+        '• Take-Profit % — Target level\n'
+        '• ATR Settings — Volatility-based levels\n\n'
+        '⚠️ _These are educational tools for strategy testing._\n'
+        '_Not financial advice._'
+    ),
+    
+    'terms_title': (
+        '📜 *Terms of Service*\n\n'
+        'By using Enliko Trading Tools, you agree:\n\n'
+        '1. *Educational Purpose*\n'
+        'This platform provides educational tools for learning about '
+        'cryptocurrency markets. It is NOT financial advice.\n\n'
+        '2. *Risk Acknowledgment*\n'
+        'Trading cryptocurrencies involves substantial risk of loss. '
+        'You may lose some or all of your investment.\n\n'
+        '3. *User Responsibility*\n'
+        'You are solely responsible for all trading decisions. '
+        'Past performance does not guarantee future results.\n\n'
+        '4. *No Guarantees*\n'
+        'We do not guarantee profits or specific outcomes. '
+        'Market conditions are unpredictable.\n\n'
+        '5. *Age Requirement*\n'
+        'You must be 18+ years old to use this platform.\n\n'
+        '6. *Jurisdiction*\n'
+        'You are responsible for compliance with your local laws.\n\n'
+        'Do you accept these terms?'
+    ),
+    
+
+    # [AUTO-ADDED FROM EN]
+    'elc_min_convert': '❌ Minimum 10 ELC required for conversion',
+    'elc_min_stake': '❌ Minimum 1 ELC required for staking',
+    'grid_cancelled': '❌ Orders Cancelled: {count}',
+    'grid_failed': '❌ Failed to stop grid: {error}',
+    'grid_invalid_format': '❌ Invalid format. Please enter: low_price high_price grid_count investment',
+    'grid_invalid_input': '❌ Invalid input. Please enter numbers.',
+    'grid_investment': '💵 Investment: ${amount:.2f}',
+    'grid_levels': '🔢 Levels: {count}',
+    'grid_min_10': '❌ Minimum investment is 10 USDT',
+    'grid_orders_placed': '📊 Orders placed: {count}',
+    'grid_range': '📈 Range: ${low:.2f} - ${high:.2f}',
+    'grid_setup': '⏳ Setting up {coin} grid...',
+    'grid_started': '✅ {coin} Grid Bot Started!',
+    'grid_step': '📍 Grid step: ${step:.4f}',
+    'spot_auto_disabled': '❌ Auto DCA disabled',
+    'spot_auto_enabled': '✅ Auto DCA enabled',
+    'spot_gain_max': '❌ Maximum gain trigger is 10000%',
+    'spot_gain_min': '❌ Minimum gain trigger is 1%',
+    'spot_invalid_amount': '❌ Invalid amount. Please enter a number.',
+    'spot_invalid_pct': '❌ Invalid number. Please enter a valid percentage.',
+    'spot_invalid_price': '❌ Invalid price. Please enter a number.',
+    'spot_min_5': '❌ Minimum amount is 5 USDT',
+    'spot_no_balance': '❌ No spot balance found',
+    'spot_no_coins': '❌ No coins to sell',
+    'spot_not_enabled': '❌ Spot trading is not enabled. Enable it in API Settings first.',
+    'spot_sell_max': '❌ Maximum sell amount is 100%',
+    'spot_sell_min': '❌ Minimum sell amount is 1%',
+    'strategy_invalid': '❌ Invalid strategy',
 }

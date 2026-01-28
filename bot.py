@@ -3926,6 +3926,14 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         if side_be_trigger is not None and side_be_trigger > 0:
             be_trigger_pct = float(side_be_trigger)
         
+        # Get side-specific leverage
+        side_leverage = strat_settings.get(f"{side_prefix}_leverage")
+        if side_leverage is not None and side_leverage > 0:
+            leverage = int(side_leverage)
+        else:
+            # Fallback to global user leverage
+            leverage = int(cfg.get("leverage", 10))
+        
         return {
             "percent": percent,
             "sl_pct": sl_pct,
@@ -3933,6 +3941,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
             "use_atr": use_atr,
             "be_enabled": be_enabled,
             "be_trigger_pct": be_trigger_pct,
+            "leverage": leverage,  # NEW: side-specific leverage
         }
     
     # Default behavior when side is not provided
@@ -3946,6 +3955,13 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     # Get SL/TP using resolve function with strategy awareness
     sl_pct, tp_pct = resolve_sl_tp_pct(cfg, symbol, strategy=strategy, user_id=uid)
     
+    # Get leverage (no side-specific when side not provided)
+    strat_leverage = strat_settings.get("long_leverage") or strat_settings.get("short_leverage")
+    if strat_leverage is not None and strat_leverage > 0:
+        leverage = int(strat_leverage)
+    else:
+        leverage = int(cfg.get("leverage", 10))
+    
     return {
         "percent": percent,
         "sl_pct": sl_pct,
@@ -3953,6 +3969,7 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         "use_atr": use_atr,
         "be_enabled": be_enabled,
         "be_trigger_pct": be_trigger_pct,
+        "leverage": leverage,  # Global leverage fallback
     }
 
 
@@ -4066,7 +4083,7 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     
     import time
     cache_bust = int(time.time())
-    webapp_url_with_user = f"{webapp_url}/terminal?start={user_id}&_t={cache_bust}" if user_id else f"{webapp_url}/terminal?_t={cache_bust}"
+    webapp_url_with_user = f"{webapp_url}/dashboard?start={user_id}&_t={cache_bust}" if user_id else f"{webapp_url}/dashboard?_t={cache_bust}"
     
     keyboard = [
         # ─── Row 1: Core Trading ───
@@ -6137,10 +6154,9 @@ async def place_order_for_targets(
                 risk_pct = trade_params.get("percent", 1.0)
                 sl_pct = trade_params.get("sl_pct", 3.0)
                 
-                # Get leverage from strategy settings if not explicitly passed
+                # Get leverage from trade_params (side-specific) if not explicitly passed
                 if target_leverage is None:
-                    strat_settings = db.get_strategy_settings(user_id, strategy or "manual", target_exchange, target_acc)
-                    target_leverage = strat_settings.get("leverage") or cfg.get("leverage", 10)
+                    target_leverage = trade_params.get("leverage") or cfg.get("leverage", 10)
                 
                 # Calculate qty for THIS account's balance
                 # For HyperLiquid we need different balance fetch method
@@ -15895,8 +15911,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
                     continue
                 
-                # Set leverage if configured
-                user_leverage = strat_settings.get("leverage")
+                # Set leverage from side-specific params (FIX: was using wrong key)
+                user_leverage = params.get("leverage")
                 if user_leverage:
                     try:
                         await set_leverage(uid, symbol, leverage=user_leverage)
@@ -16038,8 +16054,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
-                    # Set leverage if configured
-                    user_leverage = strat_settings.get("leverage")
+                    # Set leverage from side-specific params (FIX: was using wrong key)
+                    user_leverage = params.get("leverage")
                     if user_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
@@ -16170,8 +16186,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
-                    # Set leverage if configured
-                    user_leverage = strat_settings.get("leverage")
+                    # Set leverage from side-specific params (FIX: was using wrong key)
+                    user_leverage = params.get("leverage")
                     if user_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
@@ -16302,7 +16318,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 risk_pct = params["percent"]
                 sl_pct = params["sl_pct"]
                 tp_pct = params["tp_pct"]
-                elcaro_leverage = elcaro_strat_settings.get("leverage") or params.get("leverage")
+                elcaro_leverage = params.get("leverage")  # FIX: use side-specific from params
                 
                 # ATR from user settings
                 use_atr = elcaro_strat_settings.get("use_atr", False)
@@ -16480,7 +16496,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 params = get_strategy_trade_params(uid, cfg, symbol, "fibonacci", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
                 risk_pct = params["percent"]
-                user_leverage = strat_settings.get("leverage", 10)
+                user_leverage = params.get("leverage", 10)  # FIX: use side-specific from params
                 fibo_sl_pct = params["sl_pct"]  # From user settings!
                 fibo_tp_pct = params["tp_pct"]  # From user settings!
                 
@@ -16657,13 +16673,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
+                user_leverage = params.get("leverage")  # FIX: use side-specific from params
                 try:
                     if user_sl_pct <= 0:
                         user_sl_pct = 1.0
                     qty_total = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
                     # Set leverage if configured
-                    user_leverage = strat_settings.get("leverage")
                     if user_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
@@ -18687,8 +18703,8 @@ async def start_monitoring(app: Application):
         # Add timestamp to prevent Telegram from caching old URL
         import time
         cache_bust = int(time.time())
-        current_url = f"{webapp_url}/terminal?_t={cache_bust}"
-        base_url = f"{webapp_url}/terminal"
+        current_url = f"{webapp_url}/dashboard?_t={cache_bust}"
+        base_url = f"{webapp_url}/dashboard"
         
         # Only update menu button if base URL changed
         if last_url != base_url:
@@ -18699,13 +18715,13 @@ async def start_monitoring(app: Application):
             logger.info("Menu button reset to default (clearing cache)")
             await asyncio.sleep(1)
             
-            # Set the menu button for all users with cache-busting timestamp to Terminal
+            # Set the menu button for all users with cache-busting timestamp to Dashboard
             menu_button = MenuButtonWebApp(
-                text="💻 Terminal",
+                text="📊 Dashboard",
                 web_app=WebAppInfo(url=current_url)
             )
             await app.bot.set_chat_menu_button(menu_button=menu_button)
-            logger.info(f"Menu button set to Terminal: {current_url}")
+            logger.info(f"Menu button set to Dashboard: {current_url}")
             
             # Save base URL (without timestamp) for comparison
             last_url_file.write_text(base_url)

@@ -202,6 +202,8 @@ class EmailRegisterRequest(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
+    first_name: Optional[str] = None  # iOS compatibility
+    last_name: Optional[str] = None   # iOS compatibility
     
     @validator('password')
     def validate_password(cls, v):
@@ -210,6 +212,18 @@ class EmailRegisterRequest(BaseModel):
         if not re.search(r'[A-Za-z]', v) or not re.search(r'\d', v):
             raise ValueError('Password must contain letters and numbers')
         return v
+    
+    @property
+    def display_name(self) -> Optional[str]:
+        """Get display name from either name or first_name/last_name"""
+        if self.name:
+            return self.name
+        if self.first_name:
+            full_name = self.first_name
+            if self.last_name:
+                full_name = f"{self.first_name} {self.last_name}"
+            return full_name
+        return None
 
 
 class EmailLoginRequest(BaseModel):
@@ -410,7 +424,7 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
         'expires': expires.isoformat(),
         'password_hash': password_hash,
         'password_salt': password_salt,
-        'name': data.name
+        'name': data.display_name  # Use display_name for iOS compatibility
     })
     
     # Send verification email
@@ -473,12 +487,17 @@ async def email_verify(data: EmailVerifyRequest):
     # Clean up
     await _delete_verification_code(email)
     
-    # Create token
+    # Create tokens
     token = create_access_token(user_id, is_admin=False)
+    # Generate refresh token (hash of user_id + email + secret)
+    refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
+    refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
     
     return {
         "success": True,
         "token": token,
+        "refresh_token": refresh_token,
+        "user_id": user_id,
         "user": {
             "user_id": user_id,
             "email": email,
@@ -516,11 +535,17 @@ async def email_login(data: EmailLoginRequest, request: Request):
     # Get additional user data
     db_user = db.get_all_user_credentials(user_id) or {}
     
+    # Create tokens
     token = create_access_token(user_id, is_admin)
+    # Generate refresh token (hash of user_id + email + secret)
+    refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
+    refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
     
     return {
         "success": True,
         "token": token,
+        "refresh_token": refresh_token,
+        "user_id": user_id,
         "user": {
             "user_id": user_id,
             "email": email,

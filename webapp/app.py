@@ -646,6 +646,28 @@ def create_app() -> FastAPI:
         """Trading statistics dashboard (alias)"""
         return templates.TemplateResponse("statistics.html", {"request": request})
     
+    # ===== LEGAL PAGES =====
+    
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy_page(request: Request):
+        """Privacy Policy"""
+        return templates.TemplateResponse("privacy.html", {"request": request})
+    
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms_page(request: Request):
+        """Terms of Service"""
+        return templates.TemplateResponse("terms.html", {"request": request})
+    
+    @app.get("/cookies", response_class=HTMLResponse)
+    async def cookies_page(request: Request):
+        """Cookie Policy"""
+        return templates.TemplateResponse("cookies.html", {"request": request})
+    
+    @app.get("/disclaimer", response_class=HTMLResponse)
+    async def disclaimer_page(request: Request):
+        """Redirect to terms page which has disclaimer"""
+        return RedirectResponse(url="/terms", status_code=302)
+    
     @app.get("/health")
     async def health():
         """Basic health check"""

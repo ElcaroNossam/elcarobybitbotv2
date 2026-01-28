@@ -31,9 +31,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("../keystore/enliko-release.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            storePassword = "enliko2026"
             keyAlias = "enliko"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            keyPassword = "enliko2026"
         }
     }
 

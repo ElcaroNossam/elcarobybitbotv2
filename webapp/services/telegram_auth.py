@@ -152,7 +152,7 @@ def validate_login_token(token: str, ip_address: str = None, user_agent: str = N
     cur.execute("""
         SELECT user_id, expires_at, used
         FROM login_tokens
-        WHERE token = ?
+        WHERE token = %s
     """, (token,))
     
     row = cur.fetchone()
@@ -175,8 +175,8 @@ def validate_login_token(token: str, ip_address: str = None, user_agent: str = N
     # Mark as used and update IP/UA
     cur.execute("""
         UPDATE login_tokens
-        SET used = 1, ip_address = ?, user_agent = ?
-        WHERE token = ?
+        SET used = 1, ip_address = %s, user_agent = %s
+        WHERE token = %s
     """, (ip_address, user_agent, token))
     
     con.commit()
@@ -230,7 +230,7 @@ def check_2fa_status(confirmation_id: str) -> Optional[dict]:
     cur.execute("""
         SELECT id, user_id, status, expires_at, confirmed_at
         FROM twofa_confirmations
-        WHERE id = ?
+        WHERE id = %s
     """, (confirmation_id,))
     
     row = cur.fetchone()
@@ -266,7 +266,7 @@ def confirm_2fa(confirmation_id: str, approved: bool) -> bool:
     
     # Check if exists and is pending
     cur.execute("""
-        SELECT status, expires_at FROM twofa_confirmations WHERE id = ?
+        SELECT status, expires_at FROM twofa_confirmations WHERE id = %s
     """, (confirmation_id,))
     
     row = cur.fetchone()
@@ -284,8 +284,8 @@ def confirm_2fa(confirmation_id: str, approved: bool) -> bool:
     status = 'approved' if approved else 'denied'
     cur.execute("""
         UPDATE twofa_confirmations
-        SET status = ?, confirmed_at = ?
-        WHERE id = ?
+        SET status = %s, confirmed_at = %s
+        WHERE id = %s
     """, (status, now.isoformat(), confirmation_id))
     
     con.commit()
@@ -309,7 +309,7 @@ def find_user_by_identifier(identifier: str) -> Optional[int]:
     # Try as numeric ID first
     try:
         user_id = int(identifier.strip())
-        cur.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+        cur.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
         row = cur.fetchone()
         if row:
             con.close()
@@ -320,7 +320,7 @@ def find_user_by_identifier(identifier: str) -> Optional[int]:
     # Try as username (with or without @)
     username = identifier.strip().lstrip('@').lower()
     if username:
-        cur.execute("SELECT user_id FROM users WHERE LOWER(username) = ?", (username,))
+        cur.execute("SELECT user_id FROM users WHERE LOWER(username) = %s", (username,))
         row = cur.fetchone()
         if row:
             con.close()
@@ -429,17 +429,17 @@ def cleanup_expired():
     now = datetime.now(timezone.utc).isoformat()
     
     # Clean login tokens
-    cur.execute("DELETE FROM login_tokens WHERE expires_at < ?", (now,))
+    cur.execute("DELETE FROM login_tokens WHERE expires_at < %s", (now,))
     
     # Clean 2FA confirmations
-    cur.execute("DELETE FROM twofa_confirmations WHERE expires_at < ? AND status = 'pending'", (now,))
+    cur.execute("DELETE FROM twofa_confirmations WHERE expires_at < %s AND status = 'pending'", (now,))
     
     # Deactivate expired sessions
-    cur.execute("UPDATE webapp_sessions SET is_active = 0 WHERE expires_at < ?", (now,))
+    cur.execute("UPDATE webapp_sessions SET is_active = 0 WHERE expires_at < %s", (now,))
     
     # Delete very old sessions (30 days)
     old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    cur.execute("DELETE FROM webapp_sessions WHERE expires_at < ?", (old_date,))
+    cur.execute("DELETE FROM webapp_sessions WHERE expires_at < %s", (old_date,))
     
     con.commit()
     con.close()

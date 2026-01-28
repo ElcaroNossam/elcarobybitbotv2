@@ -200,6 +200,46 @@ interface Strings {
     val bestTrade: String
     val worstTrade: String
     
+    // Disclaimer - Legal Compliance
+    val disclaimerTitle: String
+    val disclaimerIntro: String
+    val disclaimerNotFinancialAdvice: String
+    val disclaimerRiskOfLoss: String
+    val disclaimerPastPerformance: String
+    val disclaimerUserResponsibility: String
+    val disclaimerEducationalOnly: String
+    val disclaimerRiskWarningTitle: String
+    val disclaimerRiskWarningText: String
+    val disclaimerAcceptBtn: String
+    val disclaimerDeclineBtn: String
+    val disclaimerTermsAgreement: String
+    val disclaimerAcceptedMsg: String
+    val disclaimerDeclinedMsg: String
+    
+    /**
+     * Operator to access strings by key for dynamic lookup
+     * Falls back to key if not found
+     */
+    operator fun get(key: String): String? {
+        return when (key) {
+            "disclaimer_title" -> disclaimerTitle
+            "disclaimer_intro" -> disclaimerIntro
+            "disclaimer_not_financial_advice" -> disclaimerNotFinancialAdvice
+            "disclaimer_risk_of_loss" -> disclaimerRiskOfLoss
+            "disclaimer_past_performance" -> disclaimerPastPerformance
+            "disclaimer_user_responsibility" -> disclaimerUserResponsibility
+            "disclaimer_educational_only" -> disclaimerEducationalOnly
+            "disclaimer_risk_warning_title" -> disclaimerRiskWarningTitle
+            "disclaimer_risk_warning_text" -> disclaimerRiskWarningText
+            "disclaimer_accept_btn" -> disclaimerAcceptBtn
+            "disclaimer_decline_btn" -> disclaimerDeclineBtn
+            "disclaimer_terms_agreement" -> disclaimerTermsAgreement
+            "disclaimer_accepted_msg" -> disclaimerAcceptedMsg
+            "disclaimer_declined_msg" -> disclaimerDeclinedMsg
+            else -> null
+        }
+    }
+    
     object English : Strings {
         override val appName = "$APP_NAME Trading"
         override val portfolio = "Portfolio"
@@ -304,6 +344,21 @@ interface Strings {
         override val avgPnl = "Avg PnL"
         override val bestTrade = "Best Trade"
         override val worstTrade = "Worst Trade"
+        // Disclaimer
+        override val disclaimerTitle = "⚠️ Important Disclaimer"
+        override val disclaimerIntro = "Enliko is an educational and analytical tool for cryptocurrency markets."
+        override val disclaimerNotFinancialAdvice = "This is NOT financial advice"
+        override val disclaimerRiskOfLoss = "Trading involves substantial risk of loss"
+        override val disclaimerPastPerformance = "Past performance does not guarantee future results"
+        override val disclaimerUserResponsibility = "You are solely responsible for your trading decisions"
+        override val disclaimerEducationalOnly = "This tool is for educational purposes only"
+        override val disclaimerRiskWarningTitle = "RISK WARNING"
+        override val disclaimerRiskWarningText = "Trading cryptocurrencies is highly speculative. You may lose some or all of your investment. Only trade with funds you can afford to lose."
+        override val disclaimerAcceptBtn = "✅ I Understand & Accept"
+        override val disclaimerDeclineBtn = "❌ I Decline"
+        override val disclaimerTermsAgreement = "By accepting, you agree to our Terms of Service and Privacy Policy."
+        override val disclaimerAcceptedMsg = "Thank you for accepting the disclaimer."
+        override val disclaimerDeclinedMsg = "You must accept the disclaimer to use Enliko."
     }
     
     object Russian : Strings {
@@ -410,6 +465,21 @@ interface Strings {
         override val avgPnl = "Средний PnL"
         override val bestTrade = "Лучшая сделка"
         override val worstTrade = "Худшая сделка"
+        // Disclaimer
+        override val disclaimerTitle = "⚠️ Важное предупреждение"
+        override val disclaimerIntro = "Enliko — это образовательный и аналитический инструмент для криптовалютных рынков."
+        override val disclaimerNotFinancialAdvice = "Это НЕ является финансовой консультацией"
+        override val disclaimerRiskOfLoss = "Торговля связана со значительным риском потерь"
+        override val disclaimerPastPerformance = "Прошлые результаты не гарантируют будущих"
+        override val disclaimerUserResponsibility = "Вы несёте полную ответственность за свои решения"
+        override val disclaimerEducationalOnly = "Только для образовательных целей"
+        override val disclaimerRiskWarningTitle = "ПРЕДУПРЕЖДЕНИЕ О РИСКАХ"
+        override val disclaimerRiskWarningText = "Торговля криптовалютами высоко спекулятивна. Вы можете потерять часть или все свои инвестиции. Торгуйте только теми средствами, которые готовы потерять."
+        override val disclaimerAcceptBtn = "✅ Понимаю и принимаю"
+        override val disclaimerDeclineBtn = "❌ Отклоняю"
+        override val disclaimerTermsAgreement = "Принимая, вы соглашаетесь с Условиями использования и Политикой конфиденциальности."
+        override val disclaimerAcceptedMsg = "Спасибо за принятие предупреждения."
+        override val disclaimerDeclinedMsg = "Для использования Enliko необходимо принять предупреждение."
     }
     
     object Ukrainian : Strings {
@@ -516,6 +586,21 @@ interface Strings {
         override val avgPnl = "Середній PnL"
         override val bestTrade = "Найкраща угода"
         override val worstTrade = "Найгірша угода"
+        // Disclaimer
+        override val disclaimerTitle = "⚠️ Важливе попередження"
+        override val disclaimerIntro = "Enliko — це освітній та аналітичний інструмент для криптовалютних ринків."
+        override val disclaimerNotFinancialAdvice = "Це НЕ є фінансовою консультацією"
+        override val disclaimerRiskOfLoss = "Торгівля пов'язана зі значним ризиком втрат"
+        override val disclaimerPastPerformance = "Минулі результати не гарантують майбутніх"
+        override val disclaimerUserResponsibility = "Ви несете повну відповідальність за свої рішення"
+        override val disclaimerEducationalOnly = "Лише для освітніх цілей"
+        override val disclaimerRiskWarningTitle = "ПОПЕРЕДЖЕННЯ ПРО РИЗИКИ"
+        override val disclaimerRiskWarningText = "Торгівля криптовалютами є високо спекулятивною. Ви можете втратити частину або всі свої інвестиції. Торгуйте лише тими коштами, які готові втратити."
+        override val disclaimerAcceptBtn = "✅ Розумію та приймаю"
+        override val disclaimerDeclineBtn = "❌ Відхиляю"
+        override val disclaimerTermsAgreement = "Приймаючи, ви погоджуєтесь з Умовами використання та Політикою конфіденційності."
+        override val disclaimerAcceptedMsg = "Дякуємо за прийняття попередження."
+        override val disclaimerDeclinedMsg = "Для використання Enliko необхідно прийняти попередження."
     }
     
     object German : Strings {
@@ -622,6 +707,21 @@ interface Strings {
         override val avgPnl = "Durchschn. PnL"
         override val bestTrade = "Bester Trade"
         override val worstTrade = "Schlechtester Trade"
+        // Disclaimer
+        override val disclaimerTitle = "⚠️ Wichtiger Hinweis"
+        override val disclaimerIntro = "Enliko ist ein Bildungs- und Analysewerkzeug für Kryptowährungsmärkte."
+        override val disclaimerNotFinancialAdvice = "Dies ist KEINE Finanzberatung"
+        override val disclaimerRiskOfLoss = "Der Handel birgt erhebliche Verlustrisiken"
+        override val disclaimerPastPerformance = "Vergangene Ergebnisse garantieren keine zukünftigen"
+        override val disclaimerUserResponsibility = "Sie sind allein für Ihre Entscheidungen verantwortlich"
+        override val disclaimerEducationalOnly = "Nur für Bildungszwecke"
+        override val disclaimerRiskWarningTitle = "RISIKOWARNUNG"
+        override val disclaimerRiskWarningText = "Der Handel mit Kryptowährungen ist hochspekulativ. Sie können einen Teil oder Ihre gesamte Investition verlieren. Handeln Sie nur mit Mitteln, deren Verlust Sie sich leisten können."
+        override val disclaimerAcceptBtn = "✅ Ich verstehe und akzeptiere"
+        override val disclaimerDeclineBtn = "❌ Ich lehne ab"
+        override val disclaimerTermsAgreement = "Mit der Annahme stimmen Sie unseren Nutzungsbedingungen und Datenschutzrichtlinien zu."
+        override val disclaimerAcceptedMsg = "Vielen Dank für die Annahme."
+        override val disclaimerDeclinedMsg = "Sie müssen den Hinweis akzeptieren, um Enliko zu nutzen."
     }
     
     // Placeholder implementations for other languages

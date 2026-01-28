@@ -38,8 +38,9 @@ window.sanitizeForHtml = sanitizeForHtml;
 const CONFIG = {
     API_BASE: '',
     STORAGE_KEYS: {
-        TOKEN: 'auth_token',
-        USER: 'user_data',
+        TOKEN: 'enliko_token',
+        USER: 'enliko_user',
+        USER_ID: 'enliko_user_id',
         THEME: 'enliko_theme',
         LANG: 'enliko_lang',
         ACCOUNT_TYPE: 'account_type',
