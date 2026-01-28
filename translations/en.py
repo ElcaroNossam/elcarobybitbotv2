@@ -1,949 +1,1057 @@
-# translations/en.py
+# -*- coding: utf-8 -*-
+"""
+Enliko Trading Tools — English Translations
+============================================
+Version: 4.0.0 | Updated: 28 January 2026
+
+LEGAL POSITIONING:
+This is an EDUCATIONAL trading toolkit providing:
+- Market data visualization and analysis
+- Strategy backtesting and simulation
+- Portfolio tracking and performance metrics
+- One-tap order execution (user-initiated)
+- Risk management calculators
+
+IMPORTANT DISCLAIMERS:
+- Not financial advice
+- Not automated trading (user initiates all actions)
+- For educational purposes only
+- Past performance does not guarantee future results
+- Trading involves substantial risk of loss
+
+All texts are written in technical, educational style
+with appropriate disclaimers where needed.
+"""
+
 TEXTS = {
-    # Main menu - Professional trading interface
-    'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
-
-⚡ <b>&lt; 100ms</b> execution
-🛡️ <b>Risk management</b> built-in
-💎 <b>24/7</b> automated trading
-
-Bybit • HyperLiquid • Multi-strategy''',
-    'no_strategies':               '❌ No active strategies',
-    'guide_caption':               '📚 <b>User Guide</b>\n\nAPI setup, strategies, risk management.',
-    'privacy_caption':             '📜 <b>Privacy Policy</b>\n\n🔐 Encrypted storage\n✅ No data sharing',
+    # =====================================================
+    # WELCOME & ONBOARDING
+    # =====================================================
     
-    # ═══════════════════════════════════════════════════════════════════
-    # MODERN MENU BUTTONS - Stylish & Persuasive
-    # ═══════════════════════════════════════════════════════════════════
-    'button_api':                  '🔐 Connect API',
-    'button_secret':               '🔑 Secret Key',
-    'button_api_settings':         '⚙️ API Setup',
-    'button_subscribe':            '👑 PREMIUM',
-    'button_licenses':             '🎫 Licenses',
-    'button_admin':                '🛡️ Admin',
-    'button_balance':              '💎 Portfolio',
-    'button_orders':               '📊 Orders',
-    'button_positions':            '🎯 Positions',
-    'button_history':              '📜 History',
-    'button_strategies':           '🤖 AI Bots',
-    'button_api_keys':             '🔗 Exchange',
-    'button_terminal':             '💻 Terminal',
-    'button_bybit':                '🟠 Bybit',
-    'button_hyperliquid':          '🔷 HyperLiquid',
-    'button_switch_bybit':         '🔄 Bybit',
-    'button_switch_hl':            '🔄 HL',
-    'button_percent':              '⚡ Risk %',
-    'button_coins':                '🪙 Coins',
-    'button_market':               '📈 Market',
-    'button_manual_order':         '🎯 Sniper',
-    'button_update_tpsl':          '🛡️ TP/SL',
-    'button_cancel_order':         '✖️ Cancel',
-    'button_limit_only':           '📍 Limit',
-    'button_toggle_oi':            '🐋 OI Tracker',
-    'button_toggle_rsi_bb':        '📊 RSI+BB',
-    'button_scryptomera':          '🔮 Scryptomera',
-    'button_scalper':              '⚡ Scalper',
-    'button_elcaro':               '🔥 Enliko',
-    'button_fibonacci':            '📐 Fibonacci',
-    'button_settings':             '⚙️ Config',
-    'button_indicators':           '📡 Signals',
-    'button_support':              '💬 Support',
-    'button_back':                 '← Back',
-    'button_close':                '✖️ Close',
-    'button_refresh':              '🔄 Refresh',
-    'button_confirm':              '✅ Confirm',
-    'button_cancel':               '❌ Cancel',
+    'welcome': (
+        '� <b>Enliko Trading Terminal</b>\n\n'
+        '⚡ <b>&lt; 100ms</b> execution\n'
+        '🛡️ <b>Risk management</b> built-in\n'
+        '💎 <b>24/7</b> automated trading\n\n'
+        'Bybit • HyperLiquid • Multi-Strategy'
+    ),
     
-    # Menu section headers (for API settings, etc.)
-    'menu_section_demo':           '══ 🧪 DEMO ══',
-    'menu_section_real':           '══ 💼 REAL ══',
-    'menu_test_connection':        '🔄 Test',
-    'menu_delete':                 '🗑️ Delete',
+    'welcome_back': (
+        '🔥 <b>Enliko Trading Terminal</b>\n\n'
+        '⚠️ <i>Educational platform. Not financial advice.</i>\n\n'
+        '👇 Select an option:'
+    ),
     
-    # Exchange indicators
-    'exchange_bybit_demo':         '🟠 Bybit 🎮',
-    'exchange_bybit_real':         '🟠 Bybit 💵',
-    'exchange_bybit_both':         '🟠 Bybit 🔀',
-    'exchange_hl_testnet':         '🔷 HL 🧪',
-    'exchange_hl_mainnet':         '🔷 HL 🌐',
+    # =====================================================
+    # LEGAL DISCLAIMERS (REQUIRED)
+    # =====================================================
     
-    # Strategy toggles
-    'toggle_oi_status':            '🐋 {feature}: {status}',
-    'toggle_rsi_bb_status':        '📊 {feature}: {status}',
-    'config_trade_scryptomera':    '🔮 Scryptomera: {state}',
-    'config_trade_scalper':        '⚡ Scalper: {state}',
-    'config_trade_elcaro':         '🔥 Enliko: {state}',
-    'config_trade_fibonacci':      '📐 Fibonacci: {state}',
-
-    # API Settings
-    'api_settings_title':          '🔐 <b>Exchange Connection</b>',
-    'api_demo_title':              '🧪 Demo Account',
-    'api_real_title':              '💼 Real Account',
-    'api_key_set':                 '✅ Set',
-    'api_key_not_set':             '❌ Not set',
-    'not_set':                     '—',
-    'api_trading_mode':            '📍 <b>Trading Mode:</b>',
-    'api_mode_demo':               '🧪 Demo',
-    'api_mode_real':               '💼 Real',
-    'api_mode_both':               '🔄 Both',
-    'api_btn_demo_key':            '🧪 Demo API Key',
-    'api_btn_demo_secret':         '🧪 Demo Secret',
-    'api_btn_real_key':            '💼 Real API Key',
-    'api_btn_real_secret':         '💼 Real Secret',
-    'api_btn_delete_demo':         '🗑 Delete Demo',
-    'api_btn_delete_real':         '🗑 Delete Real',
-    'api_btn_mode_demo':           '🧪 Trade Demo',
-    'api_btn_mode_real':           '💼 Trade Real',
-    'api_btn_mode_both':           '🔄 Trade Both',
-    'api_btn_back':                '⬅️ Back',
-    'api_enter_demo_key':          '🧪 Enter your <b>Demo API Key</b>:',
-    'api_enter_demo_secret':       '🧪 Enter your <b>Demo API Secret</b>:',
-    'api_enter_real_key':          '💼 Enter your <b>Real API Key</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_enter_real_secret':       '💼 Enter your <b>Real API Secret</b>:\n\n⚠️ <b>Warning:</b> This is for real money trading!',
-    'api_key_saved':               '✅ API Key saved successfully!',
-    'api_secret_saved':            '✅ API Secret saved successfully!',
-    'api_deleted':                 '🗑 API credentials deleted for {account}',
-    'api_mode_changed':            '✅ Trading mode changed to: <b>{mode}</b>',
-    'api_mode_both_warning':       '⚠️ <b>Both mode:</b> Signals will be executed on BOTH Demo and Real accounts!',
-    'api_key_hidden':              '••••••••{suffix}',
-    'api_test_connection':         '🔄 Test Connection',
-    'api_connection_ok':           '✅ Connection OK! Balance: {balance} USDT',
-    'api_connection_fail':         '❌ Connection failed: {error}',
-    'api_test_success':            'Connection Successful!',
-    'api_test_no_keys':            'API Keys Not Set',
-    'api_test_set_keys':           'Please set API Key and Secret first.',
-    'api_test_failed':             'Connection Failed',
-    'api_test_error':              'Error',
-    'api_test_check_keys':         'Please check your API credentials.',
-    'api_test_status':             'Status',
-    'api_test_connected':          'Connected',
-    'balance_wallet':              'Wallet Balance',
-    'balance_equity':              'Equity',
-    'balance_available':           'Available',
-
-    # Spot Trading
-    'api_spot_trading':            '💹 Spot Trading',
-    'api_spot_enabled':            '💹 <b>Spot Trading:</b> ✅ ON',
-    'api_spot_disabled':           '💹 <b>Spot Trading:</b> ❌ OFF',
-    'api_spot_toggled':            'Spot Trading: {status}',
-    'spot_settings_title':         '💹 <b>Spot DCA Settings</b>',
-    'spot_coins':                  '🪙 Coins: {coins}',
-    'spot_coins_label':            'Coins',
-    'spot_dca_amount':             '💵 DCA Amount: {amount} USDT',
-    'spot_dca_amount_label':       'DCA Amount',
-    'spot_dca_frequency':          '⏰ Frequency: {freq}',
-    'spot_freq_daily':             'Daily',
-    'spot_freq_weekly':            'Weekly',
-    'spot_freq_monthly':           'Monthly',
-    'spot_buy_now':                '💰 Buy Now',
-    'spot_auto_dca':               '🔄 Auto DCA: {status}',
-    'spot_auto_dca_label':         'Auto DCA',
-    'spot_next_buy':               '⏳ Next Buy: {time}',
-    'spot_total_invested':         '📊 Total Invested: {amount} USDT',
-    'spot_holdings':               '💎 Holdings: {holdings}',
-    'spot_buy_success':            '✅ Bought {qty} {coin} for {amount} USDT',
-    'spot_buy_failed':             '❌ Spot buy failed: {error}',
-    'spot_balance':                '💰 Spot Balance: {balance}',
-    'spot_no_balance':             '❌ No spot balance found',
-    'spot_order_placed':           '✅ Spot order placed: {side} {qty} {coin}',
-    'button_spot_settings':        '💹 Spot Settings',
-    'spot_btn_coins':              '🪙 Coins',
-    'spot_btn_amount':             '💵 Amount',
-
-    # Exchange Mode & Multi-Exchange UI
-    'exch_mode_bybit_only':        '🟠 Bybit Only',
-    'exch_mode_hl_only':           '🟢 HyperLiquid Only',
-    'exch_mode_both':              '🔄 Both Exchanges',
-    'btn_connect_hl':              '➕ Connect HyperLiquid',
-    'exch_not_configured':         '❌ Not configured',
-    'exch_not_connected':          '❌ Not connected',
-    'exch_trading_mode':           'Trading Mode',
-    'exch_active':                 '🟢 Active',
-    'exch_inactive':               '⚪ Inactive',
-    'exch_switch_success':         '✅ Switched to {exchange}',
-    'exch_select_mode':            'Select exchange mode:',
-
-    'spot_btn_frequency':          '⏰ Frequency',
-    'spot_btn_auto_toggle':        '🔄 Auto DCA',
-    'spot_btn_buy_now':            '💰 Buy Now',
-    'spot_btn_back':               '⬅️ Back',
-    'spot_enter_amount':           'Enter DCA amount in USDT:',
-    'spot_amount_saved':           '✅ DCA amount set to {amount} USDT',
-    'spot_trading_mode':           'Trading Mode',
-    'spot_btn_mode':               'Mode',
-    'spot_select_coins':           'Select coins for Spot DCA:',
-    'spot_coins_saved':            '✅ Spot coins set: {coins}',
-    'spot_select_frequency':       'Select DCA frequency:',
-    'spot_frequency_saved':        '✅ Frequency set to {freq}',
-    'spot_auto_enabled':           '✅ Auto DCA enabled',
-    'spot_auto_disabled':          '❌ Auto DCA disabled',
-    'spot_not_enabled':            '❌ Spot trading is not enabled. Enable it in Strategy Settings first.',
-    'spot_freq_biweekly':          'Bi-Weekly',
-    'spot_trailing_enabled':       '✅ Trailing TP enabled',
-    'spot_trailing_disabled':      '❌ Trailing TP disabled',
-    'spot_grid_started':           '✅ Grid bot started for {coin}',
-    'spot_grid_stopped':           '🛑 Grid bot stopped for {coin}',
-    'spot_limit_placed':           '✅ Limit order placed',
-    'spot_limit_cancelled':        '❌ Order cancelled',
-
-    # Strategy trading mode
-    'strat_mode_global':           '🌐 Global',
-    'strat_mode_demo':             '🧪 Demo',
-    'strat_mode_real':             '💰 Real',
-    'strat_mode_both':             '🔄 Both',
-    'strat_mode_changed':          '✅ {strategy} trading mode: {mode}',
+    'disclaimer_trading': (
+        '⚠️ *IMPORTANT DISCLAIMER*\n\n'
+        'This platform provides educational tools for learning about '
+        'cryptocurrency markets. It is NOT:\n'
+        '• Financial advice\n'
+        '• Investment recommendation\n'
+        '• Guaranteed profit system\n\n'
+        'Trading cryptocurrencies involves substantial risk of loss. '
+        'You may lose some or all of your investment. '
+        'Only trade with funds you can afford to lose.\n\n'
+        'Past performance does not guarantee future results.'
+    ),
     
-    # Toggle & Mode labels
-    'toggle_on':                   '✅ Enabled',
-    'toggle_off':                  '❌ Disabled',
-    'mode_demo':                   '🧪 Demo',
-    'mode_real':                   '💰 Real',
-    'mode_testnet':                '🧪 Testnet',
-    'mode_mainnet':                '🌐 Mainnet',
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Common Buttons (keyboard_helpers.py)
-    # ─────────────────────────────────────────────────────────────────────────
-    'btn_back':                    '⬅️ Back',
-    'btn_close':                   '❌ Close',
-    'btn_cancel':                  '❌ Cancel',
-    'btn_confirm':                 '✅ Confirm',
-    'btn_refresh':                 '🔄 Refresh',
-    'btn_settings':                '⚙️ Settings',
-    'btn_delete':                  '🗑️ Delete',
-    'btn_yes':                     '✅ Yes',
-    'btn_no':                      '❌ No',
-    'btn_prev':                    '◀️ Prev',
-    'btn_next':                    'Next ▶️',
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # ELC Token Commands
-    # ─────────────────────────────────────────────────────────────────────────
-    'elc_balance_title':           '💰 <b>ENLIKO Balance</b>',
-    'elc_available':               'Available',
-    'elc_staked':                  'Staked',
-    'elc_locked':                  'Locked',
-    'elc_total':                   'Total',
-    'elc_value_usd':               '💵 Value: ~${value:.2f} USD',
-    'btn_buy_elc':                 '🛒 Buy ELC',
-    'btn_elc_history':             '📊 History',
-    'btn_connect_wallet':          '🔗 Connect Wallet',
-    'btn_disconnect_wallet':       '🔓 Disconnect',
-    'elc_buy_title':               '🛒 <b>Buy ENLIKO (ELC)</b>',
-    'elc_current_price':           '💵 Current Price: <b>$1.00 USD / ELC</b>',
-    'elc_platform_fee':            '🔥 Platform Fee: <b>0.5%</b>',
-    'elc_purchase_hint':           '<i>Purchase ELC with USDT on TON Network</i>',
-    'elc_choose_amount':           'Choose amount to buy:',
-    'elc_custom_amount':           '✏️ Custom Amount',
-    'elc_custom_amount_title':     '✏️ <b>Custom Amount</b>',
-    'elc_custom_prompt':           'Reply with the amount of ELC you want to buy\nExample: <code>2500</code>\n\nMin: 100 ELC\nMax: 100,000 ELC',
-    'elc_purchase_summary':        '🛒 <b>Purchase {amount:.2f} ELC</b>',
-    'elc_cost':                    'Cost: <b>{cost:.2f} USDT</b>',
-    'elc_fee_amount':              'Platform Fee: <b>{fee:.2f} USDT</b>',
-    'elc_payment_link':            'Payment Link:',
-    'elc_payment_hint':            '<i>Send USDT to this address on TON Network</i>',
-    'btn_open_payment':            '🔗 Open Payment',
-    'elc_payment_error':           '❌ Failed to create payment. Please try again.',
-    'elc_balance_error':           '❌ Failed to get ELC balance. Please try again.',
-    'elc_history_title':           '📊 <b>Transaction History</b>',
-    'elc_no_transactions':         'No transactions yet.',
-    'elc_history_error':           '❌ Failed to get transaction history. Please try again.',
-    'elc_wallet_connected_title':  '🔗 <b>Connected Wallet</b>',
-    'elc_wallet_address':          'Address',
-    'elc_wallet_type':             'Type',
-    'elc_wallet_chain':            'Chain',
-    'elc_wallet_connected_at':     'Connected',
-    'elc_wallet_hint':             '<i>Use this wallet to trade on HyperLiquid without exposing private keys</i>',
-    'elc_connect_title':           '🔗 <b>Connect Cold Wallet</b>',
-    'elc_connect_desc':            'Trade on HyperLiquid without exposing your private keys!',
-    'elc_supported_wallets':       'Supported wallets:',
-    'elc_wallet_metamask':         '• MetaMask (Ethereum, Polygon, BSC)',
-    'elc_wallet_wc':               '• WalletConnect (Multi-chain)',
-    'elc_wallet_tonkeeper':        '• Tonkeeper (TON Network)',
-    'elc_keys_local':              '<i>Your keys never leave your device - all orders are signed locally</i>',
-    'btn_metamask':                '🦊 MetaMask',
-    'btn_walletconnect':           '🔗 WalletConnect',
-    'btn_tonkeeper':               '💎 Tonkeeper',
-    'elc_connect_steps_title':     '🔗 <b>Connect {wallet}</b>',
-    'elc_connect_step1':           '1. Open our WebApp',
-    'elc_connect_step2':           '2. Click \'Connect Wallet\'',
-    'elc_connect_step3':           '3. Select {wallet}',
-    'elc_connect_step4':           '4. Approve connection in wallet',
-    'elc_connect_keys_hint':       '<i>Your private keys stay in your wallet - we only get your public address</i>',
-    'btn_open_webapp':             '🌐 Open WebApp',
-    'elc_disconnected_title':      '🔓 <b>Wallet Disconnected</b>',
-    'elc_disconnected_msg':        'Your wallet has been successfully disconnected.',
-    'elc_disconnected_hint':       '<i>You can reconnect anytime to resume cold wallet trading</i>',
-    'elc_error_generic':           '❌ An error occurred. Please try again.',
-
-    # Inline buttons for manual order
-    'button_order_limit':          'Limit',
-    'button_order_market':         'Market',
-
-    # ATR / Stop mode
-    'atr_mode_changed':            '🔄 TP/SL mode is now: *{mode_text}*',
-    'atr_mode_wilder':             'Wilder-ATR',
-    'atr_mode_fixed':              'Fixed %',
-
-    # Limits
-    'limit_positions_exceeded':    '🚫 Open positions limit exceeded ({max})',
-    'limit_limit_orders_exceeded': '🚫 Limit orders limit exceeded ({max})',
-    'max_positions_reached':       '⚠️ Maximum positions reached. New signals will be skipped until a position closes.',
-
-    # Languages
-    'select_language':             'Select language:',
-    'language_set':                'Language set to:',
-    'lang_en':                     'English',
-
-    # Manual order
-    'order_type_prompt':           'Select order type:',
-    'limit_order_format': (
-        "Enter limit order parameters as:\n"
-        "`SYMBOL SIDE PRICE QTY`\n"
-        "where SIDE = LONG or SHORT\n"
-        "Example: `BTCUSDT LONG 20000 0.1`\n\n"
-        "To cancel, send ❌ Cancel Order"
+    'disclaimer_short': '⚠️ _Educational tools only. Not financial advice. Trading involves risk._',
+    
+    'disclaimer_execution': (
+        '⚠️ By proceeding, you acknowledge:\n'
+        '• You are responsible for all trading decisions\n'
+        '• This is an educational tool, not financial advice\n'
+        '• You understand the risks of cryptocurrency trading\n'
+        '• Past performance does not guarantee future results'
     ),
-    'market_order_format': (
-        "Enter market order parameters as:\n"
-        "`SYMBOL SIDE QTY`\n"
-        "where SIDE = LONG or SHORT\n"
-        "Example: `BTCUSDT SHORT 0.1`\n\n"
-        "To cancel, send ❌ Cancel Order"
+    
+    # Disclaimer acceptance buttons and messages
+    'disclaimer_accept_btn': '✅ I Understand & Accept',
+    'disclaimer_decline_btn': '❌ I Decline',
+    'disclaimer_accepted_msg': (
+        '✅ *Disclaimer Accepted*\n\n'
+        'You have acknowledged that:\n'
+        '• This is an educational platform\n'
+        '• You are responsible for all trading decisions\n'
+        '• Past performance does not guarantee future results\n\n'
+        'Welcome to Enliko Trading Tools!'
     ),
-    'order_success':               '✅ Order created successfully!',
-    'order_create_error':          '❌ Failed to create order: {msg}',
-    'order_fail_leverage':         (
-        "❌ Order not created: your Bybit account has too high leverage for this size.\n"
-        "Please reduce leverage in your Bybit settings."
+    'disclaimer_declined_msg': (
+        '❌ *Disclaimer Declined*\n\n'
+        'You must accept the disclaimer to use Enliko Trading Tools.\n\n'
+        'If you change your mind, use /start to begin again.'
     ),
-    'order_parse_error':           '❌ Failed to parse: {error}',
-    'price_error_min':             '❌ Price error: must be ≥{min}',
-    'price_error_step':            '❌ Price error: must be a multiple of {step}',
-    'qty_error_min':               '❌ Quantity error: must be ≥{min}',
-    'qty_error_step':              '❌ Quantity error: must be a multiple of {step}',
-
-    # Loading…
-    'loader':                      '⏳ Gathering data…',
-
-    # Market command
-    'market_status_heading':       '*Market Status:*',
-    'market_dominance_header':    'Top Coins by Dominance',
-    'market_total_header':        'Total Market Cap',
-    'market_indices_header':      'Market Indices',
-    'usdt_dominance':              'USDT Dominance',
-    'btc_dominance':               'BTC Dominance',
-    'dominance_rising':            '↑ rising',
-    'dominance_falling':           '↓ falling',
-    'dominance_stable':            '↔️ stable',
-    'dominance_unknown':           '❔ no data',
-    'btc_price':                   'BTC Price',
-    'last_24h':                    'in last 24h',
-    'alt_signal_label':            'Altcoin Signal',
-    'alt_signal_long':             'LONG',
-    'alt_signal_short':            'SHORT',
-    'alt_signal_neutral':          'NEUTRAL',
-    'latest_news_coindesk':        '*Latest News (CoinDesk):*',
-
-    # Execution price error
-    'exec_price_not_found':        'Failed to find execution price for closing',
-
-    # /account
-    'account_balance':             '💰 USDT Balance: `{balance:.2f}`',
-    'account_realized_header':     '📈 *Realized PnL:*',
-    'account_realized_day':        '  • Today : `{pnl:+.2f}` USDT',
-    'account_realized_week':       '  • 7 days: `{pnl:+.2f}` USDT',
-    'account_unreal_header':       '📊 *Unrealized PnL:*',
-    'account_unreal_total':        '  • Total : `{unreal:+.2f}` USDT',
-    'account_unreal_pct':          '  • % of IM: `{pct:+.2f}%`',
-    'account_error':               '❌ {error}',
-
-    # /show_config
-    'config_header':               '🛠 *Your Settings:*',
-    'config_percent':              '• 🎚 % per Trade       : `{percent}%`',
-    'config_coins':                '• 💠 Coins            : `{coins}`',
-    'config_limit_only':           '• 🎯 Limit orders     : {state}',
-    'config_atr_mode':             '• 🏧 ATR-Trailing SL  : {atr}',
-    'config_trade_oi':             '• 📊 Trade OI         : {oi}',
-    'config_trade_rsi_bb':         '• 📈 Trade RSI+BB     : {rsi_bb}',
-    'config_tp_pct':               '• 🎯 TP%              : `{tp}%`',
-    'config_sl_pct':               '• 🛑 SL%              : `{sl}%`',
-
-    # Open orders
-    'no_open_orders':              '🚫 No open orders',
-    'open_orders_header':          '*📒 Your Open Orders:*',
-    'open_orders_item':            (
-        "{idx}️⃣ *{symbol}*\n"
-        "   • Side: `{side}`\n"
-        "   • Qty : `{qty}`\n"
-        "   • Price: `{price}`\n"
-        "   • ID  : `{id}`"
+    
+    # =====================================================
+    # MAIN MENU BUTTONS
+    # =====================================================
+    
+    'button_portfolio': '💼 Portfolio',
+    'button_positions': '📊 Positions',
+    'button_orders': '📋 Orders',
+    'button_ai_bots': '🎯 Strategies',
+    'button_screener': '📈 Screener',
+    'button_history': '📜 History',
+    'button_premium': '💎 Premium',
+    'button_language': '🌍 Language',
+    'button_api_keys': '🔗 API Keys',
+    'button_settings': '⚙️ Settings',
+    'button_help': '❓ Help',
+    'button_back': '« Back',
+    'button_close': '✖️ Close',
+    'button_refresh': '🔄 Refresh',
+    'button_confirm': '✅ Confirm',
+    'button_cancel': '❌ Cancel',
+    
+    # Common buttons
+    'btn_back': '« Back',
+    'btn_close': '✖️ Close',
+    'btn_cancel': '❌ Cancel',
+    'btn_confirm': '✅ Confirm',
+    'btn_refresh': '🔄 Refresh',
+    'btn_settings': '⚙️ Settings',
+    'btn_delete': '🗑 Delete',
+    'btn_yes': '✅ Yes',
+    'btn_no': '❌ No',
+    'btn_prev': '« Prev',
+    'btn_next': 'Next »',
+    
+    # =====================================================
+    # PORTFOLIO & BALANCE
+    # =====================================================
+    
+    'portfolio_header': '💼 *Portfolio Overview*',
+    'balance_title': '💰 *Account Balance*',
+    'balance_demo': '🎮 Demo Account',
+    'balance_real': '💎 Live Account',
+    'balance_testnet': '🧪 Testnet',
+    'balance_mainnet': '🌐 Mainnet',
+    'balance_equity': 'Equity',
+    'balance_available': 'Available',
+    'balance_margin_used': 'Used Margin',
+    'balance_unrealized': 'Unrealized P/L',
+    'balance_today_pnl': 'Today P/L',
+    'balance_week_pnl': '7-Day P/L',
+    
+    'balance_empty': (
+        '📊 *Account Balance*\n\n'
+        '💰 No funds detected in this account.\n\n'
+        '_Tip: Transfer funds to your exchange account to start tracking._'
     ),
-    'open_orders_error':           '❌ Error fetching orders: {error}',
-
-    # Manual coin selection
-    'enter_coins':                 "Enter comma-separated symbols, e.g.:\n`BTCUSDT,ETHUSDT`",
-    'coins_set_success':           '✅ Coins selected: {coins}',
-
-    # Positions
-    'no_positions':                '🚫 No open positions',
-    'positions_header':            '📊 Your Open Positions:',
-    'position_item':               (
-        "— Position #{idx}: {symbol} | {side} (x{leverage})\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
-        "  • Position Bal.  : {pm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  • Unreal PnL     : {pnl:+.2f} ({pct:+.2f}%)"
+    
+    'balance_error': '❌ Unable to fetch balance. Check API configuration.',
+    
+    # Balance display format
+    'balance_display': (
+        '💰 *{account_type} Balance*\n\n'
+        '💵 Equity: `{equity:.2f} USDT`\n'
+        '🔓 Available: `{available:.2f} USDT`\n'
+        '🔒 Margin: `{margin:.2f} USDT`\n\n'
+        '📊 Unrealized: `{unrealized:+.2f} USDT`\n'
+        '📈 Today: `{today_pnl:+.2f} USDT`\n'
+        '📆 Week: `{week_pnl:+.2f} USDT`\n\n'
+        '_{disclaimer}_'
     ),
-    'position_item_v2':            (
-        "— #{idx}: {symbol} | {side} (x{leverage}) [{strategy}]\n"
-        "  • Size           : {size}\n"
-        "  • Entry Price    : {avg:.8f}\n"
-        "  • Mark Price     : {mark:.8f}\n"
-        "  • Liquidation    : {liq}\n"
-        "  • Initial Margin : {im:.2f}\n"
-        "  • Maint Margin   : {mm:.2f}\n"
-        "  • Take Profit    : {tp}\n"
-        "  • Stop Loss      : {sl}\n"
-        "  {pnl_emoji} Unreal PnL   : {pnl:+.2f} ({pct:+.2f}%)"
+    
+    # =====================================================
+    # POSITIONS
+    # =====================================================
+    
+    'positions_header': '📊 *Open Positions*',
+    'positions_empty': '📭 No open positions.',
+    'positions_page': 'Page {current}/{total}',
+    
+    'position_card': (
+        '{side_emoji} *{symbol}*\n'
+        '├ Side: `{side}`\n'
+        '├ Entry: `{entry:.6f}`\n'
+        '├ Size: `{size}`\n'
+        '├ Leverage: `{leverage}x`\n'
+        '├ Mark: `{mark:.6f}`\n'
+        '├ P/L: `{pnl:+.2f} USDT ({pnl_pct:+.2f}%)`\n'
+        '└ Strategy: `{strategy}`'
     ),
-    'pnl_by_strategy':             '📊 *PnL by Strategy:*',
-    'pnl_by_exchange':             '🏦 *PnL by Exchange:*',
-    'positions_overall':           'Total Unreal PnL: {pnl:+.2f} ({pct:+.2f}%)',
-
-    # Position management (inline)
-    'open_positions_header':       '📊 *Open positions*',
-    'positions_count':             'positions',
-    'positions_count_total':       'Total positions',
-    'total_unrealized_pnl':        'Total unrealized P/L',
-    'total_pnl':                   'Total P/L',
-    'btn_close_short':             'Close',
-    'btn_close_all':               'Close all positions',
-    'btn_close_position':          'Close position',
-    'btn_confirm_close':           'Confirm close',
-    'btn_confirm_close_all':       'Yes, close all',
-    'confirm_close_position':      'Close position',
-    'confirm_close_all':           'Close ALL positions',
-    'position_not_found':          'Position not found or already closed',
-    'position_already_closed':     'Position already closed',
-    'position_closed_success':     'Position closed',
-    'position_close_error':        'Error closing position',
-    'positions_closed':            'Positions closed',
-    'all_positions_closed':        'All positions closed',
-    'errors':                      'Errors',
-
-    # Position view
-    'position':                    'Position',
-    'entry':                       'Entry',
-    'current':                     'Current',
-    'size':                        'Size',
-
-    # % per trade
-    'set_percent_prompt':          'Enter percentage of balance per trade (e.g. 2.5):',
-    'percent_set_success':         '✅ % per trade set: {pct}%',
-
-    # Limit-Only toggle
-    'limit_only_toggled':          '🔄 Limit-Only orders {state}',
-    'feature_limit_only':          'Limit-Only',
-    'feature_oi':                  'OI',
-    'feature_rsi_bb':              'RSI+BB',
-    'status_enabled':              '✅',
-    'status_disabled':             '❌',
-
-    # Indicators
-    'indicators_header':           '📈 *Enliko Indicators*',
-    'indicator_1':                 '1. RSI + BB',
-    'indicator_2':                 '2. Trading Chaos',
-    'indicator_3':                 '3. Adaptive Trend',
-    'indicator_4':                 '4. Dynamic Regression',
-
-    # Support
-    'support_prompt':              '✉️ Need help? Click below:',
-    'support_button':              'Contact Support',
-
-    # Update TP/SL
-    'update_tpsl_no_positions':    '🚫 No open positions',
-    'update_tpsl_prompt':          'Enter SYMBOL TP SL, e.g.:\n`BTCUSDT 21000 19500`',
-    'invalid_tpsl_format':         '❌ Invalid format. Use: SYMBOL TP SL\nE.g.: BTCUSDT 21000 19500',
-
-    # API / Secret
-    'enter_api':                   'Enter your Bybit API Key:',
-    'api_saved':                   '✅ API Key saved',
-    'enter_secret':                'Enter your Bybit API Secret:',
-    'secret_saved':                '✅ API Secret saved',
-
-    # Manual TP/SL (%)
-    'enter_tp':                    '❌ Enter TP% value',
-    'tp_set_success':              '✅ TP% set: {pct}%',
-    'enter_sl':                    '❌ Enter SL% value',
-    'sl_set_success':              '✅ SL% set: {pct}%',
-
-    # Parsing errors
-    'parse_limit_error':           'Limit: requires 4 args (SYMBOL SIDE PRICE QTY)',
-    'parse_market_error':          'Market: requires 3 args (SYMBOL SIDE QTY)',
-    'parse_side_error':            'SIDE must be LONG or SHORT',
-
-    # Bybit HTTP helper
-    'api_missing_credentials':     '❌ API Key/Secret not set',
-    'api_missing_notice':          '⚠️ You do not have exchange API keys configured. Please add your API Key and Secret in the settings (🔑 API and 🔒 Secret buttons), otherwise the bot cannot trade for you.',
-    'bybit_invalid_response':      '❌ Bybit returned invalid response',
-    'bybit_error':                 '❌ Bybit error {path}: {data}',
-
-    # Auto notifications - BLACK RHETORIC: Excitement + Authority
+    
+    'position_long': '🟢 LONG',
+    'position_short': '🔴 SHORT',
+    
+    'btn_close_pos': '❌ Close',
+    'btn_modify_tpsl': '⚙️ TP/SL',
+    
+    'close_position_confirm': (
+        '⚠️ *Close Position?*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 P/L: {pnl:+.2f} USDT ({pnl_pct:+.2f}%)\n\n'
+        '_This action cannot be undone._'
+    ),
+    
+    'position_closed_success': '✅ Position {symbol} closed.',
+    'position_close_error': '❌ Error closing position: {error}',
+    
+    # =====================================================
+    # ORDERS
+    # =====================================================
+    
+    'orders_header': '📋 *Open Orders*',
+    'orders_empty': '📭 No open orders.',
+    'orders_pending': '⏳ Pending Limit Orders',
+    
+    'order_card': (
+        '📋 *{symbol}*\n'
+        '├ Type: `{order_type}`\n'
+        '├ Side: `{side}`\n'
+        '├ Price: `{price:.6f}`\n'
+        '├ Qty: `{qty}`\n'
+        '└ Status: `{status}`'
+    ),
+    
+    'btn_cancel_order': '❌ Cancel Order',
+    'btn_cancel_all': '❌ Cancel All',
+    
+    'order_cancelled': '✅ Order cancelled.',
+    'orders_cancelled_all': '✅ All orders cancelled.',
+    
+    # =====================================================
+    # API CONFIGURATION
+    # =====================================================
+    
+    'api_settings_header': '🔗 *Exchange API Configuration*',
+    'api_settings_info': (
+        'Connect your exchange API keys to enable portfolio tracking.\n\n'
+        '⚠️ _Only read & trade permissions needed. Withdrawal NOT required._'
+    ),
+    
+    'api_bybit_demo': '🎮 Bybit Demo',
+    'api_bybit_real': '💎 Bybit Live',
+    'api_hl_testnet': '🧪 HyperLiquid Testnet',
+    'api_hl_mainnet': '🌐 HyperLiquid Mainnet',
+    
+    'api_key_set': '✅ Configured',
+    'api_key_missing': '❌ Not configured',
+    
+    'enter_api': 'Enter your API Key:',
+    'api_saved': '✅ API Key saved.',
+    'enter_secret': 'Enter your API Secret:',
+    'secret_saved': '✅ API Secret saved.',
+    
+    'api_test_success': '✅ API connection successful!',
+    'api_test_failed': '❌ API connection failed: {error}',
+    
+    'api_missing_credentials': '❌ API credentials not configured.',
+    'api_missing_notice': (
+        '⚠️ Exchange API keys are not configured.\n\n'
+        'Add your API Key and Secret in settings to enable:\n'
+        '• Portfolio tracking\n'
+        '• Position monitoring\n'
+        '• Order execution\n\n'
+        '👉 Go to 🔗 API Keys'
+    ),
+    
+    # =====================================================
+    # STRATEGY TEMPLATES
+    # =====================================================
+    
+    'button_strategy_settings': '🎯 Strategies',
+    'strategy_settings_header': '⚙️ *Strategy Configuration*',
+    'strategy_invalid': '❌ Invalid strategy',
+    
+    'strategy_info': (
+        '📊 *Strategy Templates*\n\n'
+        'Configure parameters for market analysis:\n'
+        '• Entry % — Position size calculator\n'
+        '• Stop-Loss % — Risk limit\n'
+        '• Take-Profit % — Target level\n'
+        '• ATR Settings — Volatility-based levels\n\n'
+        '⚠️ _These are educational tools for strategy testing._\n'
+        '_Not financial advice._'
+    ),
+    
+    'strat_oi': '🔀 Open Interest',
+    'strat_rsi_bb': '📊 RSI + Bollinger',
+    'strat_scryptomera': '🔮 Scryptomera',
+    'strat_scalper': '⚡ Scalper',
+    'strat_elcaro': '🔥 Enliko',
+    'strat_fibonacci': '📐 Fibonacci',
+    
+    'using_global': 'Using global settings',
+    'global_default': 'Global',
+    
+    # Strategy parameters
+    'param_percent': '📊 Entry %',
+    'param_sl': '🔻 Stop-Loss %',
+    'param_tp': '🔺 Take-Profit %',
+    'param_leverage': '⚡ Leverage',
+    'param_reset': '🔄 Reset to Global',
+    'param_direction': '🎯 Direction',
+    'param_long_settings': '📈 LONG Settings',
+    'param_short_settings': '📉 SHORT Settings',
+    
+    'dir_all': '🔄 ALL (LONG + SHORT)',
+    'dir_long_only': '📈 LONG only',
+    'dir_short_only': '📉 SHORT only',
+    
+    'prompt_entry_pct': 'Enter Entry % (position size):',
+    'prompt_sl_pct': 'Enter Stop-Loss %:',
+    'prompt_tp_pct': 'Enter Take-Profit %:',
+    'prompt_leverage': 'Enter Leverage (1-100):',
+    
+    'strat_setting_saved': '✅ {name} {param} set to {value}',
+    'settings_reset': '✅ Settings reset to global defaults.',
+    'invalid_number': '❌ Invalid number. Enter a value between 0 and 100.',
+    
+    # Global settings
+    'global_settings': '🌐 Global Settings',
+    'global_settings_header': '🌐 *Global Configuration*',
+    'global_settings_info': 'Default parameters used when strategy-specific settings are not configured.',
+    
+    # ATR settings
+    'param_atr_periods': '📈 ATR Periods',
+    'param_atr_mult': '📉 ATR Multiplier',
+    'param_atr_trigger': '🎯 ATR Trigger %',
+    'prompt_atr_periods': 'Enter ATR Periods (e.g., 7):',
+    'prompt_atr_mult': 'Enter ATR Multiplier (e.g., 1.0):',
+    'prompt_atr_trigger': 'Enter ATR Trigger % (e.g., 2.0):',
+    
+    # Break-Even settings
+    'be_settings_header': '🔒 *Break-Even Configuration*',
+    'be_settings_desc': '_Move stop-loss to entry when profit reaches trigger %_',
+    'be_enabled_label': '🔒 Break-Even',
+    'be_trigger_label': '🎯 BE Trigger %',
+    'prompt_be_trigger': 'Enter Break-Even Trigger % (e.g., 1.0):',
+    'prompt_long_be_trigger': '📈 LONG BE Trigger %\n\nEnter profit % to move SL to entry:',
+    'prompt_short_be_trigger': '📉 SHORT BE Trigger %\n\nEnter profit % to move SL to entry:',
+    'param_be_trigger': '🎯 BE Trigger %',
+    'be_moved_to_entry': '🔒 {symbol}: Stop-loss moved to entry @ {entry}',
+    'be_status_enabled': '✅ BE: {trigger}%',
+    'be_status_disabled': '❌ BE: Off',
+    
+    # Partial Take Profit
+    'partial_tp_label': '✂️ Partial TP',
+    'partial_tp_status_enabled': '✅ Partial TP enabled',
+    'partial_tp_status_disabled': '❌ Partial TP disabled',
+    'partial_tp_step1_menu': '✂️ *Partial TP - Step 1*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter:_',
+    'partial_tp_step2_menu': '✂️ *Partial TP - Step 2*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter:_',
+    'trigger_pct': 'Trigger',
+    'close_pct': 'Close',
+    'prompt_long_ptp_1_trigger': '📈 LONG Step 1: Trigger %\n\nEnter profit % to close first part:',
+    'prompt_long_ptp_1_close': '📈 LONG Step 1: Close %\n\nEnter % of position to close:',
+    'prompt_long_ptp_2_trigger': '📈 LONG Step 2: Trigger %\n\nEnter profit % to close second part:',
+    'prompt_long_ptp_2_close': '📈 LONG Step 2: Close %\n\nEnter % of position to close:',
+    'prompt_short_ptp_1_trigger': '📉 SHORT Step 1: Trigger %\n\nEnter profit % to close first part:',
+    'prompt_short_ptp_1_close': '📉 SHORT Step 1: Close %\n\nEnter % of position to close:',
+    'prompt_short_ptp_2_trigger': '📉 SHORT Step 2: Trigger %\n\nEnter profit % to close second part:',
+    'prompt_short_ptp_2_close': '📉 SHORT Step 2: Close %\n\nEnter % of position to close:',
+    'partial_tp_executed': '✂️ {symbol}: Closed {close}% at +{trigger}% profit',
+    
+    # DCA settings
+    'dca_settings': '⚙️ DCA Settings',
+    'dca_settings_header': '⚙️ *DCA Configuration*\n\n',
+    'dca_toggle': 'DCA Enabled',
+    'dca_status': 'Status',
+    'dca_description': '_Dollar Cost Averaging: Add to position on drawdown._',
+    'dca_leg1': '📉 DCA Level 1 %',
+    'dca_leg2': '📉 DCA Level 2 %',
+    'prompt_dca_leg1': 'Enter DCA Level 1 % (e.g., 10):',
+    'prompt_dca_leg2': 'Enter DCA Level 2 % (e.g., 25):',
+    'dca_setting_saved': '✅ DCA {leg} set to {value}%',
+    
+    # Coin groups
+    'param_coins_group': '🪙 Coins',
+    'select_coin_group': 'Select coin group:',
+    'select_coins_for_strategy': '🪙 *Select coins for {name}*',
+    'group_all': 'ALL',
+    'group_top': 'TOP',
+    'group_top100': 'TOP',
+    'group_volatile': 'VOLATILE',
+    'group_global': '📊 Global',
+    'group_set': '✅ Coin group set: {group}',
+    
+    # Order type
+    'param_order_type': '📤 Order Type',
+    'order_type_market': '⚡ Market',
+    'order_type_limit': '🎯 Limit',
+    
+    # =====================================================
+    # TRADING EXECUTION
+    # =====================================================
+    
+    'execution_header': '📊 *Order Execution*',
+    
+    'execution_confirm': (
+        '⚠️ *Confirm Execution*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Size: {size} USDT\n'
+        '⚡ Leverage: {leverage}x\n'
+        '🔻 SL: {sl_pct}%\n'
+        '🔺 TP: {tp_pct}%\n\n'
+        '⚠️ _Trading involves risk of loss._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'execution_success': (
+        '✅ *Order Executed*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Entry: {entry:.6f}\n'
+        '📦 Size: {size}\n'
+        '⚡ Leverage: {leverage}x\n\n'
+        '🔻 SL: {sl_price:.6f}\n'
+        '🔺 TP: {tp_price:.6f}'
+    ),
+    
+    'execution_failed': '❌ Order failed: {error}',
+    
+    # Position notifications
     'new_position': (
-        '💎 *TRADE EXECUTED!*\n\n'
+        '📊 *Position Opened*\n\n'
         '🎯 {symbol} @ {entry:.6f}\n'
-        '📊 Size: {size}\n'
+        '📦 Size: {size}\n'
         '📍 {exchange} • {market_type}'
     ),
-    'sl_auto_set':                 '🛡️ SL set @ {price:.6f}',
-    'auto_close_position':         '⚡ Auto-close: {symbol} (TF={tf})',
+    
     'position_closed': (
-        '📊 *CLOSED* `{symbol}`\n\n'
-        '📌 Reason: `{reason}`\n'
-        '🎯 Strategy: `{strategy}`\n'
+        '📊 *Position Closed*\n\n'
+        '📌 {symbol}\n'
+        '🏷️ Strategy: `{strategy}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
-        '📍 {exchange} • {market_type}'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
+        '📍 {exchange} • {market_type}\n\n'
+        '_⚠️ Past performance ≠ future results_'
     ),
-
-    # ==================== UNIFIED ENTRY TEMPLATES ====================
-    # Strategy-specific entry notifications
     
-    # OI - Open Interest signal
+    # =====================================================
+    # MARKET ANALYSIS SIGNALS
+    # =====================================================
+    
+    # Signal templates - Educational format
+    'signal_header': '📊 *Market Analysis*',
+    
+    # OI Analysis
     'oi_entry': (
-        '🐋 *OI* {side_emoji} *{side}*\n'
+        '🐋 *Open Interest Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '💰 Level: `{price:.6f}`\n'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 Target: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
         '*Accounts:*\n{accounts}\n'
-        '{atr_info}'
+        '{atr_info}\n'
+        '_⚠️ Educational analysis only_'
     ),
     
-    # Scryptomera - Algorithm signal
+    # Scryptomera Analysis
     'scryptomera_entry': (
-        '🔮 *SCRYPTOMERA* {side_emoji} *{side}*\n'
+        '🔮 *Scryptomera Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '💰 Level: `{price:.6f}`\n'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 Target: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
         '*Accounts:*\n{accounts}\n'
-        '{atr_info}'
+        '{atr_info}\n'
+        '_⚠️ Educational analysis only_'
     ),
     
-    # Scalper - Quick trade signal
+    # Scalper Analysis
     'scalper_entry': (
-        '⚡ *SCALPER* {side_emoji} *{side}*\n'
+        '⚡ *Scalper Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '💰 Level: `{price:.6f}`\n'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 Target: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
         '*Accounts:*\n{accounts}\n'
-        '{atr_info}'
+        '{atr_info}\n'
+        '_⚠️ Educational analysis only_'
     ),
     
-    # Enliko - Heatmap signal
+    # Enliko Analysis
     'elcaro_entry': (
-        '🔥 *ENLIKO* {side_emoji} *{side}*\n'
+        '🔥 *Enliko Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '💰 Level: `{price:.6f}`\n'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 Target: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
         '*Accounts:*\n{accounts}\n'
-        '{atr_info}'
+        '{atr_info}\n'
+        '_⚠️ Educational analysis only_'
     ),
     
-    # Fibonacci - Retracement signal
+    # Fibonacci Analysis
     'fibonacci_entry': (
-        '📐 *FIBONACCI* {side_emoji} *{side}*\n'
+        '📐 *Fibonacci Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
-        '🎯 TP: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
+        '💰 Level: `{price:.6f}`\n'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n'
+        '🎯 Target: `{tp_price:.6f}` ({tp_pct:.2f}%)\n\n'
         '*Accounts:*\n{accounts}\n'
-        '{atr_info}'
+        '{atr_info}\n'
+        '_⚠️ Educational analysis only_'
     ),
     
-    # RSI+BB - Technical signal
+    # RSI+BB Analysis
     'rsi_bb_entry': (
-        '📊 *RSI+BB* {side_emoji} *{side}*\n'
+        '📊 *RSI + Bollinger Analysis* {side_emoji} {side}\n'
         '────────────────\n'
         '🪙 `{symbol}`\n'
-        '💰 Entry: `{price:.6f}`\n'
+        '💰 Level: `{price:.6f}`\n'
         '📈 RSI: `{rsi}` ({rsi_zone})\n'
-        '🛡️ SL: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
-        '*Accounts:*\n{accounts}'
+        '🛡️ Risk: `{sl_price:.6f}` ({sl_pct:.2f}%)\n\n'
+        '*Accounts:*\n{accounts}\n'
+        '_⚠️ Educational analysis only_'
     ),
-
-    # ==================== UNIFIED CLOSE TEMPLATES ====================
-    # Strategy-specific close notifications
     
+    # Closed positions by strategy
     'oi_closed': (
-        '🐋 *OI CLOSED* `{symbol}`\n\n'
+        '🐋 *OI Position Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
     
     'scryptomera_closed': (
-        '🔮 *SCRYPTOMERA CLOSED* `{symbol}`\n\n'
+        '🔮 *Scryptomera Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
     
     'scalper_closed': (
-        '⚡ *SCALPER CLOSED* `{symbol}`\n\n'
+        '⚡ *Scalper Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
     
     'elcaro_closed': (
-        '🔥 *ENLIKO CLOSED* `{symbol}`\n\n'
+        '🔥 *Enliko Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
     
     'fibonacci_closed': (
-        '📐 *FIBONACCI CLOSED* `{symbol}`\n\n'
+        '📐 *Fibonacci Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
     
     'rsi_bb_closed': (
-        '📊 *RSI+BB CLOSED* `{symbol}`\n\n'
+        '📊 *RSI+BB Closed* `{symbol}`\n\n'
         '📌 Reason: `{reason}`\n'
         '🟢 Entry: `{entry:.8f}`\n'
         '🔴 Exit: `{exit:.8f}`\n'
-        '💰 Gross: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
+        '💰 P/L: `{pnl:+.2f} USDT ({pct:+.2f}%)`\n'
         '💸 Fee: `{fee:.4f} USDT`\n'
-        '💵 *Net: `{net_pnl:+.2f} USDT`*\n'
+        '💵 Net: `{net_pnl:+.2f} USDT`\n'
         '📍 {exchange} • {market_type}'
     ),
-
-    # Entry & error messages - technical format
-    'oi_limit_entry':              '🐋 OI Limit: {symbol} {side} @ {price:.6f} qty={qty}',
-    'oi_limit_error':              '❌ OI Limit failed: {msg}',
-    'oi_market_entry':             '🐋 OI Market: {symbol} {side} @ {price:.6f} qty={qty}',
-    'oi_market_error':             '❌ OI failed: {symbol} {side} - {msg}',
-    'oi_market_ok':                '🐋 OI: {symbol} {side} @ {price:.6f} qty={qty}',
-
-    'rsi_bb_limit_entry':          '📊 RSI+BB Limit: {symbol} {side} @ {price:.6f} qty={qty}',
-    'rsi_bb_market_entry':         '📊 RSI+BB Market: {symbol} {side} @ {price:.6f} qty={qty}',
-    'rsi_bb_market_ok':            '📊 RSI+BB: {symbol} {side} @ {price:.6f} RSI={rsi}',
-    'rsi_bb_market_error':         '❌ RSI+BB failed: {symbol} {side} - {msg}',
-
-    'oi_analysis':                 '🐋 OI Analysis: {symbol} {side}',
-
-    # Scryptomera - Mystic Style
-    'bitk_limit_entry':            '🔮 *Scryptomera Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 Spell cast. Destiny unfolds._',
-    'bitk_limit_error':            '❌ Scryptomera error: {msg}',
-    'bitk_market_entry':           '🔮 *Scryptomera Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'bitk_market_ok':              '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🌙 The oracle spoke. We obeyed._',
-    'bitk_market_error':           '❌ Scryptomera error\n🪙 {symbol} {side}\n\n{msg}',
-    'bitk_analysis':               '🔮 Scryptomera: {side} @ {price}\n_🌙 Ancient signals detected._',
-    'feature_scryptomera':         'Scryptomera',
-
-    # Insufficient balance error - BLACK RHETORIC: Problem + Solution + Urgency
-    'insufficient_balance_error':  '''🚨 <b>CAPITAL LOCKED!</b>
-
-💰 Your {account_type} margin is tied up in positions.
-
-<b>🧠 Smart Money Move:</b>
-• Close losing positions — _cut losses fast_
-• Reduce entry % — _risk management is key_
-• Lower leverage — _pros use 5-10x max_
-
-<i>The market waits for no one. Free your capital NOW.</i>
-
-👉 /positions — <b>Take control</b>''',
-    'insufficient_balance_error_extended': '''🚨 <b>ENTRY BLOCKED!</b>
-
-📊 Strategy: <b>{strategy}</b> tried to enter
-🪙 {symbol} {side}
-
-💰 Not enough FREE margin on {account_type}.
-
-<b>🧠 What top traders do:</b>
-• Close underwater positions immediately
-• Reduce position size for new entries
-• Use DCA ladder for better entries
-
-<i>Capital is your ammunition. Don't waste it.</i>''',
-
-    # Leverage too high error
-    'leverage_too_high_error':     '''⚠️ <b>LEVERAGE REJECTED!</b>
-
-⚙️ {symbol} only allows <b>{max_leverage}x</b> maximum.
-
-<b>💡 Pro tip:</b> Lower leverage = longer survival.
-_Top traders rarely exceed 10x._
-
-<b>Solution:</b> Adjust leverage in strategy settings.''',
-
-    # ═══════════════════════════════════════════════════════════
-    # DAILY ERROR NOTIFICATIONS (once per day per error type)
-    # ═══════════════════════════════════════════════════════════
     
-    # Zero balance notification (once per day)
-    'daily_zero_balance':          '''⚠️ <b>BALANCE ALERT</b>
-
-💰 Your <b>{account_type}</b> account has <b>$0</b> available.
-
-📊 <b>Today's missed signals:</b> {missed_count}
-
-<b>🧠 To resume trading:</b>
-• Deposit funds to your {account_type} account
-• Or switch to another account with balance
-
-<i>This is a daily summary. Signals are waiting.</i>
-
-👉 /balance — <b>Check your balance</b>''',
-
-    # API keys invalid (once per day)
-    'daily_api_keys_invalid':      '''🔑 <b>API KEYS ISSUE</b>
-
-⚠️ Your <b>{account_type}</b> API keys are invalid or expired.
-
-📊 <b>Missed signals today:</b> {missed_count}
-
-<b>🔧 To fix:</b>
-1. Go to Bybit → API Management
-2. Create new API keys
-3. Update in /api_settings
-
-<i>Without valid keys, bot cannot trade for you.</i>''',
-
-    # Account connection error (once per day)
-    'daily_connection_error':      '''🌐 <b>CONNECTION ISSUE</b>
-
-⚠️ Cannot connect to <b>{exchange}</b> for {account_type}.
-
-📊 <b>Missed signals today:</b> {missed_count}
-
-<b>Possible causes:</b>
-• Exchange maintenance
-• API rate limits
-• Network issues
-
-<i>Bot will retry automatically. Check exchange status.</i>''',
-
-    # No positions possible (margin/limits)
-    'daily_margin_exhausted':      '''📊 <b>MARGIN ALERT</b>
-
-💰 Your <b>{account_type}</b> margin is fully allocated.
-
-📊 <b>Open positions:</b> {open_count}
-📊 <b>Missed signals today:</b> {missed_count}
-
-<b>🧠 Options:</b>
-• Close losing positions to free margin
-• Reduce position sizes
-• Increase deposit
-
-<i>Capital efficiency is key to profits.</i>
-
-👉 /positions — <b>Manage positions</b>''',
+    # Technical entry logs
+    'oi_limit_entry': '🐋 OI Limit: {symbol} {side} @ {price:.6f} qty={qty}',
+    'oi_limit_error': '❌ OI Limit failed: {msg}',
+    'oi_market_entry': '🐋 OI Market: {symbol} {side} @ {price:.6f} qty={qty}',
+    'oi_market_error': '❌ OI failed: {symbol} {side} - {msg}',
+    'oi_market_ok': '🐋 OI: {symbol} {side} @ {price:.6f} qty={qty}',
     
-    # Position limit exceeded error (110090)
-    'position_limit_error':        '''🛑 <b>POSITION LIMIT HIT!</b>
-
-📊 <b>{strategy}</b> on {symbol}
-
-⚠️ You've reached maximum position size.
-
-<b>🧠 Options:</b>
-• Lower leverage (recommended)
-• Reduce entry % per trade
-• Close other positions first
-
-<i>Discipline is what separates winners from gamblers.</i>''',
-
-    # Scalper - Lightning Style
-    'scalper_limit_entry':         '⚡ *Scalper Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Trap set. Lightning waits._',
-    'scalper_limit_error':         '❌ Scalper error: {msg}',
-    'scalper_market_entry':        '⚡ *Scalper Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'scalper_market_ok':           '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_⚡ Instant strike. Maximum impact._',
-    'scalper_market_error':        '❌ Scalper error\n🪙 {symbol} {side}\n\n{msg}',
-    'scalper_analysis':            '⚡ Scalper: {side} @ {price}\n_⚡ Speed is profit._',
-    'feature_scalper':             'Scalper',
-
-    # Enliko (Heatmap) - Fire Style
-    'elcaro_limit_entry':          '🔥 *Enliko Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Liquidity zone locked. Burn incoming._',
-    'elcaro_limit_error':          '❌ Enliko error: {msg}',
-    'elcaro_market_entry':         '🔥 *Enliko Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'elcaro_market_ok':            '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_🔥 Heatmap confirmed. We burn with precision._',
-    'elcaro_market_error':         '❌ Enliko error\n🪙 {symbol} {side}\n\n{msg}',
-    'elcaro_analysis':             '🔥 Enliko Heatmap: {side} @ {price}\n_🔥 Liquidity concentration detected._',
-    'feature_elcaro':              'Enliko',
-
-    # Fibonacci - Mathematics Style
-    'fibonacci_limit_entry':       '📐 *Fibonacci Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Golden level engaged. Mathematics never fails._',
-    'fibonacci_limit_error':       '❌ Fibonacci error: {msg}',
-    'fibonacci_market_entry':      '📐 *Fibonacci Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
-    'fibonacci_market_ok':         '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%\n_📐 Phi ratio confirmed. Perfect entry._',
-    'fibonacci_market_error':      '❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}',
-    'fibonacci_analysis':          '📐 Fibonacci: {side} @ {price}\n_📐 Golden ratio aligned._',
-    'feature_fibonacci':           'Fibonacci',
-    'stats_fibonacci':             '📐 Fibonacci',
-
-    # Admin panel
-    'admin_panel':                 '👑 Admin Panel:',
-    'admin_pause':                 '⏸️ Trading & notifications paused for all.',
-    'admin_resume':                '▶️ Trading & notifications resumed for all.',
-    'admin_closed':                '✅ Closed total {count} {type}.',
-    'admin_canceled_limits':       '✅ Canceled {count} limit orders.',
-
-    # Coin groups
-    'select_coin_group':           'Select coin group:',
-    'group_all':                   'ALL',
-    'group_top':                   'TOP',
-    'group_top100':                'TOP',  # backward compatibility
-    'group_volatile':              'VOLATILE',
-    'group_set':                   '✅ Coin group set: {group}',
-
-    # RSI+BB analysis & helpers
-    'rsi_bb_analysis':     (
-        '📈 *RSI+BB analysis*\n'
-        '• Price: `{price:.6f}`\n'
-        '• RSI: `{rsi:.1f}` ({zone})\n'
-        '• BB upper: `{bb_hi:.4f}`\n'
-        '• BB lower: `{bb_lo:.4f}`\n\n'
-        '*Entering MARKET {side} by RSI+BB*'
-    ),
-    'sl_set':                      '🛑 SL={price:.6f}',
-
-    'rsi_zone_oversold':           'Oversold (<30)',
-    'rsi_zone_overbought':         'Overbought (>70)',
-    'rsi_zone_neutral':            'Neutral (30–70)',
-
-    # TP/SL validation
-    'invalid_tpsl_long': (
-        '❌ Invalid TP/SL for LONG.\n'
-        'Current price: {current:.2f}\n'
-        'Expected: SL < {current:.2f} < TP'
-    ),
-    'invalid_tpsl_short': (
-        '❌ Invalid TP/SL for SHORT.\n'
-        'Current price: {current:.2f}\n'
-        'Expected: TP < {current:.2f} < SL'
-    ),
-    'no_position_symbol':          '🚫 You have no open position on {symbol}',
-    'tpsl_set_success':            '✅ TP={tp:.2f} and SL={sl:.2f} set for {symbol}',
-
-    # Buttons & stop mode line items
-    'button_toggle_atr':           '📊 ATR',
-    'button_lang':                 '🌍 Lang',
-    'button_set_tp':               '📈 TP %',
-    'button_set_sl':               '📉 SL %',
-    'config_stop_mode':            'Stop mode: *{mode}*',
-    'config_dca':                  'DCA: Leg1=-{dca1}%, Leg2=-{dca2}%',
-
-    # Order life-cycle & updates
-    'limit_order_filled':          '✅ Limit order for {symbol} filled @ {price}',
-    'limit_order_cancelled':       '⚠️ Limit order for {symbol} (ID: {order_id}) cancelled.',
-    'fixed_sl_tp':                 '✅ {symbol}: SL set at {sl}, TP set at {tp}',
-    'tp_part':                     ', TP set at {tp_price}',
-    'sl_tp_set':                   '✅ {symbol}: SL set at {sl_price}{tp_part}',
-    'sl_set_only':                 '✅ {symbol}: SL set at {sl_price}',
-    'sl_tp_initialized':           '✅ {symbol}: SL/TP initialized at {sl}/{tp}',
-    'sl_breakeven':                '🔄 {symbol}: SL moved to breakeven at {entry}',
-    'sl_tp_updated':               '✏️ {symbol}: SL/TP updated to {sl}/{tp}',
-
-    'position_closed_error': (
-        '⚠️ Position {symbol} closed but failed to log: {error}\n'
-        'Please contact support.'
-    ),
-
-    # possible values
-    'mode_atr':                    'Wilder-ATR',
-    'mode_fixed':                  'Fixed %',
-
-    # System notices
-    'db_quarantine_notice':        '⚠️ Logs are temporarily paused. Quiet mode enabled for 1 hour.',
-
-    # Fallback
-    'fallback':                    '❓ Please use the menu buttons.',
+    'rsi_bb_limit_entry': '📊 RSI+BB Limit: {symbol} {side} @ {price:.6f} qty={qty}',
+    'rsi_bb_market_entry': '📊 RSI+BB Market: {symbol} {side} @ {price:.6f} qty={qty}',
+    'rsi_bb_market_ok': '📊 RSI+BB: {symbol} {side} @ {price:.6f} RSI={rsi}',
+    'rsi_bb_market_error': '❌ RSI+BB failed: {symbol} {side} - {msg}',
     
-    # Symbols / markers
-    'dash':                      '—',
-    'mark_yes':                  '✅',
-    'mark_no':                   '—',
-    'mark_ban':                  '⛔️',
-
-    # Access / terms / moderation
-    'banned':                    '🚫 You are blocked.',
-    'invite_only':               '🔒 Invite-only access. Please wait for admin approval.',
-    'need_terms':                '⚠️ Please accept the terms first: /terms',
-    'please_confirm':            'Please confirm:',
-    'terms_ok':                  '✅ Thank you! Terms accepted.',
-    'terms_declined':            '❌ You declined the terms. Access is closed. You can return with /terms.',
-    'usage_approve':             'Usage: /approve <user_id>',
-    'usage_ban':                 'Usage: /ban <user_id>',
-    'not_allowed':               'Not allowed',
-    'bad_payload':               'Bad payload',
-    'unknown_action':            'Unknown action',
-
-    # Admin: new user notification
-    'title':                     'New user',
-    'wave':                      '👋',
-    'admin_new_user_html': (
-        '<b>{wave} {title}</b>\n'
-        '• ID: <code>{uid}</code>\n'
-        '• Name: {name}\n'
-        '• Username: {uname}\n'
-        '• Lang: {lang}\n'
-        '• Allowed: {allowed}  Ban: {banned}\n'
+    'oi_analysis': '🐋 OI Analysis: {symbol} {side}',
+    
+    # Scryptomera
+    'bitk_limit_entry': '🔮 *Scryptomera Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_limit_error': '❌ Scryptomera error: {msg}',
+    'bitk_market_entry': '🔮 *Scryptomera Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_ok': '🔮 *Scryptomera: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'bitk_market_error': '❌ Scryptomera error\n🪙 {symbol} {side}\n\n{msg}',
+    'bitk_analysis': '🔮 Scryptomera: {side} @ {price}',
+    'feature_scryptomera': 'Scryptomera',
+    
+    # Scalper
+    'scalper_limit_entry': '⚡ *Scalper Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_limit_error': '❌ Scalper error: {msg}',
+    'scalper_market_entry': '⚡ *Scalper Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_ok': '⚡ *Scalper: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'scalper_market_error': '❌ Scalper error\n🪙 {symbol} {side}\n\n{msg}',
+    'scalper_analysis': '⚡ Scalper: {side} @ {price}',
+    'feature_scalper': 'Scalper',
+    
+    # Enliko
+    'elcaro_limit_entry': '🔥 *Enliko Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_limit_error': '❌ Enliko error: {msg}',
+    'elcaro_market_entry': '🔥 *Enliko Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_ok': '🔥 *Enliko: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'elcaro_market_error': '❌ Enliko error\n🪙 {symbol} {side}\n\n{msg}',
+    'elcaro_analysis': '🔥 Enliko: {side} @ {price}',
+    'feature_elcaro': 'Enliko',
+    
+    # Fibonacci
+    'fibonacci_limit_entry': '📐 *Fibonacci Limit*\n• {symbol} {side}\n• Price: {price:.6f}\n• Entry Zone: {entry_zone}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_limit_error': '❌ Fibonacci error: {msg}',
+    'fibonacci_market_entry': '📐 *Fibonacci Market*\n• {symbol} {side}\n• Price: {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_ok': '📐 *Fibonacci: {side}*\n• {symbol} @ {price:.6f}\n• Qty: {qty}\n• SL: {sl_pct}%',
+    'fibonacci_market_error': '❌ Fibonacci error\n🪙 {symbol} {side}\n\n{msg}',
+    'fibonacci_analysis': '📐 Fibonacci: {side} @ {price}',
+    'feature_fibonacci': 'Fibonacci',
+    'stats_fibonacci': '📐 Fibonacci',
+    
+    # =====================================================
+    # ERRORS & NOTIFICATIONS
+    # =====================================================
+    
+    # Balance errors - Educational tone
+    'insufficient_balance_error': (
+        '⚠️ <b>Insufficient Margin</b>\n\n'
+        '💰 Your {account_type} account margin is fully allocated.\n\n'
+        '<b>Options:</b>\n'
+        '• Close existing positions to free margin\n'
+        '• Reduce position size (Entry %)\n'
+        '• Lower leverage setting\n\n'
+        '<i>Risk management is essential in trading.</i>\n\n'
+        '👉 /positions — Manage positions'
     ),
-    'btn_approve':               '✅ Approve',
-    'btn_ban':                   '⛔️ Ban',
-    'admin_notify_fail':         'Failed to notify admin: {e}',
-    'moderation_approved':       '✅ Approved: {target}',
-    'moderation_banned':         '⛔️ Banned: {target}',
-    'approved_user_dm':          '✅ Access approved. Press /start.',
-    'banned_user_dm':            '🚫 You are blocked.',
-
-    # Admin: users list / navigation
-    'users_not_found':           '😕 No users found.',
-    'users_page_info':           '📄 Page {page}/{pages} — total: {total}',
+    
+    'insufficient_balance_error_extended': (
+        '⚠️ <b>Order Not Placed</b>\n\n'
+        '📊 Strategy: <b>{strategy}</b>\n'
+        '🪙 {symbol} {side}\n\n'
+        '💰 Insufficient free margin on {account_type}.\n\n'
+        '<b>Suggestions:</b>\n'
+        '• Review open positions\n'
+        '• Adjust position sizing\n'
+        '• Consider risk-reward ratio\n\n'
+        '<i>Proper capital allocation is key.</i>'
+    ),
+    
+    'leverage_too_high_error': (
+        '⚠️ <b>Leverage Limit</b>\n\n'
+        '⚙️ {symbol} maximum leverage is <b>{max_leverage}x</b>.\n\n'
+        '<b>Note:</b> Lower leverage reduces liquidation risk.\n'
+        'Adjust leverage in strategy settings.'
+    ),
+    
+    'position_limit_error': (
+        '⚠️ <b>Position Limit Reached</b>\n\n'
+        '📊 <b>{strategy}</b> on {symbol}\n\n'
+        'Maximum position size limit reached.\n\n'
+        '<b>Options:</b>\n'
+        '• Lower leverage\n'
+        '• Reduce entry %\n'
+        '• Close other positions'
+    ),
+    
+    # Daily notifications
+    'daily_zero_balance': (
+        '⚠️ <b>Balance Notice</b>\n\n'
+        '💰 Your <b>{account_type}</b> account shows <b>$0</b> available.\n\n'
+        '<b>To enable tracking:</b>\n'
+        '• Deposit funds to your exchange account\n'
+        '• Or switch to another configured account\n\n'
+        '👉 /balance — Check your balance'
+    ),
+    
+    'daily_api_keys_invalid': (
+        '🔑 <b>API Configuration Issue</b>\n\n'
+        '⚠️ Your <b>{account_type}</b> API keys appear invalid.\n\n'
+        '<b>To resolve:</b>\n'
+        '1. Check API key status on exchange\n'
+        '2. Create new API keys if needed\n'
+        '3. Update in /api_settings\n\n'
+        '<i>Valid API keys are required for portfolio tracking.</i>'
+    ),
+    
+    'daily_connection_error': (
+        '🌐 <b>Connection Notice</b>\n\n'
+        '⚠️ Unable to connect to <b>{exchange}</b> for {account_type}.\n\n'
+        '<b>Possible causes:</b>\n'
+        '• Exchange maintenance\n'
+        '• API rate limits\n'
+        '• Network issues\n\n'
+        '<i>Connection will be retried automatically.</i>'
+    ),
+    
+    'daily_margin_exhausted': (
+        '📊 <b>Margin Notice</b>\n\n'
+        '💰 Your <b>{account_type}</b> margin is fully allocated.\n\n'
+        '📊 Open positions: {open_count}\n\n'
+        '<b>Options:</b>\n'
+        '• Close positions to free margin\n'
+        '• Reduce position sizes\n'
+        '• Increase account balance\n\n'
+        '👉 /positions — Manage positions'
+    ),
+    
+    # API errors
+    'bybit_invalid_response': '❌ Exchange returned invalid response.',
+    'bybit_error': '❌ Exchange error {path}: {data}',
+    
+    # SL/TP notifications
+    'sl_auto_set': '🛡️ Stop-loss set @ {price:.6f}',
+    'auto_close_position': '⚡ Auto-close: {symbol} (TF={tf})',
+    'limit_order_filled': '✅ Limit order for {symbol} filled @ {price}',
+    'limit_order_cancelled': '⚠️ Limit order for {symbol} cancelled.',
+    'sl_tp_set': '✅ {symbol}: SL @ {sl_price}{tp_part}',
+    'sl_set_only': '✅ {symbol}: SL @ {sl_price}',
+    'sl_tp_initialized': '✅ {symbol}: SL/TP initialized @ {sl}/{tp}',
+    'sl_breakeven': '🔄 {symbol}: SL moved to breakeven @ {entry}',
+    'sl_tp_updated': '✏️ {symbol}: SL/TP updated to {sl}/{tp}',
+    'fixed_sl_tp': '✅ {symbol}: SL @ {sl}, TP @ {tp}',
+    'tp_part': ', TP @ {tp_price}',
+    'sl_set': '🛑 SL={price:.6f}',
+    
+    # =====================================================
+    # TRADING STATISTICS
+    # =====================================================
+    
+    'button_stats': '📊 Statistics',
+    'stats_title': 'Performance Metrics',
+    'stats_strategy': 'Strategy',
+    'stats_period': 'Period',
+    'stats_overview': 'Overview',
+    'stats_total_trades': 'Total Trades',
+    'stats_closed': 'Closed',
+    'stats_open': 'Open',
+    'stats_results': 'Results',
+    'stats_winrate': 'Win Rate',
+    'stats_total_r': 'Total R',
+    'stats_avg_r': 'Avg R',
+    'stats_by_direction': 'By Direction',
+    'stats_long': 'Long',
+    'stats_short': 'Short',
+    'stats_pnl': 'Profit/Loss',
+    'stats_gross_profit': 'Gross Profit',
+    'stats_gross_loss': 'Gross Loss',
+    'stats_total_pnl': 'Total P/L',
+    'stats_realized_pnl': 'Realized',
+    'stats_unrealized_pnl': 'Unrealized',
+    'stats_combined_pnl': 'Combined',
+    'stats_profit_factor': 'Profit Factor',
+    'stats_strategy_settings': 'Strategy Settings',
+    'settings_entry_pct': 'Entry',
+    'settings_leverage': 'Leverage',
+    'settings_trading_mode': 'Mode',
+    'settings_direction': 'Direction',
+    
+    'stats_all': '📈 All',
+    'stats_oi': '📉 OI',
+    'stats_rsi_bb': '📊 RSI+BB',
+    'stats_scryptomera': '🔮 Scryptomera',
+    'stats_scalper': '⚡ Scalper',
+    'stats_elcaro': '🔥 Enliko',
+    'stats_spot': '💹 Spot',
+    'stats_spot_title': 'Spot Metrics',
+    'stats_spot_config': 'Configuration',
+    'stats_spot_holdings': 'Holdings',
+    'stats_spot_summary': 'Summary',
+    'stats_spot_current_value': 'Current Value',
+    'stats_period_all': 'All time',
+    'stats_period_today': '24h',
+    'stats_period_week': 'Week',
+    'stats_period_month': 'Month',
+    'stats_demo': '🎮 Demo',
+    'stats_real': '💎 Live',
+    
+    'stats_disclaimer': '⚠️ _Past performance does not guarantee future results._',
+    
+    # =====================================================
+    # SUBSCRIPTION & PREMIUM
+    # =====================================================
+    
+    # No aggressive marketing - Educational framing
+    'no_license': (
+        '📊 *Premium Features*\n\n'
+        'Unlock additional educational tools:\n'
+        '• Advanced strategy templates\n'
+        '• Extended analytics\n'
+        '• Priority support\n\n'
+        '👉 /subscribe — View plans'
+    ),
+    
+    'no_license_trading': (
+        '📊 *Feature Requires Premium*\n\n'
+        'This educational tool requires a subscription.\n\n'
+        '👉 /subscribe — View plans'
+    ),
+    
+    'license_required': (
+        '🔒 *Premium Feature*\n\n'
+        'This requires {required} subscription.\n\n'
+        '👉 /subscribe — Upgrade'
+    ),
+    
+    'trial_demo_only': (
+        '⚠️ *Trial Limitation*\n\n'
+        'Trial access is limited to demo environment.\n\n'
+        '👉 /subscribe — Unlock live features'
+    ),
+    
+    'basic_strategy_limit': (
+        '⚠️ *Plan Limitation*\n\n'
+        'Basic plan includes: {strategies}\n\n'
+        '👉 /subscribe — Upgrade for all strategies'
+    ),
+    
+    # Subscribe menu - Professional, no hype
+    'subscribe_menu_header': (
+        '💎 *Enliko Premium*\n\n'
+        'Choose your subscription level:'
+    ),
+    
+    'subscribe_menu_info': '_Select a plan to continue:_',
+    
+    'btn_premium': '💎 Premium',
+    'btn_basic': '🥈 Basic',
+    'btn_trial': '🎁 Free Trial',
+    'btn_enter_promo': '🎟 Promo Code',
+    'btn_my_subscription': '📋 My Subscription',
+    
+    # Premium plan - Professional description
+    'premium_title': '💎 *Premium Plan*',
+    'premium_desc': (
+        '*Features included:*\n\n'
+        '✅ All strategy templates\n'
+        '✅ Demo & Live environments\n'
+        '✅ Priority support\n'
+        '✅ ATR-based risk management\n'
+        '✅ DCA configuration\n'
+        '✅ All platform updates\n\n'
+        '⚠️ _Trading involves risk. Not financial advice._'
+    ),
+    
+    'premium_1m': '💎 1 Month — {price} ELC',
+    'premium_3m': '💎 3 Months — {price} ELC',
+    'premium_6m': '💎 6 Months — {price} ELC',
+    'premium_12m': '💎 12 Months — {price} ELC',
+    
+    # Basic plan
+    'basic_title': '🥈 *Basic Plan*',
+    'basic_desc': (
+        '*Features included:*\n\n'
+        '✅ Full Demo access\n'
+        '✅ Live: OI, RSI+BB, Scryptomera, Scalper\n'
+        '⛔ Enliko, Fibonacci — Premium only\n'
+        '✅ Standard support\n'
+        '✅ ATR-based risk management\n\n'
+        '⚠️ _Trading involves risk. Not financial advice._'
+    ),
+    
+    'basic_1m': '🥈 1 Month — {price} ELC',
+    
+    # Trial plan
+    'trial_title': '🎁 *Free Trial — 7 Days*',
+    'trial_desc': (
+        '*Try before you subscribe:*\n\n'
+        '✅ Full Demo access\n'
+        '✅ All strategy templates\n'
+        '✅ 7 days duration\n'
+        '✅ No payment required\n\n'
+        '⚠️ _Educational tools only. Not financial advice._'
+    ),
+    
+    'trial_activate': '🎁 Activate Trial',
+    'trial_already_used': '⚠️ Trial already used. Choose a paid plan.',
+    'trial_activated': (
+        '🎉 *Trial Activated!*\n\n'
+        '⏰ You have 7 days of access.\n\n'
+        'Explore all educational features in demo mode.\n\n'
+        '⚠️ _Remember: Trading involves risk._'
+    ),
+    
+    # Payment
+    'payment_select_method': '💳 *Select Payment Method*',
+    'btn_pay_elc': '◈ Pay with ELC',
+    'btn_pay_ton': '💎 TON',
+    'payment_elc_title': '◈ Payment via ELC Token',
+    'payment_elc_desc': 'Amount: {amount} ELC for {plan} ({period}).',
+    'payment_ton_title': '💎 Payment via TON',
+    'payment_ton_desc': 'TON payments are currently unavailable.',
+    'btn_verify_ton': '✅ Verify Payment',
+    'btn_check_again': '🔄 Check Again',
+    'payment_processing': '⏳ Processing...',
+    'payment_verifying': '⏳ Verifying...',
+    'payment_success': '🎉 Payment successful!\n\n{plan} activated until {expires}.',
+    'payment_failed': '❌ Payment failed: {error}',
+    'payment_ton_not_configured': '❌ TON payments unavailable.',
+    'payment_session_expired': '❌ Session expired. Please try again.',
+    'payment_elc_insufficient': (
+        '❌ Insufficient ELC balance.\n\n'
+        'Your balance: {balance} ELC\n'
+        'Required: {required} ELC'
+    ),
+    
+    # =====================================================
+    # WALLET
+    # =====================================================
+    
+    'wallet_title': '◈ *ELC Wallet*',
+    'wallet_balance': (
+        '💰 *Your ELC Balance*\n\n'
+        '◈ Available: *{balance} ELC*\n'
+        '📈 Staked: *{staked} ELC*\n'
+        '🎁 Rewards: *{rewards} ELC*\n\n'
+        '💵 Value: *${total_usd}*'
+    ),
+    
+    'wallet_address': '📍 Address: `{address}`',
+    'wallet_btn_deposit': '📥 Deposit',
+    'wallet_btn_withdraw': '📤 Withdraw',
+    'wallet_btn_stake': '📈 Stake',
+    'wallet_btn_unstake': '📤 Unstake',
+    'wallet_btn_history': '📋 History',
+    'wallet_btn_back': '« Back',
+    
+    'wallet_deposit_title': '📥 *Deposit ELC*',
+    'wallet_deposit_desc': 'Send ELC tokens to:\n\n`{address}`',
+    'wallet_deposit_demo': '🎁 Get 100 ELC (Demo)',
+    'wallet_deposit_success': '✅ Deposited {amount} ELC.',
+    
+    'wallet_withdraw_title': '📤 *Withdraw ELC*',
+    'wallet_withdraw_desc': 'Enter destination address and amount:',
+    'wallet_withdraw_success': '✅ Withdrawn {amount} ELC to {address}',
+    'wallet_withdraw_failed': '❌ Withdrawal failed: {error}',
+    
+    'wallet_stake_title': '📈 *Stake ELC*',
+    'wallet_stake_desc': (
+        'Stake ELC tokens to earn rewards.\n\n'
+        '💰 Available: {available} ELC\n'
+        '📈 Staked: {staked} ELC\n'
+        '🎁 Rewards: {rewards} ELC'
+    ),
+    
+    'wallet_stake_success': '✅ Staked {amount} ELC.',
+    'wallet_unstake_success': '✅ Unstaked {amount} ELC + {rewards} ELC rewards.',
+    
+    # ELC minimum requirements
+    'elc_min_convert': '❌ Minimum 10 ELC required for conversion',
+    'elc_min_stake': '❌ Minimum 1 ELC required for staking',
+    
+    'wallet_history_title': '📋 *Transaction History*',
+    'wallet_history_empty': 'No transactions yet.',
+    'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
+    
+    # My subscription
+    'my_subscription_header': '📋 *My Subscription*',
+    'my_subscription_active': (
+        '📋 *Current Plan:* {plan}\n'
+        '⏰ *Expires:* {expires}\n'
+        '📅 *Days Left:* {days}'
+    ),
+    'my_subscription_none': '❌ No active subscription.\n\n👉 /subscribe',
+    'my_subscription_history': '📜 *Payment History:*',
+    'subscription_expiring_soon': '⚠️ Your {plan} expires in {days} days.\n\n👉 /subscribe',
+    
+    # Promo codes
+    'promo_enter': '🎟 Enter promo code:',
+    'promo_success': '🎉 Promo applied!\n\n{plan} activated for {days} days.',
+    'promo_invalid': '❌ Invalid promo code.',
+    'promo_expired': '❌ Promo code expired.',
+    'promo_used': '❌ Promo code already used.',
+    'promo_already_used': '❌ You already used this promo.',
+    
+    # =====================================================
+    # ADMIN PANEL
+    # =====================================================
+    
+    'admin_panel': '👑 Admin Panel:',
+    'admin_pause': '⏸️ Notifications paused.',
+    'admin_resume': '▶️ Notifications resumed.',
+    'admin_closed': '✅ Closed {count} {type}.',
+    'admin_canceled_limits': '✅ Cancelled {count} limit orders.',
+    
+    'admin_pause_all': '⏸️ Pause All',
+    'admin_resume_all': '▶️ Resume',
+    'admin_close_longs': '🔒 Close LONGs',
+    'admin_close_shorts': '🔓 Close SHORTs',
+    'admin_cancel_limits': '❌ Cancel Limits',
+    'admin_users': '👥 Users',
+    
+    'admin_pause_notice': '⏸️ All notifications paused.',
+    'admin_resume_notice': '▶️ Notifications resumed.',
+    'type_longs': 'longs',
+    'type_shorts': 'shorts',
+    'admin_closed_total': '✅ Closed {count} {type}.',
+    'admin_canceled_limits_total': '✅ Cancelled {count} limit orders.',
+    
+    # Admin license management
+    'admin_license_menu': '🔑 *License Management*',
+    'admin_btn_grant_license': '🎁 Grant',
+    'admin_btn_view_licenses': '📋 View',
+    'admin_btn_create_promo': '🎟 Create Promo',
+    'admin_btn_view_promos': '📋 Promos',
+    'admin_btn_expiring_soon': '⚠️ Expiring',
+    'admin_grant_select_type': 'Select type:',
+    'admin_grant_select_period': 'Select period:',
+    'admin_grant_enter_user': 'Enter user ID:',
+    'admin_license_granted': '✅ {plan} granted to {uid} for {days} days.',
+    'admin_license_extended': '✅ Extended by {days} days for {uid}.',
+    'admin_license_revoked': '✅ License revoked for {uid}.',
+    'admin_promo_created': '✅ Promo: {code}\nType: {type}\nDays: {days}\nMax uses: {max}',
+    
+    # Admin user management
+    'admin_users_management': '👥 Users',
+    'admin_licenses': '🔑 Licenses',
+    'admin_search_user': '🔍 Search',
+    'admin_users_menu': '👥 *User Management*',
+    'admin_all_users': '👥 All',
+    'admin_active_users': '✅ Active',
+    'admin_banned_users': '🚫 Banned',
+    'admin_no_license': '❌ No License',
+    'admin_no_users_found': 'No users found.',
+    'admin_enter_user_id': '🔍 Enter user ID:',
+    'admin_invalid_user_id': '❌ Invalid user ID. Enter a number.',
+    'admin_user_found': '✅ User {uid} found.',
+    'admin_user_not_found': '❌ User {uid} not found.',
+    'admin_invalid_user_id': '❌ Invalid user ID.',
+    'admin_view_card': '👤 View',
+    
+    # User card
+    'admin_user_card': (
+        '👤 *User*\n\n'
+        '📋 ID: `{uid}`\n'
+        '{status_emoji} Status: {status}\n'
+        '{license_emoji} License: {license_type}\n'
+        '📅 Expires: {license_expires}\n'
+        '🌐 Language: {lang}\n'
+        '📊 Mode: {trading_mode}\n'
+        '💰 Entry %: {percent}%\n\n'
+        '📊 Positions: {positions}\n'
+        '📈 Trades: {trades}\n'
+        '💰 P/L: {pnl}\n'
+        '📅 First seen: {first_seen}'
+    ),
+    
     'user_card_html': (
         '<b>👤 User</b>\n'
         '• ID: <code>{uid}</code>\n'
@@ -955,505 +1063,6 @@ _Top traders rarely exceed 10x._
         '• Terms: {terms}\n'
         '• % per trade: <code>{percent}</code>'
     ),
-    'btn_blacklist':             '🚫 Blacklist',
-    'btn_delete_user':           '🗑 Delete from DB',
-    'nav_caption':               '🧭 Navigation:',
-    'bad_page':                  'Invalid page.',
-    'admin_user_delete_fail':    '❌ Failed to delete {target}: {error}',
-    'admin_user_deleted':        '🗑 User {target} deleted from DB.',
-    'user_access_approved':      '✅ Access approved. Press /start.',
-
-    # Admin panel & actions (buttons + notices)
-    'admin_pause_all':           '⏸️ Pause for all',
-    'admin_resume_all':          '▶️ Resume',
-    'admin_close_longs':         '🔒 Close all LONGs',
-    'admin_close_shorts':        '🔓 Close all SHORTs',
-    'admin_cancel_limits':       '❌ Delete limit orders',
-    'admin_users':               '👥 Users',
-    'admin_pause_notice':        '⏸️ Trading & notifications paused for all.',
-    'admin_resume_notice':       '▶️ Trading & notifications resumed for all.',
-    'type_longs':                'longs',
-    'type_shorts':               'shorts',
-    'admin_closed_total':        '✅ Closed total {count} {type}.',
-    'admin_canceled_limits_total':'✅ Canceled {count} limit orders.',
-
-    # Terms buttons
-    'terms_btn_accept':          '✅ Accept',
-    'terms_btn_decline':         '❌ Decline',
-
-    # Market emojis (signal colors)
-    'emoji_long':                '🟢',
-    'emoji_short':               '🔴',
-    'emoji_neutral':             '⚪️',
-
-    # Strategy Settings
-    'button_strategy_settings':      '🎯 Strategies',
-    'strategy_settings_header':      '⚙️ *Strategy Settings*',
-    'strategy_param_header':         '⚙️ *{name} Settings*',
-    'using_global':                  'Using global settings',
-    'global_default':                'Global',
-    'strat_oi':                      '🔀 OI',
-    'strat_rsi_bb':                  '📊 RSI+BB',
-    'strat_scryptomera':             '🔮 Scryptomera',
-    'strat_scalper':                 '🎯 Scalper',
-    'strat_elcaro':                  '🔥 Enliko',
-    'strat_fibonacci':               '📐 Fibonacci',
-    'dca_settings':                  '⚙️ DCA Settings',
-    'dca_settings_header':           '⚙️ *DCA Settings (Futures)*\n\n',
-    'dca_toggle':                    'DCA Enabled',
-    'dca_status':                    'Status',
-    'dca_description':               '_DCA will add to position when price moves against you._',
-    'dca_leg1':                      '📉 DCA Leg 1 %',
-    'dca_leg2':                      '📉 DCA Leg 2 %',
-    'param_percent':                 '📊 Entry %',
-    'param_sl':                      '🔻 Stop-Loss %',
-    'param_tp':                      '🔺 Take-Profit %',
-    'param_reset':                   '🔄 Reset to Global',
-    'prompt_entry_pct':              'Enter Entry % (risk per trade):',
-    'prompt_sl_pct':                 'Enter Stop-Loss %:',
-    'prompt_tp_pct':                 'Enter Take-Profit %:',
-    'prompt_dca_leg1':               'Enter DCA Leg 1 % (e.g., 10):',
-    'prompt_dca_leg2':               'Enter DCA Leg 2 % (e.g., 25):',
-    'prompt_atr_periods':            'Enter ATR Periods (e.g., 7):',
-    'prompt_atr_mult':               'Enter ATR Multiplier for trailing SL step (e.g., 1.0):',
-    'prompt_atr_trigger':            'Enter ATR Trigger % to activate trailing (e.g., 2.0):',
-    'settings_reset':                'Settings reset to global',
-    'strat_setting_saved':           '✅ {name} {param} set to {value}',
-    'dca_setting_saved':             '✅ DCA {leg} set to {value}%',
-    'invalid_number':                '❌ Invalid number. Enter a value between 0 and 100.',
-    'dca_10pct':                     'DCA −{pct}%: avg down on {symbol} qty={qty} @ {price}',
-    'dca_25pct':                     'DCA −{pct}%: avg down on {symbol} qty={qty} @ {price}',
-
-    # ATR settings UI
-    'param_atr_periods':             '📈 ATR Periods',
-    'param_atr_mult':                '📉 ATR Multiplier (SL step)',
-    'param_atr_trigger':             '🎯 ATR Trigger %',
-    
-    # Break-Even settings UI
-    'be_settings_header':            '🔒 *Break-Even Settings*',
-    'be_settings_desc':              '_Move SL to entry when profit reaches trigger %_',
-    'be_enabled_label':              '🔒 Break-Even',
-    'be_trigger_label':              '🎯 BE Trigger %',
-    'prompt_be_trigger':             'Enter Break-Even Trigger % (e.g., 1.0):',
-    'prompt_long_be_trigger':        '📈 LONG BE Trigger %\n\nEnter profit % to move SL to entry:',
-    'prompt_short_be_trigger':       '📉 SHORT BE Trigger %\n\nEnter profit % to move SL to entry:',
-    'param_be_trigger':              '🎯 BE Trigger %',
-    'be_moved_to_entry':             '🔒 {symbol}: SL moved to break-even @ {entry}',
-    'be_status_enabled':             '✅ BE: {trigger}%',
-    'be_status_disabled':            '❌ BE: Off',
-    
-    # Partial Take Profit settings UI (срез маржи)
-    'partial_tp_label':              '✂️ Partial TP',
-    'partial_tp_status_enabled':     '✅ Partial TP enabled',
-    'partial_tp_status_disabled':    '❌ Partial TP disabled',
-    'partial_tp_step1_menu':         '✂️ *Partial TP - Step 1*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_',
-    'partial_tp_step2_menu':         '✂️ *Partial TP - Step 2*\n\nClose {close}% of position at +{trigger}% profit\n\n_Select parameter to change:_',
-    'trigger_pct':                   'Trigger',
-    'close_pct':                     'Close',
-    'prompt_long_ptp_1_trigger':     '📈 LONG Step 1: Trigger %\n\nEnter profit % to close first part:',
-    'prompt_long_ptp_1_close':       '📈 LONG Step 1: Close %\n\nEnter % of position to close:',
-    'prompt_long_ptp_2_trigger':     '📈 LONG Step 2: Trigger %\n\nEnter profit % to close second part:',
-    'prompt_long_ptp_2_close':       '📈 LONG Step 2: Close %\n\nEnter % of position to close:',
-    'prompt_short_ptp_1_trigger':    '📉 SHORT Step 1: Trigger %\n\nEnter profit % to close first part:',
-    'prompt_short_ptp_1_close':      '📉 SHORT Step 1: Close %\n\nEnter % of position to close:',
-    'prompt_short_ptp_2_trigger':    '📉 SHORT Step 2: Trigger %\n\nEnter profit % to close second part:',
-    'prompt_short_ptp_2_close':      '📉 SHORT Step 2: Close %\n\nEnter % of position to close:',
-    'partial_tp_executed':           '✂️ {symbol}: Closed {close}% at +{trigger}% profit',
-
-    # Hardcoded strings fix
-    'terms_unavailable':             'Terms of Service are unavailable. Please contact the admin.',
-    'terms_confirm_prompt':          'Please confirm:',
-    'your_id':                       'Your ID: {uid}',
-    'error_validation':              '❌ {msg}',
-    'error_generic':                 'Error: {msg}',
-    'error_fetch_balance':           '❌ Error fetching balance: {error}',
-    'error_fetch_orders':            '❌ Error fetching orders: {error}',
-    'error_occurred':                '❌ Error: {error}',
-
-    # Trading Statistics
-    'button_stats':                  '📊 Statistics',
-    'stats_title':                   'Trading Statistics',
-    'stats_strategy':                'Strategy',
-    'stats_period':                  'Period',
-    'stats_overview':                'Overview',
-    'stats_total_trades':            'Total trades',
-    'stats_closed':                  'Closed',
-    'stats_open':                    'Open',
-    'stats_results':                 'Results',
-    'stats_winrate':                 'Winrate',
-    'stats_total_r':                 'Total R',
-    'stats_avg_r':                   'Avg R',
-    'stats_by_direction':            'By Direction',
-    'stats_long':                    'Long',
-    'stats_short':                   'Short',
-    'stats_pnl':                     'Profit/Loss',
-    'stats_gross_profit':            'Profit',
-    'stats_gross_loss':              'Loss',
-    'stats_total_pnl':               'Total P/L',
-    'stats_realized_pnl':            'Realized',
-    'stats_unrealized_pnl':          'Unrealized',
-    'stats_combined_pnl':            'Combined',
-    'stats_profit_factor':           'PF',
-    'stats_strategy_settings':       'Strategy Settings',
-    'settings_entry_pct':            'Entry',
-    'settings_leverage':             'Leverage',
-    'settings_trading_mode':         'Mode',
-    'settings_direction':            'Direction',
-    'stats_all':                     '📈 All',
-    'stats_oi':                      '📉 OI',
-    'stats_rsi_bb':                  '📊 RSI+BB',
-    'stats_scryptomera':             '🐱 Scryptomera',
-    'stats_scalper':                 '⚡ Scalper',
-    'stats_elcaro':                  '🔥 Enliko',
-    'stats_spot':                    '💹 Spot',
-    'stats_spot_title':              'Spot DCA Statistics',
-    'stats_spot_config':             'Configuration',
-    'stats_spot_holdings':           'Holdings',
-    'stats_spot_summary':            'Summary',
-    'stats_spot_current_value':      'Current Value',
-    'stats_period_all':              'All time',
-    'stats_period_today':            '24h',
-    'stats_period_week':             'Week',
-    'stats_period_month':            'Month',
-    'stats_demo':                    '🔵 Demo',
-    'stats_real':                    '🟢 Real',
-
-    # Scryptomera direction settings
-    'param_direction': '🎯 Direction',
-    'param_long_settings': '📈 LONG Settings',
-    'param_short_settings': '📉 SHORT Settings',
-    'dir_all': '🔄 ALL (LONG + SHORT)',
-    'dir_long_only': '📈 LONG only',
-    'dir_short_only': '📉 SHORT only',
-    'scrypto_side_header': '{emoji} *Scryptomera {side} Settings*',
-    'scalper_side_header': '{emoji} *Scalper {side} Settings*',
-    'global_settings': '🌐 Global Settings',
-    'global_settings_header': '🌐 *Global Trading Settings*',
-    'global_settings_info': 'These settings are used as defaults when strategy-specific settings are not configured.',
-    'prompt_long_entry_pct': '📈 LONG Entry % (risk per trade):',
-    'prompt_long_sl_pct': '📈 LONG Stop-Loss %:',
-    'prompt_long_tp_pct': '📈 LONG Take-Profit %:',
-    'prompt_short_entry_pct': '📉 SHORT Entry % (risk per trade):',
-    'prompt_short_sl_pct': '📉 SHORT Stop-Loss %:',
-    'prompt_short_tp_pct': '📉 SHORT Take-Profit %:',
-
-    # Order type settings
-    'param_order_type': '📤 Order Type',
-    'order_type_market': '⚡ Market orders',
-    'order_type_limit': '🎯 Limit orders',
-
-    # Leverage settings
-    'param_leverage': '⚡ Leverage',
-    'prompt_leverage': 'Enter Leverage (1-100):',
-    'auto_default': 'Auto',
-
-    # Coins group per strategy
-    'param_coins_group': '🪙 Coins',
-    'select_coins_for_strategy': '🪙 *Select coins group for {name}*',
-    'group_global': '📊 Global (use common setting)',
-
-    # Enliko AI
-    'elcaro_ai_info': '🤖 *AI-Powered Trading*',
-    'elcaro_ai_desc': '_All parameters are parsed from AI signals automatically:_',
-
-    # Fibonacci
-    'fibonacci_info': '📐 *Fibonacci Extension Strategy*',
-    'fibonacci_desc': '_Entry, SL, TP - from Fibonacci levels in signal._',
-    'prompt_min_quality': 'Enter Min Quality % (0-100):',
-
-    # Limit Ladder
-    'limit_ladder': '📉 Limit Ladder',
-    'limit_ladder_header': '📉 *Limit Ladder Settings*',
-    'limit_ladder_settings': '⚙️ Ladder Settings',
-    'ladder_count': 'Number of orders',
-    'ladder_info': 'Limit orders placed below entry for DCA. Each order has a % offset from entry and a % of deposit.',
-    'prompt_ladder_pct_entry': '📉 Enter % below entry price for order {idx}:',
-    'prompt_ladder_pct_deposit': '💰 Enter % of deposit for order {idx}:',
-    'ladder_order_saved': '✅ Order {idx} saved: -{pct_entry}% @ {pct_deposit}% deposit',
-    'ladder_orders_placed': '📉 Placed {count} ladder limit orders for {symbol}',
-
-    # =====================================================
-    # LICENSING SYSTEM
-    # =====================================================
-    
-    # License status messages - BLACK RHETORIC: Loss Aversion + FOMO
-    'no_license': '''🚨 *ACCESS DENIED*
-
-While you're hesitating, *847 traders* are already profiting.
-
-💸 Every minute without Enliko = missed opportunities
-⏰ Markets don't wait. Neither should you.
-
-👉 /subscribe — _Unlock your unfair advantage NOW_''',
-    'no_license_trading': '''🚨 *TRADING LOCKED*
-
-Your competitors are making money RIGHT NOW with Enliko.
-
-❌ Manual trading = emotional mistakes
-✅ Enliko = cold AI precision
-
-_Stop watching. Start earning._
-
-👉 /subscribe — *Join 847+ smart traders*''',
-    'license_required': '''🔒 *PREMIUM FEATURE*
-
-This requires {required} subscription — _used by top 3% of traders_.
-
-🎯 Success leaves clues. Follow the winners.
-
-👉 /subscribe — *Upgrade now*''',
-    'trial_demo_only': '''⚠️ *Demo mode is for learning, not earning.*
-
-Real profits require real access.
-
-🎁 You've tasted the power. Now *own* it.
-
-👉 /subscribe — *Unlock Real Trading*''',
-    'basic_strategy_limit': '''⚠️ *Basic = Basic Results*
-
-You're limited to: {strategies}
-
-The pros use *ALL* strategies. That's why they're pros.
-
-👉 /subscribe — *Go Premium. Go Pro.*''',
-    
-    # Subscribe menu - BLACK RHETORIC: Urgency + Authority + Exclusivity  
-    'subscribe_menu_header': '''💎 *UNLOCK YOUR TRADING EMPIRE*
-
-⚡ 847+ traders already profiting
-🏆 97% user satisfaction
-📈 $2.4M+ generated this month''',
-    'subscribe_menu_info': '''_"The best investment I ever made"_ — Premium User
-
-Choose your level of dominance:''',
-    'btn_premium': '💎 PREMIUM — Full Power ⚡',
-    'btn_basic': '🥈 Basic — Starter',
-    'btn_trial': '🎁 Free Trial — 7 Days',
-    'btn_enter_promo': '🎟 Secret Promo Code',
-    'btn_my_subscription': '📋 My Status',
-    
-    # Premium plan - BLACK RHETORIC: Authority + Scarcity + Social Proof
-    'premium_title': '''💎 *PREMIUM — FULL DOMINATION*
-
-_"This bot literally prints money"_ — @CryptoKing''',
-    'premium_desc': '''🔥 *EVERYTHING UNLOCKED:*
-
-✅ All 5 AI Strategies — _$100K+ trades executed daily_
-✅ Real + Demo — _No limitations_
-✅ Priority VIP Support — _Response < 1 hour_
-✅ Dynamic ATR SL/TP — _AI-optimized entries_
-✅ DCA Limit Ladder — _Institutional-grade scaling_
-✅ Lifetime Updates — _Always ahead of the market_
-
-⚡ *PREMIUM STATS:*
-• Average ROI: +47%/month
-• Win Rate: 78%
-• Active Users: 312
-
-_The question isn't "Can I afford Premium?"
-The question is "Can I afford NOT to?"_''',
-    'premium_1m': '💎 1 Month — {price} ELC ⚡',
-    'premium_3m': '💎 3 Months — {price} ELC 🔥 SAVE 10%',
-    'premium_6m': '💎 6 Months — {price} ELC 🎯 SAVE 20%',
-    'premium_12m': '💎 12 Months — {price} ELC 🏆 BEST VALUE -30%',
-    
-    # Basic plan - BLACK RHETORIC: Stepping stone narrative
-    'basic_title': '''🥈 *BASIC — SMART START*
-
-_Perfect for testing the waters_''',
-    'basic_desc': '''✅ Full Demo Access — _Risk-free learning_
-✅ Real Account: OI, RSI+BB, Scryptomera, Scalper
-⛔ Enliko, Fibonacci, Spot — _Premium exclusive_
-✅ Standard Support
-✅ ATR Dynamic SL/TP
-
-💡 *87% of Basic users upgrade to Premium within 2 weeks*
-_They see the results. You will too._''',
-    'basic_1m': '🥈 1 Month — {price} ELC',
-    
-    # Trial plan - BLACK RHETORIC: Zero risk + Taste of power
-    'trial_title': '''🎁 *FREE TRIAL — ZERO RISK*
-
-_Seeing is believing_''',
-    'trial_desc': '''✅ Full Demo Access — *All 5 AI Strategies*
-✅ 7 Days of Pure Power
-✅ No Credit Card Required
-⚡ One-Click Activation
-
-⚠️ *WARNING:* After experiencing Enliko AI,
-manual trading will feel... primitive.
-
-_91% of trial users become paying customers._
-_Now you'll understand why._''',
-    'trial_activate': '🎁 ACTIVATE FREE TRIAL ⚡',
-    'trial_already_used': '''⚠️ Trial already used.
-
-You've seen the power. Now *own* it.
-
-👉 Choose a plan and join the elite.''',
-    'trial_activated': '''🎉 *WELCOME TO THE FUTURE OF TRADING!*
-
-⏰ You have 7 days to experience:
-• AI-powered entries
-• Automatic risk management
-• 24/7 market monitoring
-
-_Your journey to financial freedom starts NOW._
-
-💡 Pro tip: Enable all strategies to maximize results!''',
-    
-    # Payment
-    'payment_select_method': '💳 *Select Payment Method*',
-    'btn_pay_elc': '◈ Pay with ELC',
-    'btn_pay_ton': '💎 TON (deprecated)',
-    'payment_elc_title': '◈ Payment via Enliko Coin (ELC)',
-    'payment_elc_desc': 'You will be charged {amount} ELC for {plan} ({period}).',
-    'payment_ton_title': '💎 Payment via TON (Deprecated)',
-    'payment_ton_desc': '''TON payments are no longer supported.
-Please use ELC tokens instead.''',
-    'btn_verify_ton': '✅ I Paid — Verify',
-    'btn_check_again': '🔄 Check Again',
-    'payment_processing': '⏳ Processing payment...',
-    'payment_verifying': '⏳ Verifying payment...',
-    'payment_success': '🎉 Payment successful!\n\n{plan} activated until {expires}.',
-    'payment_failed': '❌ Payment failed: {error}',
-    'payment_ton_not_configured': '❌ TON payments are deprecated. Use ELC tokens.',
-    'payment_session_expired': '❌ Payment session expired. Please start again.',
-    'payment_elc_insufficient': '''❌ Insufficient ELC balance.
-
-Your balance: {balance} ELC
-Required: {required} ELC
-
-Top up your wallet to continue.''',
-    
-    # Wallet
-    'wallet_title': '◈ *ELC Wallet*',
-    'wallet_balance': '''💰 *Your ELC Wallet*
-
-◈ Balance: *{balance} ELC*
-📈 Staked: *{staked} ELC*
-🎁 Pending Rewards: *{rewards} ELC*
-
-💵 Total Value: *${total_usd}*
-📍 1 ELC = 1 USDT''',
-    'wallet_address': '📍 Address: `{address}`',
-    'wallet_btn_deposit': '📥 Deposit',
-    'wallet_btn_withdraw': '📤 Withdraw',
-    'wallet_btn_stake': '📈 Stake',
-    'wallet_btn_unstake': '📤 Unstake',
-    'wallet_btn_history': '📋 History',
-    'wallet_btn_back': '« Back',
-    'wallet_deposit_title': '📥 *Deposit ELC*',
-    'wallet_deposit_desc': '''Send ELC tokens to your wallet address:
-
-`{address}`
-
-💡 *Demo mode:* Click below for free test tokens.''',
-    'wallet_deposit_demo': '🎁 Get 100 ELC (Demo)',
-    'wallet_deposit_success': '✅ Deposited {amount} ELC successfully!',
-    'wallet_withdraw_title': '📤 *Withdraw ELC*',
-    'wallet_withdraw_desc': 'Enter destination address and amount:',
-    'wallet_withdraw_success': '✅ Withdrawn {amount} ELC to {address}',
-    'wallet_withdraw_failed': '❌ Withdrawal failed: {error}',
-    'wallet_stake_title': '📈 *Stake ELC*',
-    'wallet_stake_desc': '''Stake your ELC tokens to earn *12% APY*!
-
-💰 Available: {available} ELC
-📈 Currently Staked: {staked} ELC
-🎁 Pending Rewards: {rewards} ELC
-
-Daily rewards • Instant unstaking''',
-    'wallet_stake_success': '✅ Staked {amount} ELC successfully!',
-    'wallet_unstake_success': '✅ Unstaked {amount} ELC + {rewards} ELC rewards!',
-    'wallet_history_title': '📋 *Transaction History*',
-    'wallet_history_empty': 'No transactions yet.',
-    'wallet_history_item': '{type_emoji} {type}: {amount:+.2f} ELC\n   {date}',
-    
-    # My subscription
-    'my_subscription_header': '📋 *My Subscription*',
-    'my_subscription_active': '''📋 *Current Plan:* {plan}
-⏰ *Expires:* {expires}
-📅 *Days Left:* {days}''',
-    'my_subscription_none': '❌ No active subscription.\n\nUse /subscribe to purchase a plan.',
-    'my_subscription_history': '📜 *Payment History:*',
-    'subscription_expiring_soon': '⚠️ Your {plan} subscription expires in {days} days!\n\nRenew now: /subscribe',
-    
-    # Promo codes
-    'promo_enter': '🎟 Enter your promo code:',
-    'promo_success': '🎉 Promo code applied!\n\n{plan} activated for {days} days.',
-    'promo_invalid': '❌ Invalid promo code.',
-    'promo_expired': '❌ This promo code has expired.',
-    'promo_used': '❌ This promo code has already been used.',
-    'promo_already_used': '❌ You have already used this promo code.',
-    
-    # Admin license management
-    'admin_license_menu': '🔑 *License Management*',
-    'admin_btn_grant_license': '🎁 Grant License',
-    'admin_btn_view_licenses': '📋 View Licenses',
-    'admin_btn_create_promo': '🎟 Create Promo',
-    'admin_btn_view_promos': '📋 View Promos',
-    'admin_btn_expiring_soon': '⚠️ Expiring Soon',
-    'admin_grant_select_type': 'Select license type:',
-    'admin_grant_select_period': 'Select period:',
-    'admin_grant_enter_user': 'Enter user ID:',
-    'admin_license_granted': '✅ {plan} granted to user {uid} for {days} days.',
-    'admin_license_extended': '✅ License extended by {days} days for user {uid}.',
-    'admin_license_revoked': '✅ License revoked for user {uid}.',
-    'admin_promo_created': '✅ Promo code created: {code}\nType: {type}\nDays: {days}\nMax uses: {max}',
-
-    # =====================================================
-    # ADMIN USER MANAGEMENT
-    # =====================================================
-    'admin_users_management': '👥 Users',
-    'admin_licenses': '🔑 Licenses',
-    'admin_search_user': '🔍 Find User',
-    'admin_users_menu': '👥 *User Management*\n\nSelect filter or search:',
-    'admin_all_users': '👥 All Users',
-    'admin_active_users': '✅ Active',
-    'admin_banned_users': '🚫 Banned',
-    'admin_no_license': '❌ No License',
-    'admin_no_users_found': 'No users found.',
-    'admin_enter_user_id': '🔍 Enter user ID to search:',
-    'admin_user_found': '✅ User {uid} found!',
-    'admin_user_not_found': '❌ User {uid} not found.',
-    'admin_invalid_user_id': '❌ Invalid user ID. Enter a number.',
-    'admin_view_card': '👤 View Card',
-    
-    # User card
-    'admin_user_card': '''👤 *User Card*
-
-📋 *ID:* `{uid}`
-{status_emoji} *Status:* {status}
-📝 *Terms:* {terms}
-
-{license_emoji} *License:* {license_type}
-📅 *Expires:* {license_expires}
-⏳ *Days Left:* {days_left}
-
-🌐 *Language:* {lang}
-📊 *Trading Mode:* {trading_mode}
-💰 *% per Trade:* {percent}%
-🪙 *Coins:* {coins}
-
-🔌 *API Keys:*
-  Demo: {demo_api}
-  Real: {real_api}
-
-📈 *Strategies:* {strategies}
-
-📊 *Statistics:*
-  Positions: {positions}
-  Trades: {trades}
-  PnL: {pnl}
-  Winrate: {winrate}%
-
-💳 *Payments:*
-  Total: {payments_count}
-  ELC: {total_elc} ◈
-
-📅 *First Seen:* {first_seen}
-🕐 *Last Seen:* {last_seen}
-''',
     
     # User actions
     'admin_btn_grant_lic': '🎁 Grant',
@@ -1465,117 +1074,448 @@ Daily rewards • Instant unstaking''',
     'admin_btn_message': '✉️ Message',
     'admin_btn_delete': '🗑 Delete',
     
-    'admin_user_banned': 'User banned!',
-    'admin_user_unbanned': 'User unbanned!',
-    'admin_user_approved': 'User approved!',
-    'admin_confirm_delete': '⚠️ *Confirm deletion*\n\nUser {uid} will be permanently deleted!',
-    'admin_confirm_yes': '✅ Yes, Delete',
-    'admin_confirm_no': '❌ Cancel',
+    'admin_user_banned': '✅ User banned.',
+    'admin_user_unbanned': '✅ User unbanned.',
+    'admin_user_approved': '✅ User approved.',
+    'admin_confirm_delete': '⚠️ Confirm deletion of user {uid}?',
+    'admin_confirm_yes': '✅ Yes',
+    'admin_confirm_no': '❌ No',
     
-    'admin_select_license_type': 'Select license type for user {uid}:',
+    'admin_select_license_type': 'Select license type:',
     'admin_select_period': 'Select period:',
-    'admin_select_extend_days': 'Select days to extend for user {uid}:',
-    'admin_license_granted_short': 'License granted!',
-    'admin_license_extended_short': 'Extended by {days} days!',
-    'admin_license_revoked_short': 'License revoked!',
+    'admin_select_extend_days': 'Select days to extend:',
+    'admin_license_granted_short': '✅ Granted.',
+    'admin_license_extended_short': '✅ Extended by {days} days.',
+    'admin_license_revoked_short': '✅ Revoked.',
     
-    'admin_enter_message': '✉️ Enter message to send to user {uid}:',
-    'admin_message_sent': '✅ Message sent to user {uid}!',
-    'admin_message_failed': '❌ Failed to send message: {error}',
-
-    # =====================================================
-    # ADMIN PAYMENTS & REPORTS
-    # =====================================================
+    'admin_enter_message': '✉️ Message for user {uid}:',
+    'admin_message_sent': '✅ Message sent.',
+    'admin_message_failed': '❌ Failed: {error}',
+    
+    # Admin payments & reports
     'admin_payments': '💳 Payments',
     'admin_reports': '📊 Reports',
-    'admin_payments_menu': '💳 *Payments Management*',
-    'admin_all_payments': '📜 All Payments',
-    'admin_no_payments_found': 'No payments found.',
+    'admin_payments_menu': '💳 *Payments*',
+    'admin_all_payments': '📜 All',
+    'admin_no_payments_found': 'No payments.',
     
-    'admin_reports_menu': '📊 *Reports & Analytics*\n\nSelect report type:',
-    'admin_global_stats': '📊 Global Stats',
-    'admin_demo_stats': '🎮 Demo Stats',
-    'admin_real_stats': '💰 Real Stats',
-    'admin_strategy_breakdown': '🎯 By Strategy',
-    'admin_top_traders': '🏆 Top Traders',
-    'admin_user_report': '👤 User Report',
-    'admin_enter_user_for_report': '👤 Enter user ID for detailed report:',
-    'admin_generating_report': '📊 Generating report for user {uid}...',
-    'admin_view_report': '📊 View Report',
-    'admin_view_user': '👤 User Card',
-
-    "button_hyperliquid": "🔷 HyperLiquid",
-    "button_webapp": "🌐 WebApp",
-    "button_switch_exchange": "🔄 Switch Exchange",
-    "button_api_bybit": "🟠 Bybit API",
-    "button_api_hl": "🔷 HL API",
-
-    # HyperLiquid Strategy Settings
-    "hl_settings": "HyperLiquid",
-    "hl_trading_enabled": "HyperLiquid Trading",
-    "hl_reset_settings": "🔄 Reset to Bybit Settings",
-
+    'admin_reports_menu': '📊 *Reports*',
+    'admin_global_stats': '📊 Global',
+    'admin_demo_stats': '🎮 Demo',
+    'admin_real_stats': '💎 Live',
+    'admin_strategy_breakdown': '🎯 Strategies',
+    'admin_top_traders': '🏆 Top',
+    'admin_user_report': '👤 User',
+    'admin_enter_user_for_report': '👤 Enter user ID:',
+    'admin_generating_report': '📊 Generating...',
+    'admin_view_report': '📊 Report',
+    'admin_view_user': '👤 User',
+    
     # =====================================================
-    # HARDCODED PHRASES FIX
+    # ACCESS & MODERATION
     # =====================================================
-    "min_amount_error": "❌ Minimum amount is 1 USDT",
-    "max_amount_error": "❌ Maximum amount is 100,000 USDT",
-    "invalid_amount": "❌ Invalid number. Please enter a valid amount.",
-    "hl_no_positions": "📭 No open positions on HyperLiquid.",
-    "hl_no_orders": "📭 No open orders on HyperLiquid.",
-    "hl_no_history": "📭 No trade history on HyperLiquid.",
-    "cancelled": "❌ Cancelled.",
-    "invalid_number": "❌ Please enter a valid number.",
-    "entry_pct_range_error": "❌ Entry % must be between 0.1 and 100.",
-    "sl_tp_range_error": "❌ SL/TP % must be between 0.1 and 500.",
-    "leverage_range_error": "❌ Leverage must be between 1 and 100.",
-    "hl_setup_cancelled": "❌ HyperLiquid setup cancelled.",
-
+    
+    'banned': '🚫 Access restricted.',
+    'invite_only': '🔒 Invite-only. Contact admin for access.',
+    'need_terms': '⚠️ Please accept terms: /terms',
+    'please_confirm': 'Please confirm:',
+    'terms_ok': '✅ Terms accepted.',
+    'terms_declined': '❌ Terms declined. Access restricted.',
+    'usage_approve': 'Usage: /approve <user_id>',
+    'usage_ban': 'Usage: /ban <user_id>',
+    'not_allowed': 'Not allowed.',
+    'bad_payload': 'Invalid data.',
+    'unknown_action': 'Unknown action.',
+    
+    # Terms - Legal compliance
+    'terms_title': (
+        '📜 *Terms of Service*\n\n'
+        'By using Enliko Trading Tools, you agree:\n\n'
+        '1. *Educational Purpose*\n'
+        'This platform provides educational tools for learning about '
+        'cryptocurrency markets. It is NOT financial advice.\n\n'
+        '2. *Risk Acknowledgment*\n'
+        'Trading cryptocurrencies involves substantial risk of loss. '
+        'You may lose some or all of your investment.\n\n'
+        '3. *User Responsibility*\n'
+        'You are solely responsible for all trading decisions. '
+        'Past performance does not guarantee future results.\n\n'
+        '4. *No Guarantees*\n'
+        'We do not guarantee profits or specific outcomes. '
+        'Market conditions are unpredictable.\n\n'
+        '5. *Age Requirement*\n'
+        'You must be 18+ years old to use this platform.\n\n'
+        '6. *Jurisdiction*\n'
+        'You are responsible for compliance with your local laws.\n\n'
+        'Do you accept these terms?'
+    ),
+    
+    'terms_btn_accept': '✅ I Accept',
+    'terms_btn_decline': '❌ Decline',
+    'terms_unavailable': 'Terms unavailable. Contact admin.',
+    'terms_confirm_prompt': 'Please confirm:',
+    
+    # Admin new user
+    'title': 'New user',
+    'wave': '👋',
+    'admin_new_user_html': (
+        '<b>{wave} {title}</b>\n'
+        '• ID: <code>{uid}</code>\n'
+        '• Name: {name}\n'
+        '• Username: {uname}\n'
+        '• Lang: {lang}\n'
+        '• Allowed: {allowed}  Ban: {banned}'
+    ),
+    
+    'btn_approve': '✅ Approve',
+    'btn_ban': '⛔️ Ban',
+    'admin_notify_fail': 'Failed to notify admin: {e}',
+    'moderation_approved': '✅ Approved: {target}',
+    'moderation_banned': '⛔️ Banned: {target}',
+    'approved_user_dm': '✅ Access granted. Press /start.',
+    'banned_user_dm': '🚫 Access restricted.',
+    
+    # Admin users list
+    'users_not_found': 'No users found.',
+    'users_page_info': '📄 Page {page}/{pages} — Total: {total}',
+    'btn_blacklist': '🚫 Blacklist',
+    'btn_delete_user': '🗑 Delete',
+    'nav_caption': '🧭 Navigation:',
+    'bad_page': 'Invalid page.',
+    'admin_user_delete_fail': '❌ Delete failed: {error}',
+    'admin_user_deleted': '🗑 User {target} deleted.',
+    'user_access_approved': '✅ Access granted. Press /start.',
+    
     # =====================================================
-    # DEEP LOSS POSITION ALERTS
+    # INDICATORS & ANALYSIS
     # =====================================================
-    "btn_close_position": "❌ Close Position",
-    "btn_enable_dca": "📈 Enable DCA Averaging",
-    "btn_ignore": "🔇 Ignore",
-    "deep_loss_alert": "⚠️ <b>Position in Deep Loss!</b>\n\n📊 <b>{symbol}</b> ({side})\n📉 Loss: <code>{loss_pct:.2f}%</code>\n💰 Entry: <code>{entry}</code>\n📍 Current: <code>{mark}</code>\n\n❌ Stop-loss cannot be set above entry price.\n\n<b>What to do?</b>\n• <b>Close</b> - lock in the loss\n• <b>DCA Average</b> - add to position to average down\n• <b>Ignore</b> - leave as is",
-    "position_already_closed": "❌ Position {symbol} is already closed.",
-    "deep_loss_closed": "✅ Position {symbol} closed.\n\nLoss locked in. Sometimes it's better to take a small loss than hope for a reversal.",
-    "deep_loss_close_error": "❌ Error closing position: {error}",
-    "dca_already_enabled": "✅ DCA averaging is already enabled!\n\n📊 <b>{symbol}</b>\nBot will automatically add to position on drawdown:\n• -10% → add\n• -25% → add\n\nThis helps average the entry price.",
-    "dca_enabled_for_symbol": "✅ DCA averaging enabled!\n\n📊 <b>{symbol}</b>\nBot will automatically add to position on drawdown:\n• -10% → add (average down)\n• -25% → add (average down)\n\n⚠️ DCA requires sufficient balance for adds.\nConfigure settings: /strategy_settings",
-    "dca_enable_error": "❌ Error: {error}",
-    "deep_loss_ignored": "🔇 Got it, position {symbol} left unchanged.\n\n⚠️ Remember: without stop-loss, risk of losses is unlimited.\nYou can close the position manually via /positions",
-
-    # Hardcore trading phrase
-    'hardcore_mode': '💀 *HARDCORE MODE*: No mercy, no regrets. Only profit or death! 🔥',
+    
+    'indicators_header': '📈 *Technical Indicators*',
+    'indicator_1': '1. RSI + Bollinger Bands',
+    'indicator_2': '2. Trading Chaos',
+    'indicator_3': '3. Adaptive Trend',
+    'indicator_4': '4. Dynamic Regression',
+    
+    'rsi_bb_analysis': (
+        '📈 *RSI + Bollinger Analysis*\n'
+        '• Price: `{price:.6f}`\n'
+        '• RSI: `{rsi:.1f}` ({zone})\n'
+        '• BB Upper: `{bb_hi:.4f}`\n'
+        '• BB Lower: `{bb_lo:.4f}`'
+    ),
+    
+    'rsi_zone_oversold': 'Oversold (<30)',
+    'rsi_zone_overbought': 'Overbought (>70)',
+    'rsi_zone_neutral': 'Neutral (30–70)',
+    
+    # =====================================================
+    # MARKET STATUS
+    # =====================================================
+    
+    'market_header': '📊 *Market Overview*',
+    'market_btc': '₿ BTC: {price} ({change:+.2f}%)',
+    'market_eth': 'Ξ ETH: {price} ({change:+.2f}%)',
+    'market_total_cap': '💰 Total Cap: ${cap}',
+    'market_fear_greed': '📊 Fear & Greed: {value}',
+    'market_last_update': '🕐 Updated: {time}',
+    
+    # =====================================================
+    # SPOT TRADING
+    # =====================================================
+    
+    'spot_header': '💹 *Spot Trading*',
+    'spot_dca_enabled': '✅ Spot DCA Enabled',
+    'spot_dca_disabled': '❌ Spot DCA Disabled',
+    'spot_balance': '💰 Spot Balance:',
+    'spot_holdings': '📦 Holdings:',
+    
     'spot_freq_hourly': '⏰ Hourly',
+    'spot_freq_daily': '📅 Daily',
+    'spot_freq_weekly': '📆 Weekly',
+    
+    # Spot/Grid error messages
+    'spot_not_enabled': '❌ Spot trading is not enabled. Enable it in API Settings first.',
+    'spot_auto_enabled': '✅ Auto DCA enabled',
+    'spot_auto_disabled': '❌ Auto DCA disabled',
+    'spot_no_balance': '❌ No spot balance found',
+    'spot_no_coins': '❌ No coins to sell',
+    'spot_gain_min': '❌ Minimum gain trigger is 1%',
+    'spot_gain_max': '❌ Maximum gain trigger is 10000%',
+    'spot_sell_min': '❌ Minimum sell amount is 1%',
+    'spot_sell_max': '❌ Maximum sell amount is 100%',
+    'spot_invalid_pct': '❌ Invalid number. Please enter a valid percentage.',
+    'spot_invalid_price': '❌ Invalid price. Please enter a number.',
+    'spot_min_5': '❌ Minimum amount is 5 USDT',
+    'spot_invalid_amount': '❌ Invalid amount. Please enter a number.',
+    'grid_min_10': '❌ Minimum investment is 10 USDT',
+    'grid_setup': '⏳ Setting up {coin} grid...',
+    'grid_started': '✅ {coin} Grid Bot Started!',
+    'grid_range': '📈 Range: ${low:.2f} - ${high:.2f}',
+    'grid_levels': '🔢 Levels: {count}',
+    'grid_investment': '💵 Investment: ${amount:.2f}',
+    'grid_orders_placed': '📊 Orders placed: {count}',
+    'grid_step': '📍 Grid step: ${step:.4f}',
+    'grid_invalid_format': '❌ Invalid format. Please enter: low_price high_price grid_count investment',
+    'grid_invalid_input': '❌ Invalid input. Please enter numbers.',
+    'grid_failed': '❌ Failed to stop grid: {error}',
+    'grid_cancelled': '❌ Orders Cancelled: {count}',
     
     # =====================================================
-    # ERROR MONITOR USER MESSAGES
+    # MANUAL ORDERS
     # =====================================================
-    'error_insufficient_balance': '💰 Insufficient funds in your account to open a position. Top up your balance or reduce position size.',
-    'error_order_too_small': '📉 Order size too small (minimum $5). Increase Entry% or top up your balance.',
-    'error_api_key_expired': '🔑 API key expired or invalid. Update your API keys in settings.',
-    'error_api_key_missing': '🔑 API keys not configured. Add Bybit keys in 🔗 API Keys menu.',
-    'error_rate_limit': '⏳ Too many requests. Wait a minute and try again.',
-    'error_position_not_found': '📊 Position not found or already closed.',
-    'error_leverage_error': '⚙️ Leverage setting error. Try setting leverage manually on the exchange.',
-    'error_network_error': '🌐 Network issue. Try again later.',
-    'error_sl_tp_invalid': '⚠️ Cannot set SL/TP: price too close to current. Will retry on next cycle.',
-    'error_equity_zero': '💰 Your account balance is zero. Top up Demo or Real account to trade.',
+    
+    'manual_order_header': '📝 *Manual Order*',
+    'manual_long': '🟢 LONG',
+    'manual_short': '🔴 SHORT',
+    
+    'manual_order_confirm': (
+        '⚠️ *Confirm Order*\n\n'
+        '📊 {symbol} {side}\n'
+        '💰 Amount: {amount} USDT\n\n'
+        '⚠️ _Trading involves risk._\n'
+        '_You are responsible for this decision._'
+    ),
+    
+    'manual_order_success': '✅ Order placed: {symbol} {side}',
+    'manual_order_failed': '❌ Order failed: {error}',
+    
+    # TP/SL validation
+    'update_tpsl_no_positions': '🚫 No open positions.',
+    'update_tpsl_prompt': 'Enter SYMBOL TP SL:\n`BTCUSDT 21000 19500`',
+    'invalid_tpsl_format': '❌ Invalid format. Use: SYMBOL TP SL',
+    
+    'invalid_tpsl_long': (
+        '❌ Invalid TP/SL for LONG.\n'
+        'Current: {current:.2f}\n'
+        'Required: SL < {current:.2f} < TP'
+    ),
+    
+    'invalid_tpsl_short': (
+        '❌ Invalid TP/SL for SHORT.\n'
+        'Current: {current:.2f}\n'
+        'Required: TP < {current:.2f} < SL'
+    ),
+    
+    'no_position_symbol': '🚫 No position on {symbol}.',
+    'tpsl_set_success': '✅ TP={tp:.2f} SL={sl:.2f} for {symbol}',
     
     # =====================================================
-    # HARDCODED STRINGS FIX (Jan 27, 2026)
+    # TP / SL BUTTONS
     # =====================================================
+    
+    'button_toggle_atr': '📊 ATR',
+    'button_lang': '🌍 Language',
+    'button_set_tp': '📈 TP %',
+    'button_set_sl': '📉 SL %',
+    'config_stop_mode': 'Stop mode: *{mode}*',
+    'config_dca': 'DCA: L1=-{dca1}%, L2=-{dca2}%',
+    
+    'enter_tp': '❌ Enter TP % value:',
+    'tp_set_success': '✅ TP set: {pct}%',
+    'enter_sl': '❌ Enter SL % value:',
+    'sl_set_success': '✅ SL set: {pct}%',
+    
+    'mode_atr': 'ATR-based',
+    'mode_fixed': 'Fixed %',
+    
+    # =====================================================
+    # LIMIT ONLY & FEATURES
+    # =====================================================
+    
+    'limit_only_toggled': '🔄 Limit orders {state}',
+    'feature_limit_only': 'Limit Orders',
+    'feature_oi': 'OI',
+    'feature_rsi_bb': 'RSI+BB',
+    'status_enabled': '✅',
+    'status_disabled': '❌',
+    
+    # =====================================================
+    # PARSING ERRORS
+    # =====================================================
+    
+    'parse_limit_error': 'Limit: requires 4 args (SYMBOL SIDE PRICE QTY)',
+    'parse_market_error': 'Market: requires 3 args (SYMBOL SIDE QTY)',
+    'parse_side_error': 'SIDE must be LONG or SHORT',
+    
+    # =====================================================
+    # EXCHANGE SELECTION
+    # =====================================================
+    
+    'exchange_header': '🔄 *Select Exchange*',
+    'exchange_bybit': '🟠 Bybit',
+    'exchange_hyperliquid': '🔷 HyperLiquid',
+    'exchange_selected': '✅ {exchange} selected.',
+    
+    'btn_bybit_demo': '🎮 Demo',
+    'btn_bybit_real': '💎 Live',
+    'btn_hl_testnet': '🧪 Testnet',
+    'btn_hl_mainnet': '🌐 Mainnet',
+    
+    'button_hyperliquid': '🔷 HyperLiquid',
+    'button_webapp': '🌐 WebApp',
+    'button_switch_exchange': '🔄 Switch Exchange',
+    'button_api_bybit': '🟠 Bybit API',
+    'button_api_hl': '🔷 HL API',
+    
+    'hl_settings': 'HyperLiquid',
+    'hl_trading_enabled': 'HyperLiquid Enabled',
+    'hl_reset_settings': '🔄 Reset to Bybit',
+    
+    # =====================================================
+    # SUPPORT
+    # =====================================================
+    
+    'support_prompt': '✉️ Need help?',
+    'support_button': 'Contact Support',
+    
+    # =====================================================
+    # MISC
+    # =====================================================
+    
+    'dash': '—',
+    'mark_yes': '✅',
+    'mark_no': '—',
+    'mark_ban': '⛔️',
+    'emoji_long': '🟢',
+    'emoji_short': '🔴',
+    'emoji_neutral': '⚪️',
+    
+    'fallback': '❓ Please use the menu.',
+    'db_quarantine_notice': '⚠️ Temporary maintenance mode.',
+    
+    'your_id': 'Your ID: {uid}',
+    'error_validation': '❌ {msg}',
+    'error_generic': 'Error: {msg}',
+    'error_fetch_balance': '❌ Balance error: {error}',
+    'error_fetch_orders': '❌ Orders error: {error}',
+    'error_occurred': '❌ Error: {error}',
+    'position_closed_error': '⚠️ {symbol} closed but log failed: {error}',
+    
+    # =====================================================
+    # DCA NOTIFICATIONS
+    # =====================================================
+    
+    'dca_10pct': 'DCA -{pct}%: Added to {symbol} qty={qty} @ {price}',
+    'dca_25pct': 'DCA -{pct}%: Added to {symbol} qty={qty} @ {price}',
+    
+    # =====================================================
+    # LIMIT LADDER
+    # =====================================================
+    
+    'limit_ladder': '📉 Limit Ladder',
+    'limit_ladder_header': '📉 *Limit Ladder*',
+    'limit_ladder_settings': '⚙️ Ladder Settings',
+    'ladder_count': 'Number of orders',
+    'ladder_info': 'Limit orders placed below entry for scaling.',
+    'prompt_ladder_pct_entry': '📉 Order {idx} — % below entry:',
+    'prompt_ladder_pct_deposit': '💰 Order {idx} — % of deposit:',
+    'ladder_order_saved': '✅ Order {idx}: -{pct_entry}% @ {pct_deposit}%',
+    'ladder_orders_placed': '📉 Placed {count} ladder orders for {symbol}',
+    
+    # =====================================================
+    # ENLIKO AI INFO
+    # =====================================================
+    
+    'elcaro_ai_info': '🤖 *Enliko Analysis*',
+    'elcaro_ai_desc': '_Parameters extracted from market data._',
+    
+    'fibonacci_info': '📐 *Fibonacci Analysis*',
+    'fibonacci_desc': '_Levels based on Fibonacci extensions._',
+    'prompt_min_quality': 'Enter Min Quality % (0-100):',
+    
+    # =====================================================
+    # SIDE SETTINGS HEADERS
+    # =====================================================
+    
+    'prompt_long_entry_pct': '📈 LONG Entry %:',
+    'prompt_long_sl_pct': '📈 LONG Stop-Loss %:',
+    'prompt_long_tp_pct': '📈 LONG Take-Profit %:',
+    'prompt_short_entry_pct': '📉 SHORT Entry %:',
+    'prompt_short_sl_pct': '📉 SHORT Stop-Loss %:',
+    'prompt_short_tp_pct': '📉 SHORT Take-Profit %:',
+    
+    'scrypto_side_header': '{emoji} *Scryptomera {side} Settings*',
+    'scalper_side_header': '{emoji} *Scalper {side} Settings*',
+    'strategy_param_header': '⚙️ *{name} Configuration*',
+    
+    # =====================================================
+    # DEEP LOSS ALERTS
+    # =====================================================
+    
+    'btn_close_position': '❌ Close Position',
+    'btn_enable_dca': '📈 Enable DCA',
+    'btn_ignore': '🔇 Ignore',
+    
+    'deep_loss_alert': (
+        '⚠️ <b>Position Alert</b>\n\n'
+        '📊 <b>{symbol}</b> ({side})\n'
+        '📉 Drawdown: <code>{loss_pct:.2f}%</code>\n'
+        '💰 Entry: <code>{entry}</code>\n'
+        '📍 Mark: <code>{mark}</code>\n\n'
+        '<b>Options:</b>\n'
+        '• Close — Accept current loss\n'
+        '• DCA — Add to position (average down)\n'
+        '• Ignore — No action'
+    ),
+    
+    'position_already_closed': '❌ Position {symbol} already closed.',
+    'deep_loss_closed': '✅ Position {symbol} closed.',
+    'deep_loss_close_error': '❌ Close error: {error}',
+    'dca_already_enabled': '✅ DCA already enabled for {symbol}.',
+    'dca_enabled_for_symbol': '✅ DCA enabled for {symbol}.',
+    'dca_enable_error': '❌ Error: {error}',
+    'deep_loss_ignored': '🔇 {symbol} left unchanged.',
+    
+    # =====================================================
+    # ERROR MONITOR
+    # =====================================================
+    
+    'error_insufficient_balance': '💰 Insufficient funds. Top up balance or reduce size.',
+    'error_order_too_small': '📉 Order too small (min $5). Increase Entry%.',
+    'error_api_key_expired': '🔑 API key invalid. Update in settings.',
+    'error_api_key_missing': '🔑 API keys not configured.',
+    'error_rate_limit': '⏳ Rate limit. Wait and retry.',
+    'error_position_not_found': '📊 Position not found.',
+    'error_leverage_error': '⚙️ Leverage error. Adjust on exchange.',
+    'error_network_error': '🌐 Network error. Retry later.',
+    'error_sl_tp_invalid': '⚠️ SL/TP too close. Will retry.',
+    'error_equity_zero': '💰 Balance is zero. Deposit funds.',
+    
+    # =====================================================
+    # HARDCODED STRINGS FIX
+    # =====================================================
+    
+    'min_amount_error': '❌ Minimum: 1 USDT',
+    'max_amount_error': '❌ Maximum: 100,000 USDT',
+    'invalid_amount': '❌ Invalid amount.',
+    'hl_no_positions': '📭 No HyperLiquid positions.',
+    'hl_no_orders': '📭 No HyperLiquid orders.',
+    'hl_no_history': '📭 No HyperLiquid history.',
+    'cancelled': '❌ Cancelled.',
+    'entry_pct_range_error': '❌ Entry % must be 0.1-100.',
+    'sl_tp_range_error': '❌ SL/TP must be 0.1-500.',
+    'leverage_range_error': '❌ Leverage must be 1-100.',
+    'hl_setup_cancelled': '❌ HyperLiquid setup cancelled.',
+    'auto_default': 'Auto',
+    
     'terminal_button': '💻 Terminal',
-    'exchange_mode_activated_bybit': '🟠 *Bybit mode activated*',
-    'exchange_mode_activated_hl': '🔷 *HyperLiquid mode activated*',
-    'error_processing_request': '⚠️ Error processing request',
-    'unauthorized_admin': '❌ Unauthorized. This command is only for the Sovereign Owner.',
-    'error_loading_dashboard': '❌ Error loading dashboard.',
+    'exchange_mode_activated_bybit': '🟠 *Bybit mode*',
+    'exchange_mode_activated_hl': '🔷 *HyperLiquid mode*',
+    'error_processing_request': '⚠️ Error processing request.',
+    'unauthorized_admin': '❌ Unauthorized.',
+    'error_loading_dashboard': '❌ Dashboard error.',
     'unauthorized': '❌ Unauthorized.',
-    'processing_blockchain': '⏳ Processing blockchain transaction...',
-    'verifying_payment': '⏳ Verifying payment on TON blockchain...',
+    'processing_blockchain': '⏳ Processing...',
+    'verifying_payment': '⏳ Verifying...',
     'no_wallet_configured': '❌ No wallet configured.',
-    'use_start_menu': 'Use /start to return to main menu.',
+    'use_start_menu': 'Use /start for menu.',
+    
+    # 2FA Login confirmation
+    'login_approved': '✅ Login approved!\n\nYou can now continue in your browser.',
+    'login_denied': '❌ Login denied.\n\nIf this wasn\'t you, we recommend reviewing your security settings.',
+    'login_expired': '⏰ Confirmation expired. Please try again.',
+    'login_error': '⚠️ Processing error. Please try again later.',
+    
+    # Hardcore mode (kept for compatibility)
+    'hardcore_mode': '💀 *Advanced Mode*',
 }

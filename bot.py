@@ -1492,6 +1492,7 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             chat_id=uid,
             text=ctx.t["welcome"],
             reply_markup=main_menu_keyboard(ctx, update=update),
+            parse_mode="HTML",
         )
     elif action == "decline":
         set_user_field(uid, "terms_accepted", 0)
@@ -1532,6 +1533,7 @@ async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             chat_id=uid,
             text=ctx.t["welcome"],
             reply_markup=main_menu_keyboard(ctx, update=update),
+            parse_mode="HTML",
         )
         
     elif action == "decline":
