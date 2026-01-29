@@ -361,6 +361,14 @@ def create_app() -> FastAPI:
     app.include_router(trading.router, prefix="/api/trading", tags=["trading"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
     
+    # iOS Logs API for monitoring
+    try:
+        from webapp.api import ios_logs
+        app.include_router(ios_logs.router, prefix="/api", tags=["ios-logs"])
+        logger.info("✅ iOS Logs API mounted")
+    except Exception as e:
+        logger.warning(f"⚠️ iOS Logs API not available: {e}")
+    
     # Telegram auth for iOS/Android
     try:
         from webapp.api import telegram_auth
