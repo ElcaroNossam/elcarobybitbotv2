@@ -274,7 +274,10 @@ def get_conn():
 
 
 def execute(query: str, params: tuple = None) -> List[Dict]:
-    """Execute query and return results as list of dicts"""
+    """Execute query and return results as list of dicts.
+    
+    ВАЖНО: Автоматически делает commit для INSERT/UPDATE/DELETE запросов!
+    """
     pool = get_pool()
     pg_conn = pool.getconn()
     try:
@@ -282,9 +285,20 @@ def execute(query: str, params: tuple = None) -> List[Dict]:
             # Convert SQLite style query to PostgreSQL
             pg_query = _sqlite_to_pg(query)
             cur.execute(pg_query, params)
+            
+            # Check if this is a write operation that needs commit
+            query_upper = query.strip().upper()
+            if query_upper.startswith(('INSERT', 'UPDATE', 'DELETE', 'UPSERT')):
+                pg_conn.commit()
+                logger.debug(f"execute() committed write operation: {query[:50]}...")
+            
             if cur.description:
                 return [dict(row) for row in cur.fetchall()]
             return []
+    except Exception as e:
+        pg_conn.rollback()
+        logger.error(f"execute() error: {e}, query: {query[:100]}")
+        raise
     finally:
         pool.putconn(pg_conn)
 

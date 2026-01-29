@@ -367,26 +367,45 @@ def get_email_user_by_id(user_id: int) -> Optional[dict]:
 def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None) -> Optional[int]:
     """Create email user in database"""
     try:
-        from core.db_postgres import execute, execute_one
+        from core.db_postgres import execute_one, get_conn
         
         user_id = generate_email_user_id()
         
-        # Create in email_users table
-        execute("""
-            INSERT INTO email_users (user_id, email, password_hash, password_salt, name, is_verified, created_at)
-            VALUES (%s, %s, %s, %s, %s, TRUE, NOW())
-            ON CONFLICT (email) DO NOTHING
-        """, (user_id, email.lower(), password_hash, password_salt, name))
+        # Create in email_users table with RETURNING to verify insertion
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO email_users (user_id, email, password_hash, password_salt, name, is_verified, created_at)
+                VALUES (%s, %s, %s, %s, %s, TRUE, NOW())
+                ON CONFLICT (email) DO UPDATE SET 
+                    user_id = EXCLUDED.user_id,
+                    password_hash = EXCLUDED.password_hash,
+                    password_salt = EXCLUDED.password_salt,
+                    name = EXCLUDED.name,
+                    is_verified = TRUE,
+                    updated_at = NOW()
+                RETURNING user_id
+            """, (user_id, email.lower(), password_hash, password_salt, name))
+            result = cur.fetchone()
+            
+            if not result:
+                logger.error(f"create_email_user: INSERT returned no result for {email}")
+                return None
+            
+            inserted_user_id = result[0]
+            logger.info(f"email_users INSERT success: {email} -> user_id={inserted_user_id}")
         
-        # Also ensure user exists in main users table
-        db.ensure_user(user_id)
+        # Also ensure user exists in main users table with is_allowed = 1
+        db.ensure_user(inserted_user_id)
         if name:
-            db.set_user_field(user_id, "first_name", name)
+            db.set_user_field(inserted_user_id, "first_name", name)
+        # Email users should be allowed by default
+        db.set_user_field(inserted_user_id, "is_allowed", 1)
         
-        logger.info(f"Created email user: {email} -> user_id={user_id}")
-        return user_id
+        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, is_allowed=1")
+        return inserted_user_id
     except Exception as e:
-        logger.error(f"create_email_user error: {e}")
+        logger.error(f"create_email_user error: {e}", exc_info=True)
         return None
 
 
