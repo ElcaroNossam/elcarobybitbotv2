@@ -286,6 +286,18 @@ def create_access_token(user_id: int, is_admin: bool = False, is_guest: bool = F
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+def create_refresh_token(user_id: int) -> str:
+    """Create JWT refresh token with longer expiration."""
+    expire = datetime.utcnow() + timedelta(days=30)  # 30 days for refresh
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "exp": expire,
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
 def generate_verification_code() -> str:
     """Generate 6-digit verification code"""
     return str(secrets.randbelow(900000) + 100000)
@@ -526,11 +538,9 @@ async def email_verify(data: EmailVerifyRequest):
     # Clean up
     await _delete_verification_code(email)
     
-    # Create tokens
+    # Create tokens (use proper JWT for refresh token)
     token = create_access_token(user_id, is_admin=False)
-    # Generate refresh token (hash of user_id + email + secret)
-    refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
-    refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
+    refresh_token = create_refresh_token(user_id)
     
     # Build full user object for iOS compatibility
     name = pending.get('name')
@@ -584,11 +594,9 @@ async def email_login(data: EmailLoginRequest, request: Request):
     # Get additional user data
     db_user = db.get_all_user_credentials(user_id) or {}
     
-    # Create tokens
+    # Create tokens (use proper JWT for refresh token)
     token = create_access_token(user_id, is_admin)
-    # Generate refresh token (hash of user_id + email + secret)
-    refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
-    refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
+    refresh_token = create_refresh_token(user_id)
     
     # Build full user object for iOS compatibility
     name = user.get('name') or db_user.get('first_name')

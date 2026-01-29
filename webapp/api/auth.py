@@ -291,6 +291,56 @@ def create_access_token(user_id: int, is_admin: bool = False) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+def create_refresh_token(user_id: int) -> str:
+    """Create JWT refresh token with longer expiration."""
+    expire = datetime.utcnow() + timedelta(days=30)  # 30 days for refresh
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "exp": expire,
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_token(user_id: int, is_admin: bool = False) -> tuple:
+    """
+    Create access and refresh tokens pair.
+    Used by telegram_auth.py and email_auth.py for consistent token generation.
+    Returns: (access_token, refresh_token)
+    """
+    access_token = create_access_token(user_id, is_admin)
+    refresh_token = create_refresh_token(user_id)
+    return access_token, refresh_token
+
+
+def decode_token(token: str) -> dict:
+    """
+    Decode and verify JWT token.
+    Returns payload dict or raises exception.
+    Used by telegram_auth.py for token verification.
+    """
+    if token.startswith("Bearer "):
+        token = token[7:]
+    
+    # Check blacklist
+    if _token_blacklist.is_blacklisted(token):
+        raise jwt.InvalidTokenError("Token has been revoked")
+    
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+
+def get_authorization_header(request) -> Optional[str]:
+    """
+    Extract JWT token from Authorization header.
+    Returns token string or None.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]
+    return None
+
+
 async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> dict:
     """Verify JWT and return user info from DB."""
     if not credentials:

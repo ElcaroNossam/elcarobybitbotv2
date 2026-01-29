@@ -464,9 +464,9 @@ async def link_email_to_telegram(data: LinkEmailRequest, request: Request):
     if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", data.email):
         raise HTTPException(status_code=400, detail="Invalid email format")
     
-    # Validate password
-    if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    # Validate password (consistent with email_auth.py - 8 chars minimum)
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     
     from core.db_postgres import execute_one, get_pool
     import psycopg2.extras
@@ -608,7 +608,9 @@ async def complete_telegram_link(
         # Get user from JWT
         token = authorization.replace("Bearer ", "").strip()
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        user_id = payload.get("user_id")
+        user_id = payload.get("sub")  # JWT uses 'sub' for user_id
+        if user_id:
+            user_id = int(user_id)
         
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
