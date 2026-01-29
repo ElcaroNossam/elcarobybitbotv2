@@ -1,11 +1,12 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.42.0 | Обновлено: 29 января 2026
+# Версия: 3.43.0 | Обновлено: 29 января 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
 # iOS Full Localization: 15 languages + RTL support
 # iOS Full Audit: AppLogger, Security, Localization (Jan 29, 2026) ✅
+# iOS TestFlight CLI Deployment: agvtool + xcodebuild + exportArchive ✅
 # Android App: Kotlin + Jetpack Compose
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
@@ -108,40 +109,59 @@
 - Деплоить без проверки логов
 - Игнорировать ошибки в логах после деплоя
 
-## 📱 ОБЯЗАТЕЛЬНАЯ ПЕРЕСБОРКА iOS ПОСЛЕ ЛЮБЫХ ИЗМЕНЕНИЙ
+## 📱 ОБЯЗАТЕЛЬНАЯ ПЕРЕСБОРКА iOS И ЗАГРУЗКА В TESTFLIGHT
 
 > **⚠️ ВАЖНО:** Приложение тестируется через TestFlight, НЕ через симулятор!
-> После правок нужно создать новый билд и загрузить в TestFlight через Xcode.
+> После правок нужно создать новый билд и загрузить в TestFlight через CLI.
 
 **После ЛЮБЫХ изменений Swift файлов ОБЯЗАТЕЛЬНО:**
 
-1. **Clean build iOS проекта:**
+1. **Increment build version:**
    ```bash
    cd /Users/elcarosam/project/elcarobybitbotv2/ios/EnlikoTrading && \
-   rm -rf ~/Library/Developer/Xcode/DerivedData/EnlikoTrading* && \
+   agvtool next-version -all
+   ```
+
+2. **Create archive:**
+   ```bash
    xcodebuild -project EnlikoTrading.xcodeproj -scheme EnlikoTrading \
-     -destination 'platform=iOS Simulator,name=iPhone 16 Pro' clean build
+     -configuration Release -destination generic/platform=iOS \
+     -archivePath ./build/EnlikoTrading.xcarchive archive
    ```
 
-2. **Проверить BUILD SUCCEEDED** - если failed, исправить ошибки
+3. **Export and upload to App Store Connect:**
+   ```bash
+   xcodebuild -exportArchive -archivePath ./build/EnlikoTrading.xcarchive \
+     -exportPath ./build/export -exportOptionsPlist ./ExportOptions.plist
+   ```
+   > Должно вывести "EXPORT SUCCEEDED" + "Upload succeeded"
 
-3. **Commit iOS репозитория (отдельный git):**
+4. **Commit iOS репозитория (отдельный git):**
    ```bash
    cd /Users/elcarosam/project/elcarobybitbotv2/ios/EnlikoTrading && \
-   git add -A && git commit -m "описание изменений"
+   git add -A && git commit -m "build: Version X - описание"
    ```
 
-4. **Обновить submodule reference в main repo:**
+5. **Обновить submodule reference в main repo:**
    ```bash
    cd /Users/elcarosam/project/elcarobybitbotv2 && \
-   git add ios/EnlikoTrading && git commit -m "chore: Update iOS submodule"
+   git add ios/EnlikoTrading && git commit -m "chore: Update iOS submodule to build X"
    ```
 
-5. **Загрузить в TestFlight (через Xcode GUI):**
-   - Открыть Xcode → Product → Archive
-   - После архивации → Distribute App → App Store Connect
-   - Дождаться обработки в App Store Connect (~10-30 мин)
-   - Новый билд появится в TestFlight
+6. **Дождаться обработки** (~10-30 мин) - билд появится в TestFlight
+
+**ExportOptions.plist** (уже создан в ios/EnlikoTrading/):
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+    <key>method</key><string>app-store-connect</string>
+    <key>destination</key><string>upload</string>
+    <key>teamID</key><string>NDGY75Y29A</string>
+    <key>signingStyle</key><string>automatic</string>
+</dict>
+</plist>
+```
 
 **❌ ЗАПРЕЩЕНО:**
 - Оставлять iOS изменения незакоммиченными
@@ -988,6 +1008,24 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ iOS Validation Error Fix + TestFlight CLI Deployment (Jan 29, 2026)
+- **Проблема:** При регистрации iOS показывал "Server error: 422" вместо сообщений валидации
+- **Причина:** `ValidationErrorDetail` не имел поля `ctx` которое возвращает Pydantic
+- **Исправления:**
+  - **Models.swift:** Добавлен `AnyCodable` helper для парсинга любого JSON, добавлен `ctx: AnyCodable?` field
+  - **NetworkService.swift:** Улучшено логирование 422 ошибок с raw response
+  - **Logger.swift:** Debug logging всегда enabled, добавлен sendLogsToServer()
+  - **LoginView.swift:** Исправлен alert binding
+  - **DebugView.swift:** NEW - In-app debug console для просмотра логов
+  - **SettingsView.swift:** Добавлена ссылка на Debug Console
+  - **LocalizationManager.swift:** Удалены дублированные ключи переводов (auth_password_*, common_back, common_ok)
+- **TestFlight CLI Deployment:**
+  - `agvtool next-version -all` - increment build number
+  - `xcodebuild archive` - create archive
+  - `xcodebuild -exportArchive -exportOptionsPlist ExportOptions.plist` - upload to ASC
+- **Результат:** ✅ BUILD SUCCEEDED, Upload succeeded
+- **Builds:** 2 (validation fix), 3 (localization cleanup)
 
 ### ✅ iOS Full Logging & Security Audit (Jan 29, 2026)
 - **Аудит:** Полный аудит iOS кода с добавлением логирования, улучшением безопасности и проверкой локализации
