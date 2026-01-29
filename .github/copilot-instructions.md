@@ -2497,7 +2497,103 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-# 📱 iOS РАЗРАБОТКА (UPDATED: Jan 28, 2026 - Full Audit)
+# � UNIFIED AUTH SYSTEM (NEW! Jan 29, 2026)
+
+## Архитектура
+
+Единая система аутентификации для всех 4 модулей:
+
+```
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  Telegram Bot    │    │    WebApp        │    │    iOS App       │    │   Android App    │
+│   @EnlikoBot     │    │  enliko.com      │    │    SwiftUI       │    │  Jetpack Compose │
+└────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘
+         │                       │                       │                       │
+         │    ┌──────────────────┴───────────────────────┴───────────────────────┘
+         │    │
+         ▼    ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              PostgreSQL: users table                                    │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
+│  │ user_id | email | password_hash | telegram_username | auth_provider | is_allowed│   │
+│  │ 511692  | NULL  | NULL          | @username         | telegram      | 1         │   │
+│  │ -12345  | a@b.c | <hash>        | @linked_user      | both          | 1         │   │
+│  └─────────────────────────────────────────────────────────────────────────────────┘   │
+│  ┌───────────────────────────────────────────┐                                         │
+│  │ telegram_user_mapping (for linked accts)  │                                         │
+│  │ telegram_id → user_id                     │                                         │
+│  └───────────────────────────────────────────┘                                         │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Auth Providers
+
+| Provider | Описание | user_id |
+|----------|----------|---------|
+| `telegram` | Пользователь из Telegram бота | Telegram ID (положительный) |
+| `email` | Зарегистрирован через email | Сгенерированный (отрицательный) |
+| `both` | Email юзер привязал Telegram | Сгенерированный (с маппингом) |
+
+## Deep Link Login Flow
+
+```
+1. User in Telegram bot → /app_login
+2. Bot generates one-time token → Redis (5 min TTL)
+3. Bot sends deep link: enliko://login?token=XXX&tid=12345
+4. User taps link → iOS/Android app opens
+5. App calls POST /auth/telegram/deep-link
+6. Server verifies token in Redis → deletes token (one-time use)
+7. Server returns JWT token
+8. User is logged in with same account as in bot
+```
+
+## API Endpoints
+
+| Endpoint | Описание |
+|----------|----------|
+| `POST /auth/telegram/login` | Telegram Login Widget verification |
+| `POST /auth/telegram/link` | Link Telegram to email account |
+| `GET /auth/telegram/widget-params` | Get widget configuration |
+| `POST /auth/telegram/deep-link` | Verify bot-generated one-time token |
+
+## Ключевые файлы
+
+| Файл | Описание |
+|------|----------|
+| `migrations/versions/020_unified_auth.py` | Миграция схемы |
+| `webapp/api/telegram_auth.py` | API endpoints (415 строк) |
+| `bot.py: cmd_app_login()` | /app_login command |
+| `ios/.../AuthManager.swift` | handleURL(), loginWithDeepLink() |
+| `ios/.../Info.plist` | URL scheme: enliko:// |
+
+## URL Scheme (iOS)
+
+```xml
+<!-- Info.plist -->
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>enliko</string>
+        </array>
+    </dict>
+</array>
+```
+
+## Bot Command
+
+```
+/app_login - Получить ссылку для входа в iOS/Android приложение
+```
+
+Генерирует inline keyboard с двумя кнопками:
+- 📱 Открыть в приложении → `enliko://login?token=XXX&tid=12345`
+- 🌐 Открыть в браузере → `https://enliko.com/auth/app-login?token=XXX&tid=12345`
+
+---
+
+# �📱 iOS РАЗРАБОТКА (UPDATED: Jan 28, 2026 - Full Audit)
 
 ## 🔍 iOS Full Audit Results (Jan 28, 2026)
 
@@ -2801,7 +2897,7 @@ static let wsURL = "wss://enliko.com"
 ---
 
 *Last updated: 29 января 2026*
-*Version: 3.39.0*
+*Version: 3.40.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -2825,3 +2921,6 @@ static let wsURL = "wss://enliko.com"
 *Break-Even (BE): Per-strategy Long/Short settings*
 *Partial Take Profit: Close X% at +Y% profit in 2 steps*
 *Email Auth: register → verify → login → /me - all working correctly*
+*Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules (Bot, WebApp, iOS, Android)*
+*Telegram Login: /app_login command generates one-time deep link for iOS/Android*
+*URL Scheme: enliko://login?token=XXX&tid=12345 for native app login*

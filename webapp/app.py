@@ -361,6 +361,14 @@ def create_app() -> FastAPI:
     app.include_router(trading.router, prefix="/api/trading", tags=["trading"])
     app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
     
+    # Telegram auth for iOS/Android
+    try:
+        from webapp.api import telegram_auth
+        app.include_router(telegram_auth.router, prefix="/api", tags=["telegram-auth"])
+        logger.info("✅ Telegram Auth API mounted")
+    except Exception as e:
+        logger.warning(f"⚠️ Telegram Auth API not available: {e}")
+    
     try:
         from webapp.api import stats
         app.include_router(stats.router, prefix="/api/stats", tags=["statistics"])

@@ -43,6 +43,17 @@ TEXTS = {
     ),
     
     # =====================================================
+    # APP LOGIN (UNIFIED AUTH)
+    # =====================================================
+    
+    'app_login_prompt': (
+        '🔐 <b>Login to Enliko App</b>\n\n'
+        'Click the button below to login to iOS or Android app.\n'
+        'Link is valid for 5 minutes.\n\n'
+        '⚠️ Do not share this link with anyone!'
+    ),
+    
+    # =====================================================
     # LEGAL DISCLAIMERS (REQUIRED)
     # =====================================================
     

@@ -14329,6 +14329,76 @@ async def cmd_support(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+
+@with_texts
+@log_calls
+async def cmd_app_login(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    Generate one-time login link for iOS/Android app.
+    User clicks link → app opens → automatic login with Telegram account.
+    """
+    uid = update.effective_user.id
+    
+    # Generate one-time token
+    import secrets
+    token = secrets.token_urlsafe(32)
+    
+    # Store in Redis with 5 min expiry (or fallback to DB)
+    try:
+        from core.redis_client import get_redis
+        redis_client = await get_redis()
+        token_data = json.dumps({
+            "telegram_id": uid,
+            "created_at": datetime.now().isoformat(),
+            "first_name": update.effective_user.first_name,
+            "username": update.effective_user.username
+        })
+        await redis_client.set(f"app_login:{token}", token_data, ttl=300)
+    except Exception as e:
+        logger.warning(f"cmd_app_login Redis error (using DB fallback): {e}")
+        # Fallback: store in database if Redis unavailable
+        try:
+            from core.db_postgres import execute
+            execute(
+                "INSERT INTO login_tokens (token, user_id, expires_at) VALUES (%s, %s, NOW() + INTERVAL '5 minutes')",
+                (token, uid)
+            )
+        except Exception as db_e:
+            logger.error(f"cmd_app_login DB error: {db_e}")
+            await update.message.reply_text(
+                "❌ Не удалось создать ссылку для входа. Попробуйте позже.",
+                parse_mode="HTML"
+            )
+            return
+    
+    # Create deep link
+    webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
+    deep_link = f"{webapp_url}/auth/app-login?token={token}&tid={uid}"
+    
+    # Also create enliko:// scheme link for native app
+    native_link = f"enliko://login?token={token}&tid={uid}"
+    
+    keyboard = [
+        [InlineKeyboardButton("📱 Открыть в приложении", url=native_link)],
+        [InlineKeyboardButton("🌐 Открыть в браузере", url=deep_link)]
+    ]
+    
+    text = ctx.t.get('app_login_prompt', """
+🔐 <b>Вход в приложение Enliko</b>
+
+Нажмите кнопку ниже для входа в iOS или Android приложение.
+Ссылка действительна 5 минут.
+
+⚠️ Не передавайте эту ссылку другим людям!
+""")
+    
+    await update.message.reply_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
 @log_calls
 async def normalize_qty_price(
     user_id: int,
@@ -26701,6 +26771,7 @@ def main():
     app.add_handler(CommandHandler("show_config",  cmd_show_config))
     app.add_handler(CommandHandler("indicators",   cmd_indicators))
     app.add_handler(CommandHandler("support",      cmd_support))
+    app.add_handler(CommandHandler("app_login",    cmd_app_login))  # Login to iOS/Android app
     app.add_handler(CommandHandler("admin",        cmd_admin))
     
     # Subscription handlers
