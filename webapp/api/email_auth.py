@@ -116,7 +116,11 @@ async def _get_verification_code(email: str) -> Optional[dict]:
     # Fallback to in-memory
     pending = _verification_codes.get(email)
     if pending:
-        if datetime.utcnow() > pending.get('expires', datetime.min):
+        expires = pending.get('expires', datetime.min)
+        # Handle ISO string format from Redis
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires)
+        if datetime.utcnow() > expires:
             del _verification_codes[email]
             return None
         return pending
@@ -162,7 +166,11 @@ async def _get_password_reset_code(email: str) -> Optional[dict]:
     # Fallback to in-memory
     pending = _password_reset_codes.get(email)
     if pending:
-        if datetime.utcnow() > pending.get('expires', datetime.min):
+        expires = pending.get('expires', datetime.min)
+        # Handle ISO string format from Redis
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires)
+        if datetime.utcnow() > expires:
             del _password_reset_codes[email]
             return None
         return pending

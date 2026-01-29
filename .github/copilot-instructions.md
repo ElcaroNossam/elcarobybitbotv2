@@ -2886,9 +2886,29 @@ static let wsURL = "wss://enliko.com"
 - **Сертификаты:** Apple Development + Apple Distribution
 - **Регистрация:** [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/)
 
+## iOS Build Command (Jan 29, 2026 ✅)
+
+```bash
+# Clean build (recommended after changes)
+cd ios/EnlikoTrading
+rm -rf ~/Library/Developer/Xcode/DerivedData/EnlikoTrading*
+xcodebuild -project EnlikoTrading.xcodeproj \
+  -scheme EnlikoTrading \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  build
+
+# Expected output: ** BUILD SUCCEEDED **
+```
+
+**Важные исправления билда (Jan 29, 2026):**
+- `GENERATE_INFOPLIST_FILE = NO` - используется явный Info.plist
+- `PBXFileSystemSynchronizedBuildFileExceptionSet` - исключает Info.plist из Copy Bundle Resources
+- `LinkEmailView.swift` - `LinkResponse: Codable` (не Decodable)
+- `Color+Extensions.swift` - добавлен `enlikoBorder`
+
 ## TestFlight Deployment
 
-1. Создать App в App Store Connect (Bundle ID: io.enliko.EnlikoTrading)
+1. Создать App в App Store Connect (Bundle ID: io.enliko.trading)
 2. Добавить аккаунт в Xcode → Settings → Accounts
 3. Создать архив: `xcodebuild archive`
 4. Открыть в Organizer: `open ./build/EnlikoTrading.xcarchive`
@@ -2897,7 +2917,7 @@ static let wsURL = "wss://enliko.com"
 ---
 
 *Last updated: 29 января 2026*
-*Version: 3.40.0*
+*Version: 3.41.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -2912,15 +2932,19 @@ static let wsURL = "wss://enliko.com"
 *Branding: Enliko (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
-*iOS SwiftUI: 40+ files, BUILD SUCCEEDED, full audit Jan 28 2026*
+*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Jan 29 2026 ✅*
 *iOS Features: Screener, Stats, AI, Signals, Activity, Strategies - full parity with WebApp*
 *iOS Auth Flow: Full registration/login/verify tested Jan 29 2026 ✅*
+*iOS Build: Fixed Info.plist conflict, Color.enlikoBorder added*
 *Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
 *Android Features: All 9 screens with ViewModels, WebSocketService, full iOS parity*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First, Adaptive Layout*
 *Break-Even (BE): Per-strategy Long/Short settings*
 *Partial Take Profit: Close X% at +Y% profit in 2 steps*
 *Email Auth: register → verify → login → /me - all working correctly*
-*Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules (Bot, WebApp, iOS, Android)*
+*Web Auth: create_token, decode_token, get_authorization_header added to auth.py*
+*Web Auth: JWT refresh tokens (30 days) replace sha256 hashes*
+*Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules*
 *Telegram Login: /app_login command generates one-time deep link for iOS/Android*
 *URL Scheme: enliko://login?token=XXX&tid=12345 for native app login*
+
