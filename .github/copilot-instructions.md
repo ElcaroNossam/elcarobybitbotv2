@@ -947,6 +947,31 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь 2026)
 
+### ✅ CRITICAL: Full Auth Flow Fix (Jan 29, 2026)
+- **Проблема:** После регистрации iOS пользователь не мог войти в приложение
+- **Причины найдены и исправлены:**
+  1. **SQLiteCompatCursor bug:** `execute()` с RETURNING потреблял результат в `lastrowid`, `fetchone()` возвращал None
+  2. **create_email_user() не делал commit:** Записи не сохранялись в БД
+  3. **/me endpoint:** Использовал `get_all_user_credentials()` который НЕ возвращает `is_allowed`, `first_name`
+- **Исправления:**
+  1. **webapp/api/email_auth.py → create_email_user():**
+     - Использует raw psycopg2 вместо SQLiteCompatCursor
+     - Явный `pg_conn.commit()` после INSERT
+     - `ON CONFLICT (email) DO UPDATE` для обновления существующих
+     - Устанавливает `is_allowed = 1` для новых email юзеров
+  2. **core/db_postgres.py → execute():**
+     - Добавлен автоматический commit для INSERT/UPDATE/DELETE
+     - Добавлена обработка ошибок с rollback
+  3. **webapp/api/users.py → /me endpoint:**
+     - Прямой SQL запрос для `first_name`, `last_name`, `is_allowed`, `leverage`, `lang`
+     - `bool(user_row.get("is_allowed", 0))` для корректной конвертации 0/1 → false/true
+- **Тестирование:**
+  - ✅ POST /register → success
+  - ✅ POST /verify → token + full user object
+  - ✅ POST /login → token + user with is_allowed=true
+  - ✅ GET /me → email, name, is_allowed=true
+- **Commits:** `3ebf289`, `c519659`, `1dc7d74`
+
 ### ✅ FIX: iOS Registration Decoding Error (Jan 29, 2026)
 - **Проблема:** "Decoding error: The data couldn't be read because it is missing" при регистрации/верификации
 - **Причина:** iOS `User` struct имел `id: Int` как обязательное поле, но сервер возвращал только `user_id`
@@ -2775,8 +2800,8 @@ static let wsURL = "wss://enliko.com"
 
 ---
 
-*Last updated: 28 января 2026*
-*Version: 3.38.0*
+*Last updated: 29 января 2026*
+*Version: 3.39.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -2793,9 +2818,10 @@ static let wsURL = "wss://enliko.com"
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
 *iOS SwiftUI: 40+ files, BUILD SUCCEEDED, full audit Jan 28 2026*
 *iOS Features: Screener, Stats, AI, Signals, Activity, Strategies - full parity with WebApp*
+*iOS Auth Flow: Full registration/login/verify tested Jan 29 2026 ✅*
 *Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
 *Android Features: All 9 screens with ViewModels, WebSocketService, full iOS parity*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First, Adaptive Layout*
 *Break-Even (BE): Per-strategy Long/Short settings*
 *Partial Take Profit: Close X% at +Y% profit in 2 steps*
-
+*Email Auth: register → verify → login → /me - all working correctly*
