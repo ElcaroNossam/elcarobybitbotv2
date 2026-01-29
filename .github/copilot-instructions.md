@@ -1,10 +1,11 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.38.0 | Обновлено: 28 января 2026
+# Версия: 3.42.0 | Обновлено: 29 января 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
 # iOS Full Localization: 15 languages + RTL support
+# iOS Full Audit: AppLogger, Security, Localization (Jan 29, 2026) ✅
 # Android App: Kotlin + Jetpack Compose
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
@@ -946,6 +947,41 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ iOS Full Logging & Security Audit (Jan 29, 2026)
+- **Аудит:** Полный аудит iOS кода с добавлением логирования, улучшением безопасности и проверкой локализации
+- **Созданные файлы:**
+  - **Logger.swift (AppLogger):** Централизованная система логирования
+    - `LogLevel`: debug, info, warning, error, critical
+    - `LogCategory`: network, auth, trading, websocket, storage, ui, sync, localization, security, general
+    - Специализированные методы: `logAuthAttempt()`, `logAuthSuccess()`, `logAuthFailure()`, `logWSConnected()`, `logWSDisconnected()`
+    - История логов (max 1000 записей)
+    - Интеграция с OS Log для системной консоли
+- **Улучшенные файлы:**
+  - **NetworkService.swift:**
+    - Retry logic (3 попытки) для retryable ошибок
+    - Новые типы ошибок: timeout, noInternet, sslError
+    - `waitsForConnectivity = true` для лучшей offline обработки
+    - KeychainHelper: `kSecAttrAccessibleAfterFirstUnlock` для безопасности
+    - Полное логирование всех request/response циклов
+  - **TradingService.swift:**
+    - Логирование для всех 14 торговых методов
+    - `lastError` property для отслеживания ошибок
+  - **AuthManager.swift:**
+    - Полное логирование для всех auth методов
+    - Исправлены сигнатуры методов логирования
+  - **WebSocketService.swift:**
+    - Полное логирование для connections/disconnections
+    - Улучшенный reconnection с exponential backoff
+    - Max 5 попыток переподключения
+- **Локализация исправлена:**
+  - **LocalizationManager.swift:** 20+ новых ключей (strategies, stats, ai, signals, activity subtitles, auth flow, common, debug)
+  - **MainTabView.swift:** Заменены hardcoded строки на `.localized`
+  - **LoginView.swift:** Полная локализация auth flow
+  - **TradingView.swift:** Локализация торгового интерфейса
+  - **PortfolioView.swift:** Локализация статистики
+- **Результат:** ✅ BUILD SUCCEEDED
+- **Commit:** `fce2861`
 
 ### ✅ CRITICAL: Full Auth Flow Fix (Jan 29, 2026)
 - **Проблема:** После регистрации iOS пользователь не мог войти в приложение
