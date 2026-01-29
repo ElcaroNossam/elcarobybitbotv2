@@ -161,6 +161,16 @@ interface Strings {
     val strategies: String
     val premium: String
     
+    // Linked Accounts (Unified Auth)
+    val linkedAccounts: String
+    val linkTelegram: String
+    val linkEmail: String
+    val telegramLinked: String
+    val emailLinked: String
+    val notLinked: String
+    val notVerified: String
+    val verified: String
+    
     // AI
     val aiAssistant: String
     val askAnything: String
@@ -313,6 +323,17 @@ interface Strings {
         override val systemTheme = "System"
         override val strategies = "Strategies"
         override val premium = "Premium"
+        
+        // Linked Accounts (Unified Auth)
+        override val linkedAccounts = "Linked Accounts"
+        override val linkTelegram = "Link Telegram"
+        override val linkEmail = "Link Email"
+        override val telegramLinked = "Telegram Linked"
+        override val emailLinked = "Email Linked"
+        override val notLinked = "Not Linked"
+        override val notVerified = "Not Verified"
+        override val verified = "Verified"
+        
         override val aiAssistant = "AI Assistant"
         override val askAnything = "Ask anything about trading..."
         override val typeMessage = "Type a message..."
@@ -434,6 +455,16 @@ interface Strings {
         override val systemTheme = "Системная"
         override val strategies = "Стратегии"
         override val premium = "Премиум"
+        
+        // Linked Accounts
+        override val linkedAccounts = "Связанные аккаунты"
+        override val linkTelegram = "Привязать Telegram"
+        override val linkEmail = "Привязать Email"
+        override val telegramLinked = "Telegram привязан"
+        override val emailLinked = "Email привязан"
+        override val notLinked = "Не привязан"
+        override val notVerified = "Не подтверждён"
+        override val verified = "Подтверждён"
         override val aiAssistant = "ИИ Ассистент"
         override val askAnything = "Спросите о трейдинге..."
         override val typeMessage = "Введите сообщение..."
@@ -555,6 +586,16 @@ interface Strings {
         override val systemTheme = "Системна"
         override val strategies = "Стратегії"
         override val premium = "Преміум"
+        
+        // Linked Accounts
+        override val linkedAccounts = "Пов'язані акаунти"
+        override val linkTelegram = "Прив'язати Telegram"
+        override val linkEmail = "Прив'язати Email"
+        override val telegramLinked = "Telegram прив'язано"
+        override val emailLinked = "Email прив'язано"
+        override val notLinked = "Не прив'язано"
+        override val notVerified = "Не підтверджено"
+        override val verified = "Підтверджено"
         override val aiAssistant = "ШІ Асистент"
         override val askAnything = "Запитайте про трейдинг..."
         override val typeMessage = "Введіть повідомлення..."
@@ -676,6 +717,17 @@ interface Strings {
         override val systemTheme = "System"
         override val strategies = "Strategien"
         override val premium = "Premium"
+        
+        // Linked Accounts
+        override val linkedAccounts = "Verknüpfte Konten"
+        override val linkTelegram = "Telegram verknüpfen"
+        override val linkEmail = "E-Mail verknüpfen"
+        override val telegramLinked = "Telegram verknüpft"
+        override val emailLinked = "E-Mail verknüpft"
+        override val notLinked = "Nicht verknüpft"
+        override val notVerified = "Nicht verifiziert"
+        override val verified = "Verifiziert"
+        
         override val aiAssistant = "KI-Assistent"
         override val askAnything = "Fragen zum Trading..."
         override val typeMessage = "Nachricht eingeben..."

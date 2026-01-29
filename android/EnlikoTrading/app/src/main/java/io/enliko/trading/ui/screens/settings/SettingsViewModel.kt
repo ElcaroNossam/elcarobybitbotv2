@@ -1,8 +1,12 @@
 package io.enliko.trading.ui.screens.settings
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.websocket.WebSocketService
@@ -16,14 +20,23 @@ data class SettingsUiState(
     val accountType: String = "demo",
     val theme: String = "dark",
     val notificationsEnabled: Boolean = true,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    // Linked accounts (Unified Auth)
+    val telegramId: Long? = null,
+    val telegramUsername: String? = null,
+    val email: String? = null,
+    val emailVerified: Boolean = false,
+    val authProvider: String? = null,
+    val hasTelegramLinked: Boolean = false,
+    val hasEmailLinked: Boolean = false
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val api: EnlikoApi,
     private val preferencesRepository: PreferencesRepository,
-    private val webSocketService: WebSocketService  // CROSS-PLATFORM: Inject for sync
+    private val webSocketService: WebSocketService,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -31,6 +44,7 @@ class SettingsViewModel @Inject constructor(
     
     init {
         loadSettings()
+        loadUserProfile()
     }
     
     private fun loadSettings() {
@@ -41,7 +55,7 @@ class SettingsViewModel @Inject constructor(
                 preferencesRepository.accountType,
                 preferencesRepository.theme
             ) { lang, exchange, accountType, theme ->
-                SettingsUiState(
+                _uiState.value.copy(
                     language = lang,
                     exchange = exchange,
                     accountType = accountType,
@@ -51,6 +65,40 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = state
             }
         }
+    }
+    
+    private fun loadUserProfile() {
+        viewModelScope.launch {
+            try {
+                val response = api.getCurrentUser()
+                if (response.isSuccessful) {
+                    response.body()?.user?.let { user ->
+                        _uiState.update { state ->
+                            state.copy(
+                                telegramId = user.telegramId,
+                                telegramUsername = user.telegramUsername,
+                                email = user.email,
+                                emailVerified = user.emailVerified ?: false,
+                                authProvider = user.authProvider,
+                                hasTelegramLinked = user.hasTelegramLinked,
+                                hasEmailLinked = user.hasEmailLinked
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore profile load errors
+            }
+        }
+    }
+    
+    fun openTelegramToLink() {
+        // Open Telegram bot with deep link parameter
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://t.me/EnlikoBot?start=link_app")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(intent)
     }
     
     fun setLanguage(language: String) {

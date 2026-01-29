@@ -6,14 +6,47 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class User(
     @SerialName("user_id") val userId: Long,
+    val id: Long? = null,  // Alternative ID field
     val email: String? = null,
     val username: String? = null,
+    val name: String? = null,  // Full name from server
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
     val lang: String = "en",
     @SerialName("exchange_type") val exchangeType: String = "bybit",
     @SerialName("trading_mode") val tradingMode: String = "demo",
     @SerialName("hl_testnet") val hlTestnet: Boolean? = null,
     @SerialName("is_allowed") val isAllowed: Boolean = false,
-    @SerialName("is_premium") val isPremium: Boolean = false
+    @SerialName("is_premium") val isPremium: Boolean = false,
+    @SerialName("is_admin") val isAdmin: Boolean = false,
+    
+    // Linked accounts info (Unified Auth)
+    @SerialName("telegram_id") val telegramId: Long? = null,
+    @SerialName("telegram_username") val telegramUsername: String? = null,
+    @SerialName("email_verified") val emailVerified: Boolean? = null,
+    @SerialName("auth_provider") val authProvider: String? = null  // 'telegram', 'email', 'both'
+) {
+    // Display name computed property
+    val displayName: String
+        get() = name?.takeIf { it.isNotBlank() }
+            ?: firstName?.let { f -> lastName?.let { "$f $it" } ?: f }
+            ?: username
+            ?: email
+            ?: "User $userId"
+    
+    // Check if Telegram is linked
+    val hasTelegramLinked: Boolean
+        get() = telegramId != null || userId > 0
+    
+    // Check if email is linked
+    val hasEmailLinked: Boolean
+        get() = !email.isNullOrBlank()
+}
+
+// User Response Wrapper - Server returns {"user": {...}} not just User object
+@Serializable
+data class UserResponse(
+    val user: User
 )
 
 @Serializable

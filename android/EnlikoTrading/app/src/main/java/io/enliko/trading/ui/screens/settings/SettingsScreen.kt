@@ -83,6 +83,41 @@ fun SettingsScreen(
                 )
             }
             
+            // Linked Accounts Section (Unified Auth)
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = strings.linkedAccounts,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            // Telegram link status
+            item {
+                LinkedAccountItem(
+                    icon = Icons.Default.Send,
+                    platform = "Telegram",
+                    isLinked = uiState.hasTelegramLinked,
+                    linkedInfo = uiState.telegramUsername?.let { "@$it" } 
+                        ?: uiState.telegramId?.let { "ID: $it" },
+                    onLink = { viewModel.openTelegramToLink() }
+                )
+            }
+            
+            // Email link status
+            item {
+                LinkedAccountItem(
+                    icon = Icons.Default.Email,
+                    platform = "Email",
+                    isLinked = uiState.hasEmailLinked,
+                    linkedInfo = uiState.email,
+                    isVerified = uiState.emailVerified,
+                    onLink = { /* Navigate to LinkEmailScreen */ }
+                )
+            }
+            
             // Trading Section
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -328,6 +363,84 @@ private fun SettingsItem(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun LinkedAccountItem(
+    icon: ImageVector,
+    platform: String,
+    isLinked: Boolean,
+    linkedInfo: String? = null,
+    isVerified: Boolean? = null,
+    onLink: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!isLinked) Modifier.clickable(onClick = onLink) else Modifier)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (isLinked) MaterialTheme.colorScheme.primary 
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = platform,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (isLinked && linkedInfo != null) {
+                        Text(
+                            text = linkedInfo,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (!isLinked) {
+                        Text(
+                            text = "Tap to link",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            if (isLinked) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isVerified == false) {
+                        Text(
+                            text = "Not verified",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Linked",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                Icon(
+                    Icons.Default.AddCircleOutline,
+                    contentDescription = "Link",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ interface EnlikoApi {
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @GET("/api/users/me")
-    suspend fun getCurrentUser(): Response<User>
+    suspend fun getCurrentUser(): Response<UserResponse>
 
     @POST("/api/auth/logout")
     suspend fun logout(): Response<Unit>
