@@ -11385,8 +11385,8 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
             exchange_type = db.get_exchange_type(uid) or 'bybit'
             account_type = kwargs.get('account_type')
             if account_type is None:
-                trading_mode = db.get_trading_mode(uid)
-                account_type = 'real' if trading_mode == 'real' else 'demo'
+                # Use get_last_viewed_account which prefers Real if has API keys
+                account_type = db.get_last_viewed_account(uid, exchange_type)
             
             # Get unified Position objects
             positions = await get_positions_unified(

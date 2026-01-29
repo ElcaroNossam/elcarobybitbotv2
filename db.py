@@ -452,10 +452,14 @@ def get_last_viewed_account(user_id: int, exchange: str = 'bybit') -> str:
         if exchange == "hyperliquid" and last_viewed in ("testnet", "mainnet"):
             return last_viewed
     
-    # Default based on trading mode or hl_testnet
+    # Default based on trading mode, API keys availability, or hl_testnet
     if exchange == "bybit":
         if trading_mode == "both":
-            return "demo"  # Default to demo for viewing
+            # FIX: Prefer 'real' if user has real API keys configured
+            creds = get_all_user_credentials(user_id)
+            if creds.get("real_api_key") and creds.get("real_api_secret"):
+                return "real"
+            return "demo"
         return trading_mode if trading_mode in ("demo", "real") else "demo"
     else:
         return "testnet" if hl_testnet else "mainnet"
