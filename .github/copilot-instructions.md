@@ -108,6 +108,37 @@
 - Деплоить без проверки логов
 - Игнорировать ошибки в логах после деплоя
 
+## 📱 ОБЯЗАТЕЛЬНАЯ ПЕРЕСБОРКА iOS ПОСЛЕ ЛЮБЫХ ИЗМЕНЕНИЙ
+
+**После ЛЮБЫХ изменений Swift файлов ОБЯЗАТЕЛЬНО:**
+
+1. **Clean build iOS проекта:**
+   ```bash
+   cd /Users/elcarosam/project/elcarobybitbotv2/ios/EnlikoTrading && \
+   rm -rf ~/Library/Developer/Xcode/DerivedData/EnlikoTrading* && \
+   xcodebuild -project EnlikoTrading.xcodeproj -scheme EnlikoTrading \
+     -destination 'platform=iOS Simulator,name=iPhone 16 Pro' clean build
+   ```
+
+2. **Проверить BUILD SUCCEEDED** - если failed, исправить ошибки
+
+3. **Commit iOS репозитория (отдельный git):**
+   ```bash
+   cd /Users/elcarosam/project/elcarobybitbotv2/ios/EnlikoTrading && \
+   git add -A && git commit -m "описание изменений"
+   ```
+
+4. **Обновить submodule reference в main repo:**
+   ```bash
+   cd /Users/elcarosam/project/elcarobybitbotv2 && \
+   git add ios/EnlikoTrading && git commit -m "chore: Update iOS submodule"
+   ```
+
+**❌ ЗАПРЕЩЕНО:**
+- Оставлять iOS изменения незакоммиченными
+- Не проверять что билд успешен
+- Говорить пользователю "пересобери сам" - ДЕЛАТЬ САМОМУ!
+
 **Паттерн исправления:**
 ```
 1. Увидел ошибку → Читаю код → Нахожу причину
