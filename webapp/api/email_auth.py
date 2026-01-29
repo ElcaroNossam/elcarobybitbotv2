@@ -421,14 +421,23 @@ def create_email_user(email: str, password_hash: str, password_salt: str, name: 
         finally:
             pool.putconn(pg_conn)
         
-        # Also ensure user exists in main users table with is_allowed = 1
+        # Also ensure user exists in main users table with full data
         db.ensure_user(inserted_user_id)
-        if name:
-            db.set_user_field(inserted_user_id, "first_name", name)
-        # Email users should be allowed by default
-        db.set_user_field(inserted_user_id, "is_allowed", 1)
         
-        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, is_allowed=1")
+        # Set all required fields in users table for unified auth
+        from core.db_postgres import execute as pg_execute
+        pg_execute("""
+            UPDATE users SET 
+                email = %s,
+                password_hash = %s,
+                auth_provider = 'email',
+                email_verified = TRUE,
+                first_name = %s,
+                is_allowed = 1
+            WHERE user_id = %s
+        """, (email.lower(), f"{password_hash}:{password_salt}", name, inserted_user_id))
+        
+        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, is_allowed=1, email synced to users")
         return inserted_user_id
     except Exception as e:
         logger.error(f"create_email_user error: {e}", exc_info=True)
