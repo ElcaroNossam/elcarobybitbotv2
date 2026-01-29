@@ -367,33 +367,39 @@ def get_email_user_by_id(user_id: int) -> Optional[dict]:
 def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None) -> Optional[int]:
     """Create email user in database"""
     try:
-        from core.db_postgres import execute_one, get_conn
+        from core.db_postgres import get_pool
+        import psycopg2.extras
         
         user_id = generate_email_user_id()
         
-        # Create in email_users table with RETURNING to verify insertion
-        with get_conn() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO email_users (user_id, email, password_hash, password_salt, name, is_verified, created_at)
-                VALUES (%s, %s, %s, %s, %s, TRUE, NOW())
-                ON CONFLICT (email) DO UPDATE SET 
-                    user_id = EXCLUDED.user_id,
-                    password_hash = EXCLUDED.password_hash,
-                    password_salt = EXCLUDED.password_salt,
-                    name = EXCLUDED.name,
-                    is_verified = TRUE,
-                    updated_at = NOW()
-                RETURNING user_id
-            """, (user_id, email.lower(), password_hash, password_salt, name))
-            result = cur.fetchone()
-            
-            if not result:
-                logger.error(f"create_email_user: INSERT returned no result for {email}")
-                return None
-            
-            inserted_user_id = result[0]
-            logger.info(f"email_users INSERT success: {email} -> user_id={inserted_user_id}")
+        # Use raw psycopg2 connection to avoid SQLiteCompatCursor issues with RETURNING
+        pool = get_pool()
+        pg_conn = pool.getconn()
+        try:
+            with pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute("""
+                    INSERT INTO email_users (user_id, email, password_hash, password_salt, name, is_verified, created_at)
+                    VALUES (%s, %s, %s, %s, %s, TRUE, NOW())
+                    ON CONFLICT (email) DO UPDATE SET 
+                        user_id = EXCLUDED.user_id,
+                        password_hash = EXCLUDED.password_hash,
+                        password_salt = EXCLUDED.password_salt,
+                        name = EXCLUDED.name,
+                        is_verified = TRUE,
+                        updated_at = NOW()
+                    RETURNING user_id
+                """, (user_id, email.lower(), password_hash, password_salt, name))
+                result = cur.fetchone()
+                
+                if not result:
+                    logger.error(f"create_email_user: INSERT returned no result for {email}")
+                    return None
+                
+                inserted_user_id = result['user_id']
+                pg_conn.commit()
+                logger.info(f"email_users INSERT success: {email} -> user_id={inserted_user_id}")
+        finally:
+            pool.putconn(pg_conn)
         
         # Also ensure user exists in main users table with is_allowed = 1
         db.ensure_user(inserted_user_id)
