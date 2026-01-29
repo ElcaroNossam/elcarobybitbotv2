@@ -9386,10 +9386,17 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     user = update.effective_user
     
-    # Check for deep link parameter (e.g., /start link_app)
+    # Check for deep link parameter (e.g., /start link_app or /start app_login)
     args = ctx.args
     if args and len(args) > 0:
         param = args[0]
+        
+        # Handle app_login - user came from iOS/Android app to login
+        if param == "app_login":
+            logger.info(f"[{uid}] User came from app via /start app_login - redirecting to /app_login")
+            # Call cmd_app_login directly to generate login token and deep link
+            await cmd_app_login(update, ctx)
+            return
         
         # Handle link_app - user came from iOS/Android app to link Telegram
         if param == "link_app":
