@@ -21350,22 +21350,22 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_stats", "📊 Statistics"):
         return await cmd_trade_stats(update, ctx)
 
-    if text == ctx.t["button_market"]:
+    if text == ctx.t.get("button_market", "📈 Market"):
         return await cmd_market(update, ctx)
 
-    if text == ctx.t["button_settings"]:
+    if text == ctx.t.get("button_settings", "⚙️ Settings"):
         return await cmd_show_config(update, ctx)
 
-    if text == ctx.t["button_indicators"]:
+    if text == ctx.t.get("button_indicators", "📊 Indicators"):
         return await cmd_indicators(update, ctx)
 
-    if text == ctx.t["button_limit_only"]:
+    if text == ctx.t.get("button_limit_only", "📝 Limit Only"):
         return await cmd_toggle_limit(update, ctx)
 
-    if text == ctx.t["button_toggle_oi"]:
+    if text == ctx.t.get("button_toggle_oi", "📊 OI"):
         return await cmd_toggle_oi(update, ctx)
 
-    if text == ctx.t["button_scryptomera"]:
+    if text == ctx.t.get("button_scryptomera", "🔮 Scryptomera"):
         return await cmd_toggle_scryptomera(update, ctx)
 
     if text == ctx.t.get("button_scalper"):
@@ -21380,7 +21380,7 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_strategy_settings", "⚙️ Strategy Settings"):
         return await cmd_strategy_settings(update, ctx)
 
-    if text == ctx.t["button_toggle_rsi_bb"]:
+    if text == ctx.t.get("button_toggle_rsi_bb", "📈 RSI/BB"):
         return await cmd_toggle_rsi_bb(update, ctx)
 
     if text in [ctx.t.get("button_support", "📞 Support"), "📞 Support"]:
