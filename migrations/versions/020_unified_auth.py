@@ -32,6 +32,13 @@ def upgrade(cur):
         ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_username TEXT;
     """)
     
+    # telegram_id for email users who link Telegram later
+    # For native Telegram users, user_id = telegram_id
+    # For email users who link Telegram, this stores their Telegram ID
+    cur.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_id BIGINT;
+    """)
+    
     # auth_provider: 'telegram', 'email', 'both' (when linked)
     cur.execute("""
         ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'telegram';
@@ -55,6 +62,11 @@ def upgrade(cur):
     # Create index for telegram_username lookup
     cur.execute("""
         CREATE INDEX IF NOT EXISTS idx_users_telegram_username ON users(telegram_username) WHERE telegram_username IS NOT NULL;
+    """)
+    
+    # Create index for telegram_id lookup (for email users who linked Telegram)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id) WHERE telegram_id IS NOT NULL;
     """)
     
     # Create telegram_user_mapping for linking email accounts to Telegram
@@ -97,11 +109,13 @@ def downgrade(cur):
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS password_hash;")
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS password_salt;")
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS telegram_username;")
+    cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS telegram_id;")
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS auth_provider;")
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS email_verified;")
     cur.execute("ALTER TABLE users DROP COLUMN IF EXISTS last_login;")
     cur.execute("DROP INDEX IF EXISTS idx_users_email;")
     cur.execute("DROP INDEX IF EXISTS idx_users_telegram_username;")
+    cur.execute("DROP INDEX IF EXISTS idx_users_telegram_id;")
     cur.execute("DROP INDEX IF EXISTS idx_telegram_mapping_user;")
     
     print("✅ Migration 020: Rolled back unified auth fields")

@@ -19,16 +19,19 @@ import hmac
 import hashlib
 import logging
 import time
+import json
+import jwt
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from webapp.api.auth import create_token
+from core.db_postgres import execute, execute_one
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,7 @@ router = APIRouter(prefix="/auth/telegram", tags=["telegram-auth"])
 
 # Get bot token for hash verification
 BOT_TOKEN = os.getenv("TG_BOT_TOKEN") or os.getenv("BOT_TOKEN") or ""
+SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "enliko-secret-key-2026"))
 
 
 # =============================================================================
@@ -298,31 +302,23 @@ async def link_telegram_to_email(data: TelegramLinkRequest, request: Request):
     try:
         with pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             # Update email user with Telegram link
-            # Note: user_id stays the same (email-generated negative ID)
-            # We just add telegram credentials for alternative login
+            # Store telegram_id and telegram_username in users table
             cur.execute("""
                 UPDATE users SET
+                    telegram_id = %s,
                     telegram_username = %s,
                     auth_provider = 'both',
                     updated_at = NOW()
                 WHERE user_id = %s
-                RETURNING user_id, email, first_name, telegram_username
+                RETURNING user_id, email, first_name, telegram_username, telegram_id
             """, (
+                telegram_id,
                 data.telegram_data.username,
                 current_user_id
             ))
             linked_user = cur.fetchone()
             
-            # Also store the telegram_id mapping for future telegram logins
-            # We need a mapping table: telegram_id -> user_id
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS telegram_user_mapping (
-                    telegram_id BIGINT PRIMARY KEY,
-                    user_id BIGINT NOT NULL REFERENCES users(user_id),
-                    linked_at TIMESTAMP DEFAULT NOW()
-                )
-            """)
-            
+            # Also store in telegram_user_mapping for fast lookup by telegram_id
             cur.execute("""
                 INSERT INTO telegram_user_mapping (telegram_id, user_id)
                 VALUES (%s, %s)
@@ -426,3 +422,271 @@ async def verify_deep_link(data: TelegramDeepLinkRequest):
             "auth_provider": user.get("auth_provider", "telegram"),
         }
     }
+
+
+# =============================================================================
+# EMAIL LINKING (for Telegram users)
+# =============================================================================
+
+class LinkEmailRequest(BaseModel):
+    """Request to link email to Telegram account."""
+    email: str
+    password: str  # New password for email login
+
+
+@router.post("/link-email")
+async def link_email_to_telegram(data: LinkEmailRequest, request: Request):
+    """
+    Link email to existing Telegram account.
+    
+    Allows Telegram users (from bot) to add email login option.
+    After linking, user can login with either method.
+    
+    Requires: Authorization header with valid JWT token
+    """
+    from webapp.api.auth import decode_token, get_authorization_header
+    import bcrypt
+    
+    # Get and verify JWT token
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing authorization token")
+    
+    token = auth_header.replace("Bearer ", "")
+    try:
+        payload = decode_token(token)
+        current_user_id = int(payload.get("sub"))
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # Validate email format
+    import re
+    if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", data.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Validate password
+    if len(data.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    from core.db_postgres import execute_one, get_pool
+    import psycopg2.extras
+    
+    # Check if email is already used
+    existing_email = execute_one(
+        "SELECT user_id FROM users WHERE email = %s AND user_id != %s",
+        (data.email.lower(), current_user_id)
+    )
+    
+    if existing_email:
+        raise HTTPException(
+            status_code=400,
+            detail="This email is already linked to another account"
+        )
+    
+    # Hash password
+    salt = bcrypt.gensalt()
+    password_hash = bcrypt.hashpw(data.password.encode(), salt).decode()
+    
+    pool = get_pool()
+    pg_conn = pool.getconn()
+    try:
+        with pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Update Telegram user with email credentials
+            cur.execute("""
+                UPDATE users SET
+                    email = %s,
+                    password_hash = %s,
+                    password_salt = %s,
+                    email_verified = TRUE,
+                    auth_provider = 'both',
+                    updated_at = NOW()
+                WHERE user_id = %s
+                RETURNING user_id, email, first_name, telegram_username, telegram_id
+            """, (
+                data.email.lower(),
+                password_hash,
+                salt.decode(),
+                current_user_id
+            ))
+            linked_user = cur.fetchone()
+            pg_conn.commit()
+            
+            if not linked_user:
+                raise HTTPException(status_code=404, detail="User not found")
+    finally:
+        pool.putconn(pg_conn)
+    
+    logger.info(f"Linked email {data.email} to Telegram user {current_user_id}")
+    
+    return {
+        "success": True,
+        "message": "Email linked successfully",
+        "user": {
+            "user_id": current_user_id,
+            "email": data.email.lower(),
+            "telegram_username": linked_user.get("telegram_username"),
+            "auth_provider": "both"
+        }
+    }
+
+
+@router.get("/linked-accounts")
+async def get_linked_accounts(request: Request):
+    """
+    Get all linked accounts for current user.
+    
+    Returns information about email and Telegram linking status.
+    """
+    from webapp.api.auth import decode_token
+    
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing authorization token")
+    
+    token = auth_header.replace("Bearer ", "")
+    try:
+        payload = decode_token(token)
+        user_id = int(payload.get("sub"))
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    from core.db_postgres import execute_one
+    
+    user = execute_one("""
+        SELECT 
+            user_id, email, email_verified, telegram_id, telegram_username,
+            auth_provider, first_name, last_name, created_at
+        FROM users WHERE user_id = %s
+    """, (user_id,))
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Determine what accounts are linked
+    has_email = bool(user.get("email"))
+    has_telegram = user.get("telegram_id") is not None or user.get("user_id", 0) > 0
+    
+    return {
+        "user_id": user_id,
+        "email": {
+            "linked": has_email,
+            "address": user.get("email"),
+            "verified": bool(user.get("email_verified"))
+        },
+        "telegram": {
+            "linked": has_telegram,
+            "id": user.get("telegram_id") or (user_id if user_id > 0 else None),
+            "username": user.get("telegram_username")
+        },
+        "auth_provider": user.get("auth_provider", "unknown"),
+        "name": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+        "created_at": user.get("created_at").isoformat() if user.get("created_at") else None
+    }
+
+
+# ==============================================================================
+# Complete Telegram Linking (from iOS/Android app flow)
+# ==============================================================================
+@router.post("/complete-link")
+async def complete_telegram_link(
+    request: Request,
+    authorization: str = Header(...)
+):
+    """
+    Complete Telegram account linking from app.
+    
+    Flow:
+    1. User clicks "Link Telegram" in iOS/Android app
+    2. Opens t.me/EnlikoBot?start=link_app
+    3. Bot generates token and shows "Complete Linking" button
+    4. User clicks button → arrives at /auth/telegram/complete-link?token=XXX
+    5. This endpoint links Telegram to their email account
+    
+    Body: { "token": "link_token_from_bot" }
+    """
+    try:
+        # Get user from JWT
+        token = authorization.replace("Bearer ", "").strip()
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Get token from body
+        body = await request.json()
+        link_token = body.get("token")
+        
+        if not link_token:
+            raise HTTPException(status_code=400, detail="Missing link token")
+        
+        # Verify token in Redis
+        from core.redis_client import get_redis
+        redis = get_redis()
+        token_data_raw = await redis.get(f"tg_link_token:{link_token}")
+        
+        if not token_data_raw:
+            raise HTTPException(status_code=400, detail="Link token expired or invalid")
+        
+        import json
+        token_data = json.loads(token_data_raw)
+        telegram_id = token_data.get("telegram_id")
+        telegram_username = token_data.get("telegram_username", "")
+        telegram_first_name = token_data.get("telegram_first_name", "")
+        telegram_last_name = token_data.get("telegram_last_name", "")
+        
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="Invalid token data")
+        
+        # Delete token (one-time use)
+        await redis.delete(f"tg_link_token:{link_token}")
+        
+        # Check if this Telegram ID is already linked to another account
+        existing = execute_one("""
+            SELECT user_id FROM telegram_user_mapping WHERE telegram_id = %s
+        """, (telegram_id,))
+        
+        if existing and existing.get("user_id") != user_id:
+            raise HTTPException(
+                status_code=409,
+                detail="This Telegram account is already linked to another user"
+            )
+        
+        # Update user with Telegram info
+        execute("""
+            UPDATE users SET
+                telegram_id = %s,
+                telegram_username = %s,
+                first_name = COALESCE(NULLIF(first_name, ''), %s),
+                last_name = COALESCE(NULLIF(last_name, ''), %s),
+                auth_provider = CASE 
+                    WHEN auth_provider = 'email' THEN 'both'
+                    ELSE auth_provider
+                END,
+                updated_at = NOW()
+            WHERE user_id = %s
+        """, (telegram_id, telegram_username, telegram_first_name, telegram_last_name, user_id))
+        
+        # Add to mapping table
+        execute("""
+            INSERT INTO telegram_user_mapping (telegram_id, user_id, created_at)
+            VALUES (%s, %s, NOW())
+            ON CONFLICT (telegram_id) DO UPDATE SET user_id = EXCLUDED.user_id
+        """, (telegram_id, user_id))
+        
+        logger.info(f"Successfully linked Telegram {telegram_id} (@{telegram_username}) to user {user_id}")
+        
+        return {
+            "success": True,
+            "message": "Telegram account linked successfully",
+            "telegram": {
+                "id": telegram_id,
+                "username": telegram_username
+            }
+        }
+        
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    except Exception as e:
+        logger.exception(f"Failed to complete Telegram link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

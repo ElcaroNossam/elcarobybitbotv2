@@ -9384,6 +9384,61 @@ async def cmd_toggle_rsi_bb(update, ctx):
 @log_calls
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+    user = update.effective_user
+    
+    # Check for deep link parameter (e.g., /start link_app)
+    args = ctx.args
+    if args and len(args) > 0:
+        param = args[0]
+        
+        # Handle link_app - user came from iOS/Android app to link Telegram
+        if param == "link_app":
+            logger.info(f"[{uid}] User came from app to link Telegram account")
+            # User clicked "Link Telegram" in the app
+            # Generate a linking token and send it back
+            try:
+                import secrets
+                link_token = secrets.token_urlsafe(32)
+                
+                # Store in Redis with 5 min TTL
+                from core.redis_client import get_redis
+                redis = get_redis()
+                token_data = {
+                    "telegram_id": uid,
+                    "telegram_username": user.username or "",
+                    "telegram_first_name": user.first_name or "",
+                    "telegram_last_name": user.last_name or "",
+                    "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+                }
+                await redis.set(f"tg_link_token:{link_token}", json.dumps(token_data), ex=300)
+                
+                # Send linking instructions
+                webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
+                link_url = f"{webapp_url}/auth/telegram/complete-link?token={link_token}"
+                
+                text = (
+                    f"🔗 <b>Link Telegram to Your Account</b>\n\n"
+                    f"Your Telegram ID: <code>{uid}</code>\n"
+                    f"Username: @{user.username or 'not set'}\n\n"
+                    f"To complete linking, click the button below or copy this link to your browser:\n\n"
+                    f"<code>{link_url}</code>\n\n"
+                    f"⏰ This link expires in 5 minutes."
+                )
+                
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔗 Complete Linking", url=link_url)],
+                    [InlineKeyboardButton("❌ Cancel", callback_data="link_cancel")]
+                ])
+                
+                await update.message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
+                return
+            except Exception as e:
+                logger.exception(f"[{uid}] Failed to create link token: {e}")
+                await update.message.reply_text(
+                    "❌ Failed to create linking token. Please try again.",
+                    parse_mode="HTML"
+                )
+                return
 
     if _is_banned(uid):
         await reply_with_keyboard(update, ctx, ctx.t['banned'])

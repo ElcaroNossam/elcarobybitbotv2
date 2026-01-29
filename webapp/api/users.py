@@ -137,27 +137,38 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
     # Get exchange type from correct field
     exchange_type = db.get_exchange_type(user_id) or "bybit"
     
-    # Get additional user fields directly from database
+    # Get additional user fields directly from database (including linked accounts)
     from core.db_postgres import execute_one
-    user_row = execute_one(
-        "SELECT first_name, last_name, is_allowed, leverage, lang, license_type FROM users WHERE user_id = %s",
-        (user_id,)
-    )
+    user_row = execute_one("""
+        SELECT first_name, last_name, is_allowed, leverage, lang, license_type,
+               email, email_verified, telegram_id, telegram_username, auth_provider
+        FROM users WHERE user_id = %s
+    """, (user_id,))
     
-    # Get email user info if available
+    # Get email user info if available (legacy fallback)
     email_user = None
-    try:
-        from webapp.api.email_auth import get_email_user_by_id
-        email_user = get_email_user_by_id(user_id)
-    except:
-        pass
+    if not user_row or not user_row.get("email"):
+        try:
+            from webapp.api.email_auth import get_email_user_by_id
+            email_user = get_email_user_by_id(user_id)
+        except:
+            pass
+    
+    # Build linked accounts info
+    email_from_row = user_row.get("email") if user_row else None
+    email_address = email_from_row or (email_user.get("email") if email_user else None)
+    
+    # Determine Telegram ID - native TG users have positive user_id
+    telegram_id = user_row.get("telegram_id") if user_row else None
+    if telegram_id is None and user_id > 0:
+        telegram_id = user_id  # Native Telegram user
     
     return {
         "user": {
             "id": user_id,  # Required for iOS Identifiable
             "user_id": user_id,
-            "email": email_user.get("email") if email_user else None,
-            "name": email_user.get("name") if email_user else (user_row.get("first_name") if user_row else None),
+            "email": email_address,
+            "name": (user_row.get("first_name") if user_row else None) or (email_user.get("name") if email_user else None),
             "first_name": user_row.get("first_name") if user_row else None,
             "last_name": user_row.get("last_name") if user_row else None,
             "exchange_type": exchange_type,
@@ -168,6 +179,11 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
             "is_allowed": bool(user_row.get("is_allowed", 0)) if user_row else False,
             "is_premium": (user_row.get("license_type") if user_row else None) not in (None, "free"),
             "license_type": user_row.get("license_type", "free") if user_row else "free",
+            # Linked accounts info
+            "telegram_id": telegram_id,
+            "telegram_username": user_row.get("telegram_username") if user_row else None,
+            "email_verified": bool(user_row.get("email_verified")) if user_row else False,
+            "auth_provider": user_row.get("auth_provider", "email" if user_id < 0 else "telegram") if user_row else None,
         }
     }
 
