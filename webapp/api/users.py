@@ -137,6 +137,13 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
     # Get exchange type from correct field
     exchange_type = db.get_exchange_type(user_id) or "bybit"
     
+    # Get additional user fields directly from database
+    from core.db_postgres import execute_one
+    user_row = execute_one(
+        "SELECT first_name, last_name, is_allowed, leverage, lang, license_type FROM users WHERE user_id = %s",
+        (user_id,)
+    )
+    
     # Get email user info if available
     email_user = None
     try:
@@ -150,17 +157,17 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
             "id": user_id,  # Required for iOS Identifiable
             "user_id": user_id,
             "email": email_user.get("email") if email_user else None,
-            "name": email_user.get("name") if email_user else creds.get("first_name"),
-            "first_name": creds.get("first_name"),
-            "last_name": creds.get("last_name"),
+            "name": email_user.get("name") if email_user else (user_row.get("first_name") if user_row else None),
+            "first_name": user_row.get("first_name") if user_row else None,
+            "last_name": user_row.get("last_name") if user_row else None,
             "exchange_type": exchange_type,
             "trading_mode": creds.get("trading_mode", "demo"),
             "hl_testnet": hl_creds.get("hl_testnet", False),
-            "leverage": creds.get("leverage", 10),
-            "lang": creds.get("lang", "en"),
-            "is_allowed": creds.get("is_allowed", False),
-            "is_premium": creds.get("license_type") not in (None, "free"),
-            "license_type": creds.get("license_type", "free"),
+            "leverage": user_row.get("leverage", 10) if user_row else 10,
+            "lang": user_row.get("lang", "en") if user_row else "en",
+            "is_allowed": bool(user_row.get("is_allowed", 0)) if user_row else False,
+            "is_premium": (user_row.get("license_type") if user_row else None) not in (None, "free"),
+            "license_type": user_row.get("license_type", "free") if user_row else "free",
         }
     }
 
