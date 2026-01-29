@@ -947,6 +947,26 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь 2026)
 
+### ✅ FIX: iOS Registration Decoding Error (Jan 29, 2026)
+- **Проблема:** "Decoding error: The data couldn't be read because it is missing" при регистрации/верификации
+- **Причина:** iOS `User` struct имел `id: Int` как обязательное поле, но сервер возвращал только `user_id`
+- **Исправления:**
+  1. **iOS Models/Models.swift:**
+     - Изменён `id: Int` → `private let _id: Int?` (optional)
+     - Добавлено computed property: `var id: Int { userId ?? _id ?? 0 }`
+     - Добавлены поля `name`, `isAdmin` которые сервер возвращает
+     - Улучшен `displayName` с fallback на email
+  2. **iOS AuthModels.swift:**
+     - Добавлен `UserResponse` wrapper для `/me` endpoint (сервер возвращает `{"user": {...}}`)
+  3. **iOS AuthManager.swift:**
+     - `fetchCurrentUser` использует `UserResponse` wrapper
+  4. **Server webapp/api/email_auth.py:**
+     - `/verify` и `/login` теперь возвращают полный user object с `id` полем
+     - Добавлена функция `get_email_user_by_id()`
+  5. **Server webapp/api/users.py:**
+     - `/me` endpoint возвращает полный user object с `id` полем
+- **Результат:** iOS регистрация и логин работают корректно
+
 ### ✅ iOS Full Audit - All 40+ Files Verified (Jan 28, 2026)
 - **Аудит:** Полная проверка всех Swift файлов iOS приложения
 - **Результат:** **BUILD SUCCEEDED** - все файлы компилируются без ошибок
