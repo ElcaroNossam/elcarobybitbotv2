@@ -137,15 +137,30 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
     # Get exchange type from correct field
     exchange_type = db.get_exchange_type(user_id) or "bybit"
     
+    # Get email user info if available
+    email_user = None
+    try:
+        from webapp.api.email_auth import get_email_user_by_id
+        email_user = get_email_user_by_id(user_id)
+    except:
+        pass
+    
     return {
         "user": {
+            "id": user_id,  # Required for iOS Identifiable
             "user_id": user_id,
+            "email": email_user.get("email") if email_user else None,
+            "name": email_user.get("name") if email_user else creds.get("first_name"),
+            "first_name": creds.get("first_name"),
+            "last_name": creds.get("last_name"),
             "exchange_type": exchange_type,
             "trading_mode": creds.get("trading_mode", "demo"),
             "hl_testnet": hl_creds.get("hl_testnet", False),
             "leverage": creds.get("leverage", 10),
-            "language": creds.get("lang", "en"),
+            "lang": creds.get("lang", "en"),
             "is_allowed": creds.get("is_allowed", False),
+            "is_premium": creds.get("license_type") not in (None, "free"),
+            "license_type": creds.get("license_type", "free"),
         }
     }
 

@@ -350,6 +350,20 @@ def get_email_user(email: str) -> Optional[dict]:
         return None
 
 
+def get_email_user_by_id(user_id: int) -> Optional[dict]:
+    """Get email user by user_id from database"""
+    try:
+        from core.db_postgres import execute_one
+        row = execute_one(
+            "SELECT * FROM email_users WHERE user_id = %s",
+            (user_id,)
+        )
+        return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"get_email_user_by_id error: {e}")
+        return None
+
+
 def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None) -> Optional[int]:
     """Create email user in database"""
     try:
@@ -493,17 +507,27 @@ async def email_verify(data: EmailVerifyRequest):
     refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
     refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
     
+    # Build full user object for iOS compatibility
+    name = pending.get('name')
     return {
         "success": True,
         "token": token,
         "refresh_token": refresh_token,
         "user_id": user_id,
         "user": {
+            "id": user_id,  # Required for iOS Identifiable
             "user_id": user_id,
             "email": email,
-            "name": pending.get('name'),
+            "name": name,
+            "first_name": name.split()[0] if name and ' ' in name else name,
+            "last_name": name.split()[-1] if name and ' ' in name else None,
             "is_admin": False,
-            "license_type": "free"
+            "is_allowed": True,
+            "is_premium": False,
+            "license_type": "free",
+            "exchange_type": "bybit",
+            "trading_mode": "demo",
+            "lang": "en"
         }
     }
 
@@ -541,17 +565,27 @@ async def email_login(data: EmailLoginRequest, request: Request):
     refresh_secret = os.getenv("JWT_SECRET", "enliko_default_secret")
     refresh_token = hashlib.sha256(f"{user_id}:{email}:{refresh_secret}".encode()).hexdigest()
     
+    # Build full user object for iOS compatibility
+    name = user.get('name') or db_user.get('first_name')
     return {
         "success": True,
         "token": token,
         "refresh_token": refresh_token,
         "user_id": user_id,
         "user": {
+            "id": user_id,  # Required for iOS Identifiable
             "user_id": user_id,
             "email": email,
-            "name": user.get('name') or db_user.get('first_name'),
+            "name": name,
+            "first_name": name.split()[0] if name and ' ' in name else name,
+            "last_name": name.split()[-1] if name and ' ' in name else None,
             "is_admin": is_admin,
-            "license_type": db_user.get('license_type', 'free')
+            "is_allowed": db_user.get('is_allowed', True),
+            "is_premium": db_user.get('license_type') not in (None, 'free'),
+            "license_type": db_user.get('license_type', 'free'),
+            "exchange_type": db_user.get('exchange_type', 'bybit'),
+            "trading_mode": db_user.get('trading_mode', 'demo'),
+            "lang": db_user.get('lang', 'en')
         }
     }
 
