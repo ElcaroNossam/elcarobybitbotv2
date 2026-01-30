@@ -275,6 +275,9 @@ def update_user_info(user_id: int, username: str = None, first_name: str = None)
     if username is not None:
         updates.append("username = %s")
         params.append(username)
+        # Also update telegram_username for 2FA login
+        updates.append("telegram_username = %s")
+        params.append(username)
     
     if first_name is not None:
         updates.append("first_name = %s")
