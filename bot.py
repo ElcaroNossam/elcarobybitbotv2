@@ -26889,15 +26889,16 @@ def main():
     error_monitor.set_bot(app.bot)
     logger.info("Error monitor initialized")
     
-    # DEBUG: Log ALL callback queries to debug 2FA issue
-    async def debug_all_callbacks(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    # DEBUG: Log ALL callback queries using TypeHandler (doesn't consume the update)
+    from telegram.ext import TypeHandler
+    
+    async def debug_all_updates(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if update.callback_query:
             data = update.callback_query.data
             uid = update.effective_user.id if update.effective_user else 0
             logger.info(f"[DEBUG-CALLBACK] uid={uid} callback_data={data}")
-        return False  # Don't block - let other handlers process
     
-    app.add_handler(CallbackQueryHandler(debug_all_callbacks), group=-1)  # group=-1 = highest priority
+    app.add_handler(TypeHandler(Update, debug_all_updates), group=-100)  # Runs first, doesn't block
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
