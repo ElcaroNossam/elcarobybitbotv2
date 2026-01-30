@@ -1,10 +1,10 @@
 """
 Migration: Push Notifications Infrastructure
-Version: 021
+Version: 022
 Created: 2026-01-30
 
-Creates tables for push notifications:
-- user_devices: Device tokens for iOS/Android/Web
+Updates for push notifications:
+- user_devices: Add missing columns (device_token as alias for push_token, is_active, device_name)
 - notification_preferences: User notification settings
 - Updates notification_queue: Adds is_read, read_at columns
 """
@@ -13,27 +13,52 @@ Creates tables for push notifications:
 def upgrade(cur):
     """Apply migration"""
     
-    # User devices table for push notification tokens
+    # Check if user_devices table exists and update it
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_devices (
-            id              SERIAL PRIMARY KEY,
-            user_id         BIGINT NOT NULL,
-            device_token    TEXT NOT NULL,
-            platform        TEXT NOT NULL,        -- 'ios', 'android', 'web'
-            device_name     TEXT,
-            app_version     TEXT,
-            os_version      TEXT,
-            is_active       BOOLEAN DEFAULT TRUE,
-            created_at      TIMESTAMP DEFAULT NOW(),
-            updated_at      TIMESTAMP DEFAULT NOW(),
-            
-            UNIQUE(device_token)
-        )
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'user_devices'
     """)
+    existing_columns = [row[0] for row in cur.fetchall()]
     
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_user ON user_devices(user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_token ON user_devices(device_token)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_active ON user_devices(user_id, is_active)")
+    if not existing_columns:
+        # Create new table if it doesn't exist
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_devices (
+                id              SERIAL PRIMARY KEY,
+                user_id         BIGINT NOT NULL,
+                device_token    TEXT NOT NULL,
+                platform        TEXT NOT NULL,        -- 'ios', 'android', 'web'
+                device_name     TEXT,
+                app_version     TEXT,
+                os_version      TEXT,
+                is_active       BOOLEAN DEFAULT TRUE,
+                created_at      TIMESTAMP DEFAULT NOW(),
+                updated_at      TIMESTAMP DEFAULT NOW(),
+                
+                UNIQUE(device_token)
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_user ON user_devices(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_token ON user_devices(device_token)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_active ON user_devices(user_id, is_active)")
+    else:
+        # Add missing columns to existing table
+        if 'device_token' not in existing_columns and 'push_token' in existing_columns:
+            # Rename push_token to device_token for consistency
+            cur.execute("ALTER TABLE user_devices RENAME COLUMN push_token TO device_token")
+        
+        if 'is_active' not in existing_columns:
+            cur.execute("ALTER TABLE user_devices ADD COLUMN is_active BOOLEAN DEFAULT TRUE")
+        
+        if 'device_name' not in existing_columns:
+            cur.execute("ALTER TABLE user_devices ADD COLUMN device_name TEXT")
+        
+        if 'updated_at' not in existing_columns:
+            cur.execute("ALTER TABLE user_devices ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
+        
+        # Create indexes if they don't exist
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_user ON user_devices(user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_active ON user_devices(user_id, is_active)")
     
     # Notification preferences table
     cur.execute("""
