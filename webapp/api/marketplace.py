@@ -359,10 +359,10 @@ async def get_marketplace(
             listing["revenue_share_info"] = "50% creator / 50% platform"
             listings.append(listing)
         
-        # Get total count
-        cur.execute("SELECT COUNT(*) FROM strategy_marketplace WHERE is_active = TRUE")
+        # Get total count (PostgreSQL returns dict, use AS count for named access)
+        cur.execute("SELECT COUNT(*) AS count FROM strategy_marketplace WHERE is_active = TRUE")
         row = cur.fetchone()
-        total = row[0] if row else 0
+        total = row["count"] if row else 0
         
         return {
             "success": True,
