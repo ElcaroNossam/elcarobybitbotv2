@@ -882,21 +882,23 @@ def pg_init_db():
             CREATE TABLE IF NOT EXISTS user_devices (
                 id              SERIAL PRIMARY KEY,
                 user_id         BIGINT NOT NULL,
-                device_id       TEXT NOT NULL,
+                device_id       TEXT,
+                device_token    TEXT,
                 platform        TEXT DEFAULT 'android',
                 device_model    TEXT,
+                device_name     TEXT,
                 os_version      TEXT,
                 app_version     TEXT,
-                push_token      TEXT,
                 language        TEXT DEFAULT 'en',
                 timezone        TEXT DEFAULT 'UTC',
+                is_active       BOOLEAN DEFAULT TRUE,
                 last_active     TIMESTAMP DEFAULT NOW(),
                 created_at      TIMESTAMP DEFAULT NOW(),
-                UNIQUE(user_id, device_id)
+                updated_at      TIMESTAMP DEFAULT NOW()
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_user ON user_devices(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_push ON user_devices(push_token) WHERE push_token IS NOT NULL")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_token ON user_devices(device_token) WHERE device_token IS NOT NULL")
         
         # Add notification_settings column to users if not exists
         cur.execute("""
