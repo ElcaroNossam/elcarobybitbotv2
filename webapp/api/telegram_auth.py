@@ -69,6 +69,16 @@ class TelegramDeepLinkRequest(BaseModel):
     telegram_id: int
 
 
+class Request2FAByUsername(BaseModel):
+    """Request 2FA login via Telegram username."""
+    username: str  # Telegram username (with or without @)
+
+
+class Check2FARequest(BaseModel):
+    """Check 2FA confirmation status."""
+    request_id: str
+
+
 # =============================================================================
 # HASH VERIFICATION
 # =============================================================================
@@ -692,3 +702,291 @@ async def complete_telegram_link(
     except Exception as e:
         logger.exception(f"Failed to complete Telegram link: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==============================================================================
+# 2FA Login via Telegram Username (Simple Auth Flow)
+# ==============================================================================
+
+@router.post("/request-2fa")
+async def request_2fa_login(data: Request2FAByUsername):
+    """
+    Request 2FA login via Telegram username.
+    
+    Flow:
+    1. User enters @username in iOS/Android/WebApp
+    2. This endpoint finds user by username and sends 2FA confirmation to their Telegram
+    3. User confirms in Telegram bot
+    4. App polls /check-2fa to get JWT token
+    
+    Returns:
+        request_id: ID for polling confirmation status
+    """
+    import secrets
+    
+    # Clean username (remove @ if present)
+    username = data.username.strip().lstrip('@').lower()
+    
+    if not username or len(username) < 2:
+        raise HTTPException(status_code=400, detail="Invalid username")
+    
+    # Find user by Telegram username
+    user = execute_one("""
+        SELECT user_id, telegram_username, telegram_id, first_name, is_allowed
+        FROM users 
+        WHERE LOWER(telegram_username) = %s OR LOWER(telegram_username) = %s
+        LIMIT 1
+    """, (username, f"@{username}"))
+    
+    if not user:
+        raise HTTPException(
+            status_code=404, 
+            detail="User not found. Please start the bot first: t.me/EnlikoBot"
+        )
+    
+    telegram_id = user.get("telegram_id") or user.get("user_id")
+    if not telegram_id or telegram_id <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not find your Telegram ID. Please use the bot once: t.me/EnlikoBot"
+        )
+    
+    # Generate request_id
+    request_id = secrets.token_urlsafe(24)
+    
+    # Store request in Redis with 5 min TTL
+    try:
+        from core.redis_client import get_redis
+        redis_client = await get_redis()
+        request_data = json.dumps({
+            "telegram_id": telegram_id,
+            "username": username,
+            "status": "pending",  # pending, approved, rejected
+            "created_at": datetime.now().isoformat()
+        })
+        await redis_client.set(f"2fa_login:{request_id}", request_data, ttl=300)
+    except Exception as e:
+        logger.error(f"Redis error in request-2fa: {e}")
+        # Fallback: store in database
+        try:
+            execute("""
+                INSERT INTO login_2fa_requests (request_id, telegram_id, username, status, expires_at)
+                VALUES (%s, %s, %s, 'pending', NOW() + INTERVAL '5 minutes')
+            """, (request_id, telegram_id, username))
+        except Exception as db_e:
+            logger.error(f"DB error in request-2fa: {db_e}")
+            raise HTTPException(status_code=500, detail="Failed to create login request")
+    
+    # Send confirmation request to Telegram bot
+    try:
+        import aiohttp
+        bot_token = BOT_TOKEN
+        if not bot_token:
+            raise HTTPException(status_code=500, detail="Bot not configured")
+        
+        # Create inline keyboard with Confirm/Reject buttons
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Подтвердить вход", "callback_data": f"2fa_confirm:{request_id}"},
+                    {"text": "❌ Отклонить", "callback_data": f"2fa_reject:{request_id}"}
+                ]
+            ]
+        }
+        
+        message_text = """🔐 <b>Запрос на вход в приложение</b>
+
+Кто-то пытается войти в ваш аккаунт через iOS/Android/Web приложение.
+
+Если это вы, нажмите "Подтвердить".
+Если нет — нажмите "Отклонить".
+
+⏱ Запрос действителен 5 минут."""
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={
+                    "chat_id": telegram_id,
+                    "text": message_text,
+                    "parse_mode": "HTML",
+                    "reply_markup": keyboard
+                },
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                result = await resp.json()
+                if not result.get("ok"):
+                    logger.error(f"Failed to send 2FA message: {result}")
+                    # User might have blocked the bot
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Could not send confirmation. Make sure you haven't blocked the bot."
+                    )
+    except aiohttp.ClientError as e:
+        logger.error(f"Telegram API error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send confirmation request")
+    
+    logger.info(f"2FA login requested for @{username} (ID: {telegram_id}), request_id: {request_id}")
+    
+    return {
+        "success": True,
+        "request_id": request_id,
+        "message": "Confirmation request sent to your Telegram"
+    }
+
+
+@router.get("/check-2fa/{request_id}")
+async def check_2fa_status(request_id: str):
+    """
+    Check 2FA confirmation status.
+    
+    App polls this endpoint every 2-3 seconds to check if user confirmed.
+    
+    Returns:
+        status: pending | approved | rejected | expired
+        token: JWT token if approved
+    """
+    # Try Redis first
+    request_data = None
+    try:
+        from core.redis_client import get_redis
+        redis_client = await get_redis()
+        raw_data = await redis_client.get(f"2fa_login:{request_id}")
+        if raw_data:
+            request_data = json.loads(raw_data)
+    except Exception as e:
+        logger.warning(f"Redis error in check-2fa: {e}")
+    
+    # Fallback to database
+    if not request_data:
+        try:
+            db_row = execute_one("""
+                SELECT telegram_id, username, status, expires_at
+                FROM login_2fa_requests
+                WHERE request_id = %s AND expires_at > NOW()
+            """, (request_id,))
+            if db_row:
+                request_data = {
+                    "telegram_id": db_row["telegram_id"],
+                    "username": db_row["username"],
+                    "status": db_row["status"]
+                }
+        except Exception as db_e:
+            logger.warning(f"DB error in check-2fa: {db_e}")
+    
+    if not request_data:
+        return {
+            "status": "expired",
+            "message": "Request not found or expired"
+        }
+    
+    status = request_data.get("status", "pending")
+    
+    if status == "pending":
+        return {
+            "status": "pending",
+            "message": "Waiting for confirmation in Telegram"
+        }
+    
+    if status == "rejected":
+        return {
+            "status": "rejected",
+            "message": "Login was rejected"
+        }
+    
+    if status == "approved":
+        telegram_id = request_data.get("telegram_id")
+        
+        # Get user from DB
+        user = execute_one("""
+            SELECT user_id, email, first_name, is_allowed, auth_provider, telegram_username
+            FROM users WHERE user_id = %s OR telegram_id = %s
+        """, (telegram_id, telegram_id))
+        
+        if not user:
+            return {
+                "status": "error",
+                "message": "User not found"
+            }
+        
+        # Generate JWT token
+        is_admin = telegram_id == 511692487
+        token, refresh_token = create_token(telegram_id, is_admin=is_admin)
+        
+        # Clean up request from Redis
+        try:
+            from core.redis_client import get_redis
+            redis_client = await get_redis()
+            await redis_client.delete(f"2fa_login:{request_id}")
+        except:
+            pass
+        
+        # Clean up from database
+        try:
+            execute("DELETE FROM login_2fa_requests WHERE request_id = %s", (request_id,))
+        except:
+            pass
+        
+        logger.info(f"2FA login approved for telegram_id={telegram_id}")
+        
+        return {
+            "status": "approved",
+            "token": token,
+            "refresh_token": refresh_token,
+            "user": {
+                "id": telegram_id,
+                "user_id": telegram_id,
+                "email": user.get("email"),
+                "name": user.get("first_name"),
+                "username": user.get("telegram_username"),
+                "is_allowed": bool(user.get("is_allowed", 0)),
+                "auth_provider": user.get("auth_provider", "telegram"),
+            }
+        }
+    
+    return {
+        "status": "error",
+        "message": "Unknown status"
+    }
+
+
+@router.post("/update-2fa-status")
+async def update_2fa_status(request_id: str, status: str):
+    """
+    Internal endpoint called by bot to update 2FA status.
+    
+    Status can be: approved or rejected
+    """
+    if status not in ("approved", "rejected"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    
+    # Update in Redis
+    updated = False
+    try:
+        from core.redis_client import get_redis
+        redis_client = await get_redis()
+        raw_data = await redis_client.get(f"2fa_login:{request_id}")
+        if raw_data:
+            request_data = json.loads(raw_data)
+            request_data["status"] = status
+            await redis_client.set(f"2fa_login:{request_id}", json.dumps(request_data), ttl=60)  # Keep for 1 min after approval
+            updated = True
+    except Exception as e:
+        logger.warning(f"Redis error updating 2FA status: {e}")
+    
+    # Also update database fallback
+    try:
+        execute("""
+            UPDATE login_2fa_requests SET status = %s WHERE request_id = %s
+        """, (status, request_id))
+        updated = True
+    except Exception as e:
+        logger.warning(f"DB error updating 2FA status: {e}")
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    logger.info(f"2FA status updated: request_id={request_id}, status={status}")
+    
+    return {"success": True, "status": status}
+

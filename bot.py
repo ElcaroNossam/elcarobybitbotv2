@@ -1591,6 +1591,77 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         t = get_texts(uid)
         await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
 
+
+async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle 2FA confirmation for iOS/Android/Web app login.
+    
+    Called when user clicks "Подтвердить вход" or "Отклонить" buttons
+    sent by /auth/telegram/request-2fa endpoint.
+    
+    Callback data format: 2fa_confirm:{request_id} or 2fa_reject:{request_id}
+    """
+    q = update.callback_query
+    await q.answer()
+    uid = update.effective_user.id
+    data = q.data or ""
+    
+    # Parse: 2fa_confirm:xxx or 2fa_reject:xxx
+    parts = data.split(":")
+    if len(parts) != 2:
+        return
+    
+    action = parts[0]  # 2fa_confirm or 2fa_reject
+    request_id = parts[1]
+    
+    t = get_texts(uid)
+    
+    # Determine status
+    if action == "2fa_confirm":
+        status = "approved"
+    else:
+        status = "rejected"
+    
+    # Update status via API
+    try:
+        import aiohttp
+        webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{webapp_url}/api/auth/telegram/update-2fa-status",
+                params={"request_id": request_id, "status": status},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                result = await resp.json()
+                
+                if resp.status == 200 and result.get("success"):
+                    if status == "approved":
+                        await q.edit_message_text(
+                            t.get("app_login_approved", "✅ <b>Вход подтверждён!</b>\n\nВы можете продолжить в приложении."),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await q.edit_message_text(
+                            t.get("app_login_rejected", "❌ <b>Вход отклонён</b>\n\nЕсли это не вы пытались войти, рекомендуем проверить настройки безопасности."),
+                            parse_mode="HTML"
+                        )
+                else:
+                    error_detail = result.get("detail", "Unknown error")
+                    logger.error(f"2FA update failed: {error_detail}")
+                    await q.edit_message_text(
+                        t.get("app_login_expired", "⏰ Запрос на вход истёк. Попробуйте снова."),
+                        parse_mode="HTML"
+                    )
+                    
+    except Exception as e:
+        logger.error(f"2FA app login callback error: {e}")
+        await q.edit_message_text(
+            t.get("app_login_error", "⚠️ Ошибка обработки. Попробуйте позже."),
+            parse_mode="HTML"
+        )
+
+
 # ------------------------------------------------------------------------------------
 # API Settings Menu
 # ------------------------------------------------------------------------------------
@@ -26884,6 +26955,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_terms_cb,    pattern=r"^terms:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_disclaimer_cb, pattern=r"^disclaimer:(accept|decline)$"))
     app.add_handler(CallbackQueryHandler(on_twofa_cb,    pattern=r"^twofa_(approve|deny):"))
+    app.add_handler(CallbackQueryHandler(on_2fa_app_login_cb, pattern=r"^2fa_(confirm|reject):"))
     app.add_handler(CallbackQueryHandler(on_users_cb,    pattern=r"^users:"))
     app.add_handler(CallbackQueryHandler(callback_strategy_settings, pattern=r"^(noop|strat_set:|strat_toggle:|strat_param:|strat_reset:|strat_dir_toggle:|strat_side:|strat_side_toggle:|strat_side_order_type:|strat_side_dca_toggle:|strat_side_coins:|strat_side_coins_set:|strat_side_be:|strat_side_ptp:|dca_param:|dca_toggle|strat_order_type:|strat_coins:|strat_coins_set:|scryptomera_dir:|scryptomera_side:|scalper_dir:|scalper_side:|fibonacci_dir:|elcaro_dir:|oi_dir:|rsi_bb_dir:|strat_atr_toggle:|strat_side_atr_toggle:|strat_mode:|strat_mode_cycle:|global_param:|global_atr:|global_ladder:|global_be:|strat_hl:|hl_strat:|rsi_bb_side:|elcaro_side:|fibonacci_side:|oi_side:|manual_side:)"))
 

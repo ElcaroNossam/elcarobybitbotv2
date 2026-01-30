@@ -53,6 +53,11 @@ TEXTS = {
         '⚠️ Do not share this link with anyone!'
     ),
     
+    'app_login_approved': '✅ <b>Login confirmed!</b>\n\nYou can continue in the app.',
+    'app_login_rejected': '❌ <b>Login rejected</b>\n\nIf this wasn\'t you, we recommend checking your security settings.',
+    'app_login_expired': '⏰ Login request expired. Please try again.',
+    'app_login_error': '⚠️ Processing error. Please try later.',
+    
     # =====================================================
     # LEGAL DISCLAIMERS (REQUIRED)
     # =====================================================
