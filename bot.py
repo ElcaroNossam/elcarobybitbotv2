@@ -5650,7 +5650,14 @@ async def manual_order_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             uid, "GET", "/v5/market/instruments-info",
             params={"category": "linear", "symbol": symbol}
         )
-        lot      = inst["list"][0]["lotSizeFilter"]
+        inst_list = inst.get("list", [])
+        if not inst_list:
+            await update.message.reply_text(
+                ctx.t.get("symbol_not_found", f"❌ Symbol {symbol} not found"),
+                reply_markup=main_menu_keyboard(ctx, update=update)
+            )
+            return ConversationHandler.END
+        lot      = inst_list[0]["lotSizeFilter"]
         raw_max  = lot.get("maxOrderQty") if typ == "Limit" else lot.get("maxMktOrderQty")
         max_qty  = float(raw_max) if raw_max not in (None, "", 0, "0") else float("inf")
 
@@ -6281,6 +6288,9 @@ async def place_order_for_targets(
                             params={"category": "linear", "symbol": symbol},
                             account_type=target_acc
                         )
+                        if not inst.get("list"):
+                            logger.error(f"[{user_id}] Symbol {symbol} not found in instruments")
+                            continue
                         lot = inst["list"][0]["lotSizeFilter"]
                         step_qty = float(lot["qtyStep"])
                         min_qty = float(lot["minOrderQty"])
@@ -14605,6 +14615,8 @@ async def normalize_qty_price(
         params={"category": "linear", "symbol": symbol},
         account_type=account_type
     )
+    if not inst.get("list"):
+        raise ValueError(f"Symbol {symbol} not found")
     lot = inst["list"][0]["lotSizeFilter"]
     if order_type == "Market":
         raw_max = lot.get("maxMktOrderQty")
@@ -14695,6 +14707,8 @@ async def place_limit_order(
         params={"category": "linear", "symbol": symbol},
         account_type=account_type
     )
+    if not inst.get("list"):
+        raise ValueError(f"Symbol {symbol} not found")
     lot = inst["list"][0]["lotSizeFilter"]
     max_qty_raw = lot.get("maxOrderQty") or lot.get("maxMktOrderQty")
     max_qty = float(max_qty_raw) if max_qty_raw not in (None, "", 0, "0") else float("inf")
@@ -14895,6 +14909,9 @@ async def place_ladder_limit_orders(
             params={"category": "linear", "symbol": symbol},
             account_type=account_types[0]
         )
+        if not inst.get("list"):
+            logger.error(f"[{user_id}] Symbol {symbol} not found in instruments")
+            return {"skipped": True, "reason": f"Symbol {symbol} not found"}
         lot = inst["list"][0]["lotSizeFilter"]
         min_qty = float(lot["minOrderQty"])
         step_qty = float(lot["qtyStep"])
@@ -15056,6 +15073,8 @@ async def calc_qty(
         params={"category":"linear", "symbol": symbol},
         account_type=account_type
     )
+    if not inst.get("list"):
+        raise ValueError(f"Symbol {symbol} not found")
     lot      = inst["list"][0]["lotSizeFilter"]
     min_qty  = float(lot["minOrderQty"])
     step_qty = float(lot["qtyStep"])
@@ -17109,7 +17128,7 @@ def log_exit_and_remove_position(
         tp_pct = float(cfg.get("tp_percent") or DEFAULT_TP_PCT)
 
     pnl_abs = (exit_price - entry_price) * float(size) * (1 if side == "Buy" else -1)
-    pnl_pct = (exit_price / entry_price - 1.0) * (100 if side == "Buy" else -100)
+    pnl_pct = (exit_price / entry_price - 1.0) * (100 if side == "Buy" else -100) if entry_price > 0 else 0.0
 
     add_trade_log(
         user_id=user_id, signal_id=signal_id, symbol=symbol, side=side,
@@ -17604,7 +17623,7 @@ async def monitor_positions_loop(app: Application):
                                         
                                             if result == "deep_loss":
                                                 # Calculate move_pct for deep loss notification
-                                                move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
+                                                move_pct_local = ((mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100) if entry > 0 else 0.0
                                                 logger.debug(f"[{uid}] {sym} deep_loss: entry={entry}, mark={mark}, side={side}, move_pct={move_pct_local:.2f}%")
                                                 await notify_deep_loss(sym, side, entry, mark, move_pct_local)
                                                 continue
