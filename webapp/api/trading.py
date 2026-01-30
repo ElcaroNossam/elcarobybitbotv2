@@ -2845,13 +2845,14 @@ async def get_chart_markers(
                 })
         
         # Also get active positions for current SL/TP levels
-        from db import get_active_position, get_trading_mode
+        from db import get_active_positions, get_trading_mode
         
         trading_mode = get_trading_mode(user_id)
         account_types = ["demo"] if trading_mode == "demo" else ["real"] if trading_mode == "real" else ["demo", "real"]
         
         for acc_type in account_types:
-            active_pos = get_active_position(user_id, symbol.upper(), account_type=acc_type)
+            positions = get_active_positions(user_id, account_type=acc_type, exchange="bybit")
+            active_pos = next((p for p in positions if p.get("symbol", "").upper() == symbol.upper()), None)
             if active_pos:
                 entry_price = active_pos.get("entry_price")
                 sl_price = active_pos.get("sl_price")
