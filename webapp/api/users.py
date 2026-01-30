@@ -1368,6 +1368,15 @@ async def get_strategy_settings_mobile(
                 "coins_group": db_settings.get(f"{prefix}coins_group") or db_settings.get("coins_group") or "ALL",
                 "direction": db_settings.get("direction") or "all",
                 "order_type": db_settings.get("order_type") or "market",
+                # Break-Even settings
+                "be_enabled": bool(db_settings.get(f"{prefix}be_enabled", False)),
+                "be_trigger_pct": db_settings.get(f"{prefix}be_trigger_pct") or 1.0,
+                # Partial Take Profit settings (2-step margin cut)
+                "partial_tp_enabled": bool(db_settings.get(f"{prefix}partial_tp_enabled", False)),
+                "partial_tp_1_trigger_pct": db_settings.get(f"{prefix}partial_tp_1_trigger_pct") or 2.0,
+                "partial_tp_1_close_pct": db_settings.get(f"{prefix}partial_tp_1_close_pct") or 30.0,
+                "partial_tp_2_trigger_pct": db_settings.get(f"{prefix}partial_tp_2_trigger_pct") or 5.0,
+                "partial_tp_2_close_pct": db_settings.get(f"{prefix}partial_tp_2_close_pct") or 50.0,
             }
             
             result.append(settings_obj)
@@ -1412,7 +1421,13 @@ async def update_strategy_settings_mobile(
         "enabled", "percent", "tp_percent", "sl_percent", "leverage",
         "use_atr", "atr_trigger_pct", "atr_step_pct", 
         "dca_enabled", "dca_pct_1", "dca_pct_2",
-        "max_positions", "coins_group", "limit_offset_pct", "order_type"
+        "max_positions", "coins_group", "limit_offset_pct", "order_type",
+        # Break-Even
+        "be_enabled", "be_trigger_pct",
+        # Partial Take Profit
+        "partial_tp_enabled",
+        "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
+        "partial_tp_2_trigger_pct", "partial_tp_2_close_pct",
     ]
     
     updated = []
@@ -1423,11 +1438,14 @@ async def update_strategy_settings_mobile(
             db_field = f"{side}_{field}"
             
             # Type conversion
-            if field in ("enabled", "use_atr", "dca_enabled"):
+            if field in ("enabled", "use_atr", "dca_enabled", "be_enabled", "partial_tp_enabled"):
                 value = bool(value)
             elif field in ("leverage", "max_positions"):
                 value = int(value) if value is not None else None
-            elif field in ("percent", "tp_percent", "sl_percent", "atr_trigger_pct", "atr_step_pct", "dca_pct_1", "dca_pct_2"):
+            elif field in ("percent", "tp_percent", "sl_percent", "atr_trigger_pct", "atr_step_pct", 
+                           "dca_pct_1", "dca_pct_2", "be_trigger_pct",
+                           "partial_tp_1_trigger_pct", "partial_tp_1_close_pct",
+                           "partial_tp_2_trigger_pct", "partial_tp_2_close_pct"):
                 value = float(value) if value is not None else None
             
             db.set_strategy_setting_db(user_id, strategy_name, db_field, value, exchange, account_type)
