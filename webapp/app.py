@@ -517,6 +517,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"activity router not available: {e}")
     
+    # Push Notifications API (device tokens, preferences, WebSocket)
+    try:
+        from webapp.api import push_notifications
+        app.include_router(push_notifications.router, prefix="/api", tags=["notifications"])
+        logger.info("✅ Push Notifications API loaded at /api/notifications")
+    except ImportError as e:
+        logger.warning(f"push_notifications router not available: {e}")
+    
     # ELC Blockchain API (wallets, deposits, withdrawals, sovereign operations)
     try:
         from webapp.api import blockchain

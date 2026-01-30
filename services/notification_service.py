@@ -7,6 +7,10 @@ Sends personalized notifications about:
 - Market news from CoinMarketCap
 - Large liquidations (>100k)
 - Significant market movements
+
+Also sends to:
+- iOS/Android via WebSocket (real-time in-app banners)
+- WebApp via WebSocket
 """
 
 import asyncio
@@ -19,6 +23,26 @@ import logging
 from core.db_postgres import get_conn, execute, execute_one
 
 logger = logging.getLogger(__name__)
+
+
+async def _send_to_websocket(user_id: int, notification: dict):
+    """Helper to send notification via WebSocket to iOS/WebApp"""
+    try:
+        from webapp.api.push_notifications import send_notification_to_user
+        await send_notification_to_user(user_id, notification)
+    except Exception as e:
+        logger.debug(f"WebSocket send failed (user may be offline): {e}")
+
+
+async def _save_notification_to_db(user_id: int, notification_type: str, title: str, message: str, data: dict = None):
+    """Save notification to database for history"""
+    try:
+        execute("""
+            INSERT INTO notification_queue (user_id, notification_type, title, message, data, status)
+            VALUES (%s, %s, %s, %s, %s, 'sent')
+        """, (user_id, notification_type, title, message, str(data) if data else None))
+    except Exception as e:
+        logger.error(f"Failed to save notification to DB: {e}")
 
 class NotificationService:
     def __init__(self, bot, db=None):
@@ -70,6 +94,27 @@ class NotificationService:
             
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
+            # Also send to iOS/WebApp via WebSocket
+            ws_notification = {
+                "id": f"trade_{datetime.now().timestamp()}",
+                "type": "trade_closed",
+                "title": f"{symbol} Closed",
+                "message": f"{side} • PnL: ${pnl:+.2f} ({pnl_percent:+.2f}%)",
+                "data": {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_price": entry_price,
+                    "exit_price": exit_price,
+                    "pnl": pnl,
+                    "pnl_percent": pnl_percent,
+                },
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "trade_closed", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
+            
         except Exception as e:
             logger.error(f"Error sending position closed notification: {e}")
             
@@ -105,6 +150,28 @@ class NotificationService:
             message += f"\n⏰ {datetime.now().strftime('%H:%M:%S')}"
             
             await self.bot.send_message(user_id, message, parse_mode='HTML')
+            
+            # Also send to iOS/WebApp via WebSocket
+            ws_notification = {
+                "id": f"trade_{datetime.now().timestamp()}",
+                "type": "trade_opened",
+                "title": f"{symbol} Opened",
+                "message": f"{side} • {leverage}x • Entry: ${entry_price:.2f}",
+                "data": {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_price": entry_price,
+                    "quantity": quantity,
+                    "leverage": leverage,
+                    "take_profit": tp,
+                    "stop_loss": sl,
+                },
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "trade_opened", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
             
         except Exception as e:
             logger.error(f"Error sending position opened notification: {e}")
@@ -315,6 +382,128 @@ Keep it up! 💪
                     
         except Exception as e:
             logger.error(f"Error sending daily reports: {e}")
+            
+    async def send_break_even_notification(self, user_id: int, symbol: str, side: str, entry_price: float):
+        """
+        Send notification when Break-Even is triggered
+        """
+        try:
+            message = f"""
+🛡 <b>Break-Even Activated</b>
+
+📊 <b>{symbol}</b> • {side}
+━━━━━━━━━━━━━━━━
+🎯 Stop Loss moved to Entry: <code>${entry_price:.2f}</code>
+
+Your position is now protected! 💪
+⏰ {datetime.now().strftime('%H:%M:%S')}
+"""
+            await self.bot.send_message(user_id, message, parse_mode='HTML')
+            
+            # Also send to iOS/WebApp
+            ws_notification = {
+                "id": f"be_{datetime.now().timestamp()}",
+                "type": "break_even_triggered",
+                "title": f"{symbol} Break-Even",
+                "message": f"SL moved to entry: ${entry_price:.2f}",
+                "data": {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_price": entry_price,
+                },
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "break_even", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error sending BE notification: {e}")
+            
+    async def send_partial_tp_notification(self, user_id: int, symbol: str, side: str, 
+                                           step: int, close_pct: float, profit_pct: float, pnl: float):
+        """
+        Send notification when Partial Take Profit is triggered
+        """
+        try:
+            message = f"""
+💰 <b>Partial Take Profit Step {step}</b>
+
+📊 <b>{symbol}</b> • {side}
+━━━━━━━━━━━━━━━━
+📉 Closed: <code>{close_pct:.0f}%</code> of position
+📈 Profit: <code>+{profit_pct:.2f}%</code>
+💵 PnL: <b>${pnl:+.2f}</b>
+
+Locking in profits! 🎉
+⏰ {datetime.now().strftime('%H:%M:%S')}
+"""
+            await self.bot.send_message(user_id, message, parse_mode='HTML')
+            
+            # Also send to iOS/WebApp
+            ws_notification = {
+                "id": f"ptp_{datetime.now().timestamp()}",
+                "type": "partial_tp_triggered",
+                "title": f"{symbol} Partial TP Step {step}",
+                "message": f"Closed {close_pct:.0f}% at +{profit_pct:.2f}% • ${pnl:+.2f}",
+                "data": {
+                    "symbol": symbol,
+                    "side": side,
+                    "step": step,
+                    "close_pct": close_pct,
+                    "profit_pct": profit_pct,
+                    "pnl": pnl,
+                },
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "partial_tp", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error sending Partial TP notification: {e}")
+            
+    async def send_signal_notification(self, user_id: int, signal_data: dict):
+        """
+        Send notification when new signal is received
+        """
+        try:
+            symbol = signal_data.get('symbol', 'UNKNOWN')
+            side = signal_data.get('side', 'LONG')
+            strategy = signal_data.get('strategy', 'Unknown')
+            price = signal_data.get('price', 0)
+            
+            emoji = "🟢" if side.upper() == "LONG" else "🔴"
+            
+            message = f"""
+{emoji} <b>New Signal</b>
+
+📊 <b>{symbol}</b> • {side}
+🧠 Strategy: {strategy}
+💵 Price: ${price:.2f}
+
+⏰ {datetime.now().strftime('%H:%M:%S')}
+"""
+            await self.bot.send_message(user_id, message, parse_mode='HTML')
+            
+            # Also send to iOS/WebApp
+            ws_notification = {
+                "id": f"signal_{datetime.now().timestamp()}",
+                "type": "signal_new",
+                "title": f"{symbol} {side} Signal",
+                "message": f"{strategy} • Price: ${price:.2f}",
+                "data": signal_data,
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "signal", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error sending signal notification: {e}")
 
 
 # Global instance
