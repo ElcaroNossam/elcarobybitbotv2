@@ -526,6 +526,42 @@ async def change_language(
     return {"success": True, "language": data.language}
 
 
+class DisclaimerAcceptance(BaseModel):
+    accepted: bool
+
+
+@router.post("/disclaimer")
+async def accept_disclaimer(
+    data: DisclaimerAcceptance,
+    user: dict = Depends(get_current_user)
+):
+    """Record user's disclaimer acceptance (for compliance tracking)."""
+    user_id = user["user_id"]
+    
+    if data.accepted:
+        # Store disclaimer acceptance in database
+        try:
+            db.set_user_field(user_id, "disclaimer_accepted", 1)
+            db.set_user_field(user_id, "disclaimer_accepted_at", "NOW()")
+            logger.info(f"User {user_id} accepted disclaimer")
+        except Exception as e:
+            logger.warning(f"Failed to save disclaimer acceptance: {e}")
+    
+    return {"success": True, "accepted": data.accepted}
+
+
+@router.get("/disclaimer")
+async def get_disclaimer_status(user: dict = Depends(get_current_user)):
+    """Check if user has accepted the disclaimer."""
+    user_id = user["user_id"]
+    
+    try:
+        accepted = db.get_user_field(user_id, "disclaimer_accepted", 0)
+        return {"accepted": bool(accepted)}
+    except Exception:
+        return {"accepted": False}
+
+
 @router.get("/profile")
 async def get_profile(user: dict = Depends(get_current_user)):
     """Get full user profile."""
