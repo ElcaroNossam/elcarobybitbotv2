@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="description" content="Enliko Trading Terminal - AI-powered crypto trading platform with automated strategies, copy trading, and real-time market analysis for Bybit and HyperLiquid.">
+    <title>Enliko Trading | AI-Powered Crypto Trading Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --bg-card: rgba(20, 20, 20, 0.8);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-primary: #DC2626;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-gold: #FFD700;
+            --accent-blue: #3b82f6;
+            --gradient-primary: linear-gradient(135deg, #DC2626 0%, #991b1b 100%);
+            --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glow-primary: 0 0 40px rgba(220, 38, 38, 0.3);
+            --glow-green: 0 0 30px rgba(34, 197, 94, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background with Grid */
+        .hero-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .glow-orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.3) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+        }
+
+        .glow-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+            bottom: 10%;
+            left: -100px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 16px 24px;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--glow-primary);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #ccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--glow-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 60px rgba(220, 38, 38, 0.5);
+        }
+
+        .btn-ghost {
+            background: var(--bg-glass);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 24px 60px;
+        }
+
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Live Stats Bar */
+        .live-stats-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .stat-chip {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-chip .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .stat-chip .dot.green { background: var(--accent-green); }
+        .stat-chip .dot.gold { background: var(--accent-gold); }
+        .stat-chip .dot.blue { background: var(--accent-blue); }
+        .stat-chip .dot.red { background: var(--accent-red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stat-chip .value {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-chip .label {
+            color: var(--text-secondary);
+        }
+
+        .stat-chip .change {
+            font-weight: 600;
+        }
+
+        .stat-chip .change.up { color: var(--accent-green); }
+        .stat-chip .change.down { color: var(--accent-red); }
+
+        /* Hero Content Grid */
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(40px, 5vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+
+        .hero-text h1 .gradient {
+            background: linear-gradient(135deg, #DC2626 0%, #FFD700 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .hero-text p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 32px;
+            max-width: 500px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .btn-lg {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+
+        /* Charts Section */
+        .charts-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .chart-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-tab {
+            flex: 1;
+            padding: 16px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .chart-tab.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .chart-tab .icon {
+            font-size: 20px;
+        }
+
+        .chart-tab .price-info {
+            text-align: left;
+        }
+
+        .chart-tab .price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .chart-tab .change {
+            font-size: 12px;
+        }
+
+        .chart-container {
+            height: 400px;
+            padding: 0;
+        }
+
+        /* Platform Stats Grid */
+        .stats-section {
+            padding: 80px 24px;
+        }
+
+        .stats-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--accent-primary);
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(220, 38, 38, 0.3);
+            box-shadow: var(--glow-primary);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-card .icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gradient-primary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stat-card .trend {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-card .trend.up { color: var(--accent-green); }
+        .stat-card .trend.down { color: var(--accent-red); }
+
+        /* Features Section */
+        .features-section {
+            padding: 80px 24px;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .feature-card .icon {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Live Ticker */
+        .ticker {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0;
+            overflow: hidden;
+        }
+
+        .ticker-track {
+            display: flex;
+            gap: 48px;
+            animation: scroll 30s linear infinite;
+            width: max-content;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            white-space: nowrap;
+        }
+
+        .ticker-item .symbol {
+            font-weight: 700;
+        }
+
+        .ticker-item .price {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        .ticker-item .change {
+            font-weight: 600;
+        }
+
+        .ticker-item .change.up { color: var(--accent-green); }
+        .ticker-item .change.down { color: var(--accent-red); }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(220, 38, 38, 0.1) 0%, transparent 70%);
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-content h2 {
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .cta-content p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 60px 24px 30px;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+        }
+
+        .footer-brand h3 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .footer-brand p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .footer-links h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            max-width: 1400px;
+            margin: 40px auto 0;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-bottom p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .social-links a:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .live-stats-bar {
+                justify-content: center;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="hero-bg">
+        <div class="grid-overlay"></div>
+        <div class="glow-orb glow-orb-1"></div>
+        <div class="glow-orb glow-orb-2"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">🚀</div>
+                <span class="logo-text">Enliko</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="/screener">Screener</a></li>
+                <li><a href="/backtest">Backtester</a></li>
+                <li><a href="/marketplace">Marketplace</a></li>
+            </ul>
+            
+            <div class="nav-cta">
+                <a href="https://t.me/enliko_bybit_bot" class="btn btn-ghost" target="_blank">
+                    <i class="fab fa-telegram"></i>
+                </a>
+                <a href="/terminal" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i>
+                    Launch Terminal
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <!-- Live Stats Bar -->
+            <div class="live-stats-bar" id="liveStatsBar">
+                <div class="stat-chip">
+                    <span class="dot green"></span>
+                    <span class="value" id="statUsers">12,500+</span>
+                    <span class="label">Traders</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="dot gold"></span>
+                    <span class="value" id="statVolume">$15.8M</span>
+                    <span class="label">Volume 30d</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="dot green"></span>
+                    <span class="value" id="statWinRate">78.5%</span>
+                    <span class="label">Win Rate</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="dot blue"></span>
+                    <span class="value" id="statSignals">156</span>
+                    <span class="label">Signals/24h</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="dot green"></span>
+                    <span class="value">99.9%</span>
+                    <span class="label">Uptime</span>
+                </div>
+            </div>
+
+            <div class="hero-grid">
+                <!-- Left: Text -->
+                <div class="hero-text">
+                    <h1>
+                        Trade <span class="gradient">Crypto & Gold</span> 
+                        with AI Power
+                    </h1>
+                    <p>
+                        Professional trading platform with real-time AI signals, 
+                        automated strategies, and multi-exchange support. 
+                        Connect to Bybit & HyperLiquid in seconds.
+                    </p>
+                    <div class="hero-buttons">
+                        <a href="/terminal" class="btn btn-primary btn-lg">
+                            <i class="fas fa-rocket"></i>
+                            Start Trading
+                        </a>
+                        <a href="https://t.me/enliko_bybit_bot" class="btn btn-ghost btn-lg" target="_blank">
+                            <i class="fab fa-telegram"></i>
+                            Open in Telegram
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Charts -->
+                <div class="charts-panel">
+                    <div class="chart-tabs">
+                        <button class="chart-tab active" data-chart="btc" onclick="switchChart('btc')">
+                            <span class="icon">₿</span>
+                            <div class="price-info">
+                                <div class="price" id="btcPrice">$104,250</div>
+                                <div class="change up" id="btcChange">+2.4%</div>
+                            </div>
+                        </button>
+                        <button class="chart-tab" data-chart="gold" onclick="switchChart('gold')">
+                            <span class="icon">🥇</span>
+                            <div class="price-info">
+                                <div class="price" id="goldPrice">$2,045</div>
+                                <div class="change up" id="goldChange">+0.3%</div>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="chart-container" id="chartContainer"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Ticker -->
+    <div class="ticker">
+        <div class="ticker-track" id="tickerTrack"></div>
+    </div>
+
+    <!-- Stats Section -->
+    <section class="stats-section" id="stats">
+        <div class="stats-container">
+            <div class="section-header">
+                <span class="section-badge">
+                    <i class="fas fa-chart-line"></i>
+                    Platform Stats
+                </span>
+                <h2 class="section-title">Real-Time Performance</h2>
+                <p class="section-subtitle">
+                    Live statistics from our trading infrastructure
+                </p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 12%</span>
+                    <div class="icon"><i class="fas fa-users"></i></div>
+                    <div class="value" id="cardUsers">12,500</div>
+                    <div class="label">Active Traders</div>
+                </div>
+                <div class="stat-card">
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 8%</span>
+                    <div class="icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="value" id="cardTrades">847K</div>
+                    <div class="label">Total Trades</div>
+                </div>
+                <div class="stat-card">
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> 15%</span>
+                    <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                    <div class="value" id="cardVolume">$15.8M</div>
+                    <div class="label">30d Volume</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-trophy"></i></div>
+                    <div class="value" id="cardWinRate">78.5%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-chart-pie"></i></div>
+                    <div class="value" id="cardPositions">1,247</div>
+                    <div class="label">Active Positions</div>
+                </div>
+                <div class="stat-card">
+                    <span class="trend up"><i class="fas fa-arrow-up"></i> $28K</span>
+                    <div class="icon"><i class="fas fa-coins"></i></div>
+                    <div class="value" id="cardPnl">+$28,470</div>
+                    <div class="label">Today's PnL</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="section-header">
+            <span class="section-badge">
+                <i class="fas fa-bolt"></i>
+                Features
+            </span>
+            <h2 class="section-title">Everything You Need</h2>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-robot"></i></div>
+                <h3>AI Trading Signals</h3>
+                <p>Real-time AI-generated signals based on technical analysis, sentiment, and on-chain data.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-chart-line"></i></div>
+                <h3>Advanced Terminal</h3>
+                <p>Professional interface with real-time charts, orderbook, and one-click trading.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-flask"></i></div>
+                <h3>Strategy Backtester</h3>
+                <p>Test strategies on historical data before risking real capital.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-users"></i></div>
+                <h3>Copy Trading</h3>
+                <p>Follow top traders and automatically copy their positions.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-store"></i></div>
+                <h3>Strategy Marketplace</h3>
+                <p>Buy, sell, or share custom trading strategies with the community.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>Risk Management</h3>
+                <p>Automated SL/TP, Break-Even, Partial Take Profit, and DCA features.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Ready to Start Trading?</h2>
+            <p>Join thousands of traders using Enliko for smarter, faster trading decisions.</p>
+            <div class="hero-buttons" style="justify-content: center;">
+                <a href="/terminal" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i>
+                    Launch Terminal
+                </a>
+                <a href="https://t.me/enliko_bybit_bot" class="btn btn-ghost btn-lg" target="_blank">
+                    <i class="fab fa-telegram"></i>
+                    Telegram Bot
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <h3>🚀 Enliko</h3>
+                <p>AI-powered crypto trading platform for professional traders.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Platform</h4>
+                <ul>
+                    <li><a href="/terminal">Trading Terminal</a></li>
+                    <li><a href="/screener">Crypto Screener</a></li>
+                    <li><a href="/backtest">Backtester</a></li>
+                    <li><a href="/marketplace">Marketplace</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="/docs">Documentation</a></li>
+                    <li><a href="/faq">FAQ</a></li>
+                    <li><a href="/pricing">Pricing</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="/cookies">Cookies</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Enliko. All rights reserved.</p>
+            <div class="social-links">
+                <a href="https://t.me/enliko_bybit_bot" target="_blank"><i class="fab fa-telegram"></i></a>
+                <a href="https://twitter.com/enlikotrading" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a href="https://github.com/enliko" target="_blank"><i class="fab fa-github"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Charts
+        let chart = null;
+        let lineSeries = null;
+        let currentChart = 'btc';
+        let btcData = [];
+        let goldData = [];
+
+        // Initialize chart
+        function initChart() {
+            const container = document.getElementById('chartContainer');
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: {
+                    background: { type: 'solid', color: 'transparent' },
+                    textColor: '#a0a0a0',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+                    horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                timeScale: {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    timeVisible: true,
+                },
+            });
+
+            lineSeries = chart.addLineSeries({
+                color: '#ffffff',
+                lineWidth: 2,
+                crosshairMarkerRadius: 6,
+                lastValueVisible: true,
+                priceLineVisible: true,
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth });
+            });
+        }
+
+        // Switch between BTC and Gold charts
+        function switchChart(type) {
+            currentChart = type;
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.chart === type);
+            });
+
+            const data = type === 'btc' ? btcData : goldData;
+            if (data.length > 0) {
+                lineSeries.setData(data);
+                lineSeries.applyOptions({
+                    color: type === 'btc' ? '#ffffff' : '#FFD700',
+                });
+                chart.timeScale().fitContent();
+            }
+        }
+
+        // Fetch data from API
+        async function fetchHomeData() {
+            try {
+                const response = await fetch('/api/home/all');
+                const data = await response.json();
+
+                // Update BTC
+                if (data.btc) {
+                    document.getElementById('btcPrice').textContent = '$' + formatNumber(data.btc.price);
+                    const btcChangeEl = document.getElementById('btcChange');
+                    btcChangeEl.textContent = (data.btc.change24h >= 0 ? '+' : '') + data.btc.change24h.toFixed(2) + '%';
+                    btcChangeEl.className = 'change ' + (data.btc.change24h >= 0 ? 'up' : 'down');
+
+                    if (data.btc.chart && data.btc.chart.length > 0) {
+                        btcData = data.btc.chart.map(([time, value]) => ({
+                            time: Math.floor(time / 1000),
+                            value: value
+                        }));
+                        if (currentChart === 'btc') {
+                            lineSeries.setData(btcData);
+                            chart.timeScale().fitContent();
+                        }
+                    }
+                }
+
+                // Update Gold (generate fake chart data for now)
+                if (data.gold) {
+                    document.getElementById('goldPrice').textContent = '$' + formatNumber(data.gold.price);
+                    const goldChangeEl = document.getElementById('goldChange');
+                    goldChangeEl.textContent = (data.gold.change24h >= 0 ? '+' : '') + data.gold.change24h.toFixed(2) + '%';
+                    goldChangeEl.className = 'change ' + (data.gold.change24h >= 0 ? 'up' : 'down');
+
+                    // Generate simple gold chart data
+                    const now = Math.floor(Date.now() / 1000);
+                    const basePrice = data.gold.price;
+                    goldData = [];
+                    for (let i = 168; i >= 0; i--) {
+                        goldData.push({
+                            time: now - (i * 3600),
+                            value: basePrice + (Math.random() - 0.5) * 20
+                        });
+                    }
+                }
+
+                // Update stats
+                if (data.stats) {
+                    document.getElementById('statUsers').textContent = formatK(data.stats.total_users) + '+';
+                    document.getElementById('statVolume').textContent = '$' + formatM(data.stats.total_volume);
+                    document.getElementById('statWinRate').textContent = data.stats.win_rate.toFixed(1) + '%';
+                    document.getElementById('statSignals').textContent = data.stats.signals_today;
+
+                    document.getElementById('cardUsers').textContent = formatK(data.stats.total_users);
+                    document.getElementById('cardTrades').textContent = formatK(data.stats.total_trades);
+                    document.getElementById('cardVolume').textContent = '$' + formatM(data.stats.total_volume);
+                    document.getElementById('cardWinRate').textContent = data.stats.win_rate.toFixed(1) + '%';
+                    document.getElementById('cardPositions').textContent = formatNumber(data.stats.active_positions);
+                    document.getElementById('cardPnl').textContent = (data.stats.today_pnl >= 0 ? '+' : '') + '$' + formatNumber(data.stats.today_pnl);
+                }
+
+            } catch (error) {
+                console.error('Error fetching home data:', error);
+            }
+        }
+
+        // Format helpers
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(num);
+        }
+
+        function formatK(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        function formatM(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+            return num.toString();
+        }
+
+        // Ticker
+        async function initTicker() {
+            const tickers = [
+                { symbol: 'BTC', price: 104250, change: 2.4 },
+                { symbol: 'ETH', price: 3180, change: 1.8 },
+                { symbol: 'SOL', price: 185, change: -0.5 },
+                { symbol: 'XRP', price: 2.85, change: 3.2 },
+                { symbol: 'DOGE', price: 0.32, change: 1.1 },
+                { symbol: 'ADA', price: 0.95, change: -0.8 },
+                { symbol: 'AVAX', price: 38, change: 2.1 },
+                { symbol: 'LINK', price: 22, change: 0.9 },
+            ];
+
+            const track = document.getElementById('tickerTrack');
+            let html = '';
+            
+            // Duplicate for seamless loop
+            for (let i = 0; i < 2; i++) {
+                tickers.forEach(t => {
+                    html += `
+                        <div class="ticker-item">
+                            <span class="symbol">${t.symbol}</span>
+                            <span class="price">$${t.price.toLocaleString()}</span>
+                            <span class="change ${t.change >= 0 ? 'up' : 'down'}">${t.change >= 0 ? '+' : ''}${t.change}%</span>
+                        </div>
+                    `;
+                });
+            }
+            track.innerHTML = html;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            initTicker();
+            fetchHomeData();
+
+            // Refresh data every 60 seconds
+            setInterval(fetchHomeData, 60000);
+        });
+    </script>
+</body>
+</html>

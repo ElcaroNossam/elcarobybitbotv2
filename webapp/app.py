@@ -566,9 +566,21 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"email_auth router not available: {e}")
     
-    # Landing page (epic dynamic)
+    # Home Page Data API (BTC/Gold charts, platform stats)
+    try:
+        from webapp.api import home_data
+        app.include_router(home_data.router, tags=["home"])
+        logger.info("✅ Home Data API loaded at /api/home")
+    except ImportError as e:
+        logger.warning(f"home_data router not available: {e}")
+    
+    # Landing page (modern design with charts)
     @app.get("/", response_class=HTMLResponse)
     async def landing(request: Request):
+        return templates.TemplateResponse("home.html", {"request": request})
+    
+    @app.get("/landing", response_class=HTMLResponse)
+    async def landing_old(request: Request):
         return templates.TemplateResponse("landing.html", {"request": request})
     
     @app.get("/old", response_class=HTMLResponse)
