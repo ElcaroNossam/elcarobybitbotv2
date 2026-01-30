@@ -94,6 +94,29 @@ class RedisClient:
             logger.warning(f"Redis get_user_cache error: {e}")
             return None
     
+    async def set(self, key: str, value: Any, ttl: int = 30):
+        """Generic set with TTL"""
+        if not self._connected:
+            return False
+        
+        try:
+            await self.client.setex(key, ttl, value if isinstance(value, str) else json.dumps(value))
+            return True
+        except Exception as e:
+            logger.warning(f"Redis set error: {e}")
+            return False
+    
+    async def get(self, key: str) -> Optional[str]:
+        """Generic get"""
+        if not self._connected:
+            return None
+        
+        try:
+            return await self.client.get(key)
+        except Exception as e:
+            logger.warning(f"Redis get error: {e}")
+            return None
+    
     async def set_user_cache(self, user_id: int, data: dict, ttl: int = 30):
         """Cache user config with TTL"""
         if not self._connected:
