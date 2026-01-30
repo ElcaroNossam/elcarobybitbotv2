@@ -1621,7 +1621,7 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     logger.info(f"[2FA] Parsed: action={action}, request_id={request_id}")
     
-    t = get_texts(uid)
+    t = get_texts(ctx)
     
     # Determine status
     if action == "2fa_confirm":
