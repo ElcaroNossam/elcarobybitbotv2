@@ -925,14 +925,14 @@ async def check_2fa_status(request_id: str):
             from core.redis_client import get_redis
             redis_client = await get_redis()
             await redis_client.delete(f"2fa_login:{request_id}")
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not clean up Redis 2FA request: {e}")
         
         # Clean up from database
         try:
             execute("DELETE FROM login_2fa_requests WHERE request_id = %s", (request_id,))
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not clean up DB 2FA request: {e}")
         
         logger.info(f"2FA login approved for telegram_id={telegram_id}")
         

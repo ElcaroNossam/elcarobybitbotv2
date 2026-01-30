@@ -19,6 +19,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 from hl_adapter import HLAdapter
 
+# Bug #3 Fix: Use centralized account utilities
+from core.account_utils import (
+    normalize_account_type as _normalize_both_account_type,
+    get_hl_credentials_for_account as _get_hl_credentials_for_account
+)
+
 # CROSS-PLATFORM: Import sync service for activity logging
 try:
     from services.sync_service import sync_service
@@ -54,47 +60,6 @@ from webapp.api.auth import get_current_user
 # Bybit API URLs
 BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
-
-
-def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
-    """
-    Normalize 'both' account_type to a valid single account type.
-    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
-    
-    For Bybit: 'both' -> 'demo' (safer default)
-    For HyperLiquid: 'both' -> 'testnet' (safer default)
-    """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
-
-
-def _get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> tuple:
-    """
-    Get the correct HyperLiquid private key based on account_type.
-    Supports both new architecture (hl_testnet_private_key / hl_mainnet_private_key)
-    and legacy format (hl_private_key + hl_testnet boolean).
-    
-    Returns: (private_key, is_testnet)
-    """
-    is_testnet = account_type in ("testnet", "demo")
-    
-    # Try new architecture first
-    if is_testnet:
-        private_key = hl_creds.get("hl_testnet_private_key")
-    else:
-        private_key = hl_creds.get("hl_mainnet_private_key")
-    
-    # Fallback to legacy format
-    if not private_key:
-        private_key = hl_creds.get("hl_private_key")
-        if private_key:
-            # Legacy: use hl_testnet boolean
-            is_testnet = hl_creds.get("hl_testnet", False)
-    
-    return private_key, is_testnet
 
 
 # ==================== POSITION CALCULATOR MODELS ====================

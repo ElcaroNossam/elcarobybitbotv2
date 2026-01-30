@@ -4389,6 +4389,8 @@ async def set_leverage(
         raise
 
 def _calc_pnl(entry: float, exit_: float, side: str, size: float) -> tuple[float, float]:
+    if entry <= 0:
+        return 0.0, 0.0
     direction = 1.0 if side == "Buy" else -1.0
     pnl_abs = (exit_ - entry) * size * direction
     pct = (exit_ / entry - 1.0) * (100.0 if side == "Buy" else -100.0)
@@ -4561,7 +4563,7 @@ async def detect_exit_reason(
             logger.debug(f"Could not fetch closed-pnl for detect_exit_reason: {e}")
     
     # Step 5: Fallback - determine by comparing exit_price with entry_price and expected TP/SL levels
-    if reason == "UNKNOWN" and entry_price and exit_price and side:
+    if reason == "UNKNOWN" and entry_price and exit_price and side and entry_price > 0 and exit_price > 0:
         pnl_pct = ((exit_price / entry_price) - 1.0) * 100 if side == "Buy" else ((entry_price / exit_price) - 1.0) * 100
         
         # Use provided SL/TP or defaults
@@ -6342,8 +6344,10 @@ async def place_order_for_targets(
                             testnet=is_testnet,
                             vault_address=hl_creds.get("hl_vault_address")
                         )
-                        await adapter.set_leverage(hl_symbol_to_coin(symbol), target_leverage or leverage)
-                        await adapter.close()
+                        try:
+                            await adapter.set_leverage(hl_symbol_to_coin(symbol), target_leverage or leverage)
+                        finally:
+                            await adapter.close()
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set HL leverage for {symbol}: {lev_err}")
                 
@@ -6399,9 +6403,11 @@ async def place_order_for_targets(
                                     private_key=hl_private_key,
                                     testnet=is_testnet_for_price
                                 )
-                                price_data = await adapter.get_price(hl_symbol_to_coin(symbol))
-                                pos_entry_price = float(price_data) if price_data else 0
-                                await adapter.close()
+                                try:
+                                    price_data = await adapter.get_price(hl_symbol_to_coin(symbol))
+                                    pos_entry_price = float(price_data) if price_data else 0
+                                finally:
+                                    await adapter.close()
                         else:
                             # Get price from Bybit
                             ticker_data = await _bybit_request(
@@ -9733,17 +9739,18 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
                     testnet=bool(creds.get("hl_testnet", False)),
                     vault_address=creds.get("hl_vault_address")
                 )
-                await adapter.initialize()
-                
-                # Get fills for the period
-                fills = await adapter.get_fills_by_time(start_ts, end_ts)
-                for fill in fills:
-                    try:
-                        total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
-                    except Exception:
-                        pass
-                
-                await adapter.close()
+                try:
+                    await adapter.initialize()
+                    
+                    # Get fills for the period
+                    fills = await adapter.get_fills_by_time(start_ts, end_ts)
+                    for fill in fills:
+                        try:
+                            total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
+                        except Exception:
+                            pass
+                finally:
+                    await adapter.close()
         except Exception as e:
             logger.warning(f"[{uid}] HL realized PnL fetch error: {e}")
     else:
@@ -10936,6 +10943,8 @@ async def place_spot_limit_order(
     if side == "Buy":
         if not usdt_amount or usdt_amount <= 0:
             return {"success": False, "error": "Invalid USDT amount"}
+        if not price or price <= 0:
+            return {"success": False, "error": "Invalid price"}
         order_qty = usdt_amount / price
     else:
         if not qty or qty <= 0:
@@ -13294,6 +13303,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             
     elif exchange == "hl":
         # Fetch HyperLiquid balance for selected mode
+        adapter = None
         try:
             testnet = (mode == "testnet")
             
@@ -13373,6 +13383,9 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
                 f"❌ Error: {str(e)}",
                 parse_mode="Markdown"
             )
+        finally:
+            if adapter:
+                await adapter.close()
 
 
 @with_texts
@@ -24575,6 +24588,7 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -24641,6 +24655,9 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     except Exception as e:
         logger.error(f"HL balance error: {e}")
         await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @require_premium_for_hl
@@ -24683,6 +24700,7 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, netwo
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -24742,6 +24760,9 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, netwo
     except Exception as e:
         logger.error(f"HL positions error: {e}")
         await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @require_premium_for_hl
@@ -24827,6 +24848,7 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -24882,6 +24904,9 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
     except Exception as e:
         logger.error(f"HL orders error: {e}")
         await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @require_premium_for_hl
@@ -24987,6 +25012,7 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -25044,6 +25070,9 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     except Exception as e:
         logger.error(f"HL history error: {e}")
         await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @require_premium_for_hl
@@ -26107,6 +26136,7 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -26172,6 +26202,9 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         logger.error(f"HL balance callback error: {e}")
         await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @log_calls
@@ -26204,6 +26237,7 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -26262,6 +26296,9 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
     except Exception as e:
         logger.error(f"HL positions callback error: {e}")
         await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @log_calls
@@ -26294,6 +26331,7 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -26349,6 +26387,9 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"HL orders callback error: {e}")
         await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @log_calls
@@ -26381,6 +26422,7 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         )
         return
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -26438,6 +26480,9 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         logger.error(f"HL history callback error: {e}")
         await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @log_calls
@@ -26541,6 +26586,7 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_private_key,
@@ -26572,6 +26618,9 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(f"❌ Error: {result.get('error')}")
         except Exception as e:
             await q.edit_message_text(f"❌ Error: {str(e)}")
+        finally:
+            if adapter:
+                await adapter.close()
     
     elif data == "hl:positions":
         hl_creds = get_hl_credentials(uid)
@@ -26590,6 +26639,7 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
+        adapter = None
         try:
             adapter = HLAdapter(
                 private_key=hl_private_key,
@@ -26622,6 +26672,9 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(f"❌ Error: {result.get('error')}")
         except Exception as e:
             await q.edit_message_text(f"❌ Error: {str(e)}")
+        finally:
+            if adapter:
+                await adapter.close()
     
     elif data == "hl:switch":
         current = get_exchange_type(uid)

@@ -294,7 +294,8 @@ class HyperLiquidValidator:
             from eth_account import Account
             account = Account.from_key(self.private_key)
             return account.address
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to derive address from private key: {e}")
             return ""
     
     async def validate_connection(self) -> ValidationResult:

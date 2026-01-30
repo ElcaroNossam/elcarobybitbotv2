@@ -11,25 +11,13 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import db
 
+# Bug #3 Fix: Use centralized account utilities instead of local definition
+from core.account_utils import normalize_account_type as _normalize_both_account_type
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 from webapp.api.auth import get_current_user
-
-
-def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
-    """
-    Normalize 'both' account_type to a valid single account type.
-    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
-    
-    For Bybit: 'both' -> 'demo' (safer default)
-    For HyperLiquid: 'both' -> 'testnet' (safer default)
-    """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
 
 
 class ExchangeSwitch(BaseModel):
@@ -79,6 +67,7 @@ async def get_settings(
     trading_mode = creds.get("trading_mode", "demo")
     hl_testnet = hl_creds.get("hl_testnet", False)
     user_lang = creds.get("lang", "en")
+    last_viewed_account = creds.get("last_viewed_account", None)  # Bug #2 fix: for iOS sync
     
     if exchange == "hyperliquid":
         # Check both new architecture and legacy format
@@ -93,6 +82,7 @@ async def get_settings(
             "trading_mode": trading_mode,
             "hl_testnet": hl_testnet,
             "lang": user_lang,
+            "last_viewed_account": last_viewed_account,
             # Exchange-specific settings
             "percent": creds.get("hl_percent", 5),
             "leverage": creds.get("hl_leverage", 10),
@@ -109,6 +99,7 @@ async def get_settings(
             "trading_mode": trading_mode,
             "hl_testnet": hl_testnet,
             "lang": user_lang,
+            "last_viewed_account": last_viewed_account,
             # Exchange-specific settings
             "percent": creds.get("percent", 5),
             "leverage": creds.get("leverage", 10),
@@ -389,9 +380,12 @@ async def switch_account_type(
     # Get old mode for comparison
     old_mode = db.get_trading_mode(user_id)
     
-    # Update trading mode
-    if exchange == "bybit":
-        db.set_trading_mode(user_id, new_mode)
+    # Update trading mode for both Bybit and HyperLiquid
+    # Bug #9 Fix: Also update trading_mode for HL so iOS can sync correctly
+    db.set_trading_mode(user_id, new_mode)
+    
+    # Also save last_viewed_account for iOS sync
+    db.set_user_field(user_id, "last_viewed_account", data.account_type)
     
     # Invalidate cached connections
     try:

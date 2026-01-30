@@ -384,11 +384,11 @@ def get_all_user_credentials(user_id: int) -> dict:
     
     Returns:
         Dict with demo_api_key, demo_api_secret, real_api_key, real_api_secret, 
-        trading_mode, exchange_type
+        trading_mode, exchange_type, last_viewed_account, lang
     """
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode, exchange_type FROM users WHERE user_id=?",
+            "SELECT demo_api_key, demo_api_secret, real_api_key, real_api_secret, trading_mode, exchange_type, last_viewed_account, lang FROM users WHERE user_id=?",
             (user_id,),
         ).fetchone()
     
@@ -397,7 +397,9 @@ def get_all_user_credentials(user_id: int) -> dict:
             "demo_api_key": None, "demo_api_secret": None,
             "real_api_key": None, "real_api_secret": None,
             "trading_mode": "demo",
-            "exchange_type": "bybit"
+            "exchange_type": "bybit",
+            "last_viewed_account": None,
+            "lang": "en"
         }
     
     return {
@@ -406,7 +408,9 @@ def get_all_user_credentials(user_id: int) -> dict:
         "real_api_key": row[2],
         "real_api_secret": row[3],
         "trading_mode": row[4] or "demo",
-        "exchange_type": row[5] or "bybit"
+        "exchange_type": row[5] or "bybit",
+        "last_viewed_account": row[6],
+        "lang": row[7] or "en"
     }
 
 def set_trading_mode(user_id: int, mode: str):
