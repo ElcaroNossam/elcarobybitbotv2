@@ -679,9 +679,10 @@ class PaperTradingSession:
             balance = entry["balance"]
             if balance > peak:
                 peak = balance
-            dd = (peak - balance) / peak * 100
-            if dd > max_dd:
-                max_dd = dd
+            if peak > 0:
+                dd = (peak - balance) / peak * 100
+                if dd > max_dd:
+                    max_dd = dd
         metrics.max_drawdown = max_dd
         
         # Average holding time

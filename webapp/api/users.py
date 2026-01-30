@@ -142,8 +142,8 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
         try:
             from webapp.api.email_auth import get_email_user_by_id
             email_user = get_email_user_by_id(user_id)
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to get email user info for {user_id}: {e}")
     
     # Build linked accounts info
     email_from_row = user_row.get("email") if user_row else None

@@ -535,7 +535,7 @@ class MetricsCalculator:
         
         # Returns
         metrics.total_return = final_balance - initial_balance
-        metrics.total_return_percent = (final_balance - initial_balance) / initial_balance * 100
+        metrics.total_return_percent = (final_balance - initial_balance) / initial_balance * 100 if initial_balance > 0 else 0
         
         # Annualized return
         if days > 0:
@@ -783,7 +783,7 @@ class ProBacktestEngine:
                 all_trades.append(Trade(**t) if isinstance(t, dict) else t)
             
             pnl = result.get("metrics", {}).get("total_return", 0)
-            final_equity += pnl / len(symbols)  # Proportional allocation
+            final_equity += pnl / len(symbols) if symbols else 0  # Proportional allocation
         
         # Recalculate metrics
         metrics = MetricsCalculator.calculate(
@@ -1099,6 +1099,10 @@ class ProBacktestEngine:
     ) -> Dict[str, Any]:
         """Run portfolio backtest with multiple strategies"""
         
+        # Early return if no strategies
+        if not strategies:
+            return {"success": False, "error": "No strategies provided"}
+        
         # Run each strategy independently
         strategy_results = {}
         for strat_config in strategies:
@@ -1355,7 +1359,7 @@ class ProBacktestEngine:
         final_equity = initial_balance
         for symbol, result in all_results.items():
             pnl = result.get("metrics", {}).get("total_return", 0)
-            final_equity += pnl / len(symbols)
+            final_equity += pnl / len(symbols) if symbols else 0
         
         # Calculate combined metrics
         metrics = MetricsCalculator.calculate(
@@ -1448,7 +1452,7 @@ class MarketReplayEngine:
             "candle": candle,
             "signal": signal,
             "index": self.current_index,
-            "progress": (self.current_index + 1) / len(self.candles) * 100
+            "progress": (self.current_index + 1) / len(self.candles) * 100 if self.candles else 0
         }
         
         self.current_index += 1
