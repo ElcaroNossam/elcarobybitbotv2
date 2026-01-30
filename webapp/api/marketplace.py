@@ -180,7 +180,7 @@ async def get_my_strategies(user: dict = Depends(get_current_user)):
             strategy["config"] = json.loads(strategy.get("config_json", "{}"))
             strategies.append(strategy)
         
-        return {"success": True, "strategies": strategies}
+        return {"success": True, "data": strategies}
 
 
 @router.get("/strategies/{strategy_id}")
@@ -366,7 +366,7 @@ async def get_marketplace(
         
         return {
             "success": True,
-            "listings": listings,
+            "data": listings,  # Use 'data' for iOS APIResponse compatibility
             "total": total,
             "page": page,
             "pages": (total + limit - 1) // limit
@@ -463,7 +463,7 @@ async def get_purchased_strategies(user: dict = Depends(get_current_user)):
             del purchase["config_json"]
             purchases.append(purchase)
         
-        return {"success": True, "purchases": purchases, "strategies": purchases}
+        return {"success": True, "data": purchases}
 
 
 # Alias for frontend compatibility
