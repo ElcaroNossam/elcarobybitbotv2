@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth/telegram", tags=["telegram-auth"])
 
 # Get bot token for hash verification
-BOT_TOKEN = os.getenv("TG_BOT_TOKEN") or os.getenv("BOT_TOKEN") or ""
+BOT_TOKEN = os.getenv("TG_BOT_TOKEN") or os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_TOKEN") or ""
 SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "enliko-secret-key-2026"))
 
 
