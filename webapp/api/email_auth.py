@@ -212,6 +212,7 @@ class EmailRegisterRequest(BaseModel):
     name: Optional[str] = None
     first_name: Optional[str] = None  # iOS compatibility
     last_name: Optional[str] = None   # iOS compatibility
+    telegram_username: Optional[str] = None  # Optional: user can enter their TG @username
     
     @validator('password')
     def validate_password(cls, v):
@@ -220,6 +221,19 @@ class EmailRegisterRequest(BaseModel):
         if not re.search(r'[A-Za-z]', v) or not re.search(r'\d', v):
             raise ValueError('Password must contain letters and numbers')
         return v
+    
+    @validator('telegram_username', pre=True)
+    def clean_telegram_username(cls, v):
+        """Clean up telegram username - remove @ if present"""
+        if v and isinstance(v, str):
+            v = v.strip()
+            if v.startswith('@'):
+                v = v[1:]
+            # Validate format: 5-32 chars, alphanumeric + underscore
+            if v and not re.match(r'^[a-zA-Z0-9_]{5,32}$', v):
+                return None  # Invalid format, ignore it
+            return v if v else None
+        return None
     
     @property
     def display_name(self) -> Optional[str]:
@@ -384,7 +398,7 @@ def get_email_user_by_id(user_id: int) -> Optional[dict]:
         return None
 
 
-def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None) -> Optional[int]:
+def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None, telegram_username: Optional[str] = None) -> Optional[int]:
     """Create email user in database"""
     try:
         from core.db_postgres import get_pool
@@ -433,11 +447,12 @@ def create_email_user(email: str, password_hash: str, password_salt: str, name: 
                 auth_provider = 'email',
                 email_verified = TRUE,
                 first_name = %s,
+                telegram_username = %s,
                 is_allowed = 1
             WHERE user_id = %s
-        """, (email.lower(), f"{password_hash}:{password_salt}", name, inserted_user_id))
+        """, (email.lower(), f"{password_hash}:{password_salt}", name, telegram_username, inserted_user_id))
         
-        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, is_allowed=1, email synced to users")
+        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, telegram_username={telegram_username}, is_allowed=1")
         return inserted_user_id
     except Exception as e:
         logger.error(f"create_email_user error: {e}", exc_info=True)
@@ -492,7 +507,8 @@ async def email_register(request: Request, data: EmailRegisterRequest, backgroun
         'expires': expires.isoformat(),
         'password_hash': password_hash,
         'password_salt': password_salt,
-        'name': data.display_name  # Use display_name for iOS compatibility
+        'name': data.display_name,  # Use display_name for iOS compatibility
+        'telegram_username': data.telegram_username  # Optional TG username for account linking
     })
     
     # Send verification email
@@ -546,7 +562,8 @@ async def email_verify(data: EmailVerifyRequest):
         email=email,
         password_hash=pending['password_hash'],
         password_salt=pending['password_salt'],
-        name=pending.get('name')
+        name=pending.get('name'),
+        telegram_username=pending.get('telegram_username')
     )
     
     if not user_id:
@@ -561,6 +578,7 @@ async def email_verify(data: EmailVerifyRequest):
     
     # Build full user object for iOS compatibility
     name = pending.get('name')
+    tg_username = pending.get('telegram_username')
     return {
         "success": True,
         "token": token,
@@ -573,6 +591,7 @@ async def email_verify(data: EmailVerifyRequest):
             "name": name,
             "first_name": name.split()[0] if name and ' ' in name else name,
             "last_name": name.split()[-1] if name and ' ' in name else None,
+            "telegram_username": tg_username,
             "is_admin": False,
             "is_allowed": True,
             "is_premium": False,
