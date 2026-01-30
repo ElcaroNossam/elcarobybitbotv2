@@ -1601,18 +1601,25 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     Callback data format: 2fa_confirm:{request_id} or 2fa_reject:{request_id}
     """
+    logger.info(f"[2FA] on_2fa_app_login_cb triggered! data={update.callback_query.data if update.callback_query else 'None'}")
+    
     q = update.callback_query
     await q.answer()
     uid = update.effective_user.id
     data = q.data or ""
     
+    logger.info(f"[2FA] User {uid} clicked 2FA button, data: {data}")
+    
     # Parse: 2fa_confirm:xxx or 2fa_reject:xxx
     parts = data.split(":")
     if len(parts) != 2:
+        logger.warning(f"[2FA] Invalid parts count: {len(parts)}, expected 2")
         return
     
     action = parts[0]  # 2fa_confirm or 2fa_reject
     request_id = parts[1]
+    
+    logger.info(f"[2FA] Parsed: action={action}, request_id={request_id}")
     
     t = get_texts(uid)
     
