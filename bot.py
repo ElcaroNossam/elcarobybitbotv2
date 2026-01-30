@@ -7349,43 +7349,57 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     - DCA Leg 2 % (when DCA enabled)
     - Max Positions
     - Coins Filter
+    
+    Fallback chain: strategy settings -> global_cfg (user's global) -> STRATEGY_DEFAULTS
     """
     from coin_params import STRATEGY_DEFAULTS
     
     emoji = "📈" if side == "long" else "📉"
     settings = settings or {}
+    global_cfg = global_cfg or {}
     defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
+    
+    def _get_val(key, default_val):
+        """Get value with fallback: settings -> global_cfg -> defaults"""
+        val = settings.get(f"{side}_{key}")
+        if val is not None:
+            return val
+        # Try global_cfg (user's global settings)
+        if key in global_cfg and global_cfg.get(key) is not None:
+            return global_cfg.get(key)
+        # Final fallback to STRATEGY_DEFAULTS
+        return defaults.get(key, default_val)
     
     buttons = []
     
-    # Get current values for this side (with defaults)
+    # Get current values for this side (with fallback chain)
     enabled = settings.get(f"{side}_enabled")
     if enabled is None:
         enabled = defaults.get("enabled", True)
-    entry = settings.get(f"{side}_percent") or defaults.get("percent", 5)
-    sl = settings.get(f"{side}_sl_percent") or defaults.get("sl_percent", 30)
-    tp = settings.get(f"{side}_tp_percent") or defaults.get("tp_percent", 25)
-    leverage = settings.get(f"{side}_leverage") or defaults.get("leverage", 10)
+    entry = _get_val("percent", 5)
+    sl = _get_val("sl_percent", 30)
+    tp = _get_val("tp_percent", 25)
+    leverage = _get_val("leverage", 10)
     
     # Order type
-    order_type = settings.get(f"{side}_order_type") or defaults.get("order_type", "market")
+    order_type = settings.get(f"{side}_order_type") or global_cfg.get("global_order_type") or defaults.get("order_type", "market")
     limit_offset = settings.get(f"{side}_limit_offset_pct") or defaults.get("limit_offset_pct", 0.1)
     
     # ATR settings
     use_atr = settings.get(f"{side}_use_atr")
     if use_atr is None:
-        use_atr = defaults.get("use_atr", 0)
+        use_atr = bool(global_cfg.get("use_atr")) if global_cfg.get("use_atr") is not None else defaults.get("use_atr", 0)
     use_atr = bool(use_atr)
-    atr_trigger = settings.get(f"{side}_atr_trigger_pct") or defaults.get("atr_trigger_pct", 0.5)
-    atr_step = settings.get(f"{side}_atr_step_pct") or defaults.get("atr_step_pct", 0.3)
+    atr_trigger = _get_val("atr_trigger_pct", 0.5)
+    atr_step = _get_val("atr_step_pct", 0.3)
     
-    # DCA settings  
+    # DCA settings (fallback to global_cfg)
     dca_enabled = settings.get(f"{side}_dca_enabled")
     if dca_enabled is None:
-        dca_enabled = defaults.get("dca_enabled", 0)
+        dca_enabled = bool(global_cfg.get("dca_enabled")) if global_cfg.get("dca_enabled") is not None else defaults.get("dca_enabled", 0)
     dca_enabled = bool(dca_enabled)
-    dca_pct_1 = settings.get(f"{side}_dca_pct_1") or defaults.get("dca_pct_1", 10.0)
-    dca_pct_2 = settings.get(f"{side}_dca_pct_2") or defaults.get("dca_pct_2", 25.0)
+    dca_pct_1 = settings.get(f"{side}_dca_pct_1") or global_cfg.get("dca_pct_1") or defaults.get("dca_pct_1", 10.0)
+    dca_pct_2 = settings.get(f"{side}_dca_pct_2") or global_cfg.get("dca_pct_2") or defaults.get("dca_pct_2", 25.0)
     
     # Position limits and coins
     max_positions = settings.get(f"{side}_max_positions") or defaults.get("max_positions", 0)
@@ -8618,12 +8632,29 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "short_partial_tp_1_close_pct": t.get('prompt_short_ptp_1_close', '📉 SHORT Step 1: Close % (part of position):'),
             "short_partial_tp_2_trigger_pct": t.get('prompt_short_ptp_2_trigger', '📉 SHORT Step 2: Trigger % (profit to close part):'),
             "short_partial_tp_2_close_pct": t.get('prompt_short_ptp_2_close', '📉 SHORT Step 2: Close % (part of position):'),
+            # Additional side-specific params
+            "long_dca_pct_1": t.get('prompt_long_dca_1', '📈 LONG DCA Leg 1 % (trigger):'),
+            "long_dca_pct_2": t.get('prompt_long_dca_2', '📈 LONG DCA Leg 2 % (trigger):'),
+            "long_limit_offset_pct": t.get('prompt_long_limit_offset', '📈 LONG Limit Offset %:'),
+            "long_max_positions": t.get('prompt_long_max_positions', '📈 LONG Max Positions (0=unlimited):'),
+            "short_dca_pct_1": t.get('prompt_short_dca_1', '📉 SHORT DCA Leg 1 % (trigger):'),
+            "short_dca_pct_2": t.get('prompt_short_dca_2', '📉 SHORT DCA Leg 2 % (trigger):'),
+            "short_limit_offset_pct": t.get('prompt_short_limit_offset', '📉 SHORT Limit Offset %:'),
+            "short_max_positions": t.get('prompt_short_max_positions', '📉 SHORT Max Positions (0=unlimited):'),
         }
+        
+        # Determine the correct cancel callback based on param prefix
+        if param.startswith("long_"):
+            cancel_callback = f"strat_side:{strategy}:long"
+        elif param.startswith("short_"):
+            cancel_callback = f"strat_side:{strategy}:short"
+        else:
+            cancel_callback = f"strat_set:{strategy}"
         
         await query.message.edit_text(
             param_names.get(param, f"Enter value for {param}:"),
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="strat_set:back")]
+                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data=cancel_callback)]
             ])
         )
         return
@@ -8697,6 +8728,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         context = get_user_trading_context(uid)
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        global_cfg = db.get_user_config(uid)  # Get global settings for fallback
         
         emoji = "📈" if side == "long" else "📉"
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
@@ -8708,7 +8740,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.message.edit_text(
             "\n".join(lines),
             parse_mode="Markdown",
-            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings)
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
         )
         return
     
@@ -8723,6 +8755,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         context = get_user_trading_context(uid)
         current_exchange = context["exchange"]
         strat_settings = db.get_strategy_settings(uid, strategy, current_exchange, context["account_type"])
+        global_cfg = db.get_user_config(uid)  # Get global settings for fallback
         
         field = f"{side}_enabled"
         current = strat_settings.get(field, True)
@@ -8745,7 +8778,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         await query.message.edit_text(
             "\n".join(lines),
             parse_mode="Markdown",
-            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings)
+            reply_markup=get_strategy_side_keyboard(strategy, side, t, strat_settings, global_cfg)
         )
         return
     
@@ -21830,10 +21863,17 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return
         except (ValueError, TypeError) as e:
             # Show error but stay in input mode
+            # Determine the correct cancel callback based on param prefix
+            if param.startswith("long_"):
+                cancel_callback = f"strat_side:{strategy}:long"
+            elif param.startswith("short_"):
+                cancel_callback = f"strat_side:{strategy}:short"
+            else:
+                cancel_callback = f"strat_set:{strategy}"
             return await update.message.reply_text(
                 ctx.t.get('invalid_number', '❌ Invalid number. Enter a value between 0 and 100.'),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(ctx.t.get('btn_cancel', '❌ Cancel'), callback_data=f"strat_set:{strategy}")]
+                    [InlineKeyboardButton(ctx.t.get('btn_cancel', '❌ Cancel'), callback_data=cancel_callback)]
                 ])
             )
 
