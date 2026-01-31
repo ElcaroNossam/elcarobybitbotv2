@@ -23322,68 +23322,27 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     
     elif action == "ton_verify":
-        # Verify TON payment
-        payment_id = parts[2] if len(parts) > 2 else ""
-        
+        # TON payments deprecated - redirect to OxaPay
         t = get_texts(uid)
-        await q.edit_message_text(t.get("verifying_payment", "⏳ Verifying payment on TON blockchain..."), parse_mode="Markdown")
+        text = (
+            "⚠️ *TON Payments Deprecated*\n\n"
+            "We have migrated to OxaPay for all crypto payments.\n\n"
+            "✅ **Benefits:**\n"
+            "• 20+ cryptocurrencies supported\n"
+            "• USDT, BTC, ETH, SOL, TON and more\n"
+            "• Automatic payment confirmation\n"
+            "• Lower fees (0.5%)\n\n"
+            "👉 Use the new payment system below:"
+        )
         
-        try:
-            from core.db_postgres import execute_one, get_conn
-            
-            # Get payment record
-            payment = execute_one(
-                "SELECT * FROM ton_payments WHERE payment_id = %s",
-                (payment_id,)
-            )
-            
-            if not payment:
-                await q.edit_message_text(
-                    "❌ Payment not found. Please try again.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
-                )
-                return
-            
-            if payment["status"] == "completed":
-                await q.edit_message_text(
-                    "✅ Payment already verified and subscription active!",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
-                )
-                return
-            
-            # For now, show instructions to contact admin with tx_hash
-            # TODO: Implement automatic TON transaction verification
-            text = t.get("ton_verification_manual",
-                "📩 *Manual Verification Required*\n\n"
-                "Please send your TON transaction hash to @EnlikoSupport\n\n"
-                "Include:\n"
-                "• Payment ID: `{payment_id}`\n"
-                "• Transaction Hash: (from your wallet)\n\n"
-                "Our team will verify and activate your subscription within minutes."
-            ).format(payment_id=payment_id)
-            
-            await q.edit_message_text(
-                text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💬 Contact Support", url="https://t.me/EnlikoSupport")],
-                    [InlineKeyboardButton("🔄 Check Again", callback_data=f"sub:ton_verify:{payment_id}")],
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
-            
-        except Exception as e:
-            logger.error(f"TON verification error: {e}")
-            await q.edit_message_text(
-                f"❌ Verification error: {e}",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                ])
-            )
+        await q.edit_message_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💳 Pay with Crypto (OxaPay)", callback_data="sub:crypto:basic:1m")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+            ])
+        )
     
     elif action == "my_blockchain":
         # Show user's blockchain license records

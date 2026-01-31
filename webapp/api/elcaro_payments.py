@@ -1,7 +1,7 @@
 """
 ENLIKO Token Payment API
 Complete payment system using ENLIKO token only
-Buy ELC with USDT on TON, use for all platform services
+Buy ELC with crypto via OxaPay, use for all platform services
 
 Synchronized with bot.py LICENSE_PRICES
 """
@@ -15,7 +15,7 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from webapp.api.auth import get_current_user
-from ton_payment_gateway import ELCAROPaymentManager
+from services.oxapay_service import oxapay_service, LicensePlan, LicenseDuration
 from cold_wallet_trading import (
     connect_metamask,
     place_order_with_metamask,
@@ -43,10 +43,6 @@ from core.blockchain import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# Initialize payment manager
-payment_manager = ELCAROPaymentManager(testnet=True)  # Set False for production
-
 
 # ============================================================
 # REQUEST MODELS
@@ -134,21 +130,21 @@ async def calculate_elc_purchase(request: BuyELCRequest):
         if request.usdt_amount <= 0:
             raise HTTPException(400, "USDT amount must be positive")
         
-        # Initialize if needed
-        if not payment_manager.ton_gateway:
-            await payment_manager.initialize(
-                platform_wallet="UQC..."  # Add real platform wallet
-            )
-        
-        calculation = payment_manager.ton_gateway.calculate_elc_amount(request.usdt_amount)
+        # ELC price is 1:1 with USD, 0.5% fee
+        elc_amount = request.usdt_amount * 0.995  # -0.5% fee
+        fee = request.usdt_amount * 0.005
         
         return {
             "success": True,
-            **calculation,
+            "usdt_amount": request.usdt_amount,
+            "elc_amount": elc_amount,
+            "fee": fee,
+            "fee_percent": 0.5,
+            "exchange_rate": 1.0,
             "payment_method": request.payment_method,
             "steps": [
-                "1. Send USDT to platform address",
-                "2. Wait for confirmation (1-2 minutes)",
+                "1. Send USDT to payment address via OxaPay",
+                "2. Wait for confirmation (1-5 minutes)",
                 "3. Receive ELC in your wallet",
                 "4. Start using ELC for subscriptions"
             ]
@@ -163,32 +159,41 @@ async def buy_elc_tokens(
     request: BuyELCRequest,
     user: dict = Depends(get_current_user)
 ):
-    """Create payment link to buy ELC with USDT"""
+    """Create payment link to buy ELC with crypto via OxaPay"""
     user_id = user["user_id"]
     
     try:
-        if not payment_manager.ton_gateway:
-            await payment_manager.initialize(
-                platform_wallet="UQC..."  # Add real platform wallet
-            )
-        
-        # Create payment link (this also creates purchase record via db_elcaro)
-        payment_data = await payment_manager.ton_gateway.create_payment_link(
+        # Create payment via OxaPay
+        payment_result = await oxapay_service.create_payment(
             user_id=user_id,
-            usdt_amount=request.usdt_amount,
-            purpose="buy_elc"
+            plan=LicensePlan.BASIC,  # ELC purchase
+            duration=LicenseDuration.MONTH_1,
+            currency="USDT",
+            network="TRC20"
         )
+        
+        if not payment_result.get("success"):
+            raise HTTPException(500, payment_result.get("error", "Payment creation failed"))
         
         return {
             "success": True,
-            **payment_data,
+            "payment_id": payment_result.get("payment_id"),
+            "address": payment_result.get("address"),
+            "amount_usd": request.usdt_amount,
+            "amount_crypto": payment_result.get("amount_crypto"),
+            "currency": payment_result.get("currency", "USDT"),
+            "network": payment_result.get("network", "TRC20"),
+            "expires_at": payment_result.get("expires_at"),
+            "payment_url": payment_result.get("payment_url"),
             "instructions": [
-                f"Send {request.usdt_amount} USDT to the address below",
-                f"Include payment ID in transaction comment",
+                f"Send {request.usdt_amount} USDT to the address",
+                "Payment will be confirmed automatically",
                 "Your ELC will arrive in 1-5 minutes",
                 "Check 'My Wallet' to see your ELC balance"
             ]
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Buy ELC error: {e}")
         raise HTTPException(500, str(e))
@@ -519,13 +524,5 @@ async def submit_signed_order(
         raise HTTPException(500, str(e))
 
 
-# Initialize payment manager on startup
-@router.on_event("startup")
-async def startup_event():
-    """Initialize payment gateway on startup"""
-    try:
-        platform_wallet = os.getenv("PLATFORM_TON_WALLET", "UQC...")
-        await payment_manager.initialize(platform_wallet)
-        logger.info("ELCARO Payment Manager initialized")
-    except Exception as e:
-        logger.error(f"Payment manager initialization error: {e}")
+# OxaPay is initialized automatically via environment variables
+# No explicit startup initialization needed

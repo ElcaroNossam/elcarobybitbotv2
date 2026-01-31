@@ -139,20 +139,11 @@ async def create_payment(
                 raise HTTPException(status_code=503, detail="Web3 payment verification unavailable")
                 
         elif payment.payment_method == 'ton':
-            if not payment.transaction_hash:
-                raise HTTPException(status_code=400, detail="Transaction hash required")
-            
-            try:
-                from ton_payment_gateway import verify_ton_transaction
-                is_valid = await verify_ton_transaction(
-                    tx_hash=payment.transaction_hash,
-                    expected_amount=payment.amount
-                )
-                if not is_valid:
-                    raise HTTPException(status_code=400, detail="Invalid TON transaction")
-            except ImportError:
-                logger.error("TON verification not available - PAYMENT BLOCKED")
-                raise HTTPException(status_code=503, detail="TON payment verification unavailable")
+            # TON payments deprecated - use OxaPay crypto payments instead
+            raise HTTPException(
+                status_code=410,
+                detail="TON payments deprecated. Please use /api/crypto/ endpoints for crypto payments"
+            )
                 
         elif payment.payment_method == 'usdt':
             if not payment.transaction_hash:

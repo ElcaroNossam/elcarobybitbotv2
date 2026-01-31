@@ -3,7 +3,7 @@ ENLIKO Token Bot Commands
 
 Telegram bot commands for ELCARO (ELC) token:
 - View balance
-- Buy ELC with USDT on TON
+- Buy ELC with crypto via OxaPay
 - Connect cold wallet (MetaMask, WalletConnect)
 - View transaction history
 - Subscription payments with ELC
@@ -15,7 +15,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 
 import db_elcaro
-from ton_payment_gateway import ELCAROPaymentManager
+from services.oxapay_service import oxapay_service, LicensePlan, LicenseDuration
 from cold_wallet_trading import connect_metamask, get_wallet_info
 
 logger = logging.getLogger(__name__)
@@ -292,28 +292,34 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 elc_amount = float(amount_str)
                 usdt_amount = elc_amount * 1.005  # +0.5% fee
                 
-                # Create payment via payment manager
-                payment_manager = ELCAROPaymentManager()
-                payment_result = await payment_manager.create_subscription_payment(
+                # Create payment via OxaPay
+                payment_result = await oxapay_service.create_payment(
                     user_id=user_id,
-                    plan="custom",
-                    duration="instant",
-                    custom_elc_amount=elc_amount
+                    plan=LicensePlan.BASIC,  # ELC purchase treated as basic
+                    duration=LicenseDuration.MONTH_1,
+                    currency="USDT",
+                    network="TRC20"
                 )
+                
+                if not payment_result.get("success"):
+                    raise Exception(payment_result.get("error", "Payment creation failed"))
+                
+                payment_url = payment_result.get("payment_url", "")
+                payment_address = payment_result.get("address", "")
                 
                 text = (
                     f"{t.get('elc_purchase_summary', amount=elc_amount)}\n\n"
                     f"{t.get('elc_cost', cost=usdt_amount)}\n"
                     f"{t.get('elc_fee_amount', fee=usdt_amount * 0.005)}\n\n"
-                    f"{t.get('elc_payment_link')}\n"
-                    f"<code>{payment_result['payment_link']}</code>\n\n"
+                    f"💳 <b>Pay to address:</b>\n"
+                    f"<code>{payment_address}</code>\n\n"
                     f"{t.get('elc_payment_hint')}"
                 )
                 
-                keyboard = [
-                    [InlineKeyboardButton(t.get('btn_open_payment'), url=payment_result['payment_link'])],
-                    [InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:buy")]
-                ]
+                keyboard = []
+                if payment_url:
+                    keyboard.append([InlineKeyboardButton(t.get('btn_open_payment'), url=payment_url)])
+                keyboard.append([InlineKeyboardButton(t.get('btn_back', '« Back'), callback_data="elc:buy")])
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 
                 await query.edit_message_text(text, parse_mode="HTML", reply_markup=reply_markup)
