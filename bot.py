@@ -16176,12 +16176,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         continue
 
             if rsi_bb_trigger:
+                rsi_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 📊 Processing RSI_BB {rsi_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "rsi_bb", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "rsi_bb", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
+                user_leverage = params.get("leverage")
+                logger.info(f"[{uid}] ⚙️ RSI_BB {rsi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type)
                 except Exception as e:
@@ -16189,8 +16193,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
                     continue
                 
-                # Set leverage from side-specific params (FIX: was using wrong key)
-                user_leverage = params.get("leverage")
+                # Set leverage from side-specific params
                 if user_leverage:
                     try:
                         await set_leverage(uid, symbol, leverage=user_leverage)
@@ -16317,7 +16320,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if bitk_trigger:
-                logger.info(f"[{uid}] 🔮 Processing Scryptomera trade for {symbol}")
+                side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 🔮 Processing Scryptomera {side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "scryptomera", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scryptomera", side=side,
@@ -16325,7 +16329,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
-                logger.info(f"[{uid}] Scryptomera params: sl_pct={user_sl_pct}, risk_pct={risk_pct}, order_type={'limit' if use_limit else 'market'}")
+                user_leverage = params.get("leverage")
+                logger.info(f"[{uid}] ⚙️ Scryptomera {side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
@@ -16451,6 +16456,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if scalper_trigger:
+                scalper_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] ⚡ Processing Scalper {scalper_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "scalper", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "scalper", side=side,
@@ -16458,6 +16465,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_sl_pct = params["sl_pct"]
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
+                user_leverage = params.get("leverage")
+                logger.info(f"[{uid}] ⚙️ Scalper {scalper_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
@@ -16465,7 +16474,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
 
                     # Set leverage from side-specific params (FIX: was using wrong key)
-                    user_leverage = params.get("leverage")
+                    # Set leverage from side-specific params
                     if user_leverage:
                         try:
                             await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
@@ -16584,6 +16593,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if elcaro_trigger:
                 # Enliko (Elcaro) strategy - ALL parameters from USER SETTINGS, not signal
                 # Signal only provides: symbol, side, entry price
+                elcaro_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 🎯 Processing Elcaro {elcaro_side_display} trade for {symbol}")
+                
                 elcaro_strat_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
                 params = get_strategy_trade_params(uid, cfg, symbol, "elcaro", side=side,
                                                   exchange=ctx_exchange, account_type=ctx_account_type)
@@ -16597,15 +16609,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 sl_pct = params["sl_pct"]
                 tp_pct = params["tp_pct"]
                 elcaro_leverage = params.get("leverage")  # FIX: use side-specific from params
+                logger.info(f"[{uid}] ⚙️ Elcaro {elcaro_side_display} settings: entry%={risk_pct}, SL%={sl_pct}, TP%={tp_pct}, leverage={elcaro_leverage}, exchange={ctx_exchange}")
                 
                 # ATR from user settings
                 use_atr = elcaro_strat_settings.get("use_atr", False)
                 elcaro_atr_periods = elcaro_strat_settings.get("atr_periods") if use_atr else None
                 elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if use_atr else None
                 elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if use_atr else None
-                
-                logger.debug(f"[{uid}] Enliko signal using USER settings: Entry%={risk_pct}%, SL={sl_pct}%, TP={tp_pct}%, "
-                            f"Leverage={elcaro_leverage}, ATR={'ON' if use_atr else 'OFF'}")
 
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
@@ -16762,6 +16772,9 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 # Fibonacci Extension Strategy
                 # Signal provides: entry zone, quality info
                 # ALL trading params (SL/TP/ATR) from USER SETTINGS
+                fibo_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 🔢 Processing Fibonacci {fibo_side_display} trade for {symbol}")
+                
                 fibo_entry = parsed_fibonacci.get("entry", spot_price)
                 fibo_entry_low = parsed_fibonacci.get("entry_low")
                 fibo_entry_high = parsed_fibonacci.get("entry_high")
@@ -16777,6 +16790,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_leverage = params.get("leverage", 10)  # FIX: use side-specific from params
                 fibo_sl_pct = params["sl_pct"]  # From user settings!
                 fibo_tp_pct = params["tp_pct"]  # From user settings!
+                logger.info(f"[{uid}] ⚙️ Fibonacci {fibo_side_display} settings: entry%={risk_pct}, SL%={fibo_sl_pct}, TP%={fibo_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 
                 # ATR from user settings
                 use_atr = strat_settings.get("use_atr", False)
@@ -16944,6 +16958,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 continue
 
             if oi_trigger:
+                oi_side_display = 'LONG' if side == 'Buy' else 'SHORT'
+                logger.info(f"[{uid}] 📉 Processing OI {oi_side_display} trade for {symbol}")
                 strat_settings = db.get_strategy_settings(uid, "oi", ctx_exchange, ctx_account_type)
                 use_limit = strat_settings.get("order_type", "market") == "limit"
                 params = get_strategy_trade_params(uid, cfg, symbol, "oi", side=side,
@@ -16952,6 +16968,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")  # FIX: use side-specific from params
+                logger.info(f"[{uid}] ⚙️ OI {oi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 try:
                     if user_sl_pct <= 0:
                         user_sl_pct = 1.0
