@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # ============================================
 
-OXAPAY_API_URL = "https://api.oxapay.com/v1"
+OXAPAY_API_URL = "https://api.oxapay.com"
 OXAPAY_MERCHANT_API_KEY = os.getenv("OXAPAY_MERCHANT_API_KEY", "")
 OXAPAY_PAYOUT_API_KEY = os.getenv("OXAPAY_PAYOUT_API_KEY", "")
 OXAPAY_WEBHOOK_SECRET = os.getenv("OXAPAY_WEBHOOK_SECRET", "")
@@ -220,9 +220,13 @@ class OxaPayService:
         """Make API request to OxaPay"""
         url = f"{self.base_url}{endpoint}"
         headers = {
-            "merchant_api_key": self.merchant_api_key,
             "Content-Type": "application/json",
         }
+        
+        # Add merchant key to data for OxaPay API format
+        if data is None:
+            data = {}
+        data["merchant"] = self.merchant_api_key
         
         try:
             async with aiohttp.ClientSession() as session:
@@ -291,19 +295,17 @@ class OxaPayService:
         data = {
             "amount": amount,
             "currency": "USD",
-            "pay_currency": currency,
-            "lifetime": 30,  # 30 minutes to pay
-            "fee_paid_by_payer": 1,  # User pays network fee
-            "under_paid_coverage": 2.5,  # Accept 2.5% underpayment
-            "to_currency": "USDT",  # We receive USDT
-            "auto_withdrawal": True,  # Auto withdraw to our wallet
-            "callback_url": PAYMENT_CALLBACK_URL,
-            "return_url": return_url or f"{WEBAPP_URL}/subscription/success",
-            "order_id": order_id,
+            "payCurrency": currency,
+            "lifeTime": 30,  # 30 minutes to pay
+            "feePaidByPayer": 1,  # User pays network fee
+            "underPaidCoverage": 2.5,  # Accept 2.5% underpayment
+            "callbackUrl": PAYMENT_CALLBACK_URL,
+            "returnUrl": return_url or f"{WEBAPP_URL}/subscription/success",
+            "orderId": order_id,
             "description": f"Enliko {plan.title()} - {duration}",
         }
         
-        result = await self._request("/payment/invoice", data=data)
+        result = await self._request("/merchants/request", data=data)
         
         if result.get("result") != 100:
             error_msg = result.get("message", "Failed to create payment")
@@ -356,19 +358,17 @@ class OxaPayService:
         data = {
             "amount": amount,
             "currency": "USD",
-            "pay_currency": pay_currency,
+            "payCurrency": pay_currency,
             "network": network,
-            "lifetime": 30,
-            "fee_paid_by_payer": 1,
-            "under_paid_coverage": 2.5,
-            "to_currency": "USDT",
-            "auto_withdrawal": True,
-            "callback_url": PAYMENT_CALLBACK_URL,
-            "order_id": order_id,
+            "lifeTime": 30,
+            "feePaidByPayer": 1,
+            "underPaidCoverage": 2.5,
+            "callbackUrl": PAYMENT_CALLBACK_URL,
+            "orderId": order_id,
             "description": f"Enliko {plan.title()} - {duration}",
         }
         
-        result = await self._request("/payment/white-label", data=data)
+        result = await self._request("/merchants/request", data=data)
         
         if result.get("result") != 100:
             error_msg = result.get("message", "Failed to create payment")
@@ -377,6 +377,7 @@ class OxaPayService:
         payment_data = {
             "payment_id": order_id,
             "track_id": result.get("trackId", ""),
+            "pay_url": result.get("payLink", ""),
             "address": result.get("address", ""),
             "amount_usd": amount,
             "amount_crypto": result.get("payAmount"),
