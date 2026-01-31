@@ -166,12 +166,120 @@ class PushNotificationService: NSObject, ObservableObject {
     override private init() {
         super.init()
         setupNotificationDelegate()
+        setupNotificationCategories()
     }
     
     // MARK: - Setup
     
     private func setupNotificationDelegate() {
         UNUserNotificationCenter.current().delegate = self
+    }
+    
+    /// Setup notification categories with action buttons
+    private func setupNotificationCategories() {
+        // Trade Opened Category - View Details button
+        let viewPositionAction = UNNotificationAction(
+            identifier: "VIEW_POSITION",
+            title: "📊 View Position",
+            options: [.foreground]
+        )
+        let tradeOpenedCategory = UNNotificationCategory(
+            identifier: "TRADE_OPENED",
+            actions: [viewPositionAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle, .hiddenPreviewsShowSubtitle]
+        )
+        
+        // Trade Closed Category - View History button
+        let viewHistoryAction = UNNotificationAction(
+            identifier: "VIEW_HISTORY",
+            title: "📈 View History",
+            options: [.foreground]
+        )
+        let shareAction = UNNotificationAction(
+            identifier: "SHARE_TRADE",
+            title: "📤 Share",
+            options: [.foreground]
+        )
+        let tradeClosedCategory = UNNotificationCategory(
+            identifier: "TRADE_CLOSED",
+            actions: [viewHistoryAction, shareAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle, .hiddenPreviewsShowSubtitle]
+        )
+        
+        // Daily Digest Category
+        let viewStatsAction = UNNotificationAction(
+            identifier: "VIEW_STATS",
+            title: "📊 Full Report",
+            options: [.foreground]
+        )
+        let dailyDigestCategory = UNNotificationCategory(
+            identifier: "DAILY_DIGEST",
+            actions: [viewStatsAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle, .hiddenPreviewsShowSubtitle]
+        )
+        
+        // Signal Category - Open/Ignore
+        let openSignalAction = UNNotificationAction(
+            identifier: "OPEN_SIGNAL",
+            title: "🎯 View Signal",
+            options: [.foreground]
+        )
+        let ignoreSignalAction = UNNotificationAction(
+            identifier: "IGNORE_SIGNAL",
+            title: "Skip",
+            options: [.destructive]
+        )
+        let signalCategory = UNNotificationCategory(
+            identifier: "SIGNAL",
+            actions: [openSignalAction, ignoreSignalAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle]
+        )
+        
+        // Break-Even Category
+        let breakEvenCategory = UNNotificationCategory(
+            identifier: "BREAK_EVEN",
+            actions: [viewPositionAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle]
+        )
+        
+        // Partial TP Category
+        let partialTpCategory = UNNotificationCategory(
+            identifier: "PARTIAL_TP",
+            actions: [viewPositionAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle]
+        )
+        
+        // Margin Warning Category
+        let viewAccountAction = UNNotificationAction(
+            identifier: "VIEW_ACCOUNT",
+            title: "⚠️ Check Account",
+            options: [.foreground]
+        )
+        let marginWarningCategory = UNNotificationCategory(
+            identifier: "MARGIN_WARNING",
+            actions: [viewAccountAction],
+            intentIdentifiers: [],
+            options: [.hiddenPreviewsShowTitle]
+        )
+        
+        // Register all categories
+        UNUserNotificationCenter.current().setNotificationCategories([
+            tradeOpenedCategory,
+            tradeClosedCategory,
+            dailyDigestCategory,
+            signalCategory,
+            breakEvenCategory,
+            partialTpCategory,
+            marginWarningCategory
+        ])
+        
+        AppLogger.shared.info("Notification categories registered", category: .general)
     }
     
     // MARK: - Permission & Registration
@@ -511,28 +619,84 @@ extension PushNotificationService: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
+        let actionIdentifier = response.actionIdentifier
         
-        // Handle notification tap
+        AppLogger.shared.info("Notification action: \(actionIdentifier)", category: .general)
+        
+        // Handle notification tap or action button
         if let notificationId = userInfo["notification_id"] as? Int {
             await markAsRead(notificationId)
         }
         
-        // Navigate based on notification type
-        if let type = userInfo["type"] as? String {
+        // Handle specific action buttons
+        switch actionIdentifier {
+        case "VIEW_POSITION", "VIEW_ACCOUNT":
+            // Navigate to positions/portfolio
             DispatchQueue.main.async {
-                switch type {
-                case "trade_opened", "trade_closed", "position_update":
-                    // Navigate to positions
-                    NotificationCenter.default.post(name: .navigateToPositions, object: nil)
-                    
-                case "signal_new", "signal_entry":
-                    // Navigate to signals
-                    NotificationCenter.default.post(name: .navigateToSignals, object: nil)
-                    
-                default:
-                    break
+                NotificationCenter.default.post(name: .navigateToPositions, object: nil)
+            }
+            
+        case "VIEW_HISTORY":
+            // Navigate to trade history
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .navigateToHistory, object: nil)
+            }
+            
+        case "VIEW_STATS":
+            // Navigate to stats
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .navigateToStats, object: nil)
+            }
+            
+        case "OPEN_SIGNAL":
+            // Navigate to signals
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .navigateToSignals, object: nil)
+            }
+            
+        case "SHARE_TRADE":
+            // Share trade result
+            if let symbol = userInfo["symbol"] as? String,
+               let pnl = userInfo["pnl"] as? Double,
+               let pnlPercent = userInfo["pnl_percent"] as? Double {
+                DispatchQueue.main.async {
+                    let shareText = "🎉 Just closed \(symbol) trade on Enliko!\n💰 PnL: $\(String(format: "%+.2f", pnl)) (\(String(format: "%+.1f", pnlPercent))%)\n\n📱 Download Enliko: https://enliko.com"
+                    NotificationCenter.default.post(
+                        name: .shareContent,
+                        object: shareText
+                    )
                 }
             }
+            
+        case "IGNORE_SIGNAL":
+            // Just dismiss, nothing to do
+            break
+            
+        case UNNotificationDefaultActionIdentifier:
+            // Default tap on notification
+            if let type = userInfo["type"] as? String {
+                DispatchQueue.main.async {
+                    switch type {
+                    case "trade_opened", "trade_closed", "position_update", "break_even_triggered", "partial_tp_triggered":
+                        NotificationCenter.default.post(name: .navigateToPositions, object: nil)
+                        
+                    case "signal_new", "signal_entry":
+                        NotificationCenter.default.post(name: .navigateToSignals, object: nil)
+                        
+                    case "daily_report":
+                        NotificationCenter.default.post(name: .navigateToStats, object: nil)
+                        
+                    case "margin_warning", "liquidation_warning":
+                        NotificationCenter.default.post(name: .navigateToPositions, object: nil)
+                        
+                    default:
+                        break
+                    }
+                }
+            }
+            
+        default:
+            break
         }
     }
 }
@@ -543,4 +707,6 @@ extension Notification.Name {
     static let newNotificationReceived = Notification.Name("newNotificationReceived")
     static let navigateToPositions = Notification.Name("navigateToPositions")
     static let navigateToSignals = Notification.Name("navigateToSignals")
-}
+    static let navigateToHistory = Notification.Name("navigateToHistory")
+    static let navigateToStats = Notification.Name("navigateToStats")
+    static let shareContent = Notification.Name("shareContent")

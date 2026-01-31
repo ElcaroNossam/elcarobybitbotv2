@@ -9,8 +9,10 @@ Sends personalized notifications about:
 - Significant market movements
 
 Also sends to:
+- iOS/Android via APNs Push Notifications (device locked)
 - iOS/Android via WebSocket (real-time in-app banners)
 - WebApp via WebSocket
+- Telegram Bot
 """
 
 import asyncio
@@ -21,6 +23,22 @@ import logging
 
 # Import PostgreSQL connection from core
 from core.db_postgres import get_conn, execute, execute_one
+
+# Import APNs service for iOS push notifications
+try:
+    from services.apns_service import (
+        send_trade_opened_push,
+        send_trade_closed_push,
+        send_daily_digest_push,
+        send_break_even_push,
+        send_partial_tp_push,
+        send_signal_push,
+        calculate_daily_digest,
+        send_daily_digests_to_all_users,
+    )
+    APNS_AVAILABLE = True
+except ImportError:
+    APNS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +80,8 @@ class NotificationService:
         
     async def send_position_closed_notification(self, user_id: int, position_data: dict, t: dict):
         """
-        Send beautiful notification when position is closed
+        Send beautiful notification when position is closed.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             symbol = position_data.get('symbol', 'UNKNOWN')
@@ -72,6 +91,7 @@ class NotificationService:
             quantity = float(position_data.get('quantity', 0))
             pnl = float(position_data.get('pnl', 0))
             pnl_percent = float(position_data.get('pnl_percent', 0))
+            exit_reason = position_data.get('exit_reason', '')
             
             # Emoji based on PnL
             emoji = "🎉" if pnl > 0 else "😔" if pnl < 0 else "🤷"
@@ -94,7 +114,19 @@ class NotificationService:
             
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
-            # Also send to iOS/WebApp via WebSocket
+            # Send iOS Push Notification (APNs)
+            if APNS_AVAILABLE:
+                asyncio.create_task(send_trade_closed_push(user_id, {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_price": entry_price,
+                    "exit_price": exit_price,
+                    "pnl": pnl,
+                    "pnl_percent": pnl_percent,
+                    "exit_reason": exit_reason,
+                }))
+            
+            # Also send to iOS/WebApp via WebSocket (for in-app banners)
             ws_notification = {
                 "id": f"trade_{datetime.now().timestamp()}",
                 "type": "trade_closed",
@@ -120,7 +152,8 @@ class NotificationService:
             
     async def send_position_opened_notification(self, user_id: int, position_data: dict, t: dict):
         """
-        Send notification when position is opened
+        Send notification when position is opened.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             symbol = position_data.get('symbol', 'UNKNOWN')
@@ -151,7 +184,19 @@ class NotificationService:
             
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
-            # Also send to iOS/WebApp via WebSocket
+            # Send iOS Push Notification (APNs)
+            if APNS_AVAILABLE:
+                asyncio.create_task(send_trade_opened_push(user_id, {
+                    "symbol": symbol,
+                    "side": side,
+                    "entry_price": entry_price,
+                    "quantity": quantity,
+                    "leverage": leverage,
+                    "take_profit": tp,
+                    "stop_loss": sl,
+                }))
+            
+            # Also send to iOS/WebApp via WebSocket (for in-app banners)
             ws_notification = {
                 "id": f"trade_{datetime.now().timestamp()}",
                 "type": "trade_opened",
@@ -178,21 +223,46 @@ class NotificationService:
             
     async def send_daily_pnl_report(self, user_id: int, t: dict):
         """
-        Send daily PnL summary report
-        Uses PostgreSQL via context manager
+        Send beautiful daily PnL summary report with detailed stats.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             today = datetime.now().date()
             
-            # Use PostgreSQL with context manager
+            # Get detailed stats using PostgreSQL
             with get_conn() as conn:
                 cur = conn.cursor()
+                
+                # Get aggregated stats
                 cur.execute("""
-                    SELECT COUNT(*), COALESCE(SUM(pnl), 0), COALESCE(AVG(pnl), 0)
+                    SELECT 
+                        COUNT(*) as trades_count,
+                        COALESCE(SUM(pnl), 0) as total_pnl,
+                        COALESCE(AVG(pnl), 0) as avg_pnl,
+                        COUNT(*) FILTER (WHERE pnl > 0) as wins,
+                        COUNT(*) FILTER (WHERE pnl < 0) as losses,
+                        MAX(pnl) as best_pnl,
+                        MIN(pnl) as worst_pnl
                     FROM trade_logs
                     WHERE user_id = %s AND DATE(ts) = %s
                 """, (user_id, today.isoformat()))
                 row = cur.fetchone()
+                
+                # Get best trade symbol
+                cur.execute("""
+                    SELECT symbol, pnl FROM trade_logs
+                    WHERE user_id = %s AND DATE(ts) = %s
+                    ORDER BY pnl DESC LIMIT 1
+                """, (user_id, today.isoformat()))
+                best_trade = cur.fetchone()
+                
+                # Get worst trade symbol
+                cur.execute("""
+                    SELECT symbol, pnl FROM trade_logs
+                    WHERE user_id = %s AND DATE(ts) = %s
+                    ORDER BY pnl ASC LIMIT 1
+                """, (user_id, today.isoformat()))
+                worst_trade = cur.fetchone()
             
             if not row or row[0] == 0:
                 return  # No trades today
@@ -200,22 +270,95 @@ class NotificationService:
             trades_count = row[0]
             total_pnl = row[1] or 0
             avg_pnl = row[2] or 0
+            wins = row[3] or 0
+            losses = row[4] or 0
+            best_pnl = row[5] or 0
+            worst_pnl = row[6] or 0
+            win_rate = (wins / trades_count * 100) if trades_count > 0 else 0
             
-            emoji = "🎉" if total_pnl > 0 else "😔" if total_pnl < 0 else "💤"
+            best_symbol = best_trade[0] if best_trade else "N/A"
+            worst_symbol = worst_trade[0] if worst_trade else "N/A"
+            
+            # Choose emoji and vibe based on performance
+            if total_pnl > 100:
+                emoji = "🚀"
+                vibe = "Amazing day!"
+            elif total_pnl > 0:
+                emoji = "✅"
+                vibe = "Nice work!"
+            elif total_pnl == 0:
+                emoji = "➖"
+                vibe = "Breakeven day"
+            elif total_pnl > -100:
+                emoji = "📉"
+                vibe = "Small loss"
+            else:
+                emoji = "😔"
+                vibe = "Tough day"
             
             message = f"""
 {emoji} <b>Daily Trading Report</b>
 
-📅 {today.strftime('%d %B %Y')}
-━━━━━━━━━━━━━━━━
-📊 Trades: <b>{trades_count}</b>
-💰 Total PnL: <b>\${total_pnl:+.2f}</b>
-📈 Avg PnL: <b>\${avg_pnl:+.2f}</b>
+📅 {today.strftime('%d %B %Y')} • {vibe}
+━━━━━━━━━━━━━━━━━━━━━━
 
-Keep it up! 💪
+💰 <b>Total PnL: ${total_pnl:+,.2f}</b>
+
+📊 <b>Statistics</b>
+├ Trades: <code>{trades_count}</code>
+├ Wins/Losses: <code>{wins}W / {losses}L</code>
+├ Win Rate: <code>{win_rate:.1f}%</code>
+└ Avg PnL: <code>${avg_pnl:+.2f}</code>
+
+🏆 <b>Best Trade</b>
+└ {best_symbol}: <code>${best_pnl:+.2f}</code>
+"""
+            if worst_pnl < 0:
+                message += f"""
+📉 <b>Worst Trade</b>
+└ {worst_symbol}: <code>${worst_pnl:+.2f}</code>
 """
             
+            message += "\nKeep improving! 💪"
+            
             await self.bot.send_message(user_id, message, parse_mode='HTML')
+            
+            # Send iOS Push Notification with beautiful digest
+            if APNS_AVAILABLE:
+                digest_data = {
+                    "date": today.strftime("%b %d, %Y"),
+                    "trades_count": trades_count,
+                    "wins": wins,
+                    "losses": losses,
+                    "total_pnl": total_pnl,
+                    "win_rate": win_rate,
+                    "best_trade_pnl": best_pnl,
+                    "best_trade_symbol": best_symbol,
+                    "worst_trade_pnl": worst_pnl,
+                    "worst_trade_symbol": worst_symbol,
+                }
+                asyncio.create_task(send_daily_digest_push(user_id, digest_data))
+            
+            # Also send to WebSocket
+            ws_notification = {
+                "id": f"digest_{datetime.now().timestamp()}",
+                "type": "daily_report",
+                "title": f"Daily Report • {vibe}",
+                "message": f"PnL: ${total_pnl:+.2f} • {wins}W/{losses}L ({win_rate:.0f}%)",
+                "data": {
+                    "date": today.isoformat(),
+                    "trades_count": trades_count,
+                    "total_pnl": total_pnl,
+                    "wins": wins,
+                    "losses": losses,
+                    "win_rate": win_rate,
+                },
+                "created_at": datetime.now().isoformat()
+            }
+            asyncio.create_task(_send_to_websocket(user_id, ws_notification))
+            asyncio.create_task(_save_notification_to_db(
+                user_id, "daily_report", ws_notification["title"], ws_notification["message"], ws_notification["data"]
+            ))
             
         except Exception as e:
             logger.error(f"Error sending daily PnL report: {e}")
@@ -385,7 +528,8 @@ Keep it up! 💪
             
     async def send_break_even_notification(self, user_id: int, symbol: str, side: str, entry_price: float):
         """
-        Send notification when Break-Even is triggered
+        Send notification when Break-Even is triggered.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             message = f"""
@@ -400,7 +544,11 @@ Your position is now protected! 💪
 """
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
-            # Also send to iOS/WebApp
+            # Send iOS Push Notification (APNs)
+            if APNS_AVAILABLE:
+                asyncio.create_task(send_break_even_push(user_id, symbol, side, entry_price))
+            
+            # Also send to iOS/WebApp via WebSocket
             ws_notification = {
                 "id": f"be_{datetime.now().timestamp()}",
                 "type": "break_even_triggered",
@@ -424,7 +572,8 @@ Your position is now protected! 💪
     async def send_partial_tp_notification(self, user_id: int, symbol: str, side: str, 
                                            step: int, close_pct: float, profit_pct: float, pnl: float):
         """
-        Send notification when Partial Take Profit is triggered
+        Send notification when Partial Take Profit is triggered.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             message = f"""
@@ -441,7 +590,11 @@ Locking in profits! 🎉
 """
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
-            # Also send to iOS/WebApp
+            # Send iOS Push Notification (APNs)
+            if APNS_AVAILABLE:
+                asyncio.create_task(send_partial_tp_push(user_id, symbol, side, step, close_pct, profit_pct, pnl))
+            
+            # Also send to iOS/WebApp via WebSocket
             ws_notification = {
                 "id": f"ptp_{datetime.now().timestamp()}",
                 "type": "partial_tp_triggered",
@@ -467,7 +620,8 @@ Locking in profits! 🎉
             
     async def send_signal_notification(self, user_id: int, signal_data: dict):
         """
-        Send notification when new signal is received
+        Send notification when new signal is received.
+        Sends to: Telegram, iOS Push (APNs), WebSocket
         """
         try:
             symbol = signal_data.get('symbol', 'UNKNOWN')
@@ -488,9 +642,11 @@ Locking in profits! 🎉
 """
             await self.bot.send_message(user_id, message, parse_mode='HTML')
             
-            # Also send to iOS/WebApp
-            ws_notification = {
-                "id": f"signal_{datetime.now().timestamp()}",
+            # Send iOS Push Notification (APNs)
+            if APNS_AVAILABLE:
+                asyncio.create_task(send_signal_push(user_id, signal_data))
+            
+            # Also send to iOS/WebApp via WebSocket
                 "type": "signal_new",
                 "title": f"{symbol} {side} Signal",
                 "message": f"{strategy} • Price: ${price:.2f}",
