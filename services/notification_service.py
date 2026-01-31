@@ -649,6 +649,11 @@ Locking in profits! 🎉
             # Also send to iOS/WebApp via WebSocket
             ws_notification = {
                 "id": f"signal_{datetime.now().timestamp()}",
+                "type": "signal_new",
+                "title": f"{symbol} {side} Signal",
+                "message": f"{strategy} • Price: ${price:.2f}",
+                "data": signal_data,
+                "created_at": datetime.now().isoformat()
             }
             asyncio.create_task(_send_to_websocket(user_id, ws_notification))
             asyncio.create_task(_save_notification_to_db(
