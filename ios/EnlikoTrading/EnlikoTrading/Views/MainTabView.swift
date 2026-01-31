@@ -21,21 +21,21 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             // Content
             TabView(selection: $selectedTab) {
-                // Portfolio Tab - Modern Version
+                // Portfolio Tab
                 NavigationStack {
-                    ModernPortfolioView()
+                    PortfolioView()
                 }
                 .tag(0)
                 
-                // Trading Tab - Modern Version
+                // Trading Tab
                 NavigationStack {
-                    ModernTradingView()
+                    TradingView()
                 }
                 .tag(1)
                 
-                // Positions Tab - Modern Version
+                // Positions Tab
                 NavigationStack {
-                    ModernPositionsView()
+                    PositionsView()
                 }
                 .tag(2)
                 
@@ -230,38 +230,6 @@ struct MoreView: View {
     var body: some View {
         NavigationView {
             List {
-                // 🔥 NEW: AI Copilot - Premium Feature
-                Section(header: Text("✨ Premium Features")) {
-                    NavigationLink(destination: AICopilotView()) {
-                        MoreMenuItem(
-                            icon: "sparkles",
-                            title: "AI Trading Copilot",
-                            subtitle: "Smart trading assistant",
-                            color: .purple
-                        )
-                    }
-                    
-                    // 🔥 NEW: Market Heatmap
-                    NavigationLink(destination: MarketHeatmapView()) {
-                        MoreMenuItem(
-                            icon: "square.grid.3x3.fill",
-                            title: "Market Heatmap",
-                            subtitle: "Visual market overview",
-                            color: .orange
-                        )
-                    }
-                    
-                    // 🔥 NEW: Advanced Charts
-                    NavigationLink(destination: AdvancedChartsView(symbol: "BTCUSDT")) {
-                        MoreMenuItem(
-                            icon: "chart.xyaxis.line",
-                            title: "Pro Charts",
-                            subtitle: "TradingView-style analysis",
-                            color: .blue
-                        )
-                    }
-                }
-                
                 Section(header: Text("Trading")) {
                     // Strategies
                     NavigationLink(destination: StrategiesView()) {

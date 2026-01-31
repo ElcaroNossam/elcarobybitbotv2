@@ -84,17 +84,22 @@ class TradingService: ObservableObject {
         lastError = nil
         defer { isLoadingPositions = false }
         
-        logger.debug("Fetching positions for \(appState.currentExchange.rawValue)/\(appState.currentAccountType.rawValue)", category: .trading)
+        let params = exchangeParams
+        logger.info("📊 Fetching positions - exchange=\(params["exchange"] ?? "?"), account=\(params["account_type"] ?? "?")", category: .trading)
         
         do {
             // First try array (most common response format)
             let positions: [Position] = try await network.get(
                 Config.Endpoints.positions,
-                params: exchangeParams
+                params: params
             )
             self.positions = positions
-            logger.info("Fetched \(positions.count) positions", category: .trading)
+            logger.info("✅ Fetched \(positions.count) positions successfully", category: .trading)
+            for pos in positions.prefix(3) {
+                logger.debug("  Position: \(pos.symbol) \(pos.side) size=\(pos.size) pnl=\(pos.unrealizedPnl)", category: .trading)
+            }
         } catch {
+            logger.warning("Array decode failed: \(error.localizedDescription)", category: .trading)
             // Fallback: API may return wrapped response
             do {
                 let response: PositionsResponse = try await network.get(

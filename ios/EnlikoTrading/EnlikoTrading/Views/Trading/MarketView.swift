@@ -229,7 +229,7 @@ struct SymbolDetailView: View {
         .navigationTitle(symbol)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showTradingSheet) {
-            ModernTradingView()
+            TradingView()
         }
     }
     

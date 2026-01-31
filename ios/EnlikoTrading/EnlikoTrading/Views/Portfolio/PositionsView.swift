@@ -242,7 +242,7 @@ struct PositionsView: View {
                 .font(.subheadline)
                 .foregroundColor(.enlikoTextSecondary)
             
-            NavigationLink(destination: ModernTradingView()) {
+            NavigationLink(destination: TradingView()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                     Text("Open Position")
