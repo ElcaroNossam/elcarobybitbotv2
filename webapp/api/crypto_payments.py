@@ -361,24 +361,35 @@ async def create_payment(
         final_amount = base_price
     
     try:
-        # Create payment via OxaPay
+        # Create payment via OxaPay (returns dict now)
         invoice = await oxapay_service.create_white_label_payment(
             user_id=user_id,
-            plan=plan,
-            duration=duration,
-            currency=request.currency,
+            plan=plan.value,
+            duration=duration.value,
+            pay_currency=request.currency,
             network=request.network,
         )
         
         if not invoice:
             raise HTTPException(status_code=500, detail="Failed to create payment")
         
+        # Get values from dict
+        payment_id = invoice.get("payment_id", "")
+        address = invoice.get("address", "")
+        amount_usd = invoice.get("amount_usd", 0)
+        amount_crypto = invoice.get("amount_crypto", 0) or 0
+        currency = invoice.get("currency", request.currency)
+        network = invoice.get("network", request.network)
+        expires_at = invoice.get("expires_at", "")
+        status = invoice.get("status", "pending")
+        pay_url = invoice.get("pay_url", "")
+        
         # Record promo code usage if applied
         if discount_info:
             await record_promo_usage(
                 discount_info['id'],
                 user_id,
-                invoice.payment_id
+                payment_id
             )
             
             # Update payment amount in DB with discount
@@ -388,22 +399,25 @@ async def create_payment(
                     UPDATE crypto_payments 
                     SET amount_usd = %s, promo_code = %s, discount_percent = %s
                     WHERE payment_id = %s
-                """, (final_amount, request.promo_code.upper(), discount_percent, invoice.payment_id))
+                """, (final_amount, request.promo_code.upper(), discount_percent, payment_id))
                 conn.commit()
         
         # Generate QR code URL
-        qr_data = f"{invoice.currency.lower()}:{invoice.address}?amount={invoice.amount_crypto}"
+        if address:
+            qr_data = f"{currency.lower()}:{address}?amount={amount_crypto}"
+        else:
+            qr_data = pay_url
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={qr_data}"
         
         return PaymentResponse(
-            payment_id=invoice.payment_id,
-            address=invoice.address,
-            amount_usd=final_amount if discount_percent > 0 else invoice.amount_usd,
-            amount_crypto=invoice.amount_crypto * (1 - discount_percent / 100) if discount_percent > 0 else invoice.amount_crypto,
-            currency=invoice.currency,
-            network=invoice.network,
-            expires_at=invoice.expires_at,
-            status=invoice.status,
+            payment_id=payment_id,
+            address=address or pay_url,
+            amount_usd=final_amount if discount_percent > 0 else amount_usd,
+            amount_crypto=amount_crypto * (1 - discount_percent / 100) if discount_percent > 0 else amount_crypto,
+            currency=currency,
+            network=network,
+            expires_at=expires_at,
+            status=status,
             qr_code_url=qr_url,
             discount_percent=discount_percent if discount_percent > 0 else None,
             original_amount=base_price if discount_percent > 0 else None,

@@ -23614,28 +23614,31 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         
         try:
-            from services.oxapay_service import oxapay_service, LicensePlan, LicenseDuration
+            from services.oxapay_service import oxapay_service
             
-            # Map strings to enums
-            plan_enum = LicensePlan(plan.lower())
-            duration_map = {"1m": LicenseDuration.MONTH_1, "3m": LicenseDuration.MONTHS_3, 
-                           "6m": LicenseDuration.MONTHS_6, "1y": LicenseDuration.YEAR_1}
-            duration_enum = duration_map.get(duration, LicenseDuration.MONTH_1)
-            
-            # Create payment via OxaPay
+            # Create payment via OxaPay (returns dict)
             invoice = await oxapay_service.create_white_label_payment(
                 user_id=uid,
-                plan=plan_enum,
-                duration=duration_enum,
-                currency=currency,
+                plan=plan.lower(),
+                duration=duration,
+                pay_currency=currency,
                 network=network
             )
             
             if not invoice:
                 raise Exception("Failed to create payment invoice")
             
+            # Get values from dict
+            address = invoice.get("address", "")
+            amount_crypto = invoice.get("amount_crypto", 0) or 0
+            payment_id = invoice.get("payment_id", "")
+            pay_url = invoice.get("pay_url", "")
+            
             # Generate QR code URL
-            qr_data = f"{currency.lower()}:{invoice.address}?amount={invoice.amount_crypto}"
+            if address:
+                qr_data = f"{currency.lower()}:{address}?amount={amount_crypto}"
+            else:
+                qr_data = pay_url  # Fallback to pay link
             qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={qr_data}"
             
             # Map duration to period for display
@@ -23643,34 +23646,50 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             period = duration_to_period.get(duration, 1)
             period_text = f"{period} month{'s' if period > 1 else ''}"
             
-            text = t.get("crypto_payment_instructions",
-                "💳 *Crypto Payment*\n\n"
-                "📦 *Plan:* {plan}\n"
-                "⏰ *Period:* {period}\n"
-                "💰 *Amount:* {amount_crypto:.6f} {currency}\n"
-                "📍 *Network:* {network}\n\n"
-                "📋 *Send exactly this amount to:*\n"
-                "`{address}`\n\n"
-                "⚠️ *Important:*\n"
-                "• Send EXACTLY the amount shown\n"
-                "• Use the correct network ({network})\n"
-                "• Payment expires in 30 minutes\n\n"
-                "🆔 Payment ID: `{payment_id}`"
-            ).format(
-                plan=plan.title(),
-                period=period_text,
-                amount_crypto=invoice.amount_crypto,
-                currency=currency,
-                network=network,
-                address=invoice.address,
-                payment_id=invoice.payment_id
-            )
+            # Build payment text
+            amount_usd = invoice.get("amount_usd", 0)
+            if address and amount_crypto:
+                text = t.get("crypto_payment_instructions",
+                    "💳 *Crypto Payment*\n\n"
+                    "📦 *Plan:* {plan}\n"
+                    "⏰ *Period:* {period}\n"
+                    "💰 *Amount:* {amount_crypto:.6f} {currency}\n"
+                    "📍 *Network:* {network}\n\n"
+                    "📋 *Send exactly this amount to:*\n"
+                    "`{address}`\n\n"
+                    "⚠️ *Important:*\n"
+                    "• Send EXACTLY the amount shown\n"
+                    "• Use the correct network ({network})\n"
+                    "• Payment expires in 30 minutes\n\n"
+                    "🆔 Payment ID: `{payment_id}`"
+                ).format(
+                    plan=plan.title(),
+                    period=period_text,
+                    amount_crypto=amount_crypto,
+                    currency=currency,
+                    network=network,
+                    address=address,
+                    payment_id=payment_id
+                )
+            else:
+                # No address returned - use pay link
+                text = (
+                    "💳 *Crypto Payment*\n\n"
+                    f"📦 *Plan:* {plan.title()}\n"
+                    f"⏰ *Period:* {period_text}\n"
+                    f"💰 *Amount:* ${amount_usd:.0f}\n\n"
+                    f"🔗 [Click here to pay]({pay_url})\n\n"
+                    f"⚠️ Payment expires in 30 minutes\n\n"
+                    f"🆔 Payment ID: `{payment_id}`"
+                )
             
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔄 Check Payment Status", callback_data=f"sub:crypto_check:{invoice.payment_id}")],
-                [InlineKeyboardButton("📱 Copy Address", callback_data=f"sub:crypto_copy:{invoice.address[:40]}")],
+                [InlineKeyboardButton("🔗 Open Payment Page", url=pay_url)] if pay_url else [],
+                [InlineKeyboardButton("🔄 Check Payment Status", callback_data=f"sub:crypto_check:{payment_id}")],
                 [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:crypto:{plan}:{duration}")]
             ])
+            # Filter empty rows
+            keyboard = InlineKeyboardMarkup([row for row in keyboard.inline_keyboard if row])
             
             # Try to send QR code image
             try:
@@ -23687,7 +23706,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 # Fallback to text-only
                 await ctx.bot.send_message(
                     chat_id=q.message.chat_id,
-                    text=text + f"\n\n🔗 QR Code: {qr_url}",
+                    text=text,
                     parse_mode="Markdown",
                     reply_markup=keyboard
                 )
@@ -23708,32 +23727,55 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await q.answer(t.get("checking_payment", "Checking payment status..."))
         
         try:
-            from services.oxapay_service import oxapay_service, PaymentStatus
+            from services.oxapay_service import oxapay_service
             
-            status = await oxapay_service.check_payment_status(payment_id)
+            result = await oxapay_service.check_payment_status(payment_id)
+            status = result.get("status", "unknown").lower()
             
-            if status == PaymentStatus.CONFIRMED:
-                await q.edit_message_caption(
-                    caption=t.get("crypto_payment_confirmed",
-                        "✅ *Payment Confirmed!*\n\n"
-                        "Your subscription has been activated.\n"
-                        "Thank you for using Enliko!"
-                    ),
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
-                )
-            elif status == PaymentStatus.CONFIRMING:
+            if status == "confirmed":
+                try:
+                    await q.edit_message_caption(
+                        caption=t.get("crypto_payment_confirmed",
+                            "✅ *Payment Confirmed!*\n\n"
+                            "Your subscription has been activated.\n"
+                            "Thank you for using Enliko!"
+                        ),
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                        ])
+                    )
+                except:
+                    await q.edit_message_text(
+                        text=t.get("crypto_payment_confirmed",
+                            "✅ *Payment Confirmed!*\n\n"
+                            "Your subscription has been activated.\n"
+                            "Thank you for using Enliko!"
+                        ),
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                        ])
+                    )
+            elif status == "confirming":
                 await q.answer(t.get("crypto_payment_confirming", "⏳ Payment detected, waiting for confirmations..."), show_alert=True)
-            elif status == PaymentStatus.EXPIRED:
-                await q.edit_message_caption(
-                    caption=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
-                    ])
-                )
+            elif status == "expired":
+                try:
+                    await q.edit_message_caption(
+                        caption=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                        ])
+                    )
+                except:
+                    await q.edit_message_text(
+                        text=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                        ])
+                    )
             else:
                 await q.answer(t.get("crypto_payment_pending", "⏳ Payment not yet received. Please complete the transfer."), show_alert=True)
                 
