@@ -59,6 +59,16 @@ class LicenseDuration(Enum):
     YEAR_1 = "1y"
 
 
+class PaymentStatus(Enum):
+    """OxaPay payment statuses."""
+    PENDING = "pending"           # Waiting for payment
+    CONFIRMING = "confirming"     # Payment detected, waiting for confirmations
+    CONFIRMED = "confirmed"       # Payment confirmed and processed
+    EXPIRED = "expired"           # Payment expired (30 min timeout)
+    FAILED = "failed"             # Payment failed
+    REFUNDED = "refunded"         # Payment refunded
+
+
 # Pricing in USD (same as ELC which is 1:1 with USD)
 LICENSE_PRICES_USD = {
     "basic": {
