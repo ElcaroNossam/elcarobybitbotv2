@@ -241,14 +241,17 @@ async def get_plans():
     for plan in LicensePlan:
         plan_prices = {}
         for duration in LicenseDuration:
-            price = LICENSE_PRICES_USD.get(plan, {}).get(duration)
+            price = LICENSE_PRICES_USD.get(plan.value, {}).get(duration.value)
             if price:
                 plan_prices[duration.value] = price
+        
+        plan_info = PLAN_FEATURES.get(plan.value, {})
+        features = plan_info.get("features", []) if isinstance(plan_info, dict) else []
         
         plans.append(PlanInfo(
             name=plan.value,
             display_name=plan.value.capitalize(),
-            features=PLAN_FEATURES.get(plan, []),
+            features=features,
             prices=plan_prices,
         ))
     
