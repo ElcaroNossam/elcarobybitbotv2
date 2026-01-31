@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.44.0 | Обновлено: 31 января 2026
+# Версия: 3.46.0 | Обновлено: 01 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -13,6 +13,7 @@
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
 # Translations: 15 languages × 690 keys = Full sync (Jan 28, 2026)
+# Crypto Payments: OxaPay Gateway (0.5% fee, 20+ cryptos, auto-approval)
 
 ---
 
@@ -1017,6 +1018,19 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь 2026)
+
+### ✅ CRITICAL: Disabled Conflicting elcaro-webapp.service (Jan 31, 2026)
+- **Проблема:** iOS приложение не получало данные с API, все endpoints возвращали ошибки
+- **Причина:** Сервис `elcaro-webapp.service` был в crash loop (72,768 перезапусков!)
+  - `start_bot.sh` уже запускает uvicorn на порту 8765 в background
+  - Отдельный `elcaro-webapp.service` пытался занять тот же порт → "[Errno 98] address already in use"
+- **Решение:**
+  ```bash
+  sudo systemctl stop elcaro-webapp
+  sudo systemctl disable elcaro-webapp
+  ```
+- **Результат:** WebApp работает стабильно, все iOS API endpoints отвечают корректно
+- **Важно:** НЕ создавать отдельный сервис для webapp - он запускается внутри `start_bot.sh`!
 
 ### ✅ iOS Validation Error Fix + TestFlight CLI Deployment (Jan 29, 2026)
 - **Проблема:** При регистрации iOS показывал "Server error: 422" вместо сообщений валидации
@@ -2315,64 +2329,156 @@ await submit_signed_order(user_id, order_data, signature)  # Отправляе�
 
 ---
 
-# 💎 TON PAYMENT INTEGRATION (READY!)
+# 💰 CRYPTO PAYMENTS - OxaPay Integration (Feb 1, 2026)
 
-## Текущий статус: ГОТОВО (Jan 23, 2026)
+## Архитектура оплаты
 
-**Файлы:**
-- `webapp/api/ton_payments.py` - API endpoints + verify_usdt_jetton_transfer()
-- `ton_payment_gateway.py` - Gateway functions
-- `bot.py` - UI кнопки оплаты
-- `core/db_postgres.py` - таблица ton_payments
+> **Решение:** OxaPay Payment Gateway (https://oxapay.com)
+> **Преимущества:** 0.5% комиссия, без KYC, white-label API, 20+ криптовалют
+> **Причина отказа от TON:** Разработчики TON не отвечали с API документацией
 
-**Верификация:**
-```python
-async def verify_usdt_jetton_transfer(
-    tx_hash: str,
-    expected_amount: float,
-    expected_destination: str,
-    use_testnet: bool = False
-) -> dict:
-    # Реальная проверка через TONAPI
-    # Проверяет: destination, amount, USDT contract, confirmations
+### Поддерживаемые криптовалюты
 
-**Файлы:**
-- `webapp/api/ton_payments.py` - API endpoints (готово)
-- `ton_payment_gateway.py` - verify функции (заглушки)
-- `bot.py` - UI кнопки оплаты (готово)
-- `core/db_postgres.py` - таблица ton_payments (готово)
+| Валюта | Сети | Min. сумма |
+|--------|------|------------|
+| **USDT** | TRC20, BEP20, ERC20, Polygon, Arbitrum, TON | $5 |
+| **BTC** | Bitcoin, Lightning | $10 |
+| **ETH** | ERC20, Arbitrum, Optimism | $10 |
+| **TON** | TON | $5 |
+| **SOL** | Solana | $5 |
+| **TRX** | TRC20 | $10 |
+| **LTC** | Litecoin | $5 |
 
-## TODO (ожидаем ответ от разработчиков TON):
+### Схема работы
 
-### 1. Настроить реальные кошельки
-```python
-# webapp/api/ton_payments.py, строка 32-33
-"mainnet_wallet": "UQ_REAL_WALLET_HERE",  # <-- Заменить
-"testnet_wallet": "kQ_TESTNET_WALLET_HERE",  # <-- Заменить
+```
+1. Юзер выбирает план (Basic $50/mo, Premium $100/mo, Enterprise $500/mo)
+2. Выбирает криптовалюту и сеть (USDT TRC20, BTC, ETH, etc.)
+3. OxaPay API генерирует уникальный адрес + сумму
+4. Показываем QR код + адрес + сумму в крипте
+5. Юзер переводит через любой кошелек
+6. OxaPay Webhook → наш сервер (автоматическая активация)
+7. Уведомляем юзера в Telegram + iOS/WebApp
 ```
 
-### 2. Реализовать verify_usdt_jetton_transfer()
-```python
-# ton_payment_gateway.py
-async def verify_usdt_jetton_transfer(...)
-    # TODO: Интеграция с TONAPI
-    # Ждём от разработчиков: формат webhook, API ключ
+### Ключевые файлы
+
+| Файл | Описание |
+|------|----------|
+| `services/oxapay_service.py` | OxaPay API client, webhook handler, auto-activation |
+| `webapp/api/crypto_payments.py` | REST API endpoints |
+| `migrations/versions/024_crypto_payments.py` | crypto_payments, promo_codes таблицы |
+| `bot.py` | UI кнопки оплаты (sub:crypto:*) |
+| `ios/.../PaymentService.swift` | iOS payment service |
+| `ios/.../SubscriptionView.swift` | iOS subscription UI |
+
+### Таблица crypto_payments
+
+```sql
+CREATE TABLE crypto_payments (
+    id              SERIAL PRIMARY KEY,
+    user_id         BIGINT NOT NULL,
+    payment_id      TEXT UNIQUE NOT NULL,     -- OxaPay trackId
+    oxapay_id       TEXT,                     -- OxaPay internal ID
+    amount_usd      DECIMAL(10,2) NOT NULL,   -- Сумма в USD
+    amount_crypto   DECIMAL(18,8),            -- Сумма в крипте
+    currency        TEXT NOT NULL,            -- USDT, BTC, ETH, etc.
+    network         TEXT,                     -- TRC20, ERC20, Bitcoin, etc.
+    address         TEXT,                     -- Адрес для оплаты
+    tx_hash         TEXT,                     -- Hash транзакции
+    status          TEXT DEFAULT 'pending',   -- pending, confirming, confirmed, expired, failed
+    plan            TEXT NOT NULL,            -- basic, premium, enterprise
+    duration        TEXT NOT NULL,            -- 1m, 3m, 6m, 1y
+    promo_code      TEXT,
+    discount_percent DECIMAL(5,2) DEFAULT 0,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    confirmed_at    TIMESTAMP,
+    expires_at      TIMESTAMP
+);
 ```
 
-### 3. Настроить webhook secret
+### OxaPay API
+
 ```python
-# webapp/api/ton_payments.py, строка 48
-"webhook_secret": "your_webhook_secret_here",  # <-- Из .env
+# services/oxapay_service.py
+OXAPAY_API_URL = "https://api.oxapay.com/v1"
+
+async def create_payment(user_id, plan, duration, currency, network):
+    """Создать платёж через OxaPay."""
+    body = {
+        "merchant": OXAPAY_MERCHANT_KEY,
+        "amount": get_price(plan, duration),
+        "currency": currency,
+        "network": network,
+        "callbackUrl": f"{WEBAPP_URL}/api/payments/webhook",
+        "description": f"Enliko {plan} {duration}",
+        "trackId": generate_payment_id(user_id),
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{OXAPAY_API_URL}/payment/create", json=body) as resp:
+            return await resp.json()
 ```
 
-### 4. Переключить на mainnet
-```python
-# webapp/api/ton_payments.py, строка 45
-"use_testnet": False,  # <-- Для продакшена
+### Конфигурация
+
+```bash
+# .env (Production)
+OXAPAY_MERCHANT_API_KEY=your_merchant_api_key
+OXAPAY_PAYOUT_API_KEY=your_payout_api_key  # Optional, for withdrawals
+OXAPAY_WEBHOOK_SECRET=your_webhook_secret
+
+# Pricing (в USD, 1:1 с ELC)
+BASIC_1M=50
+BASIC_3M=135
+BASIC_6M=240
+BASIC_12M=420
+PREMIUM_1M=100
+PREMIUM_3M=270
+PREMIUM_6M=480
+PREMIUM_12M=840
+ENTERPRISE_1M=500
+ENTERPRISE_3M=1350
+ENTERPRISE_6M=2400
+ENTERPRISE_12M=4200
 ```
 
-## Документация для разработчиков TON:
-Файл: `docs/TON_INTEGRATION_ANSWERS.txt`
+### API Endpoints
+
+| Endpoint | Метод | Описание |
+|----------|-------|----------|
+| `/api/payments/plans` | GET | Получить список планов и цен |
+| `/api/payments/currencies` | GET | Получить поддерживаемые валюты |
+| `/api/payments/create` | POST | Создать платёж |
+| `/api/payments/status/{id}` | GET | Проверить статус платежа |
+| `/api/payments/webhook` | POST | OxaPay webhook callback |
+| `/api/payments/apply-promo` | POST | Применить промокод |
+| `/api/payments/history` | GET | История платежей юзера |
+
+### Telegram Bot Flow
+
+```python
+# bot.py - Выбор валюты
+sub:crypto:{plan}:{duration}  # → Показать список криптовалют
+sub:crypto_pay:{plan}:{duration}:{currency}:{network}  # → Создать платёж
+sub:crypto_check:{payment_id}  # → Проверить статус
+```
+
+### iOS Integration
+
+```swift
+// Services/PaymentService.swift
+class PaymentService {
+    func createPayment(plan: String, duration: String, currency: String, network: String) async throws -> PaymentInvoice
+    func checkPaymentStatus(paymentId: String) async throws -> PaymentStatusResponse
+}
+
+// Views/Settings/SubscriptionView.swift
+// - План selection (Basic, Premium, Enterprise)
+// - Duration selection (1m, 3m, 6m, 1y)
+// - Currency picker (USDT, BTC, ETH, etc.)
+// - QR code + address display
+// - Payment status checker
+```
 
 ---
 
@@ -3041,7 +3147,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 ---
 
 *Last updated: 31 января 2026*
-*Version: 3.44.0*
+*Version: 3.45.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -3049,7 +3155,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *4D Schema Tests: 33 tests covering all dimensions*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 750+ total (unit + integration + modern features + cross-platform)*
-*TON Integration: READY (real verification)*
+*Crypto Payments: TRC-20 USDT via TronGrid API (replaces TON)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
 *Exchange Field: All add_active_position/log_exit calls pass exchange correctly*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
@@ -3072,4 +3178,5 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules*
 *Telegram Login: /app_login command generates one-time deep link for iOS/Android*
 *URL Scheme: enliko://login?token=XXX&tid=12345 for native app login*
+*WebApp Service: DO NOT create separate service - runs inside start_bot.sh*
 

@@ -945,6 +945,40 @@ TEXTS = {
         'Required: {required} ELC'
     ),
     
+    # Crypto Payments (OxaPay)
+    'crypto_select_currency': (
+        '💳 *Pay with Crypto*\n\n'
+        '📦 *Plan:* {plan}\n'
+        '⏰ *Period:* {period}\n'
+        '💰 *Price:* ${price:.0f}\n\n'
+        'Select your preferred cryptocurrency:'
+    ),
+    'crypto_creating_invoice': '⏳ Creating payment invoice...',
+    'crypto_payment_instructions': (
+        '💳 *Crypto Payment*\n\n'
+        '📦 *Plan:* {plan}\n'
+        '⏰ *Period:* {period}\n'
+        '💰 *Amount:* {amount_crypto:.6f} {currency}\n'
+        '📍 *Network:* {network}\n\n'
+        '📋 *Send exactly this amount to:*\n'
+        '`{address}`\n\n'
+        '⚠️ *Important:*\n'
+        '• Send EXACTLY the amount shown\n'
+        '• Use the correct network ({network})\n'
+        '• Payment expires in 30 minutes\n\n'
+        '🆔 Payment ID: `{payment_id}`'
+    ),
+    'crypto_payment_error': '❌ Failed to create payment: {error}',
+    'checking_payment': 'Checking payment status...',
+    'crypto_payment_confirmed': (
+        '✅ *Payment Confirmed!*\n\n'
+        'Your subscription has been activated.\n'
+        'Thank you for using Enliko!'
+    ),
+    'crypto_payment_confirming': '⏳ Payment detected, waiting for confirmations...',
+    'crypto_payment_expired': '❌ Payment expired. Please create a new payment.',
+    'crypto_payment_pending': '⏳ Payment not yet received. Please complete the transfer.',
+    
     # =====================================================
     # WALLET
     # =====================================================

@@ -501,6 +501,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"ton_payments router not available: {e}")
     
+    # Crypto Payments API (OxaPay: USDT, BTC, ETH, TON, etc.)
+    try:
+        from webapp.api import crypto_payments
+        app.include_router(crypto_payments.router, prefix="/api", tags=["crypto-payments"])
+        logger.info("✅ Crypto Payments API loaded at /api/payments")
+    except ImportError as e:
+        logger.warning(f"crypto_payments router not available: {e}")
+    
     # Signals REST API (for iOS/mobile)
     try:
         from webapp.api import signals
