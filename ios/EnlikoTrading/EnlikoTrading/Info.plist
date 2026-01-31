@@ -18,7 +18,7 @@
     <key>CFBundleShortVersionString</key>
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
-    <string>41</string>
+    <string>43</string>
     
     <!-- URL Schemes for Deep Linking -->
     <key>CFBundleURLTypes</key>

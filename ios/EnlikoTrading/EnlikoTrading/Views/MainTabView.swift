@@ -47,7 +47,7 @@ struct MainTabView: View {
                 SettingsView()
                 .tag(4)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            // REMOVED: .page style causes jerky animations - use default tab style
             
             // Custom Tab Bar
             customTabBar
@@ -128,14 +128,7 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .profitMilestoneReached)) { _ in
             triggerCelebration()
         }
-        // 🔥 NEW: Long press anywhere to show radial menu
-        .gesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .onEnded { _ in
-                    showRadialMenu = true
-                    HapticManager.shared.perform(.heavy)
-                }
-        )
+        // REMOVED: Global LongPressGesture was blocking button taps
     }
     
     // 🔥 NEW: Celebration function

@@ -249,6 +249,15 @@ enum AccountType: String, CaseIterable, Codable {
         }
     }
     
+    var description: String {
+        switch self {
+        case .demo: return "Practice trading with virtual funds"
+        case .real: return "Live trading with real money"
+        case .testnet: return "Test network for practice"
+        case .mainnet: return "Main network for live trading"
+        }
+    }
+    
     var isLive: Bool {
         return self == .real || self == .mainnet
     }

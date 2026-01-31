@@ -9,8 +9,8 @@
 import SwiftUI
 
 struct ModernTradingView: View {
-    @StateObject private var tradingService = TradingService.shared
-    @StateObject private var appState = AppState.shared
+    @EnvironmentObject var tradingService: TradingService
+    @EnvironmentObject var appState: AppState
     
     @State private var selectedSymbol = "BTCUSDT"
     @State private var selectedSide: TradeSide = .long

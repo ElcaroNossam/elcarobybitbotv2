@@ -9,8 +9,8 @@
 import SwiftUI
 
 struct ModernPortfolioView: View {
-    @StateObject private var tradingService = TradingService.shared
-    @StateObject private var appState = AppState.shared
+    @EnvironmentObject var tradingService: TradingService
+    @EnvironmentObject var appState: AppState
     @State private var isRefreshing = false
     @State private var showAccountPicker = false
     @State private var selectedTimeframe: Timeframe = .day
@@ -54,6 +54,18 @@ struct ModernPortfolioView: View {
         .navigationBarHidden(true)
         .onAppear {
             Task { await refreshData() }
+        }
+        // Refresh data when exchange or account type changes
+        .onChange(of: appState.currentExchange) { _, _ in
+            Task { await refreshData() }
+        }
+        .onChange(of: appState.currentAccountType) { _, _ in
+            Task { await refreshData() }
+        }
+        // Account picker sheet
+        .sheet(isPresented: $showAccountPicker) {
+            AccountPickerSheet()
+                .presentationDetents([.medium])
         }
     }
     

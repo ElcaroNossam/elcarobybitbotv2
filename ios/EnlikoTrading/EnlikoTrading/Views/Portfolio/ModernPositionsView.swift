@@ -9,8 +9,8 @@
 import SwiftUI
 
 struct ModernPositionsView: View {
-    @StateObject private var tradingService = TradingService.shared
-    @StateObject private var appState = AppState.shared
+    @EnvironmentObject var tradingService: TradingService
+    @EnvironmentObject var appState: AppState
     @State private var selectedTab: Tab = .positions
     @State private var isRefreshing = false
     @State private var selectedPosition: Position?

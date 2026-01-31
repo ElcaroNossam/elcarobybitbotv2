@@ -390,6 +390,88 @@ struct FloatingActionButton: View {
     }
 }
 
+// MARK: - Account Picker Sheet
+struct AccountPickerSheet: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                // Exchange Section
+                Section(header: Text("Exchange")) {
+                    ForEach(Exchange.allCases, id: \.self) { exchange in
+                        Button(action: {
+                            appState.switchExchange(to: exchange)
+                            HapticManager.shared.perform(.selection)
+                        }) {
+                            HStack {
+                                Image(systemName: exchange == .bybit ? "b.circle.fill" : "h.circle.fill")
+                                    .foregroundColor(exchange == .bybit ? .orange : .blue)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(exchange.displayName)
+                                        .foregroundColor(.primary)
+                                    Text(exchange == .bybit ? "Centralized Exchange" : "Decentralized Exchange")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                if appState.currentExchange == exchange {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.enlikoPrimary)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Account Type Section
+                Section(header: Text("Account Type")) {
+                    ForEach(appState.currentExchange.accountTypes, id: \.self) { accountType in
+                        Button(action: {
+                            appState.switchAccountType(to: accountType)
+                            HapticManager.shared.perform(.selection)
+                        }) {
+                            HStack {
+                                Text(accountType.icon)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(accountType.displayName)
+                                        .foregroundColor(.primary)
+                                    Text(accountType.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                if appState.currentAccountType == accountType {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.enlikoPrimary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Select Account")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Preview
 #Preview {
     ZStack {
