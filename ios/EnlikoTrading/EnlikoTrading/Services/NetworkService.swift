@@ -15,6 +15,9 @@ enum NetworkError: LocalizedError {
     case decodingError(Error)
     case serverError(Int, String?)
     case unauthorized
+    case wrongPassword  // Неправильный пароль или email
+    case emailNotFound  // Email не зарегистрирован
+    case tooManyAttempts // Слишком много попыток
     case networkError(Error)
     case timeout
     case noInternet
@@ -28,13 +31,23 @@ enum NetworkError: LocalizedError {
         case .noData:
             return "error_no_data".localized
         case .decodingError(let error):
-            return "Decoding error: \(error.localizedDescription)"
+            return "error_decoding".localized
         case .serverError(let code, let message):
-            return message ?? "Server error: \(code)"
+            // Маппинг известных ошибок на понятные сообщения
+            if let msg = message {
+                return NetworkError.mapServerMessage(msg)
+            }
+            return "error_server".localized + " (\(code))"
         case .unauthorized:
-            return "error_auth".localized
-        case .networkError(let error):
-            return "error_network".localized + ": \(error.localizedDescription)"
+            return "error_wrong_password".localized
+        case .wrongPassword:
+            return "error_wrong_password".localized
+        case .emailNotFound:
+            return "error_email_not_found".localized
+        case .tooManyAttempts:
+            return "error_too_many_attempts".localized
+        case .networkError:
+            return "error_network".localized
         case .timeout:
             return "error_timeout".localized
         case .noInternet:
@@ -44,6 +57,37 @@ enum NetworkError: LocalizedError {
         case .unknown:
             return "error_unknown".localized
         }
+    }
+    
+    /// Маппит сообщения от сервера на локализованные строки
+    static func mapServerMessage(_ message: String) -> String {
+        let lowercased = message.lowercased()
+        
+        // Маппинг типичных ошибок FastAPI
+        if lowercased.contains("invalid email or password") || lowercased.contains("invalid credentials") {
+            return "error_wrong_password".localized
+        }
+        if lowercased.contains("email not found") || lowercased.contains("user not found") {
+            return "error_email_not_found".localized
+        }
+        if lowercased.contains("too many") || lowercased.contains("rate limit") {
+            return "error_too_many_attempts".localized
+        }
+        if lowercased.contains("already registered") || lowercased.contains("already exists") {
+            return "error_email_exists".localized
+        }
+        if lowercased.contains("verification") && lowercased.contains("expired") {
+            return "error_code_expired".localized
+        }
+        if lowercased.contains("verification") && lowercased.contains("invalid") {
+            return "error_code_invalid".localized
+        }
+        if lowercased.contains("password") && (lowercased.contains("short") || lowercased.contains("8 characters")) {
+            return "error_password_min_8".localized
+        }
+        
+        // Если не нашли маппинг - возвращаем оригинал
+        return message
     }
     
     var isRetryable: Bool {
@@ -266,6 +310,14 @@ class NetworkService {
                 let rawResponse = String(data: data, encoding: .utf8) ?? "unable to decode"
                 logger.error("❌ HTTP \(httpResponse.statusCode) from \(endpoint): \(rawResponse.prefix(500))", category: .network)
                 
+                // Parse error message from FastAPI format: {"detail": "..."}  or {"error": "..."}
+                var errorMessage: String? = nil
+                
+                // Try FastAPI detail format first
+                if let detailError = try? decoder.decode(FastAPIErrorResponse.self, from: data) {
+                    errorMessage = detailError.detail
+                }
+                
                 // Try to parse validation error (422)
                 if httpResponse.statusCode == 422 {
                     logger.error("Attempting to parse 422 validation error...", category: .network)
@@ -273,18 +325,24 @@ class NetworkService {
                     if let validationError = try? decoder.decode(ValidationErrorResponse.self, from: data) {
                         let message = validationError.userFriendlyMessage
                         logger.error("✅ Parsed validation error: \(message)", category: .network)
-                        logger.sendLogsToServer() // Send logs for analysis
                         throw NetworkError.serverError(httpResponse.statusCode, message)
-                    } else {
-                        logger.error("❌ Failed to decode ValidationErrorResponse", category: .network)
                     }
                 }
                 
-                // Try standard error format
-                let errorMessage = try? decoder.decode(SimpleResponse.self, from: data).error
-                    ?? (try? decoder.decode(SimpleResponse.self, from: data).message)
+                // Fallback to SimpleResponse format
+                if errorMessage == nil {
+                    errorMessage = try? decoder.decode(SimpleResponse.self, from: data).error
+                        ?? (try? decoder.decode(SimpleResponse.self, from: data).message)
+                }
+                
                 logger.error("Server error \(httpResponse.statusCode): \(errorMessage ?? "unknown")", category: .network)
-                logger.sendLogsToServer() // Send logs for analysis
+                
+                // Для 401 показываем понятное сообщение о неправильном пароле
+                if httpResponse.statusCode == 401 && !authenticated {
+                    // 401 при логине = неправильный пароль
+                    throw NetworkError.wrongPassword
+                }
+                
                 throw NetworkError.serverError(httpResponse.statusCode, errorMessage)
             }
             
@@ -422,6 +480,12 @@ class NetworkService {
             throw NetworkError.serverError(httpResponse.statusCode, nil)
         }
     }
+}
+
+// MARK: - FastAPI Error Response
+/// Парсинг ошибок от FastAPI сервера (формат {"detail": "..."})
+struct FastAPIErrorResponse: Codable {
+    let detail: String?
 }
 
 // MARK: - Keychain Helper
