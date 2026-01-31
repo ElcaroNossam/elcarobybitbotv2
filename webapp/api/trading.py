@@ -62,6 +62,75 @@ BYBIT_DEMO_URL = "https://api-demo.bybit.com"
 BYBIT_REAL_URL = "https://api.bybit.com"
 
 
+# ==================== LICENSE CHECK DEPENDENCY ====================
+
+async def require_trading_license(user: dict = Depends(get_current_user)):
+    """
+    Check if user has a valid license for trading features.
+    Returns user if has license, raises HTTPException if not.
+    
+    Free users can:
+    - View balance, positions, orders
+    - Access stats and market data
+    - View screener and signals
+    
+    Trading requires at least basic license:
+    - Place orders, close positions
+    - Set leverage, DCA operations
+    - Modify TP/SL
+    """
+    user_id = user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    # Check is_allowed flag (basic access)
+    is_allowed = user.get("is_allowed", False)
+    if is_allowed:
+        return user
+    
+    # Check license_type in database
+    try:
+        license_type = db.get_user_field(user_id, "license_type") or "free"
+        license_expires = db.get_user_field(user_id, "license_expires")
+        
+        # Free users can't trade
+        if license_type == "free":
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "LICENSE_REQUIRED",
+                    "message": "Trading features require a subscription",
+                    "upgrade_url": "/subscription"
+                }
+            )
+        
+        # Check if license expired
+        if license_expires:
+            from datetime import datetime
+            try:
+                expires_at = datetime.fromisoformat(license_expires.replace("Z", "+00:00"))
+                if datetime.utcnow() > expires_at:
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "code": "LICENSE_EXPIRED",
+                            "message": "Your subscription has expired",
+                            "upgrade_url": "/subscription"
+                        }
+                    )
+            except (ValueError, TypeError):
+                pass
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"License check error: {e}")
+        # Allow on error to not block trading
+        return user
+
+
 # ==================== POSITION CALCULATOR MODELS ====================
 
 class CalculatePositionRequest(BaseModel):
@@ -561,9 +630,9 @@ async def get_orders(
 @router.post("/close")
 async def close_position(
     req: ClosePositionRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Close a specific position."""
+    """Close a specific position. Requires trading license."""
     user_id = user["user_id"]
     
     # NEW: Use services integration if available
@@ -794,9 +863,9 @@ async def close_position(
 @router.post("/close-all")
 async def close_all_positions(
     req: CloseAllRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Close all positions."""
+    """Close all positions. Requires trading license."""
     user_id = user["user_id"]
     import time
     
@@ -1279,9 +1348,9 @@ async def get_trading_stats(
 @router.post("/order")
 async def place_order(
     req: PlaceOrderRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Place a new order on Bybit or HyperLiquid"""
+    """Place a new order on Bybit or HyperLiquid. Requires trading license."""
     user_id = user["user_id"]
     
     # Normalize side
@@ -1480,9 +1549,9 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
 @router.post("/leverage")
 async def set_leverage(
     req: SetLeverageRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Set leverage for a symbol"""
+    """Set leverage for a symbol. Requires trading license."""
     user_id = user["user_id"]
     
     if req.exchange == "hyperliquid":
@@ -1609,9 +1678,9 @@ class ModifyTPSLRequest(BaseModel):
 @router.post("/modify-tpsl")
 async def modify_position_tpsl(
     req: ModifyTPSLRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Modify Take Profit / Stop Loss for an existing position"""
+    """Modify Take Profit / Stop Loss for an existing position. Requires trading license."""
     user_id = user["user_id"]
     
     if req.exchange == "hyperliquid":
@@ -1712,9 +1781,9 @@ async def modify_position_tpsl(
 @router.post("/cancel")
 async def cancel_order_by_id(
     req: CancelOrderRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Cancel a single order by ID."""
+    """Cancel a single order by ID. Requires trading license."""
     user_id = user["user_id"]
     
     if req.exchange == "hyperliquid":
@@ -1777,9 +1846,9 @@ async def cancel_all_orders(
     exchange: str = Query("bybit"),
     account_type: str = Query("demo"),
     symbol: Optional[str] = Query(None),
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Cancel all open orders"""
+    """Cancel all open orders. Requires trading license."""
     user_id = user["user_id"]
     
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
@@ -1854,9 +1923,9 @@ class TrailingStopRequest(BaseModel):
 @router.post("/dca-ladder")
 async def place_dca_ladder(
     req: DCAOrderRequest,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_trading_license)
 ):
-    """Place a DCA ladder of orders"""
+    """Place a DCA ladder of orders. Requires trading license."""
     user_id = user["user_id"]
     
     # Get current price if not provided
