@@ -709,4 +709,4 @@ extension Notification.Name {
     static let navigateToSignals = Notification.Name("navigateToSignals")
     static let navigateToHistory = Notification.Name("navigateToHistory")
     static let navigateToStats = Notification.Name("navigateToStats")
-    static let shareContent = Notification.Name("shareContent")
+    static let shareContent = Notification.Name("shareContent")}
