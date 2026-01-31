@@ -80,8 +80,21 @@ class BacktestResponse(BaseModel):
     backtest_id: Optional[str] = None  # For WebSocket tracking
 
 
+# Rate limiting for expensive backtest operations
+from core.rate_limiter import RateLimiter
+_backtest_limiter = RateLimiter()
+_backtest_limiter.set_limit("backtest", capacity=5, refill_rate=0.5)  # 5 requests, 0.5/sec refill
+
+async def rate_limit_backtest(user: dict = Depends(get_current_user)):
+    """Rate limit backtest requests per user"""
+    user_id = user["user_id"]
+    if not _backtest_limiter._get_or_create_bucket(str(user_id), "backtest").try_acquire():
+        raise HTTPException(429, "Too many backtest requests. Please wait.")
+    return user
+
+
 @router.post("/run-async")
-async def run_backtest_async(request: BacktestRequest):
+async def run_backtest_async(request: BacktestRequest, user: dict = Depends(rate_limit_backtest)):
     """Run backtest asynchronously with WebSocket progress updates"""
     try:
         from webapp.api.backtest_ws import create_backtest_session, send_progress, send_result, send_error, is_backtest_cancelled
@@ -154,8 +167,8 @@ async def run_backtest_with_progress(backtest_id: str, request: BacktestRequest)
 
 
 @router.post("/run")
-async def run_backtest(request: BacktestRequest):
-    """Run backtest with selected strategies using real analyzers"""
+async def run_backtest(request: BacktestRequest, user: dict = Depends(rate_limit_backtest)):
+    """Run backtest with selected strategies using real analyzers (authenticated, rate-limited)"""
     try:
         # Import backtest engine
         from webapp.services.backtest_engine import RealBacktestEngine
@@ -193,8 +206,9 @@ async def run_backtest(request: BacktestRequest):
 
 
 @router.post("/custom")
-async def run_custom_backtest(request: CustomBacktestRequest, user_id: int = None):
-    """Run backtest for a custom strategy from the database"""
+async def run_custom_backtest(request: CustomBacktestRequest, user: dict = Depends(rate_limit_backtest)):
+    """Run backtest for a custom strategy from the database (authenticated, rate-limited)"""
+    user_id = user["user_id"]
     try:
         from webapp.services.backtest_engine import RealBacktestEngine, save_backtest_results
         
@@ -253,8 +267,8 @@ async def run_custom_backtest(request: CustomBacktestRequest, user_id: int = Non
 
 
 @router.post("/multi-symbol")
-async def run_multi_symbol_backtest(request: MultiSymbolBacktestRequest):
-    """Run backtest across multiple symbols simultaneously"""
+async def run_multi_symbol_backtest(request: MultiSymbolBacktestRequest, user: dict = Depends(rate_limit_backtest)):
+    """Run backtest across multiple symbols simultaneously (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         
@@ -309,9 +323,9 @@ class OptimizationRequest(BaseModel):
 
 
 @router.post("/monte-carlo")
-async def run_monte_carlo(request: MonteCarloRequest):
+async def run_monte_carlo(request: MonteCarloRequest, user: dict = Depends(rate_limit_backtest)):
     """
-    Run Monte Carlo simulation to estimate strategy risk.
+    Run Monte Carlo simulation to estimate strategy risk (authenticated, rate-limited).
     Shuffles trade order to see distribution of possible outcomes.
     """
     try:
@@ -342,9 +356,9 @@ async def run_monte_carlo(request: MonteCarloRequest):
 
 
 @router.post("/optimize")
-async def run_optimization(request: OptimizationRequest):
+async def run_optimization(request: OptimizationRequest, user: dict = Depends(rate_limit_backtest)):
     """
-    Grid search optimization for strategy parameters.
+    Grid search optimization for strategy parameters (authenticated, rate-limited).
     Tests all combinations and finds optimal settings.
     """
     try:
@@ -371,9 +385,9 @@ async def run_optimization(request: OptimizationRequest):
 
 
 @router.post("/walk-forward")
-async def run_walk_forward_optimization(request: WalkForwardRequest):
+async def run_walk_forward_optimization(request: WalkForwardRequest, user: dict = Depends(rate_limit_backtest)):
     """
-    Run walk-forward optimization to find robust parameters.
+    Run walk-forward optimization to find robust parameters (authenticated, rate-limited).
     Splits data into in-sample (optimization) and out-of-sample (validation) periods.
     """
     try:

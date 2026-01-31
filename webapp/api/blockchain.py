@@ -309,10 +309,15 @@ async def process_deposit(request: DepositRequest, user: dict = Depends(require_
 
 
 @router.post("/withdraw", summary="Request withdrawal")
-async def process_withdrawal(request: WithdrawalRequest):
-    """Request withdrawal to external address"""
+async def process_withdrawal(request: WithdrawalRequest, user: dict = Depends(get_current_user)):
+    """Request withdrawal to external address (authenticated)"""
+    # SECURITY: User can only withdraw from their own wallet
+    user_id = user["user_id"]
+    if request.user_id != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="You can only withdraw from your own wallet")
+    
     success, message, info = await request_withdrawal(
-        request.user_id,
+        user_id,  # Use authenticated user_id, not from request
         request.amount,
         request.network,
         request.external_address
@@ -326,10 +331,15 @@ async def process_withdrawal(request: WithdrawalRequest):
 
 
 @router.post("/pay", summary="Process payment")
-async def process_payment(request: PaymentRequest):
-    """Process ELC payment"""
+async def process_payment(request: PaymentRequest, user: dict = Depends(get_current_user)):
+    """Process ELC payment (authenticated)"""
+    # SECURITY: User can only pay from their own wallet
+    user_id = user["user_id"]
+    if request.user_id != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="You can only pay from your own wallet")
+    
     success, message = await pay_with_elc(
-        request.user_id,
+        user_id,  # Use authenticated user_id
         request.amount,
         request.description
     )
@@ -340,10 +350,15 @@ async def process_payment(request: PaymentRequest):
 
 
 @router.post("/pay/license", summary="Pay for license")
-async def process_license_payment(request: LicensePaymentRequest):
-    """Pay for license subscription with ELC"""
+async def process_license_payment(request: LicensePaymentRequest, user: dict = Depends(get_current_user)):
+    """Pay for license subscription with ELC (authenticated)"""
+    # SECURITY: User can only pay for their own license
+    user_id = user["user_id"]
+    if request.user_id != user_id and not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="You can only pay for your own license")
+    
     success, message = await pay_license(
-        request.user_id,
+        user_id,  # Use authenticated user_id
         request.license_type,
         request.months
     )
@@ -357,8 +372,9 @@ async def process_license_payment(request: LicensePaymentRequest):
 
 
 @router.post("/reward", summary="Give ELC reward")
-async def give_reward(request: RewardRequest):
-    """Give ELC reward to user (admin)"""
+async def give_reward(request: RewardRequest, user: dict = Depends(require_admin)):
+    """Give ELC reward to user (ADMIN ONLY)"""
+    # SECURITY: Only admin can give rewards
     success, message = await reward_elc(
         request.user_id,
         request.amount,

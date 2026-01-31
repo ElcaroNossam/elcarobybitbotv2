@@ -3,11 +3,13 @@ iOS Logs API
 Receives and stores logs from iOS app for monitoring and debugging
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import logging
 from datetime import datetime
+
+from webapp.api.auth import require_admin
 
 router = APIRouter(prefix="/logs", tags=["iOS Logs"])
 logger = logging.getLogger("ios_logs")
@@ -80,10 +82,11 @@ async def get_ios_logs(
     limit: int = 100,
     level: Optional[str] = None,
     category: Optional[str] = None,
-    device: Optional[str] = None
+    device: Optional[str] = None,
+    admin: dict = Depends(require_admin)  # SECURITY: Admin only
 ):
     """
-    Get recent iOS logs (for admin monitoring)
+    Get recent iOS logs (ADMIN ONLY - for monitoring)
     """
     logs = _ios_logs.copy()
     
@@ -108,9 +111,9 @@ async def get_ios_logs(
 
 
 @router.delete("/ios")
-async def clear_ios_logs():
+async def clear_ios_logs(admin: dict = Depends(require_admin)):  # SECURITY: Admin only
     """
-    Clear all stored iOS logs
+    Clear all stored iOS logs (ADMIN ONLY)
     """
     global _ios_logs
     count = len(_ios_logs)
