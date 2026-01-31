@@ -230,6 +230,39 @@ struct MoreView: View {
     var body: some View {
         NavigationView {
             List {
+                // 🔥 Premium Features Section
+                Section(header: Text("✨ Premium Features")) {
+                    // AI Copilot
+                    NavigationLink(destination: AICopilotView()) {
+                        MoreMenuItem(
+                            icon: "sparkles",
+                            title: "AI Trading Copilot",
+                            subtitle: "Smart trading assistant",
+                            color: .purple
+                        )
+                    }
+                    
+                    // Market Heatmap
+                    NavigationLink(destination: MarketHeatmapView()) {
+                        MoreMenuItem(
+                            icon: "square.grid.3x3.fill",
+                            title: "Market Heatmap",
+                            subtitle: "Visual market overview",
+                            color: .orange
+                        )
+                    }
+                    
+                    // Social Trading
+                    NavigationLink(destination: SocialTradingView()) {
+                        MoreMenuItem(
+                            icon: "person.2.fill",
+                            title: "Social Trading",
+                            subtitle: "Copy top traders",
+                            color: .green
+                        )
+                    }
+                }
+                
                 Section(header: Text("Trading")) {
                     // Strategies
                     NavigationLink(destination: StrategiesView()) {
