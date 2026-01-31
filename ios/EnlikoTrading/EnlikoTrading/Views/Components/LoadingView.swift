@@ -1,0 +1,238 @@
+//
+//  LoadingView.swift
+//  EnlikoTrading
+//
+//  Full screen loading indicator
+//
+
+import SwiftUI
+
+struct LoadingView: View {
+    var message: String = "Loading..."
+    @State private var isAnimating = false
+    
+    var body: some View {
+        ZStack {
+            Color.enlikoBackground.ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                // Animated Logo
+                ZStack {
+                    // Outer ring
+                    Circle()
+                        .stroke(Color.enlikoPrimary.opacity(0.3), lineWidth: 4)
+                        .frame(width: 80, height: 80)
+                    
+                    // Spinning arc
+                    Circle()
+                        .trim(from: 0, to: 0.3)
+                        .stroke(Color.enlikoPrimary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .frame(width: 80, height: 80)
+                        .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                        .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
+                    
+                    // Icon
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 30))
+                        .foregroundColor(.enlikoPrimary)
+                }
+                
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.enlikoTextSecondary)
+            }
+        }
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+
+// MARK: - Toast View
+struct ToastView: View {
+    let message: String
+    let type: ToastType
+    
+    enum ToastType {
+        case success, error, info
+        
+        var icon: String {
+            switch self {
+            case .success: return "checkmark.circle.fill"
+            case .error: return "xmark.circle.fill"
+            case .info: return "info.circle.fill"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .success: return .enlikoGreen
+            case .error: return .enlikoRed
+            case .info: return .enlikoBlue
+            }
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: type.icon)
+                .foregroundColor(type.color)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.white)
+        }
+        .padding()
+        .background(Color.enlikoCard)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.3), radius: 10)
+    }
+}
+
+// MARK: - Empty State View
+struct EmptyStateView: View {
+    let icon: String
+    let title: String
+    let message: String
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 60))
+                .foregroundColor(.enlikoTextMuted)
+            
+            Text(title)
+                .font(.title3.weight(.medium))
+                .foregroundColor(.white)
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.enlikoTextSecondary)
+                .multilineTextAlignment(.center)
+            
+            if let actionTitle = actionTitle, let action = action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.headline)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.enlikoPrimary)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+    }
+}
+
+// MARK: - Shimmer Effect (for LoadingView components)
+// Note: ShimmerView is defined in ModernFeatures.swift, using typealias for local use
+private typealias LoadingShimmerView = ShimmerView
+
+// MARK: - Skeleton Loading
+struct SkeletonCard: View {
+    var height: CGFloat = 100
+    
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.enlikoCard)
+            .frame(height: height)
+            .overlay(LoadingShimmerView())
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Price Change Indicator
+struct PriceChangeView: View {
+    let change: Double
+    let showArrow: Bool
+    
+    init(change: Double, showArrow: Bool = true) {
+        self.change = change
+        self.showArrow = showArrow
+    }
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            if showArrow {
+                Image(systemName: change >= 0 ? "arrow.up" : "arrow.down")
+                    .font(.caption2.weight(.bold))
+            }
+            Text(abs(change).formattedPercent)
+                .font(.subheadline.weight(.medium))
+        }
+        .foregroundColor(change >= 0 ? .enlikoGreen : .enlikoRed)
+    }
+}
+
+// MARK: - Gradient Button
+struct GradientButton: View {
+    let title: String
+    let icon: String?
+    let action: () -> Void
+    var isLoading: Bool = false
+    var isDisabled: Bool = false
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if isLoading {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    if let icon = icon {
+                        Image(systemName: icon)
+                    }
+                    Text(title)
+                        .fontWeight(.semibold)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(
+                Group {
+                    if isDisabled {
+                        Color.enlikoTextMuted
+                    } else {
+                        Color.enlikoGradient
+                    }
+                }
+            )
+            .foregroundColor(.white)
+            .cornerRadius(12)
+        }
+        .disabled(isLoading || isDisabled)
+    }
+}
+
+// MARK: - Safe Area Bottom Padding
+extension View {
+    func safeAreaBottomPadding(_ value: CGFloat = 20) -> some View {
+        self.padding(.bottom, value)
+            .padding(.bottom, UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }?
+                .safeAreaInsets.bottom ?? 0)
+    }
+}
+
+#Preview {
+    VStack(spacing: 20) {
+        LoadingView()
+        
+        ToastView(message: "Order placed successfully", type: .success)
+        
+        EmptyStateView(
+            icon: "chart.bar.xaxis",
+            title: "No Data",
+            message: "Start trading to see your stats",
+            actionTitle: "Start Trading"
+        ) {}
+    }
+    .preferredColorScheme(.dark)
+}
