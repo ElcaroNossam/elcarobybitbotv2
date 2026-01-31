@@ -163,12 +163,12 @@ struct SubscriptionView: View {
                 
                 Spacer()
                 
-                Text(authManager.currentUser?.subscriptionPlan ?? "Free")
+                Text(authManager.currentUser?.licenseType?.capitalized ?? "Free")
                     .font(.headline)
                     .foregroundColor(.enlikoPrimary)
             }
             
-            if let expires = authManager.currentUser?.subscriptionExpires {
+            if let expires = authManager.currentUser?.licenseExpiry {
                 HStack {
                     Text("expires".localized)
                         .foregroundColor(.enlikoTextSecondary)
