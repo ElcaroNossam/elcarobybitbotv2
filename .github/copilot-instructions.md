@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.43.0 | Обновлено: 29 января 2026
+# Версия: 3.44.0 | Обновлено: 31 января 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -3040,11 +3040,12 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 29 января 2026*
-*Version: 3.41.0*
+*Last updated: 31 января 2026*
+*Version: 3.44.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
+*Migrations: 23 total (001-023, all sequential)*
 *4D Schema Tests: 33 tests covering all dimensions*
 *Security Audit: 14 vulnerabilities fixed*
 *Tests: 750+ total (unit + integration + modern features + cross-platform)*
@@ -3056,7 +3057,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Branding: Enliko (renamed from Triacelo)*
 *Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
-*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Jan 29 2026 ✅*
+*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Jan 31 2026 ✅*
 *iOS Features: Screener, Stats, AI, Signals, Activity, Strategies - full parity with WebApp*
 *iOS Auth Flow: Full registration/login/verify tested Jan 29 2026 ✅*
 *iOS Build: Fixed Info.plist conflict, Color.enlikoBorder added*
