@@ -240,32 +240,49 @@ async def mobile_login(
         raise safe_exception(500, e, context="mobile_login")
 
 
+class RefreshTokenRequest(BaseModel):
+    """Refresh token request body"""
+    refreshToken: str  # iOS sends camelCase
+
+
 @router.post("/auth/refresh")
 async def refresh_token_endpoint(
-    refresh_token: str,
-    context: dict = Depends(get_mobile_context)
+    body: RefreshTokenRequest,
 ):
-    """Refresh access token"""
+    """Refresh access token using refresh token"""
     try:
-        from webapp.api.auth import create_access_token
+        import jwt
+        from webapp.api.auth import JWT_SECRET, JWT_ALGORITHM, create_access_token, create_refresh_token
         
-        # For now, just require user to be logged in via context
-        # In production, implement proper refresh token validation
-        user_id = context.get("user_id")
-        
-        if not user_id:
+        # Validate the refresh token
+        try:
+            payload = jwt.decode(body.refreshToken, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            user_id = int(payload.get("sub"))
+            token_type = payload.get("type")
+            
+            if token_type != "refresh":
+                raise HTTPException(status_code=401, detail="Invalid token type")
+                
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Refresh token expired")
+        except jwt.InvalidTokenError:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
         
+        # Create new tokens
         is_admin = user_id == ADMIN_ID
         new_access_token = create_access_token(user_id, is_admin)
+        new_refresh_token = create_refresh_token(user_id)
         
         return {
             "success": True,
-            "access_token": new_access_token,
+            "token": new_access_token,        # iOS expects "token"
+            "refreshToken": new_refresh_token, # iOS expects "refreshToken" (camelCase)
             "token_type": "bearer",
-            "expires_in": 24 * 3600
+            "expires_in": 168 * 3600  # 7 days
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Token refresh error: {e}")
         raise HTTPException(status_code=401, detail="Invalid refresh token")

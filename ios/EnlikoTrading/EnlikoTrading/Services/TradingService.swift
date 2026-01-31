@@ -173,26 +173,30 @@ class TradingService: ObservableObject {
     // MARK: - Stats
     @MainActor
     func fetchStats() async {
-        logger.debug("Fetching stats", category: .trading)
+        let params = exchangeParams
+        logger.debug("Fetching stats with params: \(params)", category: .trading)
         
         do {
             // Try direct TradingStats decode first
             let stats: TradingStats = try await network.get(
                 Config.Endpoints.stats,
-                params: exchangeParams
+                params: params
             )
             self.tradingStats = stats
-            logger.info("Fetched stats: \(stats.totalTradesCount) trades, \(String(format: "%.1f", stats.winRateValue))% win rate", category: .trading)
+            logger.info("Fetched stats: total=\(stats.totalTradesCount), totalTrades=\(stats.totalTrades ?? -1), win_rate=\(String(format: "%.1f", stats.winRateValue))%", category: .trading)
         } catch {
+            logger.warning("Direct stats decode failed: \(error), trying wrapped response", category: .trading)
             // Fallback to wrapped response
             do {
                 let response: StatsResponse = try await network.get(
                     Config.Endpoints.stats,
-                    params: exchangeParams
+                    params: params
                 )
                 if let stats = response.statsData {
                     self.tradingStats = stats
-                    logger.info("Fetched stats: \(stats.totalTradesCount) trades", category: .trading)
+                    logger.info("Fetched stats via wrapper: total=\(stats.totalTradesCount) trades", category: .trading)
+                } else {
+                    logger.error("Stats response has no data: success=\(response.success ?? false), error=\(response.error ?? "nil")", category: .trading)
                 }
             } catch {
                 logger.error("Failed to fetch stats: \(error)", category: .trading)

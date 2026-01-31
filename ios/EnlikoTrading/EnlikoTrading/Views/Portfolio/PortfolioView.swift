@@ -53,10 +53,13 @@ struct PortfolioView: View {
                 }
             }
             // Refresh data when exchange or account type changes
-            .onChange(of: appState.selectedExchange) { _, _ in
+            // NOTE: Using currentExchange/currentAccountType directly, not aliases
+            .onChange(of: appState.currentExchange) { oldValue, newValue in
+                AppLogger.shared.info("Exchange changed from \(oldValue.rawValue) to \(newValue.rawValue)", category: .ui)
                 Task { await tradingService.refreshAll() }
             }
-            .onChange(of: appState.selectedAccountType) { _, _ in
+            .onChange(of: appState.currentAccountType) { oldValue, newValue in
+                AppLogger.shared.info("Account type changed from \(oldValue.rawValue) to \(newValue.rawValue)", category: .ui)
                 Task { await tradingService.refreshAll() }
             }
             .task {

@@ -588,7 +588,8 @@ async def email_verify(data: EmailVerifyRequest):
     return {
         "success": True,
         "token": token,
-        "refresh_token": refresh_token,
+        "refresh_token": refresh_token,  # Legacy for web
+        "refreshToken": refresh_token,   # iOS expects camelCase
         "user_id": user_id,
         "user": {
             "id": user_id,  # Required for iOS Identifiable
@@ -645,7 +646,8 @@ async def email_login(data: EmailLoginRequest, request: Request):
     return {
         "success": True,
         "token": token,
-        "refresh_token": refresh_token,
+        "refresh_token": refresh_token,  # Legacy for web
+        "refreshToken": refresh_token,   # iOS expects camelCase
         "user_id": user_id,
         "user": {
             "id": user_id,  # Required for iOS Identifiable
