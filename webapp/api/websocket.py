@@ -1025,13 +1025,27 @@ async def settings_sync_websocket(websocket: WebSocket, user_id: int, token: Opt
     Connect from terminal/webapp to receive instant updates when settings change.
     Requires authentication.
     """
-    await websocket.accept()
+    # NOTE: Do NOT call accept() here - it's called in settings_sync_ws.connect()
     
     # SECURITY: Verify JWT token before allowing access
+    # Accept must be called before we can send auth error, so call it first
+    await websocket.accept()
+    
     if not await verify_ws_auth(websocket, user_id, token):
         return
     
-    await settings_sync_ws.connect(websocket, user_id)
+    # Don't call connect() since it tries to accept() again
+    # Register the connection manually
+    async with settings_sync_ws._lock:
+        if user_id not in settings_sync_ws.user_connections:
+            settings_sync_ws.user_connections[user_id] = set()
+        settings_sync_ws.user_connections[user_id].add(websocket)
+    
+    await websocket.send_json({
+        "type": "connected",
+        "message": "Settings sync connected",
+        "user_id": user_id
+    })
     
     try:
         while True:

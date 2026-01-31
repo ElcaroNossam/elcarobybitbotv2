@@ -25,22 +25,8 @@ from webapp.realtime import (
 )
 
 
-@router.websocket("/realtime/{exchange}")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    exchange: str,
-    symbols: Optional[str] = Query(None)
-):
-    """
-    WebSocket endpoint for real-time market data.
-    
-    Args:
-        exchange: 'bybit' or 'hyperliquid'
-        symbols: Comma-separated list of symbols (optional)
-    
-    Example:
-        ws://localhost:8765/ws/realtime/bybit?symbols=BTCUSDT,ETHUSDT
-    """
+async def _handle_market_websocket(websocket: WebSocket, exchange: str, symbols: Optional[str] = None):
+    """Common WebSocket handler for market data."""
     if exchange not in ['bybit', 'hyperliquid']:
         await websocket.close(code=1008, reason="Invalid exchange")
         return
@@ -94,6 +80,42 @@ async def websocket_endpoint(
         logger.error(f"WebSocket error for {exchange}: {e}", exc_info=True)
     finally:
         unregister_client(websocket, exchange)
+
+
+@router.websocket("/market")
+async def websocket_market(
+    websocket: WebSocket,
+    symbols: Optional[str] = Query(None),
+    exchange: Optional[str] = Query("bybit")
+):
+    """
+    WebSocket endpoint for market data (default Bybit).
+    This is an alias for iOS app which uses /ws/market endpoint.
+    
+    Args:
+        symbols: Comma-separated list of symbols (optional)
+        exchange: 'bybit' or 'hyperliquid' (default: bybit)
+    """
+    await _handle_market_websocket(websocket, exchange or "bybit", symbols)
+
+
+@router.websocket("/realtime/{exchange}")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    exchange: str,
+    symbols: Optional[str] = Query(None)
+):
+    """
+    WebSocket endpoint for real-time market data.
+    
+    Args:
+        exchange: 'bybit' or 'hyperliquid'
+        symbols: Comma-separated list of symbols (optional)
+    
+    Example:
+        ws://localhost:8765/ws/realtime/bybit?symbols=BTCUSDT,ETHUSDT
+    """
+    await _handle_market_websocket(websocket, exchange, symbols)
 
 
 @router.get("/realtime/status")
