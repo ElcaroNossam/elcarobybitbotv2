@@ -94,3 +94,4 @@ builds/
 android/LyxenTrading/keystore/
 android/LyxenTrading/local.properties
 *.xcuserstate
+AuthKey_*.p8

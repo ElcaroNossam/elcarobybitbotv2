@@ -17962,8 +17962,27 @@ async def monitor_positions_loop(app: Application):
                                             close_message,
                                             parse_mode="Markdown"
                                         )
-
-
+                                        
+                                        # Send iOS/WebApp push notification (APNs)
+                                        if notification_service:
+                                            try:
+                                                await notification_service.send_position_closed_notification(
+                                                    user_id=uid,
+                                                    position_data={
+                                                        'symbol': sym,
+                                                        'side': ap_side,
+                                                        'entry_price': entry_price,
+                                                        'exit_price': exit_price,
+                                                        'quantity': size_for_pnl,
+                                                        'pnl': pnl_value,
+                                                        'pnl_percent': pct_value,
+                                                        'strategy': strategy_display,
+                                                        'close_reason': exit_reason,
+                                                    },
+                                                    t=t
+                                                )
+                                            except Exception as push_err:
+                                                logger.warning(f"Failed to send push notification for {sym}: {push_err}")
 
                                 except Exception as e:
                                     if is_db_full_error(e):
