@@ -660,6 +660,188 @@ Use /menu to access all features.
                 "prices": LICENSE_PRICES_USD.get(plan_id, {}),
             }
         return result
+    
+    async def create_elc_purchase(
+        self,
+        user_id: int,
+        usdt_amount: float,
+        network: str = "TRC20",
+    ) -> Dict[str, Any]:
+        """
+        Create payment for ELC token purchase.
+        
+        User pays USDT, receives ELC tokens (1:1 minus 0.5% fee).
+        
+        Args:
+            user_id: Telegram user ID
+            usdt_amount: Amount in USDT to pay
+            network: Payment network (TRC20, BEP20, etc.)
+            
+        Returns:
+            Payment invoice with address and amount
+        """
+        if usdt_amount < 10:
+            raise ValueError("Minimum purchase is 10 USDT")
+        
+        elc_amount = usdt_amount * 0.995  # 0.5% platform fee
+        
+        order_id = f"elc_buy_{user_id}_{int(usdt_amount)}_{secrets.token_hex(4)}"
+        
+        data = {
+            "amount": usdt_amount,
+            "currency": "USD",
+            "payCurrency": "USDT",
+            "network": network,
+            "lifeTime": 30,  # 30 minutes
+            "feePaidByPayer": 1,
+            "underPaidCoverage": 2.5,
+            "callbackUrl": f"{WEBAPP_URL}/api/payments/elc/webhook",
+            "orderId": order_id,
+            "description": f"Buy {elc_amount:.2f} ELC tokens",
+        }
+        
+        result = await self._request("/merchants/request", data=data)
+        
+        if result.get("result") != 100:
+            error_msg = result.get("message", "Failed to create payment")
+            raise Exception(error_msg)
+        
+        payment_data = {
+            "payment_id": order_id,
+            "track_id": result.get("trackId", ""),
+            "pay_url": result.get("payLink", ""),
+            "address": result.get("address", ""),
+            "amount_usd": usdt_amount,
+            "elc_amount": elc_amount,
+            "amount_crypto": result.get("payAmount"),
+            "currency": "USDT",
+            "network": network,
+            "expires_at": (datetime.utcnow() + timedelta(minutes=30)).isoformat(),
+            "status": "pending",
+            "user_id": user_id,
+            "plan": "elc_purchase",
+            "duration": "instant",
+        }
+        
+        # Save to database
+        await self._save_elc_purchase(payment_data)
+        
+        logger.info(f"ELC purchase created: {order_id} for {usdt_amount} USDT -> {elc_amount} ELC")
+        return payment_data
+    
+    async def _save_elc_purchase(self, data: Dict[str, Any]):
+        """Save ELC purchase to database"""
+        try:
+            from core.db_postgres import execute_write
+            
+            execute_write("""
+                INSERT INTO crypto_payments (
+                    payment_id, user_id, track_id, amount_usd, amount_crypto,
+                    currency, address, status, plan, duration, expires_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (payment_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    updated_at = NOW()
+            """, (
+                data.get("payment_id"),
+                data.get("user_id"),
+                data.get("track_id"),
+                data.get("amount_usd"),
+                data.get("elc_amount"),  # Store ELC amount as amount_crypto
+                data.get("currency"),
+                data.get("address"),
+                data.get("status", "pending"),
+                "elc_purchase",  # Plan type
+                "instant",  # Duration
+                data.get("expires_at"),
+            ))
+        except Exception as e:
+            logger.error(f"Failed to save ELC purchase: {e}")
+    
+    async def process_elc_purchase_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process webhook for ELC purchase.
+        
+        Credits ELC to user balance on successful payment.
+        """
+        status = payload.get("status")
+        order_id = payload.get("orderId", "")
+        
+        logger.info(f"ELC purchase webhook: {status} for {order_id}")
+        
+        # Parse order_id: elc_buy_{user_id}_{amount}_{random}
+        if not order_id.startswith("elc_buy_"):
+            return {"success": False, "error": "Not an ELC purchase order"}
+        
+        parts = order_id.split("_")
+        if len(parts) < 4:
+            return {"success": False, "error": "Invalid order format"}
+        
+        try:
+            user_id = int(parts[2])
+            usdt_amount = int(parts[3])
+        except (ValueError, IndexError) as e:
+            logger.error(f"Failed to parse ELC order: {order_id}, error: {e}")
+            return {"success": False, "error": "Parse error"}
+        
+        # Update payment status
+        await self._update_payment_status(order_id, status, payload)
+        
+        if status in ("Paid", "Confirmed"):
+            # Credit ELC to user balance
+            elc_amount = usdt_amount * 0.995  # 0.5% fee
+            
+            try:
+                from db_elcaro import add_elc_balance
+                new_balance = add_elc_balance(
+                    user_id, 
+                    elc_amount, 
+                    f"Purchased with {usdt_amount} USDT via OxaPay"
+                )
+                
+                # Notify user
+                await self._notify_elc_purchase(user_id, elc_amount, usdt_amount)
+                
+                logger.info(f"ELC credited: {user_id} -> +{elc_amount} ELC")
+                return {
+                    "success": True,
+                    "user_id": user_id,
+                    "elc_amount": elc_amount,
+                    "new_balance": new_balance.get("available", 0),
+                }
+            except Exception as e:
+                logger.error(f"Failed to credit ELC: {e}")
+                return {"success": False, "error": str(e)}
+        
+        return {"success": True, "status": status}
+    
+    async def _notify_elc_purchase(self, user_id: int, elc_amount: float, usdt_amount: float):
+        """Notify user about successful ELC purchase"""
+        try:
+            from telegram import Bot
+            
+            bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+            if not bot_token:
+                return
+            
+            bot = Bot(token=bot_token)
+            
+            message = f"""
+✅ *ELC Purchase Successful!*
+
+💵 *Paid:* {usdt_amount} USDT
+🪙 *Received:* {elc_amount:.2f} ELC
+
+Your tokens have been credited to your wallet.
+Use /wallet to check your balance.
+"""
+            await bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify ELC purchase: {e}")
 
 
 # ============================================

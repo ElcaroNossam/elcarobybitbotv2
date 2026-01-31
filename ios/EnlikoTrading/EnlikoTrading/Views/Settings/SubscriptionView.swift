@@ -2,10 +2,12 @@
 //  SubscriptionView.swift
 //  EnlikoTrading
 //
-//  Subscription and crypto payment view with OxaPay integration
+//  Subscription view with ELC-only payment system
+//  Users buy ELC tokens with USDT (via OxaPay), then pay subscription with ELC
 //
 
 import SwiftUI
+import UIKit
 
 struct SubscriptionView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -14,15 +16,25 @@ struct SubscriptionView: View {
     
     @State private var selectedPlan: String = "premium"
     @State private var selectedDuration: String = "1m"
-    @State private var selectedCurrency: String = "USDT"
-    @State private var selectedNetwork: String = "TRC20"
-    @State private var promoCode: String = ""
-    @State private var promoApplied: PromoCodeResponse?
+    @State private var elcBalance: Double = 0
+    @State private var isLoading = false
+    @State private var showBuyELCSheet = false
+    @State private var showPayConfirmation = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
     
-    @State private var showPaymentSheet = false
-    @State private var showCurrencyPicker = false
-    @State private var isCreatingPayment = false
-    @State private var paymentError: String?
+    // Price in ELC (1 ELC = 1 USD)
+    var priceELC: Double {
+        paymentService.getPrice(for: selectedPlan, duration: selectedDuration) ?? 0
+    }
+    
+    var hasEnoughELC: Bool {
+        elcBalance >= priceELC
+    }
+    
+    var neededELC: Double {
+        max(0, priceELC - elcBalance)
+    }
     
     var body: some View {
         NavigationStack {
@@ -31,6 +43,9 @@ struct SubscriptionView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // ELC Balance Card
+                        elcBalanceCard
+                        
                         // Current subscription status
                         currentSubscriptionCard
                         
@@ -40,149 +55,169 @@ struct SubscriptionView: View {
                         // Duration selection
                         durationSelectionSection
                         
-                        // Promo code
-                        promoCodeSection
-                        
                         // Price summary
-                        priceSummarySection
+                        priceSummaryCard
                         
-                        // Pay button
-                        payButton
+                        // Action buttons
+                        actionButtons
                         
-                        // Payment history
-                        paymentHistorySection
+                        // Error/Success messages
+                        if let error = errorMessage {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .padding()
+                        }
+                        
+                        if let success = successMessage {
+                            Text(success)
+                                .foregroundColor(.green)
+                                .font(.caption)
+                                .padding()
+                        }
                     }
                     .padding()
                 }
             }
             .navigationTitle("subscription".localized)
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showPaymentSheet) {
-                if let invoice = paymentService.currentInvoice {
-                    PaymentInvoiceSheet(invoice: invoice)
-                }
-            }
-            .sheet(isPresented: $showCurrencyPicker) {
-                CurrencyPickerSheet(
-                    currencies: paymentService.currencies,
-                    selectedCurrency: $selectedCurrency,
-                    selectedNetwork: $selectedNetwork
+            .sheet(isPresented: $showBuyELCSheet) {
+                BuyELCSheet(
+                    onDismiss: { showBuyELCSheet = false },
+                    onPurchaseComplete: { amount in
+                        elcBalance += amount
+                        showBuyELCSheet = false
+                    }
                 )
             }
-            .task {
-                await paymentService.fetchPlans()
-                await paymentService.fetchCurrencies()
-                await paymentService.fetchPaymentHistory()
+            .alert("confirm_payment".localized, isPresented: $showPayConfirmation) {
+                Button("cancel".localized, role: .cancel) { }
+                Button("pay".localized, role: .destructive) {
+                    Task { await payWithELC() }
+                }
+            } message: {
+                Text("pay_elc_confirm".localized.replacingOccurrences(of: "{amount}", with: String(format: "%.0f", priceELC)))
+            }
+            .onAppear {
+                Task { await fetchELCBalance() }
             }
         }
+    }
+    
+    // MARK: - ELC Balance Card
+    
+    private var elcBalanceCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "circle.hexagongrid.fill")
+                    .font(.title2)
+                    .foregroundColor(.enlikoPrimary)
+                
+                Text("elc_balance".localized)
+                    .font(.headline)
+                    .foregroundColor(.enlikoTextSecondary)
+                
+                Spacer()
+                
+                Button {
+                    showBuyELCSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("buy".localized)
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.enlikoPrimary)
+                }
+            }
+            
+            Text("\(Int(elcBalance)) ELC")
+                .font(.system(size: 36, weight: .bold))
+                .foregroundColor(.white)
+            
+            Text("≈ $\(Int(elcBalance))")
+                .font(.subheadline)
+                .foregroundColor(.enlikoTextSecondary)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.enlikoCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.enlikoPrimary.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
     
     // MARK: - Current Subscription Card
     
     private var currentSubscriptionCard: some View {
-        VStack(spacing: 12) {
-            if let user = authManager.currentUser, user.isPremium == true {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "crown.fill")
+                    .foregroundColor(.enlikoSecondary)
+                
+                Text("current_plan".localized)
+                    .font(.headline)
+                
+                Spacer()
+                
+                Text(authManager.currentUser?.subscriptionPlan ?? "Free")
+                    .font(.headline)
+                    .foregroundColor(.enlikoPrimary)
+            }
+            
+            if let expires = authManager.currentUser?.subscriptionExpires {
                 HStack {
-                    Image(systemName: "crown.fill")
-                        .font(.title2)
-                        .foregroundColor(.enlikoYellow)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("premium_active".localized)
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        if let expiresAt = user.licenseExpiry {
-                            Text("expires_at".localized + ": \(expiresAt)")
-                                .font(.caption)
-                                .foregroundColor(.enlikoTextSecondary)
-                        }
-                    }
-                    
+                    Text("expires".localized)
+                        .foregroundColor(.enlikoTextSecondary)
                     Spacer()
-                    
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.title)
-                        .foregroundColor(.enlikoGreen)
+                    Text(expires)
+                        .foregroundColor(.enlikoTextSecondary)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.enlikoGreen.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.enlikoGreen.opacity(0.3), lineWidth: 1)
-                        )
-                )
-            } else {
-                HStack {
-                    Image(systemName: "gift.fill")
-                        .font(.title2)
-                        .foregroundColor(.enlikoOrange)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("no_subscription".localized)
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text("upgrade_now".localized)
-                            .font(.caption)
-                            .foregroundColor(.enlikoTextSecondary)
-                    }
-                    
-                    Spacer()
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.enlikoCard)
-                )
+                .font(.subheadline)
             }
         }
+        .padding()
+        .background(Color.enlikoCard)
+        .cornerRadius(12)
     }
     
     // MARK: - Plan Selection
     
     private var planSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("select_plan".localized)
                 .font(.headline)
                 .foregroundColor(.white)
             
             VStack(spacing: 12) {
                 PlanCard(
-                    name: "basic",
-                    displayName: "🥈 Basic",
-                    features: ["Demo trading", "3 strategies", "Email support"],
+                    name: "Basic",
+                    description: "Essential trading features",
+                    price: getBasePrice("basic"),
+                    features: ["3 strategies", "Demo trading", "Email support"],
                     isSelected: selectedPlan == "basic",
                     action: { selectedPlan = "basic" }
                 )
                 
                 PlanCard(
-                    name: "premium",
-                    displayName: "💎 Premium",
-                    features: ["Demo + Real trading", "All strategies", "Priority support", "AI signals"],
+                    name: "Premium",
+                    description: "Advanced trading tools",
+                    price: getBasePrice("premium"),
+                    features: ["All strategies", "Real trading", "Priority support", "API access"],
                     isSelected: selectedPlan == "premium",
                     action: { selectedPlan = "premium" }
                 )
-                .overlay(
-                    Text("POPULAR")
-                        .font(.caption2.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.enlikoPrimary)
-                        .cornerRadius(8)
-                        .offset(x: 0, y: -10),
-                    alignment: .topTrailing
-                )
                 
                 PlanCard(
-                    name: "enterprise",
-                    displayName: "🏢 Enterprise",
-                    features: ["Everything in Premium", "Dedicated account manager", "Custom strategies", "API access"],
-                    isSelected: selectedPlan == "enterprise",
-                    action: { selectedPlan = "enterprise" }
+                    name: "Pro",
+                    description: "Full platform access",
+                    price: getBasePrice("pro"),
+                    features: ["Everything in Premium", "Custom strategies", "Dedicated support", "White-label"],
+                    isSelected: selectedPlan == "pro",
+                    action: { selectedPlan = "pro" }
                 )
             }
         }
@@ -191,281 +226,503 @@ struct SubscriptionView: View {
     // MARK: - Duration Selection
     
     private var durationSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("select_duration".localized)
                 .font(.headline)
                 .foregroundColor(.white)
             
             HStack(spacing: 12) {
                 DurationButton(
-                    duration: "1m",
-                    label: "1 month",
-                    price: paymentService.getPrice(for: selectedPlan, duration: "1m") ?? 0,
+                    label: "1M",
+                    discount: nil,
                     isSelected: selectedDuration == "1m",
                     action: { selectedDuration = "1m" }
                 )
                 
                 DurationButton(
-                    duration: "3m",
-                    label: "3 months",
-                    price: paymentService.getPrice(for: selectedPlan, duration: "3m") ?? 0,
+                    label: "3M",
+                    discount: "10%",
                     isSelected: selectedDuration == "3m",
-                    discount: 10,
                     action: { selectedDuration = "3m" }
                 )
-            }
-            
-            HStack(spacing: 12) {
+                
                 DurationButton(
-                    duration: "6m",
-                    label: "6 months",
-                    price: paymentService.getPrice(for: selectedPlan, duration: "6m") ?? 0,
+                    label: "6M",
+                    discount: "20%",
                     isSelected: selectedDuration == "6m",
-                    discount: 20,
                     action: { selectedDuration = "6m" }
                 )
                 
                 DurationButton(
-                    duration: "1y",
-                    label: "1 year",
-                    price: paymentService.getPrice(for: selectedPlan, duration: "1y") ?? 0,
+                    label: "1Y",
+                    discount: "30%",
                     isSelected: selectedDuration == "1y",
-                    discount: 30,
                     action: { selectedDuration = "1y" }
                 )
             }
         }
     }
     
-    // MARK: - Promo Code
-    
-    private var promoCodeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("promo_code".localized)
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            HStack {
-                TextField("enter_code".localized, text: $promoCode)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.allCharacters)
-                
-                Button(action: applyPromo) {
-                    Text("apply".localized)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.enlikoPrimary)
-                }
-            }
-            
-            if let promo = promoApplied {
-                HStack {
-                    Image(systemName: promo.valid ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(promo.valid ? .enlikoGreen : .enlikoRed)
-                    Text(promo.message)
-                        .font(.caption)
-                        .foregroundColor(promo.valid ? .enlikoGreen : .enlikoRed)
-                }
-            }
-        }
-    }
-    
     // MARK: - Price Summary
     
-    private var priceSummarySection: some View {
-        VStack(spacing: 12) {
-            // Currency selection
-            Button(action: { showCurrencyPicker = true }) {
-                HStack {
-                    Text("payment_method".localized)
-                        .foregroundColor(.enlikoTextSecondary)
-                    Spacer()
-                    Text("\(selectedCurrency) (\(selectedNetwork))")
-                        .foregroundColor(.white)
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.enlikoTextMuted)
-                }
-                .padding()
-                .background(Color.enlikoCard)
-                .cornerRadius(12)
-            }
-            
-            // Price breakdown
-            VStack(spacing: 8) {
-                let basePrice = paymentService.getPrice(for: selectedPlan, duration: selectedDuration) ?? 0
-                let finalPrice = promoApplied?.finalAmount ?? basePrice
-                
-                HStack {
-                    Text("subtotal".localized)
-                        .foregroundColor(.enlikoTextSecondary)
-                    Spacer()
-                    Text("$\(basePrice, specifier: "%.0f")")
-                        .foregroundColor(.white)
-                }
-                
-                if let discount = promoApplied?.discountPercent, discount > 0 {
-                    HStack {
-                        Text("discount".localized)
-                            .foregroundColor(.enlikoGreen)
-                        Spacer()
-                        Text("-\(discount, specifier: "%.0f")%")
-                            .foregroundColor(.enlikoGreen)
-                    }
-                }
-                
-                Divider().background(Color.enlikoBorder)
-                
-                HStack {
-                    Text("total".localized)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Spacer()
-                    Text("$\(finalPrice, specifier: "%.0f")")
-                        .font(.title2.bold())
-                        .foregroundColor(.enlikoPrimary)
-                }
-            }
-            .padding()
-            .background(Color.enlikoCard)
-            .cornerRadius(12)
-        }
-    }
-    
-    // MARK: - Pay Button
-    
-    @ViewBuilder
-    private var payButton: some View {
-        Button(action: createPayment) {
+    private var priceSummaryCard: some View {
+        VStack(spacing: 16) {
             HStack {
-                if isCreatingPayment {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                } else {
-                    Image(systemName: "creditcard.fill")
-                    Text("pay_with_crypto".localized)
-                }
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.enlikoPrimary)
-            .cornerRadius(16)
-        }
-        .disabled(isCreatingPayment)
-        
-        if let error = paymentError {
-            Text(error)
-                .font(.caption)
-                .foregroundColor(.enlikoRed)
-        }
-    }
-    
-    // MARK: - Payment History
-    
-    private var paymentHistorySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("payment_history".localized)
-                .font(.headline)
-                .foregroundColor(.white)
-            
-            if paymentService.paymentHistory.isEmpty {
-                Text("no_payments_yet".localized)
-                    .font(.subheadline)
+                Text("price".localized)
                     .foregroundColor(.enlikoTextSecondary)
+                Spacer()
+                Text("\(Int(priceELC)) ELC")
+                    .font(.title2.weight(.bold))
+                    .foregroundColor(.white)
+            }
+            
+            HStack {
+                Text("your_balance".localized)
+                    .foregroundColor(.enlikoTextSecondary)
+                Spacer()
+                Text("\(Int(elcBalance)) ELC")
+                    .foregroundColor(hasEnoughELC ? .enlikoGreen : .enlikoRed)
+            }
+            
+            if !hasEnoughELC {
+                HStack {
+                    Text("need_more".localized)
+                        .foregroundColor(.enlikoTextSecondary)
+                    Spacer()
+                    Text("\(Int(neededELC)) ELC")
+                        .foregroundColor(.enlikoRed)
+                        .fontWeight(.medium)
+                }
+            }
+        }
+        .padding()
+        .background(Color.enlikoCard)
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Action Buttons
+    
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            if hasEnoughELC {
+                Button {
+                    showPayConfirmation = true
+                } label: {
+                    HStack {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("pay_with_elc".localized)
+                        }
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
                     .padding()
+                    .background(Color.enlikoGreen)
+                    .cornerRadius(12)
+                }
+                .disabled(isLoading)
             } else {
-                ForEach(paymentService.paymentHistory.prefix(5)) { payment in
-                    PaymentHistoryRow(payment: payment)
+                Button {
+                    showBuyELCSheet = true
+                } label: {
+                    HStack {
+                        Image(systemName: "cart.fill")
+                        Text("buy_elc_to_pay".localized)
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.enlikoPrimary)
+                    .cornerRadius(12)
                 }
             }
         }
     }
     
-    // MARK: - Actions
+    // MARK: - Helper Methods
     
-    private func applyPromo() {
-        guard !promoCode.isEmpty else { return }
-        
-        Task {
-            do {
-                let response = try await paymentService.applyPromoCode(
-                    code: promoCode,
-                    plan: selectedPlan,
-                    duration: selectedDuration
-                )
-                await MainActor.run {
-                    promoApplied = response
-                }
-            } catch {
-                await MainActor.run {
-                    promoApplied = PromoCodeResponse(
-                        valid: false,
-                        discountPercent: nil,
-                        finalAmount: nil,
-                        originalAmount: nil,
-                        message: error.localizedDescription
-                    )
-                }
+    private func getBasePrice(_ plan: String) -> Int {
+        switch plan {
+        case "basic": return 50
+        case "premium": return 100
+        case "pro": return 500
+        default: return 0
+        }
+    }
+    
+    private func fetchELCBalance() async {
+        do {
+            let balance = try await paymentService.fetchELCBalance()
+            await MainActor.run {
+                self.elcBalance = balance
+            }
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
             }
         }
     }
     
-    private func createPayment() {
-        isCreatingPayment = true
-        paymentError = nil
+    private func payWithELC() async {
+        isLoading = true
+        errorMessage = nil
         
-        Task {
-            do {
-                _ = try await paymentService.createPayment(
-                    plan: selectedPlan,
-                    duration: selectedDuration,
-                    currency: selectedCurrency,
-                    network: selectedNetwork,
-                    promoCode: promoApplied?.valid == true ? promoCode : nil
-                )
-                
-                await MainActor.run {
-                    isCreatingPayment = false
-                    showPaymentSheet = true
+        do {
+            let result = try await paymentService.payWithELC(plan: selectedPlan, duration: selectedDuration)
+            await MainActor.run {
+                isLoading = false
+                if result.success {
+                    successMessage = result.message ?? "subscription_activated".localized
+                    elcBalance = result.newBalance ?? elcBalance
+                } else {
+                    errorMessage = result.message ?? "payment_failed".localized
                 }
-            } catch {
-                await MainActor.run {
-                    isCreatingPayment = false
-                    paymentError = error.localizedDescription
-                }
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+                errorMessage = error.localizedDescription
             }
         }
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Buy ELC Sheet
+
+struct BuyELCSheet: View {
+    let onDismiss: () -> Void
+    let onPurchaseComplete: (Double) -> Void
+    
+    @StateObject private var paymentService = PaymentService.shared
+    @State private var selectedAmount: Int = 100
+    @State private var currentInvoice: ELCPurchaseInvoice?
+    @State private var isLoading = false
+    @State private var paymentStatus: String = "pending"
+    @State private var errorMessage: String?
+    
+    let amounts = [50, 100, 200, 500]
+    
+    var elcAmount: Double {
+        Double(selectedAmount) * 0.995  // 0.5% fee
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.enlikoBackground.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if let invoice = currentInvoice {
+                            // Show payment details
+                            PaymentDetailsView(
+                                invoice: invoice,
+                                paymentStatus: paymentStatus,
+                                onCheckStatus: checkPaymentStatus
+                            )
+                        } else {
+                            // Amount selection
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("select_amount".localized)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                                    ForEach(amounts, id: \.self) { amount in
+                                        AmountButton(
+                                            amount: amount,
+                                            isSelected: selectedAmount == amount,
+                                            action: { selectedAmount = amount }
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Summary
+                            VStack(spacing: 12) {
+                                HStack {
+                                    Text("you_pay".localized)
+                                        .foregroundColor(.enlikoTextSecondary)
+                                    Spacer()
+                                    Text("\(selectedAmount) USDT")
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                }
+                                
+                                HStack {
+                                    Text("you_get".localized)
+                                        .foregroundColor(.enlikoTextSecondary)
+                                    Spacer()
+                                    Text(String(format: "%.2f ELC", elcAmount))
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.enlikoGreen)
+                                }
+                                
+                                HStack {
+                                    Text("fee".localized)
+                                        .foregroundColor(.enlikoTextSecondary)
+                                    Spacer()
+                                    Text("0.5%")
+                                        .foregroundColor(.enlikoTextSecondary)
+                                }
+                            }
+                            .padding()
+                            .background(Color.enlikoCard)
+                            .cornerRadius(12)
+                            
+                            // Buy button
+                            Button {
+                                Task { await createPurchase() }
+                            } label: {
+                                HStack {
+                                    if isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    } else {
+                                        Image(systemName: "cart.fill")
+                                        Text("buy_elc".localized)
+                                    }
+                                }
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.enlikoPrimary)
+                                .cornerRadius(12)
+                            }
+                            .disabled(isLoading)
+                        }
+                        
+                        if let error = errorMessage {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("buy_elc".localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("close".localized) {
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func createPurchase() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let invoice = try await paymentService.createELCPurchase(amount: Double(selectedAmount))
+            await MainActor.run {
+                self.currentInvoice = invoice
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isLoading = false
+            }
+        }
+    }
+    
+    private func checkPaymentStatus() async {
+        guard let paymentId = currentInvoice?.paymentId else { return }
+        
+        do {
+            let response = try await paymentService.checkELCPaymentStatus(paymentId: paymentId)
+            await MainActor.run {
+                paymentStatus = response.status
+                if response.status == "confirmed" {
+                    onPurchaseComplete(currentInvoice?.elcAmount ?? elcAmount)
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+// MARK: - Payment Details View
+
+struct PaymentDetailsView: View {
+    let invoice: ELCPurchaseInvoice
+    let paymentStatus: String
+    let onCheckStatus: () async -> Void
+    
+    @State private var isChecking = false
+    
+    var address: String {
+        invoice.address ?? "Loading..."
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Status indicator
+            VStack(spacing: 8) {
+                Image(systemName: statusIcon)
+                    .font(.system(size: 48))
+                    .foregroundColor(statusColor)
+                
+                Text(statusText)
+                    .font(.headline)
+                    .foregroundColor(statusColor)
+            }
+            .padding()
+            
+            // Amount
+            VStack(spacing: 4) {
+                Text("send_exactly".localized)
+                    .foregroundColor(.enlikoTextSecondary)
+                
+                Text("\(Int(invoice.amountUSD ?? 0)) USDT")
+                    .font(.title.weight(.bold))
+                    .foregroundColor(.white)
+                
+                Text("TRC20 Network")
+                    .font(.caption)
+                    .foregroundColor(.enlikoTextSecondary)
+            }
+            
+            // Address
+            VStack(spacing: 8) {
+                Text("to_address".localized)
+                    .foregroundColor(.enlikoTextSecondary)
+                
+                HStack {
+                    Text(address)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    Button {
+                        UIPasteboard.general.string = address
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.enlikoPrimary)
+                    }
+                }
+                .padding()
+                .background(Color.enlikoCard)
+                .cornerRadius(8)
+            }
+            
+            // Check status button
+            if paymentStatus != "confirmed" {
+                Button {
+                    Task {
+                        isChecking = true
+                        await onCheckStatus()
+                        isChecking = false
+                    }
+                } label: {
+                    HStack {
+                        if isChecking {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                            Text("check_status".localized)
+                        }
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.enlikoBlue)
+                    .cornerRadius(12)
+                }
+                .disabled(isChecking)
+            }
+            
+            // You will receive
+            HStack {
+                Text("you_will_receive".localized)
+                    .foregroundColor(.enlikoTextSecondary)
+                Spacer()
+                Text(String(format: "%.2f ELC", invoice.elcAmount ?? 0))
+                    .fontWeight(.bold)
+                    .foregroundColor(.enlikoGreen)
+            }
+            .padding()
+            .background(Color.enlikoCard)
+            .cornerRadius(8)
+        }
+    }
+    
+    private var statusIcon: String {
+        switch paymentStatus {
+        case "confirmed": return "checkmark.circle.fill"
+        case "pending": return "clock.fill"
+        default: return "exclamationmark.circle.fill"
+        }
+    }
+    
+    private var statusColor: Color {
+        switch paymentStatus {
+        case "confirmed": return .enlikoGreen
+        case "pending": return .enlikoYellow
+        default: return .enlikoRed
+        }
+    }
+    
+    private var statusText: String {
+        switch paymentStatus {
+        case "confirmed": return "payment_confirmed".localized
+        case "pending": return "awaiting_payment".localized
+        default: return "payment_status".localized
+        }
+    }
+}
+
+// MARK: - Plan Card
 
 struct PlanCard: View {
     let name: String
-    let displayName: String
+    let description: String
+    let price: Int
     let features: [String]
     let isSelected: Bool
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(displayName)
+                    Text(name)
                         .font(.headline)
                         .foregroundColor(.white)
                     
                     Spacer()
                     
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.enlikoPrimary)
-                    }
+                    Text("\(price) ELC/mo")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.enlikoPrimary)
                 }
                 
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.enlikoTextSecondary)
+                
                 ForEach(features, id: \.self) { feature in
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark")
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.caption)
                             .foregroundColor(.enlikoGreen)
                         Text(feature)
@@ -484,30 +741,29 @@ struct PlanCard: View {
                     )
             )
         }
+        .buttonStyle(.plain)
     }
 }
 
+// MARK: - Duration Button
+
 struct DurationButton: View {
-    let duration: String
     let label: String
-    let price: Double
+    let discount: String?
     let isSelected: Bool
-    var discount: Int = 0
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             VStack(spacing: 4) {
                 Text(label)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.white)
                 
-                Text("$\(price, specifier: "%.0f")")
-                    .font(.headline)
-                    .foregroundColor(isSelected ? .enlikoPrimary : .enlikoTextSecondary)
-                
-                if discount > 0 {
-                    Text("-\(discount)%")
+                if let discount = discount {
+                    Text("-\(discount)")
                         .font(.caption2)
                         .foregroundColor(.enlikoGreen)
                 }
@@ -515,269 +771,48 @@ struct DurationButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.enlikoCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? Color.enlikoPrimary : Color.enlikoBorder, lineWidth: isSelected ? 2 : 1)
-                    )
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? Color.enlikoPrimary : Color.enlikoCard)
             )
         }
+        .buttonStyle(.plain)
     }
 }
 
-struct PaymentHistoryRow: View {
-    let payment: PaymentHistoryItem
+// MARK: - Amount Button
+
+struct AmountButton: View {
+    let amount: Int
+    let isSelected: Bool
+    let action: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(payment.plan.capitalized)
-                    .font(.subheadline.weight(.medium))
+        Button {
+            action()
+        } label: {
+            VStack(spacing: 4) {
+                Text("\(amount) USDT")
+                    .font(.headline)
                     .foregroundColor(.white)
                 
-                Text(payment.createdAt)
+                Text("≈ \(Int(Double(amount) * 0.995)) ELC")
                     .font(.caption)
                     .foregroundColor(.enlikoTextSecondary)
             }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("$\(payment.amountUsd, specifier: "%.0f")")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.white)
-                
-                Text(payment.status.capitalized)
-                    .font(.caption)
-                    .foregroundColor(payment.status == "confirmed" ? .enlikoGreen : .enlikoYellow)
-            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.enlikoPrimary : Color.enlikoCard)
+            )
         }
-        .padding()
-        .background(Color.enlikoCard)
-        .cornerRadius(12)
+        .buttonStyle(.plain)
     }
 }
 
-struct PaymentInvoiceSheet: View {
-    let invoice: PaymentInvoice
-    @Environment(\.dismiss) var dismiss
-    @StateObject private var paymentService = PaymentService.shared
-    @State private var isChecking = false
-    @State private var statusMessage: String?
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.enlikoBackground.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // QR Code
-                        if let qrUrl = invoice.qrCodeUrl, let url = URL(string: qrUrl) {
-                            AsyncImage(url: url) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 200, height: 200)
-                            } placeholder: {
-                                ProgressView()
-                                    .frame(width: 200, height: 200)
-                            }
-                            .background(Color.white)
-                            .cornerRadius(12)
-                        }
-                        
-                        // Amount
-                        VStack(spacing: 8) {
-                            Text("send_exactly".localized)
-                                .font(.subheadline)
-                                .foregroundColor(.enlikoTextSecondary)
-                            
-                            Text("\(invoice.amountCrypto, specifier: "%.6f") \(invoice.currency)")
-                                .font(.title.bold())
-                                .foregroundColor(.enlikoPrimary)
-                            
-                            Text("~$\(invoice.amountUsd, specifier: "%.0f")")
-                                .font(.subheadline)
-                                .foregroundColor(.enlikoTextSecondary)
-                        }
-                        
-                        // Address
-                        VStack(spacing: 8) {
-                            Text("to_address".localized)
-                                .font(.subheadline)
-                                .foregroundColor(.enlikoTextSecondary)
-                            
-                            Text(invoice.address)
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.enlikoCard)
-                                .cornerRadius(8)
-                            
-                            Button(action: copyAddress) {
-                                HStack {
-                                    Image(systemName: "doc.on.doc")
-                                    Text("copy_address".localized)
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(.enlikoPrimary)
-                            }
-                        }
-                        
-                        // Network
-                        HStack {
-                            Text("network".localized)
-                                .foregroundColor(.enlikoTextSecondary)
-                            Spacer()
-                            Text(invoice.network)
-                                .foregroundColor(.white)
-                        }
-                        .padding()
-                        .background(Color.enlikoCard)
-                        .cornerRadius(12)
-                        
-                        // Status
-                        if let message = statusMessage {
-                            Text(message)
-                                .font(.subheadline)
-                                .foregroundColor(.enlikoYellow)
-                        }
-                        
-                        // Check button
-                        Button(action: checkStatus) {
-                            HStack {
-                                if isChecking {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                } else {
-                                    Image(systemName: "arrow.clockwise")
-                                    Text("check_payment".localized)
-                                }
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.enlikoPrimary)
-                            .cornerRadius(16)
-                        }
-                        .disabled(isChecking)
-                        
-                        // Warning
-                        VStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.enlikoYellow)
-                            Text("payment_warning".localized)
-                                .font(.caption)
-                                .foregroundColor(.enlikoTextSecondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding()
-                    }
-                    .padding()
-                }
-            }
-            .navigationTitle("payment_invoice".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("close".localized) {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func copyAddress() {
-        UIPasteboard.general.string = invoice.address
-        statusMessage = "address_copied".localized
-    }
-    
-    private func checkStatus() {
-        isChecking = true
-        
-        Task {
-            do {
-                let status = try await paymentService.checkPaymentStatus(paymentId: invoice.paymentId)
-                
-                await MainActor.run {
-                    isChecking = false
-                    if status.isConfirmed {
-                        statusMessage = "✅ " + "payment_confirmed".localized
-                    } else if status.isConfirming {
-                        statusMessage = "⏳ " + "payment_confirming".localized
-                    } else if status.isExpired {
-                        statusMessage = "❌ " + "payment_expired".localized
-                    } else {
-                        statusMessage = "⏳ " + "payment_pending".localized
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    isChecking = false
-                    statusMessage = "Error: \(error.localizedDescription)"
-                }
-            }
-        }
-    }
-}
-
-struct CurrencyPickerSheet: View {
-    let currencies: [PaymentCurrency]
-    @Binding var selectedCurrency: String
-    @Binding var selectedNetwork: String
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.enlikoBackground.ignoresSafeArea()
-                
-                List {
-                    ForEach(currencies) { currency in
-                        Section(header: Text("\(currency.symbol) - \(currency.name)")) {
-                            ForEach(currency.networks, id: \.self) { network in
-                                Button(action: {
-                                    selectedCurrency = currency.symbol
-                                    selectedNetwork = network
-                                    dismiss()
-                                }) {
-                                    HStack {
-                                        Text(network)
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        if selectedCurrency == currency.symbol && selectedNetwork == network {
-                                            Image(systemName: "checkmark")
-                                                .foregroundColor(.enlikoPrimary)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .listRowBackground(Color.enlikoCard)
-                    }
-                }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
-            }
-            .navigationTitle("select_currency".localized)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("done".localized) {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
+// MARK: - Preview
 
 #Preview {
     SubscriptionView()
         .environmentObject(AuthManager.shared)
-        .preferredColorScheme(.dark)
 }

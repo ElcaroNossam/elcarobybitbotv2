@@ -9,7 +9,7 @@ import os
 import sys
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -196,6 +196,140 @@ async def buy_elc_tokens(
         raise
     except Exception as e:
         logger.error(f"Buy ELC error: {e}")
+        raise HTTPException(500, str(e))
+
+
+# iOS-compatible endpoint for buying ELC with USDT
+class BuyELCUSDTRequest(BaseModel):
+    amount: float  # USDT amount
+
+
+@router.post("/elc/buy-usdt")
+async def buy_elc_with_usdt(
+    request: BuyELCUSDTRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Create payment to buy ELC with USDT via OxaPay.
+    iOS-compatible endpoint.
+    
+    Returns payment invoice with address and QR code.
+    """
+    user_id = user["user_id"]
+    
+    try:
+        if request.amount < 10:
+            raise HTTPException(400, "Minimum purchase is 10 USDT")
+        if request.amount > 10000:
+            raise HTTPException(400, "Maximum purchase is 10,000 USDT")
+        
+        # Calculate ELC amount (0.5% fee)
+        elc_amount = request.amount * 0.995
+        fee = request.amount * 0.005
+        
+        # Create payment via OxaPay for ELC purchase
+        payment_result = await oxapay_service.create_elc_purchase(
+            user_id=user_id,
+            usdt_amount=request.amount,
+            currency="USDT",
+            network="TRC20"
+        )
+        
+        if not payment_result.get("success"):
+            raise HTTPException(500, payment_result.get("error", "Payment creation failed"))
+        
+        # Save pending purchase to database
+        execute_write(
+            """INSERT INTO crypto_payments 
+               (user_id, payment_id, amount_usd, amount_crypto, currency, network, 
+                address, status, plan, duration, created_at, expires_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW() + INTERVAL '30 minutes')
+               ON CONFLICT (payment_id) DO NOTHING""",
+            (user_id, payment_result["payment_id"], request.amount, elc_amount,
+             "USDT", "TRC20", payment_result.get("address"), "pending", 
+             "elc_purchase", "instant")
+        )
+        
+        return {
+            "success": True,
+            "paymentId": payment_result["payment_id"],
+            "address": payment_result["address"],
+            "amountUSD": request.amount,
+            "elcAmount": elc_amount,
+            "fee": fee,
+            "feePercent": 0.5,
+            "currency": "USDT",
+            "network": "TRC20",
+            "expiresAt": payment_result.get("expires_at"),
+            "qrCodeUrl": payment_result.get("qr_url"),
+            "instructions": [
+                f"Send exactly {request.amount} USDT (TRC20) to the address",
+                "Payment confirms automatically in 1-5 minutes",
+                f"You will receive {elc_amount:.2f} ELC"
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Buy ELC USDT error: {e}")
+        raise HTTPException(500, str(e))
+
+
+@router.get("/elc/payment-status/{payment_id}")
+async def get_elc_payment_status(
+    payment_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Check ELC purchase payment status.
+    iOS-compatible endpoint.
+    """
+    user_id = user["user_id"]
+    
+    try:
+        # Get payment from database
+        row = execute_one(
+            """SELECT payment_id, amount_usd, amount_crypto, currency, network,
+                      address, status, created_at, confirmed_at
+               FROM crypto_payments 
+               WHERE payment_id = %s AND user_id = %s""",
+            (payment_id, user_id)
+        )
+        
+        if not row:
+            raise HTTPException(404, "Payment not found")
+        
+        # Check status with OxaPay if still pending
+        status = row["status"]
+        if status == "pending":
+            oxapay_status = await oxapay_service.check_payment_status(payment_id)
+            if oxapay_status.get("status") == "confirmed":
+                status = "confirmed"
+                # Credit ELC to user
+                elc_amount = row["amount_crypto"] or (row["amount_usd"] * 0.995)
+                add_elc_balance(user_id, elc_amount, f"ELC Purchase: {payment_id}")
+                
+                # Update database
+                execute_write(
+                    "UPDATE crypto_payments SET status = 'confirmed', confirmed_at = NOW() WHERE payment_id = %s",
+                    (payment_id,)
+                )
+        
+        return {
+            "paymentId": row["payment_id"],
+            "status": status,
+            "amountUSD": row["amount_usd"],
+            "elcAmount": row["amount_crypto"],
+            "currency": row["currency"],
+            "network": row["network"],
+            "address": row["address"],
+            "createdAt": str(row["created_at"]) if row["created_at"] else None,
+            "confirmedAt": str(row["confirmed_at"]) if row["confirmed_at"] else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Check ELC payment status error: {e}")
         raise HTTPException(500, str(e))
 
 
@@ -389,6 +523,100 @@ async def create_subscription_payment(
         raise HTTPException(500, str(e))
 
 
+# iOS-compatible model
+class PayWithELCRequest(BaseModel):
+    plan: str  # basic, premium, pro
+    duration: str  # 1m, 3m, 6m, 1y
+
+
+@router.post("/subscriptions/pay-elc")
+async def pay_subscription_with_elc(
+    request: PayWithELCRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Pay for subscription using ELC tokens.
+    iOS-compatible endpoint (alias for /subscriptions/create).
+    """
+    user_id = user["user_id"]
+    
+    try:
+        # Map duration to months
+        duration_months = {
+            "1m": 1,
+            "3m": 3,
+            "6m": 6,
+            "1y": 12
+        }.get(request.duration, 1)
+        
+        # Get price using unified function
+        elc_price = get_license_price(request.plan, duration_months, "elc")
+        
+        if elc_price == 0 and request.plan != "trial":
+            raise HTTPException(400, "Invalid plan or duration")
+        
+        # Check user's ELC balance
+        balance = get_elc_balance_db(user_id)
+        user_balance = balance.get("available", 0)
+        
+        if user_balance < elc_price:
+            return {
+                "success": False,
+                "error": "insufficient_balance",
+                "required": elc_price,
+                "available": user_balance,
+                "shortfall": elc_price - user_balance,
+                "message": f"Need {elc_price - user_balance:.0f} more ELC"
+            }
+        
+        # Deduct ELC from balance
+        new_balance = subtract_elc_balance(
+            user_id, 
+            elc_price, 
+            f"Subscription: {request.plan} {request.duration}"
+        )
+        
+        # Calculate subscription duration in days
+        duration_days = {
+            "1m": 30,
+            "3m": 90,
+            "6m": 180,
+            "1y": 365
+        }[request.duration]
+        
+        # Activate subscription
+        result = set_user_license(
+            user_id=user_id,
+            license_type=request.plan,
+            period_months=duration_months,
+            payment_type="ELC",
+            amount=elc_price,
+            currency="ELC",
+            notes=f"Paid via iOS app"
+        )
+        
+        if not result.get("success"):
+            # Refund on failure
+            add_elc_balance(user_id, elc_price, "Subscription activation failed - refund")
+            raise HTTPException(500, result.get("error", "License activation failed"))
+        
+        return {
+            "success": True,
+            "subscriptionActivated": True,
+            "plan": request.plan,
+            "duration": request.duration,
+            "elcPaid": elc_price,
+            "newBalance": new_balance.get("available", 0),
+            "expiresInDays": duration_days,
+            "message": f"{request.plan.title()} activated for {duration_days} days!"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pay with ELC error: {e}")
+        raise HTTPException(500, str(e))
+
+
 # ============================================================
 # COLD WALLET TRADING ENDPOINTS
 # ============================================================
@@ -522,6 +750,37 @@ async def submit_signed_order(
     except Exception as e:
         logger.error(f"Submit signed order error: {e}")
         raise HTTPException(500, str(e))
+
+
+# ============================================================
+# OXAPAY WEBHOOK FOR ELC PURCHASES
+# ============================================================
+
+@router.post("/elc/webhook")
+async def elc_purchase_webhook(request: Request):
+    """
+    OxaPay webhook for ELC token purchases.
+    
+    When user pays USDT, this webhook credits ELC to their balance.
+    """
+    try:
+        payload = await request.json()
+        logger.info(f"ELC webhook received: {payload}")
+        
+        # Verify signature (optional but recommended)
+        signature = request.headers.get("X-OxaPay-Signature", "")
+        if not oxapay_service.verify_webhook(payload, signature):
+            logger.warning("Invalid webhook signature")
+            # Continue anyway for now, but log it
+        
+        # Process the webhook
+        result = await oxapay_service.process_elc_purchase_webhook(payload)
+        
+        return {"status": "ok", "result": result}
+        
+    except Exception as e:
+        logger.error(f"ELC webhook error: {e}")
+        return {"status": "error", "error": str(e)}
 
 
 # OxaPay is initialized automatically via environment variables

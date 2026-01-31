@@ -243,9 +243,21 @@ class PaymentService: ObservableObject {
     
     // MARK: - Plan Pricing Helpers
     
+    // Default prices in ELC (synced with server LICENSE_PRICES)
+    private let defaultPrices: [String: [String: Double]] = [
+        "basic": ["1m": 50, "3m": 135, "6m": 240, "1y": 420],
+        "premium": ["1m": 100, "3m": 270, "6m": 480, "1y": 840],
+        "pro": ["1m": 500, "3m": 1350, "6m": 2400, "1y": 4200]
+    ]
+    
     func getPrice(for plan: String, duration: String) -> Double? {
-        guard let planData = plans.first(where: { $0.name == plan }) else { return nil }
-        return planData.prices[duration]
+        // Try from loaded plans first
+        if let planData = plans.first(where: { $0.name == plan }),
+           let price = planData.prices[duration] {
+            return price
+        }
+        // Fallback to default prices
+        return defaultPrices[plan]?[duration]
     }
     
     func getPlanDisplayName(_ plan: String) -> String {
@@ -261,4 +273,93 @@ class PaymentService: ObservableObject {
         default: return duration
         }
     }
+    
+    // MARK: - ELC Balance
+    
+    func fetchELCBalance() async throws -> Double {
+        struct BalanceResponse: Codable {
+            let available: Double
+            let staked: Double
+            let total: Double
+        }
+        
+        let response: BalanceResponse = try await networkService.get("/elc/balance")
+        return response.available
+    }
+    
+    // MARK: - Create ELC Purchase
+    
+    func createELCPurchase(amount: Double) async throws -> ELCPurchaseInvoice {
+        struct PurchaseRequest: Codable {
+            let amount: Double
+        }
+        
+        let request = PurchaseRequest(amount: amount)
+        let invoice: ELCPurchaseInvoice = try await networkService.post("/elc/buy-usdt", body: request)
+        return invoice
+    }
+    
+    // MARK: - Check ELC Payment Status
+    
+    func checkELCPaymentStatus(paymentId: String) async throws -> ELCPaymentStatusResponse {
+        let response: ELCPaymentStatusResponse = try await networkService.get("/elc/payment-status/\(paymentId)")
+        return response
+    }
+    
+    // MARK: - Pay with ELC
+    
+    func payWithELC(plan: String, duration: String) async throws -> ELCPaymentResult {
+        struct PayRequest: Codable {
+            let plan: String
+            let duration: String
+        }
+        
+        let request = PayRequest(plan: plan, duration: duration)
+        let result: ELCPaymentResult = try await networkService.post("/subscriptions/pay-elc", body: request)
+        return result
+    }
+}
+
+// MARK: - ELC Models
+
+struct ELCPurchaseInvoice: Codable {
+    let success: Bool
+    let paymentId: String
+    let address: String?
+    let amountUSD: Double?
+    let elcAmount: Double?
+    let fee: Double?
+    let feePercent: Double?
+    let currency: String?
+    let network: String?
+    let expiresAt: String?
+    let qrCodeUrl: String?
+    let instructions: [String]?
+}
+
+struct ELCPaymentStatusResponse: Codable {
+    let paymentId: String
+    let status: String
+    let amountUSD: Double?
+    let elcAmount: Double?
+    let currency: String?
+    let network: String?
+    let address: String?
+    let createdAt: String?
+    let confirmedAt: String?
+}
+
+struct ELCPaymentResult: Codable {
+    let success: Bool
+    let subscriptionActivated: Bool?
+    let plan: String?
+    let duration: String?
+    let elcPaid: Double?
+    let newBalance: Double?
+    let expiresInDays: Int?
+    let message: String?
+    let error: String?
+    let required: Double?
+    let available: Double?
+    let shortfall: Double?
 }
