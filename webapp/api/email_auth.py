@@ -399,18 +399,21 @@ def get_email_user_by_id(user_id: int) -> Optional[dict]:
 
 
 def create_email_user(email: str, password_hash: str, password_salt: str, name: Optional[str] = None, telegram_username: Optional[str] = None) -> Optional[int]:
-    """Create email user in database"""
+    """Create email user in database with atomic transaction for both tables"""
     try:
         from core.db_postgres import get_pool
         import psycopg2.extras
         
         user_id = generate_email_user_id()
+        email_lower = email.lower()
+        combined_hash = f"{password_hash}:{password_salt}"
         
-        # Use raw psycopg2 connection to avoid SQLiteCompatCursor issues with RETURNING
+        # Use raw psycopg2 connection for atomic transaction
         pool = get_pool()
         pg_conn = pool.getconn()
         try:
             with pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                # 1. Insert into email_users
                 cur.execute("""
                     INSERT INTO email_users (user_id, email, password_hash, password_salt, name, is_verified, created_at)
                     VALUES (%s, %s, %s, %s, %s, TRUE, NOW())
@@ -422,37 +425,40 @@ def create_email_user(email: str, password_hash: str, password_salt: str, name: 
                         is_verified = TRUE,
                         updated_at = NOW()
                     RETURNING user_id
-                """, (user_id, email.lower(), password_hash, password_salt, name))
+                """, (user_id, email_lower, password_hash, password_salt, name))
                 result = cur.fetchone()
                 
                 if not result:
                     logger.error(f"create_email_user: INSERT returned no result for {email}")
+                    pg_conn.rollback()
                     return None
                 
                 inserted_user_id = result['user_id']
+                
+                # 2. ATOMIC: Insert/Update main users table in same transaction
+                cur.execute("""
+                    INSERT INTO users (user_id, email, password_hash, auth_provider, email_verified, first_name, telegram_username, is_allowed)
+                    VALUES (%s, %s, %s, 'email', TRUE, %s, %s, 1)
+                    ON CONFLICT (user_id) DO UPDATE SET 
+                        email = EXCLUDED.email,
+                        password_hash = EXCLUDED.password_hash,
+                        auth_provider = 'email',
+                        email_verified = TRUE,
+                        first_name = COALESCE(EXCLUDED.first_name, users.first_name),
+                        telegram_username = COALESCE(EXCLUDED.telegram_username, users.telegram_username),
+                        is_allowed = 1
+                """, (inserted_user_id, email_lower, combined_hash, name, telegram_username))
+                
+                # Commit both inserts atomically
                 pg_conn.commit()
-                logger.info(f"email_users INSERT success: {email} -> user_id={inserted_user_id}")
+                logger.info(f"Created email user (atomic): {email} -> user_id={inserted_user_id}, is_allowed=1")
+                
+        except Exception as e:
+            pg_conn.rollback()
+            raise
         finally:
             pool.putconn(pg_conn)
         
-        # Also ensure user exists in main users table with full data
-        db.ensure_user(inserted_user_id)
-        
-        # Set all required fields in users table for unified auth
-        from core.db_postgres import execute as pg_execute
-        pg_execute("""
-            UPDATE users SET 
-                email = %s,
-                password_hash = %s,
-                auth_provider = 'email',
-                email_verified = TRUE,
-                first_name = %s,
-                telegram_username = %s,
-                is_allowed = 1
-            WHERE user_id = %s
-        """, (email.lower(), f"{password_hash}:{password_salt}", name, telegram_username, inserted_user_id))
-        
-        logger.info(f"Created email user: {email} -> user_id={inserted_user_id}, telegram_username={telegram_username}, is_allowed=1")
         return inserted_user_id
     except Exception as e:
         logger.error(f"create_email_user error: {e}", exc_info=True)
