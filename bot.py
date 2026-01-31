@@ -4141,20 +4141,23 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     # ═══════════════════════════════════════════════════════════════
     # ██  UNIFIED MODERN COMPACT MENU  ██
     # ═══════════════════════════════════════════════════════════════
-    # Exchange status button (shows current active exchange, tap to see status)
+    # Exchange status button (shows current active exchange + account mode)
     if active_exchange == "hyperliquid":
         hl_creds = get_hl_credentials(user_id) if user_id else {}
         is_testnet = hl_creds.get("hl_testnet", False)
-        exchange_btn = t.get('exchange_hl_testnet', '🔷 HL 🧪') if is_testnet else t.get('exchange_hl_mainnet', '🔷 HL 🌐')
+        if is_testnet:
+            exchange_btn = t.get('exchange_hl_testnet', '🔷 HL Testnet 🧪')
+        else:
+            exchange_btn = t.get('exchange_hl_mainnet', '🔷 HL Mainnet 🌐')
     else:
         creds = get_all_user_credentials(user_id) if user_id else {}
         trading_mode = creds.get("trading_mode", "demo")
         if trading_mode == "demo":
-            exchange_btn = t.get('exchange_bybit_demo', '🟠 Bybit 🎮')
+            exchange_btn = t.get('exchange_bybit_demo', '🟠 Bybit Demo 🎮')
         elif trading_mode == "real":
-            exchange_btn = t.get('exchange_bybit_real', '🟠 Bybit 💵')
+            exchange_btn = t.get('exchange_bybit_real', '🟠 Bybit Real 💵')
         else:  # both
-            exchange_btn = t.get('exchange_bybit_both', '🟠 Bybit 🔀')
+            exchange_btn = t.get('exchange_bybit_both', '🟠 Bybit Demo+Real 🔀')
     
     # Build webapp URL with user_id for auto-login
     webapp_url = WEBAPP_URL
@@ -26957,6 +26960,62 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
     
     return True
 
+@with_texts
+@log_calls
+async def on_menu_main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle 'Back' button that returns to main menu.
+    
+    This handler processes callback_data="menu:main" which is used throughout
+    the bot for returning to the main menu from various submenus.
+    """
+    q = update.callback_query
+    await q.answer()
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    # Get user's current exchange and account info for the welcome message
+    exchange = db.get_exchange_type(uid) or "bybit"
+    trading_mode = get_trading_mode(uid)
+    
+    # Prepare the welcome text
+    wave = t.get('wave', '👋')
+    title = t.get('title', 'Enliko Trading Bot')
+    
+    # Build main menu message
+    welcome_text = f"{wave} <b>{title}</b>\n\n"
+    
+    if exchange == "hyperliquid":
+        network = "Testnet" if trading_mode in ("testnet", "demo") else "Mainnet"
+        welcome_text += f"🔷 <b>HyperLiquid</b> ({network})\n"
+    else:
+        mode_display = {
+            "demo": "🎮 Demo",
+            "real": "💵 Real",
+            "both": "🔀 Demo + Real"
+        }.get(trading_mode, trading_mode)
+        welcome_text += f"🟠 <b>Bybit</b> ({mode_display})\n"
+    
+    welcome_text += t.get('main_menu_hint', '\nSelect an option from the menu below:')
+    
+    try:
+        await q.edit_message_text(
+            text=welcome_text,
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard(ctx, update=update)
+        )
+    except Exception as e:
+        # If edit fails (e.g., message too old), send new message
+        logger.warning(f"[{uid}] Failed to edit message for menu:main: {e}")
+        try:
+            await q.message.reply_text(
+                text=welcome_text,
+                parse_mode="HTML",
+                reply_markup=main_menu_keyboard(ctx, update=update)
+            )
+        except Exception as e2:
+            logger.error(f"[{uid}] Failed to send menu:main message: {e2}")
+
+
 async def _shutdown(app: Application):
     task = app.bot_data.get("monitor_task")
     if isinstance(task, asyncio.Task) and not task.done():
@@ -27011,6 +27070,9 @@ def main():
             logger.info(f"[DEBUG-CALLBACK] uid={uid} callback_data={data}")
     
     app.add_handler(TypeHandler(Update, debug_all_updates), group=-100)  # Runs first, doesn't block
+    
+    # Menu handlers
+    app.add_handler(CallbackQueryHandler(on_menu_main_cb, pattern=r"^menu:main$"))
     
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))

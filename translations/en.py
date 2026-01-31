@@ -1189,6 +1189,9 @@ TEXTS = {
     'terms_unavailable': 'Terms unavailable. Contact admin.',
     'terms_confirm_prompt': 'Please confirm:',
     
+    # Main menu
+    'main_menu_hint': '\n\nSelect an option from the menu below:',
+    
     # Admin new user
     'title': 'New user',
     'wave': '👋',

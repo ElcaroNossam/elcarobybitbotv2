@@ -9,9 +9,9 @@ from typing import Callable
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Trading parameters defaults
-DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "5.0"))        # Entry % (risk per trade)
-DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "30.0"))         # Stop-Loss %
-DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "25.0"))         # Take-Profit %
+DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "1.0"))        # Entry % (risk per trade)
+DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "3.0"))          # Stop-Loss %
+DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "8.0"))          # Take-Profit %
 DEFAULT_LEVERAGE = int(os.getenv("DEFAULT_LEVERAGE", "10"))         # Leverage
 
 # ATR Trailing defaults
