@@ -33,7 +33,7 @@ from core.db_postgres import get_conn, execute, execute_one
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/payments", tags=["Crypto Payments"])
+router = APIRouter(prefix="/crypto", tags=["Crypto Payments"])
 
 
 # =============================================================================
