@@ -57,8 +57,8 @@ async def _save_notification_to_db(user_id: int, notification_type: str, title: 
     """Save notification to database for history"""
     try:
         execute("""
-            INSERT INTO notification_queue (user_id, notification_type, title, message, data, status)
-            VALUES (%s, %s, %s, %s, %s, 'sent')
+            INSERT INTO notification_queue (user_id, notification_type, title, message, data, status, target)
+            VALUES (%s, %s, %s, %s, %s, 'sent', 'telegram')
         """, (user_id, notification_type, title, message, json.dumps(data) if data else None))
     except Exception as e:
         logger.error(f"Failed to save notification to DB: {e}")
