@@ -765,16 +765,72 @@
             }
         }
         
-        // TON Payment
+        // TON Payment - redirect to OxaPay
         async function processTONPayment() {
-            alert('TON payment integration coming soon!');
-            // Implement TON payment logic
+            const selectedPlan = document.querySelector('.plan-card.selected');
+            const selectedPeriod = document.querySelector('.period-btn.active');
+            
+            if (!selectedPlan || !selectedPeriod) {
+                showToast('Please select a plan and period', 'error');
+                return;
+            }
+            
+            const plan = selectedPlan.dataset.plan;
+            const period = selectedPeriod.dataset.period;
+            
+            try {
+                const response = await fetch('/api/payments/crypto/create', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ plan, duration: period, currency: 'TON', network: 'TON' })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    showToast(data.error || 'Failed to create payment', 'error');
+                }
+            } catch (error) {
+                showToast('Payment error: ' + error.message, 'error');
+            }
         }
         
-        // USDT Payment
+        // USDT Payment - redirect to OxaPay
         async function processUSDTPayment() {
-            alert('USDT payment integration coming soon!');
-            // Implement USDT payment logic
+            const selectedPlan = document.querySelector('.plan-card.selected');
+            const selectedPeriod = document.querySelector('.period-btn.active');
+            
+            if (!selectedPlan || !selectedPeriod) {
+                showToast('Please select a plan and period', 'error');
+                return;
+            }
+            
+            const plan = selectedPlan.dataset.plan;
+            const period = selectedPeriod.dataset.period;
+            
+            try {
+                const response = await fetch('/api/payments/crypto/create', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ plan, duration: period, currency: 'USDT', network: 'TRC20' })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    showToast(data.error || 'Failed to create payment', 'error');
+                }
+            } catch (error) {
+                showToast('Payment error: ' + error.message, 'error');
+            }
         }
         
         // Initialize on load

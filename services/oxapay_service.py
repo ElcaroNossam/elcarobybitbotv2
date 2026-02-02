@@ -886,3 +886,115 @@ def get_price(plan: str, duration: str) -> float:
 def get_currencies() -> List[Dict[str, Any]]:
     """Get available currencies"""
     return oxapay_service.get_available_currencies()
+
+
+async def create_payment_for_elc(
+    user_id: int,
+    amount_usd: float,
+    currency: str = "USDT",
+    network: str = "TRC20"
+) -> Dict[str, Any]:
+    """
+    Create payment for buying ELC tokens.
+    
+    Args:
+        user_id: Telegram user ID
+        amount_usd: Amount in USD (1:1 with ELC)
+        currency: Payment currency (USDT, BTC, ETH, etc.)
+        network: Blockchain network (TRC20, BEP20, ERC20, Bitcoin)
+    
+    Returns:
+        Dict with payment details or error
+    """
+    import uuid
+    import aiohttp
+    
+    try:
+        payment_id = f"elc_{user_id}_{uuid.uuid4().hex[:8]}"
+        
+        body = {
+            "merchant": oxapay_service.merchant_key,
+            "amount": amount_usd,
+            "currency": "USD",
+            "payCurrency": currency,
+            "network": network,
+            "lifeTime": 30,  # 30 minutes
+            "feePaidByPayer": 0,
+            "underPaidCover": 2.5,
+            "callbackUrl": f"{oxapay_service.callback_url}?type=elc",
+            "returnUrl": f"https://enliko.com/wallet?payment={payment_id}",
+            "description": f"Buy {int(amount_usd)} ELC Tokens",
+            "orderId": payment_id,
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{oxapay_service.api_url}/merchants/request",
+                json=body,
+                headers={"Content-Type": "application/json"}
+            ) as resp:
+                data = await resp.json()
+        
+        if data.get("result") == 100:
+            # Store payment in database
+            from core.db_postgres import execute
+            execute("""
+                INSERT INTO crypto_payments 
+                (user_id, payment_id, amount_usd, currency, network, status, plan, duration, created_at)
+                VALUES (%s, %s, %s, %s, %s, 'pending', 'elc_purchase', '0', NOW())
+                ON CONFLICT (payment_id) DO NOTHING
+            """, (user_id, payment_id, amount_usd, currency, network))
+            
+            return {
+                "success": True,
+                "data": {
+                    "payment_id": payment_id,
+                    "address": data.get("address", ""),
+                    "amount": data.get("payAmount", amount_usd),
+                    "currency": currency,
+                    "network": network,
+                    "expires_at": data.get("expiredAt", ""),
+                    "track_id": data.get("trackId", ""),
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "error": data.get("message", "Payment creation failed")
+            }
+    except Exception as e:
+        logger.error(f"create_payment_for_elc error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def check_payment_status(payment_id: str) -> Dict[str, Any]:
+    """
+    Check status of a payment.
+    
+    Args:
+        payment_id: Our internal payment ID
+    
+    Returns:
+        Dict with status information
+    """
+    try:
+        from core.db_postgres import execute_one
+        
+        row = execute_one("""
+            SELECT status, amount_usd, user_id, confirmed_at
+            FROM crypto_payments
+            WHERE payment_id = %s
+        """, (payment_id,))
+        
+        if not row:
+            return {"status": "not_found", "error": "Payment not found"}
+        
+        return {
+            "status": row.get("status", "unknown"),
+            "amount": row.get("amount_usd", 0),
+            "user_id": row.get("user_id"),
+            "confirmed_at": str(row.get("confirmed_at", "")) if row.get("confirmed_at") else None
+        }
+    except Exception as e:
+        logger.error(f"check_payment_status error: {e}")
+        return {"status": "error", "error": str(e)}

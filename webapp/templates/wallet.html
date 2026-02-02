@@ -531,7 +531,10 @@
                 <div style="font-size: 64px; margin-bottom: 16px;">🚀</div>
                 <h4 style="margin-bottom: 8px;">Earn 12% APY</h4>
                 <p style="color: var(--text-secondary);">Stake your ELC and earn passive income. Rewards distributed daily!</p>
-                <div style="margin-top: 24px; color: var(--accent-yellow);">Coming Soon</div>
+                <div id="stakeForm" style="margin-top: 24px;">
+                    <input type="number" id="stakeAmount" placeholder="Amount to stake" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-primary); margin-bottom: 16px;">
+                    <button class="btn btn-primary" onclick="stakeELC()">🔒 Stake ELC</button>
+                </div>
             </div>
         </div>
     </div>
