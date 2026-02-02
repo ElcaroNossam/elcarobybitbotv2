@@ -47,6 +47,7 @@ struct StatsView: View {
                     }
                 }
                 .padding()
+                .padding(.bottom, 50) // Space for navigation
             }
             .navigationTitle("stats_title".localized)
             .withRTLSupport()

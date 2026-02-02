@@ -36,6 +36,7 @@ struct PortfolioView: View {
                         recentTradesSection
                     }
                     .padding()
+                    .padding(.bottom, 100) // Space for tab bar
                 }
                 .refreshable {
                     await tradingService.refreshAll()

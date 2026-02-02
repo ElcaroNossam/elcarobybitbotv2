@@ -52,6 +52,7 @@ struct TradingView: View {
                         placeOrderButton
                     }
                     .padding()
+                    .padding(.bottom, 100) // Space for tab bar
                 }
             }
             .navigationTitle("trading_title".localized)

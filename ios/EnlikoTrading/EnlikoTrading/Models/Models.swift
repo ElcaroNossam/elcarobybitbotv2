@@ -201,6 +201,7 @@ struct Balance: Codable {
     private let _available: Double?
     private let _unrealizedPnl: Double?
     let marginBalance: Double?
+    let positionMarginFromAPI: Double?  // NEW: Direct from API
     let accountType: String?
     let error: String?  // API may return error message
     
@@ -211,7 +212,10 @@ struct Balance: Codable {
     
     // Computed properties for compatibility
     var totalEquity: Double { equity }
-    var positionMargin: Double { marginBalance ?? (equity - available) }
+    // Use API value first, then compute fallback
+    var positionMargin: Double { 
+        positionMarginFromAPI ?? marginBalance ?? max(0, equity - available)
+    }
     var currency: String { "USDT" }
     var hasError: Bool { error != nil }
     
@@ -220,6 +224,7 @@ struct Balance: Codable {
         case _available = "available"
         case _unrealizedPnl = "unrealized_pnl"
         case marginBalance = "margin_balance"
+        case positionMarginFromAPI = "position_margin"  // Maps to API field
         case accountType = "account_type"
         case error
     }

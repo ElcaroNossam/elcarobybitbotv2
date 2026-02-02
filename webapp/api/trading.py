@@ -384,11 +384,18 @@ async def get_balance(
             )
             
             coins = data.get("result", {}).get("list", [{}])[0]
+            
+            # Calculate position margin (used margin for positions)
+            equity = float(coins.get("totalEquity", 0))
+            available = float(coins.get("totalAvailableBalance", 0))
+            position_im = float(coins.get("totalPositionIM", 0))  # Initial Margin for positions
+            
             return {
-                "equity": float(coins.get("totalEquity", 0)),
-                "available": float(coins.get("totalAvailableBalance", 0)),
+                "equity": equity,
+                "available": available,
                 "unrealized_pnl": float(coins.get("totalPerpUPL", 0)),
                 "margin_balance": float(coins.get("totalMarginBalance", 0)),
+                "position_margin": position_im if position_im > 0 else (equity - available),  # Fallback
                 "account_type": account_type
             }
         except HTTPException as e:
