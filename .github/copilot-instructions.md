@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.47.0 | Обновлено: 31 января 2026
+# Версия: 3.48.0 | Обновлено: 2 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -10,10 +10,10 @@
 # Android App: Kotlin + Jetpack Compose
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
+# Trading Flows Audit: Full audit with exchange filter fix (Feb 2, 2026) ✅
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
-# Translations: 15 languages × 690 keys = Full sync (Jan 28, 2026)
-# Crypto Payments: OxaPay Gateway (0.5% fee, 20+ cryptos, auto-approval)
+# Translations: 15 languages × 1540+ keys
 # Security Audit: $100k level - 5 critical + 3 high vulnerabilities FIXED (Jan 31, 2026) ✅
 
 ---
@@ -23,11 +23,11 @@
 | Документ | Путь | Описание |
 |----------|------|----------|
 | **Security Audit** | `docs/SECURITY_AUDIT_FEB_2026.md` | $100k аудит безопасности (Jan 31, 2026) |
+| **Trading Flows Audit** | `docs/TRADING_FLOWS_AUDIT_2026.md` | Полный аудит торговых потоков (Feb 2, 2026) |
 | **Trading Streams** | `docs/TRADING_STREAMS_ARCHITECTURE.md` | Полная карта 60 торговых потоков |
 | **Copilot Instructions** | Этот файл | Правила для AI |
 | **Keyboard Helpers** | `keyboard_helpers.py` | Централизованный factory для кнопок |
-| **Sync Service** | `services/sync_service.py` | Кросс-платформенная синхронизация |
-| **Activity API** | `webapp/api/activity.py` | История активности пользователей |
+| **Email Setup** | `docs/EMAIL_SETUP.md` | Настройка email авторизации |
 
 ---
 
@@ -1019,7 +1019,25 @@ except Exception as e:
 
 ---
 
-# 🔧 RECENT FIXES (Январь 2026)
+# 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ CRITICAL: Trading Flows Audit - Exchange Filter Fix (Feb 2, 2026)
+- **Проблема:** `get_trade_stats()` и `get_trade_stats_unknown()` НЕ фильтровали по `exchange` параметру!
+- **Влияние:** Статистика смешивала сделки Bybit и HyperLiquid вместе
+- **Исправлено в db.py:**
+  - `get_trade_stats()` line 3330: добавлен `exchange` в WHERE clause
+  - `get_trade_stats_unknown()` line 3595: добавлен `exchange` в WHERE clause
+  - open_positions count query line 3430: добавлен `exchange` filter
+- **Аудит потоков:**
+  - ✅ ATR Trailing Stop - работает корректно
+  - ✅ Break-Even (BE) - работает корректно
+  - ✅ Partial Take Profit - работает корректно
+  - ✅ DCA добор - работает корректно
+  - ✅ Manual Strategy (trade_manual toggle) - работает корректно
+  - ✅ Spot Auto DCA - работает корректно
+  - ✅ log_exit_and_remove_position - все 3 вызова передают exchange
+- **Документация:** `docs/TRADING_FLOWS_AUDIT_2026.md`
+- **Commit:** `daf82d0`
 
 ### ✅ CRITICAL: $100K Security Audit - Authentication Vulnerabilities Fixed (Jan 31, 2026)
 - **Проблема:** 5 критических + 3 высоких уязвимостей в API endpoints
@@ -3172,39 +3190,26 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 31 января 2026*
-*Version: 3.47.0*
+*Last updated: 2 февраля 2026*
+*Version: 3.48.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
-*Migrations: 23 total (001-023, all sequential)*
+*Trading Flows Audit: get_trade_stats/get_trade_stats_unknown exchange filter FIXED (Feb 2, 2026)*
 *4D Schema Tests: 33 tests covering all dimensions*
 *Security Audit: $100k level - 5 critical + 3 high FIXED (Jan 31, 2026)*
 *Tests: 750+ total (unit + integration + modern features + cross-platform)*
-*Crypto Payments: OxaPay USDT Gateway (ELC-only subscriptions)*
 *HL Credentials: Multitenancy (testnet/mainnet separate keys)*
-*Exchange Field: All add_active_position/log_exit calls pass exchange correctly*
+*Exchange Field: All add_active_position/log_exit/get_trade_stats pass exchange correctly*
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1540+ keys, common button keys*
-*Branding: Enliko (renamed from Triacelo)*
-*Log Cleanup: Cron daily at 3:00 AM, 7-day retention*
-*Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android (user_activity_log table)*
-*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Jan 31 2026 ✅*
-*iOS Features: Screener, Stats, AI, Signals, Activity, Strategies - full parity with WebApp*
-*iOS Auth Flow: Full registration/login/verify tested Jan 29 2026 ✅*
-*iOS Build: Fixed Info.plist conflict, Color.enlikoBorder added*
+*Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android*
+*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Feb 2 2026 ✅*
 *Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
-*Android Features: All 9 screens with ViewModels, WebSocketService, full iOS parity*
-*Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First, Adaptive Layout*
+*Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First*
 *Break-Even (BE): Per-strategy Long/Short settings*
 *Partial Take Profit: Close X% at +Y% profit in 2 steps*
-*Email Auth: register → verify → login → /me - all working correctly*
-*Web Auth: create_token, decode_token, get_authorization_header added to auth.py*
-*Web Auth: JWT refresh tokens (30 days) replace sha256 hashes*
 *Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules*
-*Telegram Login: /app_login command generates one-time deep link for iOS/Android*
-*URL Scheme: enliko://login?token=XXX&tid=12345 for native app login*
 *WebApp Service: DO NOT create separate service - runs inside start_bot.sh*
 *API Security: All financial endpoints require JWT auth + IDOR protection*
-*Backtest Rate Limiting: Token Bucket 5 req, 0.5/sec refill per user*
 
