@@ -138,6 +138,9 @@ struct SocialTradingView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // Coming Soon Banner
+                comingSoonBanner
+                
                 // Header Stats
                 statsHeader
                 
@@ -161,6 +164,34 @@ struct SocialTradingView: View {
         .sheet(item: $selectedTrader) { trader in
             TraderProfileSheet(trader: trader)
         }
+    }
+    
+    // MARK: - Coming Soon Banner
+    
+    private var comingSoonBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "clock.fill")
+                .font(.title2)
+                .foregroundColor(.orange)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Coming Soon!")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+                Text("This feature is in development. Data shown is for demonstration only.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
     }
     
     // MARK: - Stats Header

@@ -68,6 +68,16 @@ struct Config {
         static let dcaLadder = "/trading/dca-ladder"
         static let accountInfo = "/trading/account-info"
         
+        // Spot Trading
+        static let spotBalance = "/spot/balance"
+        static let spotHoldings = "/spot/holdings"
+        static let spotTicker = "/spot/ticker"  // /{symbol}
+        static let spotBuy = "/spot/buy"
+        static let spotSell = "/spot/sell"
+        static let spotHistory = "/spot/history"
+        static let spotSettings = "/spot/settings"
+        static let spotSymbols = "/spot/symbols"
+        
         // Backtest
         static let backtestRun = "/backtest/run"
         static let backtestResults = "/backtest/results"

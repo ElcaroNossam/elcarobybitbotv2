@@ -151,6 +151,9 @@ struct MarketHeatmapView: View {
                 Color.enlikoBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // Beta Banner
+                    betaBanner
+                    
                     // Controls
                     controlsBar
                     
@@ -192,6 +195,39 @@ struct MarketHeatmapView: View {
                 CoinDetailSheet(coin: coin)
             }
         }
+    }
+    
+    // MARK: - Beta Banner
+    
+    private var betaBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title3)
+                .foregroundColor(.purple)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text("Beta Feature")
+                        .font(.headline)
+                        .foregroundColor(.purple)
+                    
+                    Text("BETA")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(4)
+                }
+                Text("Heatmap data may be delayed or fallback to cached data")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color.purple.opacity(0.1))
     }
     
     // MARK: - Controls Bar

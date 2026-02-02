@@ -195,6 +195,9 @@ struct AdvancedChartsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Beta Notice Banner
+            betaNoticeBanner
+            
             // Header
             chartHeader
             
@@ -248,6 +251,32 @@ struct AdvancedChartsView: View {
         .sheet(isPresented: $showIndicatorSheet) {
             IndicatorSelectorView(enabledIndicators: $viewModel.enabledIndicators)
         }
+    }
+    
+    // MARK: - Beta Notice Banner
+    
+    private var betaNoticeBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "chart.bar.xaxis")
+                .foregroundColor(.blue)
+            
+            Text("Beta: Chart data is simulated for demonstration")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Text("BETA")
+                .font(.system(size: 9, weight: .bold))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(3)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color.blue.opacity(0.1))
     }
     
     // MARK: - Header

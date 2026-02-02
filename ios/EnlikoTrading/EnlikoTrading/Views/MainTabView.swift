@@ -230,9 +230,9 @@ struct MoreView: View {
     var body: some View {
         NavigationView {
             List {
-                // 🔥 Premium Features Section
+                // 🔥 Premium Features Section (some features in beta)
                 Section(header: Text("✨ Premium Features")) {
-                    // AI Copilot
+                    // AI Copilot - Live feature
                     NavigationLink(destination: AICopilotView()) {
                         MoreMenuItem(
                             icon: "sparkles",
@@ -242,23 +242,26 @@ struct MoreView: View {
                         )
                     }
                     
-                    // Market Heatmap
+                    // Market Heatmap - Beta (uses fallback data)
                     NavigationLink(destination: MarketHeatmapView()) {
-                        MoreMenuItem(
+                        MoreMenuItemWithBeta(
                             icon: "square.grid.3x3.fill",
                             title: "Market Heatmap",
                             subtitle: "Visual market overview",
-                            color: .orange
+                            color: .orange,
+                            isBeta: true
                         )
                     }
                     
-                    // Social Trading
+                    // Social Trading - Coming Soon (mock data)
                     NavigationLink(destination: SocialTradingView()) {
-                        MoreMenuItem(
+                        MoreMenuItemWithBeta(
                             icon: "person.2.fill",
                             title: "Social Trading",
                             subtitle: "Copy top traders",
-                            color: .green
+                            color: .green,
+                            isBeta: true,
+                            isComingSoon: true
                         )
                     }
                 }
@@ -423,6 +426,59 @@ struct MoreMenuItemWithBadge: View {
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Beta/Coming Soon Menu Item
+struct MoreMenuItemWithBeta: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let color: Color
+    var isBeta: Bool = false
+    var isComingSoon: Bool = false
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(isComingSoon ? color.opacity(0.5) : color)
+                    .cornerRadius(10)
+                
+                if isBeta || isComingSoon {
+                    Text(isComingSoon ? "SOON" : "BETA")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(isComingSoon ? Color.orange : Color.blue)
+                        .clipShape(Capsule())
+                        .offset(x: 8, y: -6)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(isComingSoon ? .secondary : .primary)
+                }
+                Text(isComingSoon ? "Coming soon!" : subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            if isComingSoon {
+                Spacer()
+                Image(systemName: "clock.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
             }
         }
         .padding(.vertical, 4)
