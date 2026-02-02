@@ -3329,6 +3329,11 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
             where_clauses.append("(account_type = ? OR account_type IS NULL)")
             params.append(account_type)
         
+        # Фильтр по exchange (CRITICAL FIX: was missing!)
+        if exchange:
+            where_clauses.append("(exchange = ? OR exchange IS NULL)")
+            params.append(exchange)
+        
         # Фильтр по периоду - используем скользящие окна (rolling windows)
         # вместо жёсткой привязки к полуночи
         current_time = datetime.datetime.now(ZoneInfo("UTC"))
@@ -3422,6 +3427,10 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
         if account_type:
             open_where.append("(account_type = ? OR account_type IS NULL)")
             open_params.append(account_type)
+        # CRITICAL FIX: Add exchange filter
+        if exchange:
+            open_where.append("(exchange = ? OR exchange IS NULL)")
+            open_params.append(exchange)
         
         open_row = conn.execute(f"""
             SELECT COUNT(*) FROM active_positions
@@ -3584,6 +3593,11 @@ def get_trade_stats_unknown(user_id: int, period: str = "all", account_type: str
         if account_type:
             where_clauses.append("(account_type = ? OR account_type IS NULL)")
             params.append(account_type)
+        
+        # CRITICAL FIX: Add exchange filter (was missing!)
+        if exchange:
+            where_clauses.append("(exchange = ? OR exchange IS NULL)")
+            params.append(exchange)
         
         now = datetime.datetime.now(ZoneInfo("UTC"))
         if period == "today":
