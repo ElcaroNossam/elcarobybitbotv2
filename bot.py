@@ -7331,11 +7331,8 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
         InlineKeyboardButton("⚙️", callback_data="strat_set:spot"),
     ])
     
-    # Global settings
-    buttons.append([InlineKeyboardButton(
-        t.get('global_settings', '🌐 Global Settings'),
-        callback_data="strat_set:global"
-    )])
+    # NOTE: Global Settings removed - use per-strategy Long/Short settings instead
+    # Each strategy has its own Entry%, SL%, TP%, ATR settings
     
     # Close
     buttons.append([InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="strat_set:close")])
@@ -8102,10 +8099,17 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         return
     
     if data == "strat_set:global":
-        # Clear any pending input when going back to settings menu
+        # DEPRECATED: Global settings removed - redirect to strategy settings
+        # Each strategy now has its own Long/Short settings with Entry%, SL%, TP%, ATR
         db.clear_pending_input(uid)
-        # Show global trading settings using helper
-        return await _show_global_settings_menu(query, uid, t)
+        cfg = get_user_config(uid)
+        await query.message.edit_text(
+            t.get('strategies_menu_header', '📊 *Strategy Settings*'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
+        )
+        await query.answer()
+        return
     
     # Global ATR mode toggle (ATR Trailing vs Fixed SL/TP)
     if data == "global_param:use_atr":
@@ -8138,67 +8142,18 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         return await _show_global_settings_menu(query, uid, t)
     
     # ═══════════════════════════════════════════════════════════════════════
-    # ██  GLOBAL ATR SETTINGS HANDLERS  ██
+    # ██  GLOBAL ATR SETTINGS HANDLERS - DEPRECATED  ██
     # ═══════════════════════════════════════════════════════════════════════
     
-    # Show ATR settings menu
-    if data == "global_atr:settings":
-        return await _show_global_atr_settings_menu(query, uid, t)
-    
-    # ATR Trigger %
-    if data == "global_atr:trigger":
-        ctx.user_data["global_setting_mode"] = "atr_trigger_pct"
+    # All global_atr: handlers redirect to strategy settings
+    if data.startswith("global_atr:"):
+        cfg = get_user_config(uid)
         await query.message.edit_text(
-            t.get('atr_trigger_prompt', '🎯 *ATR Trigger %*\n\nEnter the profit % at which ATR trailing stop activates.\n\nCurrent: {current}%\n\nExample: 1 = activate when +1% profit').format(
-                current=cfg.get('atr_trigger_pct', ATR_TRIGGER_PCT)
-            ),
+            t.get('global_settings_removed', '⚠️ *Global Settings Removed*\n\nPlease use per-strategy Long/Short settings instead.\n\nEach strategy now has its own Entry%, SL%, TP%, ATR settings.'),
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
-            ])
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
         )
-        return
-    
-    # ATR Step %
-    if data == "global_atr:step":
-        ctx.user_data["global_setting_mode"] = "atr_step_pct"
-        await query.message.edit_text(
-            t.get('atr_step_prompt', '📏 *ATR Step %*\n\nEnter the minimum % move to trail SL.\n\nCurrent: {current}%\n\nExample: 0.5 = move SL when price moves +0.5%').format(
-                current=cfg.get('atr_step_pct', 0.5)
-            ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
-            ])
-        )
-        return
-    
-    # ATR Period
-    if data == "global_atr:period":
-        ctx.user_data["global_setting_mode"] = "atr_periods"  # Column name with 's'
-        await query.message.edit_text(
-            t.get('atr_period_prompt', '🕐 *ATR Period*\n\nEnter the number of candles for ATR calculation.\n\nCurrent: {current}\n\nExample: 14 = use 14 candles').format(
-                current=cfg.get('atr_periods', 14)
-            ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
-            ])
-        )
-        return
-    
-    # ATR Multiplier
-    if data == "global_atr:mult":
-        ctx.user_data["global_setting_mode"] = "atr_multiplier_sl"  # Column name with _sl
-        await query.message.edit_text(
-            t.get('atr_mult_prompt', '✖️ *ATR Multiplier*\n\nEnter the ATR multiplier for SL distance.\n\nCurrent: {current}x\n\nExample: 1.5 = SL at 1.5 × ATR from price').format(
-                current=cfg.get('atr_multiplier_sl', 1.5)
-            ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_atr:settings")]
-            ])
-        )
+        await query.answer()
         return
     
     # Limit ladder toggle
@@ -8206,8 +8161,13 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         current = cfg.get('limit_ladder_enabled', 0)
         new_val = 0 if current else 1
         set_user_field(uid, 'limit_ladder_enabled', new_val)
-        # Refresh global settings directly
-        return await _show_global_settings_menu(query, uid, t)
+        cfg = get_user_config(uid)
+        await query.message.edit_text(
+            t.get('strategies_menu_header', '📊 *Strategy Settings*'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
+        )
+        return
     
     # Limit ladder settings
     if data == "global_ladder:settings":
@@ -8244,35 +8204,18 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         return
     
     # ═══════════════════════════════════════════════════════════════════════
-    # ██  GLOBAL BREAK-EVEN SETTINGS HANDLERS  ██
+    # ██  GLOBAL BREAK-EVEN SETTINGS HANDLERS - DEPRECATED  ██
     # ═══════════════════════════════════════════════════════════════════════
     
-    # Show BE settings menu
-    if data == "global_be:settings":
-        return await _show_global_be_settings_menu(query, uid, t)
-    
-    # BE toggle
-    if data == "global_be:toggle":
-        current = cfg.get('be_enabled', 0)
-        new_val = 0 if current else 1
-        set_user_field(uid, 'be_enabled', new_val)
-        status = "✅ Break-Even enabled" if new_val else "❌ Break-Even disabled"
-        await query.answer(status)
-        # Return to BE settings menu
-        return await _show_global_be_settings_menu(query, uid, t)
-    
-    # BE Trigger %
-    if data == "global_be:trigger":
-        ctx.user_data["global_setting_mode"] = "be_trigger_pct"
+    # All global_be: handlers redirect to strategy settings
+    if data.startswith("global_be:"):
+        cfg = get_user_config(uid)
         await query.message.edit_text(
-            t.get('prompt_be_trigger', '🎯 *Break-Even Trigger %*\n\nEnter the profit % at which SL moves to entry.\n\nCurrent: {current}%\n\nExample: 1 = move SL to entry when +1% profit').format(
-                current=cfg.get('be_trigger_pct', 1.0)
-            ),
+            t.get('global_settings_removed', '⚠️ *Global Settings Removed*\n\nPlease use per-strategy Long/Short settings instead.\n\nEach strategy now has its own Entry%, SL%, TP%, ATR settings.'),
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="global_be:settings")]
-            ])
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
         )
+        await query.answer()
         return
     
     # ═══════════════════════════════════════════════════════════════════════
@@ -8469,6 +8412,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             "scalper": "trade_scalper",
             "elcaro": "trade_elcaro",
             "fibonacci": "trade_fibonacci",
+            "manual": "trade_manual",  # Manual position monitoring
         }
         field = field_map.get(strategy)
         if field:
@@ -8707,24 +8651,16 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             )
         return
     
-    # Global parameter setting
+    # Global parameter setting - DEPRECATED, redirect to strategy settings
     if data.startswith("global_param:"):
-        param = data.split(":")[1]
-        ctx.user_data["global_setting_mode"] = param
-        
-        param_names = {
-            "percent": t.get('prompt_entry_pct', 'Enter Entry % (risk per trade):'),
-            "sl_percent": t.get('prompt_sl_pct', 'Enter Stop-Loss %:'),
-            "tp_percent": t.get('prompt_tp_pct', 'Enter Take-Profit %:'),
-            "leverage": t.get('prompt_leverage', 'Enter Leverage (1-100):'),
-        }
-        
+        # Global settings removed - redirect to main strategy menu
+        cfg = get_user_config(uid)
         await query.message.edit_text(
-            param_names.get(param, f"Enter value for {param}:"),
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_cancel', '❌ Cancel'), callback_data="strat_set:global")]
-            ])
+            t.get('global_settings_removed', '⚠️ *Global Settings Removed*\n\nPlease use per-strategy Long/Short settings instead.\n\nEach strategy now has its own Entry%, SL%, TP%, ATR settings.'),
+            parse_mode="Markdown",
+            reply_markup=get_strategy_settings_keyboard(t, cfg, uid=uid)
         )
+        await query.answer()
         return
     
     if data.startswith("strat_param:"):
@@ -17654,6 +17590,12 @@ async def monitor_positions_loop(app: Application):
                                     # Existing or unknown position - get from DB
                                     ap_for_sym = next((ap for ap in active if ap.get("symbol") == sym), None)
                                     strategy = ap_for_sym.get("strategy") if ap_for_sym else None
+                                
+                                # Check if manual position monitoring is enabled
+                                # If strategy is "manual" and trade_manual=0, skip SL/TP management
+                                if strategy == "manual" and not cfg.get("trade_manual", 1):
+                                    logger.debug(f"[{uid}] {sym}: Manual position - trade_manual disabled, skipping SL/TP")
+                                    continue
                             
                                 logger.debug(f"[{uid}] {sym}: SL/TP resolution with strategy={strategy}, side={side}")
                             

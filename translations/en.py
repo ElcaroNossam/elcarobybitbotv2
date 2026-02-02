@@ -337,10 +337,11 @@ TEXTS = {
     'settings_reset': '✅ Settings reset to global defaults.',
     'invalid_number': '❌ Invalid number. Enter a value between 0 and 100.',
     
-    # Global settings
+    # Global settings (DEPRECATED)
     'global_settings': '🌐 Global Settings',
     'global_settings_header': '🌐 *Global Configuration*',
     'global_settings_info': 'Default parameters used when strategy-specific settings are not configured.',
+    'global_settings_removed': '⚠️ *Global Settings Removed*\n\nPlease use per-strategy Long/Short settings instead.\n\nEach strategy now has its own Entry%, SL%, TP%, ATR settings.',
     
     # ATR settings
     'param_atr_periods': '📈 ATR Periods',

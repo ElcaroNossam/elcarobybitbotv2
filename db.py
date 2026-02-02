@@ -114,6 +114,7 @@ USER_FIELDS_WHITELIST = {
     "trade_scalper",
     "trade_elcaro",
     "trade_fibonacci",
+    "trade_manual",  # 0/1 - monitor and manage manual positions (set SL/TP/ATR)
     # настройки по стратегиям (JSON)
     "strategy_settings",
     # DCA настройки
@@ -1149,6 +1150,8 @@ def get_user_config(user_id: int) -> dict:
         # Also check for old column name for backward compatibility
         elif _col_exists(conn, "users", "trade_wyckoff"):
             cols.append("trade_wyckoff")
+        if _col_exists(conn, "users", "trade_manual"):
+            cols.append("trade_manual")
         if _col_exists(conn, "users", "strategy_settings"):
             cols.append("strategy_settings")
         if _col_exists(conn, "users", "dca_enabled"):
