@@ -37,9 +37,9 @@ OXAPAY_MERCHANT_API_KEY = os.getenv("OXAPAY_MERCHANT_API_KEY", "")
 OXAPAY_PAYOUT_API_KEY = os.getenv("OXAPAY_PAYOUT_API_KEY", "")
 OXAPAY_WEBHOOK_SECRET = os.getenv("OXAPAY_WEBHOOK_SECRET", "")
 
-# Callback URL for webhooks
+# Callback URL for webhooks - must match router prefix in crypto_payments.py
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://enliko.com")
-PAYMENT_CALLBACK_URL = f"{WEBAPP_URL}/api/payments/oxapay/webhook"
+PAYMENT_CALLBACK_URL = f"{WEBAPP_URL}/api/crypto/webhook"
 
 # ============================================
 # PRICING CONFIGURATION (USD)

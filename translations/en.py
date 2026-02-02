@@ -958,12 +958,32 @@ TEXTS = {
     
     # Crypto Payments (OxaPay)
     'crypto_select_currency': (
-        '💳 *Pay with Crypto*\n\n'
+        '💳 *Crypto Payment*\n\n'
         '📦 *Plan:* {plan}\n'
-        '⏰ *Period:* {period}\n'
-        '💰 *Price:* ${price:.0f}\n\n'
-        'Select your preferred cryptocurrency:'
+        '⏰ *Duration:* {duration}\n'
+        '💰 *Price:* ${price:.2f} USD\n\n'
+        'Select payment currency:'
     ),
+    'crypto_payment_invoice': (
+        '💳 *Crypto Payment Invoice*\n\n'
+        '📦 *Plan:* {plan}\n'
+        '⏰ *Duration:* {duration}\n'
+        '💰 *Amount:* {amount}\n'
+        '🔗 *Network:* {network}\n\n'
+        '📋 *Payment Address:*\n'
+        '`{address}`\n\n'
+        '⏱ *Expires in:* 60 minutes\n\n'
+        '⚠️ Send exact amount to this address.\n'
+        'After payment, click Check to verify.'
+    ),
+    'creating_payment': '⏳ Creating payment invoice...',
+    'payment_creation_failed': '❌ Failed to create payment. Please try again.',
+    'payment_error': '❌ Payment service error. Please try again later.\n\nError: {error}',
+    'invalid_plan': 'Invalid plan or duration',
+    'btn_check_payment': '✅ Check Payment',
+    'btn_copy_address': '📋 Copy Address',
+    'btn_new_currency': '🔄 Different Currency',
+    'btn_retry': '🔄 Retry',
     'crypto_creating_invoice': '⏳ Creating payment invoice...',
     'crypto_payment_instructions': (
         '💳 *Crypto Payment*\n\n'

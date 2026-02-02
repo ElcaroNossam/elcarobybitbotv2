@@ -23954,72 +23954,156 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif action == "crypto":
-        # Redirect to buy ELC first - we only accept ELC for subscriptions now
+        # Direct crypto payment via OxaPay - select currency
         plan = parts[2] if len(parts) > 2 else ""
         duration = parts[3] if len(parts) > 3 else "1m"
         
-        # Map duration to period for price lookup
-        duration_to_period = {"1m": 1, "3m": 3, "6m": 6, "1y": 12}
-        period = duration_to_period.get(duration, 1)
+        from services.oxapay_service import LICENSE_PRICES_USD
         
-        prices = LICENSE_PRICES.get(plan, {})
-        elc_price = prices.get("elc", {}).get(period, 0)
-        period_text = f"{period} month{'s' if period > 1 else ''}"
+        # Get price for selected plan/duration
+        price_usd = LICENSE_PRICES_USD.get(plan, {}).get(duration, 0)
+        if not price_usd:
+            await q.answer(t.get("invalid_plan", "Invalid plan or duration"), show_alert=True)
+            return
         
-        # Check user's ELC balance
-        user_balance = await get_elc_balance(uid)
-        needed = max(0, elc_price - user_balance)
+        duration_text = {
+            "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+        }.get(duration, duration)
         
-        text = t.get("crypto_redirect_elc",
+        text = t.get("crypto_select_currency",
             "💳 *Crypto Payment*\n\n"
             "📦 *Plan:* {plan}\n"
-            "⏰ *Period:* {period}\n"
-            "💰 *Price:* {price:.0f} ELC (~${price:.0f})\n\n"
-            "💼 *Your ELC Balance:* {balance:.2f} ELC\n\n"
-            "ℹ️ We now accept only ELC tokens for payments.\n"
-            "Buy ELC with USDT first, then pay for subscription."
-        ).format(plan=plan.title(), period=period_text, price=elc_price, balance=user_balance)
+            "⏰ *Duration:* {duration}\n"
+            "💰 *Price:* ${price:.2f} USD\n\n"
+            "Select payment currency:"
+        ).format(plan=plan.title(), duration=duration_text, price=price_usd)
         
-        if user_balance >= elc_price:
-            text += "\n\n✅ *You have enough ELC!* Click below to pay."
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(f"✅ Pay {elc_price:.0f} ELC Now", callback_data=f"sub:elc:{plan}:{period}")],
-                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
-            ])
-        else:
-            text += f"\n\n⚠️ *You need {needed:.2f} more ELC.* Buy below:"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(f"💵 Buy {int(needed)+10} USDT → ELC (OxaPay)", callback_data=f"wallet:buy_elc_amount:{int(needed)+10}")],
-                [InlineKeyboardButton("💵 Buy 50 USDT → ELC", callback_data="wallet:buy_elc_amount:50")],
-                [InlineKeyboardButton("💵 Buy 100 USDT → ELC", callback_data="wallet:buy_elc_amount:100")],
-                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
-            ])
-        
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-    
-    elif action == "crypto_pay":
-        # Deprecated - redirect to ELC purchase
-        plan = parts[2] if len(parts) > 2 else ""
-        duration = parts[3] if len(parts) > 3 else "1m"
-        
-        duration_to_period = {"1m": 1, "3m": 3, "6m": 6, "1y": 12}
-        period = duration_to_period.get(duration, 1)
-        
-        text = (
-            "ℹ️ *Payment Method Updated*\n\n"
-            "Direct crypto payments have been replaced with ELC token.\n\n"
-            "👉 *New Flow:*\n"
-            "1️⃣ Buy ELC with USDT (via OxaPay)\n"
-            "2️⃣ Pay subscription with ELC\n\n"
-            "This is simpler and faster!"
-        )
-        
+        # Popular currencies for payment
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💵 Buy ELC with USDT", callback_data="wallet:buy_elc_usdt")],
-            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+            [
+                InlineKeyboardButton("💵 USDT (TRC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:TRC20"),
+                InlineKeyboardButton("💵 USDT (BEP20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:BEP20"),
+            ],
+            [
+                InlineKeyboardButton("💵 USDT (TON)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:TON"),
+                InlineKeyboardButton("💵 USDT (ERC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:ERC20"),
+            ],
+            [
+                InlineKeyboardButton("₿ Bitcoin", callback_data=f"sub:crypto_create:{plan}:{duration}:BTC:Bitcoin"),
+                InlineKeyboardButton("Ξ Ethereum", callback_data=f"sub:crypto_create:{plan}:{duration}:ETH:ERC20"),
+            ],
+            [
+                InlineKeyboardButton("💎 TON", callback_data=f"sub:crypto_create:{plan}:{duration}:TON:TON"),
+                InlineKeyboardButton("◎ Solana", callback_data=f"sub:crypto_create:{plan}:{duration}:SOL:Solana"),
+            ],
+            [
+                InlineKeyboardButton("🔶 BNB", callback_data=f"sub:crypto_create:{plan}:{duration}:BNB:BEP20"),
+                InlineKeyboardButton("⚡ TRX", callback_data=f"sub:crypto_create:{plan}:{duration}:TRX:TRC20"),
+            ],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}")]
         ])
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    
+    elif action == "crypto_create":
+        # Create OxaPay payment invoice
+        plan = parts[2] if len(parts) > 2 else ""
+        duration = parts[3] if len(parts) > 3 else "1m"
+        currency = parts[4] if len(parts) > 4 else "USDT"
+        network = parts[5] if len(parts) > 5 else "TRC20"
+        
+        await q.answer(t.get("creating_payment", "⏳ Creating payment invoice..."))
+        
+        try:
+            from services.oxapay_service import oxapay_service
+            
+            # Create payment via OxaPay (returns dict)
+            invoice = await oxapay_service.create_white_label_payment(
+                user_id=uid,
+                plan=plan,
+                duration=duration,
+                pay_currency=currency,
+                network=network,
+            )
+            
+            address = invoice.get("address") or invoice.get("pay_url")
+            if not invoice or not address:
+                await q.edit_message_text(
+                    t.get("payment_creation_failed", "❌ Failed to create payment. Please try again."),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(t.get("btn_retry", "🔄 Retry"), callback_data=f"sub:crypto:{plan}:{duration}")],
+                        [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                    ])
+                )
+                return
+            
+            payment_id = invoice.get("payment_id") or invoice.get("track_id")
+            amount_crypto = invoice.get("amount_crypto") or invoice.get("pay_amount")
+            amount_usd = invoice.get("amount_usd", 0)
+            
+            # Format amount display
+            if amount_crypto:
+                amount_display = f"{float(amount_crypto):.8f}".rstrip('0').rstrip('.') + f" {currency}"
+            else:
+                amount_display = f"${amount_usd:.2f}"
+            
+            duration_text = {
+                "1m": "1 month", "3m": "3 months", "6m": "6 months", "1y": "1 year"
+            }.get(duration, duration)
+            
+            text = t.get("crypto_payment_invoice",
+                "💳 *Crypto Payment Invoice*\n\n"
+                "📦 *Plan:* {plan}\n"
+                "⏰ *Duration:* {duration}\n"
+                "💰 *Amount:* {amount}\n"
+                "🔗 *Network:* {network}\n\n"
+                "📋 *Payment Address:*\n"
+                "`{address}`\n\n"
+                "⏱ *Expires in:* 60 minutes\n\n"
+                "⚠️ Send exact amount to this address.\n"
+                "After payment, click Check to verify."
+            ).format(
+                plan=plan.title(),
+                duration=duration_text,
+                amount=amount_display,
+                network=network,
+                address=address
+            )
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton(t.get("btn_check_payment", "✅ Check Payment"), callback_data=f"sub:crypto_check:{payment_id}")],
+                [InlineKeyboardButton(t.get("btn_copy_address", "📋 Copy Address"), callback_data=f"sub:crypto_copy:{address[:30]}")],
+                [InlineKeyboardButton(t.get("btn_new_currency", "🔄 Different Currency"), callback_data=f"sub:crypto:{plan}:{duration}")],
+                [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+            ])
+            
+            # Try to send with QR code image
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={currency.lower()}:{address}?amount={amount_crypto or amount_usd}"
+            
+            try:
+                # Delete old message and send photo with QR
+                await q.message.delete()
+                await ctx.bot.send_photo(
+                    chat_id=uid,
+                    photo=qr_url,
+                    caption=text,
+                    parse_mode="Markdown",
+                    reply_markup=keyboard
+                )
+            except Exception as e:
+                # Fallback to text only
+                logger.warning(f"Failed to send QR photo: {e}")
+                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+                
+        except Exception as e:
+            logger.error(f"OxaPay payment creation error: {e}")
+            await q.edit_message_text(
+                t.get("payment_error", "❌ Payment service error. Please try again later.\n\nError: {error}").format(error=str(e)[:100]),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t.get("btn_retry", "🔄 Retry"), callback_data=f"sub:crypto:{plan}:{duration}")],
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
+                ])
+            )
     
     elif action == "crypto_check":
         # Check OxaPay payment status
