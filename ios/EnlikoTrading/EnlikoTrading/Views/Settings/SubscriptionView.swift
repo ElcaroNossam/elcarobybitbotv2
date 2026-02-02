@@ -96,7 +96,7 @@ struct SubscriptionView: View {
                     Task { await payWithELC() }
                 }
             } message: {
-                Text("pay_elc_confirm".localized.replacingOccurrences(of: "{amount}", with: String(format: "%.0f", priceELC)))
+                Text("pay_elc_confirm".localized.replacingOccurrences(of: "{amount}", with: String(format: "%.0f", priceELC)) + "\n\n⚠️ " + "payment_no_refund_warning".localized)
             }
             .onAppear {
                 Task { await fetchELCBalance() }

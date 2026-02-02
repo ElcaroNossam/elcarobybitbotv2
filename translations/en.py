@@ -974,7 +974,8 @@ TEXTS = {
         '`{address}`\n\n'
         '⏱ *Expires in:* 60 minutes\n\n'
         '⚠️ Send exact amount to this address.\n'
-        'After payment, click Check to verify.'
+        'After payment, click Check to verify.\n\n'
+        '🚫 *All cryptocurrency payments are final and non-refundable.*'
     ),
     'creating_payment': '⏳ Creating payment invoice...',
     'payment_creation_failed': '❌ Failed to create payment. Please try again.',

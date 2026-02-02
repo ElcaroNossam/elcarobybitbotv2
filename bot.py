@@ -24198,7 +24198,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "`{address}`\n\n"
                 "⏱ *Expires in:* 60 minutes\n\n"
                 "⚠️ Send exact amount to this address.\n"
-                "After payment, click Check to verify."
+                "After payment, click Check to verify.\n\n"
+                "🚫 *All cryptocurrency payments are final and non-refundable.*"
             ).format(
                 plan=plan.title(),
                 duration=duration_text,
