@@ -18494,37 +18494,40 @@ async def monitor_positions_loop(app: Application):
                             # PARTIAL TAKE PROFIT (СРЕЗ МАРЖИ) LOGIC
                             # Close X% of position when profit reaches Y%
                             # This runs AFTER break-even and BEFORE fixed SL/TP logic
+                            # Works for both strategy positions AND manual positions (uses "manual" strategy settings)
                             # ═══════════════════════════════════════════════════════════════════
-                            if pos_strategy and strat_settings:
+                            # For manual positions, load settings from "manual" strategy
+                            ptp_strat_settings = strat_settings if (pos_strategy and strat_settings) else db.get_strategy_settings(uid, "manual", exchange=current_exchange, account_type=pos_account_type)
+                            if ptp_strat_settings:
                                 side_prefix = "long" if side == "Buy" else "short"
                                 
                                 # Get side-specific Partial TP settings
-                                ptp_enabled = strat_settings.get(f"{side_prefix}_partial_tp_enabled")
+                                ptp_enabled = ptp_strat_settings.get(f"{side_prefix}_partial_tp_enabled")
                                 if ptp_enabled is None:
-                                    ptp_enabled = strat_settings.get("partial_tp_enabled", False)
+                                    ptp_enabled = ptp_strat_settings.get("partial_tp_enabled", False)
                                 ptp_enabled = bool(ptp_enabled)
                                 
                                 if ptp_enabled and move_pct > 0:  # Only when in profit
                                     # Get step 1 settings
-                                    ptp_1_trigger = strat_settings.get(f"{side_prefix}_partial_tp_1_trigger_pct")
+                                    ptp_1_trigger = ptp_strat_settings.get(f"{side_prefix}_partial_tp_1_trigger_pct")
                                     if ptp_1_trigger is None:
-                                        ptp_1_trigger = strat_settings.get("partial_tp_1_trigger_pct", 2.0)
+                                        ptp_1_trigger = ptp_strat_settings.get("partial_tp_1_trigger_pct", 2.0)
                                     ptp_1_trigger = float(ptp_1_trigger) if ptp_1_trigger else 2.0
                                     
-                                    ptp_1_close = strat_settings.get(f"{side_prefix}_partial_tp_1_close_pct")
+                                    ptp_1_close = ptp_strat_settings.get(f"{side_prefix}_partial_tp_1_close_pct")
                                     if ptp_1_close is None:
-                                        ptp_1_close = strat_settings.get("partial_tp_1_close_pct", 30.0)
+                                        ptp_1_close = ptp_strat_settings.get("partial_tp_1_close_pct", 30.0)
                                     ptp_1_close = float(ptp_1_close) if ptp_1_close else 30.0
                                     
                                     # Get step 2 settings
-                                    ptp_2_trigger = strat_settings.get(f"{side_prefix}_partial_tp_2_trigger_pct")
+                                    ptp_2_trigger = ptp_strat_settings.get(f"{side_prefix}_partial_tp_2_trigger_pct")
                                     if ptp_2_trigger is None:
-                                        ptp_2_trigger = strat_settings.get("partial_tp_2_trigger_pct", 5.0)
+                                        ptp_2_trigger = ptp_strat_settings.get("partial_tp_2_trigger_pct", 5.0)
                                     ptp_2_trigger = float(ptp_2_trigger) if ptp_2_trigger else 5.0
                                     
-                                    ptp_2_close = strat_settings.get(f"{side_prefix}_partial_tp_2_close_pct")
+                                    ptp_2_close = ptp_strat_settings.get(f"{side_prefix}_partial_tp_2_close_pct")
                                     if ptp_2_close is None:
-                                        ptp_2_close = strat_settings.get("partial_tp_2_close_pct", 30.0)
+                                        ptp_2_close = ptp_strat_settings.get("partial_tp_2_close_pct", 30.0)
                                     ptp_2_close = float(ptp_2_close) if ptp_2_close else 30.0
                                     
                                     pos_size = float(pos["size"])
