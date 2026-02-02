@@ -380,6 +380,7 @@ TEXTS = {
     'prompt_short_ptp_2_trigger': '📉 SHORT Step 2: Trigger %\n\nEnter profit % to close second part:',
     'prompt_short_ptp_2_close': '📉 SHORT Step 2: Close %\n\nEnter % of position to close:',
     'partial_tp_executed': '✂️ {symbol}: Closed {close}% at +{trigger}% profit',
+    'partial_tp_notification': '✂️ <b>Partial TP Step {step}</b>\n\n📊 {symbol}\n📉 Closed: {close_pct:.0f}% ({close_qty})\n📈 Profit: +{profit_pct:.2f}%\n💰 PnL: ~${pnl:.2f}',
     
     # DCA settings
     'dca_settings': '⚙️ DCA Settings',

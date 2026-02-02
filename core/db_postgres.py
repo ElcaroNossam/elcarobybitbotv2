@@ -519,6 +519,8 @@ def pg_init_db():
                 applied_tp_pct       REAL,
                 client_order_id      TEXT,
                 exchange_order_id    TEXT,
+                ptp_step_1_done      INTEGER NOT NULL DEFAULT 0,
+                ptp_step_2_done      INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY(user_id, symbol, account_type)
             )
         """)

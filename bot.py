@@ -117,6 +117,8 @@ from db import (
     remove_pending_limit_order,
     set_dca_flag,
     get_dca_flag,
+    set_ptp_flag,
+    get_ptp_flag,
     get_trade_stats,
     get_stats_by_strategy,
     was_position_recently_closed,
@@ -4007,6 +4009,69 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
             # Fallback to global user leverage
             leverage = int(cfg.get("leverage", 10))
         
+        # Get side-specific order_type and limit_offset_pct
+        side_order_type = strat_settings.get(f"{side_prefix}_order_type")
+        if side_order_type:
+            order_type = side_order_type
+        else:
+            order_type = cfg.get("global_order_type", "market")
+        
+        side_limit_offset = strat_settings.get(f"{side_prefix}_limit_offset_pct")
+        if side_limit_offset is not None and side_limit_offset > 0:
+            limit_offset_pct = float(side_limit_offset)
+        else:
+            limit_offset_pct = float(cfg.get("limit_offset_pct", 0.1))
+        
+        # Get DCA settings
+        side_dca_enabled = strat_settings.get(f"{side_prefix}_dca_enabled")
+        if side_dca_enabled is not None:
+            dca_enabled = bool(side_dca_enabled)
+        else:
+            dca_enabled = bool(cfg.get("dca_enabled", 0))
+        
+        side_dca_pct_1 = strat_settings.get(f"{side_prefix}_dca_pct_1")
+        if side_dca_pct_1 is not None and side_dca_pct_1 > 0:
+            dca_pct_1 = float(side_dca_pct_1)
+        else:
+            dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
+        
+        side_dca_pct_2 = strat_settings.get(f"{side_prefix}_dca_pct_2")
+        if side_dca_pct_2 is not None and side_dca_pct_2 > 0:
+            dca_pct_2 = float(side_dca_pct_2)
+        else:
+            dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
+        
+        # Get Partial TP settings
+        side_ptp_enabled = strat_settings.get(f"{side_prefix}_partial_tp_enabled")
+        if side_ptp_enabled is not None:
+            partial_tp_enabled = bool(side_ptp_enabled)
+        else:
+            partial_tp_enabled = False
+        
+        side_ptp_1_trigger = strat_settings.get(f"{side_prefix}_partial_tp_1_trigger_pct")
+        if side_ptp_1_trigger is not None and side_ptp_1_trigger > 0:
+            partial_tp_1_trigger_pct = float(side_ptp_1_trigger)
+        else:
+            partial_tp_1_trigger_pct = 2.0
+        
+        side_ptp_1_close = strat_settings.get(f"{side_prefix}_partial_tp_1_close_pct")
+        if side_ptp_1_close is not None and side_ptp_1_close > 0:
+            partial_tp_1_close_pct = float(side_ptp_1_close)
+        else:
+            partial_tp_1_close_pct = 30.0
+        
+        side_ptp_2_trigger = strat_settings.get(f"{side_prefix}_partial_tp_2_trigger_pct")
+        if side_ptp_2_trigger is not None and side_ptp_2_trigger > 0:
+            partial_tp_2_trigger_pct = float(side_ptp_2_trigger)
+        else:
+            partial_tp_2_trigger_pct = 5.0
+        
+        side_ptp_2_close = strat_settings.get(f"{side_prefix}_partial_tp_2_close_pct")
+        if side_ptp_2_close is not None and side_ptp_2_close > 0:
+            partial_tp_2_close_pct = float(side_ptp_2_close)
+        else:
+            partial_tp_2_close_pct = 30.0
+        
         return {
             "percent": percent,
             "sl_pct": sl_pct,
@@ -4014,7 +4079,17 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
             "use_atr": use_atr,
             "be_enabled": be_enabled,
             "be_trigger_pct": be_trigger_pct,
-            "leverage": leverage,  # NEW: side-specific leverage
+            "leverage": leverage,
+            "order_type": order_type,
+            "limit_offset_pct": limit_offset_pct,
+            "dca_enabled": dca_enabled,
+            "dca_pct_1": dca_pct_1,
+            "dca_pct_2": dca_pct_2,
+            "partial_tp_enabled": partial_tp_enabled,
+            "partial_tp_1_trigger_pct": partial_tp_1_trigger_pct,
+            "partial_tp_1_close_pct": partial_tp_1_close_pct,
+            "partial_tp_2_trigger_pct": partial_tp_2_trigger_pct,
+            "partial_tp_2_close_pct": partial_tp_2_close_pct,
         }
     
     # Default behavior when side is not provided
@@ -4035,6 +4110,10 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     else:
         leverage = int(cfg.get("leverage", 10))
     
+    # Order type defaults when side not provided
+    order_type = cfg.get("global_order_type", "market")
+    limit_offset_pct = float(cfg.get("limit_offset_pct", 0.1))
+    
     return {
         "percent": percent,
         "sl_pct": sl_pct,
@@ -4042,7 +4121,17 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         "use_atr": use_atr,
         "be_enabled": be_enabled,
         "be_trigger_pct": be_trigger_pct,
-        "leverage": leverage,  # Global leverage fallback
+        "leverage": leverage,
+        "order_type": order_type,
+        "limit_offset_pct": limit_offset_pct,
+        "dca_enabled": False,
+        "dca_pct_1": 10.0,
+        "dca_pct_2": 25.0,
+        "partial_tp_enabled": False,
+        "partial_tp_1_trigger_pct": 2.0,
+        "partial_tp_1_close_pct": 30.0,
+        "partial_tp_2_trigger_pct": 5.0,
+        "partial_tp_2_close_pct": 30.0,
     }
 
 
@@ -6225,6 +6314,8 @@ async def place_order_for_targets(
         # ═══════════════════════════════════════════════════════════════════
         target_qty = qty  # Default to passed qty
         target_leverage = leverage
+        target_order_type = orderType  # Default to passed orderType
+        target_limit_offset_pct = 0.1  # Default offset for limit orders
         
         if calc_qty_per_target and entry_price:
             try:
@@ -6242,6 +6333,15 @@ async def place_order_for_targets(
                 # Get leverage from trade_params (side-specific) if not explicitly passed
                 if target_leverage is None:
                     target_leverage = trade_params.get("leverage") or cfg.get("leverage", 10)
+                
+                # Get order_type from trade_params (side-specific) - use if not explicitly passed as Market
+                user_order_type = trade_params.get("order_type", "market")
+                target_limit_offset_pct = trade_params.get("limit_offset_pct", 0.1)
+                
+                # Only override if user setting is "limit" and we're not forced to use Market
+                if user_order_type.lower() == "limit" and orderType == "Market":
+                    target_order_type = "Limit"
+                    logger.info(f"[{user_id}] Using Limit order from user settings with offset {target_limit_offset_pct}%")
                 
                 # Calculate qty for THIS account's balance
                 # For HyperLiquid we need different balance fetch method
@@ -6359,18 +6459,30 @@ async def place_order_for_targets(
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set HL leverage for {symbol}: {lev_err}")
                 
-                # Place order with target-specific qty
+                # Calculate limit price if using limit order
+                limit_price = price
+                if target_order_type == "Limit" and entry_price and not price:
+                    # Calculate limit price with offset
+                    if side == "Buy":
+                        # For buy, set limit below current price
+                        limit_price = entry_price * (1 - target_limit_offset_pct / 100)
+                    else:
+                        # For sell, set limit above current price
+                        limit_price = entry_price * (1 + target_limit_offset_pct / 100)
+                    logger.info(f"[{user_id}] Limit order price for {symbol}: {limit_price:.4f} (offset {target_limit_offset_pct}%)")
+                
+                # Place order with target-specific qty and order type
                 res = await place_order_hyperliquid(
                     user_id=user_id,
                     symbol=symbol,
                     side=side,
-                    orderType=orderType,
+                    orderType=target_order_type,
                     qty=target_qty,
-                    price=price,
+                    price=limit_price,
                     account_type=target_account_type or ("testnet" if is_testnet else "mainnet")
                 )
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty}
-                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side} qty={target_qty}")
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "order_type": target_order_type}
+                logger.info(f"✅ [{target_key.upper()}] {target_order_type} order placed: {symbol} {side} qty={target_qty}")
                 
             else:
                 # ═══════════════════════════════════════════════════════════
@@ -6385,13 +6497,25 @@ async def place_order_for_targets(
                 except Exception as lev_err:
                     logger.warning(f"[{user_id}] Failed to set Bybit leverage for {symbol}: {lev_err}")
                 
-                # Place order with target-specific qty
-                res = await place_order(user_id, symbol, side, orderType, target_qty, price, timeInForce, account_type=acc_type)
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "actual_leverage": actual_leverage}
-                logger.info(f"✅ [{target_key.upper()}] {orderType} order placed: {symbol} {side} qty={target_qty}")
+                # Calculate limit price if using limit order
+                limit_price = price
+                if target_order_type == "Limit" and entry_price and not price:
+                    # Calculate limit price with offset
+                    if side == "Buy":
+                        # For buy, set limit below current price
+                        limit_price = entry_price * (1 - target_limit_offset_pct / 100)
+                    else:
+                        # For sell, set limit above current price
+                        limit_price = entry_price * (1 + target_limit_offset_pct / 100)
+                    logger.info(f"[{user_id}] Bybit limit price for {symbol}: {limit_price:.4f} (offset {target_limit_offset_pct}%)")
+                
+                # Place order with target-specific qty and order type
+                res = await place_order(user_id, symbol, side, target_order_type, target_qty, limit_price, timeInForce, account_type=acc_type)
+                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "actual_leverage": actual_leverage, "order_type": target_order_type}
+                logger.info(f"✅ [{target_key.upper()}] {target_order_type} order placed: {symbol} {side} qty={target_qty}")
             
             # Store position in DB with correct target info
-            if add_position and orderType == "Market":
+            if add_position and target_order_type == "Market":
                 # Get current price for position entry_price
                 pos_entry_price = price if price else entry_price  # Use param entry_price if price not set
                 if not pos_entry_price:
@@ -18194,10 +18318,34 @@ async def monitor_positions_loop(app: Application):
                             move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
                             key = (uid, sym)
 
-                            # User-configurable DCA settings
-                            dca_enabled = bool(cfg.get("dca_enabled", 0))
-                            dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
-                            dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
+                            # ═══════════════════════════════════════════════════════════════════
+                            # DCA SETTINGS: Per-strategy/side with fallback to global
+                            # ═══════════════════════════════════════════════════════════════════
+                            if pos_strategy and strat_settings:
+                                side_prefix = "long" if side == "Buy" else "short"
+                                
+                                # Get side-specific DCA settings
+                                side_dca_enabled = strat_settings.get(f"{side_prefix}_dca_enabled")
+                                side_dca_pct_1 = strat_settings.get(f"{side_prefix}_dca_pct_1")
+                                side_dca_pct_2 = strat_settings.get(f"{side_prefix}_dca_pct_2")
+                                
+                                # Fallback chain: side-specific > strategy-level > global
+                                dca_enabled = bool(side_dca_enabled) if side_dca_enabled is not None else (
+                                    bool(strat_settings.get("dca_enabled")) if strat_settings.get("dca_enabled") is not None else bool(cfg.get("dca_enabled", 0))
+                                )
+                                dca_pct_1 = float(side_dca_pct_1) if side_dca_pct_1 is not None and side_dca_pct_1 > 0 else (
+                                    float(strat_settings.get("dca_pct_1")) if strat_settings.get("dca_pct_1") and strat_settings.get("dca_pct_1") > 0 else float(cfg.get("dca_pct_1", 10.0))
+                                )
+                                dca_pct_2 = float(side_dca_pct_2) if side_dca_pct_2 is not None and side_dca_pct_2 > 0 else (
+                                    float(strat_settings.get("dca_pct_2")) if strat_settings.get("dca_pct_2") and strat_settings.get("dca_pct_2") > 0 else float(cfg.get("dca_pct_2", 25.0))
+                                )
+                                
+                                logger.debug(f"[{uid}] {sym}: DCA params from strategy - dca_enabled={dca_enabled}, dca_pct_1={dca_pct_1}, dca_pct_2={dca_pct_2}")
+                            else:
+                                # Fallback to global settings
+                                dca_enabled = bool(cfg.get("dca_enabled", 0))
+                                dca_pct_1 = float(cfg.get("dca_pct_1", 10.0))
+                                dca_pct_2 = float(cfg.get("dca_pct_2", 25.0))
 
                             # pos_account_type already defined above for strategy settings
 
@@ -18341,6 +18489,170 @@ async def monitor_positions_loop(app: Application):
                                     # SL already at or better than entry
                                     _be_triggered[key] = True
                                     logger.debug(f"[BE-ALREADY] {sym} uid={uid} - SL already at/better than entry (sl={current_sl}, entry={entry})")
+
+                            # ═══════════════════════════════════════════════════════════════════
+                            # PARTIAL TAKE PROFIT (СРЕЗ МАРЖИ) LOGIC
+                            # Close X% of position when profit reaches Y%
+                            # This runs AFTER break-even and BEFORE fixed SL/TP logic
+                            # ═══════════════════════════════════════════════════════════════════
+                            if pos_strategy and strat_settings:
+                                side_prefix = "long" if side == "Buy" else "short"
+                                
+                                # Get side-specific Partial TP settings
+                                ptp_enabled = strat_settings.get(f"{side_prefix}_partial_tp_enabled")
+                                if ptp_enabled is None:
+                                    ptp_enabled = strat_settings.get("partial_tp_enabled", False)
+                                ptp_enabled = bool(ptp_enabled)
+                                
+                                if ptp_enabled and move_pct > 0:  # Only when in profit
+                                    # Get step 1 settings
+                                    ptp_1_trigger = strat_settings.get(f"{side_prefix}_partial_tp_1_trigger_pct")
+                                    if ptp_1_trigger is None:
+                                        ptp_1_trigger = strat_settings.get("partial_tp_1_trigger_pct", 2.0)
+                                    ptp_1_trigger = float(ptp_1_trigger) if ptp_1_trigger else 2.0
+                                    
+                                    ptp_1_close = strat_settings.get(f"{side_prefix}_partial_tp_1_close_pct")
+                                    if ptp_1_close is None:
+                                        ptp_1_close = strat_settings.get("partial_tp_1_close_pct", 30.0)
+                                    ptp_1_close = float(ptp_1_close) if ptp_1_close else 30.0
+                                    
+                                    # Get step 2 settings
+                                    ptp_2_trigger = strat_settings.get(f"{side_prefix}_partial_tp_2_trigger_pct")
+                                    if ptp_2_trigger is None:
+                                        ptp_2_trigger = strat_settings.get("partial_tp_2_trigger_pct", 5.0)
+                                    ptp_2_trigger = float(ptp_2_trigger) if ptp_2_trigger else 5.0
+                                    
+                                    ptp_2_close = strat_settings.get(f"{side_prefix}_partial_tp_2_close_pct")
+                                    if ptp_2_close is None:
+                                        ptp_2_close = strat_settings.get("partial_tp_2_close_pct", 30.0)
+                                    ptp_2_close = float(ptp_2_close) if ptp_2_close else 30.0
+                                    
+                                    pos_size = float(pos["size"])
+                                    close_side = "Sell" if side == "Buy" else "Buy"
+                                    
+                                    # === STEP 1: Close ptp_1_close% at ptp_1_trigger% profit ===
+                                    if move_pct >= ptp_1_trigger and not get_ptp_flag(uid, sym, 1, account_type=pos_account_type, exchange=current_exchange):
+                                        try:
+                                            close_qty = pos_size * (ptp_1_close / 100)
+                                            # Get symbol filters for qty step
+                                            filt = await get_symbol_filters(uid, sym)
+                                            qty_step = float(filt.get("qtyStep", 0.001))
+                                            close_qty = math.floor(close_qty / qty_step) * qty_step
+                                            
+                                            if close_qty > 0:
+                                                # Place market order to close partial position
+                                                await place_order(
+                                                    user_id=uid,
+                                                    symbol=sym,
+                                                    side=close_side,
+                                                    orderType="Market",
+                                                    qty=close_qty,
+                                                    account_type=pos_account_type
+                                                )
+                                                set_ptp_flag(uid, sym, 1, True, account_type=pos_account_type, exchange=current_exchange)
+                                                
+                                                # Calculate realized PnL for notification
+                                                pnl_realized = close_qty * entry * (move_pct / 100)
+                                                
+                                                logger.info(f"[PTP-STEP1] {sym} uid={uid} - Closed {ptp_1_close:.0f}% ({close_qty}) at +{move_pct:.2f}% profit")
+                                                
+                                                try:
+                                                    await safe_send_notification(
+                                                        bot, uid,
+                                                        t.get('partial_tp_notification', 
+                                                            "✂️ <b>Partial TP Step {step}</b>\n\n"
+                                                            "📊 {symbol}\n"
+                                                            "📉 Closed: {close_pct:.0f}% ({close_qty})\n"
+                                                            "📈 Profit: +{profit_pct:.2f}%\n"
+                                                            "💰 PnL: ~${pnl:.2f}"
+                                                        ).format(
+                                                            step=1,
+                                                            symbol=sym,
+                                                            close_pct=ptp_1_close,
+                                                            close_qty=close_qty,
+                                                            profit_pct=move_pct,
+                                                            pnl=pnl_realized
+                                                        ),
+                                                        parse_mode="HTML"
+                                                    )
+                                                except Exception:
+                                                    pass
+                                                
+                                                # Send push notification
+                                                if notification_service:
+                                                    try:
+                                                        await notification_service.send_partial_tp_notification(
+                                                            uid, sym, side, step=1, 
+                                                            close_pct=ptp_1_close, profit_pct=move_pct, pnl=pnl_realized
+                                                        )
+                                                    except Exception as push_err:
+                                                        logger.debug(f"PTP push failed: {push_err}")
+                                        except Exception as e:
+                                            logger.error(f"[{uid}] {sym}: Partial TP step 1 failed: {e}", exc_info=True)
+                                    
+                                    # === STEP 2: Close ptp_2_close% at ptp_2_trigger% profit ===
+                                    if move_pct >= ptp_2_trigger and not get_ptp_flag(uid, sym, 2, account_type=pos_account_type, exchange=current_exchange):
+                                        try:
+                                            # Recalculate size (may have decreased from step 1)
+                                            current_pos = next((p for p in open_positions if p["symbol"] == sym), None)
+                                            if current_pos:
+                                                current_size = float(current_pos["size"])
+                                                close_qty = current_size * (ptp_2_close / 100)
+                                                
+                                                # Get symbol filters for qty step
+                                                filt = await get_symbol_filters(uid, sym)
+                                                qty_step = float(filt.get("qtyStep", 0.001))
+                                                close_qty = math.floor(close_qty / qty_step) * qty_step
+                                                
+                                                if close_qty > 0:
+                                                    await place_order(
+                                                        user_id=uid,
+                                                        symbol=sym,
+                                                        side=close_side,
+                                                        orderType="Market",
+                                                        qty=close_qty,
+                                                        account_type=pos_account_type
+                                                    )
+                                                    set_ptp_flag(uid, sym, 2, True, account_type=pos_account_type, exchange=current_exchange)
+                                                    
+                                                    # Calculate realized PnL
+                                                    pnl_realized = close_qty * entry * (move_pct / 100)
+                                                    
+                                                    logger.info(f"[PTP-STEP2] {sym} uid={uid} - Closed {ptp_2_close:.0f}% ({close_qty}) at +{move_pct:.2f}% profit")
+                                                    
+                                                    try:
+                                                        await safe_send_notification(
+                                                            bot, uid,
+                                                            t.get('partial_tp_notification',
+                                                                "✂️ <b>Partial TP Step {step}</b>\n\n"
+                                                                "📊 {symbol}\n"
+                                                                "📉 Closed: {close_pct:.0f}% ({close_qty})\n"
+                                                                "📈 Profit: +{profit_pct:.2f}%\n"
+                                                                "💰 PnL: ~${pnl:.2f}"
+                                                            ).format(
+                                                                step=2,
+                                                                symbol=sym,
+                                                                close_pct=ptp_2_close,
+                                                                close_qty=close_qty,
+                                                                profit_pct=move_pct,
+                                                                pnl=pnl_realized
+                                                            ),
+                                                            parse_mode="HTML"
+                                                        )
+                                                    except Exception:
+                                                        pass
+                                                    
+                                                    # Send push notification
+                                                    if notification_service:
+                                                        try:
+                                                            await notification_service.send_partial_tp_notification(
+                                                                uid, sym, side, step=2,
+                                                                close_pct=ptp_2_close, profit_pct=move_pct, pnl=pnl_realized
+                                                            )
+                                                        except Exception as push_err:
+                                                            logger.debug(f"PTP push failed: {push_err}")
+                                        except Exception as e:
+                                            logger.error(f"[{uid}] {sym}: Partial TP step 2 failed: {e}", exc_info=True)
 
                             if not position_use_atr:
                                 # CRITICAL FIX: Use applied_sl_pct/applied_tp_pct from position if available

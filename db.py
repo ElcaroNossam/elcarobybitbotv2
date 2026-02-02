@@ -2462,6 +2462,38 @@ def get_dca_flag(user_id: int, symbol: str, level: int, account_type: str = "dem
     return bool(row[0]) if row else False
 
 
+def set_ptp_flag(user_id: int, symbol: str, step: int, value: bool = True, account_type: str = "demo", exchange: str = "bybit"):
+    """
+    Sets Partial Take Profit step done flag for a position.
+    step: 1 or 2
+    """
+    col = f"ptp_step_{step}_done"
+    if col not in ("ptp_step_1_done", "ptp_step_2_done"):
+        raise ValueError(f"Invalid PTP step: {step}")
+    with get_conn() as conn:
+        conn.execute(
+            f"UPDATE active_positions SET {col}=? WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (1 if value else 0, user_id, symbol, account_type, exchange),
+        )
+        conn.commit()
+
+
+def get_ptp_flag(user_id: int, symbol: str, step: int, account_type: str = "demo", exchange: str = "bybit") -> bool:
+    """
+    Checks if Partial TP step was already executed for position.
+    step: 1 or 2
+    """
+    col = f"ptp_step_{step}_done"
+    if col not in ("ptp_step_1_done", "ptp_step_2_done"):
+        raise ValueError(f"Invalid PTP step: {step}")
+    with get_conn() as conn:
+        row = conn.execute(
+            f"SELECT {col} FROM active_positions WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            (user_id, symbol, account_type, exchange),
+        ).fetchone()
+    return bool(row[0]) if row else False
+
+
 def sync_position_entry_price(user_id: int, symbol: str, new_entry_price: float, account_type: str = "demo", exchange: str = "bybit") -> bool:
     """
     Синхронизирует entry_price позиции с биржей.
