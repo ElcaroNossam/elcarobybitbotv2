@@ -192,7 +192,15 @@ def release_conn(conn):
 # PERFORMANCE: Cache for schema introspection (columns rarely change)
 _schema_cache: dict[str, set[str]] = {}  # table_name -> set of column names
 _schema_cache_ts: float = 0.0
-SCHEMA_CACHE_TTL = 3600.0  # 1 hour - schema rarely changes
+SCHEMA_CACHE_TTL = 300.0  # 5 minutes - balance between performance and freshness after migrations
+
+
+def invalidate_schema_cache():
+    """Force refresh schema cache - call after migrations."""
+    global _schema_cache, _schema_cache_ts
+    _schema_cache = {}
+    _schema_cache_ts = 0.0
+    _logger.info("Schema cache invalidated")
 
 
 def _refresh_schema_cache():

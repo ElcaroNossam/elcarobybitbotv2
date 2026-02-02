@@ -137,6 +137,14 @@ def upgrade():
     for version, name in pending:
         apply_migration(version, name)
     
+    # Invalidate schema cache after migrations
+    try:
+        from db import invalidate_schema_cache
+        invalidate_schema_cache()
+        logger.info("✅ Schema cache invalidated")
+    except Exception as e:
+        logger.warning(f"Could not invalidate schema cache: {e}")
+    
     logger.info(f"✅ Applied {len(pending)} migration(s)")
 
 
