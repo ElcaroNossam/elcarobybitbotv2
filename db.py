@@ -213,12 +213,19 @@ def _refresh_schema_cache():
         WHERE table_schema = 'public'
     """)
     for row in rows:
-        table = row[0] if isinstance(row, tuple) else row.get('table_name')
-        col = row[1] if isinstance(row, tuple) else row.get('column_name')
-        if table not in _schema_cache:
-            _schema_cache[table] = set()
-        _schema_cache[table].add(col)
+        # Handle both dict (RealDictCursor) and tuple formats
+        if isinstance(row, dict):
+            table = row.get('table_name')
+            col = row.get('column_name')
+        else:
+            table = row[0]
+            col = row[1]
+        if table and col:
+            if table not in _schema_cache:
+                _schema_cache[table] = set()
+            _schema_cache[table].add(col)
     _schema_cache_ts = time.time()
+    _logger.info(f"Schema cache refreshed: {len(_schema_cache)} tables, users has {len(_schema_cache.get('users', set()))} columns")
 
 
 def _col_exists_pg(table: str, col: str) -> bool:
