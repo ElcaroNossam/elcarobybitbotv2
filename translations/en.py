@@ -849,14 +849,21 @@ TEXTS = {
     
     'trial_demo_only': (
         '⚠️ *Trial Limitation*\n\n'
-        'Trial access is limited to demo environment.\n\n'
-        '👉 /subscribe — Unlock live features'
+        'Trial access is limited to demo trading only.\n\n'
+        '👉 /subscribe — Unlock real trading'
     ),
     
     'basic_strategy_limit': (
-        '⚠️ *Plan Limitation*\n\n'
-        'Basic plan includes: {strategies}\n\n'
-        '👉 /subscribe — Upgrade for all strategies'
+        '⚠️ *Basic Plan Limitation*\n\n'
+        'Basic plan includes only: OI, RSI+BB\n\n'
+        '👉 /subscribe — Upgrade to Premium'
+    ),
+    
+    'basic_bybit_only': (
+        '⚠️ *Basic Plan Limitation*\n\n'
+        'Basic plan supports Bybit only.\n'
+        'HyperLiquid is available on Premium.\n\n'
+        '👉 /subscribe — Upgrade to Premium'
     ),
     
     # Subscribe menu - Professional, no hype
@@ -895,24 +902,26 @@ TEXTS = {
     'basic_title': '🥈 *Basic Plan*',
     'basic_desc': (
         '*Features included:*\n\n'
-        '✅ Full Demo access\n'
-        '✅ Live: OI, RSI+BB, Scryptomera, Scalper\n'
-        '⛔ Enliko, Fibonacci — Premium only\n'
-        '✅ Standard support\n'
+        '✅ Demo + Real trading\n'
+        '✅ Strategies: OI, RSI+BB\n'
+        '✅ Bybit only\n'
         '✅ ATR-based risk management\n\n'
+        '⛔ Other strategies — Premium only\n'
+        '⛔ HyperLiquid — Premium only\n\n'
         '⚠️ _Trading involves risk. Not financial advice._'
     ),
     
     'basic_1m': '🥈 1 Month — {price} ELC',
     
     # Trial plan
-    'trial_title': '🎁 *Free Trial — 7 Days*',
+    'trial_title': '🎁 *Free Trial — 14 Days*',
     'trial_desc': (
         '*Try before you subscribe:*\n\n'
         '✅ Full Demo access\n'
         '✅ All strategy templates\n'
-        '✅ 7 days duration\n'
+        '✅ 14 days duration\n'
         '✅ No payment required\n\n'
+        '⛔ Real trading not available\n\n'
         '⚠️ _Educational tools only. Not financial advice._'
     ),
     
@@ -920,7 +929,7 @@ TEXTS = {
     'trial_already_used': '⚠️ Trial already used. Choose a paid plan.',
     'trial_activated': (
         '🎉 *Trial Activated!*\n\n'
-        '⏰ You have 7 days of access.\n\n'
+        '⏰ You have 14 days of access.\n\n'
         'Explore all educational features in demo mode.\n\n'
         '⚠️ _Remember: Trading involves risk._'
     ),

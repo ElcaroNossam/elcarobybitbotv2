@@ -14,26 +14,37 @@ logger = logging.getLogger(__name__)
 
 class LicenseType(Enum):
     FREE = "free"
+    TRIAL = "trial"
+    BASIC = "basic"
     PREMIUM = "premium"
     VIP = "vip"
     ENTERPRISE = "enterprise"
 
 
+# Feature requirements mapping
+# Basic: demo + real, OI + RSI_BB only, Bybit only
+# Premium: all strategies, all exchanges
 FEATURE_REQUIREMENTS: Dict[str, str] = {
-    "hyperliquid": "premium",
+    "hyperliquid": "premium",        # Basic is Bybit only
     "advanced_signals": "premium",
-    "multi_exchange": "vip",
+    "multi_exchange": "premium",     # Basic is Bybit only
     "priority_support": "premium",
     "custom_strategies": "vip",
     "unlimited_positions": "enterprise",
-    "dca_advanced": "premium",
-    "pyramid_advanced": "premium",
-    "analytics": "vip",
+    "dca_advanced": "basic",         # Available for Basic+
+    "pyramid_advanced": "basic",     # Available for Basic+
+    "analytics": "basic",            # Available for Basic+
     "webhooks": "enterprise",
+    "scryptomera": "premium",        # Premium-only strategy
+    "scalper": "premium",            # Premium-only strategy
+    "elcaro": "premium",             # Premium-only strategy
+    "fibonacci": "premium",          # Premium-only strategy
+    "oi": "basic",                   # Basic strategy
+    "rsi_bb": "basic",               # Basic strategy
 }
 
 
-LICENSE_LEVELS = {"free": 0, "premium": 1, "vip": 2, "enterprise": 3}
+LICENSE_LEVELS = {"free": 0, "trial": 1, "basic": 2, "premium": 3, "vip": 4, "enterprise": 5}
 
 
 class LicenseService:

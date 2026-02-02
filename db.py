@@ -3887,20 +3887,25 @@ def get_license_request_stats() -> dict:
 # =====================================================
 
 # License types and their capabilities
+# Basic: Bybit only, OI + RSI_BB, demo + real
+# Trial: Demo only, all strategies, 14 days
+# Premium: Everything (all strategies, all exchanges, demo + real)
 LICENSE_TYPES = {
     "premium": {
         "name": "Premium",
         "demo_access": True,
         "real_access": True,
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
+        "all_exchanges": True,  # Bybit + HyperLiquid
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot", "manual"],
     },
     "enterprise": {
         "name": "Enterprise",
         "demo_access": True,
         "real_access": True,
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
+        "all_exchanges": True,
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot", "manual"],
         "priority_support": True,
         "api_access": True,
         "white_label": True,
@@ -3911,14 +3916,17 @@ LICENSE_TYPES = {
         "demo_access": True,
         "real_access": True,
         "all_strategies": False,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper"],  # No elcaro, fibonacci, spot
+        "all_exchanges": False,  # Bybit ONLY
+        "bybit_only": True,
+        "strategies": ["oi", "rsi_bb"],  # Only OI and RSI+BB
     },
     "trial": {
         "name": "Trial",
         "demo_access": True,
-        "real_access": False,  # Demo only
+        "real_access": False,  # Demo only, 14 days
         "all_strategies": True,
-        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot"],
+        "all_exchanges": True,  # Can see all in demo
+        "strategies": ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot", "manual"],
     },
     "none": {
         "name": "No License",
@@ -4168,17 +4176,23 @@ def revoke_license(user_id: int, admin_id: int | None = None, reason: str | None
     return {"success": True, "message": "License revoked"}
 
 
-def check_license_access(user_id: int, feature: str, account_type: str = "demo") -> dict:
+def check_license_access(user_id: int, feature: str, account_type: str = "demo", exchange: str = "bybit") -> dict:
     """
     Check if user has access to a specific feature.
     
     Args:
         user_id: User ID
-        feature: Feature name ('trading', 'strategy_oi', 'strategy_rsi_bb', etc.)
+        feature: Feature name ('trading', 'strategy_oi', 'strategy_rsi_bb', 'exchange_hyperliquid', etc.)
         account_type: 'demo' or 'real'
+        exchange: 'bybit' or 'hyperliquid'
     
     Returns:
         {"allowed": bool, "reason": str}
+    
+    License rules:
+        - Trial: Demo only, all strategies, all exchanges in demo
+        - Basic: Demo + Real, OI and RSI_BB only, Bybit only
+        - Premium: Everything
     """
     license_info = get_user_license(user_id)
     
@@ -4195,12 +4209,16 @@ def check_license_access(user_id: int, feature: str, account_type: str = "demo")
     if account_type == "demo" and not caps["demo_access"]:
         return {"allowed": False, "reason": "no_demo_access"}
     
+    # Check exchange access - Basic is Bybit only
+    if license_type == "basic" and exchange == "hyperliquid":
+        return {"allowed": False, "reason": "basic_bybit_only"}
+    
     # Check strategy access
     if feature.startswith("strategy_"):
         strategy = feature.replace("strategy_", "")
         
-        # On real account, Basic users are limited
-        if account_type == "real" and license_type == "basic":
+        # Basic users are limited to OI and RSI_BB on both demo and real
+        if license_type == "basic":
             if strategy not in caps["strategies"]:
                 return {"allowed": False, "reason": "basic_strategy_limit", "allowed_strategies": caps["strategies"]}
         
@@ -4223,6 +4241,10 @@ def can_trade_strategy(user_id: int, strategy: str, account_type: str = "demo") 
 def get_allowed_strategies(user_id: int, account_type: str = "demo") -> list[str]:
     """
     Get list of strategies user can trade on given account type.
+    
+    Basic: Only OI and RSI_BB on both demo and real (Bybit only)
+    Trial: All strategies but demo only
+    Premium: All strategies, all exchanges
     """
     license_info = get_user_license(user_id)
     
@@ -4230,6 +4252,7 @@ def get_allowed_strategies(user_id: int, account_type: str = "demo") -> list[str
         return []
     
     caps = license_info["capabilities"]
+    license_type = license_info["license_type"]
     
     # Check if user can trade on this account type
     if account_type == "real" and not caps["real_access"]:
@@ -4237,12 +4260,12 @@ def get_allowed_strategies(user_id: int, account_type: str = "demo") -> list[str
     if account_type == "demo" and not caps["demo_access"]:
         return []
     
-    # For Basic on real account, return limited strategies
-    if account_type == "real" and license_info["license_type"] == "basic":
-        return caps["strategies"]
+    # Basic: limited strategies (OI, RSI_BB only) on both demo and real
+    if license_type == "basic":
+        return ["oi", "rsi_bb"]
     
-    # For Premium, Trial on demo, or Basic on demo - all strategies
-    return ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro"]
+    # Premium, Enterprise, Trial - all strategies
+    return ["oi", "rsi_bb", "scryptomera", "scalper", "elcaro", "fibonacci", "spot", "manual"]
 
 
 # =====================================================

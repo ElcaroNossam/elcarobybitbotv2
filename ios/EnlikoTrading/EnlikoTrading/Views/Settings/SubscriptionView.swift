@@ -195,27 +195,27 @@ struct SubscriptionView: View {
             VStack(spacing: 12) {
                 PlanCard(
                     name: "Basic",
-                    description: "Essential trading features",
+                    description: "Bybit only, OI + RSI/BB",
                     price: getBasePrice("basic"),
-                    features: ["3 strategies", "Demo trading", "Email support"],
+                    features: ["Demo + Real trading", "Strategies: OI, RSI+BB", "Bybit only", "ATR risk management"],
                     isSelected: selectedPlan == "basic",
                     action: { selectedPlan = "basic" }
                 )
                 
                 PlanCard(
                     name: "Premium",
-                    description: "Advanced trading tools",
+                    description: "All strategies, all exchanges",
                     price: getBasePrice("premium"),
-                    features: ["All strategies", "Real trading", "Priority support", "API access"],
+                    features: ["All 6 strategies", "Bybit + HyperLiquid", "Demo + Real", "Priority support"],
                     isSelected: selectedPlan == "premium",
                     action: { selectedPlan = "premium" }
                 )
                 
                 PlanCard(
                     name: "Pro",
-                    description: "Full platform access",
+                    description: "Unlimited professional access",
                     price: getBasePrice("pro"),
-                    features: ["Everything in Premium", "Custom strategies", "Dedicated support", "White-label"],
+                    features: ["Everything in Premium", "Unlimited positions", "Custom strategies", "API access"],
                     isSelected: selectedPlan == "pro",
                     action: { selectedPlan = "pro" }
                 )

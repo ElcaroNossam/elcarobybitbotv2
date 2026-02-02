@@ -16206,7 +16206,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             # Check if user can trade this strategy on this account type
             if active_strategy and is_real_trade:
-                access = check_license_access(uid, f"strategy_{active_strategy}", "real")
+                access = check_license_access(uid, f"strategy_{active_strategy}", "real", exchange=ctx_exchange)
                 if not access["allowed"]:
                     if access["reason"] == "trial_demo_only":
                         if once_per((uid, "trial_demo_warn", ""), 3600):
@@ -16225,6 +16225,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 await ctx.bot.send_message(
                                     uid,
                                     t.get("basic_strategy_limit", "⚠️ Basic license on real account allows only: {strategies}\n\nUpgrade to Premium for all strategies: /subscribe").format(strategies=allowed)
+                                )
+                            except Exception:
+                                pass
+                        continue
+                    elif access["reason"] == "basic_bybit_only":
+                        if once_per((uid, "basic_bybit_warn", ""), 3600):
+                            try:
+                                await ctx.bot.send_message(
+                                    uid,
+                                    t.get("basic_bybit_only", "⚠️ Basic license allows only Bybit trading.\n\nUpgrade to Premium for HyperLiquid access: /subscribe")
                                 )
                             except Exception:
                                 pass
