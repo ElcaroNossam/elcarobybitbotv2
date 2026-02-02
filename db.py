@@ -1139,7 +1139,7 @@ def get_user_config(user_id: int) -> dict:
         cols = [
             # торговые настройки
             "percent", "coins", "limit_enabled",
-            "trade_oi", "trade_rsi_bb",
+            "trade_oi", "trade_rsi_bb", "trade_manual",
             "tp_percent", "sl_percent",
             "use_atr", "lang",
             # стратегии/пороги
@@ -1165,8 +1165,7 @@ def get_user_config(user_id: int) -> dict:
         # Also check for old column name for backward compatibility
         elif _col_exists(conn, "users", "trade_wyckoff"):
             cols.append("trade_wyckoff")
-        if _col_exists(conn, "users", "trade_manual"):
-            cols.append("trade_manual")
+        # trade_manual is now in base cols list
         if _col_exists(conn, "users", "strategy_settings"):
             cols.append("strategy_settings")
         if _col_exists(conn, "users", "dca_enabled"):
@@ -1241,6 +1240,7 @@ def get_user_config(user_id: int) -> dict:
             "trade_scalper": 0,
             "trade_elcaro": 0,
             "trade_fibonacci": 0,
+            "trade_manual": 1,  # Manual monitoring enabled by default
             "strategy_settings": {},
             "dca_enabled": 0,
             "dca_pct_1": 10.0,
@@ -1300,6 +1300,7 @@ def get_user_config(user_id: int) -> dict:
         "trade_fibonacci": int(data.get("trade_fibonacci") or data.get("trade_wyckoff") or 0)
         if "trade_fibonacci" in data or "trade_wyckoff" in data
         else 0,
+        "trade_manual": int(data.get("trade_manual") if data.get("trade_manual") is not None else 1),
         "strategy_settings": _safe_json_loads(data.get("strategy_settings"), {})
         if data.get("strategy_settings")
         else {},
