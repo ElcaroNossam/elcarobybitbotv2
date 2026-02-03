@@ -12362,6 +12362,8 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict, account_typ
     for idx, pos in enumerate(page_positions):
         global_idx = start_idx + idx + 1  # 1-based index
         sym = pos.get("symbol", "-")
+        # Remove USDT suffix for shorter display
+        sym_short = sym.replace("USDT", "") if sym.endswith("USDT") else sym
         side = pos.get("side", "-")
         pnl = float(pos.get("unrealisedPnl") or 0)
         
@@ -12371,7 +12373,7 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict, account_typ
         # Row: position button + PnL button + close button (3 columns)
         buttons.append([
             InlineKeyboardButton(
-                f"{emoji} {global_idx}. {sym}",
+                f"{emoji} {sym_short}",
                 callback_data=f"pos:view:{sym}"
             ),
             InlineKeyboardButton(
@@ -15410,10 +15412,11 @@ def parse_scalper_signal(text: str) -> dict | None:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # OI SIGNAL PARSER (NEW FORMAT)
-# Format: 🎯 OI SIGNAL ⭐️... with 🚀 SQUEEZE... 📈 LONG BTCUSDT @ 95432.50
+# Format: 🎯 OI SIGNAL ⭐️... with 🚀 SQUEEZE... � LONG BTCUSDT @ 95432.50
 # ═══════════════════════════════════════════════════════════════════════════════
 OI_SIGNAL_RE_HDR = re.compile(r'🎯\s*OI\s+SIGNAL', re.I)
-OI_SIGNAL_RE_MAIN = re.compile(r'[📈📉]\s*(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I)
+# Updated: also matches 🟢/🔴 emojis which are used in real signals
+OI_SIGNAL_RE_MAIN = re.compile(r'[📈📉🟢🔴]\s*(LONG|SHORT)\s+([A-Z0-9]+USDT)\s*@\s*([0-9]+(?:[.,][0-9]+)?)', re.I)
 OI_SIGNAL_RE_OI_CHANGE = re.compile(r'OI\s*:\s*([+\-]?[0-9]+(?:[.,][0-9]+)?)%', re.I)
 OI_SIGNAL_RE_SCORE = re.compile(r'Score\s*:\s*([0-9]+(?:[.,][0-9]+)?)', re.I)
 
