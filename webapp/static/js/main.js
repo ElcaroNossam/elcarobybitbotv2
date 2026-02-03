@@ -529,8 +529,8 @@ const Components = {
                         
                         <div class="settings-row">
                             <div class="settings-label">
-                                <span>Elcaro</span>
-                                <small>Enable Elcaro strategy</small>
+                                <span>Enliko</span>
+                                <small>Enable Enliko strategy</small>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" ${settings.enable_elcaro ? 'checked' : ''} 
