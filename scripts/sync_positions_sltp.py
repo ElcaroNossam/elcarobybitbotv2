@@ -65,16 +65,19 @@ async def get_bybit_positions(user_id: int, account_type: str) -> dict:
                     if data.get('retCode') == 0:
                         positions = {}
                         for pos in data.get('result', {}).get('list', []):
-                            size = float(pos.get('size', 0))
+                            size = float(pos.get('size') or 0)
                             if size > 0:
                                 symbol = pos.get('symbol')
+                                # Handle empty strings from Bybit API
+                                sl_val = pos.get('stopLoss', '')
+                                tp_val = pos.get('takeProfit', '')
                                 positions[symbol] = {
-                                    'sl_price': float(pos.get('stopLoss', 0)) or None,
-                                    'tp_price': float(pos.get('takeProfit', 0)) or None,
+                                    'sl_price': float(sl_val) if sl_val else None,
+                                    'tp_price': float(tp_val) if tp_val else None,
                                     'side': pos.get('side'),
                                     'size': size,
-                                    'entry_price': float(pos.get('avgPrice', 0)),
-                                    'leverage': float(pos.get('leverage', 1)),
+                                    'entry_price': float(pos.get('avgPrice') or 0),
+                                    'leverage': float(pos.get('leverage') or 1),
                                 }
                         return positions
     except Exception as e:
