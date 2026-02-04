@@ -10,7 +10,9 @@ import io.enliko.trading.ui.screens.activity.ActivityScreen
 import io.enliko.trading.ui.screens.auth.DisclaimerScreen
 import io.enliko.trading.ui.screens.auth.LoginScreen
 import io.enliko.trading.ui.screens.auth.hasAcceptedDisclaimer
+import io.enliko.trading.ui.screens.charts.AdvancedChartsScreen
 import io.enliko.trading.ui.screens.main.MainScreen
+import io.enliko.trading.ui.screens.social.SocialTradingScreen
 import io.enliko.trading.ui.screens.spot.SpotScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
@@ -22,6 +24,10 @@ sealed class Screen(val route: String) {
     object Main : Screen("main")
     object Activity : Screen("activity")
     object Spot : Screen("spot")
+    object Charts : Screen("charts/{symbol}") {
+        fun createRoute(symbol: String) = "charts/$symbol"
+    }
+    object SocialTrading : Screen("social")
     object StrategySettings : Screen("strategy_settings/{strategy}") {
         fun createRoute(strategy: String) = "strategy_settings/$strategy"
     }
@@ -115,6 +121,23 @@ fun EnlikoNavHost(
             composable(Screen.Spot.route) {
                 SpotScreen(
                     onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Charts.route) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: "BTCUSDT"
+                AdvancedChartsScreen(
+                    symbol = symbol,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.SocialTrading.route) {
+                SocialTradingScreen(
+                    onBack = { navController.popBackStack() },
+                    onTraderClick = { traderId ->
+                        // Navigate to trader profile
+                    }
                 )
             }
         }
