@@ -4031,6 +4031,8 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
             side_prefix = "long" if side in ("Buy", "LONG", "long") else "short"
             side_sl = strat_settings.get(f"{side_prefix}_sl_percent")
             side_tp = strat_settings.get(f"{side_prefix}_tp_percent")
+            # DEBUG: Log side resolution
+            logger.info(f"[RESOLVE-SL-TP] uid={user_id} symbol={symbol} strategy={strategy} side={side} side_prefix={side_prefix} side_sl={side_sl} side_tp={side_tp}")
             
             if side_sl is not None and side_sl > 0:
                 strat_sl = side_sl
