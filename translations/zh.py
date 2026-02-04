@@ -269,6 +269,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 语言',
+    'select_language':             '🌍 选择语言:',
+    'language_set':                '✅ 语言已设置为',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            '止损模式：*{mode}*',

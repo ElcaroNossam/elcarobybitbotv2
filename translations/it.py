@@ -227,6 +227,8 @@ Bybit • HyperLiquid • Multi-strategia''',
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Lingua',
+    'select_language':             '🌍 Seleziona la tua lingua:',
+    'language_set':                '✅ Lingua impostata:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Modo stop: *{mode}*',

@@ -83,6 +83,8 @@ TEXTS = {
     'button_history': '📜 Історія',
     'button_premium': '💎 Преміум',
     'button_language': '🌍 Мова',
+    'select_language': '🌍 Виберіть мову:',
+    'language_set': '✅ Мова встановлена:',
     'button_api_keys': '🔗 API Ключі',
     'button_settings': '⚙️ Налаштування',
     'button_help': '❓ Допомога',

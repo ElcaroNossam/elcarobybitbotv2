@@ -273,6 +273,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Jazyk',
+    'select_language':             '🌍 Vyberte jazyk:',
+    'language_set':                '✅ Jazyk nastaven:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Režim stopu: *{mode}*',

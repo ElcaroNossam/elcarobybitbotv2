@@ -270,6 +270,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Język',
+    'select_language':             '🌍 Wybierz język:',
+    'language_set':                '✅ Język ustawiony:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Tryb stop: *{mode}*',

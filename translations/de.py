@@ -253,6 +253,8 @@ _Jeder Trade ist ein Schritt zur finanziellen Freiheit._
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Sprache',
+    'select_language':             '🌍 Sprache wählen:',
+    'language_set':                '✅ Sprache gesetzt auf',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Stop-Modus: *{mode}*',

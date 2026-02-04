@@ -271,6 +271,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 言語',
+    'select_language':             '🌍 言語を選択:',
+    'language_set':                '✅ 言語が設定されました:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'ストップモード: *{mode}*',

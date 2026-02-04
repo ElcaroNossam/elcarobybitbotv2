@@ -116,6 +116,8 @@ TEXTS = {
     'button_subscribe': '👑 ПРЕМИУМ',
     'button_language': '🌍 Язык',
     'button_lang': '🌍 Язык',
+    'select_language': '🌍 Выберите язык:',
+    'language_set': '✅ Язык установлен:',
     'button_api_keys': '🔗 API Ключи',
     'button_settings': '⚙️ Настройки',
     'button_terminal': '💻 Терминал',

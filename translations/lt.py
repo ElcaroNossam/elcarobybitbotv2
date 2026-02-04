@@ -268,6 +268,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Kalba',
+    'select_language':             '🌍 Pasirinkite kalbą:',
+    'language_set':                '✅ Kalba nustatyta:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Stabdymo režimas: *{mode}*',

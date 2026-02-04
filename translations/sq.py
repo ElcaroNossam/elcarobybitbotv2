@@ -269,6 +269,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 Gjuha',
+    'select_language':             '🌍 Zgjidh gjuhën:',
+    'language_set':                '✅ Gjuha u vendos:',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'Mënyra stop: *{mode}*',

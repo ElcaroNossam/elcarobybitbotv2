@@ -274,6 +274,8 @@ TEXTS = {
     # Buttons & stop mode line items
     'button_toggle_atr':           '🏧 ATR',
     'button_lang':                 '🌐 اللغة',
+    'select_language':             '🌍 اختر لغتك:',
+    'language_set':                '✅ تم تعيين اللغة إلى',
     'button_set_tp':               '🆙 TP %',
     'button_set_sl':               '⬇️ SL %',
     'config_stop_mode':            'وضع الإيقاف: *{mode}*',
