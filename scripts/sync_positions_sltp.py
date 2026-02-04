@@ -30,15 +30,16 @@ async def get_bybit_positions(user_id: int, account_type: str) -> dict:
     
     # Выбираем ключи в зависимости от account_type
     if account_type in ('demo', 'testnet'):
-        api_key = creds.get('demo_api_key')
-        api_secret = creds.get('demo_api_secret')
+        api_key = creds.get('demo_api_key') or ''
+        api_secret = creds.get('demo_api_secret') or ''
         base_url = "https://api-demo.bybit.com"
     else:
-        api_key = creds.get('real_api_key')
-        api_secret = creds.get('real_api_secret')
+        api_key = creds.get('real_api_key') or ''
+        api_secret = creds.get('real_api_secret') or ''
         base_url = "https://api.bybit.com"
     
-    if not api_key or not api_secret:
+    # Проверяем что ключи не пустые
+    if not api_key.strip() or not api_secret.strip():
         return {}
     
     # Формируем запрос
