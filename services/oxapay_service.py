@@ -339,7 +339,7 @@ class OxaPayService:
         plan: str,
         duration: str,
         pay_currency: str = "USDT",
-        network: str = "TRC20",
+        network: str = "Tron",
     ) -> Dict[str, Any]:
         """
         Create white-label payment (no redirect, show address directly).
@@ -635,18 +635,23 @@ Use /menu to access all features.
             logger.error(f"Failed to notify user {user_id}: {e}")
     
     def get_available_currencies(self) -> List[Dict[str, Any]]:
-        """Get list of available payment currencies"""
+        """Get list of available payment currencies - network names match OxaPay API"""
         return [
-            {"code": "USDT", "name": "Tether USD", "networks": ["TRC20", "BEP20", "ERC20", "Polygon"]},
+            {"code": "USDT", "name": "Tether USD", "networks": ["Tron", "BSC", "Ethereum", "Polygon", "The Open Network"]},
             {"code": "BTC", "name": "Bitcoin", "networks": ["Bitcoin"]},
-            {"code": "ETH", "name": "Ethereum", "networks": ["ERC20"]},
-            {"code": "TRX", "name": "Tron", "networks": ["TRC20"]},
-            {"code": "BNB", "name": "BNB", "networks": ["BEP20"]},
+            {"code": "ETH", "name": "Ethereum", "networks": ["Ethereum", "Base"]},
+            {"code": "TRX", "name": "Tron", "networks": ["Tron"]},
+            {"code": "BNB", "name": "BNB", "networks": ["BSC"]},
             {"code": "SOL", "name": "Solana", "networks": ["Solana"]},
-            {"code": "TON", "name": "Toncoin", "networks": ["TON"]},
+            {"code": "TON", "name": "Toncoin", "networks": ["The Open Network"]},
             {"code": "LTC", "name": "Litecoin", "networks": ["Litecoin"]},
             {"code": "DOGE", "name": "Dogecoin", "networks": ["Dogecoin"]},
             {"code": "XMR", "name": "Monero", "networks": ["Monero"]},
+            {"code": "USDC", "name": "USD Coin", "networks": ["Ethereum"]},
+            {"code": "POL", "name": "Polygon", "networks": ["Polygon"]},
+            {"code": "BCH", "name": "Bitcoin Cash", "networks": ["BitcoinCash"]},
+            {"code": "NOT", "name": "NotCoin", "networks": ["The Open Network"]},
+            {"code": "SHIB", "name": "Shiba Inu", "networks": ["BSC"]},
         ]
     
     def get_plans(self) -> Dict[str, Any]:
@@ -663,7 +668,7 @@ Use /menu to access all features.
         self,
         user_id: int,
         usdt_amount: float,
-        network: str = "TRC20",
+        network: str = "Tron",
     ) -> Dict[str, Any]:
         """
         Create payment for ELC token purchase.
@@ -673,7 +678,7 @@ Use /menu to access all features.
         Args:
             user_id: Telegram user ID
             usdt_amount: Amount in USDT to pay
-            network: Payment network (TRC20, BEP20, etc.)
+            network: Payment network (Tron, BSC, Ethereum, etc.)
             
         Returns:
             Payment invoice with address and amount
@@ -892,7 +897,7 @@ async def create_payment_for_elc(
     user_id: int,
     amount_usd: float,
     currency: str = "USDT",
-    network: str = "TRC20"
+    network: str = "Tron"
 ) -> Dict[str, Any]:
     """
     Create payment for buying ELC tokens.
@@ -901,7 +906,7 @@ async def create_payment_for_elc(
         user_id: Telegram user ID
         amount_usd: Amount in USD (1:1 with ELC)
         currency: Payment currency (USDT, BTC, ETH, etc.)
-        network: Blockchain network (TRC20, BEP20, ERC20, Bitcoin)
+        network: Blockchain network (Tron, BSC, Ethereum, Bitcoin)
     
     Returns:
         Dict with payment details or error

@@ -298,7 +298,7 @@ async def elc_callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     plan=LicensePlan.BASIC,  # ELC purchase treated as basic
                     duration=LicenseDuration.MONTH_1,
                     currency="USDT",
-                    network="TRC20"
+                    network="Tron"  # OxaPay network name
                 )
                 
                 if not payment_result.get("success"):

@@ -45,7 +45,7 @@ class CreatePaymentRequest(BaseModel):
     plan: str = Field(..., description="Plan: basic, premium, enterprise")
     duration: str = Field(..., description="Duration: 1m, 3m, 6m, 1y")
     currency: str = Field(default="USDT", description="Crypto currency")
-    network: Optional[str] = Field(default="TRC20", description="Network for currency")
+    network: Optional[str] = Field(default="Tron", description="Network for currency (OxaPay format)")
     promo_code: Optional[str] = Field(default=None, description="Promo code for discount")
 
 
@@ -262,6 +262,7 @@ async def get_plans():
 async def get_currencies():
     """
     Get list of supported cryptocurrencies for payment.
+    Network names match OxaPay API exactly.
     
     Each currency has:
     - Symbol (USDT, BTC, ETH, etc.)
@@ -273,25 +274,25 @@ async def get_currencies():
         CurrencyInfo(
             symbol="USDT",
             name="Tether USD",
-            networks=["TRC20", "BEP20", "ERC20", "Polygon", "Arbitrum", "TON"],
+            networks=["Tron", "BSC", "Ethereum", "Polygon", "The Open Network"],
             min_amount=5.0,
         ),
         CurrencyInfo(
             symbol="BTC",
             name="Bitcoin",
-            networks=["Bitcoin", "Lightning"],
+            networks=["Bitcoin"],
             min_amount=10.0,
         ),
         CurrencyInfo(
             symbol="ETH",
             name="Ethereum",
-            networks=["ERC20", "Arbitrum", "Optimism"],
+            networks=["Ethereum", "Base"],
             min_amount=10.0,
         ),
         CurrencyInfo(
             symbol="TON",
             name="Toncoin",
-            networks=["TON"],
+            networks=["The Open Network"],
             min_amount=5.0,
         ),
         CurrencyInfo(
@@ -303,7 +304,7 @@ async def get_currencies():
         CurrencyInfo(
             symbol="TRX",
             name="TRON",
-            networks=["TRC20"],
+            networks=["Tron"],
             min_amount=10.0,
         ),
         CurrencyInfo(
@@ -311,6 +312,24 @@ async def get_currencies():
             name="Litecoin",
             networks=["Litecoin"],
             min_amount=5.0,
+        ),
+        CurrencyInfo(
+            symbol="DOGE",
+            name="Dogecoin",
+            networks=["Dogecoin"],
+            min_amount=5.0,
+        ),
+        CurrencyInfo(
+            symbol="BNB",
+            name="BNB",
+            networks=["BSC"],
+            min_amount=5.0,
+        ),
+        CurrencyInfo(
+            symbol="XMR",
+            name="Monero",
+            networks=["Monero"],
+            min_amount=10.0,
         ),
     ]
     return currencies

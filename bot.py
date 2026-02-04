@@ -24594,27 +24594,31 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             "Select payment currency:"
         ).format(plan=plan.title(), duration=duration_text, price=price_usd)
         
-        # Popular currencies for payment
+        # Popular currencies for payment - network names match OxaPay API
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("💵 USDT (TRC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:TRC20"),
-                InlineKeyboardButton("💵 USDT (BEP20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:BEP20"),
+                InlineKeyboardButton("💵 USDT (TRC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:Tron"),
+                InlineKeyboardButton("💵 USDT (BEP20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:BSC"),
             ],
             [
-                InlineKeyboardButton("💵 USDT (TON)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:TON"),
-                InlineKeyboardButton("💵 USDT (ERC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:ERC20"),
+                InlineKeyboardButton("💵 USDT (TON)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:The Open Network"),
+                InlineKeyboardButton("💵 USDT (ERC20)", callback_data=f"sub:crypto_create:{plan}:{duration}:USDT:Ethereum"),
             ],
             [
                 InlineKeyboardButton("₿ Bitcoin", callback_data=f"sub:crypto_create:{plan}:{duration}:BTC:Bitcoin"),
-                InlineKeyboardButton("Ξ Ethereum", callback_data=f"sub:crypto_create:{plan}:{duration}:ETH:ERC20"),
+                InlineKeyboardButton("Ξ Ethereum", callback_data=f"sub:crypto_create:{plan}:{duration}:ETH:Ethereum"),
             ],
             [
-                InlineKeyboardButton("💎 TON", callback_data=f"sub:crypto_create:{plan}:{duration}:TON:TON"),
+                InlineKeyboardButton("💎 TON", callback_data=f"sub:crypto_create:{plan}:{duration}:TON:The Open Network"),
                 InlineKeyboardButton("◎ Solana", callback_data=f"sub:crypto_create:{plan}:{duration}:SOL:Solana"),
             ],
             [
-                InlineKeyboardButton("🔶 BNB", callback_data=f"sub:crypto_create:{plan}:{duration}:BNB:BEP20"),
-                InlineKeyboardButton("⚡ TRX", callback_data=f"sub:crypto_create:{plan}:{duration}:TRX:TRC20"),
+                InlineKeyboardButton("🔶 BNB", callback_data=f"sub:crypto_create:{plan}:{duration}:BNB:BSC"),
+                InlineKeyboardButton("⚡ TRX", callback_data=f"sub:crypto_create:{plan}:{duration}:TRX:Tron"),
+            ],
+            [
+                InlineKeyboardButton("🐕 DOGE", callback_data=f"sub:crypto_create:{plan}:{duration}:DOGE:Dogecoin"),
+                InlineKeyboardButton("🪙 LTC", callback_data=f"sub:crypto_create:{plan}:{duration}:LTC:Litecoin"),
             ],
             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}")]
         ])
