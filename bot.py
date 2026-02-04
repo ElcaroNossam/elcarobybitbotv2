@@ -16100,74 +16100,146 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if oi_trigger and not check_coins_filter("oi"):
                 oi_trigger = False
 
-            # Check Scryptomera direction filter
+            # Check Scryptomera enabled + direction filter
             if bitk_trigger:
                 scrypto_settings = db.get_strategy_settings(uid, "scryptomera", ctx_exchange, ctx_account_type)
-                scrypto_direction = scrypto_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
-                logger.info(f"[{uid}] Scryptomera direction check: signal={signal_direction}, allowed={scrypto_direction}")
                 
-                if scrypto_direction != "all" and scrypto_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: Scryptomera direction filter - signal={signal_direction}, allowed={scrypto_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = scrypto_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] Scryptomera enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: Scryptomera {signal_direction.upper()} disabled → skip")
                     bitk_trigger = False
                 else:
-                    logger.info(f"[{uid}] Scryptomera direction OK, proceeding with {symbol}")
+                    # Check direction filter
+                    scrypto_direction = scrypto_settings.get("direction", "all")
+                    logger.info(f"[{uid}] Scryptomera direction check: signal={signal_direction}, allowed={scrypto_direction}")
+                    
+                    if scrypto_direction != "all" and scrypto_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: Scryptomera direction filter - signal={signal_direction}, allowed={scrypto_direction} → skip")
+                        bitk_trigger = False
+                    else:
+                        logger.info(f"[{uid}] Scryptomera {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            # Check Scalper direction filter
+            # Check Scalper enabled + direction filter
             if scalper_trigger:
                 scalper_settings = db.get_strategy_settings(uid, "scalper", ctx_exchange, ctx_account_type)
-                scalper_direction = scalper_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
-                logger.info(f"[{uid}] Scalper direction check: signal={signal_direction}, allowed={scalper_direction}")
                 
-                if scalper_direction != "all" and scalper_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: Scalper direction filter - signal={signal_direction}, allowed={scalper_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = scalper_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] Scalper enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: Scalper {signal_direction.upper()} disabled → skip")
                     scalper_trigger = False
                 else:
-                    logger.info(f"[{uid}] Scalper direction OK, proceeding with {symbol}")
+                    # Check direction filter
+                    scalper_direction = scalper_settings.get("direction", "all")
+                    logger.info(f"[{uid}] Scalper direction check: signal={signal_direction}, allowed={scalper_direction}")
+                    
+                    if scalper_direction != "all" and scalper_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: Scalper direction filter - signal={signal_direction}, allowed={scalper_direction} → skip")
+                        scalper_trigger = False
+                    else:
+                        logger.info(f"[{uid}] Scalper {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            # Check Fibonacci direction filter
+            # Check Fibonacci enabled + direction filter
             if fibonacci_trigger:
                 fibo_settings = db.get_strategy_settings(uid, "fibonacci", ctx_exchange, ctx_account_type)
-                fibo_direction = fibo_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
-                logger.info(f"[{uid}] Fibonacci direction check: signal={signal_direction}, allowed={fibo_direction}")
                 
-                if fibo_direction != "all" and fibo_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: Fibonacci direction filter - signal={signal_direction}, allowed={fibo_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = fibo_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] Fibonacci enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: Fibonacci {signal_direction.upper()} disabled → skip")
                     fibonacci_trigger = False
                 else:
-                    logger.info(f"[{uid}] Fibonacci direction OK, proceeding with {symbol}")
+                    # Check direction filter
+                    fibo_direction = fibo_settings.get("direction", "all")
+                    logger.info(f"[{uid}] Fibonacci direction check: signal={signal_direction}, allowed={fibo_direction}")
+                    
+                    if fibo_direction != "all" and fibo_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: Fibonacci direction filter - signal={signal_direction}, allowed={fibo_direction} → skip")
+                        fibonacci_trigger = False
+                    else:
+                        logger.info(f"[{uid}] Fibonacci {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            # Check RSI_BB direction filter
+            # Check RSI_BB enabled + direction filter
             if rsi_bb_trigger:
                 rsi_bb_settings = db.get_strategy_settings(uid, "rsi_bb", ctx_exchange, ctx_account_type)
-                rsi_bb_direction = rsi_bb_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
-                if rsi_bb_direction != "all" and rsi_bb_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: RSI_BB direction filter - signal={signal_direction}, allowed={rsi_bb_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = rsi_bb_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] RSI_BB enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: RSI_BB {signal_direction.upper()} disabled → skip")
                     rsi_bb_trigger = False
+                else:
+                    # Check direction filter
+                    rsi_bb_direction = rsi_bb_settings.get("direction", "all")
+                    
+                    if rsi_bb_direction != "all" and rsi_bb_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: RSI_BB direction filter - signal={signal_direction}, allowed={rsi_bb_direction} → skip")
+                        rsi_bb_trigger = False
+                    else:
+                        logger.info(f"[{uid}] RSI_BB {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            # Check Enliko direction filter
+            # Check Enliko enabled + direction filter
             if elcaro_trigger:
                 elcaro_settings = db.get_strategy_settings(uid, "elcaro", ctx_exchange, ctx_account_type)
-                elcaro_direction = elcaro_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
-                if elcaro_direction != "all" and elcaro_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: Elcaro direction filter - signal={signal_direction}, allowed={elcaro_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = elcaro_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] Elcaro enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: Elcaro {signal_direction.upper()} disabled → skip")
                     elcaro_trigger = False
+                else:
+                    # Check direction filter
+                    elcaro_direction = elcaro_settings.get("direction", "all")
+                    
+                    if elcaro_direction != "all" and elcaro_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: Elcaro direction filter - signal={signal_direction}, allowed={elcaro_direction} → skip")
+                        elcaro_trigger = False
+                    else:
+                        logger.info(f"[{uid}] Elcaro {signal_direction.upper()} OK, proceeding with {symbol}")
 
-            # Check OI direction filter
+            # Check OI enabled + direction filter
             if oi_trigger:
                 oi_settings = db.get_strategy_settings(uid, "oi", ctx_exchange, ctx_account_type)
-                oi_direction = oi_settings.get("direction", "all")
                 signal_direction = "long" if side == "Buy" else "short"
                 
-                if oi_direction != "all" and oi_direction != signal_direction:
-                    logger.info(f"[{uid}] {symbol}: OI direction filter - signal={signal_direction}, allowed={oi_direction} → skip")
+                # CRITICAL: Check if this side is enabled
+                side_enabled_key = f"{signal_direction}_enabled"
+                side_enabled = oi_settings.get(side_enabled_key, True)
+                logger.info(f"[{uid}] OI enabled check: {side_enabled_key}={side_enabled}")
+                
+                if not side_enabled:
+                    logger.info(f"[{uid}] {symbol}: OI {signal_direction.upper()} disabled → skip")
                     oi_trigger = False
+                else:
+                    # Check direction filter
+                    oi_direction = oi_settings.get("direction", "all")
+                    
+                    if oi_direction != "all" and oi_direction != signal_direction:
+                        logger.info(f"[{uid}] {symbol}: OI direction filter - signal={signal_direction}, allowed={oi_direction} → skip")
+                        oi_trigger = False
+                    else:
+                        logger.info(f"[{uid}] OI {signal_direction.upper()} OK, proceeding with {symbol}")
 
             if not (rsi_bb_trigger or bitk_trigger or scalper_trigger or elcaro_trigger or fibonacci_trigger or oi_trigger):
                 continue
