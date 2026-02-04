@@ -130,6 +130,7 @@ USER_FIELDS_WHITELIST = {
     # доступ/согласие
     "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
     "guide_sent",  # 0/1 - отправлен ли PDF гайд
+    "live_enabled",  # 0/1 - разрешена ли торговля на Real/Mainnet
     # License info (добавлено для admin API)
     "license_type", "license_expires", "current_license",
     # для совместимости с текущим кодом бота
