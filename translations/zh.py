@@ -6,6 +6,8 @@ LEGAL: Educational platform, not financial advice.
 """
 
 TEXTS = {
+    # Common UI
+    'loader': '⏳ 加载中...',
     # =====================================================
     # LEGAL DISCLAIMERS (法律免责声明)
     # =====================================================

@@ -7,6 +7,8 @@ RTL Language: Right-to-Left text direction
 """
 
 TEXTS = {
+    # Common UI
+    'loader': '⏳ טוען...',
     # =====================================================
     # LEGAL DISCLAIMERS (הצהרות משפטיות)
     # =====================================================

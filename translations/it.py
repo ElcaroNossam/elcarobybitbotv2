@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 TEXTS = {
+    # Common UI
+    'loader': '⏳ Caricamento...',
+    
     # Menu principale - Terminale di trading professionale
     'welcome':                     '''🔥 <b>Enliko Trading Terminal</b>
 
