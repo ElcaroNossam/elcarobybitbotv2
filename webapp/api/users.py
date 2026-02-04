@@ -508,16 +508,35 @@ async def change_language(
     data: LanguageChange,
     user: dict = Depends(get_current_user)
 ):
-    """Change user language."""
+    """Change user language across all platforms (Web, Bot, iOS, Android)."""
     user_id = user["user_id"]
     
     valid_langs = ["en", "ru", "uk", "de", "fr", "es", "it", "pl", "zh", "ja", "ar", "he", "cs", "lt", "sq"]
     if data.language not in valid_langs:
-        raise HTTPException(status_code=400, detail="Invalid language")
+        raise HTTPException(status_code=400, detail=f"Invalid language: {data.language}. Valid: {', '.join(valid_langs)}")
     
+    # Get old language for sync logging
+    old_lang = db.get_user_field(user_id, "lang", "en")
+    
+    # Save new language
     db.set_user_field(user_id, "lang", data.language)
     
-    return {"success": True, "language": data.language}
+    logger.info(f"[{user_id}] Language changed: {old_lang} → {data.language}")
+    
+    # Sync to other platforms (Bot, iOS, Android)
+    try:
+        from services.sync_service import sync_service
+        asyncio.create_task(sync_service.sync_settings_change(
+            user_id=user_id,
+            source="webapp",
+            setting_name="language",
+            old_value=old_lang,
+            new_value=data.language
+        ))
+    except Exception as e:
+        logger.warning(f"Language sync failed: {e}")
+    
+    return {"success": True, "language": data.language, "old_language": old_lang}
 
 
 class DisclaimerAcceptance(BaseModel):
@@ -536,10 +555,12 @@ async def accept_disclaimer(
         # Store disclaimer acceptance in database
         try:
             db.set_user_field(user_id, "disclaimer_accepted", 1)
-            db.set_user_field(user_id, "disclaimer_accepted_at", "NOW()")
-            logger.info(f"User {user_id} accepted disclaimer")
+            # Also set terms_accepted for compatibility
+            db.set_user_field(user_id, "terms_accepted", 1)
+            logger.info(f"User {user_id} accepted disclaimer via WebApp")
         except Exception as e:
             logger.warning(f"Failed to save disclaimer acceptance: {e}")
+            raise HTTPException(status_code=500, detail="Failed to save acceptance")
     
     return {"success": True, "accepted": data.accepted}
 

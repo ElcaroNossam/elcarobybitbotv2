@@ -964,9 +964,30 @@ async function saveSettings() {
 }
 
 async function changeLanguage(lang) {
-    AppState.language = lang;
-    await API.post('/users/language', { language: lang });
-    Router.navigate(Router.currentRoute);
+    try {
+        const result = await API.post('/users/language', { language: lang });
+        if (result && result.success) {
+            AppState.language = lang;
+            // Save to localStorage for persistence
+            localStorage.setItem('app_language', lang);
+            Toast.success(`Language changed to ${getLanguageName(lang)}`);
+            // Reload page to apply translations
+            window.location.reload();
+        }
+    } catch (error) {
+        Toast.error('Failed to change language: ' + (error.message || 'Unknown error'));
+    }
+}
+
+function getLanguageName(code) {
+    const names = {
+        'en': 'English', 'ru': 'Русский', 'uk': 'Українська',
+        'de': 'Deutsch', 'fr': 'Français', 'es': 'Español',
+        'it': 'Italiano', 'pl': 'Polski', 'zh': '中文',
+        'ja': '日本語', 'ar': 'العربية', 'he': 'עברית',
+        'cs': 'Čeština', 'lt': 'Lietuvių', 'sq': 'Shqip'
+    };
+    return names[code] || code;
 }
 
 async function closePosition(symbol) {
