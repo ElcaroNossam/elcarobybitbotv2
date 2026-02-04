@@ -352,7 +352,11 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
     
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = int(payload["sub"])
+        # Support both "sub" (standard JWT) and "user_id" (legacy) fields
+        user_id = payload.get("sub") or payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: no user identifier")
+        user_id = int(user_id)
         
         # Get user from DB
         user_data = db.get_all_user_credentials(user_id)
