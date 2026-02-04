@@ -18368,18 +18368,20 @@ async def monitor_positions_loop(app: Application):
                                     strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
                                 )
                             
-                                # CRITICAL FIX: Priority for use_atr:
-                                # 1. Saved use_atr in position (frozen at open time)
-                                # 2. Current strategy settings
+                                # ATR use_atr priority:
+                                # 1. Current strategy settings (so user can change ATR for open positions!)
+                                # 2. Saved use_atr in position (fallback if strategy has no setting)
                                 # 3. Global use_atr
-                                # This ensures position uses the ATR setting that was active when it was opened!
-                                saved_use_atr = ap_for_sym.get("use_atr") if ap_for_sym else None
-                                if saved_use_atr is not None:
-                                    position_use_atr = bool(saved_use_atr)
-                                    logger.debug(f"[{uid}] {sym}: Using saved use_atr={position_use_atr} from position open time")
+                                strat_use_atr = strat_settings.get("use_atr")
+                                if strat_use_atr is not None:
+                                    position_use_atr = bool(strat_use_atr)
                                 else:
-                                    strat_use_atr = strat_settings.get("use_atr")
-                                    position_use_atr = bool(strat_use_atr) if strat_use_atr is not None else use_atr
+                                    # Fallback to saved use_atr from position
+                                    saved_use_atr = ap_for_sym.get("use_atr") if ap_for_sym else None
+                                    if saved_use_atr is not None:
+                                        position_use_atr = bool(saved_use_atr)
+                                    else:
+                                        position_use_atr = use_atr
                                 
                                 # Log side-specific settings resolution for debugging
                                 logger.debug(f"[{uid}] {sym}: Side-specific ATR - side={side}, prefix={side_prefix}, "
@@ -18388,7 +18390,7 @@ async def monitor_positions_loop(app: Application):
                                 atr_periods = tf_cfg["atr_periods"]
                                 atr_mult_sl = tf_cfg["atr_multiplier_sl"]
                                 trigger_pct = tf_cfg["atr_trigger_pct"]
-                                # Also check saved use_atr for positions without strategy
+                                # Check saved use_atr for positions without strategy, then global
                                 saved_use_atr = ap_for_sym.get("use_atr") if ap_for_sym else None
                                 if saved_use_atr is not None:
                                     position_use_atr = bool(saved_use_atr)
