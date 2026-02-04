@@ -5511,9 +5511,10 @@ async def set_trading_stop(
         body["stopLoss"] = str(sl_price)
         body["slTriggerBy"] = "MarkPrice"  # More reliable than LastPrice
 
-    logger.debug(
-        f"{symbol}: set_trading_stop side={effective_side} mode={mode} idx={position_idx} "
-        f"mark={mark} tp={tp_price} sl={sl_price} account_type={account_type}"
+    # DEBUG: Log what we're sending vs what was already set
+    logger.info(
+        f"[{uid}] {symbol}: set_trading_stop CALL - current_sl={current_sl}, current_tp={current_tp}, "
+        f"new_sl={sl_price}, new_tp={tp_price}, side={effective_side}, entry={entry_price}"
     )
 
     try:
