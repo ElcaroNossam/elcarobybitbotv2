@@ -18015,6 +18015,11 @@ async def monitor_positions_loop(app: Application):
                                     applied_sl_pct = applied_sl,
                                     applied_tp_pct = applied_tp,
                                 )
+                                
+                                # CRITICAL FIX: Set detected_strategy to final_strategy so that
+                                # the SL/TP setting code below uses the correct strategy settings.
+                                # Otherwise detected_strategy remains None and global settings are used!
+                                detected_strategy = final_strategy
                             
                                 if detected_strategy:
                                     logger.info(f"[{uid}] Position {sym} detected with strategy={detected_strategy} from signal")
