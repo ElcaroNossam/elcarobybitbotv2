@@ -515,11 +515,12 @@
                     <i class="fas fa-check"></i> Open Long
                 </button>
                 
-                <div class="keyboard-hints">
+                <div class="keyboard-hints" onclick="HotkeyManager.showHelp()" style="cursor: pointer;" title="Click to view all shortcuts">
                     <span><kbd>B</kbd> Buy</span>
                     <span><kbd>S</kbd> Sell</span>
                     <span><kbd>Enter</kbd> Submit</span>
                     <span><kbd>?</kbd> Help</span>
+                    <span><kbd>Ctrl+,</kbd> ⚙️</span>
                 </div>
                 
                 <!-- Quick Actions Bar -->
@@ -536,9 +537,13 @@
                         <i class="fas fa-calculator"></i>
                         <span>Risk</span>
                     </div>
-                    <div class="quick-action" onclick="showShortcuts()" title="Keyboard Shortcuts">
+                    <div class="quick-action" onclick="HotkeyManager.showHelp()" title="View Shortcuts (?)">
                         <i class="fas fa-keyboard"></i>
                         <span>Keys</span>
+                    </div>
+                    <div class="quick-action hotkey-settings-btn" onclick="HotkeyManager.showSettings()" title="Customize Shortcuts (Ctrl+,)">
+                        <i class="fas fa-cog"></i>
+                        <span>⚙️</span>
                     </div>
                 </div>
             </div>
@@ -2496,9 +2501,13 @@
             }
         }
         
-        // Show keyboard shortcuts
+        // Show keyboard shortcuts (now uses HotkeyManager)
         function showShortcuts() {
-            Shortcuts.showHelp();
+            if (typeof HotkeyManager !== 'undefined') {
+                HotkeyManager.showHelp();
+            } else if (typeof Shortcuts !== 'undefined') {
+                Shortcuts.showHelp();
+            }
         }
         
         // Enhanced WebSocket connection with orderbook streaming
@@ -2830,6 +2839,11 @@
             
             // Connect to Settings Sync WebSocket
             connectSettingsSyncWebSocket();
+            
+            // Load Hotkey Manager (customizable keyboard shortcuts)
+            const hotkeyScript = document.createElement('script');
+            hotkeyScript.src = '/static/js/hotkey-manager.js';
+            document.body.appendChild(hotkeyScript);
             
             // Load advanced JS module
             const script = document.createElement('script');

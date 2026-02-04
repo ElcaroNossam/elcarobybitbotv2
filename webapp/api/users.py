@@ -1399,6 +1399,81 @@ async def get_strategy_settings_mobile(
     return result
 
 
+# ============================================================
+# USER PREFERENCES (Hotkeys, Terminal settings, etc.)
+# ============================================================
+
+class HotkeyPreferences(BaseModel):
+    hotkeys: dict = {}
+
+
+@router.get("/preferences/hotkeys")
+async def get_hotkey_preferences(user: dict = Depends(get_current_user)):
+    """Get user's custom hotkey preferences."""
+    user_id = user["user_id"]
+    
+    try:
+        # Try to get from user metadata/preferences JSON field
+        from core.db_postgres import execute_one
+        row = execute_one(
+            "SELECT terminal_preferences FROM users WHERE user_id = %s",
+            (user_id,)
+        )
+        
+        if row and row.get("terminal_preferences"):
+            import json
+            prefs = row["terminal_preferences"] if isinstance(row["terminal_preferences"], dict) else json.loads(row["terminal_preferences"])
+            return {"hotkeys": prefs.get("hotkeys", {})}
+        
+        return {"hotkeys": {}}
+    except Exception as e:
+        logger.warning(f"Error getting hotkey preferences for {user_id}: {e}")
+        return {"hotkeys": {}}
+
+
+@router.post("/preferences/hotkeys")
+async def save_hotkey_preferences(
+    data: HotkeyPreferences,
+    user: dict = Depends(get_current_user)
+):
+    """Save user's custom hotkey preferences."""
+    user_id = user["user_id"]
+    
+    try:
+        from core.db_postgres import execute_one, get_conn
+        import json
+        
+        # Get current preferences
+        row = execute_one(
+            "SELECT terminal_preferences FROM users WHERE user_id = %s",
+            (user_id,)
+        )
+        
+        if row and row.get("terminal_preferences"):
+            prefs = row["terminal_preferences"] if isinstance(row["terminal_preferences"], dict) else json.loads(row["terminal_preferences"])
+        else:
+            prefs = {}
+        
+        # Update hotkeys
+        prefs["hotkeys"] = data.hotkeys
+        
+        # Save back to database
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET terminal_preferences = %s WHERE user_id = %s",
+                (json.dumps(prefs), user_id)
+            )
+            conn.commit()
+        
+        logger.info(f"User {user_id} saved hotkey preferences: {len(data.hotkeys)} custom bindings")
+        return {"success": True, "message": "Hotkey preferences saved"}
+    
+    except Exception as e:
+        logger.error(f"Error saving hotkey preferences for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save preferences")
+
+
 @router.put("/strategy-settings/mobile/{strategy_name}")
 async def update_strategy_settings_mobile(
     strategy_name: str,

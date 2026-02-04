@@ -133,6 +133,9 @@ def upgrade(cur):
             -- Notifications
             notification_settings JSONB DEFAULT '{}',
             
+            -- Terminal preferences (hotkeys, UI settings)
+            terminal_preferences JSONB DEFAULT '{}',
+            
             -- UI State
             last_viewed_account TEXT,  -- 'demo', 'real', 'testnet', 'mainnet' for UI persistence
             
