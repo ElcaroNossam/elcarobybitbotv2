@@ -54,6 +54,8 @@ def upgrade(cur):
             trailing_trigger     REAL,
             trailing_distance    REAL,
             highest_pnl          REAL,
+            ptp_step_1_done      INTEGER DEFAULT 0,
+            ptp_step_2_done      INTEGER DEFAULT 0,
             updated_at           TIMESTAMP DEFAULT NOW(),
             PRIMARY KEY(user_id, symbol, account_type, exchange)
         )
