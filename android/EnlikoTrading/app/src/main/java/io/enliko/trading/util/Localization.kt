@@ -2184,3 +2184,35 @@ interface Strings {
         override val disclaimerDeclinedMsg = "Duhet të pranoni për të përdorur Enliko."
     }
 }
+
+/**
+ * Simple localization helper for non-Composable contexts
+ * Uses default English strings with key-based lookup
+ */
+object Localization {
+    private val translations = mapOf(
+        // Activity
+        "activity_title" to "Activity",
+        "activity_no_recent" to "No recent activity",
+        
+        // Spot
+        "spot_title" to "Spot Trading",
+        "spot_dca_enabled" to "DCA Auto-Invest",
+        "spot_dca_disabled" to "DCA Disabled",
+        
+        // Common
+        "common_loading" to "Loading...",
+        "common_error" to "Error",
+        "common_retry" to "Retry",
+        "common_refresh" to "Refresh",
+        "common_back" to "Back",
+        "common_cancel" to "Cancel",
+        "common_confirm" to "Confirm",
+        "common_save" to "Save",
+        "common_delete" to "Delete"
+    )
+    
+    fun get(key: String): String {
+        return translations[key] ?: key.replace("_", " ").replaceFirstChar { it.uppercase() }
+    }
+}

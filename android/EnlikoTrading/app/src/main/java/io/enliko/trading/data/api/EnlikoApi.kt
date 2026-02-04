@@ -110,11 +110,50 @@ interface EnlikoApi {
     ): Response<AIChatResponse>
 
     // ==================== ACTIVITY ====================
+    @GET("/api/activity/history")
+    suspend fun getActivityHistory(
+        @Query("limit") limit: Int? = null,
+        @Query("source") source: String? = null,
+        @Query("category") category: String? = null
+    ): ActivityHistoryResponse
+
     @GET("/api/activity/recent")
     suspend fun getRecentActivity(
         @Query("limit") limit: Int? = null
-    ): Response<List<ActivityItem>>
+    ): Response<List<ActivityItemApi>>
+
+    @GET("/api/activity/stats")
+    suspend fun getActivityStats(): ActivityStatsResponse
+
+    @POST("/api/activity/log")
+    suspend fun logActivity(
+        @Body request: ActivityLogRequestApi
+    ): Response<Unit>
+
+    @POST("/api/activity/trigger-sync")
+    suspend fun triggerSync(): Response<Unit>
+
+    // ==================== SPOT TRADING ====================
+    @GET("/api/spot/balance")
+    suspend fun getSpotBalance(): Response<SpotBalance>
+
+    @GET("/api/spot/assets")
+    suspend fun getSpotAssets(): Response<List<SpotAsset>>
+
+    @POST("/api/spot/buy")
+    suspend fun buySpot(@Body request: SpotOrderRequest): Response<SpotOrderResponse>
+
+    @POST("/api/spot/sell")
+    suspend fun sellSpot(@Body request: SpotOrderRequest): Response<SpotOrderResponse>
+
+    @GET("/api/spot/dca-settings")
+    suspend fun getSpotDcaSettings(): Response<SpotDcaSettings>
+
+    @PUT("/api/spot/dca-settings")
+    suspend fun updateSpotDcaSettings(@Body settings: SpotDcaSettings): Response<Unit>
 }
+
+// ==================== REQUEST/RESPONSE MODELS ====================
 
 @kotlinx.serialization.Serializable
 data class ClosePositionRequest(
@@ -136,11 +175,104 @@ data class CloseAllResponse(
     val message: String? = null
 )
 
+// Activity API Models
 @kotlinx.serialization.Serializable
-data class ActivityItem(
+data class ActivityItemApi(
     val id: Long,
     @kotlinx.serialization.SerialName("action_type") val actionType: String,
     @kotlinx.serialization.SerialName("action_category") val actionCategory: String,
     val source: String,
+    @kotlinx.serialization.SerialName("entity_type") val entityType: String? = null,
+    @kotlinx.serialization.SerialName("old_value") val oldValue: String? = null,
+    @kotlinx.serialization.SerialName("new_value") val newValue: String? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String
+)
+
+@kotlinx.serialization.Serializable
+data class ActivityHistoryResponse(
+    val activities: List<ActivityItemApi> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1
+)
+
+@kotlinx.serialization.Serializable
+data class ActivityStatsResponse(
+    val stats: ActivityStatsApi? = null,
+    val status: SyncStatusApi? = null
+)
+
+@kotlinx.serialization.Serializable
+data class ActivityStatsApi(
+    @kotlinx.serialization.SerialName("total_activities") val totalActivities: Int = 0,
+    @kotlinx.serialization.SerialName("by_source") val bySource: Map<String, Int> = emptyMap(),
+    @kotlinx.serialization.SerialName("by_category") val byCategory: Map<String, Int> = emptyMap(),
+    @kotlinx.serialization.SerialName("last_24h_count") val last24hCount: Int = 0
+)
+
+@kotlinx.serialization.Serializable
+data class SyncStatusApi(
+    @kotlinx.serialization.SerialName("pending_sync") val pendingSync: Int = 0,
+    @kotlinx.serialization.SerialName("last_sync_at") val lastSyncAt: String? = null,
+    @kotlinx.serialization.SerialName("sync_health") val syncHealth: String = "unknown"
+)
+
+@kotlinx.serialization.Serializable
+data class ActivityLogRequestApi(
+    @kotlinx.serialization.SerialName("action_type") val actionType: String,
+    @kotlinx.serialization.SerialName("action_category") val actionCategory: String,
+    val source: String = "android",
+    @kotlinx.serialization.SerialName("entity_type") val entityType: String? = null,
+    @kotlinx.serialization.SerialName("old_value") val oldValue: String? = null,
+    @kotlinx.serialization.SerialName("new_value") val newValue: String? = null
+)
+
+// Spot Trading Models
+@kotlinx.serialization.Serializable
+data class SpotBalance(
+    @kotlinx.serialization.SerialName("total_usdt") val totalUsdt: Double = 0.0,
+    @kotlinx.serialization.SerialName("available_usdt") val availableUsdt: Double = 0.0,
+    @kotlinx.serialization.SerialName("total_value_usd") val totalValueUsd: Double = 0.0,
+    @kotlinx.serialization.SerialName("assets_count") val assetsCount: Int = 0
+)
+
+@kotlinx.serialization.Serializable
+data class SpotAsset(
+    val symbol: String,
+    val coin: String,
+    @kotlinx.serialization.SerialName("free") val free: Double = 0.0,
+    @kotlinx.serialization.SerialName("locked") val locked: Double = 0.0,
+    @kotlinx.serialization.SerialName("total") val total: Double = 0.0,
+    @kotlinx.serialization.SerialName("usd_value") val usdValue: Double = 0.0,
+    @kotlinx.serialization.SerialName("avg_entry_price") val avgEntryPrice: Double? = null,
+    @kotlinx.serialization.SerialName("current_price") val currentPrice: Double? = null,
+    @kotlinx.serialization.SerialName("pnl") val pnl: Double? = null,
+    @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double? = null
+)
+
+@kotlinx.serialization.Serializable
+data class SpotOrderRequest(
+    val symbol: String,
+    val side: String,
+    @kotlinx.serialization.SerialName("amount_usdt") val amountUsdt: Double? = null,
+    @kotlinx.serialization.SerialName("amount_coin") val amountCoin: Double? = null,
+    @kotlinx.serialization.SerialName("order_type") val orderType: String = "market"
+)
+
+@kotlinx.serialization.Serializable
+data class SpotOrderResponse(
+    val success: Boolean,
+    @kotlinx.serialization.SerialName("order_id") val orderId: String? = null,
+    val message: String? = null,
+    @kotlinx.serialization.SerialName("executed_qty") val executedQty: Double? = null,
+    @kotlinx.serialization.SerialName("executed_price") val executedPrice: Double? = null
+)
+
+@kotlinx.serialization.Serializable
+data class SpotDcaSettings(
+    val enabled: Boolean = false,
+    @kotlinx.serialization.SerialName("buy_amount_usdt") val buyAmountUsdt: Double = 10.0,
+    @kotlinx.serialization.SerialName("frequency_hours") val frequencyHours: Int = 24,
+    val coins: List<String> = listOf("BTC", "ETH"),
+    @kotlinx.serialization.SerialName("auto_sell_enabled") val autoSellEnabled: Boolean = false,
+    @kotlinx.serialization.SerialName("take_profit_percent") val takeProfitPercent: Double = 10.0
 )

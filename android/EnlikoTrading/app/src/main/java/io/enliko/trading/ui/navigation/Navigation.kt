@@ -6,10 +6,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.enliko.trading.ui.screens.activity.ActivityScreen
 import io.enliko.trading.ui.screens.auth.DisclaimerScreen
 import io.enliko.trading.ui.screens.auth.LoginScreen
 import io.enliko.trading.ui.screens.auth.hasAcceptedDisclaimer
 import io.enliko.trading.ui.screens.main.MainScreen
+import io.enliko.trading.ui.screens.spot.SpotScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -18,6 +20,8 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
     object Main : Screen("main")
+    object Activity : Screen("activity")
+    object Spot : Screen("spot")
     object StrategySettings : Screen("strategy_settings/{strategy}") {
         fun createRoute(strategy: String) = "strategy_settings/$strategy"
     }
@@ -92,7 +96,25 @@ fun EnlikoNavHost(
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Main.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToActivity = {
+                        navController.navigate(Screen.Activity.route)
+                    },
+                    onNavigateToSpot = {
+                        navController.navigate(Screen.Spot.route)
                     }
+                )
+            }
+            
+            composable(Screen.Activity.route) {
+                ActivityScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Spot.route) {
+                SpotScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

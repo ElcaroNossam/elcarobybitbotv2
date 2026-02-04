@@ -25,6 +25,8 @@ import io.enliko.trading.util.LocalStrings
 fun SettingsScreen(
     onLogout: () -> Unit,
     onNavigateToNotifications: () -> Unit = {},
+    onNavigateToActivity: () -> Unit = {},
+    onNavigateToSpot: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -144,6 +146,24 @@ fun SettingsScreen(
                     title = strings.notifications,
                     subtitle = "Trade alerts and signals",
                     onClick = onNavigateToNotifications
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.History,
+                    title = "Activity",
+                    subtitle = "Cross-platform sync history",
+                    onClick = onNavigateToActivity
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Wallet,
+                    title = "Spot Trading",
+                    subtitle = "Buy and sell crypto",
+                    onClick = onNavigateToSpot
                 )
             }
             

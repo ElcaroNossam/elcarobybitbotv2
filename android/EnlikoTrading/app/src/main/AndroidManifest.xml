@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".EnlikoApplication"
@@ -23,12 +25,78 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.EnlikoTrading.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            
+            <!-- Deep Link: enliko://login?token=xxx&tid=xxx -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="enliko"
+                    android:host="login" />
+            </intent-filter>
+            
+            <!-- Deep Link: enliko://trade/BTCUSDT -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="enliko"
+                    android:host="trade" />
+            </intent-filter>
+            
+            <!-- Deep Link: enliko://position/BTCUSDT -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="enliko"
+                    android:host="position" />
+            </intent-filter>
+            
+            <!-- App Link: https://enliko.com/app/... -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="enliko.com"
+                    android:pathPrefix="/app" />
+            </intent-filter>
         </activity>
+        
+        <!-- Firebase Cloud Messaging Service -->
+        <service
+            android:name=".services.EnlikoFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
+        <!-- Default notification channel for FCM -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="trades_channel" />
+        
+        <!-- Default notification icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        
+        <!-- Default notification color -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/primary" />
     </application>
 
 </manifest>

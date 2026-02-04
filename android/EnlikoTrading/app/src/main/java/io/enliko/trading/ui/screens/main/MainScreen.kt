@@ -38,7 +38,9 @@ enum class MainTab(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToActivity: () -> Unit = {},
+    onNavigateToSpot: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -114,7 +116,9 @@ fun MainScreen(
                     onLogout = onLogout,
                     onNavigateToNotifications = {
                         navController.navigate("notifications")
-                    }
+                    },
+                    onNavigateToActivity = onNavigateToActivity,
+                    onNavigateToSpot = onNavigateToSpot
                 )
             }
             composable("notifications") {

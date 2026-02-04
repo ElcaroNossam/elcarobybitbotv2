@@ -2,10 +2,11 @@ package io.enliko.trading.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.enliko.trading.util.AppLogger
+import io.enliko.trading.util.LogCategory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,7 +56,7 @@ class SecurePreferencesRepository @Inject constructor(
             )
         } catch (e: Exception) {
             // Fallback for corrupted keystore (should not happen in production)
-            Log.e(TAG, "Failed to create EncryptedSharedPreferences, falling back", e)
+            AppLogger.error("Failed to create EncryptedSharedPreferences, falling back", LogCategory.SECURITY, e)
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
     }

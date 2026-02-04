@@ -11,6 +11,8 @@ import io.enliko.trading.data.api.EnlikoApi
 import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.repository.SecurePreferencesRepository
 import io.enliko.trading.data.websocket.WebSocketService
+import io.enliko.trading.services.ActivityService
+import io.enliko.trading.services.SpotService
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -115,5 +117,21 @@ object NetworkModule {
         okHttpClient: OkHttpClient
     ): WebSocketService {
         return WebSocketService(okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideActivityService(
+        api: EnlikoApi
+    ): ActivityService {
+        return ActivityService(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSpotService(
+        api: EnlikoApi
+    ): SpotService {
+        return SpotService(api)
     }
 }

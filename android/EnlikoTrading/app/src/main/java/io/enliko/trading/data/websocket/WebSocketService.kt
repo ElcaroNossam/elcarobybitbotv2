@@ -1,8 +1,9 @@
 package io.enliko.trading.data.websocket
 
-import android.util.Log
 import io.enliko.trading.data.models.Position
 import io.enliko.trading.data.models.ScreenerCoin
+import io.enliko.trading.util.AppLogger
+import io.enliko.trading.util.LogCategory
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,7 +80,7 @@ class WebSocketService @Inject constructor(
             .build()
             .newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    Log.d(TAG, "WebSocket connected")
+                    AppLogger.logWSConnected(WS_URL)
                     isConnected = true
                     _connectionState.value = true
                     scope.launch { _messages.emit(WebSocketMessage.Connected) }
@@ -105,16 +106,16 @@ class WebSocketService @Inject constructor(
                 }
                 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                    Log.d(TAG, "WebSocket closing: $code - $reason")
+                    AppLogger.debug("WebSocket closing: $code - $reason", LogCategory.WEBSOCKET)
                 }
                 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    Log.d(TAG, "WebSocket closed: $code - $reason")
+                    AppLogger.logWSDisconnected(WS_URL, "code=$code reason=$reason")
                     handleDisconnect()
                 }
                 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    Log.e(TAG, "WebSocket error: ${t.message}")
+                    AppLogger.logWSError(WS_URL, t)
                     scope.launch { 
                         _messages.emit(WebSocketMessage.Error(t.message ?: "Unknown error")) 
                     }
@@ -139,7 +140,7 @@ class WebSocketService @Inject constructor(
         reconnectJob = scope.launch {
             delay(RECONNECT_DELAY_MS)
             if (shouldReconnect && !isConnected) {
-                Log.d(TAG, "Attempting to reconnect...")
+                AppLogger.info("Attempting to reconnect...", LogCategory.WEBSOCKET)
                 doConnect()
             }
         }
@@ -210,7 +211,7 @@ class WebSocketService @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing message: ${e.message}")
+            AppLogger.error("Error parsing message: ${e.message}", LogCategory.WEBSOCKET, e)
         }
     }
     
