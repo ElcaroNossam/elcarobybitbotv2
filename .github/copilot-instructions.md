@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.50.0 | Обновлено: 4 февраля 2026
+# Версия: 3.51.0 | Обновлено: 4 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -13,7 +13,8 @@
 # Strategy Side-Enabled Fix: All 6 strategies now check enabled flag per side (Feb 4, 2026) ✅
 # ATR TP Removal Fix: Remove TP when switching to ATR mode (Feb 4, 2026) ✅
 # Break-Even (BE): Move SL to entry when profit >= trigger%
-# Partial Take Profit: Close X% at +Y% profit in 2 steps
+# Partial Take Profit: Close X% at +Y% profit in 2 steps + VALIDATION (Feb 4, 2026) ✅
+# PTP Columns Fix: ptp_step_1_done, ptp_step_2_done in active_positions (Feb 4, 2026) ✅
 # Translations: 15 languages × 1540+ keys
 # Security Audit: $100k level - 5 critical + 3 high vulnerabilities FIXED (Jan 31, 2026) ✅
 
@@ -194,6 +195,37 @@
 - Игнорировать ошибки "это потом"
 - Исправлять только симптом, не причину
 - Исправлять одно место, когда проблема в нескольких
+
+---
+
+## ⚠️ ВАЛИДАЦИЯ ЗАВИСИМЫХ ПОЛЕЙ (КРИТИЧНО!)
+
+**При добавлении связанных настроек ВСЕГДА проверять:**
+
+1. **Сумма процентов не превышает 100%**
+   - Пример: Partial TP Step 1 + Step 2 <= 100%
+   - Иначе: позиция переоткроется в обратную сторону!
+
+2. **При изменении одного поля - проверять зависимые**
+   - Если Step 1 = 60%, то max Step 2 = 40%
+   - Если Step 2 = 50%, то max Step 1 = 50%
+
+3. **Добавлять колонки в БД ДО использования в коде**
+   - Миграция должна создавать колонки
+   - ALTER TABLE IF NOT EXISTS для production
+
+**Паттерн валидации в bot.py:**
+```python
+elif param in ("long_partial_tp_2_close_pct", "short_partial_tp_2_close_pct"):
+    if value <= 0 or value > 100:
+        raise ValueError("Value must be between 0 and 100")
+    # Get Step 1 to validate total
+    strat_settings = db.get_strategy_settings(...)
+    step1_close = strat_settings.get(f"{side}_partial_tp_1_close_pct") or 30.0
+    max_step2 = 100 - step1_close
+    if value > max_step2:
+        raise ValueError(f"Step 2 can't exceed {max_step2:.0f}%")
+```
 
 ---
 
@@ -1022,6 +1054,33 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
 
+### ✅ CRITICAL: Partial TP Validation - Step1 + Step2 <= 100% (Feb 4, 2026)
+- **Проблема:** Пользователь указал Step 1 = 30% и Step 2 = 99% (итого 129% > 100%)
+- **Влияние:** При закрытии второго шага закрывалось больше 100% позиции → переоткрытие позиции в обратную сторону!
+- **Решение:** Добавлена валидация в `bot.py` (lines 22727-22756):
+  - `partial_tp_1_close_pct`: должен быть < 100%, и Step1+Step2 <= 100%
+  - `partial_tp_2_close_pct`: не может превышать `100% - Step1`
+- **Сообщения об ошибке:**
+  - "Step 2 can't exceed 70% (100% - Step 1 30%)"
+  - "Step 1 can't exceed 50% (100% - Step 2 50%)"
+- **Commit:** `aabc4a2`
+
+### ✅ CRITICAL: Missing PTP Columns in active_positions (Feb 4, 2026)
+- **Проблема:** Partial TP не работал - ошибка `column "ptp_step_1_done" does not exist`
+- **Причина:** Колонки `ptp_step_1_done` и `ptp_step_2_done` отсутствовали в таблице `active_positions`
+- **Решение:**
+  ```sql
+  ALTER TABLE active_positions ADD COLUMN IF NOT EXISTS ptp_step_1_done INTEGER DEFAULT 0;
+  ALTER TABLE active_positions ADD COLUMN IF NOT EXISTS ptp_step_2_done INTEGER DEFAULT 0;
+  ```
+- **Обновлено:** `migrations/versions/004_active_positions.py`
+- **Результат:** PTP заработал:
+  ```
+  [PTP-STEP1] IPUSDT uid=995144364 - Closed 30% (22.1) at +1.56% profit
+  [PTP-STEP2] IPUSDT uid=995144364 - Closed 99% (73.1) at +1.56% profit
+  ```
+- **Commit:** `8d275dc`
+
 ### ✅ CRITICAL: ATR TP Removal - Full Trading Flows Audit (Feb 4, 2026)
 - **Проблема:** Когда ATR включался для существующей позиции с установленным TP, TP НЕ удалялся
 - **Влияние:** TP мог сработать раньше ATR trailing, нарушая логику ATR мониторинга
@@ -1247,15 +1306,23 @@ except Exception as e:
   - `partial_tp_1_close_pct` - % позиции для закрытия в Step 1 (default 30%)
   - `partial_tp_2_trigger_pct` - % прибыли для Step 2 (default 5.0%)
   - `partial_tp_2_close_pct` - % позиции для закрытия в Step 2 (default 50%)
+- **⚠️ ВАЖНО - ВАЛИДАЦИЯ (Feb 4, 2026):**
+  - Step 1 + Step 2 **ДОЛЖНЫ быть <= 100%**
+  - Иначе при закрытии позиция переоткроется в обратную сторону!
+  - Валидация добавлена в bot.py lines 22727-22756
+- **DB колонки (active_positions):**
+  - `ptp_step_1_done INTEGER DEFAULT 0` - флаг выполнения Step 1
+  - `ptp_step_2_done INTEGER DEFAULT 0` - флаг выполнения Step 2
 - **UI:** Добавлено в Per-Strategy Long/Short меню:
   - Кнопка toggle Partial TP ON/OFF
   - Кнопки настройки Step 1 и Step 2 (показываются только когда enabled)
   - Формат: "📊 Step 1: 30% @ +2.0%" / "📊 Step 2: 50% @ +5.0%"
 - **Изменённые файлы:**
-  - `bot.py` - UI меню, handler `strat_side_ptp:`, prompts
+  - `bot.py` - UI меню, handler `strat_side_ptp:`, prompts, VALIDATION
   - `core/db_postgres.py` - Partial TP в pg_get_strategy_settings, ALLOWED_FIELDS, BOOLEAN_FIELDS
-  - `db.py` - Partial TP columns в _STRATEGY_DB_COLUMNS
+  - `db.py` - Partial TP columns в _STRATEGY_DB_COLUMNS, get_ptp_flag(), set_ptp_flag()
   - `translations/en.py`, `translations/ru.py` - 15+ ключей перевода
+  - `migrations/versions/004_active_positions.py` - ptp_step_1_done, ptp_step_2_done columns
   - `migrations/versions/019_partial_tp_settings.py` - новая миграция
 
 ### ✅ FEAT: Break-Even in Per-Strategy Menus (Jan 27, 2026)
@@ -3235,8 +3302,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 2 февраля 2026*
-*Version: 3.48.0*
+*Last updated: 4 февраля 2026*
+*Version: 3.51.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -3253,7 +3320,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First*
 *Break-Even (BE): Per-strategy Long/Short settings*
-*Partial Take Profit: Close X% at +Y% profit in 2 steps*
+*Partial Take Profit: Close X% at +Y% profit in 2 steps + VALIDATION Step1+Step2<=100%*
+*PTP DB Columns: ptp_step_1_done, ptp_step_2_done in active_positions*
 *Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules*
 *WebApp Service: DO NOT create separate service - runs inside start_bot.sh*
 *API Security: All financial endpoints require JWT auth + IDOR protection*
