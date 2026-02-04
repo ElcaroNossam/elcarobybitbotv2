@@ -49,7 +49,13 @@ fun MainScreen(
     onNavigateToSubscription: () -> Unit = {},
     onNavigateToTradeHistory: () -> Unit = {},
     onNavigateToTradingSettings: () -> Unit = {},
-    onNavigateToLinkEmail: () -> Unit = {}
+    onNavigateToLinkEmail: () -> Unit = {},
+    onNavigateToApiKeys: () -> Unit = {},
+    onNavigateToLeverageSettings: () -> Unit = {},
+    onNavigateToRiskSettings: () -> Unit = {},
+    onNavigateToExchangeSettings: () -> Unit = {},
+    onNavigateToMarketHeatmap: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -133,7 +139,13 @@ fun MainScreen(
                     onNavigateToSubscription = onNavigateToSubscription,
                     onNavigateToTradeHistory = onNavigateToTradeHistory,
                     onNavigateToTradingSettings = onNavigateToTradingSettings,
-                    onNavigateToLinkEmail = onNavigateToLinkEmail
+                    onNavigateToLinkEmail = onNavigateToLinkEmail,
+                    onNavigateToApiKeys = onNavigateToApiKeys,
+                    onNavigateToLeverageSettings = onNavigateToLeverageSettings,
+                    onNavigateToRiskSettings = onNavigateToRiskSettings,
+                    onNavigateToExchangeSettings = onNavigateToExchangeSettings,
+                    onNavigateToMarketHeatmap = onNavigateToMarketHeatmap,
+                    onNavigateToStats = onNavigateToStats
                 )
             }
             composable("notifications") {

@@ -35,6 +35,12 @@ fun SettingsScreen(
     onNavigateToTradeHistory: () -> Unit = {},
     onNavigateToTradingSettings: () -> Unit = {},
     onNavigateToLinkEmail: () -> Unit = {},
+    onNavigateToApiKeys: () -> Unit = {},
+    onNavigateToLeverageSettings: () -> Unit = {},
+    onNavigateToRiskSettings: () -> Unit = {},
+    onNavigateToExchangeSettings: () -> Unit = {},
+    onNavigateToMarketHeatmap: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -89,7 +95,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Key,
                     title = strings.apiKeys,
                     subtitle = "Configure exchange API keys",
-                    onClick = { /* Navigate to API Keys */ }
+                    onClick = onNavigateToApiKeys
                 )
             }
             
@@ -159,10 +165,55 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
+                    icon = Icons.Default.Speed,
+                    title = "Leverage",
+                    subtitle = "Adjust trading leverage",
+                    onClick = onNavigateToLeverageSettings
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Shield,
+                    title = "Risk Settings",
+                    subtitle = "Entry%, TP%, SL%",
+                    onClick = onNavigateToRiskSettings
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.SwapHoriz,
+                    title = "Exchange Settings",
+                    subtitle = "Configure exchanges",
+                    onClick = onNavigateToExchangeSettings
+                )
+            }
+            
+            item {
+                SettingsItem(
                     icon = Icons.Default.History,
                     title = "Trade History",
                     subtitle = "View past trades",
                     onClick = onNavigateToTradeHistory
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Analytics,
+                    title = "Statistics",
+                    subtitle = "Trading performance",
+                    onClick = onNavigateToStats
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.GridView,
+                    title = "Market Heatmap",
+                    subtitle = "Visual market overview",
+                    onClick = onNavigateToMarketHeatmap
                 )
             }
             

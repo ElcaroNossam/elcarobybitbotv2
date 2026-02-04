@@ -21,6 +21,12 @@ import io.enliko.trading.ui.screens.strategies.BacktestScreen
 import io.enliko.trading.ui.screens.history.TradeHistoryScreen
 import io.enliko.trading.ui.screens.settings.TradingSettingsScreen
 import io.enliko.trading.ui.screens.auth.LinkEmailScreen
+import io.enliko.trading.ui.screens.settings.ApiKeysScreen
+import io.enliko.trading.ui.screens.settings.LeverageSettingsScreen
+import io.enliko.trading.ui.screens.settings.RiskSettingsScreen
+import io.enliko.trading.ui.screens.settings.ExchangeSettingsScreen
+import io.enliko.trading.ui.screens.market.MarketHeatmapScreen
+import io.enliko.trading.ui.screens.stats.StatsScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -47,6 +53,12 @@ sealed class Screen(val route: String) {
     object TradeHistory : Screen("trade_history")
     object TradingSettings : Screen("trading_settings")
     object LinkEmail : Screen("link_email")
+    object ApiKeys : Screen("api_keys")
+    object LeverageSettings : Screen("leverage_settings")
+    object RiskSettings : Screen("risk_settings")
+    object ExchangeSettings : Screen("exchange_settings")
+    object MarketHeatmap : Screen("market_heatmap")
+    object Stats : Screen("stats")
 }
 
 @Composable
@@ -151,6 +163,24 @@ fun EnlikoNavHost(
                     },
                     onNavigateToLinkEmail = {
                         navController.navigate(Screen.LinkEmail.route)
+                    },
+                    onNavigateToApiKeys = {
+                        navController.navigate(Screen.ApiKeys.route)
+                    },
+                    onNavigateToLeverageSettings = {
+                        navController.navigate(Screen.LeverageSettings.route)
+                    },
+                    onNavigateToRiskSettings = {
+                        navController.navigate(Screen.RiskSettings.route)
+                    },
+                    onNavigateToExchangeSettings = {
+                        navController.navigate(Screen.ExchangeSettings.route)
+                    },
+                    onNavigateToMarketHeatmap = {
+                        navController.navigate(Screen.MarketHeatmap.route)
+                    },
+                    onNavigateToStats = {
+                        navController.navigate(Screen.Stats.route)
                     }
                 )
             }
@@ -255,6 +285,42 @@ fun EnlikoNavHost(
                 LinkEmailScreen(
                     onBack = { navController.popBackStack() },
                     onSuccess = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.ApiKeys.route) {
+                ApiKeysScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.LeverageSettings.route) {
+                LeverageSettingsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.RiskSettings.route) {
+                RiskSettingsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.ExchangeSettings.route) {
+                ExchangeSettingsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.MarketHeatmap.route) {
+                MarketHeatmapScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Stats.route) {
+                StatsScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }
