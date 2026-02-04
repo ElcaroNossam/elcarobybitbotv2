@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.48.0 | Обновлено: 2 февраля 2026
+# Версия: 3.49.0 | Обновлено: 4 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -10,7 +10,7 @@
 # Android App: Kotlin + Jetpack Compose
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
-# Trading Flows Audit: Full audit with exchange filter fix (Feb 2, 2026) ✅
+# Strategy Side-Enabled Fix: All 6 strategies now check enabled flag per side (Feb 4, 2026) ✅
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
 # Translations: 15 languages × 1540+ keys
@@ -1267,6 +1267,30 @@ except Exception as e:
   - `migrations/versions/001_initial_users.py` - BE колонки в users
   - `migrations/versions/005_strategy_settings.py` - BE колонки в strategy_settings
 - **Commit:** 6a59dac
+
+### ✅ CRITICAL: Strategy Side-Enabled Check Bug (Feb 4, 2026)
+- **User:** 1240338409
+- **Проблема:** SHORT trades открывались несмотря на `enabled=False` для scryptomera/short
+- **Причина:** Код проверял `direction` фильтр, но **НЕ** проверял `{side}_enabled` флаг
+- **Логи показывали:** `Scryptomera direction check: signal=short, allowed=all` - direction=all пропускал сигнал, игнорируя enabled=False
+- **Исправленные стратегии (все 6):**
+  - Scryptomera (lines 16103-16120)
+  - Scalper (lines 16125-16142)
+  - Fibonacci (lines 16147-16164)
+  - RSI_BB (lines 16169-16186)
+  - Elcaro (lines 16191-16208)
+  - OI Strategy (lines 16213-16230)
+- **Паттерн исправления:**
+  ```python
+  side_enabled_key = f"{signal_direction}_enabled"
+  side_enabled = settings.get(side_enabled_key, True)
+  if not side_enabled:
+      logger.info(f"[{uid}] {symbol}: {strategy} {signal_direction.upper()} disabled → skip")
+      trigger = False
+  ```
+- **Файл:** `bot.py` (+102 lines, -30 lines)
+- **Commit:** 0cff503
+- **Результат:** Теперь `enabled=False` корректно блокирует открытие позиций для конкретного side
 
 ### ✅ FEAT: Comprehensive 4D Schema Tests (Jan 27, 2026)
 - **Добавлено:** 33 новых теста для проверки 4D схемы `(user_id, strategy, side, exchange)`
