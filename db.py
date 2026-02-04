@@ -4139,12 +4139,17 @@ def set_user_license(
         conn.commit()
         invalidate_user_cache(user_id)
         
+        # Format end date for display
+        from datetime import datetime
+        end_date_str = datetime.fromtimestamp(new_end).strftime("%Y-%m-%d")
+        
         return {
             "success": True,
             "license_id": license_id,
             "license_type": license_type,
             "expires": new_end,
             "days": period_days,
+            "end_date": end_date_str,
         }
 
 

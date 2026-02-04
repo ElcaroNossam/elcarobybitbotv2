@@ -1129,6 +1129,7 @@ TEXTS = {
     'admin_license_extended': '✅ Extended by {days} days for {uid}.',
     'admin_license_revoked': '✅ License revoked for {uid}.',
     'admin_promo_created': '✅ Promo: {code}\nType: {type}\nDays: {days}\nMax uses: {max}',
+    'license_granted_notification': '🎉 Congratulations!\n\nYou have been granted a **{plan}** subscription for **{days} days**!\n\n📅 Valid until: {end_date}\n\nThank you for using Enliko!',
     
     # Admin user management
     'admin_users_management': '👥 Users',

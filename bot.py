@@ -21811,6 +21811,25 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             
             if result.get("success"):
+                # Notify the recipient user about the license grant
+                try:
+                    user_lang = db.get_user_field(target_uid, "lang") or DEFAULT_LANG
+                    user_t = LANGS.get(user_lang, LANGS[DEFAULT_LANG])
+                    end_date = result.get("end_date", "N/A")
+                    await ctx.bot.send_message(
+                        target_uid,
+                        user_t.get("license_granted_notification", 
+                            "🎉 Congratulations!\n\n"
+                            "You have been granted a **{plan}** subscription for **{days} days**!\n\n"
+                            "📅 Valid until: {end_date}\n\n"
+                            "Thank you for using Enliko!"
+                        ).format(plan=plan.title(), days=result["days"], end_date=end_date),
+                        parse_mode="Markdown"
+                    )
+                    logger.info(f"[ADMIN] License granted notification sent to user {target_uid}")
+                except Exception as e:
+                    logger.warning(f"Failed to notify user {target_uid} about license grant: {e}")
+                
                 await update.message.reply_text(
                     t.get("admin_license_granted", "✅ {plan} granted to user {uid} for {days} days.").format(
                         plan=plan.title(),
