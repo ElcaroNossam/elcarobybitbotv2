@@ -34,3 +34,19 @@ val LightSurfaceVariant = Color(0xFFEEEEF2)
 val LightOnBackground = Color(0xFF1A1A1A)
 val LightOnSurface = Color(0xFF2D2D35)
 val LightOnSurfaceVariant = Color(0xFF6E6E78)
+
+// Convenience Aliases (used throughout screens)
+val EnlikoBackground = DarkBackground
+val EnlikoSurface = DarkSurface
+val EnlikoCard = DarkSurfaceVariant
+val EnlikoTextPrimary = DarkOnBackground
+val EnlikoTextSecondary = DarkOnSurface
+val EnlikoTextMuted = DarkOnSurfaceVariant
+val EnlikoBorder = Color(0xFF2A2A2A)
+val EnlikoGreen = LongGreen
+val EnlikoRed = ShortRed
+val EnlikoYellow = WarningOrange
+val EnlikoBybit = Color(0xFFF7931A)  // Orange for Bybit
+val EnlikoHL = Color(0xFF00D4FF)    // Cyan for HyperLiquid
+val EnlikoGold = EnlikoSecondary    // Gold for premium/subscription
+val EnlikoWarning = WarningOrange   // Warning color alias

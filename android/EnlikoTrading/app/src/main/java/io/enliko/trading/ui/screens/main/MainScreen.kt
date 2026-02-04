@@ -16,7 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.enliko.trading.ui.screens.portfolio.PortfolioScreen
 import io.enliko.trading.ui.screens.trading.TradingScreen
-import io.enliko.trading.ui.screens.market.MarketScreen
+import io.enliko.trading.ui.screens.screener.ScreenerScreen
 import io.enliko.trading.ui.screens.settings.SettingsScreen
 import io.enliko.trading.ui.screens.settings.NotificationSettingsScreen
 import io.enliko.trading.ui.screens.signals.SignalsScreen
@@ -129,7 +129,7 @@ fun MainScreen(
                 SignalsScreen()
             }
             composable(MainTab.MARKET.route) {
-                MarketScreen()
+                ScreenerScreen()
             }
             composable(MainTab.SETTINGS.route) {
                 SettingsScreen(

@@ -43,9 +43,11 @@ android {
             buildConfigField("String", "WS_URL", "\"wss://enliko.com\"")
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false  // Disabled for testing phase
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
+            buildConfigField("String", "BASE_URL", "\"https://enliko.com\"")
+            buildConfigField("String", "WS_URL", "\"wss://enliko.com\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
