@@ -500,6 +500,20 @@ class LocalizationManager: ObservableObject {
         "strategies_title": "AI Strategies",
         "strategies_subtitle": "Manage trading strategies",
         
+        // Spot Trading
+        "spot_trading": "Spot Trading",
+        "spot_trading_subtitle": "Portfolios, DCA, Take Profit",
+        "spot_portfolio": "Portfolio",
+        "spot_holdings": "Holdings",
+        "spot_performance": "Performance",
+        "spot_dca_strategy": "DCA Strategy",
+        "quick_dca": "Quick DCA",
+        "spot_buy": "Buy",
+        "spot_sell": "Sell",
+        "spot_rebalance": "Rebalance",
+        "spot_no_holdings": "No Spot Holdings",
+        "spot_start_dca": "Start building your portfolio with DCA",
+        
         // Common
         "common_loading": "Loading...",
         "common_error": "Error",
@@ -970,6 +984,20 @@ class LocalizationManager: ObservableObject {
         // Strategies
         "strategies_title": "AI Стратегии",
         "strategies_subtitle": "Управление торговыми стратегиями",
+        
+        // Spot Trading
+        "spot_trading": "Спот торговля",
+        "spot_trading_subtitle": "Портфели, DCA, Take Profit",
+        "spot_portfolio": "Портфель",
+        "spot_holdings": "Активы",
+        "spot_performance": "Результаты",
+        "spot_dca_strategy": "Стратегия DCA",
+        "quick_dca": "Быстрый DCA",
+        "spot_buy": "Купить",
+        "spot_sell": "Продать",
+        "spot_rebalance": "Ребаланс",
+        "spot_no_holdings": "Нет спот активов",
+        "spot_start_dca": "Начните строить портфель с DCA",
         
         // Common
         "common_loading": "Загрузка...",

@@ -267,6 +267,16 @@ struct MoreView: View {
                 }
                 
                 Section(header: Text("Trading")) {
+                    // Spot Trading - NEW!
+                    NavigationLink(destination: SpotTradingView()) {
+                        MoreMenuItem(
+                            icon: "dollarsign.circle.fill",
+                            title: "spot_trading".localized,
+                            subtitle: "spot_trading_subtitle".localized,
+                            color: .orange
+                        )
+                    }
+                    
                     // Strategies
                     NavigationLink(destination: StrategiesView()) {
                         MoreMenuItem(
