@@ -1429,11 +1429,20 @@
                     body: JSON.stringify({ language: lang })
                 });
                 
-                if (res.ok) {
-                    showNotification('Language changed', 'success');
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    showNotification('Language changed to ' + lang.toUpperCase(), 'success');
+                    // Store in localStorage for persistence
+                    localStorage.setItem('app_language', lang);
+                    // Reload page to apply language change
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    showNotification('Failed to change language: ' + (data.detail || 'Unknown error'), 'error');
                 }
             } catch (e) {
                 console.error('Language change error:', e);
+                showNotification('Failed to change language', 'error');
             }
         }
         
