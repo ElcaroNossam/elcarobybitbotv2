@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.49.0 | Обновлено: 4 февраля 2026
+# Версия: 3.50.0 | Обновлено: 4 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -11,6 +11,7 @@
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
 # Strategy Side-Enabled Fix: All 6 strategies now check enabled flag per side (Feb 4, 2026) ✅
+# ATR TP Removal Fix: Remove TP when switching to ATR mode (Feb 4, 2026) ✅
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps
 # Translations: 15 languages × 1540+ keys
@@ -1020,6 +1021,26 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ CRITICAL: ATR TP Removal - Full Trading Flows Audit (Feb 4, 2026)
+- **Проблема:** Когда ATR включался для существующей позиции с установленным TP, TP НЕ удалялся
+- **Влияние:** TP мог сработать раньше ATR trailing, нарушая логику ATR мониторинга
+- **Решение:**
+  - Создана функция `remove_take_profit()` (строки 5381-5443)
+  - Вызывается в ATR мониторинге когда `position_use_atr=True` и `current_tp is not None`
+  - Устанавливает `takeProfit: "0"` через Bybit API для удаления TP
+- **Полный аудит торговых потоков:**
+  | Поток | Статус | Строки |
+  |-------|--------|--------|
+  | ATR мониторинг | ✅ | 18836-18970 |
+  | Удаление TP при ATR | ✅ FIXED | 18840-18848 |
+  | TP восстановление при выкл. ATR | ✅ | 18793-18807 |
+  | Pending limit orders | ✅ | 17475-17540 |
+  | DCA добор | ✅ | 18445-18520 |
+  | Manual trading (trade_manual) | ✅ | 17744-17749 |
+  | Spot auto DCA | ✅ | 19249-19405 |
+  | Spot TP rebalance | ✅ | 18967-19245 |
+- **Commit:** `9d16e1d`
 
 ### ✅ CRITICAL: Trading Flows Audit - Exchange Filter Fix (Feb 2, 2026)
 - **Проблема:** `get_trade_stats()` и `get_trade_stats_unknown()` НЕ фильтровали по `exchange` параметру!
