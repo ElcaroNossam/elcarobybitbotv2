@@ -4894,36 +4894,6 @@ def get_all_payments(status: str | None = None, limit: int = 50, offset: int = 0
         ], total
 
 
-def get_user_payments(user_id: int, limit: int = 50) -> list[dict]:
-    """Get payment history for a specific user."""
-    with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT id, user_id, payment_type, amount, currency, license_type, 
-                   period_days, status, created_at, telegram_charge_id, transaction_id
-            FROM payment_history
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT ?
-        """, (user_id, limit)).fetchall()
-        
-        return [
-            {
-                "id": r[0],
-                "user_id": r[1],
-                "payment_type": r[2],
-                "amount": r[3],
-                "currency": r[4],
-                "license_type": r[5],
-                "period_days": r[6],
-                "status": r[7],
-                "created_at": r[8],
-                "telegram_charge_id": r[9],
-                "transaction_id": r[10],
-            }
-            for r in rows
-        ]
-
-
 def get_payment_stats() -> dict:
     """Get aggregate payment statistics for admin."""
     with get_conn() as conn:
