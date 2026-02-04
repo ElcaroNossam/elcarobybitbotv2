@@ -40,7 +40,11 @@ enum class MainTab(
 fun MainScreen(
     onLogout: () -> Unit,
     onNavigateToActivity: () -> Unit = {},
-    onNavigateToSpot: () -> Unit = {}
+    onNavigateToSpot: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToStrategies: () -> Unit = {},
+    onNavigateToCharts: (String) -> Unit = {},
+    onNavigateToSocialTrading: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -114,11 +118,12 @@ fun MainScreen(
             composable(MainTab.SETTINGS.route) {
                 SettingsScreen(
                     onLogout = onLogout,
-                    onNavigateToNotifications = {
-                        navController.navigate("notifications")
-                    },
+                    onNavigateToNotifications = onNavigateToNotifications,
                     onNavigateToActivity = onNavigateToActivity,
-                    onNavigateToSpot = onNavigateToSpot
+                    onNavigateToSpot = onNavigateToSpot,
+                    onNavigateToStrategies = onNavigateToStrategies,
+                    onNavigateToCharts = onNavigateToCharts,
+                    onNavigateToSocialTrading = onNavigateToSocialTrading
                 )
             }
             composable("notifications") {

@@ -27,6 +27,9 @@ fun SettingsScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToActivity: () -> Unit = {},
     onNavigateToSpot: () -> Unit = {},
+    onNavigateToStrategies: () -> Unit = {},
+    onNavigateToCharts: (String) -> Unit = {},
+    onNavigateToSocialTrading: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -136,7 +139,25 @@ fun SettingsScreen(
                     icon = Icons.Default.TrendingUp,
                     title = strings.strategies,
                     subtitle = "Configure trading strategies",
-                    onClick = { /* Navigate to Strategies */ }
+                    onClick = onNavigateToStrategies
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.ShowChart,
+                    title = "Charts",
+                    subtitle = "Advanced TradingView charts",
+                    onClick = { onNavigateToCharts("BTCUSDT") }
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.People,
+                    title = "Social Trading",
+                    subtitle = "Copy top traders",
+                    onClick = onNavigateToSocialTrading
                 )
             }
             

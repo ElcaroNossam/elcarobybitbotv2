@@ -12,8 +12,12 @@ import io.enliko.trading.ui.screens.auth.LoginScreen
 import io.enliko.trading.ui.screens.auth.hasAcceptedDisclaimer
 import io.enliko.trading.ui.screens.charts.AdvancedChartsScreen
 import io.enliko.trading.ui.screens.main.MainScreen
+import io.enliko.trading.ui.screens.notifications.NotificationsScreen
+import io.enliko.trading.ui.screens.notifications.NotificationPreferencesScreen
 import io.enliko.trading.ui.screens.social.SocialTradingScreen
 import io.enliko.trading.ui.screens.spot.SpotScreen
+import io.enliko.trading.ui.screens.strategies.StrategiesScreen
+import io.enliko.trading.ui.screens.strategies.BacktestScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -28,6 +32,10 @@ sealed class Screen(val route: String) {
         fun createRoute(symbol: String) = "charts/$symbol"
     }
     object SocialTrading : Screen("social")
+    object Notifications : Screen("notifications")
+    object NotificationPreferences : Screen("notification_preferences")
+    object Strategies : Screen("strategies")
+    object Backtest : Screen("backtest")
     object StrategySettings : Screen("strategy_settings/{strategy}") {
         fun createRoute(strategy: String) = "strategy_settings/$strategy"
     }
@@ -108,6 +116,18 @@ fun EnlikoNavHost(
                     },
                     onNavigateToSpot = {
                         navController.navigate(Screen.Spot.route)
+                    },
+                    onNavigateToNotifications = {
+                        navController.navigate(Screen.Notifications.route)
+                    },
+                    onNavigateToStrategies = {
+                        navController.navigate(Screen.Strategies.route)
+                    },
+                    onNavigateToCharts = { symbol ->
+                        navController.navigate(Screen.Charts.createRoute(symbol))
+                    },
+                    onNavigateToSocialTrading = {
+                        navController.navigate(Screen.SocialTrading.route)
                     }
                 )
             }
@@ -138,6 +158,36 @@ fun EnlikoNavHost(
                     onTraderClick = { traderId ->
                         // Navigate to trader profile
                     }
+                )
+            }
+            
+            composable(Screen.Notifications.route) {
+                NotificationsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.NotificationPreferences.route) {
+                NotificationPreferencesScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Strategies.route) {
+                StrategiesScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToStrategySettings = { strategy ->
+                        navController.navigate(Screen.StrategySettings.createRoute(strategy))
+                    },
+                    onNavigateToBacktest = {
+                        navController.navigate(Screen.Backtest.route)
+                    }
+                )
+            }
+            
+            composable(Screen.Backtest.route) {
+                BacktestScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }
