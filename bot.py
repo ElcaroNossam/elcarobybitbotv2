@@ -17894,20 +17894,25 @@ async def monitor_positions_loop(app: Application):
                                     continue
                                 
                                 tf_for_sym = tf_map.get(sym, "24h") 
-                                signal_id = get_last_signal_id(uid, sym, tf_for_sym)
+                                
+                                # CRITICAL FIX: Do NOT search for signals for externally opened positions!
+                                # The signals table is GLOBAL (not per-user), so get_last_signal_id()
+                                # would find ANY recent signal for this symbol, even if this user
+                                # didn't trade it via bot. This causes wrong strategy assignment.
+                                #
+                                # Positions opened externally on exchange (not via bot) should ALWAYS
+                                # be detected as "manual" and use global user settings.
+                                #
+                                # Only positions opened BY THE BOT have signal_id saved in active_positions.
                                 
                                 # Try to determine strategy from signal if available
                                 detected_strategy = None
                                 sig = None
+                                signal_id = None  # External positions have no signal_id
                                 
-                                if signal_id:
-                                    sig = fetch_signal_by_id(signal_id)
-                                
-                                # REMOVED: Fallback to global signal search was causing wrong strategy detection
-                                # If user didn't trade via bot (no signal_id for this user), position is manual
-                                # The previous fallback `get_last_signal_by_symbol_in_raw(sym)` searched
-                                # ALL signals without user_id filter, causing externally opened positions
-                                # to be assigned wrong strategies (e.g. fibonacci settings to manual trades)
+                                # REMOVED: signal_id = get_last_signal_id(uid, sym, tf_for_sym)
+                                # REMOVED: if signal_id: sig = fetch_signal_by_id(signal_id)
+                                # These searches were global and caused wrong strategy detection
                                 
                                 if sig:
                                     # Check signal source/strategy using parsers
