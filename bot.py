@@ -18963,7 +18963,7 @@ async def monitor_positions_loop(app: Application):
                                         _be_triggered[key] = True
                                         
                                         # Update SL in database so it persists across bot restarts
-                                        db.update_position_sl_tp(uid, sym, sl_price=be_sl_quantized, account_type=pos_account_type, exchange=current_exchange)
+                                        db.update_position_sltp(uid, sym, sl_price=be_sl_quantized, account_type=pos_account_type, exchange=current_exchange, respect_manual_override=False)
                                         
                                         logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to break-even @ {be_sl_quantized:.6f} (was {current_sl}, move_pct={move_pct:.2f}%)")
                                         
