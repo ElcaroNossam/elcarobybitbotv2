@@ -22724,6 +22724,31 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 if value < 1 or value > 100 or int(value) != value:
                     raise ValueError("Leverage must be integer between 1 and 100")
                 value = int(value)
+            elif param in ("long_partial_tp_1_close_pct", "short_partial_tp_1_close_pct"):
+                # Validate Step 1 close % - must leave room for Step 2
+                if value <= 0 or value >= 100:
+                    raise ValueError("Step 1 must be between 0 and 99%")
+                # Get Step 2 to validate total doesn't exceed 100%
+                context = get_user_trading_context(uid)
+                strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+                side = "long" if param.startswith("long_") else "short"
+                step2_close = strat_settings.get(f"{side}_partial_tp_2_close_pct") or 30.0
+                if value + step2_close > 100:
+                    max_step1 = 100 - step2_close
+                    raise ValueError(f"Step 1 can't exceed {max_step1:.0f}% (100% - Step 2 {step2_close:.0f}%)")
+            elif param in ("long_partial_tp_2_close_pct", "short_partial_tp_2_close_pct"):
+                # Validate Step 2 close % doesn't exceed remaining after Step 1
+                # Step 1 + Step 2 must be <= 100%
+                if value <= 0 or value > 100:
+                    raise ValueError("Value must be between 0 and 100")
+                # Get Step 1 close % to validate
+                context = get_user_trading_context(uid)
+                strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+                side = "long" if param.startswith("long_") else "short"
+                step1_close = strat_settings.get(f"{side}_partial_tp_1_close_pct") or 30.0
+                max_step2 = 100 - step1_close
+                if value > max_step2:
+                    raise ValueError(f"Step 2 can't exceed {max_step2:.0f}% (100% - Step 1 {step1_close:.0f}%)")
             else:
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
