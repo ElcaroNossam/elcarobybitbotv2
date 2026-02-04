@@ -167,7 +167,13 @@ def validate_login_token(token: str, ip_address: str = None, user_agent: str = N
         return None
     
     # Check expiry
-    expires = datetime.fromisoformat(row['expires_at'])
+    expires_at = row['expires_at']
+    if isinstance(expires_at, str):
+        expires = datetime.fromisoformat(expires_at)
+    else:
+        expires = expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
     if now > expires:
         con.close()
         return None
@@ -241,7 +247,13 @@ def check_2fa_status(confirmation_id: str) -> Optional[dict]:
     
     # Check expiry
     now = datetime.now(timezone.utc)
-    expires = datetime.fromisoformat(row['expires_at'])
+    expires_at = row['expires_at']
+    if isinstance(expires_at, str):
+        expires = datetime.fromisoformat(expires_at)
+    else:
+        expires = expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
     
     if now > expires and row['status'] == 'pending':
         return {'status': 'expired', 'user_id': row['user_id']}
@@ -274,8 +286,16 @@ def confirm_2fa(confirmation_id: str, approved: bool) -> bool:
         con.close()
         return False
     
-    # Check expiry
-    expires = datetime.fromisoformat(row['expires_at'])
+    # Check expiry - expires_at is already a datetime object from PostgreSQL
+    expires_at = row['expires_at']
+    if isinstance(expires_at, str):
+        expires = datetime.fromisoformat(expires_at)
+    else:
+        # Already datetime object from psycopg2
+        expires = expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+    
     if now > expires:
         con.close()
         return False
