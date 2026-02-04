@@ -18,6 +18,9 @@ import io.enliko.trading.ui.screens.social.SocialTradingScreen
 import io.enliko.trading.ui.screens.spot.SpotScreen
 import io.enliko.trading.ui.screens.strategies.StrategiesScreen
 import io.enliko.trading.ui.screens.strategies.BacktestScreen
+import io.enliko.trading.ui.screens.history.TradeHistoryScreen
+import io.enliko.trading.ui.screens.settings.TradingSettingsScreen
+import io.enliko.trading.ui.screens.auth.LinkEmailScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -41,6 +44,9 @@ sealed class Screen(val route: String) {
     }
     object LanguageSettings : Screen("language_settings")
     object Subscription : Screen("subscription")
+    object TradeHistory : Screen("trade_history")
+    object TradingSettings : Screen("trading_settings")
+    object LinkEmail : Screen("link_email")
 }
 
 @Composable
@@ -136,6 +142,15 @@ fun EnlikoNavHost(
                     },
                     onNavigateToSubscription = {
                         navController.navigate(Screen.Subscription.route)
+                    },
+                    onNavigateToTradeHistory = {
+                        navController.navigate(Screen.TradeHistory.route)
+                    },
+                    onNavigateToTradingSettings = {
+                        navController.navigate(Screen.TradingSettings.route)
+                    },
+                    onNavigateToLinkEmail = {
+                        navController.navigate(Screen.LinkEmail.route)
                     }
                 )
             }
@@ -221,6 +236,25 @@ fun EnlikoNavHost(
             composable(Screen.Subscription.route) {
                 io.enliko.trading.ui.screens.settings.SubscriptionScreen(
                     onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.TradeHistory.route) {
+                TradeHistoryScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.TradingSettings.route) {
+                TradingSettingsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.LinkEmail.route) {
+                LinkEmailScreen(
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { navController.popBackStack() }
                 )
             }
         }

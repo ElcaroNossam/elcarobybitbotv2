@@ -32,6 +32,9 @@ fun SettingsScreen(
     onNavigateToSocialTrading: () -> Unit = {},
     onNavigateToLanguage: () -> Unit = {},
     onNavigateToSubscription: () -> Unit = {},
+    onNavigateToTradeHistory: () -> Unit = {},
+    onNavigateToTradingSettings: () -> Unit = {},
+    onNavigateToLinkEmail: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -121,7 +124,7 @@ fun SettingsScreen(
                     isLinked = uiState.hasEmailLinked,
                     linkedInfo = uiState.email,
                     isVerified = uiState.emailVerified,
-                    onLink = { /* Navigate to LinkEmailScreen */ }
+                    onLink = onNavigateToLinkEmail
                 )
             }
             
@@ -142,6 +145,24 @@ fun SettingsScreen(
                     title = strings.strategies,
                     subtitle = "Configure trading strategies",
                     onClick = onNavigateToStrategies
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Tune,
+                    title = "Trading Settings",
+                    subtitle = "DCA, ATR, Order types",
+                    onClick = onNavigateToTradingSettings
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.History,
+                    title = "Trade History",
+                    subtitle = "View past trades",
+                    onClick = onNavigateToTradeHistory
                 )
             }
             
@@ -174,7 +195,7 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
-                    icon = Icons.Default.History,
+                    icon = Icons.Default.Timeline,
                     title = "Activity",
                     subtitle = "Cross-platform sync history",
                     onClick = onNavigateToActivity

@@ -46,7 +46,10 @@ fun MainScreen(
     onNavigateToCharts: (String) -> Unit = {},
     onNavigateToSocialTrading: () -> Unit = {},
     onNavigateToLanguage: () -> Unit = {},
-    onNavigateToSubscription: () -> Unit = {}
+    onNavigateToSubscription: () -> Unit = {},
+    onNavigateToTradeHistory: () -> Unit = {},
+    onNavigateToTradingSettings: () -> Unit = {},
+    onNavigateToLinkEmail: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -127,7 +130,10 @@ fun MainScreen(
                     onNavigateToCharts = onNavigateToCharts,
                     onNavigateToSocialTrading = onNavigateToSocialTrading,
                     onNavigateToLanguage = onNavigateToLanguage,
-                    onNavigateToSubscription = onNavigateToSubscription
+                    onNavigateToSubscription = onNavigateToSubscription,
+                    onNavigateToTradeHistory = onNavigateToTradeHistory,
+                    onNavigateToTradingSettings = onNavigateToTradingSettings,
+                    onNavigateToLinkEmail = onNavigateToLinkEmail
                 )
             }
             composable("notifications") {
