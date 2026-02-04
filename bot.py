@@ -593,36 +593,84 @@ SPOT_PORTFOLIOS = {
         "emoji": "💎",
         "coins": {"BTC": 50, "ETH": 30, "BNB": 10, "SOL": 10},  # % allocation
         "description": "Top market cap, lower risk",
+        "risk_level": "low",
     },
     "defi": {
         "name": "DeFi",
         "emoji": "🏦",
-        "coins": {"UNI": 25, "AAVE": 25, "MKR": 20, "COMP": 15, "SNX": 15},
+        "coins": {"UNI": 25, "AAVE": 25, "MKR": 20, "LINK": 15, "SNX": 15},
         "description": "Decentralized finance protocols",
+        "risk_level": "medium",
     },
     "layer2": {
         "name": "Layer 2",
         "emoji": "⚡",
         "coins": {"MATIC": 30, "ARB": 25, "OP": 25, "IMX": 20},
         "description": "Ethereum scaling solutions",
+        "risk_level": "medium",
     },
     "ai_narrative": {
         "name": "AI & Data",
         "emoji": "🤖",
-        "coins": {"FET": 25, "RNDR": 25, "OCEAN": 20, "AGIX": 15, "TAO": 15},
+        "coins": {"FET": 25, "RNDR": 25, "TAO": 20, "NEAR": 15, "GRT": 15},
         "description": "AI and data tokens",
+        "risk_level": "high",
     },
     "gaming": {
         "name": "Gaming",
         "emoji": "🎮",
         "coins": {"AXS": 25, "SAND": 20, "MANA": 20, "GALA": 20, "ENJ": 15},
         "description": "Gaming and Metaverse",
+        "risk_level": "high",
+    },
+    "meme": {
+        "name": "Memecoins",
+        "emoji": "🐕",
+        "coins": {"DOGE": 35, "SHIB": 25, "PEPE": 20, "FLOKI": 10, "WIF": 10},
+        "description": "High risk meme tokens",
+        "risk_level": "very_high",
+    },
+    "l1_killers": {
+        "name": "L1 Killers",
+        "emoji": "⚔️",
+        "coins": {"SOL": 30, "AVAX": 25, "NEAR": 20, "SUI": 15, "APT": 10},
+        "description": "Alternative Layer 1 blockchains",
+        "risk_level": "medium",
+    },
+    "rwa": {
+        "name": "RWA",
+        "emoji": "🏛️",
+        "coins": {"ONDO": 30, "MKR": 25, "SNX": 20, "LINK": 15, "GRT": 10},
+        "description": "Real World Assets tokens",
+        "risk_level": "medium",
+    },
+    "infrastructure": {
+        "name": "Infra",
+        "emoji": "🔧",
+        "coins": {"LINK": 30, "GRT": 25, "FIL": 20, "AR": 15, "ATOM": 10},
+        "description": "Web3 infrastructure",
+        "risk_level": "medium",
+    },
+    "btc_only": {
+        "name": "BTC Only",
+        "emoji": "₿",
+        "coins": {"BTC": 100},
+        "description": "100% Bitcoin - maximum simplicity",
+        "risk_level": "low",
+    },
+    "eth_btc": {
+        "name": "ETH+BTC",
+        "emoji": "💰",
+        "coins": {"BTC": 60, "ETH": 40},
+        "description": "Classic 60/40 split",
+        "risk_level": "low",
     },
     "custom": {
         "name": "Custom",
         "emoji": "⚙️",
         "coins": {},
         "description": "Your custom allocation",
+        "risk_level": "custom",
     },
 }
 
@@ -648,15 +696,74 @@ SMART_DCA_STRATEGIES = {
         "emoji": "📉",
         "description": "Only buy on significant dips",
     },
+    "crash_boost": {
+        "name": "Crash Boost",
+        "emoji": "🚨",
+        "description": "3x buy when price drops >15% in 24h",
+    },
+    "momentum": {
+        "name": "Momentum",
+        "emoji": "🚀",
+        "description": "Buy more in uptrends, less in downtrends",
+    },
+    "rsi_based": {
+        "name": "RSI Smart",
+        "emoji": "📐",
+        "description": "Buy more when RSI < 30 (oversold)",
+    },
 }
 
 # Spot Take Profit Levels (% gain -> % to sell)
 DEFAULT_SPOT_TP_LEVELS = [
-    {"gain_pct": 20, "sell_pct": 25},   # At 20% gain, sell 25%
-    {"gain_pct": 50, "sell_pct": 25},   # At 50% gain, sell 25%
-    {"gain_pct": 100, "sell_pct": 25},  # At 100% gain, sell 25%
-    {"gain_pct": 200, "sell_pct": 25},  # At 200% gain, sell remaining 25%
+    {"gain_pct": 15, "sell_pct": 20},   # At 15% gain, sell 20%
+    {"gain_pct": 30, "sell_pct": 20},   # At 30% gain, sell 20%
+    {"gain_pct": 50, "sell_pct": 20},   # At 50% gain, sell 20%
+    {"gain_pct": 100, "sell_pct": 20},  # At 100% gain, sell 20%
+    {"gain_pct": 200, "sell_pct": 20},  # At 200% gain, sell remaining 20%
 ]
+
+# Preset TP Profiles
+SPOT_TP_PROFILES = {
+    "conservative": {
+        "name": "Conservative",
+        "emoji": "🐢",
+        "levels": [
+            {"gain_pct": 10, "sell_pct": 25},
+            {"gain_pct": 20, "sell_pct": 25},
+            {"gain_pct": 35, "sell_pct": 25},
+            {"gain_pct": 50, "sell_pct": 25},
+        ],
+    },
+    "balanced": {
+        "name": "Balanced",
+        "emoji": "⚖️",
+        "levels": [
+            {"gain_pct": 20, "sell_pct": 20},
+            {"gain_pct": 50, "sell_pct": 25},
+            {"gain_pct": 100, "sell_pct": 30},
+            {"gain_pct": 200, "sell_pct": 25},
+        ],
+    },
+    "aggressive": {
+        "name": "Aggressive",
+        "emoji": "🦁",
+        "levels": [
+            {"gain_pct": 50, "sell_pct": 15},
+            {"gain_pct": 100, "sell_pct": 20},
+            {"gain_pct": 200, "sell_pct": 25},
+            {"gain_pct": 500, "sell_pct": 40},
+        ],
+    },
+    "moonbag": {
+        "name": "Moonbag",
+        "emoji": "🌙",
+        "levels": [
+            {"gain_pct": 100, "sell_pct": 50},  # Sell 50% at 2x to recover initial
+            {"gain_pct": 500, "sell_pct": 25},  # Sell 25% at 5x
+            # Keep 25% as "moonbag" forever
+        ],
+    },
+}
 
 # Trailing TP settings for Spot
 SPOT_TRAILING_TP_DEFAULTS = {
@@ -664,6 +771,37 @@ SPOT_TRAILING_TP_DEFAULTS = {
     "activation_pct": 15.0,    # Activate trailing at +15% profit
     "trail_pct": 5.0,          # Trail by 5% from peak
     "min_profit_pct": 10.0,    # Minimum profit to lock (activation - trail)
+}
+
+# Advanced Spot Trading Features
+SPOT_ADVANCED_FEATURES = {
+    "profit_lock": {
+        "enabled": False,
+        "trigger_pct": 30.0,    # Lock profit when gain >= 30%
+        "lock_pct": 50.0,       # Sell 50% to lock profit
+    },
+    "dcs": {  # Dollar Cost Sell
+        "enabled": False,
+        "trigger_pct": 20.0,    # Start selling at +20%
+        "sell_amount": 10.0,    # Sell $10 worth each interval
+        "interval": "weekly",   # Sell interval
+    },
+    "crash_boost": {
+        "enabled": True,
+        "threshold_24h": -15.0,  # If 24h change < -15%
+        "multiplier": 3.0,       # Buy 3x normal amount
+    },
+    "limit_dca": {
+        "enabled": False,
+        "offset_pct": 0.5,       # Place limit order 0.5% below market
+        "timeout_hours": 24,     # Cancel if not filled in 24h
+    },
+    "smart_rebalance": {
+        "enabled": False,
+        "threshold_pct": 10.0,   # Rebalance if deviation > 10%
+        "frequency": "weekly",   # Rebalance frequency
+        "last_rebalance_ts": 0,
+    },
 }
 
 # Spot Grid Bot defaults
@@ -10346,11 +10484,16 @@ async def calculate_smart_dca_amount(
     - value_avg: Increase amount when price is below avg, decrease when above
     - fear_greed: Increase amount during market fear
     - dip_buy: Only buy on significant dips
+    - crash_boost: 3x buy when price drops >15% in 24h
+    - momentum: Buy more in uptrends, less in downtrends
+    - rsi_based: Buy more when RSI < 30 (oversold)
     
     Returns the adjusted amount (0 if should skip this buy).
     """
     if strategy == "fixed":
         return base_amount
+    
+    symbol = f"{coin}USDT"
     
     if strategy == "fear_greed":
         # Get Fear & Greed Index
@@ -10377,7 +10520,6 @@ async def calculate_smart_dca_amount(
     if strategy == "dip_buy":
         # Only buy if price dropped by X% from 7-day high
         dip_threshold = spot_settings.get("dip_threshold", 5.0)
-        symbol = f"{coin}USDT"
         
         try:
             # Get current price
@@ -10413,9 +10555,6 @@ async def calculate_smart_dca_amount(
     if strategy == "value_avg":
         # Value averaging - try to maintain steady growth
         # Buy more when below target, less when above
-        # This is a simplified version
-        symbol = f"{coin}USDT"
-        
         try:
             ticker = await get_spot_ticker(user_id, symbol, account_type)
             change_24h = float(ticker.get("price24hPcnt", 0)) * 100
@@ -10439,6 +10578,137 @@ async def calculate_smart_dca_amount(
             return base_amount * multiplier
         except Exception as e:
             logger.error(f"value_avg calculation error for {coin}: {e}")
+            return base_amount
+    
+    if strategy == "crash_boost":
+        # Buy 3x when price crashes >15% in 24h
+        crash_threshold = spot_settings.get("crash_threshold", -15.0)
+        
+        try:
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            change_24h = float(ticker.get("price24hPcnt", 0)) * 100
+            
+            if change_24h <= crash_threshold:
+                # CRASH! Buy 3x
+                multiplier = 3.0
+                logger.info(f"🚨 {coin} CRASH detected: {change_24h:.1f}% → 3x boost!")
+            elif change_24h <= crash_threshold / 2:
+                # Significant drop - buy 2x
+                multiplier = 2.0
+                logger.info(f"📉 {coin} significant drop: {change_24h:.1f}% → 2x boost")
+            elif change_24h <= -5:
+                # Minor drop - buy 1.5x
+                multiplier = 1.5
+            else:
+                # Normal - buy 1x
+                multiplier = 1.0
+            
+            return base_amount * multiplier
+        except Exception as e:
+            logger.error(f"crash_boost calculation error for {coin}: {e}")
+            return base_amount
+    
+    if strategy == "momentum":
+        # Buy more when momentum is positive (uptrend), less when negative
+        try:
+            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            change_24h = float(ticker.get("price24hPcnt", 0)) * 100
+            
+            # Get 7-day trend
+            params = {
+                "category": "spot",
+                "symbol": symbol,
+                "interval": "D",
+                "limit": 7,
+            }
+            res = await _bybit_request(user_id, "GET", "/v5/market/kline", params=params, account_type=account_type)
+            klines = res.get("list", [])
+            
+            if klines and len(klines) >= 7:
+                # Calculate 7-day momentum (latest close vs oldest close)
+                latest_close = float(klines[0][4])
+                oldest_close = float(klines[-1][4])
+                momentum_7d = ((latest_close - oldest_close) / oldest_close) * 100
+                
+                if momentum_7d > 15 and change_24h > 0:
+                    # Strong uptrend - buy more to ride momentum
+                    multiplier = 1.5
+                    logger.info(f"🚀 {coin} momentum +{momentum_7d:.1f}% → 1.5x")
+                elif momentum_7d < -15 and change_24h < 0:
+                    # Strong downtrend - buy less, wait for reversal
+                    multiplier = 0.5
+                    logger.info(f"📉 {coin} negative momentum {momentum_7d:.1f}% → 0.5x")
+                elif momentum_7d < -10:
+                    # Downtrend but maybe bottoming - normal buy
+                    multiplier = 1.0
+                else:
+                    multiplier = 1.0
+                
+                return base_amount * multiplier
+        except Exception as e:
+            logger.error(f"momentum calculation error for {coin}: {e}")
+            return base_amount
+    
+    if strategy == "rsi_based":
+        # Buy more when RSI is oversold (<30), less when overbought (>70)
+        try:
+            # Get 14-day klines for RSI calculation
+            params = {
+                "category": "spot",
+                "symbol": symbol,
+                "interval": "D",
+                "limit": 20,  # Need extra for RSI calculation
+            }
+            res = await _bybit_request(user_id, "GET", "/v5/market/kline", params=params, account_type=account_type)
+            klines = res.get("list", [])
+            
+            if klines and len(klines) >= 15:
+                # Calculate RSI (simplified)
+                closes = [float(k[4]) for k in reversed(klines)]  # Oldest first
+                
+                gains = []
+                losses = []
+                for i in range(1, len(closes)):
+                    diff = closes[i] - closes[i-1]
+                    if diff > 0:
+                        gains.append(diff)
+                        losses.append(0)
+                    else:
+                        gains.append(0)
+                        losses.append(abs(diff))
+                
+                # Average gain and loss over 14 periods
+                period = 14
+                if len(gains) >= period:
+                    avg_gain = sum(gains[-period:]) / period
+                    avg_loss = sum(losses[-period:]) / period
+                    
+                    if avg_loss == 0:
+                        rsi = 100
+                    else:
+                        rs = avg_gain / avg_loss
+                        rsi = 100 - (100 / (1 + rs))
+                    
+                    if rsi < 30:
+                        # Oversold - buy 2x
+                        multiplier = 2.0
+                        logger.info(f"📐 {coin} RSI={rsi:.1f} (oversold) → 2x")
+                    elif rsi < 40:
+                        # Getting oversold - buy 1.5x
+                        multiplier = 1.5
+                    elif rsi > 70:
+                        # Overbought - buy 0.5x
+                        multiplier = 0.5
+                        logger.info(f"📐 {coin} RSI={rsi:.1f} (overbought) → 0.5x")
+                    elif rsi > 60:
+                        # Getting overbought - buy 0.8x
+                        multiplier = 0.8
+                    else:
+                        multiplier = 1.0
+                    
+                    return base_amount * multiplier
+        except Exception as e:
+            logger.error(f"rsi_based calculation error for {coin}: {e}")
             return base_amount
     
     return base_amount

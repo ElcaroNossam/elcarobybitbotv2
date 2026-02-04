@@ -1339,6 +1339,55 @@ TEXTS = {
     'spot_freq_daily': '📅 Daily',
     'spot_freq_weekly': '📆 Weekly',
     
+    # Spot Portfolios
+    'spot_portfolio_header': '📊 *Spot Portfolios*',
+    'spot_portfolio_blue_chip': '💎 Blue Chips (BTC, ETH, BNB, SOL)',
+    'spot_portfolio_defi': '🏦 DeFi (UNI, AAVE, MKR, LINK)',
+    'spot_portfolio_layer2': '⚡ Layer 2 (MATIC, ARB, OP)',
+    'spot_portfolio_ai': '🤖 AI & Data (FET, RNDR, TAO)',
+    'spot_portfolio_gaming': '🎮 Gaming (AXS, SAND, MANA)',
+    'spot_portfolio_meme': '🐕 Memecoins (DOGE, SHIB, PEPE)',
+    'spot_portfolio_l1': '⚔️ L1 Killers (SOL, AVAX, NEAR)',
+    'spot_portfolio_rwa': '🏛️ RWA (ONDO, MKR, SNX)',
+    'spot_portfolio_infra': '🔧 Infrastructure (LINK, GRT, FIL)',
+    'spot_portfolio_btc': '₿ BTC Only',
+    'spot_portfolio_eth_btc': '💰 ETH + BTC',
+    'spot_portfolio_custom': '⚙️ Custom Portfolio',
+    'spot_portfolio_select': '📁 Select a portfolio preset:',
+    
+    # Spot DCA Strategies
+    'spot_dca_strategy_header': '📈 *DCA Strategies*',
+    'spot_dca_fixed': '📊 Fixed DCA - Same amount at regular intervals',
+    'spot_dca_value_avg': '📈 Value Averaging - Buy more when price drops',
+    'spot_dca_fear_greed': '😱 Fear & Greed - Buy more during extreme fear',
+    'spot_dca_dip_buy': '📉 Dip Buying - Only buy on significant dips',
+    'spot_dca_crash_boost': '🚨 Crash Boost - 3x buy when price drops >15%',
+    'spot_dca_momentum': '🚀 Momentum - Buy more in uptrends',
+    'spot_dca_rsi': '📐 RSI Smart - Buy more when RSI < 30',
+    'spot_dca_strategy_select': '🎯 Select DCA strategy:',
+    
+    # Spot TP Profiles
+    'spot_tp_header': '🎯 *Take Profit Profiles*',
+    'spot_tp_conservative': '🐢 Conservative - Small gains, frequent sells',
+    'spot_tp_balanced': '⚖️ Balanced - Moderate gains',
+    'spot_tp_aggressive': '🦁 Aggressive - Hold for bigger gains',
+    'spot_tp_moonbag': '🌙 Moonbag - Keep 25% for moonshots',
+    'spot_tp_profile_select': '💰 Select TP profile:',
+    
+    # Spot Performance
+    'spot_performance_header': '📊 *Spot Performance*',
+    'spot_performance_invested': '💵 Total Invested: ${amount:.2f}',
+    'spot_performance_current': '💰 Current Value: ${amount:.2f}',
+    'spot_performance_pnl': '📈 Unrealized PnL: {pnl:+.2f} ({pct:+.2f}%)',
+    'spot_performance_holdings': '📦 Holdings: {count} coins',
+    
+    # Spot Advanced Features
+    'spot_advanced_header': '⚙️ *Advanced Spot Features*',
+    'spot_profit_lock': '🔒 Profit Lock - Sell {pct}% when +{trigger}%',
+    'spot_trailing_tp': '📉 Trailing TP - Activation: +{act}%, Trail: {trail}%',
+    'spot_auto_rebalance': '⚖️ Auto Rebalance - Threshold: {threshold}%',
+    'spot_limit_dca': '🎯 Limit DCA - Offset: -{offset}%',
+    
     # Spot/Grid error messages
     'spot_not_enabled': '❌ Spot trading is not enabled. Enable it in API Settings first.',
     'spot_auto_enabled': '✅ Auto DCA enabled',

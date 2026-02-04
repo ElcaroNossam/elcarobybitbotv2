@@ -1294,6 +1294,55 @@ TEXTS = {
     'spot_freq_daily': '📅 Ежедневно',
     'spot_freq_weekly': '📆 Еженедельно',
     
+    # Spot Portfolios
+    'spot_portfolio_header': '📊 *Спот Портфели*',
+    'spot_portfolio_blue_chip': '💎 Blue Chips (BTC, ETH, BNB, SOL)',
+    'spot_portfolio_defi': '🏦 DeFi (UNI, AAVE, MKR, LINK)',
+    'spot_portfolio_layer2': '⚡ Layer 2 (MATIC, ARB, OP)',
+    'spot_portfolio_ai': '🤖 AI & Data (FET, RNDR, TAO)',
+    'spot_portfolio_gaming': '🎮 Gaming (AXS, SAND, MANA)',
+    'spot_portfolio_meme': '🐕 Мемкоины (DOGE, SHIB, PEPE)',
+    'spot_portfolio_l1': '⚔️ L1 Killers (SOL, AVAX, NEAR)',
+    'spot_portfolio_rwa': '🏛️ RWA (ONDO, MKR, SNX)',
+    'spot_portfolio_infra': '🔧 Инфраструктура (LINK, GRT, FIL)',
+    'spot_portfolio_btc': '₿ Только BTC',
+    'spot_portfolio_eth_btc': '💰 ETH + BTC',
+    'spot_portfolio_custom': '⚙️ Свой портфель',
+    'spot_portfolio_select': '📁 Выберите портфель:',
+    
+    # Spot DCA Strategies
+    'spot_dca_strategy_header': '📈 *Стратегии DCA*',
+    'spot_dca_fixed': '📊 Фиксированный DCA - Одинаковая сумма',
+    'spot_dca_value_avg': '📈 Усреднение - Больше при падении цены',
+    'spot_dca_fear_greed': '😱 Страх и жадность - Больше при страхе',
+    'spot_dca_dip_buy': '📉 Покупка просадок - Только при падении',
+    'spot_dca_crash_boost': '🚨 Crash Boost - 3x при падении >15%',
+    'spot_dca_momentum': '🚀 Momentum - Больше в аптренде',
+    'spot_dca_rsi': '📐 RSI Smart - Больше при RSI < 30',
+    'spot_dca_strategy_select': '🎯 Выберите стратегию DCA:',
+    
+    # Spot TP Profiles
+    'spot_tp_header': '🎯 *Профили Take Profit*',
+    'spot_tp_conservative': '🐢 Консервативный - Небольшие профиты',
+    'spot_tp_balanced': '⚖️ Сбалансированный - Умеренные цели',
+    'spot_tp_aggressive': '🦁 Агрессивный - Большие цели',
+    'spot_tp_moonbag': '🌙 Moonbag - 25% для больших иксов',
+    'spot_tp_profile_select': '💰 Выберите профиль TP:',
+    
+    # Spot Performance
+    'spot_performance_header': '📊 *Результаты Спот*',
+    'spot_performance_invested': '💵 Инвестировано: ${amount:.2f}',
+    'spot_performance_current': '💰 Текущая стоимость: ${amount:.2f}',
+    'spot_performance_pnl': '📈 Нереализованный PnL: {pnl:+.2f} ({pct:+.2f}%)',
+    'spot_performance_holdings': '📦 Активов: {count} монет',
+    
+    # Spot Advanced Features
+    'spot_advanced_header': '⚙️ *Расширенные функции*',
+    'spot_profit_lock': '🔒 Фиксация прибыли - Продать {pct}% при +{trigger}%',
+    'spot_trailing_tp': '📉 Trailing TP - Активация: +{act}%, Трейл: {trail}%',
+    'spot_auto_rebalance': '⚖️ Авто-ребаланс - Порог: {threshold}%',
+    'spot_limit_dca': '🎯 Лимит DCA - Смещение: -{offset}%',
+    
     # =====================================================
     # РУЧНЫЕ ОРДЕРА
     # =====================================================
