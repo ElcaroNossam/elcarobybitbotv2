@@ -157,6 +157,7 @@ from db import (
     allow_user,
     delete_user,
     update_position_strategy,
+    update_position_sltp,  # Save SL/TP prices to DB after exchange update
     # Admin reports
     get_global_trade_stats,
     get_global_stats_by_strategy,
@@ -5519,8 +5520,28 @@ async def set_trading_stop(
         f"new_sl={sl_price}, new_tp={tp_price}, side={effective_side}, entry={entry_price}"
     )
 
+    # Determine account_type for DB update
+    db_account_type = account_type or "demo"
+    
     try:
         await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
+        
+        # CRITICAL FIX: Save SL/TP prices to DB after successful exchange update
+        # This ensures DB reflects actual exchange state for monitoring and display
+        try:
+            update_position_sltp(
+                user_id=uid,
+                symbol=symbol,
+                account_type=db_account_type,
+                sl_price=sl_price,
+                tp_price=tp_price,
+                respect_manual_override=True,  # Don't overwrite manual SL/TP
+                exchange="bybit"
+            )
+            logger.debug(f"[{uid}] {symbol}: SL/TP saved to DB - sl={sl_price}, tp={tp_price}")
+        except Exception as db_err:
+            logger.warning(f"[{uid}] {symbol}: Failed to save SL/TP to DB: {db_err}")
+        
         return True
     except RuntimeError as e:
         err_str = str(e).lower()
@@ -6783,6 +6804,21 @@ async def place_order_for_targets(
                 pos_sl_pct = trade_params.get("sl_pct")
                 pos_tp_pct = trade_params.get("tp_pct")
                 
+                # Calculate SL/TP prices from entry and percentages
+                pos_sl_price = None
+                pos_tp_price = None
+                if pos_entry_price and pos_entry_price > 0:
+                    if pos_sl_pct:
+                        if side == "Buy":
+                            pos_sl_price = pos_entry_price * (1 - pos_sl_pct / 100)
+                        else:
+                            pos_sl_price = pos_entry_price * (1 + pos_sl_pct / 100)
+                    if pos_tp_pct and not pos_use_atr:  # No TP price if ATR mode (trailing)
+                        if side == "Buy":
+                            pos_tp_price = pos_entry_price * (1 + pos_tp_pct / 100)
+                        else:
+                            pos_tp_price = pos_entry_price * (1 - pos_tp_pct / 100)
+                
                 # Get actual leverage (may differ from requested due to fallback)
                 pos_leverage = results.get(target_key, {}).get("actual_leverage", target_leverage or leverage)
                 
@@ -6804,8 +6840,11 @@ async def place_order_for_targets(
                     # Fix #2: Save SL/TP % at position open time
                     applied_sl_pct=pos_sl_pct,
                     applied_tp_pct=pos_tp_pct,
+                    # Fix #3: Save calculated SL/TP prices
+                    sl_price=pos_sl_price,
+                    tp_price=pos_tp_price,
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage}, sl={pos_sl_price}, tp={pos_tp_price})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -18014,6 +18053,9 @@ async def monitor_positions_loop(app: Application):
                                     # Fix: Use actual SL/TP from exchange if available
                                     applied_sl_pct = applied_sl,
                                     applied_tp_pct = applied_tp,
+                                    # Fix #3: Save SL/TP prices from exchange
+                                    sl_price = float(raw_sl_price) if raw_sl_price and float(raw_sl_price) > 0 else None,
+                                    tp_price = float(raw_tp_price) if raw_tp_price and float(raw_tp_price) > 0 else None,
                                 )
                                 
                                 # CRITICAL FIX: Set detected_strategy to final_strategy so that
