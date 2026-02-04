@@ -2777,6 +2777,42 @@ def update_position_sltp(
         return cursor.rowcount > 0
 
 
+def update_position_applied_sltp(
+    user_id: int,
+    symbol: str,
+    account_type: str = "demo",
+    applied_sl_pct: float | None = None,
+    applied_tp_pct: float | None = None,
+    exchange: str = "bybit",
+) -> bool:
+    """
+    Обновляет applied_sl_pct и applied_tp_pct для позиции.
+    Эти поля сохраняют SL/TP% который был использован при установке,
+    чтобы последующие циклы мониторинга не пересчитывали SL/TP.
+    """
+    with get_conn() as conn:
+        updates = []
+        params = []
+        
+        if applied_sl_pct is not None:
+            updates.append("applied_sl_pct = ?")
+            params.append(applied_sl_pct)
+        if applied_tp_pct is not None:
+            updates.append("applied_tp_pct = ?")
+            params.append(applied_tp_pct)
+        
+        if not updates:
+            return False
+        
+        params.extend([user_id, symbol, account_type, exchange])
+        cursor = conn.execute(
+            f"UPDATE active_positions SET {', '.join(updates)} WHERE user_id=? AND symbol=? AND account_type=? AND exchange=?",
+            params,
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
 # ------------------------------------------------------------------------------------
 # P0.1: Exchange Accounts (execution_targets support) - LEGACY
 # NOTE: Main get_execution_targets is defined earlier in file (~line 1533) with routing_policy

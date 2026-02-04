@@ -19210,6 +19210,20 @@ async def monitor_positions_loop(app: Application):
                                             result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type)
                                             if result is True:
                                                 logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
+                                                # CRITICAL FIX: Save applied_sl_pct/applied_tp_pct to DB 
+                                                # This prevents subsequent monitor cycles from recalculating SL/TP
+                                                try:
+                                                    db.update_position_applied_sltp(
+                                                        user_id=uid,
+                                                        symbol=sym,
+                                                        account_type=pos_account_type,
+                                                        applied_sl_pct=sl_pct if "sl_price" in kwargs else None,
+                                                        applied_tp_pct=tp_pct if "tp_price" in kwargs else None,
+                                                        exchange=current_exchange
+                                                    )
+                                                    logger.debug(f"[{uid}] {sym}: Saved applied_sl_pct={sl_pct}, applied_tp_pct={tp_pct} to DB")
+                                                except Exception as e:
+                                                    logger.warning(f"[{uid}] {sym}: Failed to save applied_sl_pct to DB: {e}")
                                             elif result == "deep_loss":
                                                 logger.warning(f"[{uid}] {sym}: Position in deep loss, cannot set SL/TP")
                                             else:
