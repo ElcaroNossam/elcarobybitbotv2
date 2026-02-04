@@ -5377,6 +5377,70 @@ async def set_trading_stop(
             return False  # Return False instead of raising - price moved, retry next cycle
         raise
 
+
+async def remove_take_profit(
+    uid: int,
+    symbol: str,
+    side_hint: str | None = None,
+    account_type: str | None = None,
+) -> bool:
+    """
+    Remove Take Profit from a position by setting TP to 0.
+    Used when switching from Fixed SL/TP to ATR trailing mode.
+    Returns True if successful, False if position not found.
+    """
+    if side_hint:
+        s = side_hint.strip().upper()
+        if s in ("LONG", "BUY"):
+            side_hint = "Buy"
+        elif s in ("SHORT", "SELL"):
+            side_hint = "Sell"
+        else:
+            side_hint = None
+
+    positions = await fetch_open_positions(uid, account_type=account_type)
+    pos_candidates = [p for p in positions if p.get("symbol") == symbol]
+
+    if not pos_candidates:
+        logger.debug(f"[{uid}] No open positions for {symbol}, skipping TP removal")
+        return False
+
+    pos = None
+    if side_hint:
+        pos = next((p for p in pos_candidates if p.get("side") == side_hint), None)
+
+    if not pos:
+        pos = max(pos_candidates, key=lambda p: abs(float(p.get("size") or 0.0)))
+
+    effective_side = pos.get("side")
+    if effective_side not in ("Buy", "Sell"):
+        effective_side = "Buy"
+
+    mode = await get_position_mode(uid, symbol)
+    position_idx = position_idx_for(effective_side, mode)
+
+    body = {
+        "category": "linear",
+        "symbol": symbol,
+        "positionIdx": position_idx,
+        "tpslMode": "Full",
+        "takeProfit": "0",  # Setting to 0 removes the TP
+    }
+
+    logger.debug(f"{symbol}: remove_take_profit side={effective_side} mode={mode} idx={position_idx} account_type={account_type}")
+
+    try:
+        await _bybit_request(uid, "POST", "/v5/position/trading-stop", body=body, account_type=account_type)
+        logger.info(f"[{uid}] {symbol}: TP removed (ATR mode activated)")
+        return True
+    except RuntimeError as e:
+        err_str = str(e).lower()
+        if "no open positions" in err_str or "position not exists" in err_str:
+            logger.debug(f"[{uid}] Position for {symbol} closed during remove_take_profit")
+            return False
+        raise
+
+
 async def _position_idx_for_cached(uid: int, symbol: str, side: str) -> int:
     mode = await get_position_mode(uid, symbol)
     return position_idx_for(side, mode)
@@ -18772,6 +18836,15 @@ async def monitor_positions_loop(app: Application):
                             if position_use_atr:
                                 # Log current ATR state for debugging
                                 logger.info(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
+                                
+                                # CRITICAL: Remove TP when ATR is active - TP should be managed by ATR trailing
+                                # Only remove once when ATR is first detected for this position
+                                if current_tp is not None and not _atr_triggered.get(key, False):
+                                    try:
+                                        await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type)
+                                        logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removed (was {current_tp:.6f}), now managed by ATR trailing")
+                                    except Exception as e:
+                                        logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
                                     # Log ATR status for debugging
