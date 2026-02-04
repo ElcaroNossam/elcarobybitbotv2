@@ -17955,6 +17955,9 @@ async def monitor_positions_loop(app: Application):
                                 )
                                 pos_use_atr_detected = trade_params_detected.get("use_atr", False)
                                 
+                                # DEBUG: Log what trade_params_detected returned for SL/TP
+                                logger.info(f"[{uid}] {sym}: trade_params_detected side={side} sl_pct={trade_params_detected.get('sl_pct')} tp_pct={trade_params_detected.get('tp_pct')}")
+                                
                                 # Get leverage from position data (Bybit returns it)
                                 pos_leverage = p.get("leverage")
                                 if pos_leverage:
