@@ -370,7 +370,11 @@ class PushNotificationService: NSObject, ObservableObject {
         guard AuthManager.shared.isAuthenticated,
               let token = NetworkService.shared.currentAuthToken else { return }
         
-        let wsURL = URL(string: "\(Config.wsURL)/api/notifications/ws/\(token)")!
+        // Safe URL creation - return early if invalid
+        guard let wsURL = URL(string: "\(Config.wsURL)/api/notifications/ws/\(token)") else {
+            AppLogger.shared.error("Invalid WebSocket URL for notifications", category: .websocket)
+            return
+        }
         
         let configuration = URLSessionConfiguration.default
         configuration.waitsForConnectivity = true

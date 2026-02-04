@@ -295,25 +295,29 @@ struct SettingsView: View {
                         }
                         
                         // Privacy Policy
-                        Link(destination: URL(string: "https://enliko.com/privacy")!) {
-                            SettingsRow(
-                                icon: "hand.raised.fill",
-                                iconColor: .enlikoTextMuted,
-                                title: "settings_privacy".localized,
-                                value: "",
-                                showChevron: false
-                            )
+                        if let privacyURL = URL(string: "https://enliko.com/privacy") {
+                            Link(destination: privacyURL) {
+                                SettingsRow(
+                                    icon: "hand.raised.fill",
+                                    iconColor: .enlikoTextMuted,
+                                    title: "settings_privacy".localized,
+                                    value: "",
+                                    showChevron: false
+                                )
+                            }
                         }
                         
                         // Terms of Service
-                        Link(destination: URL(string: "https://enliko.com/terms")!) {
-                            SettingsRow(
-                                icon: "doc.text.fill",
-                                iconColor: .enlikoTextMuted,
-                                title: "settings_terms".localized,
-                                value: "",
-                                showChevron: false
-                            )
+                        if let termsURL = URL(string: "https://enliko.com/terms") {
+                            Link(destination: termsURL) {
+                                SettingsRow(
+                                    icon: "doc.text.fill",
+                                    iconColor: .enlikoTextMuted,
+                                    title: "settings_terms".localized,
+                                    value: "",
+                                    showChevron: false
+                                )
+                            }
                         }
                         
                         // Debug Console

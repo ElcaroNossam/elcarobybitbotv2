@@ -327,23 +327,28 @@ struct AboutView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
+    @ViewBuilder
     private func linkRow(icon: String, title: String, url: String) -> some View {
-        Link(destination: URL(string: url)!) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(.enlikoPrimary)
-                    .frame(width: 28)
-                
-                Text(title)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Image(systemName: "arrow.up.right")
-                    .font(.caption)
-                    .foregroundColor(.enlikoTextSecondary)
+        if let linkURL = URL(string: url) {
+            Link(destination: linkURL) {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundColor(.enlikoPrimary)
+                        .frame(width: 28)
+                    
+                    Text(title)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption)
+                        .foregroundColor(.enlikoTextSecondary)
+                }
+                .padding()
             }
-            .padding()
+        } else {
+            EmptyView()
         }
     }
 }

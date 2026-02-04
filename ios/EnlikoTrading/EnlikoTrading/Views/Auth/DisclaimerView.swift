@@ -173,11 +173,15 @@ struct DisclaimerView: View {
                 .multilineTextAlignment(.center)
             
             HStack(spacing: 16) {
-                Link("legal_terms".localized, destination: URL(string: "https://enliko.com/terms.html")!)
-                    .font(.caption2)
+                if let termsURL = URL(string: "https://enliko.com/terms.html") {
+                    Link("legal_terms".localized, destination: termsURL)
+                        .font(.caption2)
+                }
                 
-                Link("legal_privacy".localized, destination: URL(string: "https://enliko.com/privacy.html")!)
-                    .font(.caption2)
+                if let privacyURL = URL(string: "https://enliko.com/privacy.html") {
+                    Link("legal_privacy".localized, destination: privacyURL)
+                        .font(.caption2)
+                }
             }
         }
         .padding(.bottom, 32)

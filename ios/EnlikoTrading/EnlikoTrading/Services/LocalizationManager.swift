@@ -148,8 +148,10 @@ class LocalizationManager: ObservableObject {
     }
     
     private func loadTranslations() {
-        // Load from bundled translations
-        translations = Self.bundledTranslations[currentLanguage] ?? Self.bundledTranslations[.en]!
+        // Load from bundled translations (English is always guaranteed to exist)
+        translations = Self.bundledTranslations[currentLanguage] 
+            ?? Self.bundledTranslations[.en] 
+            ?? Self.englishTranslations
     }
     
     private func syncLanguageWithServer() async {

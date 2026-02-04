@@ -111,8 +111,12 @@ async def get_strategy_template(strategy_name: str):
 
 
 @router.post("/strategies/validate")
-async def validate_strategy(config: Dict):
-    """Validate a strategy configuration"""
+async def validate_strategy(config: Dict, user: dict = Depends(get_current_user)):
+    """
+    Validate a strategy configuration
+    
+    **REQUIRES:** JWT Authentication
+    """
     try:
         strategy = StrategyConfig.from_dict(config)
         valid, errors = manager.validate_strategy(strategy)

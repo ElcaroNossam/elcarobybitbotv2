@@ -407,27 +407,36 @@ def stake_elc(user_id: int, amount: float) -> Dict[str, float]:
     if amount <= 0:
         raise ValueError("Stake amount must be positive")
     
-    balance = get_elc_balance(user_id)
-    if balance["available"] < amount:
-        raise ValueError(f"Insufficient available balance: {balance['available']} < {amount}")
-    
     conn = _get_conn()
     try:
         cur = conn.cursor()
         
-        # Move from available to staked
+        # Atomic check and update - prevents race condition
         cur.execute(
             """UPDATE users 
                SET elc_balance = elc_balance - %s,
                    elc_staked = COALESCE(elc_staked, 0) + %s
-               WHERE user_id = %s""",
-            (amount, amount, user_id)
+               WHERE user_id = %s AND COALESCE(elc_balance, 0) >= %s
+               RETURNING elc_balance, elc_staked, elc_locked""",
+            (amount, amount, user_id, amount)
         )
+        
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            # Check if user exists or just insufficient balance
+            balance = get_elc_balance(user_id)
+            raise ValueError(f"Insufficient available balance: {balance['available']} < {amount}")
         
         conn.commit()
         
         # Record transaction
-        new_balance = get_elc_balance(user_id)
+        new_balance = {
+            "available": row[0] or 0.0,
+            "staked": row[1] or 0.0,
+            "locked": row[2] or 0.0,
+            "total": (row[0] or 0.0) + (row[1] or 0.0) + (row[2] or 0.0)
+        }
         add_elc_transaction(
             user_id=user_id,
             transaction_type="stake",
@@ -439,6 +448,8 @@ def stake_elc(user_id: int, amount: float) -> Dict[str, float]:
         invalidate_user_cache(user_id)
         return new_balance
         
+    except ValueError:
+        raise
     except Exception as e:
         conn.rollback()
         raise

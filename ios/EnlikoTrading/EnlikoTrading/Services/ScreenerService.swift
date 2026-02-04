@@ -18,10 +18,13 @@ struct SymbolListResponse: Codable {
 // Placeholder for symbol when we only have the name
 func ScreenerSymbolPlaceholder(symbol: String) -> ScreenerSymbol {
     // Create a ScreenerSymbol from just the name
-    // Use JSON encoding/decoding to create it properly
-    let json = ["symbol": symbol]
-    let data = try! JSONSerialization.data(withJSONObject: json)
-    return try! JSONDecoder().decode(ScreenerSymbol.self, from: data)
+    // Use safe decoding instead of force unwrap
+    guard let data = try? JSONSerialization.data(withJSONObject: ["symbol": symbol]),
+          let decoded = try? JSONDecoder().decode(ScreenerSymbol.self, from: data) else {
+        // Fallback: return a minimal valid symbol
+        return ScreenerSymbol(symbol: symbol)
+    }
+    return decoded
 }
 
 struct ScreenerSymbol: Codable, Identifiable {
@@ -39,6 +42,17 @@ struct ScreenerSymbol: Codable, Identifiable {
     var price: Double { _price ?? 0 }
     var change24h: Double { _change24h ?? 0 }
     var volume24h: Double { _volume24h ?? 0 }
+    
+    // Manual initializer for placeholder creation (safe fallback)
+    init(symbol: String) {
+        self._symbol = symbol
+        self._price = nil
+        self._change24h = nil
+        self._volume24h = nil
+        self.oiChange = nil
+        self.sentiment = nil
+        self.signalStrength = nil
+    }
     
     enum CodingKeys: String, CodingKey {
         case _symbol = "symbol"

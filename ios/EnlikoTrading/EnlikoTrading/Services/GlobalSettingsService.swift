@@ -11,20 +11,22 @@ import Combine
 // MARK: - Models
 
 struct GlobalSettings: Codable {
-    private let _dcaEnabled: Bool?
-    private let _dcaPct1: Double?
-    private let _dcaPct2: Double?
-    private let _orderType: String?
-    private let _limitOffsetPct: Double?
-    private let _spotDcaEnabled: Bool?
-    private let _spotDcaPct: Double?
-    private let _spotEnabled: Bool?
-    private let _useAtr: Bool?
-    private let _atrPeriods: Int?
-    private let _atrMultiplierSl: Double?
-    private let _atrTriggerPct: Double?
-    private let _atrStepPct: Double?
+    // Private backing optionals for Codable
+    private var _dcaEnabled: Bool?
+    private var _dcaPct1: Double?
+    private var _dcaPct2: Double?
+    private var _orderType: String?
+    private var _limitOffsetPct: Double?
+    private var _spotDcaEnabled: Bool?
+    private var _spotDcaPct: Double?
+    private var _spotEnabled: Bool?
+    private var _useAtr: Bool?
+    private var _atrPeriods: Int?
+    private var _atrMultiplierSl: Double?
+    private var _atrTriggerPct: Double?
+    private var _atrStepPct: Double?
     
+    // Public computed properties with defaults
     var dcaEnabled: Bool { _dcaEnabled ?? false }
     var dcaPct1: Double { _dcaPct1 ?? 10.0 }
     var dcaPct2: Double { _dcaPct2 ?? 25.0 }
@@ -56,10 +58,30 @@ struct GlobalSettings: Codable {
     }
     
     static var `default`: GlobalSettings {
-        // Decode from empty dict to get all defaults
-        let json = "{}"
-        let data = json.data(using: .utf8)!
-        return try! JSONDecoder().decode(GlobalSettings.self, from: data)
+        // Decode from empty dict to get all defaults safely
+        guard let data = "{}".data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(GlobalSettings.self, from: data) else {
+            // If decoding fails, return a manually constructed default
+            return GlobalSettings()
+        }
+        return decoded
+    }
+    
+    // Manual default initializer
+    init() {
+        self._dcaEnabled = nil
+        self._dcaPct1 = nil
+        self._dcaPct2 = nil
+        self._orderType = nil
+        self._limitOffsetPct = nil
+        self._spotDcaEnabled = nil
+        self._spotDcaPct = nil
+        self._spotEnabled = nil
+        self._useAtr = nil
+        self._atrPeriods = nil
+        self._atrMultiplierSl = nil
+        self._atrTriggerPct = nil
+        self._atrStepPct = nil
     }
 }
 
