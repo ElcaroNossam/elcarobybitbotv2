@@ -1705,8 +1705,13 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         from webapp.services import telegram_auth
         
-        # Get user translations
-        t = get_texts(uid)
+        # Get user translations - use ctx.user_data or fallback to DB lang
+        if not ctx.user_data.get('lang'):
+            # Load language from DB if not in user_data
+            db_lang = db.get_user_field(uid, "lang")
+            if db_lang:
+                ctx.user_data['lang'] = db_lang
+        t = get_texts(ctx)
         
         if action == "approve":
             success = telegram_auth.confirm_2fa(confirmation_id, approved=True)
@@ -1723,7 +1728,8 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 
     except Exception as e:
         logger.error(f"2FA callback error: {e}")
-        t = get_texts(uid)
+        # Use ctx for translations (already loaded lang above)
+        t = get_texts(ctx)
         await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
 
 
@@ -17940,6 +17946,39 @@ async def monitor_positions_loop(app: Application):
                                 if pos_leverage:
                                     pos_leverage = int(float(pos_leverage))
                                 
+                                # FIX: For externally opened positions, use actual SL/TP from exchange
+                                # instead of strategy settings to preserve user's original SL/TP
+                                raw_sl_price = p.get("stopLoss")
+                                raw_tp_price = p.get("takeProfit")
+                                
+                                # Calculate applied_sl_pct from actual SL price (if set on exchange)
+                                if raw_sl_price and float(raw_sl_price) > 0 and entry > 0:
+                                    actual_sl = float(raw_sl_price)
+                                    if side == "Buy":
+                                        # For Long: SL is below entry
+                                        actual_sl_pct = abs(entry - actual_sl) / entry * 100
+                                    else:
+                                        # For Short: SL is above entry
+                                        actual_sl_pct = abs(actual_sl - entry) / entry * 100
+                                    applied_sl = round(actual_sl_pct, 2)
+                                    logger.info(f"[{uid}] {sym}: Using actual SL from exchange: price={actual_sl:.6f}, pct={applied_sl}%")
+                                else:
+                                    applied_sl = trade_params_detected.get("sl_pct")
+                                
+                                # Calculate applied_tp_pct from actual TP price (if set on exchange)
+                                if raw_tp_price and float(raw_tp_price) > 0 and entry > 0:
+                                    actual_tp = float(raw_tp_price)
+                                    if side == "Buy":
+                                        # For Long: TP is above entry
+                                        actual_tp_pct = abs(actual_tp - entry) / entry * 100
+                                    else:
+                                        # For Short: TP is below entry
+                                        actual_tp_pct = abs(entry - actual_tp) / entry * 100
+                                    applied_tp = round(actual_tp_pct, 2)
+                                    logger.info(f"[{uid}] {sym}: Using actual TP from exchange: price={actual_tp:.6f}, pct={applied_tp}%")
+                                else:
+                                    applied_tp = trade_params_detected.get("tp_pct")
+                                
                                 add_active_position(
                                     user_id    = uid,
                                     symbol     = sym,
@@ -17953,9 +17992,9 @@ async def monitor_positions_loop(app: Application):
                                     exchange   = current_exchange,  # Multitenancy fix
                                     use_atr    = pos_use_atr_detected,  # P0.5
                                     leverage   = pos_leverage,  # Save actual leverage
-                                    # Fix #2: Save SL/TP % at position open time
-                                    applied_sl_pct = trade_params_detected.get("sl_pct"),
-                                    applied_tp_pct = trade_params_detected.get("tp_pct"),
+                                    # Fix: Use actual SL/TP from exchange if available
+                                    applied_sl_pct = applied_sl,
+                                    applied_tp_pct = applied_tp,
                                 )
                             
                                 if detected_strategy:
@@ -19181,16 +19220,26 @@ async def monitor_positions_loop(app: Application):
                                 #         logger.info(f"{sym}: SL moved to breakeven {cand}")
                                 #     continue
                            
-                                cand = _stricter_sl(side, sl0, current_sl)
-                                if cand is not None:
-                                    try:
-                                        await set_trading_stop(uid, sym, sl_price=cand, side_hint=side, account_type=pos_account_type)
-                                        logger.info(f"{sym}: Fixed SL tightened to {cand}")
-                                    except RuntimeError as e:
-                                        if "no open positions" in str(e).lower():
-                                            logger.debug(f"{sym}: Position already closed, skipping SL update")
-                                        else:
-                                            raise
+                                # CRITICAL FIX: Only tighten SL if applied_sl_pct was not explicitly set
+                                # When user sets SL manually on exchange, we saved applied_sl_pct from that SL
+                                # Don't override their manually set SL with strategy defaults
+                                has_applied_sl = ap_for_sym and ap_for_sym.get("applied_sl_pct") is not None and float(ap_for_sym.get("applied_sl_pct", 0)) > 0
+                                
+                                if not has_applied_sl:
+                                    # No explicit SL saved - try to tighten based on strategy settings
+                                    cand = _stricter_sl(side, sl0, current_sl)
+                                    if cand is not None:
+                                        try:
+                                            await set_trading_stop(uid, sym, sl_price=cand, side_hint=side, account_type=pos_account_type)
+                                            logger.info(f"{sym}: Fixed SL tightened to {cand}")
+                                        except RuntimeError as e:
+                                            if "no open positions" in str(e).lower():
+                                                logger.debug(f"{sym}: Position already closed, skipping SL update")
+                                            else:
+                                                raise
+                                else:
+                                    # User has explicit applied_sl_pct - respect it, don't override
+                                    logger.debug(f"[{uid}] {sym}: Respecting applied_sl_pct={ap_for_sym.get('applied_sl_pct')}%, not tightening SL")
                                 continue
                         
                             if position_use_atr:
