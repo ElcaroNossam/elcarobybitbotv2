@@ -65,17 +65,17 @@ async def get_users(
         
         if search:
             cur.execute("""
-                SELECT user_id, first_name, username, is_allowed, is_banned, 
+                SELECT user_id, first_name, last_name, username, email, is_allowed, is_banned, 
                        license_type, is_lifetime, exchange_type, lang,
                        created_at
                 FROM users 
-                WHERE CAST(user_id AS TEXT) LIKE ? OR username LIKE ? OR first_name LIKE ?
+                WHERE CAST(user_id AS TEXT) LIKE ? OR username LIKE ? OR first_name LIKE ? OR email LIKE ?
                 ORDER BY user_id DESC 
                 LIMIT ? OFFSET ?
-            """, (f"%{search}%", f"%{search}%", f"%{search}%", limit, offset))
+            """, (f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%", limit, offset))
         else:
             cur.execute("""
-                SELECT user_id, first_name, username, is_allowed, is_banned, 
+                SELECT user_id, first_name, last_name, username, email, is_allowed, is_banned, 
                        license_type, is_lifetime, exchange_type, lang,
                        created_at
                 FROM users 
@@ -88,7 +88,9 @@ async def get_users(
             users.append({
                 "user_id": row["user_id"],
                 "first_name": row["first_name"],
+                "last_name": row.get("last_name"),
                 "username": row["username"],
+                "email": row.get("email"),
                 "is_allowed": bool(row["is_allowed"]),
                 "is_banned": bool(row["is_banned"]),
                 "license_type": row["license_type"] or ("lifetime" if row["is_lifetime"] else "free"),
@@ -824,17 +826,32 @@ async def get_user_balance_details(
     user_id: int,
     admin: dict = Depends(require_admin)
 ):
-    """Get detailed balance and PnL info for a user."""
+    """Get detailed balance, PnL and ALL personal info for a user."""
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     
-    creds = db.get_all_user_credentials(user_id)
-    if not creds:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Get positions count
+    # Get ALL user data from database
     with get_db() as conn:
         cur = conn.cursor()
+        
+        # Get full user record
+        cur.execute("""
+            SELECT user_id, username, first_name, last_name, email, lang,
+                   license_type, license_expires, current_license,
+                   is_allowed, is_banned, terms_accepted, disclaimer_accepted,
+                   exchange_type, trading_mode, live_enabled, leverage,
+                   percent, tp_percent, sl_percent, use_atr,
+                   demo_api_key, real_api_key, hl_enabled, hl_private_key,
+                   hl_testnet_private_key, hl_mainnet_private_key,
+                   referral_code, referred_by, elc_balance, elc_staked,
+                   first_seen_ts, last_seen_ts
+            FROM users
+            WHERE user_id = %s
+        """, (user_id,))
+        
+        user_row = cur.fetchone()
+        if not user_row:
+            raise HTTPException(status_code=404, detail="User not found")
         
         # Active positions
         cur.execute("""
@@ -910,15 +927,50 @@ async def get_user_balance_details(
                 "created_at": str(row["created_at"]) if row["created_at"] else None
             })
     
+    # Check if API keys are configured (don't return actual keys!)
+    has_bybit_api = bool(user_row.get("demo_api_key") or user_row.get("real_api_key"))
+    has_hl_api = bool(user_row.get("hl_private_key") or user_row.get("hl_testnet_private_key") or user_row.get("hl_mainnet_private_key"))
+    
     return {
+        # Personal info
         "user_id": user_id,
-        "username": creds.get("username"),
-        "first_name": creds.get("first_name"),
-        "license_type": creds.get("license_type"),
-        "license_expires": creds.get("license_expires"),
-        "is_lifetime": creds.get("is_lifetime", False),
-        "exchange_type": creds.get("exchange_type", "bybit"),
-        "trading_mode": creds.get("trading_mode", "demo"),
+        "username": user_row.get("username"),
+        "first_name": user_row.get("first_name"),
+        "last_name": user_row.get("last_name"),
+        "email": user_row.get("email"),
+        "lang": user_row.get("lang", "en"),
+        "referral_code": user_row.get("referral_code"),
+        "referred_by": user_row.get("referred_by"),
+        "first_seen": user_row.get("first_seen_ts"),
+        "last_seen": user_row.get("last_seen_ts"),
+        
+        # Account status
+        "is_allowed": bool(user_row.get("is_allowed")),
+        "is_banned": bool(user_row.get("is_banned")),
+        "terms_accepted": bool(user_row.get("terms_accepted")),
+        "disclaimer_accepted": bool(user_row.get("disclaimer_accepted")),
+        
+        # License
+        "license_type": user_row.get("license_type") or user_row.get("current_license"),
+        "license_expires": user_row.get("license_expires"),
+        "is_lifetime": user_row.get("license_type") == "lifetime" or user_row.get("current_license") == "lifetime",
+        "elc_balance": float(user_row.get("elc_balance") or 0),
+        "elc_staked": float(user_row.get("elc_staked") or 0),
+        
+        # Exchange & Trading
+        "exchange_type": user_row.get("exchange_type", "bybit"),
+        "trading_mode": user_row.get("trading_mode", "demo"),
+        "live_enabled": bool(user_row.get("live_enabled")),
+        "leverage": user_row.get("leverage", 10),
+        "percent": float(user_row.get("percent") or 1),
+        "tp_percent": float(user_row.get("tp_percent") or 8),
+        "sl_percent": float(user_row.get("sl_percent") or 3),
+        "use_atr": bool(user_row.get("use_atr")),
+        "has_bybit_api": has_bybit_api,
+        "has_hl_api": has_hl_api,
+        "hl_enabled": bool(user_row.get("hl_enabled")),
+        
+        # Trading data
         "positions_by_account": positions_by_account,
         "trade_stats": trade_stats,
         "recent_trades": recent_trades,

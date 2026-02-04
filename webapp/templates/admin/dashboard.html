@@ -24,6 +24,16 @@
         .pnl-negative { color: #ef4444; }
         .scrollbar-thin::-webkit-scrollbar { width: 6px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        /* Expanded table columns for full IDs */
+        .col-id { min-width: 140px; max-width: 180px; word-break: break-all; }
+        .col-user { min-width: 200px; }
+        .col-license { min-width: 100px; }
+        .col-exchange { min-width: 120px; }
+        .col-status { min-width: 90px; }
+        .col-actions { min-width: 150px; }
+        table { table-layout: auto !important; }
+        td, th { white-space: nowrap; }
+        .user-id-full { font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal; }
     </style>
 </head>
 <body class="bg-gray-950 text-white min-h-screen">
@@ -169,15 +179,15 @@
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[800px]">
+                    <table class="w-full min-w-[1000px]">
                         <thead>
                             <tr class="text-left text-gray-400 border-b border-gray-800">
-                                <th class="p-3">ID</th>
-                                <th class="p-3">User</th>
-                                <th class="p-3">License</th>
-                                <th class="p-3">Exchange</th>
-                                <th class="p-3">Status</th>
-                                <th class="p-3">Actions</th>
+                                <th class="p-3 col-id">User ID</th>
+                                <th class="p-3 col-user">User Info</th>
+                                <th class="p-3 col-license">License</th>
+                                <th class="p-3 col-exchange">Exchange</th>
+                                <th class="p-3 col-status">Status</th>
+                                <th class="p-3 col-actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="usersTable" class="text-sm"></tbody>
@@ -531,21 +541,24 @@
             
             tbody.innerHTML = data.list.map(u => `
                 <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td class="p-3 font-mono text-xs">${escapeHtml(u.user_id)}</td>
-                    <td class="p-3">
-                        <div class="font-medium">${escapeHtml(u.first_name) || 'N/A'}</div>
-                        <div class="text-xs text-gray-500">@${escapeHtml(u.username) || 'N/A'}</div>
+                    <td class="p-3 col-id">
+                        <span class="user-id-full select-all" title="Click to copy">${escapeHtml(u.user_id)}</span>
                     </td>
-                    <td class="p-3">
+                    <td class="p-3 col-user">
+                        <div class="font-medium">${escapeHtml(u.first_name) || 'N/A'} ${escapeHtml(u.last_name) || ''}</div>
+                        <div class="text-xs text-gray-500">@${escapeHtml(u.username) || 'N/A'}</div>
+                        ${u.email ? `<div class="text-xs text-purple-400">${escapeHtml(u.email)}</div>` : ''}
+                    </td>
+                    <td class="p-3 col-license">
                         <span class="px-2 py-1 rounded text-xs ${getLicenseClass(u.license_type)}">${escapeHtml(u.license_type) || 'free'}</span>
                     </td>
-                    <td class="p-3">${escapeHtml(u.exchange_type) || 'bybit'}</td>
-                    <td class="p-3">
+                    <td class="p-3 col-exchange">${escapeHtml(u.exchange_type) || 'bybit'}</td>
+                    <td class="p-3 col-status">
                         ${u.is_banned ? '<span class="text-red-400">Banned</span>' : 
                           u.is_allowed ? '<span class="text-green-400">Active</span>' : 
                           '<span class="text-gray-500">Inactive</span>'}
                     </td>
-                    <td class="p-3">
+                    <td class="p-3 col-actions">
                         <div class="flex gap-2">
                             <button onclick="viewUser(${parseInt(u.user_id) || 0})" class="text-purple-400 hover:text-purple-300">View</button>
                             ${u.is_banned ? 
@@ -572,24 +585,93 @@
             
             document.getElementById('userModalContent').innerHTML = `
                 <div class="space-y-6">
-                    <!-- User Info -->
-                    <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 bg-purple-600/30 rounded-full flex items-center justify-center text-2xl">
-                            👤
+                    <!-- User Info Section - FULL DETAILS -->
+                    <div class="bg-gray-800/50 rounded-lg p-4">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 bg-purple-600/30 rounded-full flex items-center justify-center text-2xl">
+                                👤
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-bold">${escapeHtml(data.first_name) || 'User'} ${escapeHtml(data.last_name) || ''}</h4>
+                                <p class="text-gray-400">@${escapeHtml(data.username) || 'N/A'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="text-xl font-bold">${data.first_name || 'User'}</h4>
-                            <p class="text-gray-400">@${data.username || 'N/A'} • ID: ${data.user_id}</p>
+                        
+                        <h5 class="font-medium mb-3 text-purple-400">📋 Personal Information</h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">User ID:</span>
+                                <span class="ml-2 font-mono select-all bg-gray-700 px-2 py-0.5 rounded">${escapeHtml(data.user_id)}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Username:</span>
+                                <span class="ml-2">@${escapeHtml(data.username) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">First Name:</span>
+                                <span class="ml-2">${escapeHtml(data.first_name) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Last Name:</span>
+                                <span class="ml-2">${escapeHtml(data.last_name) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Email:</span>
+                                <span class="ml-2 ${data.email ? 'text-purple-400' : ''}">${escapeHtml(data.email) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Language:</span>
+                                <span class="ml-2">${escapeHtml(data.lang) || 'en'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Referral Code:</span>
+                                <span class="ml-2 font-mono">${escapeHtml(data.referral_code) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Referred By:</span>
+                                <span class="ml-2 font-mono">${escapeHtml(data.referred_by) || 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">First Seen:</span>
+                                <span class="ml-2">${data.first_seen ? new Date(data.first_seen * 1000).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Last Seen:</span>
+                                <span class="ml-2">${data.last_seen ? new Date(data.last_seen * 1000).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Status -->
+                    <div class="bg-gray-800/50 rounded-lg p-4">
+                        <h5 class="font-medium mb-3 text-blue-400">🔐 Account Status</h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">Is Allowed:</span>
+                                <span class="ml-2">${data.is_allowed ? '✅ Yes' : '❌ No'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Is Banned:</span>
+                                <span class="ml-2">${data.is_banned ? '🚫 Yes' : '✅ No'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Terms Accepted:</span>
+                                <span class="ml-2">${data.terms_accepted ? '✅ Yes' : '❌ No'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Disclaimer Accepted:</span>
+                                <span class="ml-2">${data.disclaimer_accepted ? '✅ Yes' : '❌ No'}</span>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Subscription -->
                     <div class="bg-gray-800/50 rounded-lg p-4">
-                        <h5 class="font-medium mb-3">Subscription</h5>
+                        <h5 class="font-medium mb-3 text-yellow-400">⭐ Subscription</h5>
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span class="text-gray-400">Type:</span>
-                                <span class="ml-2 ${getLicenseClass(data.license_type)} px-2 py-0.5 rounded">${data.license_type || 'free'}</span>
+                                <span class="ml-2 ${getLicenseClass(data.license_type)} px-2 py-0.5 rounded">${escapeHtml(data.license_type) || 'free'}</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">Expires:</span>
@@ -600,8 +682,8 @@
                                 <span class="ml-2">${data.is_lifetime ? '✅ Yes' : '❌ No'}</span>
                             </div>
                             <div>
-                                <span class="text-gray-400">Exchange:</span>
-                                <span class="ml-2">${data.exchange_type}</span>
+                                <span class="text-gray-400">ELC Balance:</span>
+                                <span class="ml-2 text-green-400">${(data.elc_balance || 0).toFixed(2)} ELC</span>
                             </div>
                         </div>
                         <div class="flex gap-2 mt-4">
@@ -617,9 +699,49 @@
                         </div>
                     </div>
                     
+                    <!-- Exchange & Trading Settings -->
+                    <div class="bg-gray-800/50 rounded-lg p-4">
+                        <h5 class="font-medium mb-3 text-cyan-400">💱 Exchange & Trading</h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">Exchange:</span>
+                                <span class="ml-2">${escapeHtml(data.exchange_type) || 'bybit'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Trading Mode:</span>
+                                <span class="ml-2">${escapeHtml(data.trading_mode) || 'demo'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Live Enabled:</span>
+                                <span class="ml-2">${data.live_enabled ? '✅ Yes' : '❌ No'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Leverage:</span>
+                                <span class="ml-2">${data.leverage || 10}x</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Entry %:</span>
+                                <span class="ml-2">${data.percent || 1}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">TP/SL:</span>
+                                <span class="ml-2 text-green-400">+${data.tp_percent || 8}%</span> / 
+                                <span class="text-red-400">-${data.sl_percent || 3}%</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Bybit API:</span>
+                                <span class="ml-2">${data.has_bybit_api ? '✅ Configured' : '❌ Not set'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">HyperLiquid:</span>
+                                <span class="ml-2">${data.has_hl_api ? '✅ Configured' : '❌ Not set'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Trading Stats -->
                     <div class="bg-gray-800/50 rounded-lg p-4">
-                        <h5 class="font-medium mb-3">Trading Statistics</h5>
+                        <h5 class="font-medium mb-3 text-green-400">📈 Trading Statistics</h5>
                         <div class="grid grid-cols-3 gap-4 text-center">
                             <div>
                                 <p class="text-2xl font-bold">${data.trade_stats?.total_trades || 0}</p>
