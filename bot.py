@@ -1694,13 +1694,18 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     data = q.data or ""
     
+    logger.info(f"[2FA] on_twofa_cb triggered! uid={uid} data={data}")
+    
     # Parse: twofa_approve:xxx or twofa_deny:xxx
     parts = data.split(":")
     if len(parts) != 2:
+        logger.warning(f"[2FA] Invalid parts count: {len(parts)}, expected 2")
         return
     
     action = parts[0].replace("twofa_", "")  # approve or deny
     confirmation_id = parts[1]
+    
+    logger.info(f"[2FA] action={action} confirmation_id={confirmation_id}")
     
     try:
         from webapp.services import telegram_auth
@@ -1714,20 +1719,24 @@ async def on_twofa_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         t = get_texts(ctx)
         
         if action == "approve":
+            logger.info(f"[2FA] Calling confirm_2fa with approved=True for {confirmation_id}")
             success = telegram_auth.confirm_2fa(confirmation_id, approved=True)
+            logger.info(f"[2FA] confirm_2fa result: {success}")
             if success:
                 await q.edit_message_text(t.get("login_approved", "✅ Login approved!\n\nYou can now continue in your browser."))
             else:
                 await q.edit_message_text(t.get("login_expired", "⏰ Confirmation expired. Please try again."))
         else:  # deny
+            logger.info(f"[2FA] Calling confirm_2fa with approved=False for {confirmation_id}")
             success = telegram_auth.confirm_2fa(confirmation_id, approved=False)
+            logger.info(f"[2FA] confirm_2fa result: {success}")
             if success:
                 await q.edit_message_text(t.get("login_denied", "❌ Login denied.\n\nIf this wasn't you, we recommend reviewing your security settings."))
             else:
                 await q.edit_message_text(t.get("login_expired", "⏰ Confirmation expired. Please try again."))
                 
     except Exception as e:
-        logger.error(f"2FA callback error: {e}")
+        logger.error(f"2FA callback error: {e}", exc_info=True)
         # Use ctx for translations (already loaded lang above)
         t = get_texts(ctx)
         await q.edit_message_text(t.get("login_error", "⚠️ Processing error. Please try again later."))
