@@ -9856,12 +9856,20 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await show_disclaimer(update, ctx)
         return
     
-    # Reset Menu Button to commands menu (remove WebApp button if was set before)
+    # Reset Menu Button to Terminal WebApp button
     try:
-        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=MenuButtonCommands())
-        logger.info(f"[{uid}] Reset menu button to commands")
+        webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
+        import time
+        cache_bust = int(time.time())
+        terminal_url = f"{webapp_url}/terminal?_t={cache_bust}"
+        menu_button = MenuButtonWebApp(
+            text="💻 Terminal",
+            web_app=WebAppInfo(url=terminal_url)
+        )
+        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
+        logger.info(f"[{uid}] Set menu button to Terminal")
     except Exception as e:
-        logger.warning(f"Failed to reset menu button for {uid}: {e}")
+        logger.warning(f"Failed to set menu button for {uid}: {e}")
 
     # Send user guide PDF on first start (only once)
     if not cfg.get("guide_sent", 0):
