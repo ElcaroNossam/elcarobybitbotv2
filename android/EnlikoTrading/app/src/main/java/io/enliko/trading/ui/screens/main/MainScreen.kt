@@ -44,7 +44,9 @@ fun MainScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToStrategies: () -> Unit = {},
     onNavigateToCharts: (String) -> Unit = {},
-    onNavigateToSocialTrading: () -> Unit = {}
+    onNavigateToSocialTrading: () -> Unit = {},
+    onNavigateToLanguage: () -> Unit = {},
+    onNavigateToSubscription: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -123,7 +125,9 @@ fun MainScreen(
                     onNavigateToSpot = onNavigateToSpot,
                     onNavigateToStrategies = onNavigateToStrategies,
                     onNavigateToCharts = onNavigateToCharts,
-                    onNavigateToSocialTrading = onNavigateToSocialTrading
+                    onNavigateToSocialTrading = onNavigateToSocialTrading,
+                    onNavigateToLanguage = onNavigateToLanguage,
+                    onNavigateToSubscription = onNavigateToSubscription
                 )
             }
             composable("notifications") {

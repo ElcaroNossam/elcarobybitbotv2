@@ -2200,6 +2200,23 @@ object Localization {
         "spot_dca_enabled" to "DCA Auto-Invest",
         "spot_dca_disabled" to "DCA Disabled",
         
+        // Strategies
+        "strategies" to "Strategies",
+        "my_strategies" to "My Strategies",
+        "marketplace" to "Marketplace",
+        "backtest" to "Backtest",
+        "configure" to "Configure",
+        "active" to "Active",
+        "inactive" to "Inactive",
+        
+        // Strategy Settings
+        "core_settings" to "Core Settings",
+        "entry_pct" to "Entry %",
+        "take_profit_pct" to "Take Profit %",
+        "stop_loss_pct" to "Stop Loss %",
+        "leverage" to "Leverage",
+        "save" to "Save",
+        
         // Common
         "common_loading" to "Loading...",
         "common_error" to "Error",

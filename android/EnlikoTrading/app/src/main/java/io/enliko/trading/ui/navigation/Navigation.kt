@@ -39,6 +39,8 @@ sealed class Screen(val route: String) {
     object StrategySettings : Screen("strategy_settings/{strategy}") {
         fun createRoute(strategy: String) = "strategy_settings/$strategy"
     }
+    object LanguageSettings : Screen("language_settings")
+    object Subscription : Screen("subscription")
 }
 
 @Composable
@@ -128,6 +130,12 @@ fun EnlikoNavHost(
                     },
                     onNavigateToSocialTrading = {
                         navController.navigate(Screen.SocialTrading.route)
+                    },
+                    onNavigateToLanguage = {
+                        navController.navigate(Screen.LanguageSettings.route)
+                    },
+                    onNavigateToSubscription = {
+                        navController.navigate(Screen.Subscription.route)
                     }
                 )
             }
@@ -187,6 +195,31 @@ fun EnlikoNavHost(
             
             composable(Screen.Backtest.route) {
                 BacktestScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.StrategySettings.route) { backStackEntry ->
+                val strategy = backStackEntry.arguments?.getString("strategy") ?: "oi"
+                io.enliko.trading.ui.screens.settings.StrategySettingsScreen(
+                    strategyCode = strategy,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.LanguageSettings.route) {
+                io.enliko.trading.ui.screens.settings.LanguageSettingsScreen(
+                    currentLanguage = language,
+                    onLanguageSelect = { selectedLanguage ->
+                        // TODO: Save language preference
+                        navController.popBackStack()
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Subscription.route) {
+                io.enliko.trading.ui.screens.settings.SubscriptionScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

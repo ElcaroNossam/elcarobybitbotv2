@@ -30,6 +30,8 @@ fun SettingsScreen(
     onNavigateToStrategies: () -> Unit = {},
     onNavigateToCharts: (String) -> Unit = {},
     onNavigateToSocialTrading: () -> Unit = {},
+    onNavigateToLanguage: () -> Unit = {},
+    onNavigateToSubscription: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -66,7 +68,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Language,
                     title = strings.language,
                     subtitle = AppLanguage.fromCode(uiState.language).let { "${it.flag} ${it.displayName}" },
-                    onClick = { showLanguageDialog = true }
+                    onClick = onNavigateToLanguage
                 )
             }
             
@@ -220,7 +222,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { /* Navigate to Premium */ }
+                            .clickable { onNavigateToSubscription() }
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
