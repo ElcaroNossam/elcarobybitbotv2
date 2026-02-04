@@ -510,8 +510,6 @@ async def change_language(
 ):
     """Change user language across all platforms (Web, Bot, iOS, Android)."""
     user_id = user["user_id"]
-    print(f"[DEBUG] /language endpoint called! user_id={user_id}, language={data.language}")
-    logger.warning(f"[DEBUG] /language endpoint called! user_id={user_id}, language={data.language}")
     
     valid_langs = ["en", "ru", "uk", "de", "fr", "es", "it", "pl", "zh", "ja", "ar", "he", "cs", "lt", "sq"]
     if data.language not in valid_langs:
@@ -519,11 +517,9 @@ async def change_language(
     
     # Get old language for sync logging
     old_lang = db.get_user_field(user_id, "lang", "en")
-    print(f"[DEBUG] old_lang={old_lang}")
     
     # Save new language
     db.set_user_field(user_id, "lang", data.language)
-    print(f"[DEBUG] set_user_field done for {user_id}")
     
     logger.info(f"[{user_id}] Language changed: {old_lang} → {data.language}")
     
