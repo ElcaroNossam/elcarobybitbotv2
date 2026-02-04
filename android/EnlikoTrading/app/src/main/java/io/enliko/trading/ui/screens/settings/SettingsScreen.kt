@@ -41,6 +41,11 @@ fun SettingsScreen(
     onNavigateToExchangeSettings: () -> Unit = {},
     onNavigateToMarketHeatmap: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
+    onNavigateToPositions: () -> Unit = {},
+    onNavigateToScreener: () -> Unit = {},
+    onNavigateToAICopilot: () -> Unit = {},
+    onNavigateToAdmin: () -> Unit = {},
+    onNavigateToDebug: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
@@ -259,6 +264,62 @@ fun SettingsScreen(
                     title = "Spot Trading",
                     subtitle = "Buy and sell crypto",
                     onClick = onNavigateToSpot
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    title = "Positions",
+                    subtitle = "View open positions",
+                    onClick = onNavigateToPositions
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Search,
+                    title = "Screener",
+                    subtitle = "Crypto screener with filters",
+                    onClick = onNavigateToScreener
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Psychology,
+                    title = "AI Copilot",
+                    subtitle = "AI trading assistant",
+                    onClick = onNavigateToAICopilot
+                )
+            }
+            
+            // Developer Section
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Developer",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.AdminPanelSettings,
+                    title = "Admin Panel",
+                    subtitle = "System management",
+                    onClick = onNavigateToAdmin
+                )
+            }
+            
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Code,
+                    title = "Debug Console",
+                    subtitle = "View app logs",
+                    onClick = onNavigateToDebug
                 )
             }
             

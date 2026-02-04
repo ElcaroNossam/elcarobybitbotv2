@@ -27,6 +27,11 @@ import io.enliko.trading.ui.screens.settings.RiskSettingsScreen
 import io.enliko.trading.ui.screens.settings.ExchangeSettingsScreen
 import io.enliko.trading.ui.screens.market.MarketHeatmapScreen
 import io.enliko.trading.ui.screens.stats.StatsScreen
+import io.enliko.trading.ui.screens.portfolio.PositionsScreen
+import io.enliko.trading.ui.screens.screener.ScreenerScreen
+import io.enliko.trading.ui.screens.ai.AICopilotScreen
+import io.enliko.trading.ui.screens.admin.AdminScreen
+import io.enliko.trading.ui.screens.debug.DebugScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -59,6 +64,11 @@ sealed class Screen(val route: String) {
     object ExchangeSettings : Screen("exchange_settings")
     object MarketHeatmap : Screen("market_heatmap")
     object Stats : Screen("stats")
+    object Positions : Screen("positions")
+    object Screener : Screen("screener")
+    object AICopilot : Screen("ai_copilot")
+    object Admin : Screen("admin")
+    object Debug : Screen("debug")
 }
 
 @Composable
@@ -181,6 +191,21 @@ fun EnlikoNavHost(
                     },
                     onNavigateToStats = {
                         navController.navigate(Screen.Stats.route)
+                    },
+                    onNavigateToPositions = {
+                        navController.navigate(Screen.Positions.route)
+                    },
+                    onNavigateToScreener = {
+                        navController.navigate(Screen.Screener.route)
+                    },
+                    onNavigateToAICopilot = {
+                        navController.navigate(Screen.AICopilot.route)
+                    },
+                    onNavigateToAdmin = {
+                        navController.navigate(Screen.Admin.route)
+                    },
+                    onNavigateToDebug = {
+                        navController.navigate(Screen.Debug.route)
                     }
                 )
             }
@@ -320,6 +345,37 @@ fun EnlikoNavHost(
             
             composable(Screen.Stats.route) {
                 StatsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Positions.route) {
+                PositionsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Screener.route) {
+                ScreenerScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.AICopilot.route) {
+                AICopilotScreen(
+                    onBack = { navController.popBackStack() },
+                    showBackButton = true
+                )
+            }
+            
+            composable(Screen.Admin.route) {
+                AdminScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            
+            composable(Screen.Debug.route) {
+                DebugScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

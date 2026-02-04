@@ -55,7 +55,12 @@ fun MainScreen(
     onNavigateToRiskSettings: () -> Unit = {},
     onNavigateToExchangeSettings: () -> Unit = {},
     onNavigateToMarketHeatmap: () -> Unit = {},
-    onNavigateToStats: () -> Unit = {}
+    onNavigateToStats: () -> Unit = {},
+    onNavigateToPositions: () -> Unit = {},
+    onNavigateToScreener: () -> Unit = {},
+    onNavigateToAICopilot: () -> Unit = {},
+    onNavigateToAdmin: () -> Unit = {},
+    onNavigateToDebug: () -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -145,7 +150,12 @@ fun MainScreen(
                     onNavigateToRiskSettings = onNavigateToRiskSettings,
                     onNavigateToExchangeSettings = onNavigateToExchangeSettings,
                     onNavigateToMarketHeatmap = onNavigateToMarketHeatmap,
-                    onNavigateToStats = onNavigateToStats
+                    onNavigateToStats = onNavigateToStats,
+                    onNavigateToPositions = onNavigateToPositions,
+                    onNavigateToScreener = onNavigateToScreener,
+                    onNavigateToAICopilot = onNavigateToAICopilot,
+                    onNavigateToAdmin = onNavigateToAdmin,
+                    onNavigateToDebug = onNavigateToDebug
                 )
             }
             composable("notifications") {
