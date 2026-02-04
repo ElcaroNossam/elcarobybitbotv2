@@ -5351,6 +5351,7 @@ async def set_trading_stop(
     sl_price: float | None = None,
     side_hint: str | None = None,
     is_trailing: bool = False,  # Skip entry price validation for trailing SL
+    is_be: bool = False,  # Skip validation for Break-Even SL (SL = entry)
     account_type: str | None = None,  # 'demo', 'real', or None (auto-detect)
 ) -> bool:
     """Set TP/SL for a position. Returns True if successful, False if position not found."""
@@ -5454,8 +5455,12 @@ async def set_trading_stop(
 
     if sl_price is not None:
         # SL validation - for trailing SL only check against mark price, not entry
+        # For Break-Even, skip validation entirely (SL = entry is intentional)
         # For regular SL, check against both entry and mark price
-        if is_trailing:
+        if is_be:
+            # Break-Even SL: SL = entry price, skip all validation
+            check_prices = []
+        elif is_trailing:
             # Trailing SL: only validate against mark price (SL follows price movement)
             check_prices = [mark] if mark and mark > 0 else []
         else:
@@ -18953,8 +18958,12 @@ async def monitor_positions_loop(app: Application):
                                         # Quantize BE SL to valid price
                                         be_sl_quantized = quantize_up(be_sl, tick) if side == "Buy" else quantize(be_sl, tick)
                                         
-                                        await set_trading_stop(uid, sym, sl_price=be_sl_quantized, side_hint=side, account_type=pos_account_type)
+                                        # Use is_be=True to skip price validation (SL = entry is intentional)
+                                        await set_trading_stop(uid, sym, sl_price=be_sl_quantized, side_hint=side, is_be=True, account_type=pos_account_type)
                                         _be_triggered[key] = True
+                                        
+                                        # Update SL in database so it persists across bot restarts
+                                        db.update_position_sl_tp(uid, sym, sl_price=be_sl_quantized, account_type=pos_account_type, exchange=current_exchange)
                                         
                                         logger.info(f"[BE-ACTIVATED] {sym} uid={uid} - SL moved to break-even @ {be_sl_quantized:.6f} (was {current_sl}, move_pct={move_pct:.2f}%)")
                                         
