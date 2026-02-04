@@ -19792,30 +19792,27 @@ async def start_monitoring(app: Application):
         # Add timestamp to prevent Telegram from caching old URL
         import time
         cache_bust = int(time.time())
-        current_url = f"{webapp_url}/dashboard?_t={cache_bust}"
-        base_url = f"{webapp_url}/dashboard"
+        current_url = f"{webapp_url}/terminal?_t={cache_bust}"
+        base_url = f"{webapp_url}/terminal"
         
-        # Only update menu button if base URL changed
-        if last_url != base_url:
-            logger.info(f"Menu button URL changed: {last_url} -> {base_url}")
-            
-            # Reset to default first to clear Telegram's cache
-            await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
-            logger.info("Menu button reset to default (clearing cache)")
-            await asyncio.sleep(1)
-            
-            # Set the menu button for all users with cache-busting timestamp to Dashboard
-            menu_button = MenuButtonWebApp(
-                text="📊 Dashboard",
-                web_app=WebAppInfo(url=current_url)
-            )
-            await app.bot.set_chat_menu_button(menu_button=menu_button)
-            logger.info(f"Menu button set to Dashboard: {current_url}")
-            
-            # Save base URL (without timestamp) for comparison
-            last_url_file.write_text(base_url)
-        else:
-            logger.info(f"Menu button URL unchanged: {base_url}")
+        # Force update menu button every time bot restarts
+        logger.info(f"Updating menu button to Terminal: {base_url}")
+        
+        # Reset to default first to clear Telegram's cache
+        await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+        logger.info("Menu button reset to default (clearing cache)")
+        await asyncio.sleep(1)
+        
+        # Set the menu button for all users with cache-busting timestamp to Terminal
+        menu_button = MenuButtonWebApp(
+            text="💻 Terminal",
+            web_app=WebAppInfo(url=current_url)
+        )
+        await app.bot.set_chat_menu_button(menu_button=menu_button)
+        logger.info(f"Menu button set to Terminal: {current_url}")
+        
+        # Save base URL (without timestamp) for comparison
+        last_url_file.write_text(base_url)
     except Exception as e:
         logger.warning(f"Failed to set menu button: {e}")
     
