@@ -18369,19 +18369,23 @@ async def monitor_positions_loop(app: Application):
                                 )
                             
                                 # ATR use_atr priority:
-                                # 1. Current strategy settings (so user can change ATR for open positions!)
+                                # 1. Current strategy settings with side prefix (so user can change ATR for open positions!)
                                 # 2. Saved use_atr in position (fallback if strategy has no setting)
                                 # 3. Global use_atr
-                                strat_use_atr = strat_settings.get("use_atr")
-                                if strat_use_atr is not None:
-                                    position_use_atr = bool(strat_use_atr)
+                                # NOTE: pg_get_strategy_settings returns use_atr as {side}_use_atr (e.g., long_use_atr, short_use_atr)
+                                side_use_atr = strat_settings.get(f"{side_prefix}_use_atr")
+                                if side_use_atr is not None:
+                                    position_use_atr = bool(side_use_atr)
+                                    logger.debug(f"[{uid}] {sym}: ATR use_atr from strategy settings: {side_prefix}_use_atr={side_use_atr}")
                                 else:
                                     # Fallback to saved use_atr from position
                                     saved_use_atr = ap_for_sym.get("use_atr") if ap_for_sym else None
                                     if saved_use_atr is not None:
                                         position_use_atr = bool(saved_use_atr)
+                                        logger.debug(f"[{uid}] {sym}: ATR use_atr from position: {saved_use_atr}")
                                     else:
                                         position_use_atr = use_atr
+                                        logger.debug(f"[{uid}] {sym}: ATR use_atr from global: {use_atr}")
                                 
                                 # Log side-specific settings resolution for debugging
                                 logger.debug(f"[{uid}] {sym}: Side-specific ATR - side={side}, prefix={side_prefix}, "
