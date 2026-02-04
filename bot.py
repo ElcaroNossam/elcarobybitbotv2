@@ -9856,18 +9856,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await show_disclaimer(update, ctx)
         return
     
-    # Reset Menu Button to Terminal WebApp button
+    # Ensure Menu Button shows commands menu (configured via BotFather)
     try:
-        webapp_url = os.getenv("WEBAPP_URL", "https://enliko.com")
-        import time
-        cache_bust = int(time.time())
-        terminal_url = f"{webapp_url}/terminal?_t={cache_bust}"
-        menu_button = MenuButtonWebApp(
-            text="💻 Terminal",
-            web_app=WebAppInfo(url=terminal_url)
-        )
-        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=menu_button)
-        logger.info(f"[{uid}] Set menu button to Terminal")
+        await ctx.bot.set_chat_menu_button(chat_id=uid, menu_button=MenuButtonCommands())
     except Exception as e:
         logger.warning(f"Failed to set menu button for {uid}: {e}")
 
@@ -19786,41 +19777,11 @@ async def start_monitoring(app: Application):
     except Exception:
         pass
     
-    # Setup Menu Button (Dashboard) with WebApp
+    # Set Menu Button to default commands menu (configured via BotFather)
+    # Terminal access is available via keyboard button
     try:
-        # Get webapp URL from env (production domain)
-        webapp_url = WEBAPP_URL
-        
-        # Check if menu button URL needs update
-        last_url_file = Path(__file__).parent / "run" / "last_menu_url.txt"
-        last_url = ""
-        if last_url_file.exists():
-            last_url = last_url_file.read_text().strip()
-        
-        # Add timestamp to prevent Telegram from caching old URL
-        import time
-        cache_bust = int(time.time())
-        current_url = f"{webapp_url}/terminal?_t={cache_bust}"
-        base_url = f"{webapp_url}/terminal"
-        
-        # Force update menu button every time bot restarts
-        logger.info(f"Updating menu button to Terminal: {base_url}")
-        
-        # Reset to default first to clear Telegram's cache
-        await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
-        logger.info("Menu button reset to default (clearing cache)")
-        await asyncio.sleep(1)
-        
-        # Set the menu button for all users with cache-busting timestamp to Terminal
-        menu_button = MenuButtonWebApp(
-            text="💻 Terminal",
-            web_app=WebAppInfo(url=current_url)
-        )
-        await app.bot.set_chat_menu_button(menu_button=menu_button)
-        logger.info(f"Menu button set to Terminal: {current_url}")
-        
-        # Save base URL (without timestamp) for comparison
-        last_url_file.write_text(base_url)
+        await app.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+        logger.info("Menu button set to Commands menu (BotFather config)")
     except Exception as e:
         logger.warning(f"Failed to set menu button: {e}")
     
