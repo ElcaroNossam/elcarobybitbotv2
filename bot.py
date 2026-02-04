@@ -17903,12 +17903,11 @@ async def monitor_positions_loop(app: Application):
                                 if signal_id:
                                     sig = fetch_signal_by_id(signal_id)
                                 
-                                # Fallback: search by raw_message if signal not found
-                                if not sig:
-                                    sig = get_last_signal_by_symbol_in_raw(sym)
-                                    if sig:
-                                        signal_id = sig.get("id")
-                                        logger.debug(f"[{uid}] Found signal for {sym} via raw_message search: id={signal_id}")
+                                # REMOVED: Fallback to global signal search was causing wrong strategy detection
+                                # If user didn't trade via bot (no signal_id for this user), position is manual
+                                # The previous fallback `get_last_signal_by_symbol_in_raw(sym)` searched
+                                # ALL signals without user_id filter, causing externally opened positions
+                                # to be assigned wrong strategies (e.g. fibonacci settings to manual trades)
                                 
                                 if sig:
                                     # Check signal source/strategy using parsers
