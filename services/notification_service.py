@@ -81,8 +81,9 @@ class NotificationService:
         
     async def send_position_closed_notification(self, user_id: int, position_data: dict, t: dict):
         """
-        Send beautiful notification when position is closed.
-        Sends to: Telegram, iOS Push (APNs), WebSocket
+        Send notification when position is closed.
+        Sends to: iOS Push (APNs), WebSocket
+        NOTE: Telegram message is sent separately in bot.py to use correct language
         """
         try:
             symbol = position_data.get('symbol', 'UNKNOWN')
@@ -94,26 +95,8 @@ class NotificationService:
             pnl_percent = float(position_data.get('pnl_percent', 0))
             exit_reason = position_data.get('exit_reason', '')
             
-            # Emoji based on PnL
-            emoji = "🎉" if pnl > 0 else "😔" if pnl < 0 else "🤷"
-            status = "PROFIT" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN"
-            
-            message = f"""
-{emoji} <b>Position Closed</b>
-
-📊 <b>{symbol}</b> • {side}
-━━━━━━━━━━━━━━━━
-📈 Entry: <code>\${entry_price:.2f}</code>
-📉 Exit: <code>\${exit_price:.2f}</code>
-💰 Size: <code>{quantity}</code>
-
-<b>{status}</b>
-💵 PnL: <b>\${pnl:+.2f}</b> ({pnl_percent:+.2f}%)
-
-⏰ {datetime.now().strftime('%H:%M:%S')}
-"""
-            
-            await self.bot.send_message(user_id, message, parse_mode='HTML')
+            # NOTE: Telegram message removed - it's sent in bot.py with proper localization
+            # This function now only handles iOS Push and WebSocket notifications
             
             # Send iOS Push Notification (APNs)
             if APNS_AVAILABLE:
