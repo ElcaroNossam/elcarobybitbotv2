@@ -22237,51 +22237,11 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "👑 ПРЕМИУМ"]:
         return await cmd_subscribe(update, ctx)
     
-    # Exchange header button - TOGGLE between exchanges
+    # Exchange header button - Show exchange settings menu with Demo/Real/Both options
     if text.startswith("🔷 HL") or text.startswith("🔷 HyperLiquid") or text.startswith("🟠 Bybit"):
-        # Quick toggle: switch to the other exchange
-        active_exchange = get_exchange_type(uid)
-        
-        if active_exchange == "hyperliquid":
-            # Switch to Bybit
-            set_exchange_type(uid, "bybit")
-            creds = get_all_user_credentials(uid)
-            trading_mode = creds.get("trading_mode", "demo")
-            if trading_mode == "demo":
-                mode_text = "🎮 Demo"
-            elif trading_mode == "real":
-                mode_text = "💵 Real"
-            else:
-                mode_text = "🔀 Both"
-            await update.message.reply_text(
-                f"🟠 *Switched to Bybit!* ({mode_text})\n\n"
-                "Use 🔗 API Keys to configure accounts.",
-                parse_mode="Markdown",
-                reply_markup=main_menu_keyboard(ctx, uid)
-            )
-        else:
-            # Switch to HyperLiquid
-            hl_creds = get_hl_credentials(uid)
-            has_hl_key = bool(hl_creds.get("hl_private_key") or 
-                             hl_creds.get("hl_testnet_private_key") or 
-                             hl_creds.get("hl_mainnet_private_key"))
-            if not has_hl_key:
-                await update.message.reply_text(
-                    "❌ *HyperLiquid not configured!*\n\n"
-                    "Use 🔗 API Keys to set up HyperLiquid.",
-                    parse_mode="Markdown"
-                )
-                return
-            set_exchange_type(uid, "hyperliquid")
-            is_testnet = hl_creds.get("hl_testnet", False)
-            net_text = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
-            await update.message.reply_text(
-                f"🔷 *Switched to HyperLiquid!* ({net_text})\n\n"
-                "Use 🔗 API Keys to configure network.",
-                parse_mode="Markdown",
-                reply_markup=main_menu_keyboard(ctx, uid)
-            )
-        return
+        # Show exchange status menu (not quick toggle anymore)
+        # This allows user to switch Demo/Real/Both mode OR switch to other exchange
+        return await cmd_exchange_status(update, ctx)
     
     # ═══════════════════════════════════════════════════════════════
     # ██  LEGACY SWITCH EXCHANGE (removed from menu, kept for deep links)  ██
