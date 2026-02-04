@@ -4276,6 +4276,7 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str], bool] = {}
+_atr_was_enabled: dict[tuple[int, str], bool] = {}  # Track if ATR was enabled for (uid, symbol) - for detecting when ATR gets disabled
 _be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
@@ -17575,6 +17576,7 @@ async def monitor_positions_loop(app: Application):
                                     remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                     reset_pyramid(uid, pos["symbol"])
                                     _atr_triggered.pop((uid, pos["symbol"]), None)
+                                    _atr_was_enabled.pop((uid, pos["symbol"]), None)  # Clear ATR was enabled cache
                                     _be_triggered.pop((uid, pos["symbol"]), None)  # Clear BE cache
                                     _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
                                     _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
@@ -17923,6 +17925,7 @@ async def monitor_positions_loop(app: Application):
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
+                                        _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
                                         _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
@@ -18228,6 +18231,7 @@ async def monitor_positions_loop(app: Application):
                                         reset_pyramid(uid, sym)
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
+                                        _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
                                         _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
@@ -18769,6 +18773,73 @@ async def monitor_positions_loop(app: Application):
                                             logger.error(f"[{uid}] {sym}: Partial TP step 2 failed: {e}", exc_info=True)
 
                             if not position_use_atr:
+                                # ═══════════════════════════════════════════════════════════════════
+                                # ATR WAS DISABLED - RESTORE SL AND TP TO THEIR CORRECT POSITIONS
+                                # When user disables ATR for open position, we need to:
+                                # 1. Recalculate SL based on sl_pct from settings
+                                # 2. Set TP based on tp_pct from settings
+                                # 3. Clear ATR triggered state
+                                # ═══════════════════════════════════════════════════════════════════
+                                atr_was_on = _atr_was_enabled.get(key, False)
+                                if atr_was_on:
+                                    # ATR was enabled before, now disabled - need to restore SL/TP
+                                    logger.info(f"[ATR-DISABLED] {sym} uid={uid} - ATR was disabled, restoring SL/TP")
+                                    _atr_was_enabled[key] = False
+                                    _atr_triggered.pop(key, None)  # Clear ATR triggered state
+                                    
+                                    # Get SL/TP percentages
+                                    if ap_for_sym:
+                                        applied_sl = ap_for_sym.get("applied_sl_pct")
+                                        applied_tp = ap_for_sym.get("applied_tp_pct")
+                                        if applied_sl is not None and applied_sl > 0:
+                                            sl_pct = float(applied_sl)
+                                        if applied_tp is not None and applied_tp > 0:
+                                            tp_pct = float(applied_tp)
+                                    else:
+                                        sl_pct, tp_pct = resolve_sl_tp_pct(cfg, sym, strategy=pos_strategy, user_id=uid, side=side)
+                                    
+                                    # Calculate correct SL and TP positions
+                                    sl_restore = round(
+                                        entry * (1 - sl_pct/100) if side == "Buy"
+                                        else entry * (1 + sl_pct/100),
+                                        6
+                                    )
+                                    tp_restore = round(
+                                        entry * (1 + tp_pct/100) if side == "Buy"
+                                        else entry * (1 - tp_pct/100),
+                                        6
+                                    )
+                                    
+                                    try:
+                                        # Restore both SL and TP
+                                        await set_trading_stop(uid, sym, sl_price=sl_restore, tp_price=tp_restore, side_hint=side, account_type=pos_account_type)
+                                        logger.info(f"[ATR-DISABLED] {sym} uid={uid} - Restored SL={sl_restore:.6f} (was {current_sl}), TP={tp_restore:.6f}")
+                                        
+                                        # Notify user
+                                        try:
+                                            await safe_send_notification(
+                                                bot, uid,
+                                                t.get('atr_disabled_restored', 
+                                                    "🔄 <b>ATR Disabled</b>\n\n"
+                                                    "📊 {symbol}\n"
+                                                    "🛡️ SL restored: {sl_price:.4f}\n"
+                                                    "🎯 TP restored: {tp_price:.4f}"
+                                                ).format(
+                                                    symbol=sym,
+                                                    sl_price=sl_restore,
+                                                    tp_price=tp_restore
+                                                ),
+                                                parse_mode="HTML"
+                                            )
+                                        except Exception:
+                                            pass
+                                    except RuntimeError as e:
+                                        if "no open positions" not in str(e).lower():
+                                            logger.warning(f"[{uid}] {sym}: Failed to restore SL/TP after ATR disabled: {e}")
+                                    except Exception as e:
+                                        logger.error(f"[{uid}] {sym}: ATR disable restore failed: {e}", exc_info=True)
+                                    continue
+                                
                                 # CRITICAL FIX: Use applied_sl_pct/applied_tp_pct from position if available
                                 # This ensures we use settings from position open time, not current user settings
                                 if ap_for_sym:
@@ -18854,6 +18925,9 @@ async def monitor_positions_loop(app: Application):
                                 continue
                         
                             if position_use_atr:
+                                # Mark ATR as enabled for this position (for detecting when it gets disabled later)
+                                _atr_was_enabled[key] = True
+                                
                                 # Log current ATR state for debugging
                                 logger.info(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
                                 
@@ -18968,6 +19042,7 @@ async def monitor_positions_loop(app: Application):
                                         remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, db_sym)
                                         _atr_triggered.pop((uid, db_sym), None)
+                                        _atr_was_enabled.pop((uid, db_sym), None)  # Clear ATR was enabled cache
                                         _be_triggered.pop((uid, db_sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)

@@ -357,6 +357,9 @@ TEXTS = {
     'be_status_enabled': '✅ BE: {trigger}%',
     'be_status_disabled': '❌ BE: Выкл',
     
+    # ATR Disabled - Restore SL/TP
+    'atr_disabled_restored': '🔄 <b>ATR выключен</b>\n\n📊 {symbol}\n🛡️ SL восстановлен: {sl_price:.4f}\n🎯 TP восстановлен: {tp_price:.4f}',
+    
     # Partial Take Profit
     'partial_tp_label': '✂️ Частичный TP',
     'partial_tp_status_enabled': '✅ Частичный TP включён',
