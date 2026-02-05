@@ -403,7 +403,7 @@ struct DashboardView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Quick Actions
+    // MARK: - Quick Actions (Enhanced with new features)
     private var quickActionsSection: some View {
         VStack(spacing: 12) {
             Text("quick_actions".localized)
@@ -411,6 +411,7 @@ struct DashboardView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
+            // Row 1: Positions & Orders
             HStack(spacing: 12) {
                 NavigationLink {
                     PositionsView()
@@ -432,6 +433,92 @@ struct DashboardView: View {
                         count: viewModel.pendingOrdersCount,
                         color: .orange
                     )
+                }
+            }
+            
+            // Row 2: Market & Wallet
+            HStack(spacing: 12) {
+                NavigationLink {
+                    MarketHubView()
+                } label: {
+                    QuickActionCard(
+                        icon: "chart.bar.fill",
+                        title: "Market",
+                        count: 0,
+                        color: .blue
+                    )
+                }
+                
+                NavigationLink {
+                    WalletView()
+                } label: {
+                    QuickActionCard(
+                        icon: "wallet.pass.fill",
+                        title: "Wallet",
+                        count: 0,
+                        color: .green
+                    )
+                }
+            }
+            
+            // Row 3: Alerts & History
+            HStack(spacing: 12) {
+                NavigationLink {
+                    AlertsView()
+                } label: {
+                    QuickActionCard(
+                        icon: "bell.badge.fill",
+                        title: "Alerts",
+                        count: 0,
+                        color: .yellow
+                    )
+                }
+                
+                NavigationLink {
+                    TradeHistoryFullView()
+                } label: {
+                    QuickActionCard(
+                        icon: "clock.arrow.circlepath",
+                        title: "History",
+                        count: 0,
+                        color: .purple
+                    )
+                }
+            }
+            
+            // HyperLiquid Section (if HL selected)
+            if appState.currentExchange == .hyperliquid {
+                NavigationLink {
+                    HyperLiquidView()
+                } label: {
+                    HStack {
+                        Image(systemName: "cube.transparent.fill")
+                            .font(.title2)
+                            .foregroundColor(.cyan)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("HyperLiquid")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.white)
+                            Text("Vaults, Transfers, Points")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        LinearGradient(
+                            colors: [Color.cyan.opacity(0.2), Color.enlikoSurface],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
                 }
             }
         }

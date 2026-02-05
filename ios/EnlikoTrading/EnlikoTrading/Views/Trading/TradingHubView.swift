@@ -228,17 +228,25 @@ struct TradingHubView: View {
     }
     
     // MARK: - Positions Content
+    @State private var selectedPosition: Position?
+    
     private var positionsContent: some View {
         Group {
             if tradingService.positions.isEmpty {
                 emptyPositionsView
             } else {
                 ForEach(tradingService.positions) { position in
-                    PositionCard(position: position, onClose: {
-                        Task {
-                            await tradingService.closePosition(symbol: position.symbol, side: position.side)
+                    PositionCardEnhanced(
+                        position: position,
+                        onTap: {
+                            selectedPosition = position
+                        },
+                        onClose: {
+                            Task {
+                                await tradingService.closePosition(symbol: position.symbol, side: position.side)
+                            }
                         }
-                    })
+                    )
                 }
                 
                 // Close All Button
@@ -261,6 +269,9 @@ struct TradingHubView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $selectedPosition) { position in
+            PositionDetailView(position: position)
         }
     }
     
@@ -374,18 +385,191 @@ struct ModifyTPSLView: View {
     }
 }
 
-// MARK: - Manual Trade View (placeholder)
+// MARK: - Manual Trade View - Now using AdvancedTradingView
 struct ManualTradeView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        NavigationStack {
-            TradingView()
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("close".localized) { dismiss() }
+        AdvancedTradingView()
+    }
+}
+
+// MARK: - Enhanced Position Card with Tap & Swipe
+struct PositionCardEnhanced: View {
+    let position: Position
+    let onTap: () -> Void
+    let onClose: () -> Void
+    
+    @State private var offset: CGFloat = 0
+    @State private var showCloseButton = false
+    
+    var body: some View {
+        ZStack {
+            // Close button background
+            HStack {
+                Spacer()
+                Button {
+                    onClose()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                        Text("Close")
+                            .font(.caption.bold())
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 80)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.red)
+            .cornerRadius(12)
+            
+            // Main card
+            Button {
+                onTap()
+            } label: {
+                VStack(spacing: 12) {
+                    // Header
+                    HStack {
+                        // Symbol & Side
+                        HStack(spacing: 8) {
+                            Text(position.side.lowercased() == "buy" ? "LONG" : "SHORT")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(position.side.lowercased() == "buy" ? Color.green : Color.red)
+                                .cornerRadius(6)
+                            
+                            Text(position.symbol)
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                            
+                            Text("\(position.leverage)x")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.2))
+                                .cornerRadius(4)
+                        }
+                        
+                        Spacer()
+                        
+                        // PnL
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(position.pnlDisplay)
+                                .font(.headline.bold())
+                                .foregroundColor(position.pnlColor)
+                            
+                            Text(position.pnlPercentDisplay)
+                                .font(.caption)
+                                .foregroundColor(position.pnlColor)
+                        }
+                    }
+                    
+                    // Details Row
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Entry")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("$\(position.entryPrice, specifier: "%.2f")")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .center, spacing: 2) {
+                            Text("Size")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("\(position.size, specifier: "%.4f")")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Mark")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("$\(position.markPrice ?? position.entryPrice, specifier: "%.2f")")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                        }
+                    }
+                    
+                    // TP/SL Indicators
+                    if position.takeProfit != nil || position.stopLoss != nil {
+                        HStack(spacing: 16) {
+                            if let tp = position.takeProfit, tp > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "target")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                    Text("TP: $\(tp, specifier: "%.2f")")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            
+                            if let sl = position.stopLoss, sl > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "shield.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                    Text("SL: $\(sl, specifier: "%.2f")")
+                                        .font(.caption2)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // Swipe hint
+                            Image(systemName: "chevron.left")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
+                .padding()
+                .background(Color.enlikoSurface)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .offset(x: offset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if value.translation.width < 0 {
+                            offset = max(value.translation.width, -80)
+                        }
+                    }
+                    .onEnded { value in
+                        withAnimation(.spring()) {
+                            if value.translation.width < -40 {
+                                offset = -80
+                                showCloseButton = true
+                            } else {
+                                offset = 0
+                                showCloseButton = false
+                            }
+                        }
+                    }
+            )
+            .onTapGesture {
+                if showCloseButton {
+                    withAnimation(.spring()) {
+                        offset = 0
+                        showCloseButton = false
+                    }
+                }
+            }
         }
     }
 }

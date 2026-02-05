@@ -36,14 +36,6 @@ struct Candle: Identifiable {
     var bodyBottom: CGFloat { CGFloat(min(open, close)) }
 }
 
-struct ChartIndicator: Identifiable {
-    let id = UUID()
-    let name: String
-    let values: [Double]
-    let color: Color
-    let lineWidth: CGFloat
-}
-
 enum ChartTimeframe: String, CaseIterable {
     case m1 = "1m"
     case m5 = "5m"

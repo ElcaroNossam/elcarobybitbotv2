@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI  // For Color in Position model
 
 // MARK: - AnyCodable Helper
 // Used to decode any JSON value (object, array, string, number, bool, null)
@@ -364,6 +365,81 @@ struct Position: Codable, Identifiable {
     var displayLiqPrice: Double { liquidationPrice ?? 0 }
     var displayTpPrice: Double { takeProfit ?? 0 }
     var displaySlPrice: Double { stopLoss ?? 0 }
+    
+    // MARK: - Properties for PositionDetailView
+    var pnl: Double { unrealizedPnl }
+    var margin: Double? { _margin ?? _positionMarginValue }
+    var maintenanceMargin: Double? { (positionValue / Double(leverage)) * 0.005 }
+    var openTime: Date? {
+        guard let created = createdAt else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: created)
+    }
+    
+    // Formatted display strings
+    var pnlDisplay: String {
+        let sign = pnl >= 0 ? "+" : ""
+        return String(format: "%@$%.2f", sign, pnl)
+    }
+    
+    var pnlPercentDisplay: String {
+        let sign = pnlPercent >= 0 ? "+" : ""
+        return String(format: "%@%.2f%%", sign, pnlPercent)
+    }
+    
+    var pnlColor: Color {
+        pnl >= 0 ? Color.green : Color.red
+    }
+}
+
+extension Position: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: Position, rhs: Position) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    // MARK: - Mock for Previews
+    static var mock: Position {
+        let json = """
+        {
+            "symbol": "BTCUSDT",
+            "side": "Buy",
+            "size": 0.5,
+            "entry_price": 95000,
+            "mark_price": 96250,
+            "leverage": 10,
+            "pnl": 1250.50,
+            "pnl_percent": 2.63,
+            "take_profit": 100000,
+            "stop_loss": 92000,
+            "strategy": "oi"
+        }
+        """.data(using: .utf8)!
+        return try! JSONDecoder().decode(Position.self, from: json)
+    }
+    
+    static var mockShort: Position {
+        let json = """
+        {
+            "symbol": "ETHUSDT",
+            "side": "Sell",
+            "size": 2.0,
+            "entry_price": 3400,
+            "mark_price": 3350,
+            "leverage": 5,
+            "pnl": 100.0,
+            "pnl_percent": 1.47,
+            "take_profit": 3200,
+            "stop_loss": 3500,
+            "strategy": "scryptomera"
+        }
+        """.data(using: .utf8)!
+        return try! JSONDecoder().decode(Position.self, from: json)
+    }
 }
 
 struct PositionsResponse: Codable {
@@ -1347,11 +1423,6 @@ extension Position {
     
     var sizeDisplay: String {
         String(format: "%.4f", size)
-    }
-    
-    var pnlPercentDisplay: String {
-        let sign = pnlPercent >= 0 ? "+" : ""
-        return String(format: "%@%.2f%%", sign, pnlPercent)
     }
 }
 

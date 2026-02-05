@@ -192,7 +192,7 @@ struct MarketHeatmapView: View {
                 }
             }
             .sheet(item: $viewModel.selectedCoin) { coin in
-                CoinDetailSheet(coin: coin)
+                HeatmapCoinDetailSheet(coin: coin)
             }
         }
     }
@@ -387,9 +387,9 @@ struct HeatmapTileView: View {
     }
 }
 
-// MARK: - Coin Detail Sheet
+// MARK: - Heatmap Coin Detail Sheet
 
-struct CoinDetailSheet: View {
+struct HeatmapCoinDetailSheet: View {
     let coin: HeatmapCoin
     @Environment(\.dismiss) var dismiss
     
