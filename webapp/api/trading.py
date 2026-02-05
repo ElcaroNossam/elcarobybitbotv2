@@ -1355,6 +1355,141 @@ async def get_trading_stats(
             "error": str(e)
         }
 
+
+@router.get("/stats/by-strategy")
+async def get_stats_by_strategy(
+    strategy: str = Query("all"),  # all, rsi_bb, fibonacci, scryptomera, scalper, elcaro, oi, manual
+    period: str = Query("week"),   # today, week, month, all
+    exchange: str = Query("bybit"),
+    account_type: str = Query(None),
+    user: dict = Depends(get_current_user)
+) -> dict:
+    """
+    Get trading statistics filtered by strategy.
+    Returns summary stats + breakdown by strategy + recent trades.
+    This endpoint powers the iOS StrategyStatsView.
+    """
+    user_id = user["user_id"]
+    
+    # Normalize account type
+    account_type = _normalize_both_account_type(account_type, exchange)
+    
+    # Period to days mapping
+    period_days = {
+        "today": 1,
+        "week": 7,
+        "month": 30,
+        "all": None
+    }.get(period, 7)
+    
+    try:
+        # If specific strategy selected, get stats for that strategy
+        strategy_filter = None if strategy == "all" else strategy
+        
+        # Get main stats
+        stats = db.get_trade_stats(
+            user_id, 
+            strategy=strategy_filter, 
+            period=period,
+            account_type=account_type,
+            exchange=exchange
+        )
+        
+        total = stats.get("total", 0)
+        wins = stats.get("tp_count", 0)
+        losses = stats.get("sl_count", 0)
+        total_pnl = stats.get("total_pnl", 0.0)
+        winrate = stats.get("winrate", 0.0) if total > 0 else 0.0
+        gross_profit = stats.get("gross_profit", 0.0)
+        gross_loss = abs(stats.get("gross_loss", 0.0))
+        
+        # Calculate averages
+        avg_win = gross_profit / wins if wins > 0 else 0.0
+        avg_loss = gross_loss / losses if losses > 0 else 0.0
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0.0)
+        
+        summary = {
+            "total_pnl": round(total_pnl, 2),
+            "total_trades": total,
+            "win_rate": round(winrate, 1),
+            "profit_factor": round(profit_factor, 2),
+            "avg_win": round(avg_win, 2),
+            "avg_loss": round(avg_loss, 2),
+            "best_trade": round(stats.get("best_pnl", 0.0), 2),
+            "worst_trade": round(stats.get("worst_pnl", 0.0), 2),
+        }
+        
+        # Get breakdown by each strategy (if "all" selected)
+        breakdown = []
+        if strategy == "all":
+            strategies = ["rsi_bb", "fibonacci", "scryptomera", "scalper", "elcaro", "oi", "manual"]
+            for strat in strategies:
+                strat_stats = db.get_trade_stats(
+                    user_id,
+                    strategy=strat,
+                    period=period,
+                    account_type=account_type,
+                    exchange=exchange
+                )
+                strat_total = strat_stats.get("total", 0)
+                if strat_total > 0:
+                    breakdown.append({
+                        "strategy": strat,
+                        "pnl": round(strat_stats.get("total_pnl", 0.0), 2),
+                        "trades": strat_total,
+                        "win_rate": round(strat_stats.get("winrate", 0.0), 1)
+                    })
+            
+            # Sort by PnL descending
+            breakdown.sort(key=lambda x: x["pnl"], reverse=True)
+        
+        # Get recent trades
+        recent_trades = []
+        try:
+            trades = db.get_trade_logs_list(
+                user_id,
+                strategy=strategy_filter,
+                limit=10,
+                account_type=account_type,
+                exchange=exchange
+            )
+            for trade in trades:
+                recent_trades.append({
+                    "id": trade.get("id", 0),
+                    "symbol": trade.get("symbol", ""),
+                    "side": "Long" if trade.get("side", "").lower() in ["buy", "long"] else "Short",
+                    "pnl": round(trade.get("pnl", 0.0), 2),
+                    "strategy": trade.get("strategy", "manual"),
+                    "closed_at": str(trade.get("ts", ""))[:16].replace("T", " ") if trade.get("ts") else ""
+                })
+        except Exception as e:
+            logger.warning(f"Failed to get recent trades: {e}")
+        
+        return {
+            "summary": summary,
+            "breakdown": breakdown,
+            "recent_trades": recent_trades
+        }
+        
+    except Exception as e:
+        logger.error(f"Strategy stats error: {e}")
+        return {
+            "summary": {
+                "total_pnl": 0,
+                "total_trades": 0,
+                "win_rate": 0,
+                "profit_factor": 0,
+                "avg_win": 0,
+                "avg_loss": 0,
+                "best_trade": 0,
+                "worst_trade": 0
+            },
+            "breakdown": [],
+            "recent_trades": [],
+            "error": str(e)
+        }
+
+
 # ===================== ORDER PLACEMENT =====================
 
 @router.post("/order")

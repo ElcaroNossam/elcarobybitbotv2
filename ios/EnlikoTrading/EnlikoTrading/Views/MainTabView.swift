@@ -2,8 +2,8 @@
 //  MainTabView.swift
 //  EnlikoTrading
 //
-//  Modern tab navigation with sleek design
-//  Custom tab bar with glass morphism effect
+//  UPDATED: Simplified tab navigation with Stats button
+//  4 main tabs: Portfolio, Stats, Trading, Settings
 //
 
 import SwiftUI
@@ -15,44 +15,41 @@ struct MainTabView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @State private var showAICopilot = false
     @State private var showConfetti = false
-    @State private var showRadialMenu = false
+    @State private var showStrategyStats = false  // NEW: Strategy Stats sheet
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content
+            // Content - Simplified to 4 main tabs
             TabView(selection: $selectedTab) {
-                // Portfolio Tab
+                // Portfolio Tab (Balance + Positions)
                 NavigationStack {
                     PortfolioView()
                 }
                 .tag(0)
                 
+                // 🔥 NEW: Stats Tab (Strategy Statistics - main request!)
+                NavigationStack {
+                    StrategyStatsView()
+                }
+                .tag(1)
+                
                 // Trading Tab
                 NavigationStack {
                     TradingView()
                 }
-                .tag(1)
-                
-                // Positions Tab
-                NavigationStack {
-                    PositionsView()
-                }
                 .tag(2)
                 
-                // More Tab (contains additional features)
-                MoreView()
+                // Settings Tab (merged with More)
+                NavigationStack {
+                    UnifiedSettingsView()
+                }
                 .tag(3)
-                
-                // Settings Tab
-                SettingsView()
-                .tag(4)
             }
-            // REMOVED: .page style causes jerky animations - use default tab style
             
-            // Custom Tab Bar
+            // Custom Tab Bar - 4 tabs
             customTabBar
             
-            // 🔥 NEW: Floating AI Copilot Button
+            // 🔥 Floating AI Copilot Button
             VStack {
                 Spacer()
                 HStack {
@@ -61,43 +58,6 @@ struct MainTabView: View {
                         .padding(.trailing, 16)
                         .padding(.bottom, 100) // Above tab bar
                 }
-            }
-            
-            // 🔥 NEW: Floating Radial Menu (hold for quick actions)
-            if showRadialMenu {
-                FloatingRadialMenu(
-                    isOpen: $showRadialMenu,
-                    items: [
-                        FloatingRadialMenu.RadialMenuItem(
-                            icon: "arrow.up.right",
-                            color: .enlikoGreen,
-                            action: {
-                                HapticManager.shared.perform(.success)
-                            }
-                        ),
-                        FloatingRadialMenu.RadialMenuItem(
-                            icon: "arrow.down.right",
-                            color: .enlikoRed,
-                            action: {
-                                HapticManager.shared.perform(.warning)
-                            }
-                        ),
-                        FloatingRadialMenu.RadialMenuItem(
-                            icon: "dollarsign.circle",
-                            color: .enlikoAccent,
-                            action: {
-                                selectedTab = 0
-                            }
-                        ),
-                        FloatingRadialMenu.RadialMenuItem(
-                            icon: "chart.line.uptrend.xyaxis",
-                            color: .enlikoPrimary,
-                            action: {
-                                // Navigate to charts
-                            }
-                        )
-                    ]
-                )
             }
             
             // 🔥 NEW: Confetti celebration overlay
@@ -124,14 +84,13 @@ struct MainTabView: View {
         .onChange(of: appState.currentAccountType) { _, _ in
             Task { await tradingService.refreshAll() }
         }
-        // 🔥 NEW: Listen for profit milestones to trigger confetti
+        // Listen for profit milestones to trigger confetti
         .onReceive(NotificationCenter.default.publisher(for: .profitMilestoneReached)) { _ in
             triggerCelebration()
         }
-        // REMOVED: Global LongPressGesture was blocking button taps
     }
     
-    // 🔥 NEW: Celebration function
+    // Celebration function
     private func triggerCelebration() {
         showConfetti = true
         SoundManager.shared.play(.profitClose)
@@ -141,14 +100,13 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - Custom Tab Bar
+    // MARK: - Custom Tab Bar (4 tabs now)
     private var customTabBar: some View {
         HStack(spacing: 0) {
             tabBarItem(icon: "chart.pie.fill", label: "nav_portfolio".localized, index: 0)
-            tabBarItem(icon: "arrow.up.arrow.down", label: "nav_trading".localized, index: 1, isPrimary: true)
-            tabBarItem(icon: "list.bullet.rectangle.fill", label: "nav_positions".localized, index: 2)
-            tabBarItem(icon: "square.grid.2x2.fill", label: "nav_more".localized, index: 3)
-            tabBarItem(icon: "gearshape.fill", label: "nav_settings".localized, index: 4)
+            tabBarItem(icon: "chart.bar.xaxis", label: "nav_stats".localized, index: 1)
+            tabBarItem(icon: "arrow.up.arrow.down", label: "nav_trading".localized, index: 2, isPrimary: true)
+            tabBarItem(icon: "gearshape.fill", label: "nav_settings".localized, index: 3)
         }
         .padding(.horizontal, 8)
         .padding(.top, 12)
