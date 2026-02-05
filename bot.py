@@ -22707,7 +22707,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_balance_for_account(update, ctx, last_account)
     
     # Positions - works for current exchange, shows directly with switcher if needed
-    if text in ["📊 Positions", "📊 HL Positions", "🎯 Positions", 
+    if text in ["📊 Positions", "📊 HL Positions", "🎯 Positions", "📊 Позиции", "📊 Позиції",
+                 "🎯 Posiciones", "🎯 Positionen", "🎯 Posizioni", "🎯 Pozice", "🎯 Pozicijos",
+                 "🎯 Pozicionet", "🎯 Pozycje", "🎯 פוזיציות", "🎯 المراكز", "🎯 建玉", "🎯 持仓",
                  ctx.t.get('button_positions', '🎯 Positions')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_positions(update, ctx)
@@ -22717,7 +22719,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_positions_for_account(update, ctx, last_account)
     
     # Orders - works for current exchange, shows directly with switcher if needed
-    if text in ["📈 Orders", "📈 HL Orders", "📊 Orders",
+    if text in ["📈 Orders", "📈 HL Orders", "📊 Orders", "📋 Orders", "📋 Ордера", "📋 Ордери",
+                 "📊 Aufträge", "📊 Ordini", "📊 Ordres", "📊 Příkazy", "📊 Zlecenia", "📊 Órdenes",
+                 "📊 Įsakymai", "📊 הזמנות", "📊 الأوامر", "📊 注文", "📜 Porositë e mia", "📜 我的订单",
                  ctx.t.get('button_orders', '📊 Orders')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_orders(update, ctx)
@@ -22727,7 +22731,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await show_orders_for_account(update, ctx, last_account)
     
     # History - works for current exchange
-    if text in ["📋 History", "📋 HL History", "📜 History",
+    if text in ["📋 History", "📋 HL History", "📜 History", "📜 Історія", "📜 История",
+                 "📋 Historia", "📋 历史", "📜 Cronologia", "📜 Historial", "📜 Historie",
+                 "📜 Historique", "📜 Istorija", "📜 Verlauf", "📜 היסטוריה", "📜 السجل", "📜 履歴",
                  ctx.t.get('button_history', '📜 History')]:
         if active_exchange == "hyperliquid":
             return await cmd_hl_history(update, ctx)
@@ -22759,7 +22765,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return await cmd_open_positions(update, ctx)
     
     # Market - works for all languages
-    if text in ["📉 Market", "📈 Market", "📈 Рынок", "📈 Ринок", ctx.t.get('button_market', '📈 Market')]:
+    if text in ["📉 Market", "📈 Market", "📈 Рынок", "📈 Ринок", "📈 Mercado", "📈 Markt",
+                 "📈 Marché", "📈 Mercato", "📈 Trh", "📈 Rynek", "📈 Rinka", "📈 Tregu",
+                 "📈 שוק", "📈 السوق", "📈 市場", "📈 市场", ctx.t.get('button_market', '📈 Market')]:
         return await cmd_market(update, ctx)
     
     # Settings - works for current exchange
@@ -22771,7 +22779,10 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # API Keys - unified API management
     if text in ["🔑 API Keys", "🔑 HL API", "🟠 Bybit API", "🔷 HL API", 
-                "🔗 Exchange", "🔗 Биржа", "🔗 API Keys", "🔗 API",
+                "🔗 Exchange", "🔗 Биржа", "🔗 API Keys", "🔗 API", "🔗 API Ключи", "🔗 API Ключі",
+                "🔗 Börse", "🔑 API Klíče", "🔑 API raktai", "🔑 APIキー", "🔑 API密钥",
+                "🔑 Chiavi API", "🔑 Clés API", "🔑 Klucze API", "🔑 Çelësat API",
+                "🔑 מפתחות API", "🔑 مفاتيح API",
                 ctx.t.get('button_api_keys', '🔗 Exchange')]:
         return await cmd_api_settings(update, ctx)
     
@@ -22811,7 +22822,9 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_api", "🔑 API") or text == ctx.t.get("button_secret", "🔒 Secret"):
         return await cmd_api_settings(update, ctx)
 
-    if text in [ctx.t.get("button_lang", "🌍 Lang"), "🌐 Language", "🌍 Lang"]:
+    if text in [ctx.t.get("button_lang", "🌍 Lang"), "🌐 Language", "🌍 Lang", "🌍 Мова", "🌍 Язык",
+                 "🌐 Gjuha", "🌐 Idioma", "🌐 Jazyk", "🌐 Język", "🌐 Kalba", "🌐 Langue",
+                 "🌐 Lingua", "🌐 Sprache", "🌐 שפה", "🌐 اللغة", "🌐 言語", "🌐 语言"]:
         return await cmd_lang(update, ctx)
 
     # Dashboard button - opens WebApp
