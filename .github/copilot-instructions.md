@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.51.0 | Обновлено: 4 февраля 2026
+# Версия: 3.52.0 | Обновлено: 5 февраля 2026
 # =============================================
 # Production Domain: https://enliko.com (nginx + SSL)
 # Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android
@@ -10,8 +10,10 @@
 # Android App: Kotlin + Jetpack Compose
 # Modern Features: Biometrics, Haptics, Animations, Offline-First
 # 4D Schema: (user_id, strategy, side, exchange)
+# Strategy Detection & Recording: Full audit - all strategies correctly saved/logged (Feb 5, 2026) ✅
 # Strategy Side-Enabled Fix: All 6 strategies now check enabled flag per side (Feb 4, 2026) ✅
 # ATR TP Removal Fix: Remove TP when switching to ATR mode (Feb 4, 2026) ✅
+# SL/TP Per-Strategy: set_trading_stop called for ALL 6 strategies (Feb 5, 2026) ✅
 # Break-Even (BE): Move SL to entry when profit >= trigger%
 # Partial Take Profit: Close X% at +Y% profit in 2 steps + VALIDATION (Feb 4, 2026) ✅
 # PTP Columns Fix: ptp_step_1_done, ptp_step_2_done in active_positions (Feb 4, 2026) ✅
@@ -1053,6 +1055,59 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ FIX: Strategy Display 'Manual' + Position Saved Logging (Feb 5, 2026)
+- **Проблема #1:** При закрытии manual позиции в логах показывалось `strategy=Unknown` вместо `strategy=Manual`
+- **Причина:** Логика display для manual/unknown возвращала "Unknown"
+- **Решение:** Добавлены явные маппинги в strategy_display dict (line 19032):
+  ```python
+  strategy_display = {
+      ...
+      "manual": "Manual",
+      "unknown": "Unknown",
+  }.get(strategy_name, strategy_name.title())
+  ```
+- **Проблема #2:** В логе "Position saved to DB" не было strategy для дебага
+- **Решение:** Добавлено `strategy={strategy}` в лог (line 7322)
+- **Commit:** `776c035`
+
+### ✅ CRITICAL: Missing set_trading_stop for 4 Strategies (Feb 5, 2026)
+- **Проблема:** Стратегии RSI_BB, Fibonacci, Elcaro, Scalper НЕ устанавливали SL/TP на бирже!
+- **Причина:** В коде этих стратегий отсутствовал вызов `set_trading_stop()` после открытия позиции
+- **Влияние:** Позиции открывались БЕЗ стоп-лосса → огромные убытки при движении против позиции
+- **Исправленные стратегии:**
+  | Стратегия | Строки | Добавлен set_trading_stop |
+  |-----------|--------|---------------------------|
+  | RSI_BB | 17310-17320 | ✅ FIXED |
+  | Fibonacci | 17985-17995 | ✅ FIXED |
+  | Elcaro | 17825-17835 | ✅ FIXED |
+  | Scalper | 17620-17630 | ✅ FIXED |
+- **Уже работали:** Scryptomera ✅, OI ✅
+- **Паттерн добавленного кода:**
+  ```python
+  if not pos_use_atr and (sl_price or tp_price):
+      await set_trading_stop(
+          uid, symbol, sl_price=sl_price, tp_price=tp_price,
+          side=side, entry_price=entry_price, account_type=account_type
+      )
+  ```
+- **Commit:** `71e6306`
+
+### ✅ VERIFIED: Strategy Detection & Recording Architecture (Feb 5, 2026)
+- **Аудит:** Полная проверка потока strategy от открытия до закрытия позиции
+- **Результат:** Все стратегии корректно записываются и читаются
+- **Проверенные компоненты:**
+  | Этап | Функция | Статус |
+  |------|---------|--------|
+  | Signal → Strategy | `place_order_for_targets(strategy=X)` | ✅ |
+  | Save to DB | `add_active_position(strategy=X)` | ✅ |
+  | Read from DB | `ap.get("strategy")` | ✅ |
+  | Log to history | `log_exit_and_remove_position(strategy=X)` | ✅ |
+  | Stats filter | `get_trade_stats(strategy=X)` | ✅ |
+- **Production данные проверены:**
+  - active_positions: oi, fibonacci, scryptomera, rsi_bb, manual ✅
+  - trade_logs: все стратегии корректно записаны ✅
+  - SL/TP% per-strategy per-user сохраняются ✅
 
 ### ✅ CRITICAL: Partial TP Validation - Step1 + Step2 <= 100% (Feb 4, 2026)
 - **Проблема:** Пользователь указал Step 1 = 30% и Step 2 = 99% (итого 129% > 100%)
@@ -3302,12 +3357,14 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 4 февраля 2026*
-*Version: 3.51.0*
+*Last updated: 5 февраля 2026*
+*Version: 3.52.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
 *Trading Flows Audit: get_trade_stats/get_trade_stats_unknown exchange filter FIXED (Feb 2, 2026)*
+*Strategy Detection: Full audit - all 7 strategies correctly detected, saved, and logged (Feb 5, 2026) ✅*
+*SL/TP Fix: set_trading_stop now called for ALL 6 auto-strategies (Feb 5, 2026) ✅*
 *4D Schema Tests: 33 tests covering all dimensions*
 *Security Audit: $100k level - 5 critical + 3 high FIXED (Jan 31, 2026)*
 *Tests: 750+ total (unit + integration + modern features + cross-platform)*
