@@ -539,6 +539,16 @@ async def change_language(
     return {"success": True, "language": data.language, "old_language": old_lang}
 
 
+# PUT alias for Android compatibility
+@router.put("/language")
+async def change_language_put(
+    data: LanguageChange,
+    user: dict = Depends(get_current_user)
+):
+    """PUT alias for change_language (Android compatibility)."""
+    return await change_language(data, user)
+
+
 class DisclaimerAcceptance(BaseModel):
     accepted: bool
 

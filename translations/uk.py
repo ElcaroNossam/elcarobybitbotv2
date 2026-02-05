@@ -89,11 +89,7 @@ TEXTS = {
     'button_strategies': '🤖 AI Боти',
     'button_subscribe': '👑 ПРЕМІУМ',
     'button_terminal': '💻 Термінал',
-    'button_balance': '💎 Портфель',
-    'button_market': '📈 Ринок',
-    'button_strategies': '🤖 AI Боти',
-    'button_subscribe': '👑 ПРЕМІУМ',
-    'button_terminal': '💻 Термінал',    'button_orders': '📋 Ордери',
+    'button_orders': '📋 Ордери',
     'button_ai_bots': '🎯 Стратегії',
     'button_screener': '📈 Скрінер',
     'button_history': '📜 Історія',
@@ -1565,4 +1561,12 @@ TEXTS = {
     "spot_tp_moonbag": "🌙 Moonbag - Keep 25% for moonshots",
     "spot_tp_profile_select": "💰 Select TP profile:",
     "spot_trailing_tp": "📉 Trailing TP - Activation: +{act}%, Trail: {trail}%",
+    # === Auto-added missing keys from EN ===
+    'button_spot': '💹 Spot',
+    'spot_btn_buy': '💰 Buy Now',
+    'spot_btn_holdings': '💎 Holdings',
+    'spot_btn_rebalance': '⚖️ Rebalance',
+    'spot_btn_sell': '💸 Sell Menu',
+    'spot_btn_settings': '⚙️ Settings',
+
 }

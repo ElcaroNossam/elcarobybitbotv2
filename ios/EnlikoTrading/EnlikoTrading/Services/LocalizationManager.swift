@@ -159,7 +159,7 @@ class LocalizationManager: ObservableObject {
             struct LangResponse: Codable {}
             let _: LangResponse = try await NetworkService.shared.post(
                 "/users/language",
-                body: ["lang": currentLanguage.rawValue]
+                body: ["language": currentLanguage.rawValue]
             )
             print("✅ Language synced with server: \(currentLanguage.rawValue)")
         } catch {
