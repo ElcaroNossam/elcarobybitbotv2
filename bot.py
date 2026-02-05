@@ -4833,11 +4833,11 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         # ─── Row 1: Core Trading ───
         [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
         # ─── Row 2: AI & Market ───
-        [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_spot', '💹 Spot'), t.get('button_history', '📜 History') ],
+        [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
         # ─── Row 3: Premium & Settings ───
-        [ t.get('button_market', '📈 Market'), t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys') ],
+        [ t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys'), exchange_btn ],
         # ─── Row 4: Terminal & Exchange ───
-        [ t.get('button_terminal', '💻 Terminal'), t.get('button_subscribe', '👑 PREMIUM'), exchange_btn ],
+        [ t.get('button_terminal', '💻 Terminal'), t.get('button_subscribe', '👑 PREMIUM') ],
     ]
     
     # Add admin row if user is admin
