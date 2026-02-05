@@ -30,7 +30,7 @@ struct UnifiedSettingsView: View {
                     quickActionItem(
                         icon: "list.bullet.rectangle.fill",
                         title: "nav_positions".localized,
-                        subtitle: "\(appState.openPositionsCount) open",
+                        subtitle: "View positions",
                         color: .blue
                     )
                 }
@@ -131,7 +131,7 @@ struct UnifiedSettingsView: View {
                         // Status indicator
                         HStack(spacing: 4) {
                             Circle()
-                                .fill(appState.isConnected ? .green : .red)
+                                .fill(Color.green)
                                 .frame(width: 8, height: 8)
                             Text(appState.currentExchange.displayName)
                                 .font(.caption)
@@ -207,14 +207,6 @@ struct UnifiedSettingsView: View {
                             title: "premium".localized,
                             color: .yellow
                         )
-                        
-                        Spacer()
-                        
-                        if appState.isPremium {
-                            Text("Active")
-                                .font(.caption.bold())
-                                .foregroundColor(.yellow)
-                        }
                     }
                 }
                 
@@ -387,82 +379,6 @@ struct UnifiedSettingsView: View {
 }
 
 // MARK: - Placeholder Views for missing destinations
-struct ExchangeSettingsView: View {
-    @EnvironmentObject var appState: AppState
-    
-    var body: some View {
-        List {
-            Section(header: Text("exchange".localized)) {
-                ForEach(Exchange.allCases, id: \.self) { exchange in
-                    Button {
-                        appState.currentExchange = exchange
-                    } label: {
-                        HStack {
-                            Text(exchange.displayName)
-                            Spacer()
-                            if appState.currentExchange == exchange {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.enlikoPrimary)
-                            }
-                        }
-                    }
-                    .foregroundColor(.primary)
-                }
-            }
-            
-            Section(header: Text("account_type".localized)) {
-                ForEach(AccountType.allCases, id: \.self) { type in
-                    Button {
-                        appState.currentAccountType = type
-                    } label: {
-                        HStack {
-                            Circle()
-                                .fill(type == .demo ? .orange : .green)
-                                .frame(width: 8, height: 8)
-                            Text(type == .demo ? "Demo" : "Real")
-                            Spacer()
-                            if appState.currentAccountType == type {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.enlikoPrimary)
-                            }
-                        }
-                    }
-                    .foregroundColor(.primary)
-                }
-            }
-            
-            Section(header: Text("api_keys".localized)) {
-                NavigationLink(destination: APIKeysView()) {
-                    HStack {
-                        Image(systemName: "key.fill")
-                            .foregroundColor(.yellow)
-                        Text("manage_api_keys".localized)
-                    }
-                }
-            }
-        }
-        .navigationTitle("exchange_connection".localized)
-    }
-}
-
-struct AppearanceSettingsView: View {
-    @AppStorage("colorScheme") private var colorScheme = 0 // 0=system, 1=light, 2=dark
-    
-    var body: some View {
-        List {
-            Section(header: Text("theme".localized)) {
-                Picker("color_scheme".localized, selection: $colorScheme) {
-                    Text("system".localized).tag(0)
-                    Text("light".localized).tag(1)
-                    Text("dark".localized).tag(2)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-            }
-        }
-        .navigationTitle("appearance".localized)
-    }
-}
-
 struct SecuritySettingsView: View {
     @AppStorage("useBiometrics") private var useBiometrics = false
     @AppStorage("requireAuthOnOpen") private var requireAuthOnOpen = false
@@ -535,31 +451,6 @@ struct HelpView: View {
             }
         }
         .navigationTitle("help_support".localized)
-    }
-}
-
-struct APIKeysView: View {
-    var body: some View {
-        List {
-            Section(header: Text("Bybit API")) {
-                NavigationLink("Demo API Key") {
-                    Text("API Key configuration")
-                }
-                NavigationLink("Real API Key") {
-                    Text("API Key configuration")
-                }
-            }
-            
-            Section(header: Text("HyperLiquid")) {
-                NavigationLink("Testnet Key") {
-                    Text("Private key configuration")
-                }
-                NavigationLink("Mainnet Key") {
-                    Text("Private key configuration")
-                }
-            }
-        }
-        .navigationTitle("api_keys".localized)
     }
 }
 

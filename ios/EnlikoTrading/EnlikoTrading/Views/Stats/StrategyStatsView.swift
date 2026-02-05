@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Charts
+import Combine
 
 // MARK: - Strategy Stats View
 struct StrategyStatsView: View {
@@ -163,44 +164,44 @@ struct StrategyStatsView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: 16) {
-                StatItem(
+                StrategyStatItem(
                     title: "trades".localized,
                     value: "\(stats.totalTrades)",
                     icon: "number"
                 )
                 
-                StatItem(
+                StrategyStatItem(
                     title: "win_rate".localized,
                     value: String(format: "%.1f%%", stats.winRate),
                     icon: "percent",
                     color: stats.winRate >= 50 ? .enlikoGreen : .enlikoRed
                 )
                 
-                StatItem(
+                StrategyStatItem(
                     title: "profit_factor".localized,
                     value: String(format: "%.2f", stats.profitFactor),
                     icon: "chart.line.uptrend.xyaxis"
                 )
                 
-                StatItem(
+                StrategyStatItem(
                     title: "avg_win".localized,
                     value: formatCurrency(stats.avgWin),
                     icon: "arrow.up.right",
                     color: .enlikoGreen
                 )
                 
-                StatItem(
+                StrategyStatItem(
                     title: "avg_loss".localized,
                     value: formatCurrency(abs(stats.avgLoss)),
                     icon: "arrow.down.right",
                     color: .enlikoRed
                 )
                 
-                StatItem(
+                StrategyStatItem(
                     title: "best_trade".localized,
                     value: formatCurrency(stats.bestTrade),
                     icon: "trophy.fill",
-                    color: .enlikoGold
+                    color: .yellow
                 )
             }
         }
@@ -242,7 +243,7 @@ struct StrategyStatsView: View {
             }
             
             ForEach(viewModel.recentTrades.prefix(5)) { trade in
-                TradeRow(trade: trade)
+                StrategyTradeRow(trade: trade)
             }
         }
         .padding()
@@ -337,7 +338,7 @@ struct StrategyPill: View {
     }
 }
 
-struct StatItem: View {
+struct StrategyStatItem: View {
     let title: String
     let value: String
     let icon: String
@@ -397,7 +398,7 @@ struct StrategyBreakdownRow: View {
     }
 }
 
-struct TradeRow: View {
+struct StrategyTradeRow: View {
     let trade: RecentTrade
     
     var body: some View {
@@ -490,7 +491,7 @@ class StrategyStatsViewModel: ObservableObject {
             // Fetch stats
             let stats: StrategyStatsResponse = try await network.get(
                 "/stats/by-strategy",
-                query: [
+                params: [
                     "strategy": strategyParam,
                     "period": periodParam,
                     "account_type": accountType
