@@ -2318,8 +2318,11 @@ def get_spot_settings_keyboard(t: dict, cfg: dict, spot_settings: dict) -> Inlin
     # Action buttons (only if enabled)
     if spot_enabled:
         buttons.append([
-            InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
-            InlineKeyboardButton("💎 Holdings", callback_data="spot:holdings"),
+            InlineKeyboardButton(t.get("spot_btn_buy", "💰 Buy Now"), callback_data="spot:buy_now"),
+            InlineKeyboardButton(t.get("spot_btn_holdings", "💎 Holdings"), callback_data="spot:holdings"),
+        ])
+        buttons.append([
+            InlineKeyboardButton(t.get("spot_btn_rebalance", "⚖️ Rebalance"), callback_data="spot:rebalance_now"),
         ])
     
     # Back button
@@ -2511,16 +2514,16 @@ async def cmd_spot_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Quick sell buttons for non-USDT coins
         sellable = [h for h in holdings_data if h["coin"] != "USDT" and h["usd_value"] > 1]
         if sellable:
-            buttons.append([InlineKeyboardButton("💸 Sell Menu", callback_data="spot:sell_menu")])
+            buttons.append([InlineKeyboardButton(t.get("spot_btn_sell", "💸 Sell Menu"), callback_data="spot:sell_menu")])
         
         # Action buttons
         buttons.append([
-            InlineKeyboardButton("🔄 Refresh", callback_data="spot:holdings"),
-            InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
+            InlineKeyboardButton(t.get("btn_refresh", "🔄 Refresh"), callback_data="spot:holdings"),
+            InlineKeyboardButton(t.get("spot_btn_rebalance", "⚖️ Rebalance"), callback_data="spot:rebalance_now"),
         ])
         
         buttons.append([
-            InlineKeyboardButton("⚙️ Settings", callback_data="spot:back_to_main"),
+            InlineKeyboardButton(t.get("spot_btn_settings", "⚙️ Settings"), callback_data="spot:back_to_main"),
         ])
         
         await loading_msg.edit_text(
@@ -2951,15 +2954,15 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Quick sell buttons for non-USDT coins
         sellable = [h for h in holdings_data if h["coin"] != "USDT" and h["usd_value"] > 1]
         if sellable:
-            buttons.append([InlineKeyboardButton("💸 Sell Menu", callback_data="spot:sell_menu")])
+            buttons.append([InlineKeyboardButton(t.get("spot_btn_sell", "💸 Sell Menu"), callback_data="spot:sell_menu")])
         
         # Action buttons
         buttons.append([
-            InlineKeyboardButton("🔄 Refresh", callback_data="spot:holdings"),
-            InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
+            InlineKeyboardButton(t.get("btn_refresh", "🔄 Refresh"), callback_data="spot:holdings"),
+            InlineKeyboardButton(t.get("spot_btn_rebalance", "⚖️ Rebalance"), callback_data="spot:rebalance_now"),
         ])
         
-        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        buttons.append([InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="spot:back_to_main")])
         
         try:
             await q.edit_message_text(

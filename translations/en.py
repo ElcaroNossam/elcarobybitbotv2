@@ -1398,6 +1398,13 @@ TEXTS = {
     'spot_auto_rebalance': '⚖️ Auto Rebalance - Threshold: {threshold}%',
     'spot_limit_dca': '🎯 Limit DCA - Offset: -{offset}%',
     
+    # Spot Buttons
+    'spot_btn_buy': '💰 Buy Now',
+    'spot_btn_sell': '💸 Sell Menu',
+    'spot_btn_holdings': '💎 Holdings',
+    'spot_btn_rebalance': '⚖️ Rebalance',
+    'spot_btn_settings': '⚙️ Settings',
+    
     # Spot/Grid error messages
     'spot_not_enabled': '❌ Spot trading is not enabled. Enable it in API Settings first.',
     'spot_auto_enabled': '✅ Auto DCA enabled',
