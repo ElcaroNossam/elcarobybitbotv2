@@ -364,15 +364,19 @@ struct StrategyStatItem: View {
 struct StrategyBreakdownRow: View {
     let item: StrategyBreakdownItem
     
+    private var strategyEnum: TradingStrategy? {
+        TradingStrategy(rawValue: item.strategy.lowercased())
+    }
+    
     var body: some View {
         HStack {
             // Strategy icon + name
             HStack(spacing: 8) {
-                Image(systemName: item.strategy.icon)
-                    .foregroundColor(item.strategy.color)
+                Image(systemName: strategyEnum?.icon ?? "questionmark.circle")
+                    .foregroundColor(item.color)
                     .frame(width: 24)
                 
-                Text(item.strategy.displayName)
+                Text(strategyEnum?.displayName ?? item.strategy.capitalized)
                     .font(.subheadline)
             }
             
@@ -433,7 +437,7 @@ struct StrategyTradeRow: View {
                     .font(.subheadline.bold())
                     .foregroundColor(trade.pnl >= 0 ? .enlikoGreen : .enlikoRed)
                 
-                Text(trade.closedAt)
+                Text(trade.closedAtString)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -596,38 +600,7 @@ struct StrategyStats: Codable {
     }
 }
 
-struct StrategyBreakdownItem: Codable, Identifiable {
-    var id: String { strategyName }
-    let strategyName: String
-    let pnl: Double
-    let trades: Int
-    let winRate: Double
-    
-    var strategy: TradingStrategy {
-        TradingStrategy(rawValue: strategyName) ?? .manual
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case strategyName = "strategy"
-        case pnl
-        case trades
-        case winRate = "win_rate"
-    }
-}
-
-struct RecentTrade: Codable, Identifiable {
-    let id: Int
-    let symbol: String
-    let side: String
-    let pnl: Double
-    let strategy: String?
-    let closedAt: String
-    
-    enum CodingKeys: String, CodingKey {
-        case id, symbol, side, pnl, strategy
-        case closedAt = "closed_at"
-    }
-}
+// Use StrategyBreakdownItem and RecentTrade from Models.swift
 
 struct StrategyStatsResponse: Codable {
     let summary: StrategyStats

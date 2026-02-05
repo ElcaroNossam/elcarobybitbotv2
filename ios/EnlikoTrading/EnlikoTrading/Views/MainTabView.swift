@@ -2,8 +2,9 @@
 //  MainTabView.swift
 //  EnlikoTrading
 //
-//  UPDATED: Simplified tab navigation with Stats button
-//  4 main tabs: Portfolio, Stats, Trading, Settings
+//  UPDATED: 4 tabs matching Telegram bot structure
+//  Dashboard (Profile) | Positions | Trading | Settings
+//  With proper safe area handling for tab bar
 //
 
 import SwiftUI
@@ -15,55 +16,60 @@ struct MainTabView: View {
     @ObservedObject var localization = LocalizationManager.shared
     @State private var showAICopilot = false
     @State private var showConfetti = false
-    @State private var showStrategyStats = false  // NEW: Strategy Stats sheet
+    
+    // Tab bar height for safe area calculations
+    private let tabBarHeight: CGFloat = 85
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Content - Simplified to 4 main tabs
-            TabView(selection: $selectedTab) {
-                // Portfolio Tab (Balance + Positions)
-                NavigationStack {
-                    PortfolioView()
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                // Content - 4 main tabs matching bot structure
+                TabView(selection: $selectedTab) {
+                    // Dashboard Tab (like Profile in bot - Balance + Stats + History)
+                    NavigationStack {
+                        DashboardView()
+                    }
+                    .tag(0)
+                    
+                    // Positions + Orders Tab (combined)
+                    NavigationStack {
+                        PositionsOrdersView()
+                    }
+                    .tag(1)
+                    
+                    // Trading Tab (Terminal)
+                    NavigationStack {
+                        TradingView()
+                    }
+                    .tag(2)
+                    
+                    // Settings Tab (API Keys + Strategy Settings prominent)
+                    NavigationStack {
+                        SettingsMainView()
+                    }
+                    .tag(3)
                 }
-                .tag(0)
                 
-                // 🔥 NEW: Stats Tab (Strategy Statistics - main request!)
-                NavigationStack {
-                    StrategyStatsView()
-                }
-                .tag(1)
+                // Custom Tab Bar - Fixed safe area
+                customTabBar
+                    .frame(width: geometry.size.width)
                 
-                // Trading Tab
-                NavigationStack {
-                    TradingView()
-                }
-                .tag(2)
-                
-                // Settings Tab (merged with More)
-                NavigationStack {
-                    UnifiedSettingsView()
-                }
-                .tag(3)
-            }
-            
-            // Custom Tab Bar - 4 tabs
-            customTabBar
-            
-            // 🔥 Floating AI Copilot Button
-            VStack {
-                Spacer()
-                HStack {
+                // 🔥 Floating AI Copilot Button
+                VStack {
                     Spacer()
-                    FloatingCopilotButton(isOpen: $showAICopilot)
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 100) // Above tab bar
+                    HStack {
+                        Spacer()
+                        FloatingCopilotButton(isOpen: $showAICopilot)
+                            .padding(.trailing, 16)
+                            .padding(.bottom, tabBarHeight + 20) // Above tab bar
+                    }
                 }
-            }
-            
-            // 🔥 NEW: Confetti celebration overlay
-            if showConfetti {
-                ConfettiView()
-                    .allowsHitTesting(false)
+                
+                // Confetti celebration overlay
+                if showConfetti {
+                    ConfettiView()
+                        .allowsHitTesting(false)
+                }
             }
         }
         .ignoresSafeArea(.keyboard)
@@ -100,41 +106,46 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - Custom Tab Bar (4 tabs now)
+    // MARK: - Custom Tab Bar (4 tabs - bot structure)
     private var customTabBar: some View {
-        HStack(spacing: 0) {
-            tabBarItem(icon: "chart.pie.fill", label: "nav_portfolio".localized, index: 0)
-            tabBarItem(icon: "chart.bar.xaxis", label: "nav_stats".localized, index: 1)
-            tabBarItem(icon: "arrow.up.arrow.down", label: "nav_trading".localized, index: 2, isPrimary: true)
-            tabBarItem(icon: "gearshape.fill", label: "nav_settings".localized, index: 3)
-        }
-        .padding(.horizontal, 8)
-        .padding(.top, 12)
-        .padding(.bottom, 24)
-        .background(
-            ZStack {
-                // Blur background
-                Rectangle()
-                    .fill(.ultraThinMaterial)
+        VStack(spacing: 0) {
+            // Top border
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.enlikoPrimary.opacity(0.4), Color.enlikoPrimary.opacity(0.1)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 1)
+            
+            HStack(spacing: 0) {
+                // Dashboard (Portfolio/Profile)
+                tabBarItem(icon: "person.crop.circle.fill", label: "dashboard".localized, index: 0)
                 
-                // Top border glow
-                VStack {
-                    Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.enlikoPrimary.opacity(0.3), Color.clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(height: 1)
-                    Spacer()
-                }
+                // Positions + Orders
+                tabBarItem(icon: "list.bullet.rectangle.fill", label: "positions".localized, index: 1, 
+                          badge: tradingService.positions.count)
+                
+                // Trading (Terminal) - Primary action
+                tabBarItem(icon: "arrow.up.arrow.down", label: "trading".localized, index: 2, isPrimary: true)
+                
+                // Settings
+                tabBarItem(icon: "gearshape.fill", label: "settings".localized, index: 3)
             }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 30) // Safe area for home indicator
+        }
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .background(Color.enlikoBackground.opacity(0.9))
         )
     }
     
-    private func tabBarItem(icon: String, label: String, index: Int, isPrimary: Bool = false) -> some View {
+    private func tabBarItem(icon: String, label: String, index: Int, isPrimary: Bool = false, badge: Int = 0) -> some View {
         let isSelected = selectedTab == index
         
         return Button(action: {
@@ -162,9 +173,23 @@ struct MainTabView: View {
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                     } else {
-                        Image(systemName: icon)
-                            .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
-                            .foregroundColor(isSelected ? .enlikoPrimary : .enlikoTextSecondary)
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: icon)
+                                .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                                .foregroundColor(isSelected ? .enlikoPrimary : .enlikoTextSecondary)
+                            
+                            // Badge for positions count
+                            if badge > 0 {
+                                Text("\(badge)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color.enlikoPrimary)
+                                    .clipShape(Capsule())
+                                    .offset(x: 10, y: -5)
+                            }
+                        }
                     }
                 }
                 .frame(height: 50)

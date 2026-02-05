@@ -1384,3 +1384,63 @@ extension Trade {
         return timestamp
     }
 }
+
+// MARK: - Dashboard Models
+struct StrategyBreakdownItem: Codable, Identifiable {
+    var id: String { strategy }
+    let strategy: String
+    let trades: Int
+    let wins: Int
+    let losses: Int
+    let pnl: Double
+    let winRate: Double
+    
+    var color: Color {
+        switch strategy.lowercased() {
+        case "oi": return .orange
+        case "scryptomera": return .cyan
+        case "scalper": return .purple
+        case "elcaro": return .blue
+        case "fibonacci": return .green
+        case "rsi_bb", "rsi-bb": return .pink
+        case "manual": return .gray
+        default: return .white
+        }
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case strategy, trades, wins, losses, pnl
+        case winRate = "win_rate"
+    }
+}
+
+struct RecentTrade: Codable, Identifiable {
+    var id: String { "\(symbol)-\(closedAtString)-\(pnl)" }
+    let symbol: String
+    let side: String
+    let entryPrice: Double
+    let exitPrice: Double
+    let size: Double
+    let pnl: Double
+    let pnlPercent: Double
+    let closedAtString: String
+    let strategy: String?
+    let exitReason: String?
+    
+    var closedAt: Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: closedAtString) ?? Date()
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case symbol, side, size, pnl, strategy
+        case entryPrice = "entry_price"
+        case exitPrice = "exit_price"
+        case pnlPercent = "pnl_percent"
+        case closedAtString = "closed_at"
+        case exitReason = "exit_reason"
+    }
+}
+
+import SwiftUI
