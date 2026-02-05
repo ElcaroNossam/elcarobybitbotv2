@@ -55,8 +55,8 @@ enum PortfolioTab: String, CaseIterable {
 
 // MARK: - Portfolio Data Models
 struct PortfolioSummary: Codable {
-    let spot: SpotPortfolio?
-    let futures: FuturesPortfolio?
+    let spot: PortfolioSpotData?
+    let futures: PortfolioFuturesData?
     let totalUsd: Double
     let pnlPeriod: Double
     let pnlPeriodPct: Double
@@ -74,7 +74,7 @@ struct PortfolioSummary: Codable {
     }
 }
 
-struct SpotPortfolio: Codable {
+struct PortfolioSpotData: Codable {
     let totalUsd: Double
     let pnl: Double
     let pnlPct: Double
@@ -87,7 +87,7 @@ struct SpotPortfolio: Codable {
     }
 }
 
-struct FuturesPortfolio: Codable {
+struct PortfolioFuturesData: Codable {
     let totalEquity: Double
     let available: Double
     let positionMargin: Double
@@ -504,7 +504,7 @@ struct PortfolioView: View {
         if index >= 0 && index < candles.count {
             selectedCandle = candles[index]
             showCandleDetail = true
-            HapticManager.shared.selection()
+            HapticFeedback.selection()
         }
     }
     
@@ -566,8 +566,8 @@ struct PositionRowView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("$\(position.positionValue?.formattedPrice ?? "--")").font(.subheadline).foregroundColor(.white)
-                Text(position.unrealizedPnl?.formattedCurrency ?? "--").font(.caption).foregroundColor((position.unrealizedPnl ?? 0) >= 0 ? .enlikoGreen : .enlikoRed)
+                Text("$\(position.positionValue.formattedPrice)").font(.subheadline).foregroundColor(.white)
+                Text(position.unrealizedPnl.formattedCurrency).font(.caption).foregroundColor(position.unrealizedPnl >= 0 ? .enlikoGreen : .enlikoRed)
             }
         }.padding(.vertical, 8)
     }
