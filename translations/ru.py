@@ -115,6 +115,7 @@ TEXTS = {
     'button_orders': '📋 Ордера',
     'button_ai_bots': '🎯 Стратегии',
     'button_strategies': '🤖 AI Боты',
+    'button_spot': '💹 Спот',
     'button_screener': '📈 Скринер',
     'button_market': '📈 Рынок',
     'button_history': '📜 История',

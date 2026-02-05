@@ -2380,6 +2380,168 @@ def format_spot_settings_message(t: dict, cfg: dict, spot_settings: dict) -> str
 
 @with_texts
 @log_calls
+async def cmd_spot_portfolio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handler for Spot button in main menu - shows portfolio directly."""
+    uid = update.effective_user.id
+    t = ctx.t
+    
+    cfg = db.get_user_config(uid)
+    spot_settings = cfg.get("spot_settings") or {}
+    account_type = spot_settings.get("trading_mode", "demo")
+    
+    # Show loading message
+    loading_msg = await update.message.reply_text(
+        "💹 Loading Spot Portfolio...",
+        parse_mode="HTML"
+    )
+    
+    try:
+        balances = await fetch_spot_balance(uid, account_type=account_type)
+        
+        if not balances:
+            await loading_msg.edit_text(
+                "💹 <b>Spot Portfolio</b>\n\n"
+                "❌ No spot balance found.\n\n"
+                "To start using Spot trading:\n"
+                "1. Add funds to your Bybit account\n"
+                "2. Transfer to UNIFIED account\n"
+                "3. Use 💰 Buy Now to purchase coins",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⚙️ Spot Settings", callback_data="spot:back_to_main")],
+                ])
+            )
+            return
+        
+        # Get prices for all coins in parallel
+        total_usd_value = 0.0
+        holdings_data = []
+        
+        # Filter coins with balance
+        filtered_balances = {c: amt for c, amt in balances.items() if amt > 0.00001}
+        
+        # Fetch prices in parallel
+        price_tasks = {}
+        for coin in filtered_balances:
+            if coin != "USDT":
+                symbol = f"{coin}USDT"
+                price_tasks[coin] = asyncio.create_task(get_spot_ticker(uid, symbol, account_type))
+        
+        # Wait for all prices
+        for coin, task in price_tasks.items():
+            try:
+                ticker = await task
+                price = float(ticker.get("lastPrice", 0)) if ticker else 0
+                price_change_24h = float(ticker.get("price24hPcnt", 0)) * 100 if ticker else 0
+                amount = filtered_balances[coin]
+                usd_value = amount * price
+                total_usd_value += usd_value
+                holdings_data.append({
+                    "coin": coin,
+                    "amount": amount,
+                    "price": price,
+                    "usd_value": usd_value,
+                    "change_24h": price_change_24h,
+                })
+            except Exception as e:
+                logger.warning(f"Failed to get price for {coin}: {e}")
+                holdings_data.append({
+                    "coin": coin,
+                    "amount": filtered_balances[coin],
+                    "price": 0,
+                    "usd_value": 0,
+                    "change_24h": 0,
+                })
+        
+        # Add USDT if present
+        if "USDT" in filtered_balances:
+            usdt_amt = filtered_balances["USDT"]
+            total_usd_value += usdt_amt
+            holdings_data.append({
+                "coin": "USDT",
+                "amount": usdt_amt,
+                "price": 1.0,
+                "usd_value": usdt_amt,
+                "change_24h": 0,
+            })
+        
+        # Sort by USD value descending
+        holdings_data.sort(key=lambda x: x["usd_value"], reverse=True)
+        
+        # Format message
+        mode_label = "🧪 Demo" if account_type == "demo" else "💰 Real"
+        lines = [
+            f"💹 <b>Spot Portfolio</b> {mode_label}",
+            f"━━━━━━━━━━━━━━━━━━",
+            f"💵 <b>Total Value:</b> ${total_usd_value:,.2f}",
+            "",
+        ]
+        
+        for h in holdings_data:
+            coin = h["coin"]
+            amount = h["amount"]
+            usd_value = h["usd_value"]
+            change = h["change_24h"]
+            
+            # Format change with emoji
+            if change > 0:
+                change_str = f"🟢 +{change:.2f}%"
+            elif change < 0:
+                change_str = f"🔴 {change:.2f}%"
+            else:
+                change_str = "⚪ 0.00%"
+            
+            # Format amount (shorter for readability)
+            if amount >= 1:
+                amt_str = f"{amount:,.4f}"
+            else:
+                amt_str = f"{amount:.8f}"
+            
+            if coin == "USDT":
+                lines.append(f"💵 <b>USDT:</b> ${usd_value:,.2f}")
+            else:
+                lines.append(f"🪙 <b>{coin}:</b> {amt_str}")
+                lines.append(f"   └ ${usd_value:,.2f} | {change_str}")
+        
+        holdings_msg = "\n".join(lines)
+        
+        # Build keyboard with action buttons
+        buttons = []
+        
+        # Quick sell buttons for non-USDT coins
+        sellable = [h for h in holdings_data if h["coin"] != "USDT" and h["usd_value"] > 1]
+        if sellable:
+            buttons.append([InlineKeyboardButton("💸 Sell Menu", callback_data="spot:sell_menu")])
+        
+        # Action buttons
+        buttons.append([
+            InlineKeyboardButton("🔄 Refresh", callback_data="spot:holdings"),
+            InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
+        ])
+        
+        buttons.append([
+            InlineKeyboardButton("⚙️ Settings", callback_data="spot:back_to_main"),
+        ])
+        
+        await loading_msg.edit_text(
+            holdings_msg,
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in cmd_spot_portfolio: {e}")
+        await loading_msg.edit_text(
+            f"❌ Error loading portfolio: {str(e)}",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚙️ Spot Settings", callback_data="spot:back_to_main")],
+            ])
+        )
+
+
+@with_texts
+@log_calls
 async def cmd_spot_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handler for Spot Settings button in main menu."""
     uid = update.effective_user.id
@@ -2680,7 +2842,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if action == "holdings":
-        # Show current spot holdings - use trading mode from settings
+        # Show detailed spot portfolio - use trading mode from settings
         account_type = spot_settings.get("trading_mode", "demo")
         
         balances = await fetch_spot_balance(uid, account_type=account_type)
@@ -2689,20 +2851,122 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(t.get("spot_no_balance", "❌ No spot balance found"), show_alert=True)
             return
         
-        lines = ["💎 <b>Spot Holdings:</b>", ""]
-        for coin, amount in sorted(balances.items()):
-            if amount > 0.00001:
-                lines.append(f"• {coin}: {amount:.8f}")
+        await q.answer("Loading portfolio...")
+        
+        # Get prices for all coins in parallel
+        total_usd_value = 0.0
+        holdings_data = []
+        
+        # Filter coins with balance
+        filtered_balances = {c: amt for c, amt in balances.items() if amt > 0.00001}
+        
+        # Fetch prices in parallel
+        price_tasks = {}
+        for coin in filtered_balances:
+            if coin != "USDT":
+                symbol = f"{coin}USDT"
+                price_tasks[coin] = asyncio.create_task(get_spot_ticker(uid, symbol, account_type))
+        
+        # Wait for all prices
+        for coin, task in price_tasks.items():
+            try:
+                ticker = await task
+                price = float(ticker.get("lastPrice", 0)) if ticker else 0
+                price_change_24h = float(ticker.get("price24hPcnt", 0)) * 100 if ticker else 0
+                amount = filtered_balances[coin]
+                usd_value = amount * price
+                total_usd_value += usd_value
+                holdings_data.append({
+                    "coin": coin,
+                    "amount": amount,
+                    "price": price,
+                    "usd_value": usd_value,
+                    "change_24h": price_change_24h,
+                })
+            except Exception as e:
+                logger.warning(f"Failed to get price for {coin}: {e}")
+                holdings_data.append({
+                    "coin": coin,
+                    "amount": filtered_balances[coin],
+                    "price": 0,
+                    "usd_value": 0,
+                    "change_24h": 0,
+                })
+        
+        # Add USDT if present
+        if "USDT" in filtered_balances:
+            usdt_amt = filtered_balances["USDT"]
+            total_usd_value += usdt_amt
+            holdings_data.append({
+                "coin": "USDT",
+                "amount": usdt_amt,
+                "price": 1.0,
+                "usd_value": usdt_amt,
+                "change_24h": 0,
+            })
+        
+        # Sort by USD value descending
+        holdings_data.sort(key=lambda x: x["usd_value"], reverse=True)
+        
+        # Format message
+        mode_label = "🧪 Demo" if account_type == "demo" else "💰 Real"
+        lines = [
+            f"💎 <b>Spot Portfolio</b> {mode_label}",
+            f"━━━━━━━━━━━━━━━━━━",
+            f"💵 <b>Total Value:</b> ${total_usd_value:,.2f}",
+            "",
+        ]
+        
+        for h in holdings_data:
+            coin = h["coin"]
+            amount = h["amount"]
+            usd_value = h["usd_value"]
+            change = h["change_24h"]
+            
+            # Format change with emoji
+            if change > 0:
+                change_str = f"🟢 +{change:.2f}%"
+            elif change < 0:
+                change_str = f"🔴 {change:.2f}%"
+            else:
+                change_str = "⚪ 0.00%"
+            
+            # Format amount (shorter for readability)
+            if amount >= 1:
+                amt_str = f"{amount:,.4f}"
+            else:
+                amt_str = f"{amount:.8f}"
+            
+            if coin == "USDT":
+                lines.append(f"💵 <b>USDT:</b> ${usd_value:,.2f}")
+            else:
+                lines.append(f"🪙 <b>{coin}:</b> {amt_str}")
+                lines.append(f"   └ ${usd_value:,.2f} | {change_str}")
         
         holdings_msg = "\n".join(lines)
-        await q.answer()
         
-        cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings") or {}
-        msg = format_spot_settings_message(t, cfg, spot_settings)
-        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        # Build keyboard with sell buttons
+        buttons = []
+        
+        # Quick sell buttons for non-USDT coins
+        sellable = [h for h in holdings_data if h["coin"] != "USDT" and h["usd_value"] > 1]
+        if sellable:
+            buttons.append([InlineKeyboardButton("💸 Sell Menu", callback_data="spot:sell_menu")])
+        
+        # Action buttons
+        buttons.append([
+            InlineKeyboardButton("🔄 Refresh", callback_data="spot:holdings"),
+            InlineKeyboardButton("💰 Buy Now", callback_data="spot:buy_now"),
+        ])
+        
+        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        
         try:
-            await q.edit_message_text(msg + f"\n\n{holdings_msg}", reply_markup=keyboard, parse_mode="HTML")
+            await q.edit_message_text(
+                holdings_msg,
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
         except BadRequest:
             pass
         return
@@ -3053,8 +3317,11 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     
     if action == "sell_menu":
-        # Show menu to select coin to sell
+        # Show detailed menu to select coin to sell
         account_type = spot_settings.get("trading_mode", "demo")
+        
+        await q.answer("Loading sell menu...")
+        
         balances = await fetch_spot_balance(uid, account_type=account_type)
         
         # Filter coins with balance > 0 (excluding stables)
@@ -3065,30 +3332,92 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(t.get("spot_no_coins", "❌ No coins to sell"), show_alert=True)
             return
         
-        buttons = []
-        for coin, qty in sorted(sellable.items()):
-            # Get current price
+        # Get purchase history for PnL calculation
+        purchase_history = spot_settings.get("purchase_history", {})
+        
+        # Fetch all prices in parallel
+        price_tasks = {}
+        for coin in sellable:
             symbol = f"{coin}USDT"
+            price_tasks[coin] = asyncio.create_task(get_spot_ticker(uid, symbol, account_type))
+        
+        # Build detailed sell menu
+        mode_label = "🧪 Demo" if account_type == "demo" else "💰 Real"
+        lines = [
+            f"💸 <b>Sell Assets</b> {mode_label}",
+            "━━━━━━━━━━━━━━━━━━",
+            "",
+        ]
+        
+        buttons = []
+        total_value = 0.0
+        total_pnl = 0.0
+        
+        for coin, qty in sorted(sellable.items(), key=lambda x: x[0]):
             try:
-                ticker = await get_spot_ticker(uid, symbol, account_type)
+                ticker = await price_tasks[coin]
                 price = float(ticker.get("lastPrice", 0)) if ticker else 0
+                price_change = float(ticker.get("price24hPcnt", 0)) * 100 if ticker else 0
                 value = qty * price
+                total_value += value
+                
+                # Calculate PnL if we have purchase history
+                pnl_str = ""
+                if coin in purchase_history:
+                    avg_price = purchase_history[coin].get("avg_price", 0)
+                    if avg_price > 0:
+                        pnl_pct = ((price - avg_price) / avg_price) * 100
+                        pnl_usd = value - (qty * avg_price)
+                        total_pnl += pnl_usd
+                        if pnl_pct >= 0:
+                            pnl_str = f" | 🟢 +{pnl_pct:.1f}%"
+                        else:
+                            pnl_str = f" | 🔴 {pnl_pct:.1f}%"
+                
+                # 24h change emoji
+                if price_change > 0:
+                    change_str = f"↗️+{price_change:.1f}%"
+                elif price_change < 0:
+                    change_str = f"↘️{price_change:.1f}%"
+                else:
+                    change_str = "→ 0%"
+                
+                lines.append(f"🪙 <b>{coin}</b>: {qty:.6f}")
+                lines.append(f"   💵 ${value:,.2f} ({change_str}){pnl_str}")
+                
                 buttons.append([InlineKeyboardButton(
-                    f"💸 {coin}: {qty:.6f} (${value:.2f})",
+                    f"💸 Sell {coin} (${value:.2f})",
                     callback_data=f"spot:sell_coin:{coin}"
                 )])
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Failed to get price for {coin}: {e}")
                 buttons.append([InlineKeyboardButton(
-                    f"💸 {coin}: {qty:.6f}",
+                    f"💸 Sell {coin}: {qty:.6f}",
                     callback_data=f"spot:sell_coin:{coin}"
                 )])
         
-        buttons.append([InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")])
+        lines.append("")
+        lines.append(f"━━━━━━━━━━━━━━━━━━")
+        lines.append(f"💵 <b>Total:</b> ${total_value:,.2f}")
+        if abs(total_pnl) > 0.01:
+            pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
+            lines.append(f"📊 <b>Total PnL:</b> {pnl_emoji} ${total_pnl:+,.2f}")
+        
+        # Add Sell All button if multiple coins
+        if len(sellable) > 1:
+            buttons.append([InlineKeyboardButton(
+                f"🔥 SELL ALL → USDT (${total_value:,.2f})",
+                callback_data="spot:sell_all_to_usdt"
+            )])
+        
+        buttons.append([
+            InlineKeyboardButton("🔄 Refresh", callback_data="spot:sell_menu"),
+            InlineKeyboardButton("⬅️ Back", callback_data="spot:holdings"),
+        ])
         
         try:
             await q.edit_message_text(
-                "💸 <b>Select Coin to Sell</b>\n\n"
-                "Choose a coin from your holdings:",
+                "\n".join(lines),
                 reply_markup=InlineKeyboardMarkup(buttons),
                 parse_mode="HTML"
             )
@@ -3143,12 +3472,103 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             msg_text = f"❌ <b>Sell Failed</b>\n\n{result.get('error', 'Unknown error')}"
         
-        cfg = db.get_user_config(uid)
-        spot_settings = cfg.get("spot_settings") or {}
-        keyboard = get_spot_settings_keyboard(t, cfg, spot_settings)
+        # Return to holdings view with updated data
+        buttons = [
+            [InlineKeyboardButton("💎 View Holdings", callback_data="spot:holdings")],
+            [InlineKeyboardButton("💸 Sell More", callback_data="spot:sell_menu")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
+        ]
         
         try:
-            await q.edit_message_text(msg_text, reply_markup=keyboard, parse_mode="HTML")
+            await q.edit_message_text(msg_text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
+        except BadRequest:
+            pass
+        return
+    
+    if action == "sell_all_to_usdt":
+        # Confirmation before selling all
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        # Get all sellable coins
+        balances = await fetch_spot_balance(uid, account_type=account_type)
+        sellable = {coin: qty for coin, qty in balances.items() 
+                   if qty > 0.00001 and coin not in ("USDT", "USDC", "BUSD", "DAI")}
+        
+        if not sellable:
+            await q.answer("No coins to sell!", show_alert=True)
+            return
+        
+        # Calculate total value
+        total_value = 0.0
+        for coin, qty in sellable.items():
+            symbol = f"{coin}USDT"
+            try:
+                ticker = await get_spot_ticker(uid, symbol, account_type)
+                price = float(ticker.get("lastPrice", 0)) if ticker else 0
+                total_value += qty * price
+            except:
+                pass
+        
+        coins_list = ", ".join(sellable.keys())
+        
+        buttons = [
+            [InlineKeyboardButton(f"✅ YES, Sell All (~${total_value:,.2f})", callback_data="spot:exec_sell_all")],
+            [InlineKeyboardButton("❌ Cancel", callback_data="spot:sell_menu")],
+        ]
+        
+        try:
+            await q.edit_message_text(
+                f"⚠️ <b>Confirm Sell All</b>\n\n"
+                f"You are about to sell ALL:\n"
+                f"🪙 <b>{coins_list}</b>\n\n"
+                f"💵 Estimated: ~${total_value:,.2f} USDT\n\n"
+                f"<b>This action cannot be undone!</b>",
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode="HTML"
+            )
+        except BadRequest:
+            pass
+        return
+    
+    if action == "exec_sell_all":
+        # Execute sell all coins to USDT
+        account_type = spot_settings.get("trading_mode", "demo")
+        
+        await q.answer("Selling all coins to USDT...")
+        
+        balances = await fetch_spot_balance(uid, account_type=account_type)
+        sellable = {coin: qty for coin, qty in balances.items() 
+                   if qty > 0.00001 and coin not in ("USDT", "USDC", "BUSD", "DAI")}
+        
+        results = []
+        total_received = 0.0
+        
+        for coin in sellable:
+            result = await execute_spot_sell(uid, coin, sell_pct=100, account_type=account_type)
+            if result.get("success"):
+                received = result.get("usdt_received", 0)
+                total_received += received
+                results.append(f"✅ {coin}: +${received:,.2f}")
+            else:
+                results.append(f"❌ {coin}: {result.get('error', 'Failed')}")
+        
+        lines = [
+            "🔥 <b>Sell All Complete</b>",
+            "━━━━━━━━━━━━━━━━━━",
+            "",
+        ]
+        lines.extend(results)
+        lines.append("")
+        lines.append(f"━━━━━━━━━━━━━━━━━━")
+        lines.append(f"💵 <b>Total Received:</b> ${total_received:,.2f} USDT")
+        
+        buttons = [
+            [InlineKeyboardButton("💎 View Holdings", callback_data="spot:holdings")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="spot:back_to_main")],
+        ]
+        
+        try:
+            await q.edit_message_text("\n".join(lines), reply_markup=InlineKeyboardMarkup(buttons), parse_mode="HTML")
         except BadRequest:
             pass
         return
@@ -4410,11 +4830,11 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
         # ─── Row 1: Core Trading ───
         [ t.get('button_balance', '💎 Portfolio'), t.get('button_positions', '🎯 Positions'), t.get('button_orders', '📊 Orders') ],
         # ─── Row 2: AI & Market ───
-        [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_market', '📈 Market'), t.get('button_history', '📜 History') ],
+        [ t.get('button_strategies', '🤖 AI Bots'), t.get('button_spot', '💹 Spot'), t.get('button_history', '📜 History') ],
         # ─── Row 3: Premium & Settings ───
-        [ t.get('button_subscribe', '👑 PREMIUM'), t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys') ],
+        [ t.get('button_market', '📈 Market'), t.get('button_lang', '🌍 Lang'), t.get('button_api_keys', '🔗 API Keys') ],
         # ─── Row 4: Terminal & Exchange ───
-        [ t.get('button_terminal', '💻 Terminal'), exchange_btn ],
+        [ t.get('button_terminal', '💻 Terminal'), t.get('button_subscribe', '👑 PREMIUM'), exchange_btn ],
     ]
     
     # Add admin row if user is admin
@@ -22370,7 +22790,11 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if text == ctx.t.get("button_webapp", "🌐 WebApp"):
         return await cmd_webapp(update, ctx)
     
-    # Spot Settings button
+    # Spot button - shows spot portfolio directly (NEW!)
+    if text in ["💹 Spot", "💹 Спот", ctx.t.get("button_spot", "💹 Spot")]:
+        return await cmd_spot_portfolio(update, ctx)
+    
+    # Spot Settings button (legacy)
     if text == ctx.t.get("button_spot_settings", "💹 Spot Settings"):
         return await cmd_spot_settings(update, ctx)
     
