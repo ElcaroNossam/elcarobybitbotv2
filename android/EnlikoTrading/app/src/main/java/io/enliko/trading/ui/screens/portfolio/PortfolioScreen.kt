@@ -1209,7 +1209,9 @@ private fun PositionCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(strings.pnl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val pnl = position.unrealizedPnl ?: 0.0
-                    val pnlPct = position.pnlPercent ?: 0.0
+                    val pnlPct = position.pnlPercent ?: position.markPrice?.let { 
+                        if (position.entryPrice > 0) ((it - position.entryPrice) / position.entryPrice * 100) else 0.0
+                    } ?: 0.0
                     val pnlColor = when {
                         pnl > 0 -> LongGreen
                         pnl < 0 -> ShortRed

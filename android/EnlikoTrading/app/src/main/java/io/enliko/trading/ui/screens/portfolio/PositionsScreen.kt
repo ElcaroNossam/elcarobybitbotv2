@@ -26,7 +26,8 @@ import java.util.Locale
  * Display open positions with detailed information
  */
 
-data class Position(
+// Local model for this screen (different from API Position)
+data class PositionDisplay(
     val id: String,
     val symbol: String,
     val side: String, // "long" or "short"
@@ -57,7 +58,7 @@ fun PositionsScreen(
     // Sample positions data
     val positions = remember {
         listOf(
-            Position(
+            PositionDisplay(
                 id = "1",
                 symbol = "BTCUSDT",
                 side = "long",
@@ -74,7 +75,7 @@ fun PositionsScreen(
                 slPrice = 94000.0,
                 exchange = "bybit"
             ),
-            Position(
+            PositionDisplay(
                 id = "2",
                 symbol = "ETHUSDT",
                 side = "long",
@@ -91,7 +92,7 @@ fun PositionsScreen(
                 slPrice = 3350.0,
                 exchange = "bybit"
             ),
-            Position(
+            PositionDisplay(
                 id = "3",
                 symbol = "SOLUSDT",
                 side = "short",
@@ -251,7 +252,7 @@ fun PositionsScreen(
 }
 
 @Composable
-private fun PositionsSummaryCard(positions: List<Position>) {
+private fun PositionsSummaryCard(positions: List<PositionDisplay>) {
     val totalUnrealizedPnl = positions.sumOf { it.unrealizedPnl }
     val totalMargin = positions.sumOf { it.margin }
     
@@ -308,7 +309,7 @@ private fun SummaryItem(
 
 @Composable
 private fun PositionCard(
-    position: Position,
+    position: PositionDisplay,
     onClose: () -> Unit,
     onModifyTpSl: () -> Unit
 ) {
