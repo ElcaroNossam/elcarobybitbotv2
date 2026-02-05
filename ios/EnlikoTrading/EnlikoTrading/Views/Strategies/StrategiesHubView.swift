@@ -470,7 +470,7 @@ class StrategiesHubViewModel: ObservableObject {
         do {
             // Use mobile endpoint that returns flat array with separate long/short objects
             let response: [MobileStrategySettings] = try await NetworkService.shared.get(
-                "/strategy-settings/mobile",
+                "/users/strategy-settings/mobile",
                 params: [
                     "exchange": exchange.rawValue,
                     "account_type": accountType.rawValue
@@ -509,7 +509,7 @@ class StrategiesHubViewModel: ObservableObject {
                 account_type: currentAccountType.rawValue
             )
             try await NetworkService.shared.postIgnoreResponse(
-                "/strategy-settings/\(name)/toggle",
+                "/trading/strategy-settings/\(name)/toggle",
                 body: body
             )
             
@@ -535,7 +535,7 @@ class StrategiesHubViewModel: ObservableObject {
             }
             
             try await NetworkService.shared.postIgnoreResponse(
-                "/strategy-settings/\(name)/toggle",
+                "/trading/strategy-settings/\(name)/toggle",
                 body: body
             )
             
