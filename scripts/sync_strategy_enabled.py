@@ -38,7 +38,7 @@ def sync_strategy_settings():
             SELECT user_id, trade_oi, trade_rsi_bb, trade_scryptomera, 
                    trade_scalper, trade_elcaro, trade_fibonacci
             FROM users
-            WHERE is_allowed = 1 OR is_allowed = TRUE
+            WHERE is_allowed = 1
         """)
         users = cur.fetchall()
         
