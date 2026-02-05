@@ -22758,8 +22758,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Show positions with close buttons (user can close all from there)
             return await cmd_open_positions(update, ctx)
     
-    # Market - Bybit only
-    if text in ["📉 Market", "📈 Market", ctx.t.get('button_market', '📈 Market')]:
+    # Market - works for all languages
+    if text in ["📉 Market", "📈 Market", "📈 Рынок", "📈 Ринок", ctx.t.get('button_market', '📈 Market')]:
         return await cmd_market(update, ctx)
     
     # Settings - works for current exchange
