@@ -210,6 +210,28 @@ interface Strings {
     val bestTrade: String
     val worstTrade: String
     
+    // Portfolio New
+    val portfolioOverview: String
+    val portfolioSpot: String
+    val portfolioFutures: String
+    val totalBalance: String
+    val noSpotAssets: String
+    val assets: String
+    val margin: String
+    val pnlChart: String
+    val noData: String
+    val tapCandleHint: String
+    val clusterAnalysis: String
+    val clusterSummary: String
+    val trades: String
+    val direction: String
+    val symbols: String
+    val allTrades: String
+    val customPeriod: String
+    val from: String
+    val to: String
+    val apply: String
+    
     // Disclaimer - Legal Compliance
     val disclaimerTitle: String
     val disclaimerIntro: String
@@ -365,6 +387,29 @@ interface Strings {
         override val avgPnl = "Avg PnL"
         override val bestTrade = "Best Trade"
         override val worstTrade = "Worst Trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Overview"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Total Balance"
+        override val noSpotAssets = "No spot assets"
+        override val assets = "assets"
+        override val margin = "Margin"
+        override val pnlChart = "PnL Chart"
+        override val noData = "No data"
+        override val tapCandleHint = "Tap candle for details"
+        override val clusterAnalysis = "Cluster Analysis"
+        override val clusterSummary = "Summary"
+        override val trades = "Trades"
+        override val direction = "Direction"
+        override val symbols = "Symbols"
+        override val allTrades = "All Trades"
+        override val customPeriod = "Custom Period"
+        override val from = "From"
+        override val to = "To"
+        override val apply = "Apply"
+        
         // Disclaimer
         override val disclaimerTitle = "⚠️ Important Disclaimer"
         override val disclaimerIntro = "Enliko is an educational and analytical tool for cryptocurrency markets."
@@ -496,6 +541,29 @@ interface Strings {
         override val avgPnl = "Средний PnL"
         override val bestTrade = "Лучшая сделка"
         override val worstTrade = "Худшая сделка"
+        
+        // Portfolio New
+        override val portfolioOverview = "Обзор"
+        override val portfolioSpot = "Спот"
+        override val portfolioFutures = "Фьючерсы"
+        override val totalBalance = "Общий баланс"
+        override val noSpotAssets = "Нет спот активов"
+        override val assets = "активов"
+        override val margin = "Маржа"
+        override val pnlChart = "График PnL"
+        override val noData = "Нет данных"
+        override val tapCandleHint = "Нажмите на свечу для деталей"
+        override val clusterAnalysis = "Кластерный анализ"
+        override val clusterSummary = "Итого"
+        override val trades = "Сделки"
+        override val direction = "Направление"
+        override val symbols = "Символы"
+        override val allTrades = "Все сделки"
+        override val customPeriod = "Свой период"
+        override val from = "От"
+        override val to = "До"
+        override val apply = "Применить"
+        
         // Disclaimer
         override val disclaimerTitle = "⚠️ Важное предупреждение"
         override val disclaimerIntro = "Enliko — это образовательный и аналитический инструмент для криптовалютных рынков."
@@ -627,6 +695,29 @@ interface Strings {
         override val avgPnl = "Середній PnL"
         override val bestTrade = "Найкраща угода"
         override val worstTrade = "Найгірша угода"
+        
+        // Portfolio New
+        override val portfolioOverview = "Огляд"
+        override val portfolioSpot = "Спот"
+        override val portfolioFutures = "Ф'ючерси"
+        override val totalBalance = "Загальний баланс"
+        override val noSpotAssets = "Немає спот активів"
+        override val assets = "активів"
+        override val margin = "Маржа"
+        override val pnlChart = "Графік PnL"
+        override val noData = "Немає даних"
+        override val tapCandleHint = "Натисніть на свічку для деталей"
+        override val clusterAnalysis = "Кластерний аналіз"
+        override val clusterSummary = "Підсумок"
+        override val trades = "Угоди"
+        override val direction = "Напрямок"
+        override val symbols = "Символи"
+        override val allTrades = "Всі угоди"
+        override val customPeriod = "Свій період"
+        override val from = "Від"
+        override val to = "До"
+        override val apply = "Застосувати"
+        
         // Disclaimer
         override val disclaimerTitle = "⚠️ Важливе попередження"
         override val disclaimerIntro = "Enliko — це освітній та аналітичний інструмент для криптовалютних ринків."
@@ -759,6 +850,29 @@ interface Strings {
         override val avgPnl = "Durchschn. PnL"
         override val bestTrade = "Bester Trade"
         override val worstTrade = "Schlechtester Trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Übersicht"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Gesamtguthaben"
+        override val noSpotAssets = "Keine Spot-Assets"
+        override val assets = "Assets"
+        override val margin = "Margin"
+        override val pnlChart = "PnL-Diagramm"
+        override val noData = "Keine Daten"
+        override val tapCandleHint = "Tippen Sie auf die Kerze für Details"
+        override val clusterAnalysis = "Clusteranalyse"
+        override val clusterSummary = "Zusammenfassung"
+        override val trades = "Trades"
+        override val direction = "Richtung"
+        override val symbols = "Symbole"
+        override val allTrades = "Alle Trades"
+        override val customPeriod = "Eigener Zeitraum"
+        override val from = "Von"
+        override val to = "Bis"
+        override val apply = "Anwenden"
+        
         // Disclaimer
         override val disclaimerTitle = "⚠️ Wichtiger Hinweis"
         override val disclaimerIntro = "Enliko ist ein Bildungs- und Analysewerkzeug für Kryptowährungsmärkte."
@@ -888,6 +1002,30 @@ interface Strings {
         override val avgPnl = "PnL promedio"
         override val bestTrade = "Mejor trade"
         override val worstTrade = "Peor trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Resumen"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futuros"
+        override val totalBalance = "Saldo total"
+        override val noSpotAssets = "Sin activos spot"
+        override val assets = "activos"
+        override val margin = "Margen"
+        override val pnlChart = "Gráfico PnL"
+        override val noData = "Sin datos"
+        override val tapCandleHint = "Toca la vela para detalles"
+        override val clusterAnalysis = "Análisis de clúster"
+        override val clusterSummary = "Resumen"
+        override val trades = "Trades"
+        override val direction = "Dirección"
+        override val symbols = "Símbolos"
+        override val allTrades = "Todos los trades"
+        override val customPeriod = "Período personalizado"
+        override val from = "Desde"
+        override val to = "Hasta"
+        override val apply = "Aplicar"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Aviso importante"
         override val disclaimerIntro = "Enliko es una herramienta educativa y analítica para mercados de criptomonedas."
         override val disclaimerNotFinancialAdvice = "Esto NO es asesoramiento financiero"
@@ -1016,6 +1154,30 @@ interface Strings {
         override val avgPnl = "PnL moyen"
         override val bestTrade = "Meilleur trade"
         override val worstTrade = "Pire trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Aperçu"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Solde total"
+        override val noSpotAssets = "Pas d'actifs spot"
+        override val assets = "actifs"
+        override val margin = "Marge"
+        override val pnlChart = "Graphique PnL"
+        override val noData = "Pas de données"
+        override val tapCandleHint = "Appuyez sur la bougie pour les détails"
+        override val clusterAnalysis = "Analyse de cluster"
+        override val clusterSummary = "Résumé"
+        override val trades = "Trades"
+        override val direction = "Direction"
+        override val symbols = "Symboles"
+        override val allTrades = "Tous les trades"
+        override val customPeriod = "Période personnalisée"
+        override val from = "De"
+        override val to = "À"
+        override val apply = "Appliquer"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Avis important"
         override val disclaimerIntro = "Enliko est un outil éducatif et analytique pour les marchés crypto."
         override val disclaimerNotFinancialAdvice = "Ceci n'est PAS un conseil financier"
@@ -1144,6 +1306,30 @@ interface Strings {
         override val avgPnl = "PnL medio"
         override val bestTrade = "Miglior trade"
         override val worstTrade = "Peggior trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Panoramica"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Saldo totale"
+        override val noSpotAssets = "Nessun asset spot"
+        override val assets = "asset"
+        override val margin = "Margine"
+        override val pnlChart = "Grafico PnL"
+        override val noData = "Nessun dato"
+        override val tapCandleHint = "Tocca la candela per i dettagli"
+        override val clusterAnalysis = "Analisi cluster"
+        override val clusterSummary = "Riepilogo"
+        override val trades = "Trade"
+        override val direction = "Direzione"
+        override val symbols = "Simboli"
+        override val allTrades = "Tutti i trade"
+        override val customPeriod = "Periodo personalizzato"
+        override val from = "Da"
+        override val to = "A"
+        override val apply = "Applica"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Avviso importante"
         override val disclaimerIntro = "Enliko è uno strumento educativo e analitico per i mercati crypto."
         override val disclaimerNotFinancialAdvice = "Questo NON è consulenza finanziaria"
@@ -1272,6 +1458,30 @@ interface Strings {
         override val avgPnl = "平均PnL"
         override val bestTrade = "ベストトレード"
         override val worstTrade = "ワーストトレード"
+        
+        // Portfolio New
+        override val portfolioOverview = "概要"
+        override val portfolioSpot = "現物"
+        override val portfolioFutures = "先物"
+        override val totalBalance = "総残高"
+        override val noSpotAssets = "現物資産なし"
+        override val assets = "資産"
+        override val margin = "証拠金"
+        override val pnlChart = "PnLチャート"
+        override val noData = "データなし"
+        override val tapCandleHint = "ローソク足をタップして詳細を表示"
+        override val clusterAnalysis = "クラスター分析"
+        override val clusterSummary = "サマリー"
+        override val trades = "トレード"
+        override val direction = "方向"
+        override val symbols = "シンボル"
+        override val allTrades = "すべてのトレード"
+        override val customPeriod = "カスタム期間"
+        override val from = "開始"
+        override val to = "終了"
+        override val apply = "適用"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ 重要なお知らせ"
         override val disclaimerIntro = "Enlikoは暗号資産市場向けの教育・分析ツールです。"
         override val disclaimerNotFinancialAdvice = "これは金融アドバイスではありません"
@@ -1400,6 +1610,30 @@ interface Strings {
         override val avgPnl = "平均盈亏"
         override val bestTrade = "最佳交易"
         override val worstTrade = "最差交易"
+        
+        // Portfolio New
+        override val portfolioOverview = "概览"
+        override val portfolioSpot = "现货"
+        override val portfolioFutures = "合约"
+        override val totalBalance = "总余额"
+        override val noSpotAssets = "无现货资产"
+        override val assets = "资产"
+        override val margin = "保证金"
+        override val pnlChart = "盈亏图表"
+        override val noData = "无数据"
+        override val tapCandleHint = "点击K线查看详情"
+        override val clusterAnalysis = "聚类分析"
+        override val clusterSummary = "摘要"
+        override val trades = "交易"
+        override val direction = "方向"
+        override val symbols = "交易对"
+        override val allTrades = "所有交易"
+        override val customPeriod = "自定义周期"
+        override val from = "从"
+        override val to = "到"
+        override val apply = "应用"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ 重要声明"
         override val disclaimerIntro = "Enliko是加密货币市场的教育和分析工具。"
         override val disclaimerNotFinancialAdvice = "这不是投资建议"
@@ -1528,6 +1762,30 @@ interface Strings {
         override val avgPnl = "متوسط الربح/الخسارة"
         override val bestTrade = "أفضل صفقة"
         override val worstTrade = "أسوأ صفقة"
+        
+        // Portfolio New
+        override val portfolioOverview = "نظرة عامة"
+        override val portfolioSpot = "فوري"
+        override val portfolioFutures = "عقود آجلة"
+        override val totalBalance = "الرصيد الإجمالي"
+        override val noSpotAssets = "لا توجد أصول فورية"
+        override val assets = "الأصول"
+        override val margin = "الهامش"
+        override val pnlChart = "مخطط الربح/الخسارة"
+        override val noData = "لا توجد بيانات"
+        override val tapCandleHint = "اضغط على الشمعة للتفاصيل"
+        override val clusterAnalysis = "تحليل المجموعات"
+        override val clusterSummary = "ملخص"
+        override val trades = "الصفقات"
+        override val direction = "الاتجاه"
+        override val symbols = "الرموز"
+        override val allTrades = "جميع الصفقات"
+        override val customPeriod = "فترة مخصصة"
+        override val from = "من"
+        override val to = "إلى"
+        override val apply = "تطبيق"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ إشعار هام"
         override val disclaimerIntro = "Enliko أداة تعليمية وتحليلية لأسواق العملات الرقمية."
         override val disclaimerNotFinancialAdvice = "هذه ليست نصيحة مالية"
@@ -1656,6 +1914,30 @@ interface Strings {
         override val avgPnl = "ממוצע רווח/הפסד"
         override val bestTrade = "עסקה הטובה"
         override val worstTrade = "עסקה הגרועה"
+        
+        // Portfolio New
+        override val portfolioOverview = "סקירה כללית"
+        override val portfolioSpot = "ספוט"
+        override val portfolioFutures = "חוזים"
+        override val totalBalance = "יתרה כוללת"
+        override val noSpotAssets = "אין נכסי ספוט"
+        override val assets = "נכסים"
+        override val margin = "מרג'ין"
+        override val pnlChart = "תרשים רו״ה"
+        override val noData = "אין נתונים"
+        override val tapCandleHint = "הקש על הנר לפרטים"
+        override val clusterAnalysis = "ניתוח אשכולות"
+        override val clusterSummary = "סיכום"
+        override val trades = "עסקאות"
+        override val direction = "כיוון"
+        override val symbols = "סמלים"
+        override val allTrades = "כל העסקאות"
+        override val customPeriod = "תקופה מותאמת"
+        override val from = "מ"
+        override val to = "עד"
+        override val apply = "החל"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ הודעה חשובה"
         override val disclaimerIntro = "Enliko הוא כלי לימודי וניתוחי לשוקי הקריפטו."
         override val disclaimerNotFinancialAdvice = "זו אינה ייעוץ פיננסי"
@@ -1784,6 +2066,30 @@ interface Strings {
         override val avgPnl = "Średni PnL"
         override val bestTrade = "Najlepszy trade"
         override val worstTrade = "Najgorszy trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Przegląd"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Całkowite saldo"
+        override val noSpotAssets = "Brak aktywów spot"
+        override val assets = "aktywów"
+        override val margin = "Depozyt"
+        override val pnlChart = "Wykres PnL"
+        override val noData = "Brak danych"
+        override val tapCandleHint = "Dotknij świecy po szczegóły"
+        override val clusterAnalysis = "Analiza klastrów"
+        override val clusterSummary = "Podsumowanie"
+        override val trades = "Transakcje"
+        override val direction = "Kierunek"
+        override val symbols = "Symbole"
+        override val allTrades = "Wszystkie transakcje"
+        override val customPeriod = "Własny okres"
+        override val from = "Od"
+        override val to = "Do"
+        override val apply = "Zastosuj"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Ważna informacja"
         override val disclaimerIntro = "Enliko to narzędzie edukacyjne i analityczne dla rynków kryptowalut."
         override val disclaimerNotFinancialAdvice = "To NIE jest porada finansowa"
@@ -1912,6 +2218,30 @@ interface Strings {
         override val avgPnl = "Průměrný PnL"
         override val bestTrade = "Nejlepší trade"
         override val worstTrade = "Nejhorší trade"
+        
+        // Portfolio New
+        override val portfolioOverview = "Přehled"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Celkový zůstatek"
+        override val noSpotAssets = "Žádné spot aktiva"
+        override val assets = "aktiv"
+        override val margin = "Marže"
+        override val pnlChart = "Graf PnL"
+        override val noData = "Žádná data"
+        override val tapCandleHint = "Klepněte na svíčku pro detaily"
+        override val clusterAnalysis = "Clusterová analýza"
+        override val clusterSummary = "Souhrn"
+        override val trades = "Obchody"
+        override val direction = "Směr"
+        override val symbols = "Symboly"
+        override val allTrades = "Všechny obchody"
+        override val customPeriod = "Vlastní období"
+        override val from = "Od"
+        override val to = "Do"
+        override val apply = "Použít"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Důležité upozornění"
         override val disclaimerIntro = "Enliko je vzdělávací a analytický nástroj pro kryptoměnové trhy."
         override val disclaimerNotFinancialAdvice = "Toto NENÍ finanční poradenství"
@@ -2040,6 +2370,30 @@ interface Strings {
         override val avgPnl = "Vidutinis PnL"
         override val bestTrade = "Geriausias sandoris"
         override val worstTrade = "Blogiausias sandoris"
+        
+        // Portfolio New
+        override val portfolioOverview = "Apžvalga"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Ateities"
+        override val totalBalance = "Bendras likutis"
+        override val noSpotAssets = "Nėra spot turto"
+        override val assets = "turto"
+        override val margin = "Marža"
+        override val pnlChart = "PnL diagrama"
+        override val noData = "Nėra duomenų"
+        override val tapCandleHint = "Bakstelėkite žvakę detalėms"
+        override val clusterAnalysis = "Klasterių analizė"
+        override val clusterSummary = "Santrauka"
+        override val trades = "Sandoriai"
+        override val direction = "Kryptis"
+        override val symbols = "Simboliai"
+        override val allTrades = "Visi sandoriai"
+        override val customPeriod = "Pasirinktas laikotarpis"
+        override val from = "Nuo"
+        override val to = "Iki"
+        override val apply = "Taikyti"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Svarbus pranešimas"
         override val disclaimerIntro = "Enliko yra edukacinis ir analitinis įrankis kriptovaliutų rinkoms."
         override val disclaimerNotFinancialAdvice = "Tai NĖRA finansinė konsultacija"
@@ -2168,6 +2522,30 @@ interface Strings {
         override val avgPnl = "PnL mesatar"
         override val bestTrade = "Tregtia më e mirë"
         override val worstTrade = "Tregtia më e keqe"
+        
+        // Portfolio New
+        override val portfolioOverview = "Përmbledhje"
+        override val portfolioSpot = "Spot"
+        override val portfolioFutures = "Futures"
+        override val totalBalance = "Bilanci total"
+        override val noSpotAssets = "Nuk ka asete spot"
+        override val assets = "asete"
+        override val margin = "Marzhë"
+        override val pnlChart = "Grafiku PnL"
+        override val noData = "Nuk ka të dhëna"
+        override val tapCandleHint = "Prekni qiriun për detaje"
+        override val clusterAnalysis = "Analiza e grupeve"
+        override val clusterSummary = "Përmbledhje"
+        override val trades = "Tregti"
+        override val direction = "Drejtimi"
+        override val symbols = "Simbolet"
+        override val allTrades = "Të gjitha tregtitë"
+        override val customPeriod = "Periudhë e personalizuar"
+        override val from = "Nga"
+        override val to = "Deri"
+        override val apply = "Apliko"
+        
+        // Disclaimer
         override val disclaimerTitle = "⚠️ Njoftim i rëndësishëm"
         override val disclaimerIntro = "Enliko është një mjet edukativ dhe analitik për tregjet e kriptomonedhave."
         override val disclaimerNotFinancialAdvice = "Kjo NUK është këshillë financiare"

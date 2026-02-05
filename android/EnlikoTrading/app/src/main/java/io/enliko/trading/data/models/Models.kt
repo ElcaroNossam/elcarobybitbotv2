@@ -203,3 +203,101 @@ data class ApiError(
     val detail: String? = null,
     val message: String? = null
 )
+
+// ═══════════════════════════════════════════════════════════════════════
+// PORTFOLIO MODELS
+// ═══════════════════════════════════════════════════════════════════════
+
+@Serializable
+data class AssetBalance(
+    val asset: String,
+    val free: Double,
+    val locked: Double,
+    val total: Double,
+    @SerialName("usd_value") val usdValue: Double,
+    @SerialName("pnl_24h") val pnl24h: Double = 0.0,
+    @SerialName("pnl_24h_pct") val pnl24hPct: Double = 0.0
+)
+
+@Serializable
+data class SpotPortfolio(
+    @SerialName("total_usd") val totalUsd: Double,
+    val pnl: Double,
+    @SerialName("pnl_pct") val pnlPct: Double,
+    val assets: List<AssetBalance>
+)
+
+@Serializable
+data class FuturesPortfolio(
+    @SerialName("total_equity") val totalEquity: Double,
+    val available: Double,
+    @SerialName("position_margin") val positionMargin: Double,
+    @SerialName("unrealized_pnl") val unrealizedPnl: Double,
+    @SerialName("realized_pnl") val realizedPnl: Double,
+    @SerialName("position_count") val positionCount: Int
+)
+
+@Serializable
+data class PnLDataPoint(
+    val timestamp: String,
+    val pnl: Double,
+    @SerialName("cumulative_pnl") val cumulativePnl: Double,
+    @SerialName("trade_count") val tradeCount: Int
+)
+
+@Serializable
+data class StrategyCluster(
+    val count: Int,
+    val pnl: Double,
+    @SerialName("win_rate") val winRate: Double
+)
+
+@Serializable
+data class SymbolCluster(
+    val count: Int,
+    val pnl: Double
+)
+
+@Serializable
+data class ClusterTrade(
+    val symbol: String,
+    val side: String,
+    val pnl: Double,
+    @SerialName("pnl_pct") val pnlPct: Double,
+    val strategy: String,
+    val timestamp: String
+)
+
+@Serializable
+data class CandleCluster(
+    val timestamp: String,
+    @SerialName("open_pnl") val openPnl: Double,
+    @SerialName("high_pnl") val highPnl: Double,
+    @SerialName("low_pnl") val lowPnl: Double,
+    @SerialName("close_pnl") val closePnl: Double,
+    val volume: Double,
+    @SerialName("trade_count") val tradeCount: Int,
+    @SerialName("long_count") val longCount: Int,
+    @SerialName("short_count") val shortCount: Int,
+    @SerialName("long_pnl") val longPnl: Double,
+    @SerialName("short_pnl") val shortPnl: Double,
+    @SerialName("win_count") val winCount: Int,
+    @SerialName("loss_count") val lossCount: Int,
+    @SerialName("avg_win") val avgWin: Double,
+    @SerialName("avg_loss") val avgLoss: Double,
+    val strategies: Map<String, StrategyCluster> = emptyMap(),
+    val symbols: Map<String, SymbolCluster> = emptyMap(),
+    val trades: List<ClusterTrade> = emptyList()
+)
+
+@Serializable
+data class PortfolioSummary(
+    val spot: SpotPortfolio? = null,
+    val futures: FuturesPortfolio? = null,
+    @SerialName("total_usd") val totalUsd: Double,
+    @SerialName("pnl_period") val pnlPeriod: Double,
+    @SerialName("pnl_period_pct") val pnlPeriodPct: Double,
+    val period: String,
+    @SerialName("chart_data") val chartData: List<PnLDataPoint> = emptyList(),
+    val candles: List<CandleCluster> = emptyList()
+)

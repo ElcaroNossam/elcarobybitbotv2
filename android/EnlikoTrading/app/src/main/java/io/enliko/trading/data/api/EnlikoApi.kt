@@ -133,6 +133,39 @@ interface EnlikoApi {
     @POST("/api/activity/trigger-sync")
     suspend fun triggerSync(): Response<Unit>
 
+    // ==================== PORTFOLIO ====================
+    @GET("/api/portfolio/summary")
+    suspend fun getPortfolioSummary(
+        @Query("account_type") accountType: String? = null,
+        @Query("period") period: String? = "1w",
+        @Query("custom_start") customStart: String? = null,
+        @Query("custom_end") customEnd: String? = null
+    ): Response<io.enliko.trading.data.models.PortfolioSummary>
+
+    @GET("/api/portfolio/spot")
+    suspend fun getSpotPortfolio(
+        @Query("account_type") accountType: String? = null
+    ): Response<io.enliko.trading.data.models.SpotPortfolio>
+
+    @GET("/api/portfolio/futures")
+    suspend fun getFuturesPortfolio(
+        @Query("account_type") accountType: String? = null
+    ): Response<io.enliko.trading.data.models.FuturesPortfolio>
+
+    @GET("/api/portfolio/chart")
+    suspend fun getPortfolioChart(
+        @Query("account_type") accountType: String? = null,
+        @Query("period") period: String? = "1w",
+        @Query("custom_start") customStart: String? = null,
+        @Query("custom_end") customEnd: String? = null
+    ): Response<List<io.enliko.trading.data.models.CandleCluster>>
+
+    @GET("/api/portfolio/candle/{timestamp}")
+    suspend fun getCandleCluster(
+        @Path("timestamp") timestamp: String,
+        @Query("account_type") accountType: String? = null
+    ): Response<io.enliko.trading.data.models.CandleCluster>
+
     // ==================== SPOT TRADING ====================
     @GET("/api/spot/balance")
     suspend fun getSpotBalance(): Response<SpotBalance>

@@ -526,6 +526,14 @@ def create_app() -> FastAPI:
     except ImportError as e:
         logger.warning(f"activity router not available: {e}")
     
+    # Portfolio API (Spot/Futures balance, PnL charts, Cluster Analysis)
+    try:
+        from webapp.api import portfolio
+        app.include_router(portfolio.router, prefix="/api", tags=["portfolio"])
+        logger.info("✅ Portfolio API loaded at /api/portfolio")
+    except ImportError as e:
+        logger.warning(f"portfolio router not available: {e}")
+    
     # Push Notifications API (device tokens, preferences, WebSocket)
     try:
         from webapp.api import push_notifications
