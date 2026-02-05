@@ -9156,12 +9156,19 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             set_user_field(uid, field, new_val)
             cfg = get_user_config(uid)
             
+            # CRITICAL SYNC: Also update user_strategy_settings for both sides
+            # This ensures the dual system (trade_* + {side}_enabled) stays in sync
+            active_exchange = db.get_exchange_type(uid) or "bybit"
+            if strategy != "manual":  # manual has no per-side settings
+                db.set_strategy_setting(uid, strategy, "long_enabled", bool(new_val), active_exchange)
+                db.set_strategy_setting(uid, strategy, "short_enabled", bool(new_val), active_exchange)
+                logger.info(f"[{uid}] Strategy {strategy} toggle synced: trade_{strategy}={new_val}, long_enabled={bool(new_val)}, short_enabled={bool(new_val)}")
+            
             strat_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
             status = "✅ ON" if new_val else "❌ OFF"
             await query.answer(f"{strat_name}: {status}")
             
             # Refresh the strategies menu
-            active_exchange = db.get_exchange_type(uid) or "bybit"
             context = db.get_user_trading_context(uid)
             account_type = context.get("account_type", "demo")
             global_use_atr = bool(cfg.get("use_atr", 1))
@@ -9572,11 +9579,37 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         db.set_strategy_setting(uid, strategy, field, new_val, current_exchange)
         
+        # CRITICAL SYNC: Update users.trade_* to reflect if at least one side is enabled
+        # Re-read settings to get updated values
+        strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        long_enabled = strat_settings.get("long_enabled", True)
+        short_enabled = strat_settings.get("short_enabled", True)
+        
+        # Map strategy to trade_* field
+        trade_field_map = {
+            "oi": "trade_oi",
+            "rsi_bb": "trade_rsi_bb",
+            "scryptomera": "trade_scryptomera",
+            "scalper": "trade_scalper",
+            "elcaro": "trade_elcaro",
+            "fibonacci": "trade_fibonacci",
+        }
+        trade_field = trade_field_map.get(strategy)
+        if trade_field:
+            # If at least one side is enabled, trade_* should be 1
+            # If both sides are disabled, trade_* should be 0
+            trade_enabled = 1 if (long_enabled or short_enabled) else 0
+            current_trade = global_cfg.get(trade_field, 0)
+            if trade_enabled != current_trade:
+                set_user_field(uid, trade_field, trade_enabled)
+                logger.info(f"[{uid}] Side toggle synced trade_{strategy}={trade_enabled} (long={long_enabled}, short={short_enabled})")
+        
         status = "✅ Enabled" if new_val else "❌ Disabled"
         await query.answer(f"{side.upper()}: {status}")
         
         # Refresh side settings menu
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
+        global_cfg = db.get_user_config(uid)  # Re-read to get updated trade_* value
         emoji = "📈" if side == "long" else "📉"
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         

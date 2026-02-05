@@ -1920,12 +1920,16 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     result["exchange"] = exchange  # Include current exchange in result
     
     # Fill missing sides with defaults
+    # IMPORTANT: Don't overwrite enabled if it was explicitly set in DB
     for side in ["long", "short"]:
         prefix = f"{side}_"
         defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
         
+        # Only fill ALL defaults if percent is missing (meaning no DB record for this side)
         if f"{prefix}percent" not in result or result[f"{prefix}percent"] is None:
-            result[f"{prefix}enabled"] = defaults.get("enabled", True)
+            # Only set enabled if it wasn't already set from DB
+            if f"{prefix}enabled" not in result:
+                result[f"{prefix}enabled"] = defaults.get("enabled", True)
             result[f"{prefix}percent"] = defaults.get("percent")
             result[f"{prefix}sl_percent"] = defaults.get("sl_percent")
             result[f"{prefix}tp_percent"] = defaults.get("tp_percent")
