@@ -7319,7 +7319,7 @@ async def place_order_for_targets(
                     sl_price=pos_sl_price,
                     tp_price=pos_tp_price,
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {pos_entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage}, sl={pos_sl_price}, tp={pos_tp_price})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {pos_entry_price} qty={target_qty} strategy={strategy} (use_atr={pos_use_atr}, leverage={pos_leverage}, sl={pos_sl_price}, tp={pos_tp_price})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
@@ -19028,7 +19028,9 @@ async def monitor_positions_loop(app: Application):
                                         "elcaro": "Enliko",
                                         "fibonacci": "Fibonacci",
                                         "webapp": "WebApp",
-                                    }.get(strategy_name, strategy_name.title() if strategy_name and strategy_name != "manual" and strategy_name != "unknown" else "Unknown")
+                                        "manual": "Manual",
+                                        "unknown": "Unknown",
+                                    }.get(strategy_name, strategy_name.title())
                                     
                                     # Format exchange and market type for display
                                     exchange_display = current_exchange.upper() if current_exchange else "BYBIT"
