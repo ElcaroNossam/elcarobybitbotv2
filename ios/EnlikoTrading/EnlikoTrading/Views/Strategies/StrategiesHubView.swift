@@ -455,28 +455,44 @@ class StrategiesHubViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
+    // Store current exchange/account for toggle requests
+    private var currentExchange: Exchange = .bybit
+    private var currentAccountType: AccountType = .demo
+    
     func loadStrategies(exchange: Exchange, accountType: AccountType) async {
+        // Store for toggle requests
+        currentExchange = exchange
+        currentAccountType = accountType
+        
         isLoading = true
         defer { isLoading = false }
         
         do {
-            let response: [String: StrategySettingsResponse] = try await NetworkService.shared.get(
-                "/strategy-settings",
+            // Use mobile endpoint that returns flat array with separate long/short objects
+            let response: [MobileStrategySettings] = try await NetworkService.shared.get(
+                "/strategy-settings/mobile",
                 params: [
                     "exchange": exchange.rawValue,
                     "account_type": accountType.rawValue
                 ]
             )
             
-            // Update local strategies with server data
-            for (name, settings) in response {
+            // Group by strategy name and update local data
+            let grouped = Dictionary(grouping: response) { $0.strategy }
+            
+            for (name, sideSettings) in grouped {
                 if let index = strategies.firstIndex(where: { $0.name == name }) {
-                    strategies[index].longEnabled = settings.long_enabled ?? true
-                    strategies[index].shortEnabled = settings.short_enabled ?? true
-                    strategies[index].percent = settings.percent ?? 1.0
-                    strategies[index].tpPercent = settings.tp_percent ?? 8.0
-                    strategies[index].slPercent = settings.sl_percent ?? 3.0
-                    strategies[index].leverage = settings.leverage ?? 10
+                    // Find long and short settings
+                    let longSettings = sideSettings.first { $0.side == "long" }
+                    let shortSettings = sideSettings.first { $0.side == "short" }
+                    
+                    strategies[index].longEnabled = longSettings?.enabled ?? true
+                    strategies[index].shortEnabled = shortSettings?.enabled ?? true
+                    // Use long settings for display (or short as fallback)
+                    strategies[index].percent = longSettings?.percent ?? shortSettings?.percent ?? 1.0
+                    strategies[index].tpPercent = longSettings?.tp_percent ?? shortSettings?.tp_percent ?? 8.0
+                    strategies[index].slPercent = longSettings?.sl_percent ?? shortSettings?.sl_percent ?? 3.0
+                    strategies[index].leverage = longSettings?.leverage ?? shortSettings?.leverage ?? 10
                 }
             }
         } catch {
@@ -487,9 +503,14 @@ class StrategiesHubViewModel: ObservableObject {
     
     func toggleStrategy(_ name: String, enabled: Bool) async {
         do {
+            let body = ToggleStrategyRequest(
+                enabled: enabled,
+                exchange: currentExchange.rawValue,
+                account_type: currentAccountType.rawValue
+            )
             try await NetworkService.shared.postIgnoreResponse(
                 "/strategy-settings/\(name)/toggle",
-                body: ["long_enabled": enabled, "short_enabled": enabled]
+                body: body
             )
             
             if let index = strategies.firstIndex(where: { $0.name == name }) {
@@ -503,10 +524,19 @@ class StrategiesHubViewModel: ObservableObject {
     
     func toggleStrategySide(_ name: String, side: String, enabled: Bool) async {
         do {
-            let key = side == "long" ? "long_enabled" : "short_enabled"
+            var body = ToggleStrategyRequest(
+                exchange: currentExchange.rawValue,
+                account_type: currentAccountType.rawValue
+            )
+            if side == "long" {
+                body.long_enabled = enabled
+            } else {
+                body.short_enabled = enabled
+            }
+            
             try await NetworkService.shared.postIgnoreResponse(
                 "/strategy-settings/\(name)/toggle",
-                body: [key: enabled]
+                body: body
             )
             
             if let index = strategies.firstIndex(where: { $0.name == name }) {
@@ -542,6 +572,28 @@ struct StrategySettingsResponse: Codable {
     let tp_percent: Double?
     let sl_percent: Double?
     let leverage: Int?
+}
+
+// MARK: - Mobile Strategy Settings Response (from /strategy-settings/mobile)
+struct MobileStrategySettings: Codable {
+    let strategy: String
+    let side: String
+    let enabled: Bool
+    let percent: Double?
+    let tp_percent: Double?
+    let sl_percent: Double?
+    let leverage: Int?
+    let exchange: String?
+    let account_type: String?
+}
+
+// MARK: - Toggle Request Models
+struct ToggleStrategyRequest: Codable {
+    var long_enabled: Bool?
+    var short_enabled: Bool?
+    var enabled: Bool?
+    var exchange: String
+    var account_type: String
 }
 
 // MARK: - Placeholder Views

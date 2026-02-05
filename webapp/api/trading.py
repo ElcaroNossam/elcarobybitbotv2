@@ -2851,6 +2851,72 @@ async def update_strategy_settings(
         return {"success": False, "error": str(e)}
 
 
+class ToggleStrategyRequest(BaseModel):
+    """Request to toggle strategy enabled state"""
+    long_enabled: Optional[bool] = None
+    short_enabled: Optional[bool] = None
+    enabled: Optional[bool] = None  # Sets both long and short
+    exchange: str = "bybit"
+    account_type: str = "demo"
+
+
+@router.post("/strategy-settings/{strategy}/toggle")
+async def toggle_strategy(
+    strategy: str,
+    req: ToggleStrategyRequest,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Quick toggle for strategy enabled state.
+    Used by iOS StrategiesHubView for quick on/off toggles.
+    
+    Can set:
+    - enabled: sets both long_enabled and short_enabled
+    - long_enabled / short_enabled: set individually
+    """
+    user_id = user["user_id"]
+    
+    if strategy not in STRATEGY_NAMES:
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {strategy}")
+    
+    # Normalize account type
+    account_type = _normalize_both_account_type(req.account_type, req.exchange)
+    
+    try:
+        # Build settings to update
+        settings = {}
+        
+        # If enabled is set, use it for both sides
+        if req.enabled is not None:
+            settings["long_enabled"] = 1 if req.enabled else 0
+            settings["short_enabled"] = 1 if req.enabled else 0
+        else:
+            # Otherwise use individual side toggles
+            if req.long_enabled is not None:
+                settings["long_enabled"] = 1 if req.long_enabled else 0
+            if req.short_enabled is not None:
+                settings["short_enabled"] = 1 if req.short_enabled else 0
+        
+        if not settings:
+            return {"success": False, "error": "No toggle values provided"}
+        
+        # Save each setting
+        for field, value in settings.items():
+            db.set_strategy_setting_db(user_id, strategy, field, value, req.exchange, account_type)
+        
+        logger.info(f"User {user_id} toggled {strategy}: {settings} (exchange={req.exchange}, account={account_type})")
+        
+        return {
+            "success": True,
+            "message": f"Toggled {strategy}",
+            "settings": settings
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to toggle {strategy}: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @router.get("/market-overview")
 async def get_market_overview():
     """Get market overview with top gainers/losers and volume leaders"""
