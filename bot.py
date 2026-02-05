@@ -18944,10 +18944,19 @@ async def monitor_positions_loop(app: Application):
                                         _processed_closures = {k: v for k, v in _processed_closures.items() if v > cutoff}
                                 
                                     # Determine strategy: from position or fallback to signal detection
-                                    if not position_strategy and sig:
+                                    # CRITICAL FIX: If position has signal_id but strategy is "manual",
+                                    # it means position was detected after bot restart. Detect from signal!
+                                    should_detect_from_signal = (
+                                        not position_strategy or 
+                                        (position_strategy == "manual" and ap.get("signal_id"))
+                                    )
+                                    if should_detect_from_signal and sig:
                                         raw_msg = sig.get("raw_message") or ""
                                         # Use parsers for reliable strategy detection
-                                        if is_fibonacci_signal(raw_msg):
+                                        # CRITICAL: Check RSI_BB FIRST (most common signal type)
+                                        if is_rsi_bb_signal(raw_msg):
+                                            position_strategy = "rsi_bb"
+                                        elif is_fibonacci_signal(raw_msg):
                                             position_strategy = "fibonacci"
                                         elif is_bitk_signal(raw_msg):
                                             position_strategy = "scryptomera"
