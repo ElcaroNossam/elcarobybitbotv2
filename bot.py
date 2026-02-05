@@ -5900,17 +5900,36 @@ async def set_trading_stop(
                 break
 
     def _stricter(side_: str, new_sl: float, cur_sl):
+        """
+        Check if new SL is "stricter" (closer to entry) than current.
+        This is ONLY used for ATR trailing where we want to tighten SL progressively.
+        For regular SL changes, we want to allow setting any valid SL.
+        
+        For LONG: higher SL = stricter (closer to entry)
+        For SHORT: lower SL = stricter (closer to entry)
+        
+        Returns new_sl if it's stricter, None if current is already stricter.
+        """
         if cur_sl in (None, "", 0, "0", 0.0):
             return new_sl
         cur = float(cur_sl)
         if side_ == "Buy":
             return new_sl if new_sl > cur else None
         else:
+            # FIX: For SHORT, HIGHER SL is stricter (closer to entry which is below SL)
+            # OLD (wrong): return new_sl if new_sl < cur else None
+            # Wait - actually the OLD logic was correct for ATR trailing:
+            # When price drops (profit), we trail SL DOWN (lower = stricter = less loss if reverses)
+            # But for INITIAL SL setting, we need the CORRECT SL, not "stricter"
+            # So we should NOT use _stricter for initial SL at all
             return new_sl if new_sl < cur else None
 
-    if sl_price is not None:
+    # FIX: Only apply _stricter filter for ATR trailing mode
+    # For regular SL setting, allow any valid SL (don't filter by "strictness")
+    if sl_price is not None and is_trailing:
         sl_candidate = _stricter(effective_side, sl_price, current_sl)
         if sl_candidate is None:
+            logger.debug(f"{symbol}: ATR trailing SL ({sl_price}) not stricter than current ({current_sl}), keeping current")
             sl_price = None
         else:
             sl_price = sl_candidate
@@ -7186,32 +7205,58 @@ async def place_order_for_targets(
             
             # Store position in DB with correct target info
             if add_position and target_order_type == "Market":
-                # Get current price for position entry_price
-                pos_entry_price = price if price else entry_price  # Use param entry_price if price not set
-                if not pos_entry_price:
-                    try:
-                        if target_exchange == "hyperliquid":
-                            # Get price from HL
-                            hl_creds = db.get_hl_credentials(user_id)
-                            is_testnet_for_price = (target_env == "paper")
-                            # Get correct private key for network (multitenancy)
-                            if is_testnet_for_price:
-                                hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-                            else:
-                                hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-                            
-                            if hl_private_key:
-                                adapter = HLAdapter(
-                                    private_key=hl_private_key,
-                                    testnet=is_testnet_for_price
-                                )
-                                try:
-                                    price_data = await adapter.get_price(hl_symbol_to_coin(symbol))
-                                    pos_entry_price = float(price_data) if price_data else 0
-                                finally:
-                                    await adapter.close()
+                # FIX: Get ACTUAL entry price from position (avgPrice) instead of ticker price!
+                # This is critical for correct SL/TP calculation
+                pos_entry_price = 0
+                try:
+                    if target_exchange == "hyperliquid":
+                        # Get price from HL position
+                        hl_creds = db.get_hl_credentials(user_id)
+                        is_testnet_for_price = (target_env == "paper")
+                        # Get correct private key for network (multitenancy)
+                        if is_testnet_for_price:
+                            hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
                         else:
-                            # Get price from Bybit
+                            hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                        
+                        if hl_private_key:
+                            adapter = HLAdapter(
+                                private_key=hl_private_key,
+                                testnet=is_testnet_for_price
+                            )
+                            try:
+                                # Try to get actual position entry price
+                                positions = await adapter.get_positions()
+                                hl_coin = hl_symbol_to_coin(symbol)
+                                for hl_pos in positions:
+                                    if hl_pos.get("coin") == hl_coin and float(hl_pos.get("szi", 0)) != 0:
+                                        pos_entry_price = float(hl_pos.get("entryPx", 0))
+                                        break
+                                # Fallback to ticker if position not found yet
+                                if not pos_entry_price:
+                                    price_data = await adapter.get_price(hl_coin)
+                                    pos_entry_price = float(price_data) if price_data else 0
+                            finally:
+                                await adapter.close()
+                    else:
+                        # FIX: Get actual avgPrice from Bybit POSITION endpoint, not ticker!
+                        # Small delay to let Bybit process the order
+                        await asyncio.sleep(0.3)
+                        position_data = await _bybit_request(
+                            user_id, "GET", "/v5/position/list",
+                            params={"category": "linear", "symbol": symbol},
+                            account_type=target_account_type or "demo"
+                        )
+                        position_list = position_data.get("list", [])
+                        for pos in position_list:
+                            if float(pos.get("size", 0)) > 0:
+                                pos_entry_price = float(pos.get("avgPrice", 0))
+                                logger.debug(f"[{user_id}] Got actual avgPrice from position: {pos_entry_price}")
+                                break
+                        
+                        # Fallback to ticker if position not found (shouldn't happen)
+                        if not pos_entry_price:
+                            logger.warning(f"[{user_id}] Position not found after order, using ticker price as fallback")
                             ticker_data = await _bybit_request(
                                 user_id, "GET", "/v5/market/tickers",
                                 params={"category": "linear", "symbol": symbol},
@@ -7220,8 +7265,10 @@ async def place_order_for_targets(
                             ticker_list = ticker_data.get("list", [])
                             if ticker_list:
                                 pos_entry_price = float(ticker_list[0].get("lastPrice", 0))
-                    except Exception:
-                        pass  # Will be updated by monitoring
+                except Exception as e:
+                    logger.warning(f"[{user_id}] Failed to get entry price: {e}")
+                    # Fallback to passed entry_price
+                    pos_entry_price = entry_price or 0
                 
                 # P0.5: Get use_atr from strategy settings
                 cfg = get_user_config(user_id) or {}
@@ -7272,7 +7319,7 @@ async def place_order_for_targets(
                     sl_price=pos_sl_price,
                     tp_price=pos_tp_price,
                 )
-                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage}, sl={pos_sl_price}, tp={pos_tp_price})")
+                logger.info(f"📊 [{target_key.upper()}] Position saved to DB: {symbol} {side} @ {pos_entry_price} qty={target_qty} (use_atr={pos_use_atr}, leverage={pos_leverage}, sl={pos_sl_price}, tp={pos_tp_price})")
                 
         except Exception as e:
             results[target_key] = {"success": False, "error": str(e), "exchange": target_exchange}
