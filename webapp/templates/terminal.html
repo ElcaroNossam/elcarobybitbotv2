@@ -413,7 +413,7 @@
                         <!-- Strategy Selector & Presets -->
                         <div class="strategy-tpsl-section" style="grid-column: 1/-1; margin-top: 8px;">
                             <div class="form-label" style="font-size: 0.7rem; margin-bottom: 4px;">
-                                <i class="fas fa-robot" style="color: var(--accent);"></i> Apply from Strategy
+                                <i class="fas fa-robot" style="color: var(--accent);"></i> Apply from Strategy (Long/Short settings)
                             </div>
                             <div class="strategy-selector-row" style="display: flex; gap: 4px; flex-wrap: wrap;">
                                 <button class="strategy-btn" data-strategy="global" onclick="applyStrategySettings('global')" title="Global Settings">
@@ -425,11 +425,17 @@
                                 <button class="strategy-btn" data-strategy="scalper" onclick="applyStrategySettings('scalper')" title="Scalper">
                                     ⚡ Scalper
                                 </button>
-                                <button class="strategy-btn" data-strategy="enliko" onclick="applyStrategySettings('enliko')" title="Enliko">
-                                    🤖 Enliko
+                                <button class="strategy-btn" data-strategy="oi" onclick="applyStrategySettings('oi')" title="Open Interest">
+                                    📊 OI
                                 </button>
-                                <button class="strategy-btn" data-strategy="wyckoff" onclick="applyStrategySettings('wyckoff')" title="Wyckoff">
-                                    📊 Wyckoff
+                                <button class="strategy-btn" data-strategy="fibonacci" onclick="applyStrategySettings('fibonacci')" title="Fibonacci">
+                                    🌀 Fibo
+                                </button>
+                                <button class="strategy-btn" data-strategy="rsi_bb" onclick="applyStrategySettings('rsi_bb')" title="RSI + BB">
+                                    📈 RSI
+                                </button>
+                                <button class="strategy-btn" data-strategy="elcaro" onclick="applyStrategySettings('elcaro')" title="Enliko AI">
+                                    🤖 Enliko
                                 </button>
                             </div>
                         </div>
@@ -1313,34 +1319,54 @@
             // Set mode to percent for strategy-based TP/SL
             setTPSLMode('percent');
             
-            // Apply TP/SL from strategy
-            const tpPct = settings.tp_percent || 8;
-            const slPct = settings.sl_percent || 3;
+            // P0.9: Apply side-specific TP/SL from strategy (Long/Short)
+            // Use long_tp_percent/short_tp_percent if available, else fallback to general tp_percent
+            const isLong = state.side === 'buy';
+            const tpPct = isLong 
+                ? (settings.long_tp_percent || settings.tp_percent || 8)
+                : (settings.short_tp_percent || settings.tp_percent || 8);
+            const slPct = isLong
+                ? (settings.long_sl_percent || settings.sl_percent || 3)
+                : (settings.short_sl_percent || settings.sl_percent || 3);
             
             document.getElementById('tpInput').value = tpPct;
             document.getElementById('slInput').value = slPct;
             
-            // Apply leverage if available
-            if (settings.leverage) {
-                setLeverage(settings.leverage);
-            }
+            // P0.9: Apply side-specific leverage if available
+            const leverage = isLong
+                ? (settings.long_leverage || settings.leverage || 10)
+                : (settings.short_leverage || settings.leverage || 10);
+            setLeverage(leverage);
             
-            // Apply ATR settings if use_atr is enabled
-            const useAtr = settings.use_atr || false;
+            // Apply ATR settings if use_atr is enabled (side-specific)
+            const useAtr = isLong 
+                ? (settings.long_use_atr || settings.use_atr || false)
+                : (settings.short_use_atr || settings.use_atr || false);
             document.getElementById('useAtrToggle').checked = useAtr;
             toggleATRMode(false); // Don't notify
             
             if (useAtr) {
-                document.getElementById('atrPeriods').value = settings.atr_periods || 14;
-                document.getElementById('atrMultiplier').value = settings.atr_multiplier_sl || 1.5;
-                document.getElementById('atrTrigger').value = settings.atr_trigger_pct || 2;
+                const atrPeriods = isLong 
+                    ? (settings.long_atr_periods || settings.atr_periods || 14)
+                    : (settings.short_atr_periods || settings.atr_periods || 14);
+                const atrMult = isLong
+                    ? (settings.long_atr_multiplier_sl || settings.atr_multiplier_sl || 1.5)
+                    : (settings.short_atr_multiplier_sl || settings.atr_multiplier_sl || 1.5);
+                const atrTrigger = isLong
+                    ? (settings.long_atr_trigger_pct || settings.atr_trigger_pct || 2)
+                    : (settings.short_atr_trigger_pct || settings.atr_trigger_pct || 2);
+                    
+                document.getElementById('atrPeriods').value = atrPeriods;
+                document.getElementById('atrMultiplier').value = atrMult;
+                document.getElementById('atrTrigger').value = atrTrigger;
             }
             
             calcTPSLRoe();
             updateOrderSummary();
             
+            const sideLabel = isLong ? 'LONG' : 'SHORT';
             const strategyLabel = strategy === 'global' ? 'Global' : strategy.charAt(0).toUpperCase() + strategy.slice(1);
-            showNotification(`Applied ${strategyLabel}: TP ${tpPct}%, SL ${slPct}%`, 'success');
+            showNotification(`Applied ${strategyLabel} ${sideLabel}: TP ${tpPct}%, SL ${slPct}%, ${leverage}x`, 'success');
         }
         
         // Set TP/SL from preset
@@ -1461,6 +1487,11 @@
             document.querySelector(`.side-btn.${side}`)?.classList.add('active');
             updateSubmitButton();
             calcTPSLRoe();
+            
+            // P0.9: Re-apply strategy settings when side changes (Long/Short specific TP/SL)
+            if (currentStrategy && strategySettings) {
+                applyStrategySettings(currentStrategy);
+            }
         }
         
         function setOrderType(type) {

@@ -648,7 +648,7 @@ class ExchangeRouter:
                     except Exception as lev_err:
                         logger.warning(f"[{intent.user_id}] HL leverage error: {lev_err}")
                 
-                # Place order
+                # Place order with TP/SL (same as Bybit parity)
                 result = await adapter.place_order(
                     symbol=hl_symbol,
                     side=intent.side,
@@ -656,6 +656,8 @@ class ExchangeRouter:
                     order_type=intent.order_type,
                     price=intent.price,
                     reduce_only=intent.reduce_only,
+                    take_profit=intent.tp_price,
+                    stop_loss=intent.sl_price,
                 )
                 
                 if result.get("retCode") == 0:

@@ -264,11 +264,16 @@ class HLAdapter:
             logger.error(f"cancel_all_orders error: {e}")
             return {"retCode": 1, "retMsg": str(e), "result": {}}
 
-    async def set_leverage(self, symbol: str, leverage: int) -> Dict[str, Any]:
+    async def set_leverage(self, symbol: str, leverage: int, margin_mode: str = "cross") -> Dict[str, Any]:
+        """
+        Set leverage for a symbol.
+        margin_mode: "cross" or "isolated"
+        """
         await self.initialize()
         coin = self._normalize_symbol(symbol)
+        is_cross = margin_mode.lower() != "isolated"
         try:
-            result = await self._client.update_leverage(coin=coin, leverage=leverage, is_cross=True)
+            result = await self._client.update_leverage(coin=coin, leverage=leverage, is_cross=is_cross)
             return {"retCode": 0 if result.get("status") == "ok" else 1, "retMsg": "OK" if result.get("status") == "ok" else str(result), "result": {}}
         except HyperLiquidError as e:
             logger.error(f"set_leverage error: {e}")

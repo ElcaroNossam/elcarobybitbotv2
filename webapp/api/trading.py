@@ -199,6 +199,11 @@ class PlaceOrderRequest(BaseModel):
     reduceOnly: bool = False
     postOnly: bool = False
     timeInForce: str = "GTC"
+    strategy: Optional[str] = None  # Strategy name (oi, scalper, fibonacci, etc.)
+    use_atr: bool = False  # Use ATR trailing stop
+    atr_periods: int = 14
+    atr_multiplier_sl: float = 1.5
+    atr_trigger_pct: float = 2.0
     
     def get_order_type(self) -> str:
         """Get order type from either order_type or type field"""
@@ -1480,7 +1485,7 @@ async def _place_order_bybit(user_id: int, req: PlaceOrderRequest, side: str, or
 
 
 async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: str, order_type: str):
-    """Place order on HyperLiquid"""
+    """Place order on HyperLiquid with TP/SL support (same as Bybit)"""
     hl_creds = db.get_hl_credentials(user_id)
     account_type = req.account_type if hasattr(req, 'account_type') else 'testnet'
     private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
@@ -1488,6 +1493,7 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
     if not private_key:
         return {"success": False, "error": f"HyperLiquid {account_type} not configured", "exchange": "hyperliquid"}
     
+    adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
@@ -1495,22 +1501,29 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
             vault_address=hl_creds.get("hl_vault_address")
         )
         
-        # Set leverage
-        await adapter.set_leverage(req.symbol.replace("USDT", "").replace("USDC", ""), req.leverage)
+        # Normalize symbol for HL (remove USDT/USDC suffix)
+        hl_symbol = req.symbol.replace("USDT", "").replace("USDC", "")
         
-        # Place order
+        # Set leverage first (same as Bybit)
+        try:
+            await adapter.set_leverage(hl_symbol, req.leverage)
+        except Exception as lev_err:
+            logger.warning(f"[{user_id}] HL leverage error: {lev_err}")
+        
+        # Place order with TP/SL (pass to adapter.place_order which handles it)
         result = await adapter.place_order(
             symbol=req.symbol,
             side=side,
             qty=req.size,
             order_type=order_type,
-            price=req.price if order_type == "Limit" else None
+            price=req.price if order_type == "Limit" else None,
+            take_profit=req.take_profit,
+            stop_loss=req.stop_loss
         )
-        await adapter.close()
         
         if result.get("retCode") == 0:
             order_id = result.get("result", {}).get("orderId", "")
-            account_type = "testnet" if testnet else "mainnet"
+            hl_account_type = "testnet" if is_testnet else "mainnet"
             
             # P0.5: Save position to database after successful order
             try:
@@ -1523,7 +1536,7 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
                     timeframe="24h",
                     signal_id=None,
                     strategy=req.strategy if req.strategy else "webapp",  # Use 'webapp' for manual orders from web
-                    account_type=account_type,
+                    account_type=hl_account_type,
                     # P0.3: New fields
                     source="webapp",
                     opened_by="webapp",
@@ -1541,16 +1554,19 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
                 "success": True,
                 "order_id": order_id,
                 "exchange": "hyperliquid",
-                "account_type": account_type,
+                "account_type": hl_account_type,
                 "symbol": req.symbol,
                 "side": side,
                 "size": req.size,
-                "message": f"Order placed on HyperLiquid ({account_type})"
+                "message": f"Order placed on HyperLiquid ({hl_account_type})"
             }
         else:
             return {"success": False, "error": result.get("retMsg"), "exchange": "hyperliquid"}
     except Exception as e:
         return {"success": False, "error": str(e), "exchange": "hyperliquid"}
+    finally:
+        if adapter:
+            await adapter.close()
 
 
 @router.post("/leverage")
