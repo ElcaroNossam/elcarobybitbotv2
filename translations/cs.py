@@ -59,7 +59,17 @@ TEXTS = {
     # ═══════════════════════════════════════════════════════════════════
     'button_orders':               '📊 Příkazy',
     'button_positions':            '🎯 Pozice',
-    'button_history':              '📜 Historie',
+
+    'button_balance': '💎 Portfolio',
+    'button_market': '📈 Trh',
+    'button_strategies': '🤖 AI Boti',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminál',
+    'button_balance': '💎 Portfolio',
+    'button_market': '📈 Trh',
+    'button_strategies': '🤖 AI Boti',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminál',    'button_history':              '📜 Historie',
     'button_api_keys':             '🔑 API Klíče',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ Konfigurace',

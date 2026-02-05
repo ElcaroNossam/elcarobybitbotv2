@@ -55,7 +55,17 @@ TEXTS = {
     # Legacy keys
     'button_orders':               '📊 Įsakymai',
     'button_positions':            '🎯 Pozicijos',
-    'button_history':              '📜 Istorija',
+
+    'button_balance': '💎 Portfelis',
+    'button_market': '📈 Rinka',
+    'button_strategies': '🤖 AI Botai',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminalas',
+    'button_balance': '💎 Portfelis',
+    'button_market': '📈 Rinka',
+    'button_strategies': '🤖 AI Botai',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminalas',    'button_history':              '📜 Istorija',
     'button_api_keys':             '🔑 API raktai',
     'button_settings':             '⚙️ Nustatymai',
 

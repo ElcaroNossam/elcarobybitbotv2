@@ -60,7 +60,17 @@ TEXTS = {
     # ═══════════════════════════════════════════════════════════════════
     'button_orders':               '📊 הזמנות',
     'button_positions':            '🎯 פוזיציות',
-    'button_history':              '📜 היסטוריה',
+
+    'button_balance': '💎 תיק השקעות',
+    'button_market': '📈 שוק',
+    'button_strategies': '🤖 בוטים AI',
+    'button_subscribe': '👑 פרימיום',
+    'button_terminal': '💻 טרמינל',
+    'button_balance': '💎 תיק השקעות',
+    'button_market': '📈 שוק',
+    'button_strategies': '🤖 בוטים AI',
+    'button_subscribe': '👑 פרימיום',
+    'button_terminal': '💻 טרמינל',    'button_history':              '📜 היסטוריה',
     'button_api_keys':             '🔑 מפתחות API',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ הגדרות',

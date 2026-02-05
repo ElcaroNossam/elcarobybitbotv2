@@ -83,7 +83,17 @@ TEXTS = {
     
     'button_portfolio': '💼 Портфель',
     'button_positions': '📊 Позиції',
-    'button_orders': '📋 Ордери',
+
+    'button_balance': '💎 Портфель',
+    'button_market': '📈 Ринок',
+    'button_strategies': '🤖 AI Боти',
+    'button_subscribe': '👑 ПРЕМІУМ',
+    'button_terminal': '💻 Термінал',
+    'button_balance': '💎 Портфель',
+    'button_market': '📈 Ринок',
+    'button_strategies': '🤖 AI Боти',
+    'button_subscribe': '👑 ПРЕМІУМ',
+    'button_terminal': '💻 Термінал',    'button_orders': '📋 Ордери',
     'button_ai_bots': '🎯 Стратегії',
     'button_screener': '📈 Скрінер',
     'button_history': '📜 Історія',

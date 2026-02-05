@@ -61,7 +61,17 @@ TEXTS = {
     # ═══════════════════════════════════════════════════════════════════
     'button_orders':               '📊 الأوامر',
     'button_positions':            '🎯 المراكز',
-    'button_history':              '📜 السجل',
+
+    'button_balance': '💎 المحفظة',
+    'button_market': '📈 السوق',
+    'button_strategies': '🤖 روبوتات AI',
+    'button_subscribe': '👑 بريميوم',
+    'button_terminal': '💻 الطرفية',
+    'button_balance': '💎 المحفظة',
+    'button_market': '📈 السوق',
+    'button_strategies': '🤖 روبوتات AI',
+    'button_subscribe': '👑 بريميوم',
+    'button_terminal': '💻 الطرفية',    'button_history':              '📜 السجل',
     'button_api_keys':             '🔑 مفاتيح API',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ الإعدادات',

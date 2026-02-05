@@ -55,7 +55,17 @@ TEXTS = {
     # Legacy keys
     'button_orders':               '📜 Porositë e mia',
     'button_positions':            '🎯 Pozicionet',
-'button_history':              '📋 Historia',
+
+    'button_balance': '💎 Portofoli',
+    'button_market': '📈 Tregu',
+    'button_strategies': '🤖 AI Bots',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminal',
+    'button_balance': '💎 Portofoli',
+    'button_market': '📈 Tregu',
+    'button_strategies': '🤖 AI Bots',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminal','button_history':              '📋 Historia',
     'button_api_keys':             '🔑 Çelësat API',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ Cilësimet',

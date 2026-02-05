@@ -55,7 +55,17 @@ TEXTS = {
     # Legacy keys
     'button_orders':               '📊 Zlecenia',
     'button_positions':            '🎯 Pozycje',
-    'button_history':              '📋 Historia',
+
+    'button_balance': '💎 Portfel',
+    'button_market': '📈 Rynek',
+    'button_strategies': '🤖 AI Boty',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminal',
+    'button_balance': '💎 Portfel',
+    'button_market': '📈 Rynek',
+    'button_strategies': '🤖 AI Boty',
+    'button_subscribe': '👑 PREMIUM',
+    'button_terminal': '💻 Terminal',    'button_history':              '📋 Historia',
     'button_api_keys':             '🔑 Klucze API',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ Config',

@@ -55,7 +55,17 @@ TEXTS = {
     # Legacy keys
     'button_orders':               '📜 我的订单',
     'button_positions':            '🎯 持仓',
-'button_history':              '📋 历史',
+
+    'button_balance': '💎 投资组合',
+    'button_market': '📈 市场',
+    'button_strategies': '🤖 AI机器人',
+    'button_subscribe': '👑 高级版',
+    'button_terminal': '💻 终端',
+    'button_balance': '💎 投资组合',
+    'button_market': '📈 市场',
+    'button_strategies': '🤖 AI机器人',
+    'button_subscribe': '👑 高级版',
+    'button_terminal': '💻 终端','button_history':              '📋 历史',
     'button_api_keys':             '🔑 API密钥',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ 设置',

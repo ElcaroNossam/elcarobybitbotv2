@@ -57,7 +57,17 @@ TEXTS = {
     # ═══════════════════════════════════════════════════════════════════
     'button_orders':               '📊 注文',
     'button_positions':            '🎯 建玉',
-    'button_history':              '📜 履歴',
+
+    'button_balance': '💎 ポートフォリオ',
+    'button_market': '📈 マーケット',
+    'button_strategies': '🤖 AI ボット',
+    'button_subscribe': '👑 プレミアム',
+    'button_terminal': '💻 ターミナル',
+    'button_balance': '💎 ポートフォリオ',
+    'button_market': '📈 マーケット',
+    'button_strategies': '🤖 AI ボット',
+    'button_subscribe': '👑 プレミアム',
+    'button_terminal': '💻 ターミナル',    'button_history':              '📜 履歴',
     'button_api_keys':             '🔑 APIキー',
     'button_hyperliquid':          '🔷 HyperLiquid',
     'button_settings':             '⚙️ 設定',
