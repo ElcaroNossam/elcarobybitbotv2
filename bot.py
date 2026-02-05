@@ -17270,6 +17270,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         if bybit_result and bybit_result.get("success"):
                             await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
                         
+                        # Calculate SL/TP prices for set_trading_stop
+                        if side == "Buy":
+                            actual_sl = spot_price * (1 - user_sl_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
+                        else:
+                            actual_sl = spot_price * (1 + user_sl_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
+                        
+                        # FIX: Set TP/SL on exchange (was missing!)
+                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                        
                         inc_pyramid(uid, symbol, side)
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
@@ -17401,6 +17412,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
                         if bybit_result and bybit_result.get("success"):
                             await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Calculate SL/TP prices for set_trading_stop
+                        if side == "Buy":
+                            actual_sl = spot_price * (1 - user_sl_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                        else:
+                            actual_sl = spot_price * (1 + user_sl_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                        
+                        # FIX: Set TP/SL on exchange (was missing!)
+                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -17537,6 +17559,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
                         if bybit_result and bybit_result.get("success"):
                             await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Calculate SL/TP prices for set_trading_stop
+                        if side == "Buy":
+                            actual_sl = spot_price * (1 - user_sl_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                        else:
+                            actual_sl = spot_price * (1 + user_sl_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                        
+                        # FIX: Set TP/SL on exchange (was missing!)
+                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -18043,6 +18076,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
                         if bybit_result and bybit_result.get("success"):
                             await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                        
+                        # Calculate SL/TP prices for set_trading_stop
+                        if side == "Buy":
+                            actual_sl = spot_price * (1 - user_sl_pct / 100)
+                            actual_tp = spot_price * (1 + user_tp_pct / 100)
+                        else:
+                            actual_sl = spot_price * (1 + user_sl_pct / 100)
+                            actual_tp = spot_price * (1 - user_tp_pct / 100)
+                        
+                        # FIX: Set TP/SL on exchange (was missing!)
+                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         
