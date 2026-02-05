@@ -5353,6 +5353,61 @@ async def check_trading_limits_user(user_id: int, t: dict) -> tuple[bool, str]:
 
     return True, ""
 
+
+async def check_strategy_max_positions(
+    user_id: int, 
+    strategy: str, 
+    side: str,
+    exchange: str,
+    account_type: str
+) -> tuple[bool, int, int]:
+    """
+    Check if user can open new position for this strategy/side based on max_positions setting.
+    
+    Args:
+        user_id: User ID
+        strategy: Strategy name (oi, scryptomera, scalper, elcaro, fibonacci, rsi_bb)
+        side: Trade side (long or short)
+        exchange: Exchange type (bybit or hyperliquid)
+        account_type: Account type (demo, real, testnet, mainnet)
+        
+    Returns:
+        (can_trade, current_count, max_limit)
+        - can_trade: True if user can open new position
+        - current_count: Number of currently open positions for this strategy/side
+        - max_limit: The max_positions limit (0 = unlimited)
+    """
+    # Get strategy settings with max_positions for this side
+    settings = db.get_strategy_settings(user_id, strategy, exchange, account_type)
+    max_positions = settings.get(f"{side}_max_positions", 0)
+    
+    # 0 = unlimited
+    if max_positions <= 0:
+        return True, 0, 0
+    
+    # Count open positions for this strategy and side
+    # Note: side in DB is "Buy" or "Sell", convert from "long"/"short"
+    db_side = "Buy" if side == "long" else "Sell"
+    
+    # Get all positions for user
+    positions = db.get_active_positions(user_id, exchange=exchange)
+    
+    # Count positions matching this strategy AND side
+    count = sum(
+        1 for p in positions 
+        if p.get("strategy") == strategy and p.get("side") == db_side
+    )
+    
+    can_trade = count < max_positions
+    
+    if not can_trade:
+        logger.info(
+            f"[{user_id}] max_positions reached for {strategy}/{side}: "
+            f"{count} >= {max_positions} - skipping signal"
+        )
+    
+    return can_trade, count, max_positions
+
 @with_texts
 @log_calls
 async def cmd_select_coin_group(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -7061,54 +7116,19 @@ async def place_order_for_targets(
                         account_type=target_acc
                     )
                     
-                    # Check minimum notional value ($5 on Bybit) and adjust qty/leverage if needed
-                    # Use 6.0 as target to have 20% buffer above Bybit's 5 USDT minimum
-                    # This prevents edge cases where price drops slightly between calculation and order
-                    MIN_NOTIONAL_TARGET = 6.0  # Target notional (with buffer)
-                    MIN_NOTIONAL_BYBIT = 5.0   # Bybit's actual minimum
+                    # Check minimum notional value ($5 on Bybit)
+                    # If position is too small, SKIP the trade instead of increasing leverage
+                    MIN_NOTIONAL_BYBIT = 5.0   # Bybit's minimum
                     notional_value = target_qty * entry_price
                     
-                    if notional_value < MIN_NOTIONAL_TARGET:
-                        # Get instrument info for proper qty rounding and max leverage
-                        inst = await _bybit_request(
-                            user_id, "GET", "/v5/market/instruments-info",
-                            params={"category": "linear", "symbol": symbol},
-                            account_type=target_acc
+                    if notional_value < MIN_NOTIONAL_BYBIT:
+                        logger.warning(
+                            f"[{user_id}] {symbol} notional ${notional_value:.2f} < ${MIN_NOTIONAL_BYBIT} minimum. "
+                            f"SKIPPING trade (equity too low or risk% too small). "
+                            f"qty={target_qty:.4f}, leverage={target_leverage}x, risk={risk_pct}%, sl={sl_pct}%"
                         )
-                        if not inst.get("list"):
-                            logger.error(f"[{user_id}] Symbol {symbol} not found in instruments")
-                            continue
-                        lot = inst["list"][0]["lotSizeFilter"]
-                        step_qty = float(lot["qtyStep"])
-                        min_qty = float(lot["minOrderQty"])
-                        
-                        # Get max leverage for this symbol from API
-                        leverage_filter = inst["list"][0].get("leverageFilter", {})
-                        symbol_max_leverage = int(float(leverage_filter.get("maxLeverage", 50)))
-                        
-                        # Calculate minimum qty needed to reach min notional (with buffer)
-                        min_qty_for_notional = MIN_NOTIONAL_TARGET / entry_price
-                        # Round up to step_qty
-                        adjusted_qty = math.ceil(min_qty_for_notional / step_qty) * step_qty
-                        adjusted_qty = max(adjusted_qty, min_qty)
-                        
-                        # Calculate leverage multiplier needed
-                        original_notional = target_qty * entry_price
-                        required_multiplier = adjusted_qty / target_qty if target_qty > 0 else 1
-                        
-                        # Adjust leverage proportionally
-                        new_leverage = math.ceil(target_leverage * required_multiplier)
-                        new_leverage = min(new_leverage, symbol_max_leverage)  # Cap at symbol's max leverage
-                        
-                        logger.info(
-                            f"[{user_id}] Notional ${notional_value:.2f} < ${MIN_NOTIONAL_TARGET} target (bybit min=${MIN_NOTIONAL_BYBIT}). "
-                            f"Adjusting: qty {target_qty:.4f} -> {adjusted_qty:.4f}, "
-                            f"leverage {target_leverage}x -> {new_leverage}x (max={symbol_max_leverage}x)"
-                        )
-                        
-                        target_qty = adjusted_qty
-                        target_leverage = new_leverage
-                        notional_value = target_qty * entry_price
+                        errors.append(f"[{target_key.upper()}] Notional ${notional_value:.2f} below ${MIN_NOTIONAL_BYBIT} minimum - increase risk% or equity")
+                        continue  # Skip this target, don't open position
                     
                     logger.info(
                         f"[{user_id}] Per-target qty for {target_key}: "
@@ -17177,6 +17197,33 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 active_strategy = "fibonacci"
             elif oi_trigger:
                 active_strategy = "oi"
+            
+            # =====================================================
+            # MAX POSITIONS CHECK - Skip if limit reached for this strategy/side
+            # =====================================================
+            if active_strategy:
+                signal_direction = "long" if side == "Buy" else "short"
+                can_open, current_count, max_limit = await check_strategy_max_positions(
+                    uid, active_strategy, signal_direction, ctx_exchange, ctx_account_type
+                )
+                if not can_open:
+                    if once_per((uid, f"max_pos_{active_strategy}_{signal_direction}", ""), 3600):
+                        try:
+                            await ctx.bot.send_message(
+                                uid,
+                                t.get(
+                                    "strategy_max_positions_reached",
+                                    "⚠️ Max positions reached for {strategy} {side}: {current}/{max}\n\nClose a position or increase the limit in strategy settings."
+                                ).format(
+                                    strategy=active_strategy.upper(),
+                                    side=signal_direction.upper(),
+                                    current=current_count,
+                                    max=max_limit
+                                )
+                            )
+                        except Exception:
+                            pass
+                    continue
             
             # Check if user can trade this strategy on this account type
             if active_strategy and is_real_trade:
