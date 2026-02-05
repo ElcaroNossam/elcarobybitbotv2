@@ -18489,32 +18489,37 @@ async def monitor_positions_loop(app: Application):
                                 
                                 tf_for_sym = tf_map.get(sym, "24h") 
                                 
-                                # CRITICAL FIX: Do NOT search for signals for externally opened positions!
-                                # The signals table is GLOBAL (not per-user), so get_last_signal_id()
-                                # would find ANY recent signal for this symbol, even if this user
-                                # didn't trade it via bot. This causes wrong strategy assignment.
-                                #
-                                # Positions opened externally on exchange (not via bot) should ALWAYS
-                                # be detected as "manual" and use global user settings.
-                                #
-                                # Only positions opened BY THE BOT have signal_id saved in active_positions.
-                                
-                                # Try to determine strategy from signal if available
+                                # Try to find a recent signal for this position
+                                # This helps determine correct strategy when bot restarts and finds
+                                # positions that were opened by bot but not yet recorded in active_positions
                                 detected_strategy = None
                                 sig = None
-                                signal_id = None  # External positions have no signal_id
+                                signal_id = None
                                 
-                                # REMOVED: signal_id = get_last_signal_id(uid, sym, tf_for_sym)
-                                # REMOVED: if signal_id: sig = fetch_signal_by_id(signal_id)
-                                # These searches were global and caused wrong strategy detection
+                                # Search for a recent signal for this symbol+side (within 3 minutes)
+                                # This is safe because:
+                                # 1. We only look at signals from last 3 minutes
+                                # 2. We match both symbol AND side
+                                # 3. We already confirmed position doesn't exist in our DB
+                                try:
+                                    from db import get_recent_signal_for_position
+                                    sig = get_recent_signal_for_position(sym, side, within_seconds=180)
+                                    if sig:
+                                        signal_id = sig.get("id")
+                                        logger.info(f"[{uid}] Found recent signal #{signal_id} for {sym} {side}")
+                                except Exception as e:
+                                    logger.warning(f"[{uid}] get_recent_signal_for_position failed: {e}")
                                 
                                 if sig:
                                     # Check signal source/strategy using parsers
                                     raw_msg = sig.get("raw_message") or ""
                                     raw_upper = raw_msg.upper()
                                     
+                                    # RSI_BB MUST be checked FIRST (it's most common and has unique pattern)
+                                    if is_rsi_bb_signal(raw_msg):
+                                        detected_strategy = "rsi_bb"
                                     # Use actual parsers to detect strategy (most reliable)
-                                    if is_fibonacci_signal(raw_msg):
+                                    elif is_fibonacci_signal(raw_msg):
                                         detected_strategy = "fibonacci"
                                     elif is_bitk_signal(raw_msg):  # Scryptomera
                                         detected_strategy = "scryptomera"
@@ -18535,9 +18540,11 @@ async def monitor_positions_loop(app: Application):
                                         detected_strategy = "fibonacci"
                                     elif "OI SIGNAL" in raw_upper or "🎯 OI" in raw_msg:
                                         detected_strategy = "oi"
+                                    
+                                    if detected_strategy:
+                                        logger.info(f"[{uid}] Detected strategy from signal: {detected_strategy}")
                                 
-                                # Use current_account_type from the loop
-                                # If strategy not detected, use "manual" (position opened externally on exchange)
+                                # If no recent signal found or strategy not detected, it's truly external
                                 final_strategy = detected_strategy or "manual"
                                 
                                 # P0.5: Get use_atr from strategy settings

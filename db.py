@@ -2198,6 +2198,62 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
     return dict(zip(cols, row)) if row else None
 
 
+def get_recent_signal_for_position(symbol: str, side: str, within_seconds: int = 180) -> dict | None:
+    """
+    Find a recent signal for this symbol+side within the last N seconds.
+    
+    This is used when bot detects an existing position on exchange to determine
+    which strategy opened it. The signal must:
+    1. Be for the same symbol
+    2. Be for the same direction (Buy/Sell)
+    3. Be within the time window (default 3 minutes)
+    
+    Returns signal dict or None.
+    
+    IMPORTANT: This function is safe to use for position detection because:
+    - It checks BOTH symbol AND side match
+    - It only looks back a short time window (not all signals)
+    - It's used after confirming the position is new (not in active_positions)
+    """
+    cols = ["id", "raw_message", "ts", "tf", "side", "symbol", "price"]
+    
+    # Normalize side for comparison
+    if side == "Buy":
+        side_patterns = ("Buy", "LONG", "Long", "long")
+    else:
+        side_patterns = ("Sell", "SHORT", "Short", "short")
+    
+    with get_conn() as conn:
+        # Search for signals within time window for this symbol
+        row = conn.execute(
+            """
+            SELECT id, raw_message, ts, tf, side, symbol, price 
+            FROM signals 
+            WHERE symbol = %s
+            AND ts > NOW() - INTERVAL '%s seconds'
+            ORDER BY ts DESC LIMIT 1
+            """,
+            (symbol, within_seconds),
+        ).fetchone()
+        
+        if row:
+            sig = dict(zip(cols, row))
+            # Verify side matches (signal side may be Buy/Sell or Long/Short)
+            sig_side = (sig.get("side") or "").upper()
+            raw_msg = (sig.get("raw_message") or "").upper()
+            
+            if side == "Buy":
+                if sig_side in ("BUY", "LONG") or "LONG" in raw_msg[:50]:
+                    return sig
+            else:
+                if sig_side in ("SELL", "SHORT") or "SHORT" in raw_msg[:50]:
+                    return sig
+            # Side doesn't match - this signal is for opposite direction
+            return None
+        
+        return None
+
+
 # ------------------------------------------------------------------------------------
 # Active positions
 # ------------------------------------------------------------------------------------
