@@ -57,7 +57,7 @@ struct EnlikoTradingApp: App {
                 .environmentObject(appState)
                 .environmentObject(tradingService)
                 .environmentObject(localization)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appState.currentTheme.colorScheme)
                 .withRTLSupport()
                 .onOpenURL { url in
                     // Handle deep links from Telegram bot

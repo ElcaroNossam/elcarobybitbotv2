@@ -18,10 +18,36 @@ router = APIRouter(tags=["ai-agent"])
 
 class ChatRequest(BaseModel):
     message: str
+    question: Optional[str] = None  # Alias for message (iOS sends 'question')
+    language: Optional[str] = "en"  # User's preferred language
     context: Optional[Dict[str, Any]] = None
+    
+    @property
+    def text(self) -> str:
+        """Get the actual question text"""
+        return self.question or self.message
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# Language names for system prompt
+LANGUAGE_NAMES = {
+    "en": "English",
+    "ru": "Russian",
+    "uk": "Ukrainian", 
+    "de": "German",
+    "es": "Spanish",
+    "fr": "French",
+    "it": "Italian",
+    "ja": "Japanese",
+    "zh": "Chinese",
+    "ar": "Arabic",
+    "he": "Hebrew",
+    "pl": "Polish",
+    "cs": "Czech",
+    "lt": "Lithuanian",
+    "sq": "Albanian"
+}
 
 
 SYSTEM_PROMPT = """You are an expert AI Trading Assistant for a cryptocurrency trading bot. You analyze markets, provide trading signals, and help users make informed decisions.
@@ -52,16 +78,20 @@ Available commands:
 /risk - Portfolio risk assessment
 /sentiment - Market sentiment analysis
 
-Current context will be provided about user's positions and market data."""
+Current context will be provided about user's positions and market data.
+
+IMPORTANT: You MUST respond in the language specified by the user. If user speaks Russian, respond in Russian. If user speaks German, respond in German, etc."""
 
 
-async def call_openai(message: str, context: Dict = None) -> Dict:
+async def call_openai(message: str, context: Dict = None, language: str = "en") -> Dict:
     """Call OpenAI API for chat completion"""
     if not OPENAI_API_KEY:
         # Return mock response if no API key
-        return generate_mock_response(message)
+        return generate_mock_response(message, language)
     
-    system_context = SYSTEM_PROMPT
+    lang_name = LANGUAGE_NAMES.get(language, "English")
+    system_context = SYSTEM_PROMPT + f"\n\nIMPORTANT: Respond in {lang_name}."
+    
     if context:
         if context.get("positions"):
             system_context += f"\n\nUser's current positions: {context['positions']}"
@@ -95,9 +125,92 @@ async def call_openai(message: str, context: Dict = None) -> Dict:
                 return {"success": False, "error": f"API error: {resp.status}"}
 
 
-def generate_mock_response(message: str) -> Dict:
-    """Generate mock AI response for demo purposes"""
+def generate_mock_response(message: str, language: str = "en") -> Dict:
+    """Generate mock AI response for demo purposes - with language support"""
     msg = message.lower()
+    
+    # Localized templates
+    if language == "ru":
+        templates = {
+            "analyze_title": "📊 **Технический анализ {coin}**",
+            "current_price": "**Текущая цена:**",
+            "trend": "**Тренд:**",
+            "bullish": "🟢 Бычий (Краткосрочный)",
+            "key_levels": "**Ключевые уровни:**",
+            "resistance": "Сопротивление",
+            "support": "Поддержка",
+            "indicators": "**Индикаторы:**",
+            "volume_analysis": "**Анализ объема:**",
+            "recommendation": "**Рекомендация:**",
+            "signal_title": "🎯 **Торговый сигнал - BTC/USDT**",
+            "direction": "**Направление:**",
+            "long": "🟢 ЛОНГ",
+            "confidence": "**Уверенность:**",
+            "entry_zone": "**Зона входа:**",
+            "take_profit": "**Тейк профит",
+            "stop_loss": "**Стоп лосс:**",
+            "risk_reward": "**Риск:Награда:**",
+            "reasoning": "**Обоснование:**",
+            "not_advice": "⚠️ *Это не финансовый совет. Проводите собственный анализ.*",
+            "market_title": "🌍 **Обзор рынка**",
+            "sentiment_title": "📊 **Настроение рынка**",
+            "fear_greed": "Индекс страха и жадности",
+            "greed": "Жадность",
+        }
+    elif language == "uk":
+        templates = {
+            "analyze_title": "📊 **Технічний аналіз {coin}**",
+            "current_price": "**Поточна ціна:**",
+            "trend": "**Тренд:**",
+            "bullish": "🟢 Бичачий (Короткостроковий)",
+            "key_levels": "**Ключові рівні:**",
+            "resistance": "Опір",
+            "support": "Підтримка",
+            "indicators": "**Індикатори:**",
+            "volume_analysis": "**Аналіз об'єму:**",
+            "recommendation": "**Рекомендація:**",
+            "signal_title": "🎯 **Торговий сигнал - BTC/USDT**",
+            "direction": "**Напрямок:**",
+            "long": "🟢 ЛОНГ",
+            "confidence": "**Впевненість:**",
+            "entry_zone": "**Зона входу:**",
+            "take_profit": "**Тейк профіт",
+            "stop_loss": "**Стоп лос:**",
+            "risk_reward": "**Ризик:Нагорода:**",
+            "reasoning": "**Обґрунтування:**",
+            "not_advice": "⚠️ *Це не фінансова порада. Проводьте власний аналіз.*",
+            "market_title": "🌍 **Огляд ринку**",
+            "sentiment_title": "📊 **Настрій ринку**",
+            "fear_greed": "Індекс страху та жадібності",
+            "greed": "Жадібність",
+        }
+    else:
+        templates = {
+            "analyze_title": "📊 **{coin} Technical Analysis**",
+            "current_price": "**Current Price:**",
+            "trend": "**Trend:**",
+            "bullish": "🟢 Bullish (Short-term)",
+            "key_levels": "**Key Levels:**",
+            "resistance": "Resistance",
+            "support": "Support",
+            "indicators": "**Indicators:**",
+            "volume_analysis": "**Volume Analysis:**",
+            "recommendation": "**Recommendation:**",
+            "signal_title": "🎯 **Trading Signal - BTC/USDT**",
+            "direction": "**Direction:**",
+            "long": "🟢 LONG",
+            "confidence": "**Confidence:**",
+            "entry_zone": "**Entry Zone:**",
+            "take_profit": "**Take Profit",
+            "stop_loss": "**Stop Loss:**",
+            "risk_reward": "**Risk:Reward:**",
+            "reasoning": "**Reasoning:**",
+            "not_advice": "⚠️ *This is not financial advice. Always DYOR.*",
+            "market_title": "🌍 **Market Overview**",
+            "sentiment_title": "📊 **Market Sentiment**",
+            "fear_greed": "Fear & Greed Index",
+            "greed": "Greed",
+        }
     
     if "/analyze" in msg or "analyze" in msg:
         coin = "BTC" if "btc" in msg or "bitcoin" in msg else "ETH" if "eth" in msg else "BTC"
@@ -320,9 +433,11 @@ async def chat_with_ai(
     request: ChatRequest,
     user = Depends(get_current_user)
 ):
-    """Chat with AI trading assistant"""
+    """Chat with AI trading assistant - responds in user's language"""
     try:
-        result = await call_openai(request.message, request.context)
+        message = request.text  # Use the property that handles both 'question' and 'message'
+        language = request.language or "en"
+        result = await call_openai(message, request.context, language)
         return result
     except Exception as e:
         return {"success": False, "error": str(e)}

@@ -214,6 +214,14 @@ class LocalizationManager: ObservableObject {
         "settings_leverage": "Default Leverage",
         "settings_risk": "Risk Management",
         
+        // Theme
+        "theme": "Theme",
+        "theme_dark": "Dark",
+        "theme_light": "Light",
+        "theme_system": "System",
+        "appearance": "Appearance",
+        "appearance_footer": "Dark mode is recommended for trading.",
+        
         // Subscription
         "subscription": "Subscription",
         "subscription_activated": "Subscription activated!",
@@ -796,6 +804,14 @@ class LocalizationManager: ObservableObject {
         "settings_leverage": "Плечо по умолчанию",
         "settings_risk": "Управление рисками",
         
+        // Theme
+        "theme": "Тема",
+        "theme_dark": "Тёмная",
+        "theme_light": "Светлая",
+        "theme_system": "Системная",
+        "appearance": "Оформление",
+        "appearance_footer": "Тёмная тема рекомендуется для торговли.",
+        
         // Subscription
         "subscription": "Подписка",
         "subscription_activated": "Подписка активирована!",
@@ -1331,6 +1347,13 @@ class LocalizationManager: ObservableObject {
         "settings_title": "Налаштування",
         "settings_language": "Мова",
         "settings_logout": "Вийти",
+        // Theme
+        "theme": "Тема",
+        "theme_dark": "Темна",
+        "theme_light": "Світла",
+        "theme_system": "Системна",
+        "appearance": "Оформлення",
+        "appearance_footer": "Темна тема рекомендована для трейдингу.",
         "common_loading": "Завантаження...",
         "common_error": "Помилка",
         "common_cancel": "Скасувати",

@@ -6,6 +6,38 @@
 import SwiftUI
 import Combine
 
+// MARK: - App Theme
+enum AppTheme: String, CaseIterable {
+    case dark = "dark"
+    case light = "light"
+    case system = "system"
+    
+    var displayName: String {
+        switch self {
+        case .dark: return "Dark"
+        case .light: return "Light"
+        case .system: return "System"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .dark: return "moon.fill"
+        case .light: return "sun.max.fill"
+        case .system: return "gear"
+        }
+    }
+    
+    /// Convert to ColorScheme for SwiftUI
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil  // nil = use system setting
+        }
+    }
+}
+
 // MARK: - App State
 class AppState: ObservableObject {
     static let shared = AppState()
@@ -16,6 +48,13 @@ class AppState: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showError = false
+    
+    // MARK: - Theme Support
+    @Published var currentTheme: AppTheme = .dark {
+        didSet {
+            UserDefaults.standard.set(currentTheme.rawValue, forKey: "app_theme")
+        }
+    }
     
     // Alias for backward compatibility
     var selectedExchange: Exchange {
@@ -56,6 +95,12 @@ class AppState: ObservableObject {
         if let accountRaw = UserDefaults.standard.string(forKey: "currentAccountType"),
            let account = AccountType(rawValue: accountRaw) {
             currentAccountType = account
+        }
+        
+        // Load saved theme
+        if let themeRaw = UserDefaults.standard.string(forKey: "app_theme"),
+           let theme = AppTheme(rawValue: themeRaw) {
+            currentTheme = theme
         }
     }
     

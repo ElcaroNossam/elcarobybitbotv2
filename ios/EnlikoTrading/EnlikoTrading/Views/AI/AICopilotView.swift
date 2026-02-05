@@ -112,7 +112,7 @@ class AICopilotViewModel: ObservableObject {
         messages.append(typingMessage)
         
         // Haptic feedback
-        HapticManager.shared.perform(.light)
+        HapticFeedback.light()
         
         // Try to get smart local response first
         if let localResponse = getSmartResponse(for: text) {
@@ -154,7 +154,7 @@ class AICopilotViewModel: ObservableObject {
         saveMessages()
         
         // Haptic
-        HapticManager.shared.perform(.success)
+        HapticFeedback.success()
         SoundManager.shared.play(.newSignal, withHaptic: false)
     }
     
@@ -200,7 +200,7 @@ class AICopilotViewModel: ObservableObject {
             isBot: true
         )]
         saveMessages()
-        HapticManager.shared.perform(.medium)
+        HapticFeedback.medium()
     }
 }
 
@@ -484,7 +484,7 @@ struct FloatingCopilotButton: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                 isOpen = true
             }
-            HapticManager.shared.perform(.medium)
+            HapticFeedback.medium()
         }) {
             ZStack {
                 // Glow

@@ -218,7 +218,8 @@ struct RiskSettingsView: View {
 
 // MARK: - Appearance Settings View
 struct AppearanceSettingsView: View {
-    @State private var selectedTheme = "dark"
+    @ObservedObject var appState = AppState.shared
+    @ObservedObject var localization = LocalizationManager.shared
     
     var body: some View {
         ZStack {
@@ -226,19 +227,24 @@ struct AppearanceSettingsView: View {
             
             List {
                 Section {
-                    ForEach(["dark", "light", "system"], id: \.self) { theme in
-                        Button(action: { selectedTheme = theme }) {
+                    ForEach(AppTheme.allCases, id: \.self) { theme in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                appState.currentTheme = theme
+                            }
+                            HapticFeedback.selection()
+                        }) {
                             HStack {
-                                Image(systemName: themeIcon(theme))
+                                Image(systemName: theme.icon)
                                     .foregroundColor(.enlikoPrimary)
                                     .frame(width: 28)
                                 
-                                Text(theme.capitalized)
-                                    .foregroundColor(.white)
+                                Text(themeDisplayName(theme))
+                                    .foregroundColor(appState.currentTheme.colorScheme == .dark ? .white : .primary)
                                 
                                 Spacer()
                                 
-                                if selectedTheme == theme {
+                                if appState.currentTheme == theme {
                                     Image(systemName: "checkmark")
                                         .foregroundColor(.enlikoPrimary)
                                 }
@@ -246,24 +252,24 @@ struct AppearanceSettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Theme")
+                    Text("theme".localized)
                 } footer: {
-                    Text("Dark mode is recommended for trading.")
+                    Text("appearance_footer".localized)
                 }
                 .listRowBackground(Color.enlikoCard)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Appearance")
+        .navigationTitle("appearance".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    private func themeIcon(_ theme: String) -> String {
+    private func themeDisplayName(_ theme: AppTheme) -> String {
         switch theme {
-        case "dark": return "moon.fill"
-        case "light": return "sun.max.fill"
-        default: return "gear"
+        case .dark: return "theme_dark".localized
+        case .light: return "theme_light".localized
+        case .system: return "theme_system".localized
         }
     }
 }

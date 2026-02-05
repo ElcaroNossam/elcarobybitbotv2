@@ -183,11 +183,12 @@ class AIService: ObservableObject {
     }
     
     // MARK: - Ask AI (Chat Interface)
-    /// Send a question to the AI and get a response
+    /// Send a question to the AI and get a response in user's language
     @MainActor
     func askAI(question: String) async throws -> String {
         struct AIQuestionRequest: Codable {
             let question: String
+            let language: String
         }
         
         struct AIQuestionResponse: Codable {
@@ -200,9 +201,12 @@ class AIService: ObservableObject {
             }
         }
         
+        // Get user's current language
+        let userLanguage = LocalizationManager.shared.currentLanguage.rawValue
+        
         let response: APIResponse<AIQuestionResponse> = try await network.post(
             Config.Endpoints.aiChat,
-            body: AIQuestionRequest(question: question)
+            body: AIQuestionRequest(question: question, language: userLanguage)
         )
         
         if let data = response.data {
