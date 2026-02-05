@@ -540,7 +540,6 @@ class LocalizationManager: ObservableObject {
         "stats_avg_trade": "Avg Trade",
         "stats_best_trade": "Best Trade",
         "stats_worst_trade": "Worst Trade",
-        "stats_by_strategy": "By Strategy",
         
         // AI
         "ai_title": "AI Analysis",
@@ -674,7 +673,6 @@ class LocalizationManager: ObservableObject {
         "dca_level_1": "Level 1 (Add at drawdown %)",
         "dca_level_2": "Level 2 (Add at drawdown %)",
         "dca_hint": "Dollar Cost Averaging adds to position on drawdowns to lower average entry.",
-        "spot_trading": "Spot Trading",
         "spot_enabled": "Enable Spot Trading",
         "spot_dca_enabled": "Enable Spot DCA",
         "spot_dca_pct": "DCA Amount %",
@@ -960,7 +958,6 @@ class LocalizationManager: ObservableObject {
         "errors": "Ошибки",
         "pending_approvals": "Ожидают одобрения",
         "retry": "Повторить",
-        "win_rate": "Винрейт",
         
         // Auth
         "auth_login": "Войти",
@@ -1143,7 +1140,6 @@ class LocalizationManager: ObservableObject {
         "stats_avg_trade": "Средняя сделка",
         "stats_best_trade": "Лучшая сделка",
         "stats_worst_trade": "Худшая сделка",
-        "stats_by_strategy": "По стратегиям",
         
         // AI
         "ai_title": "AI Анализ",
@@ -1272,7 +1268,6 @@ class LocalizationManager: ObservableObject {
         "dca_level_1": "Уровень 1 (добор при просадке %)",
         "dca_level_2": "Уровень 2 (добор при просадке %)",
         "dca_hint": "DCA добавляет к позиции при просадках для усреднения входа.",
-        "spot_trading": "Спот торговля",
         "spot_enabled": "Включить спот",
         "spot_dca_enabled": "Включить спот DCA",
         "spot_dca_pct": "Объём DCA %",
