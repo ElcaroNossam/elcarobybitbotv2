@@ -816,6 +816,7 @@ class LocalizationManager: ObservableObject {
         "7d": "7D",
         "30d": "30D",
         "all_time": "All Time",
+        "stats_overview": "Stats Overview",
         "by_strategy": "By Strategy",
         "no_trades_yet": "No trades yet",
         "entry": "Entry",
@@ -824,6 +825,7 @@ class LocalizationManager: ObservableObject {
         "modify": "Modify",
         "close": "Close",
         "cancel_all": "Cancel All",
+        "pending_orders": "Pending Orders",
         "no_positions_subtitle": "Open a trade to see your positions here",
         "no_orders_subtitle": "Place a limit order to see it here",
         
@@ -1442,6 +1444,24 @@ class LocalizationManager: ObservableObject {
         "confirm_order": "Подтвердить ордер",
         "select_symbol": "Выбрать символ",
         "search": "Поиск",
+        
+        // Dashboard View (NEW!)
+        "dashboard": "Профиль",
+        "total_balance": "Общий баланс",
+        "today": "Сегодня",
+        "7d": "7Д",
+        "30d": "30Д",
+        "all_time": "За всё время",
+        "stats_overview": "Обзор статистики",
+        "by_strategy": "По стратегиям",
+        "no_trades_yet": "Пока нет сделок",
+        "entry": "Вход",
+        "mark": "Маркет",
+        "size": "Размер",
+        "modify": "Изменить",
+        "close": "Закрыть",
+        "cancel_all": "Отменить все",
+        "pending_orders": "Ожидающие ордера",
     ]
     
     // MARK: - Ukrainian
