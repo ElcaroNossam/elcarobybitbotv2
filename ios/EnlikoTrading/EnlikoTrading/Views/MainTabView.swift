@@ -2,9 +2,8 @@
 //  MainTabView.swift
 //  EnlikoTrading
 //
-//  UPDATED: 4 tabs matching Telegram bot structure
-//  Dashboard (Profile) | Positions | Trading | Settings
-//  With proper safe area handling for tab bar
+//  UPDATED: 4 tabs - Dashboard | Strategies | Trading | Settings
+//  Full functionality like Telegram bot
 //
 
 import SwiftUI
@@ -23,27 +22,27 @@ struct MainTabView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                // Content - 4 main tabs matching bot structure
+                // Content - 4 main tabs
                 TabView(selection: $selectedTab) {
-                    // Dashboard Tab (like Profile in bot - Balance + Stats + History)
+                    // Dashboard Tab (Balance + Stats + Recent Trades)
                     NavigationStack {
                         DashboardView()
                     }
                     .tag(0)
                     
-                    // Positions + Orders Tab (combined)
+                    // Strategies Tab (Strategy Settings like in bot)
                     NavigationStack {
-                        PositionsOrdersView()
+                        StrategiesHubView()
                     }
                     .tag(1)
                     
-                    // Trading Tab (Terminal)
+                    // Trading Tab (Terminal - Positions + Orders + Manual Trade)
                     NavigationStack {
-                        TradingView()
+                        TradingHubView()
                     }
                     .tag(2)
                     
-                    // Settings Tab (API Keys + Strategy Settings prominent)
+                    // Settings Tab (API Keys + Global Settings)
                     NavigationStack {
                         SettingsMainView()
                     }
@@ -106,7 +105,7 @@ struct MainTabView: View {
         }
     }
     
-    // MARK: - Custom Tab Bar (4 tabs - bot structure)
+    // MARK: - Custom Tab Bar (4 tabs)
     private var customTabBar: some View {
         VStack(spacing: 0) {
             // Top border
@@ -121,15 +120,15 @@ struct MainTabView: View {
                 .frame(height: 1)
             
             HStack(spacing: 0) {
-                // Dashboard (Portfolio/Profile)
-                tabBarItem(icon: "person.crop.circle.fill", label: "dashboard".localized, index: 0)
+                // Dashboard
+                tabBarItem(icon: "chart.pie.fill", label: "dashboard".localized, index: 0)
                 
-                // Positions + Orders
-                tabBarItem(icon: "list.bullet.rectangle.fill", label: "positions".localized, index: 1, 
-                          badge: tradingService.positions.count)
+                // Strategies
+                tabBarItem(icon: "brain.head.profile", label: "strategies".localized, index: 1)
                 
                 // Trading (Terminal) - Primary action
-                tabBarItem(icon: "arrow.up.arrow.down", label: "trading".localized, index: 2, isPrimary: true)
+                tabBarItem(icon: "arrow.up.arrow.down", label: "trading".localized, index: 2, isPrimary: true,
+                          badge: tradingService.positions.count)
                 
                 // Settings
                 tabBarItem(icon: "gearshape.fill", label: "settings".localized, index: 3)
@@ -169,6 +168,18 @@ struct MainTabView: View {
                             .frame(width: 50, height: 50)
                             .shadow(color: isSelected ? .enlikoPrimary.opacity(0.5) : .clear, radius: 10, y: 5)
                         
+                        // Badge on primary button
+                        if badge > 0 {
+                            Text("\(badge)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .clipShape(Capsule())
+                                .offset(x: 18, y: -18)
+                        }
+                        
                         Image(systemName: icon)
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
@@ -178,8 +189,8 @@ struct MainTabView: View {
                                 .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
                                 .foregroundColor(isSelected ? .enlikoPrimary : .enlikoTextSecondary)
                             
-                            // Badge for positions count
-                            if badge > 0 {
+                            // Badge for non-primary tabs
+                            if badge > 0 && !isPrimary {
                                 Text("\(badge)")
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(.white)

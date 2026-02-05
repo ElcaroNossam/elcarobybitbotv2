@@ -847,6 +847,22 @@ class LocalizationManager: ObservableObject {
         "manage_alerts": "Manage alerts",
         "active": "Active",
         "premium": "Premium",
+        
+        // Strategies Hub View (NEW!)
+        "strategies": "Strategies",
+        "strategies_list": "All Strategies",
+        "enable_all": "Enable All",
+        "disable_all": "Disable All",
+        "global_settings": "Global Settings",
+        "detailed_settings": "Detailed Settings",
+        
+        // Trading Hub View (NEW!)
+        "close_all": "Close All",
+        "no_positions_hint": "Your active positions will appear here",
+        "open_position": "Open Position",
+        "no_orders_hint": "Your pending orders will appear here",
+        "close_position_confirm": "Close this position?",
+        "modify_tpsl": "Modify TP/SL",
     ]
     
     // MARK: - Russian
@@ -1457,6 +1473,22 @@ class LocalizationManager: ObservableObject {
         "close": "Закрыть",
         "cancel_all": "Отменить все",
         "pending_orders": "Ожидающие ордера",
+        
+        // Strategies Hub View (NEW!)
+        "strategies": "Стратегии",
+        "strategies_list": "Все стратегии",
+        "enable_all": "Включить все",
+        "disable_all": "Выключить все",
+        "global_settings": "Глобальные настройки",
+        "detailed_settings": "Детальные настройки",
+        
+        // Trading Hub View (NEW!)
+        "close_all": "Закрыть все",
+        "no_positions_hint": "Ваши активные позиции появятся здесь",
+        "open_position": "Открыть позицию",
+        "no_orders_hint": "Ваши отложенные ордера появятся здесь",
+        "close_position_confirm": "Закрыть эту позицию?",
+        "modify_tpsl": "Изменить TP/SL",
     ]
     
     // MARK: - Ukrainian

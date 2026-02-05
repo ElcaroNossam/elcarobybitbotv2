@@ -4,6 +4,7 @@
 //
 //  Main Dashboard - like Portfolio/Profile in Telegram bot
 //  Shows: Balance, Stats with period filters, Strategy breakdown
+//  Exchange/Account switcher at top
 //
 
 import SwiftUI
@@ -18,6 +19,9 @@ struct DashboardView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Exchange & Account Switcher
+                exchangeAccountSwitcher
+                
                 // Balance Card
                 balanceCard
                 
@@ -27,14 +31,14 @@ struct DashboardView: View {
                 // Stats Overview
                 statsOverviewSection
                 
-                // Strategy Breakdown
+                // Strategy Breakdown (Cluster Analysis)
                 strategyBreakdownSection
-                
-                // Recent Trades
-                recentTradesSection
                 
                 // Quick Actions
                 quickActionsSection
+                
+                // Recent Trades
+                recentTradesSection
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 100)
@@ -64,29 +68,133 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - Balance Card
-    private var balanceCard: some View {
-        VStack(spacing: 16) {
-            HStack {
+    // MARK: - Exchange & Account Switcher
+    private var exchangeAccountSwitcher: some View {
+        HStack(spacing: 12) {
+            // Exchange Picker
+            Menu {
+                Button {
+                    appState.switchExchange(to: .bybit)
+                } label: {
+                    HStack {
+                        Text("🟠 Bybit")
+                        if appState.currentExchange == .bybit {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                Button {
+                    appState.switchExchange(to: .hyperliquid)
+                } label: {
+                    HStack {
+                        Text("🔷 HyperLiquid")
+                        if appState.currentExchange == .hyperliquid {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            } label: {
                 HStack(spacing: 6) {
                     Circle()
                         .fill(appState.currentExchange == .bybit ? Color.orange : Color.cyan)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 10, height: 10)
                     Text(appState.currentExchange.displayName)
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
+                        .font(.subheadline.bold())
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
                 }
-                Spacer()
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(appState.currentAccountType == .demo ? Color.orange : Color.green)
-                        .frame(width: 8, height: 8)
-                    Text(appState.currentAccountType == .demo ? "Demo" : "Real")
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
-                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.enlikoSurface)
+                .cornerRadius(20)
             }
             
+            // Account Type Picker
+            Menu {
+                if appState.currentExchange == .bybit {
+                    Button {
+                        appState.switchAccountType(to: .demo)
+                    } label: {
+                        HStack {
+                            Text("🎮 Demo")
+                            if appState.currentAccountType == .demo {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    Button {
+                        appState.switchAccountType(to: .real)
+                    } label: {
+                        HStack {
+                            Text("💎 Real")
+                            if appState.currentAccountType == .real {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                } else {
+                    Button {
+                        appState.switchAccountType(to: .testnet)
+                    } label: {
+                        HStack {
+                            Text("🧪 Testnet")
+                            if appState.currentAccountType == .testnet {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    Button {
+                        appState.switchAccountType(to: .mainnet)
+                    } label: {
+                        HStack {
+                            Text("🌐 Mainnet")
+                            if appState.currentAccountType == .mainnet {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(accountTypeColor)
+                        .frame(width: 10, height: 10)
+                    Text(accountTypeLabel)
+                        .font(.subheadline.bold())
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.enlikoSurface)
+                .cornerRadius(20)
+            }
+            
+            Spacer()
+        }
+    }
+    
+    private var accountTypeLabel: String {
+        switch appState.currentAccountType {
+        case .demo: return "Demo"
+        case .real: return "Real"
+        case .testnet: return "Testnet"
+        case .mainnet: return "Mainnet"
+        }
+    }
+    
+    private var accountTypeColor: Color {
+        switch appState.currentAccountType {
+        case .demo, .testnet: return .orange
+        case .real, .mainnet: return .green
+        }
+    }
+    
+    // MARK: - Balance Card
+    private var balanceCard: some View {
+        VStack(spacing: 16) {
             VStack(spacing: 8) {
                 Text("total_balance".localized)
                     .font(.subheadline)
@@ -97,38 +205,30 @@ struct DashboardView: View {
                         .frame(height: 40)
                 } else {
                     Text(viewModel.totalBalance.formattedCurrency)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
+                }
+                
+                // Unrealized PnL
+                if viewModel.unrealizedPnl != 0 {
+                    HStack(spacing: 4) {
+                        Text("unrealized".localized + ":")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(viewModel.unrealizedPnl.formattedSignedAmount)
+                            .font(.caption.bold())
+                            .foregroundColor(viewModel.unrealizedPnl >= 0 ? .enlikoGreen : .enlikoRed)
+                    }
                 }
             }
             
-            HStack(spacing: 24) {
-                VStack(spacing: 4) {
-                    Text("today".localized)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(viewModel.todayPnl.formattedSignedAmount)
-                        .font(.subheadline.bold())
-                        .foregroundColor(viewModel.todayPnl >= 0 ? .enlikoGreen : .enlikoRed)
-                }
-                
-                VStack(spacing: 4) {
-                    Text("7d".localized)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(viewModel.weekPnl.formattedSignedAmount)
-                        .font(.subheadline.bold())
-                        .foregroundColor(viewModel.weekPnl >= 0 ? .enlikoGreen : .enlikoRed)
-                }
-                
-                VStack(spacing: 4) {
-                    Text("30d".localized)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text(viewModel.monthPnl.formattedSignedAmount)
-                        .font(.subheadline.bold())
-                        .foregroundColor(viewModel.monthPnl >= 0 ? .enlikoGreen : .enlikoRed)
-                }
+            // PnL Summary Row
+            HStack(spacing: 0) {
+                pnlCell(title: "today".localized, value: viewModel.todayPnl)
+                Divider().frame(height: 40).background(Color.enlikoBorder)
+                pnlCell(title: "7d".localized, value: viewModel.weekPnl)
+                Divider().frame(height: 40).background(Color.enlikoBorder)
+                pnlCell(title: "30d".localized, value: viewModel.monthPnl)
             }
         }
         .padding(20)
@@ -141,6 +241,18 @@ struct DashboardView: View {
             )
         )
         .cornerRadius(20)
+    }
+    
+    private func pnlCell(title: String, value: Double) -> some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value.formattedSignedAmount)
+                .font(.subheadline.bold())
+                .foregroundColor(value >= 0 ? .enlikoGreen : .enlikoRed)
+        }
+        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Period Filter
@@ -165,21 +277,81 @@ struct DashboardView: View {
                         .cornerRadius(20)
                 }
             }
+            Spacer()
         }
     }
     
-    // MARK: - Stats Overview
+    // MARK: - Stats Overview (Cluster Analysis)
     private var statsOverviewSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("stats_overview".localized)
                 .font(.headline)
                 .foregroundColor(.white)
             
+            // Main Stats Grid
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                DashboardStatCard(title: "total_trades".localized, value: "\(viewModel.totalTrades)", icon: "number")
-                DashboardStatCard(title: "win_rate".localized, value: String(format: "%.1f%%", viewModel.winRate), icon: "chart.pie.fill")
-                DashboardStatCard(title: "avg_win".localized, value: viewModel.avgWin.formattedCurrency, icon: "arrow.up.circle.fill", valueColor: .enlikoGreen)
-                DashboardStatCard(title: "avg_loss".localized, value: viewModel.avgLoss.formattedCurrency, icon: "arrow.down.circle.fill", valueColor: .enlikoRed)
+                DashboardStatCard(
+                    title: "total_trades".localized,
+                    value: "\(viewModel.totalTrades)",
+                    icon: "number",
+                    iconColor: .enlikoPrimary
+                )
+                DashboardStatCard(
+                    title: "win_rate".localized,
+                    value: String(format: "%.1f%%", viewModel.winRate),
+                    icon: "chart.pie.fill",
+                    iconColor: viewModel.winRate >= 50 ? .enlikoGreen : .enlikoRed
+                )
+                DashboardStatCard(
+                    title: "profit_factor".localized,
+                    value: String(format: "%.2f", viewModel.profitFactor),
+                    icon: "arrow.up.arrow.down",
+                    iconColor: viewModel.profitFactor >= 1 ? .enlikoGreen : .enlikoRed
+                )
+                DashboardStatCard(
+                    title: "total_pnl".localized,
+                    value: viewModel.totalPnl.formattedCurrency,
+                    icon: "dollarsign.circle.fill",
+                    iconColor: viewModel.totalPnl >= 0 ? .enlikoGreen : .enlikoRed,
+                    valueColor: viewModel.totalPnl >= 0 ? .enlikoGreen : .enlikoRed
+                )
+            }
+            
+            // Avg Win / Loss Row
+            HStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .foregroundColor(.enlikoGreen)
+                    VStack(alignment: .leading) {
+                        Text("avg_win".localized)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(viewModel.avgWin.formattedCurrency)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.enlikoGreen)
+                    }
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color.enlikoGreen.opacity(0.1))
+                .cornerRadius(12)
+                
+                HStack {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundColor(.enlikoRed)
+                    VStack(alignment: .leading) {
+                        Text("avg_loss".localized)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(viewModel.avgLoss.formattedCurrency)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.enlikoRed)
+                    }
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color.enlikoRed.opacity(0.1))
+                .cornerRadius(12)
             }
         }
         .padding()
@@ -187,28 +359,82 @@ struct DashboardView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Strategy Breakdown
+    // MARK: - Strategy Breakdown (Cluster Analysis)
     private var strategyBreakdownSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("by_strategy".localized)
-                .font(.headline)
-                .foregroundColor(.white)
+            HStack {
+                Text("by_strategy".localized)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                Spacer()
+                NavigationLink {
+                    StrategyStatsView()
+                } label: {
+                    Text("details".localized)
+                        .font(.caption)
+                        .foregroundColor(.enlikoPrimary)
+                }
+            }
             
-            if viewModel.strategyBreakdown.isEmpty {
-                Text("no_trades_yet".localized)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
                     .padding()
+            } else if viewModel.strategyBreakdown.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("no_trades_yet".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             } else {
+                // Strategy Performance Rows
                 ForEach(viewModel.strategyBreakdown) { item in
-                    StrategyRowCard(item: item)
+                    StrategyClusterRow(item: item)
                 }
             }
         }
         .padding()
         .background(Color.enlikoSurface)
         .cornerRadius(16)
+    }
+    
+    // MARK: - Quick Actions
+    private var quickActionsSection: some View {
+        VStack(spacing: 12) {
+            Text("quick_actions".localized)
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            HStack(spacing: 12) {
+                NavigationLink {
+                    PositionsView()
+                } label: {
+                    QuickActionCard(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "positions".localized,
+                        count: viewModel.openPositionsCount,
+                        color: .enlikoPrimary
+                    )
+                }
+                
+                NavigationLink {
+                    PositionsView()
+                } label: {
+                    QuickActionCard(
+                        icon: "clock.fill",
+                        title: "orders".localized,
+                        count: viewModel.pendingOrdersCount,
+                        color: .orange
+                    )
+                }
+            }
+        }
     }
     
     // MARK: - Recent Trades
@@ -229,14 +455,19 @@ struct DashboardView: View {
             }
             
             if viewModel.recentTrades.isEmpty {
-                Text("no_trades_yet".localized)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
+                VStack(spacing: 8) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("no_trades_yet".localized)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             } else {
                 ForEach(viewModel.recentTrades.prefix(5)) { trade in
-                    RecentTradeRow(trade: trade)
+                    DashboardRecentTradeRow(trade: trade)
                     if trade.id != viewModel.recentTrades.prefix(5).last?.id {
                         Divider().background(Color.enlikoBorder)
                     }
@@ -247,48 +478,125 @@ struct DashboardView: View {
         .background(Color.enlikoSurface)
         .cornerRadius(16)
     }
+}
+
+// MARK: - Strategy Cluster Row (Enhanced)
+struct StrategyClusterRow: View {
+    let item: StrategyBreakdownItem
     
-    // MARK: - Quick Actions
-    private var quickActionsSection: some View {
-        VStack(spacing: 12) {
-            NavigationLink {
-                PositionsView()
-            } label: {
-                DashboardQuickAction(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "positions".localized,
-                    count: viewModel.openPositionsCount,
-                    color: .enlikoPrimary
-                )
+    var body: some View {
+        HStack(spacing: 12) {
+            // Strategy Icon
+            ZStack {
+                Circle()
+                    .fill(item.color.opacity(0.2))
+                    .frame(width: 44, height: 44)
+                Text(strategyEmoji)
+                    .font(.title2)
             }
             
-            NavigationLink {
-                // Orders are in PositionsView tabs
-                PositionsView()
-            } label: {
-                DashboardQuickAction(
-                    icon: "clock.fill",
-                    title: "pending_orders".localized,
-                    count: viewModel.pendingOrdersCount,
-                    color: .orange
-                )
+            // Strategy Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.strategy.uppercased())
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                let tradesText = "\(item.trades) " + "trades".localized
+                let winRateText = String(format: "%.0f%%", item.winRate) + " WR"
+                Text(tradesText + " • " + winRateText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
+            
+            Spacer()
+            
+            // PnL with progress bar
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(item.pnl.formattedSignedAmount)
+                    .font(.subheadline.bold())
+                    .foregroundColor(item.pnl >= 0 ? .enlikoGreen : .enlikoRed)
+                
+                // Progress bar showing relative PnL
+                GeometryReader { geo in
+                    ZStack(alignment: item.pnl >= 0 ? .leading : .trailing) {
+                        Rectangle()
+                            .fill(Color.enlikoBorder)
+                        Rectangle()
+                            .fill(item.pnl >= 0 ? Color.enlikoGreen : Color.enlikoRed)
+                            .frame(width: min(geo.size.width, geo.size.width * min(abs(item.pnl) / 500, 1)))
+                    }
+                }
+                .frame(width: 60, height: 4)
+                .cornerRadius(2)
+            }
+        }
+        .padding(12)
+        .background(Color.enlikoBackground)
+        .cornerRadius(12)
+    }
+    
+    private var strategyEmoji: String {
+        switch item.strategy.lowercased() {
+        case "oi": return "📊"
+        case "rsi_bb", "rsi-bb": return "📈"
+        case "scryptomera": return "🔮"
+        case "scalper": return "⚡"
+        case "fibonacci": return "🌀"
+        case "elcaro": return "🎯"
+        case "manual": return "✋"
+        default: return "📊"
         }
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Quick Action Card
+struct QuickActionCard: View {
+    let icon: String
+    let title: String
+    let count: Int
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+                Spacer()
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.caption.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(color)
+                        .cornerRadius(12)
+                }
+            }
+            
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding()
+        .background(Color.enlikoSurface)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Dashboard Stat Card
 struct DashboardStatCard: View {
     let title: String
     let value: String
     let icon: String
+    var iconColor: Color = .enlikoPrimary
     var valueColor: Color = .white
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundColor(.enlikoPrimary)
+                    .foregroundColor(iconColor)
                 Spacer()
             }
             Text(value)
@@ -304,53 +612,28 @@ struct DashboardStatCard: View {
     }
 }
 
-struct StrategyRowCard: View {
-    let item: StrategyBreakdownItem
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(item.color)
-                .frame(width: 10, height: 10)
-            
-            Text(item.strategy.capitalized)
-                .font(.subheadline.bold())
-                .foregroundColor(.white)
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(item.pnl.formattedSignedAmount)
-                    .font(.subheadline.bold())
-                    .foregroundColor(item.pnl >= 0 ? .enlikoGreen : .enlikoRed)
-                Text("\(item.trades) trades • \(Int(item.winRate))% WR")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-struct RecentTradeRow: View {
-    let trade: RecentTrade
+// MARK: - Dashboard Recent Trade Row (Simple version)
+struct DashboardRecentTradeRow: View {
+    let trade: DashboardRecentTrade
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(trade.symbol)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                HStack(spacing: 4) {
-                    Text(trade.side.uppercased())
-                        .font(.caption2.bold())
-                        .foregroundColor(trade.side.lowercased() == "buy" ? .enlikoGreen : .enlikoRed)
-                    if let strategy = trade.strategy {
-                        Text("• \(strategy)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+                HStack(spacing: 6) {
+                    Text(trade.symbol)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                    Text(trade.side)
+                        .font(.caption.bold())
+                        .foregroundColor(trade.side == "Long" ? .enlikoGreen : .enlikoRed)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background((trade.side == "Long" ? Color.enlikoGreen : Color.enlikoRed).opacity(0.2))
+                        .cornerRadius(4)
                 }
+                Text(trade.strategy.uppercased())
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -359,58 +642,12 @@ struct RecentTradeRow: View {
                 Text(trade.pnl.formattedSignedAmount)
                     .font(.subheadline.bold())
                     .foregroundColor(trade.pnl >= 0 ? .enlikoGreen : .enlikoRed)
-                Text(trade.closedAt.timeAgo)
-                    .font(.caption2)
+                Text(trade.closedAt)
+                    .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.vertical, 4)
-    }
-}
-
-struct DashboardQuickAction: View {
-    let icon: String
-    let title: String
-    let count: Int
-    let color: Color
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                if count > 0 {
-                    Text("\(count) open")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            if count > 0 {
-                Text("\(count)")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(color)
-                    .cornerRadius(10)
-            }
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(Color.enlikoSurface)
-        .cornerRadius(12)
+        .padding(.vertical, 8)
     }
 }
 
@@ -433,12 +670,29 @@ enum DashboardPeriod: String, CaseIterable {
     var apiValue: String { rawValue }
 }
 
+// MARK: - Dashboard Recent Trade (Simple model for API response)
+struct DashboardRecentTrade: Codable, Identifiable {
+    var id: String { "\(symbol)-\(closedAt)-\(pnl)" }
+    let symbol: String
+    let side: String
+    let pnl: Double
+    let strategy: String
+    let closedAt: String
+    
+    enum CodingKeys: String, CodingKey {
+        case symbol, side, pnl, strategy
+        case closedAt = "closed_at"
+    }
+}
+
 // MARK: - ViewModel
+@MainActor
 class DashboardViewModel: ObservableObject {
     @Published var selectedPeriod: DashboardPeriod = .week
     @Published var isLoading = false
     
     @Published var totalBalance: Double = 0
+    @Published var unrealizedPnl: Double = 0
     @Published var todayPnl: Double = 0
     @Published var weekPnl: Double = 0
     @Published var monthPnl: Double = 0
@@ -446,18 +700,18 @@ class DashboardViewModel: ObservableObject {
     @Published var totalTrades: Int = 0
     @Published var winRate: Double = 0
     @Published var profitFactor: Double = 0
+    @Published var totalPnl: Double = 0
     @Published var avgWin: Double = 0
     @Published var avgLoss: Double = 0
     
     @Published var strategyBreakdown: [StrategyBreakdownItem] = []
-    @Published var recentTrades: [RecentTrade] = []
+    @Published var recentTrades: [DashboardRecentTrade] = []
     
     @Published var openPositionsCount: Int = 0
     @Published var pendingOrdersCount: Int = 0
     
     private let network = NetworkService.shared
     
-    @MainActor
     func refresh(accountType: String, exchange: String) async {
         isLoading = true
         defer { isLoading = false }
@@ -465,26 +719,52 @@ class DashboardViewModel: ObservableObject {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.fetchBalance(accountType: accountType, exchange: exchange) }
             group.addTask { await self.fetchStats(accountType: accountType, exchange: exchange) }
+            group.addTask { await self.fetchPnlPeriods(accountType: accountType, exchange: exchange) }
             group.addTask { await self.fetchPositionsCount(accountType: accountType, exchange: exchange) }
             group.addTask { await self.fetchOrdersCount(accountType: accountType, exchange: exchange) }
         }
     }
     
-    @MainActor
     private func fetchBalance(accountType: String, exchange: String) async {
         do {
             let response: BalanceResponse = try await network.get("/balance", params: ["account_type": accountType, "exchange": exchange])
             if let balance = response.balanceData {
                 totalBalance = balance.equity
-                todayPnl = balance.unrealizedPnl
-                // weekPnl comes from stats, not balance
+                unrealizedPnl = balance.unrealizedPnl
             }
         } catch {
             print("Dashboard: Failed to fetch balance: \(error)")
         }
     }
     
-    @MainActor
+    private func fetchPnlPeriods(accountType: String, exchange: String) async {
+        // Fetch PnL for different periods from /stats endpoint
+        do {
+            // Today
+            let todayResponse: DashboardStatsResponse = try await network.get(
+                "/stats/by-strategy",
+                params: ["period": "today", "account_type": accountType, "exchange": exchange, "strategy": "all"]
+            )
+            todayPnl = todayResponse.summary?.totalPnl ?? 0
+            
+            // Week
+            let weekResponse: DashboardStatsResponse = try await network.get(
+                "/stats/by-strategy",
+                params: ["period": "week", "account_type": accountType, "exchange": exchange, "strategy": "all"]
+            )
+            weekPnl = weekResponse.summary?.totalPnl ?? 0
+            
+            // Month
+            let monthResponse: DashboardStatsResponse = try await network.get(
+                "/stats/by-strategy",
+                params: ["period": "month", "account_type": accountType, "exchange": exchange, "strategy": "all"]
+            )
+            monthPnl = monthResponse.summary?.totalPnl ?? 0
+        } catch {
+            print("Dashboard: Failed to fetch PnL periods: \(error)")
+        }
+    }
+    
     func fetchStats(accountType: String, exchange: String) async {
         do {
             let response: DashboardStatsResponse = try await network.get(
@@ -495,6 +775,7 @@ class DashboardViewModel: ObservableObject {
                 totalTrades = summary.totalTrades
                 winRate = summary.winRate
                 profitFactor = summary.profitFactor
+                totalPnl = summary.totalPnl
                 avgWin = summary.avgWin
                 avgLoss = summary.avgLoss
             }
@@ -505,7 +786,6 @@ class DashboardViewModel: ObservableObject {
         }
     }
     
-    @MainActor
     private func fetchPositionsCount(accountType: String, exchange: String) async {
         do {
             let response: PositionsResponse = try await network.get("/positions", params: ["account_type": accountType, "exchange": exchange])
@@ -515,7 +795,6 @@ class DashboardViewModel: ObservableObject {
         }
     }
     
-    @MainActor
     private func fetchOrdersCount(accountType: String, exchange: String) async {
         do {
             let response: OrdersResponse = try await network.get("/orders", params: ["account_type": accountType, "exchange": exchange])
@@ -530,7 +809,7 @@ class DashboardViewModel: ObservableObject {
 struct DashboardStatsResponse: Codable {
     let summary: DashboardStatsSummary?
     let breakdown: [StrategyBreakdownItem]?
-    let recentTrades: [RecentTrade]?
+    let recentTrades: [DashboardRecentTrade]?
     
     enum CodingKeys: String, CodingKey {
         case summary, breakdown
@@ -563,14 +842,6 @@ extension Double {
     var formattedSignedAmount: String {
         let sign = self >= 0 ? "+" : ""
         return "\(sign)$\(String(format: "%.2f", abs(self)))"
-    }
-}
-
-extension Date {
-    var timeAgo: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: self, relativeTo: Date())
     }
 }
 
