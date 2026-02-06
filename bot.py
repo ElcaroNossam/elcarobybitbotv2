@@ -27357,7 +27357,7 @@ async def cmd_exchange_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # ██  BYBIT STATUS - use shared builder  ██
         # ═══════════════════════════════════════════════════════════════
         text, inline_keyboard = _build_bybit_status_keyboard(uid, t)
-        keyboard = inline_keyboard.inline_keyboard  # Extract list for modification
+        keyboard = list(inline_keyboard.inline_keyboard)  # Extract list for modification (tuple → list)
     
     keyboard.append([InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")])
     
@@ -27523,25 +27523,35 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "hl_api:test":
         # Test HyperLiquid connection
         hl_creds = get_hl_credentials(uid)
-        wallet = hl_creds.get("hl_wallet_address")
-        testnet = hl_creds.get("hl_testnet", False)
+        is_testnet = hl_creds.get("hl_testnet", False)
         
-        if not wallet:
-            t = get_texts(uid)
-            await q.edit_message_text(t.get("no_wallet_configured", "❌ No wallet configured."))
+        # Get credentials based on network (multitenancy)
+        if is_testnet:
+            wallet = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+            private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        else:
+            wallet = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+            private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        
+        if not wallet or not private_key:
+            t = getattr(ctx, 't', None) or get_texts(uid)
+            await q.edit_message_text("❌ No wallet configured for " + ("Testnet" if is_testnet else "Mainnet") + ".\n\nGo to API Settings → HyperLiquid to set up.")
             return
         
         try:
-            from hyperliquid import HyperLiquidClient
-            client = HyperLiquidClient(
-                wallet_address=wallet,
-                private_key=hl_creds.get("hl_private_key"),
-                testnet=testnet
+            from hl_adapter import HLAdapter
+            adapter = HLAdapter(
+                private_key=private_key,
+                testnet=is_testnet,
+                vault_address=None,
+                main_wallet_address=wallet
             )
-            state = await client.user_state(wallet)
-            balance = float(state.get("marginSummary", {}).get("accountValue", 0))
+            await adapter.initialize()
+            balance_data = await adapter.get_balance()
+            await adapter.close()
+            balance = balance_data.get("equity", 0) if isinstance(balance_data, dict) else 0
             
-            network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+            network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
             await q.edit_message_text(
                 f"✅ <b>Connection Successful!</b>\n\n"
                 f"<b>Network:</b> {network}\n"

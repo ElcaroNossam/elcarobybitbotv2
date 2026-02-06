@@ -1,4 +1,4 @@
-# Enliko Trading Platform - AI Coding Guidelines
+0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
 # Версия: 3.54.0 | Обновлено: 6 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 5, 2026)
