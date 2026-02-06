@@ -98,6 +98,10 @@ val GradientGlassColors = listOf(GlassHighlight, GlassBackground)
 // ═══════════════════════════════════════════════════════════════════════════════
 val EnlikoBackground = DarkBackground
 val EnlikoSurface = DarkSurface
+
+// PnL colors (CRITICAL - used across screens)
+val ProfitGreen = EnlikoGreen
+val LossRed = EnlikoRed
 val EnlikoCard = DarkSurfaceVariant
 val EnlikoCardElevated = DarkSurfaceHighlight
 val EnlikoTextPrimary = DarkOnBackground

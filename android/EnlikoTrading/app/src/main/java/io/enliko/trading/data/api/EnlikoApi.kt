@@ -22,18 +22,21 @@ interface EnlikoApi {
     // ==================== TRADING ====================
     @GET("/api/trading/balance")
     suspend fun getBalance(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<Balance>
+    ): Response<BalanceResponse>
 
     @GET("/api/trading/positions")
     suspend fun getPositions(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<List<Position>>
+    ): Response<PositionsResponse>
 
     @GET("/api/trading/orders")
     suspend fun getOrders(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
-    ): Response<List<Order>>
+    ): Response<OrdersResponse>
 
     @POST("/api/trading/close")
     suspend fun closePosition(
@@ -42,21 +45,49 @@ interface EnlikoApi {
 
     @POST("/api/trading/close-all")
     suspend fun closeAllPositions(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null
     ): Response<CloseAllResponse>
 
     @GET("/api/trading/stats")
     suspend fun getTradeStats(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null,
         @Query("days") days: Int? = null
-    ): Response<TradeStats>
+    ): Response<TradeStatsResponse>
 
     @GET("/api/trading/trades")
     suspend fun getTrades(
+        @Query("exchange") exchange: String? = null,
         @Query("account_type") accountType: String? = null,
         @Query("limit") limit: Int? = null,
         @Query("offset") offset: Int? = null
-    ): Response<List<Trade>>
+    ): Response<TradesResponse>
+
+    // Manual Trading
+    @POST("/api/trading/place-order")
+    suspend fun placeOrder(
+        @Query("exchange") exchange: String? = null,
+        @Query("account_type") accountType: String? = null,
+        @Body request: PlaceOrderRequest
+    ): Response<PlaceOrderResponse>
+
+    @POST("/api/trading/set-leverage")
+    suspend fun setLeverage(
+        @Query("exchange") exchange: String? = null,
+        @Query("account_type") accountType: String? = null,
+        @Body request: SetLeverageRequest
+    ): Response<SetLeverageResponse>
+
+    @POST("/api/trading/cancel-order")
+    suspend fun cancelOrder(
+        @Body request: CancelOrderRequest
+    ): Response<CancelOrderResponse>
+
+    @POST("/api/trading/modify-tpsl")
+    suspend fun modifyTpSl(
+        @Body request: ModifyTpSlRequest
+    ): Response<ModifyTpSlResponse>
 
     // ==================== STRATEGY SETTINGS ====================
     @GET("/api/trading/strategy-settings")
@@ -308,4 +339,175 @@ data class SpotDcaSettings(
     val coins: List<String> = listOf("BTC", "ETH"),
     @kotlinx.serialization.SerialName("auto_sell_enabled") val autoSellEnabled: Boolean = false,
     @kotlinx.serialization.SerialName("take_profit_percent") val takeProfitPercent: Double = 10.0
+)
+
+// ==================== API RESPONSE WRAPPERS ====================
+
+@kotlinx.serialization.Serializable
+data class BalanceResponse(
+    val success: Boolean = true,
+    val data: BalanceData? = null,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class BalanceData(
+    @kotlinx.serialization.SerialName("total_equity") val totalEquity: Double? = 0.0,
+    @kotlinx.serialization.SerialName("available_balance") val availableBalance: Double? = 0.0,
+    @kotlinx.serialization.SerialName("used_margin") val usedMargin: Double? = 0.0,
+    @kotlinx.serialization.SerialName("unrealized_pnl") val unrealizedPnl: Double? = 0.0,
+    @kotlinx.serialization.SerialName("today_pnl") val todayPnl: Double? = 0.0,
+    @kotlinx.serialization.SerialName("week_pnl") val weekPnl: Double? = 0.0,
+    val currency: String? = "USDT"
+)
+
+@kotlinx.serialization.Serializable
+data class PositionsResponse(
+    val success: Boolean = true,
+    val data: List<PositionData>? = null,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class PositionData(
+    val symbol: String,
+    val side: String,
+    val size: Double,
+    @kotlinx.serialization.SerialName("entry_price") val entryPrice: Double,
+    @kotlinx.serialization.SerialName("mark_price") val markPrice: Double? = null,
+    @kotlinx.serialization.SerialName("unrealized_pnl") val unrealizedPnl: Double? = null,
+    val leverage: Int = 1,
+    val strategy: String? = null,
+    @kotlinx.serialization.SerialName("sl_price") val slPrice: Double? = null,
+    @kotlinx.serialization.SerialName("tp_price") val tpPrice: Double? = null
+)
+
+@kotlinx.serialization.Serializable
+data class OrdersResponse(
+    val success: Boolean = true,
+    val data: List<OrderData>? = null,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class OrderData(
+    @kotlinx.serialization.SerialName("order_id") val orderId: String,
+    val symbol: String,
+    val side: String,
+    @kotlinx.serialization.SerialName("order_type") val orderType: String,
+    val price: Double,
+    val qty: Double,
+    @kotlinx.serialization.SerialName("filled_qty") val filledQty: Double? = 0.0,
+    val status: String,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: Long? = null
+)
+
+@kotlinx.serialization.Serializable
+data class TradeStatsResponse(
+    val success: Boolean = true,
+    val data: TradeStatsData? = null,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class TradeStatsData(
+    val total: Int = 0,
+    val wins: Int = 0,
+    val losses: Int = 0,
+    val winrate: Double = 0.0,
+    @kotlinx.serialization.SerialName("total_pnl") val totalPnl: Double = 0.0,
+    @kotlinx.serialization.SerialName("avg_pnl") val avgPnl: Double = 0.0,
+    @kotlinx.serialization.SerialName("best_trade") val bestTrade: Double = 0.0,
+    @kotlinx.serialization.SerialName("worst_trade") val worstTrade: Double = 0.0,
+    @kotlinx.serialization.SerialName("profit_factor") val profitFactor: Double = 0.0
+)
+
+@kotlinx.serialization.Serializable
+data class TradesResponse(
+    val success: Boolean = true,
+    val data: List<TradeData>? = null,
+    val error: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class TradeData(
+    val id: String? = null,
+    val symbol: String,
+    val side: String,
+    @kotlinx.serialization.SerialName("entry_price") val entryPrice: Double,
+    @kotlinx.serialization.SerialName("exit_price") val exitPrice: Double,
+    val size: Double,
+    val pnl: Double,
+    @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double,
+    val strategy: String? = null,
+    @kotlinx.serialization.SerialName("exit_reason") val exitReason: String? = null,
+    val timestamp: Long
+)
+
+// ==================== MANUAL TRADING REQUESTS/RESPONSES ====================
+
+@kotlinx.serialization.Serializable
+data class PlaceOrderRequest(
+    val symbol: String,
+    val side: String,
+    @kotlinx.serialization.SerialName("order_type") val orderType: String = "market",
+    val qty: Double? = null,
+    @kotlinx.serialization.SerialName("amount_usdt") val amountUsdt: Double? = null,
+    val price: Double? = null,
+    val leverage: Int? = null,
+    @kotlinx.serialization.SerialName("take_profit") val takeProfit: Double? = null,
+    @kotlinx.serialization.SerialName("stop_loss") val stopLoss: Double? = null,
+    @kotlinx.serialization.SerialName("account_type") val accountType: String? = null,
+    val exchange: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class PlaceOrderResponse(
+    val success: Boolean,
+    @kotlinx.serialization.SerialName("order_id") val orderId: String? = null,
+    val message: String? = null,
+    @kotlinx.serialization.SerialName("executed_qty") val executedQty: Double? = null,
+    @kotlinx.serialization.SerialName("executed_price") val executedPrice: Double? = null
+)
+
+@kotlinx.serialization.Serializable
+data class SetLeverageRequest(
+    val symbol: String,
+    val leverage: Int
+)
+
+@kotlinx.serialization.Serializable
+data class SetLeverageResponse(
+    val success: Boolean,
+    val message: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class CancelOrderRequest(
+    @kotlinx.serialization.SerialName("order_id") val orderId: String,
+    val symbol: String,
+    @kotlinx.serialization.SerialName("account_type") val accountType: String? = null,
+    val exchange: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class CancelOrderResponse(
+    val success: Boolean,
+    val message: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class ModifyTpSlRequest(
+    val symbol: String,
+    val side: String,
+    @kotlinx.serialization.SerialName("take_profit") val takeProfit: Double? = null,
+    @kotlinx.serialization.SerialName("stop_loss") val stopLoss: Double? = null,
+    @kotlinx.serialization.SerialName("account_type") val accountType: String? = null,
+    val exchange: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class ModifyTpSlResponse(
+    val success: Boolean,
+    val message: String? = null
 )

@@ -93,6 +93,20 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.biometric)
     
+    // Room Database (Offline-first)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.paging)
+    
+    // WorkManager (Background sync)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
+    
+    // Paging (Large lists)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
+    
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)

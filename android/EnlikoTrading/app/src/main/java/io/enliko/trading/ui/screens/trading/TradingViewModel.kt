@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.enliko.trading.data.api.EnlikoApi
-import io.enliko.trading.data.models.Order
+import io.enliko.trading.data.api.OrderData
 import io.enliko.trading.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 data class TradingUiState(
     val isLoading: Boolean = false,
-    val orders: List<Order> = emptyList(),
+    val orders: List<OrderData> = emptyList(),
     val selectedSymbol: String = "BTCUSDT",
     val leverage: Int = 10,
     val slPercent: Double = 3.0,
@@ -45,13 +45,13 @@ class TradingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val response = api.getOrders(_uiState.value.accountType)
-                if (response.isSuccessful) {
+                if (response.isSuccessful && response.body()?.success == true) {
                     _uiState.update { 
-                        it.copy(isLoading = false, orders = response.body() ?: emptyList()) 
+                        it.copy(isLoading = false, orders = response.body()?.data ?: emptyList()) 
                     }
                 } else {
                     _uiState.update { 
-                        it.copy(isLoading = false, error = "Failed to load orders") 
+                        it.copy(isLoading = false, error = response.body()?.error ?: "Failed to load orders") 
                     }
                 }
             } catch (e: Exception) {

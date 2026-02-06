@@ -3,7 +3,10 @@ package io.enliko.trading.ui.screens.portfolio
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.enliko.trading.data.api.BalanceData
 import io.enliko.trading.data.api.EnlikoApi
+import io.enliko.trading.data.api.PositionData
+import io.enliko.trading.data.api.TradeStatsData
 import io.enliko.trading.data.models.*
 import io.enliko.trading.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.*
@@ -28,9 +31,9 @@ enum class PeriodFilter(val value: String, val label: String) {
 
 data class PortfolioUiState(
     val isLoading: Boolean = true,
-    val balance: Balance? = null,
-    val positions: List<Position> = emptyList(),
-    val stats: TradeStats? = null,
+    val balance: BalanceData? = null,
+    val positions: List<PositionData> = emptyList(),
+    val stats: TradeStatsData? = null,
     val error: String? = null,
     val accountType: String = "demo",
     val exchange: String = "bybit",
@@ -121,16 +124,16 @@ class PortfolioViewModel @Inject constructor(
                 val accountType = _uiState.value.accountType
                 
                 // Fetch balance and positions (existing)
-                val balanceResult = api.getBalance(accountType)
-                val positionsResult = api.getPositions(accountType)
-                val statsResult = api.getTradeStats(accountType)
+                val balanceResult = api.getBalance(accountType = accountType)
+                val positionsResult = api.getPositions(accountType = accountType)
+                val statsResult = api.getTradeStats(accountType = accountType)
                 
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        balance = balanceResult.body(),
-                        positions = positionsResult.body() ?: emptyList(),
-                        stats = statsResult.body()
+                        balance = balanceResult.body()?.data,
+                        positions = positionsResult.body()?.data ?: emptyList(),
+                        stats = statsResult.body()?.data
                     )
                 }
                 

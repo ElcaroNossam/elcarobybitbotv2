@@ -1,6 +1,7 @@
 package io.enliko.trading.di
 
 import android.content.Context
+import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -8,6 +9,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.enliko.trading.BuildConfig
 import io.enliko.trading.data.api.EnlikoApi
+import io.enliko.trading.data.local.EnlikoDatabase
+import io.enliko.trading.data.local.dao.*
 import io.enliko.trading.data.repository.PreferencesRepository
 import io.enliko.trading.data.repository.SecurePreferencesRepository
 import io.enliko.trading.data.websocket.WebSocketService
@@ -27,6 +30,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    // ==================== JSON ====================
+    
     @Provides
     @Singleton
     fun provideJson(): Json = Json {
@@ -35,6 +40,8 @@ object NetworkModule {
         encodeDefaults = true
         coerceInputValues = true
     }
+
+    // ==================== NETWORKING ====================
 
     @Provides
     @Singleton
@@ -72,6 +79,7 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 
@@ -94,6 +102,74 @@ object NetworkModule {
     fun provideEnlikoApi(retrofit: Retrofit): EnlikoApi {
         return retrofit.create(EnlikoApi::class.java)
     }
+
+    // ==================== DATABASE ====================
+
+    @Provides
+    @Singleton
+    fun provideDatabase(
+        @ApplicationContext context: Context
+    ): EnlikoDatabase {
+        return Room.databaseBuilder(
+            context,
+            EnlikoDatabase::class.java,
+            EnlikoDatabase.DATABASE_NAME
+        )
+        .fallbackToDestructiveMigration()
+        .build()
+    }
+
+    // ==================== DAOs ====================
+
+    @Provides
+    @Singleton
+    fun providePositionDao(db: EnlikoDatabase): PositionDao = db.positionDao()
+
+    @Provides
+    @Singleton
+    fun provideTradeDao(db: EnlikoDatabase): TradeDao = db.tradeDao()
+
+    @Provides
+    @Singleton
+    fun provideSignalDao(db: EnlikoDatabase): SignalDao = db.signalDao()
+
+    @Provides
+    @Singleton
+    fun provideOrderDao(db: EnlikoDatabase): OrderDao = db.orderDao()
+
+    @Provides
+    @Singleton
+    fun provideStrategySettingsDao(db: EnlikoDatabase): StrategySettingsDao = db.strategySettingsDao()
+
+    @Provides
+    @Singleton
+    fun provideUserSettingsDao(db: EnlikoDatabase): UserSettingsDao = db.userSettingsDao()
+
+    @Provides
+    @Singleton
+    fun provideApiKeyDao(db: EnlikoDatabase): ApiKeyDao = db.apiKeyDao()
+
+    @Provides
+    @Singleton
+    fun provideBalanceCacheDao(db: EnlikoDatabase): BalanceCacheDao = db.balanceCacheDao()
+
+    @Provides
+    @Singleton
+    fun provideTradeStatsCacheDao(db: EnlikoDatabase): TradeStatsCacheDao = db.tradeStatsCacheDao()
+
+    @Provides
+    @Singleton
+    fun provideScreenerCoinDao(db: EnlikoDatabase): ScreenerCoinDao = db.screenerCoinDao()
+
+    @Provides
+    @Singleton
+    fun provideSyncMetadataDao(db: EnlikoDatabase): SyncMetadataDao = db.syncMetadataDao()
+
+    @Provides
+    @Singleton
+    fun provideActivityLogDao(db: EnlikoDatabase): ActivityLogDao = db.activityLogDao()
+
+    // ==================== REPOSITORIES & SERVICES ====================
 
     @Provides
     @Singleton

@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.enliko.trading.data.api.BalanceData
+import io.enliko.trading.data.api.PositionData
+import io.enliko.trading.data.api.TradeStatsData
 import io.enliko.trading.data.models.*
 import io.enliko.trading.ui.components.AccountTypeSelector
 import io.enliko.trading.ui.theme.LongGreen
@@ -299,7 +302,7 @@ private fun PeriodFilterRow(
 @Composable
 private fun TotalBalanceCard(
     summary: PortfolioSummary?,
-    balance: Balance?,
+    balance: BalanceData?,
     strings: io.enliko.trading.util.Strings
 ) {
     val formatter = remember { 
@@ -467,7 +470,7 @@ private fun SpotBalanceCard(
 @Composable
 private fun FuturesBalanceCard(
     futuresPortfolio: FuturesPortfolio?,
-    balance: Balance?,
+    balance: BalanceData?,
     strings: io.enliko.trading.util.Strings
 ) {
     val formatter = remember { 
@@ -479,7 +482,7 @@ private fun FuturesBalanceCard(
     
     val equity = futuresPortfolio?.totalEquity ?: balance?.totalEquity ?: 0.0
     val available = futuresPortfolio?.available ?: balance?.availableBalance ?: 0.0
-    val margin = futuresPortfolio?.positionMargin ?: balance?.marginUsed ?: 0.0
+    val margin = futuresPortfolio?.positionMargin ?: balance?.usedMargin ?: 0.0
     val unrealized = futuresPortfolio?.unrealizedPnl ?: balance?.unrealizedPnl ?: 0.0
     
     Card(
@@ -967,7 +970,7 @@ private fun TradeRow(
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun StatsCard(stats: TradeStats, strings: io.enliko.trading.util.Strings) {
+private fun StatsCard(stats: TradeStatsData, strings: io.enliko.trading.util.Strings) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -1121,7 +1124,7 @@ private fun AssetCard(asset: AssetBalance) {
 
 @Composable
 private fun PositionCard(
-    position: Position,
+    position: PositionData,
     strings: io.enliko.trading.util.Strings,
     onClose: () -> Unit
 ) {
@@ -1164,7 +1167,7 @@ private fun PositionCard(
                 position.leverage?.let { leverage ->
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "${leverage.toInt()}x",
+                        text = "${leverage}x",
                         style = MaterialTheme.typography.bodySmall,
                         color = io.enliko.trading.ui.theme.EnlikoTextMuted
                     )
@@ -1205,8 +1208,12 @@ private fun PositionCard(
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(strings.pnl, style = MaterialTheme.typography.bodySmall, color = io.enliko.trading.ui.theme.EnlikoTextMuted)
-                val pnlPct = position.pnlPercent ?: position.markPrice?.let { 
-                    if (position.entryPrice > 0) ((it - position.entryPrice) / position.entryPrice * 100) else 0.0
+                // Calculate PnL percent from markPrice and entryPrice
+                val pnlPct = position.markPrice?.let { mark ->
+                    if (position.entryPrice > 0) {
+                        val change = if (isLong) (mark - position.entryPrice) else (position.entryPrice - mark)
+                        (change / position.entryPrice * 100 * position.leverage)
+                    } else 0.0
                 } ?: 0.0
                 Text(
                     text = "${if (pnl >= 0) "+" else ""}${String.format("%.2f", pnl)} (${String.format("%.2f", pnlPct)}%)",
