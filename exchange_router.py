@@ -44,8 +44,9 @@ def _get_hl_credentials_for_env(hl_creds: dict, env: str) -> tuple:
     HyperLiquid API Wallet Architecture:
     - private_key: API wallet key (used for signing)
     - wallet_address: Main wallet address (where funds are, for balance queries)
-    - vault_address: For trading, when API wallet signs on behalf of main wallet,
-                     vault_address should be the MAIN WALLET address (not the API wallet!)
+    - vault_address: Only needed for trading on behalf of a VAULT/SUBACCOUNT.
+                     When API wallet is authorized on main wallet via UI (app.hyperliquid.xyz/API),
+                     vault_address should be None - orders automatically go to main wallet.
     
     Returns: (private_key, is_testnet, wallet_address, vault_address)
     """
@@ -66,10 +67,11 @@ def _get_hl_credentials_for_env(hl_creds: dict, env: str) -> tuple:
         if private_key:
             is_testnet = hl_creds.get("hl_testnet", False)
     
-    # CRITICAL: For API wallet trading on behalf of main wallet,
-    # vault_address must be the MAIN WALLET address (where funds are)
-    # NOT a separate vault. The API wallet signs, but trades happen on main wallet.
-    vault_address = wallet_address  # Main wallet = vault for API wallet trading
+    # IMPORTANT: When API wallet is authorized via UI (Authorize API Wallet button),
+    # vault_address should be None. Orders signed by API wallet automatically
+    # execute on the main wallet that authorized it.
+    # vault_address is ONLY needed for vault/subaccount trading.
+    vault_address = None
     
     return private_key, is_testnet, wallet_address, vault_address
 
