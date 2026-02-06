@@ -28078,16 +28078,17 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboardMarkup]:
-    """Build Bybit status text and keyboard with mode buttons.
+    """Build Bybit status text and keyboard.
+    
+    SIMPLIFIED: Trading mode is now per-strategy in ⚙️ Strategies menu.
+    This screen only shows exchange status and links to API Keys settings.
     
     Returns: (text, keyboard)
     """
     status = get_exchange_status(uid)
     bybit_info = status.get("bybit", {})
     hl_info = status.get("hyperliquid", {})
-    creds = get_all_user_credentials(uid) or {}
-    trading_mode = creds.get("trading_mode", "demo")
-    live_enabled = get_live_enabled(uid)
+    bybit_enabled = db.is_bybit_enabled(uid)
     
     text = "🟠 *Bybit*\n\n"
     keyboard = []
@@ -28096,37 +28097,21 @@ def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboard
         has_demo = bybit_info.get("demo", False)
         has_real = bybit_info.get("real", False)
         
-        # Show current mode
-        mode_text = "🎮 Demo" if trading_mode == "demo" else ("💵 Real" if trading_mode == "real" else "🔀 Both")
-        text += f"📍 Mode: {mode_text}\n"
-        text += f"🧪 Demo: {'✅' if has_demo else '❌'}\n"
-        text += f"💼 Real: {'✅' if has_real else '❌'}\n"
+        # Show configured accounts
+        text += f"🧪 Demo: {'✅ Configured' if has_demo else '❌ Not set'}\n"
+        text += f"💼 Real: {'✅ Configured' if has_real else '❌ Not set'}\n\n"
         
-        # Show live_enabled status for Real/Both modes
-        if trading_mode in ("real", "both"):
-            text += f"🔓 Live Trading: {'✅ Confirmed' if live_enabled else '❌ Not confirmed'}\n"
+        # Show trading status
+        text += f"📊 Trading: {'🟢 ON' if bybit_enabled else '🔴 OFF'}\n\n"
         
-        # Quick mode switch buttons
-        mode_buttons = []
-        if has_demo:
-            mode_buttons.append(InlineKeyboardButton(
-                "🎮 Demo" + (" ✓" if trading_mode == "demo" else ""), 
-                callback_data="bybit:mode_demo"
-            ))
-        if has_real:
-            mode_buttons.append(InlineKeyboardButton(
-                "💵 Real" + (" ✓" if trading_mode == "real" else ""), 
-                callback_data="bybit:mode_real"
-            ))
-        if has_demo and has_real:
-            mode_buttons.append(InlineKeyboardButton(
-                "🔀 Both" + (" ✓" if trading_mode == "both" else ""), 
-                callback_data="bybit:mode_both"
-            ))
-        if mode_buttons:
-            keyboard.append(mode_buttons)
+        # Info about per-strategy mode
+        text += "_💡 Trading mode (Demo/Real/Both) is configured per-strategy in ⚙️ Strategies menu_"
+        
+        # Link to API Keys for detailed settings
+        keyboard.append([InlineKeyboardButton("🔑 API Keys Settings", callback_data="api:settings")])
     else:
         text += "❌ Not configured\n\n_Press 🔑 API Keys to set up_"
+        keyboard.append([InlineKeyboardButton("🔑 Setup API Keys", callback_data="api:settings")])
     
     # Switch to HyperLiquid
     if hl_info.get("configured"):
@@ -28140,7 +28125,11 @@ def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboard
 @log_calls
 @with_texts
 async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Handle Bybit mode switching callbacks"""
+    """Handle Bybit callbacks - now redirects to strategy settings for mode changes.
+    
+    DEPRECATED: Mode switching moved to per-strategy settings.
+    These handlers remain for backwards compatibility with old cached buttons.
+    """
     q = update.callback_query
     await q.answer()
     
@@ -28148,132 +28137,38 @@ async def on_bybit_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = q.data
     t = ctx.t
     
-    if data == "bybit:mode_demo":
-        set_trading_mode(uid, "demo")
-        # Show updated menu
-        text, keyboard = _build_bybit_status_keyboard(uid, t)
-        text += "\n✅ _Switched to Demo mode_"
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        # Update main menu keyboard
-        await ctx.bot.send_message(
-            chat_id=uid,
-            text="🎮",
-            reply_markup=main_menu_keyboard(ctx, user_id=uid)
-        )
-    
-    elif data == "bybit:mode_real":
-        # Check if live_enabled - if not, ask for confirmation
-        if not get_live_enabled(uid):
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("✅ " + t.get('confirm_real', "Да, я понимаю риски"), callback_data="bybit:confirm_real"),
-                ],
-                [
-                    InlineKeyboardButton("❌ " + t.get('cancel', "Отмена"), callback_data="bybit:back_to_menu")
-                ]
+    # All mode switches now redirect to strategies menu
+    if data in ("bybit:mode_demo", "bybit:mode_real", "bybit:mode_both"):
+        await q.edit_message_text(
+            "ℹ️ *Trading mode настраивается теперь для каждой стратегии отдельно.*\n\n"
+            "Нажмите кнопку 🎮/💵/🔀 напротив нужной стратегии в меню *⚙️ Strategies*.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚙️ Open Strategies", callback_data="strat_set:back")],
+                [InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")]
             ])
-            await q.edit_message_text(
-                t.get('real_trading_warning', 
-                    "⚠️ *ПОДТВЕРЖДЕНИЕ РЕАЛЬНОЙ ТОРГОВЛИ*\n\n"
-                    "🔴 Вы собираетесь включить *REAL* режим.\n\n"
-                    "*Это означает:*\n"
-                    "• Все сделки используют РЕАЛЬНЫЕ средства\n"
-                    "• Убытки РЕАЛЬНЫ и не могут быть отменены\n"
-                    "• Прибыль РЕАЛЬНА и может быть выведена\n\n"
-                    "💡 Убедитесь что вы:\n"
-                    "• Протестировали стратегию на Demo\n"
-                    "• Настроили SL/TP проценты\n"
-                    "• Рискуете только теми деньгами, которые можете потерять\n\n"
-                    "*Вы уверены?*"
-                ),
-                parse_mode="Markdown",
-                reply_markup=keyboard
-            )
-            return
-        
-        # Already confirmed before, just switch mode
-        set_trading_mode(uid, "real")
-        text, keyboard = _build_bybit_status_keyboard(uid, t)
-        text += "\n✅ _Switched to Real mode_"
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        await ctx.bot.send_message(
-            chat_id=uid,
-            text="💵",
-            reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
+        return
     
-    elif data == "bybit:confirm_real":
-        # User confirmed real trading
+    elif data in ("bybit:confirm_real", "bybit:confirm_both"):
+        # Legacy confirmation - still enable live trading and redirect
         set_live_enabled(uid, True)
-        set_trading_mode(uid, "real")
-        logger.info(f"[{uid}] User confirmed REAL trading mode - live_enabled=True")
-        text, keyboard = _build_bybit_status_keyboard(uid, t)
-        text += "\n\n✅ *Real торговля подтверждена!*"
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        await ctx.bot.send_message(
-            chat_id=uid,
-            text="💵",
-            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        logger.info(f"[{uid}] User confirmed REAL trading via legacy handler - live_enabled=True")
+        await q.edit_message_text(
+            "✅ *Real торговля подтверждена!*\n\n"
+            "Теперь настройте режим для каждой стратегии в меню *⚙️ Strategies*.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚙️ Open Strategies", callback_data="strat_set:back")],
+                [InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")]
+            ])
         )
+        return
     
     elif data in ("bybit:cancel_real", "bybit:back_to_menu"):
-        # User cancelled - go back to menu
+        # User cancelled - go back to exchange status
         text, keyboard = _build_bybit_status_keyboard(uid, t)
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-    
-    elif data == "bybit:mode_both":
-        # Check if live_enabled - if not, ask for confirmation
-        if not get_live_enabled(uid):
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("✅ " + t.get('confirm_both', "Да, включить Both"), callback_data="bybit:confirm_both"),
-                ],
-                [
-                    InlineKeyboardButton("❌ " + t.get('cancel', "Отмена"), callback_data="bybit:back_to_menu")
-                ]
-            ])
-            await q.edit_message_text(
-                t.get('both_trading_warning',
-                    "⚠️ *ПОДТВЕРЖДЕНИЕ РЕЖИМА BOTH*\n\n"
-                    "🔴 Вы собираетесь включить режим *BOTH*.\n\n"
-                    "*Это означает:*\n"
-                    "• Каждый сигнал исполняется на Demo И Real\n"
-                    "• Real сделки используют РЕАЛЬНЫЕ средства\n"
-                    "• Убытки на Real счёте РЕАЛЬНЫ\n\n"
-                    "💡 Этот режим полезен для:\n"
-                    "• Сравнения Demo vs Real исполнения\n"
-                    "• Торговли live при тестировании настроек\n\n"
-                    "*Вы уверены?*"
-                ),
-                parse_mode="Markdown",
-                reply_markup=keyboard
-            )
-            return
-        
-        # Already confirmed before, just switch mode
-        set_trading_mode(uid, "both")
-        text, keyboard = _build_bybit_status_keyboard(uid, t)
-        text += "\n✅ _Switched to Both mode_"
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        await ctx.bot.send_message(
-            chat_id=uid,
-            text="🔀",
-            reply_markup=main_menu_keyboard(ctx, user_id=uid)
-        )
-    
-    elif data == "bybit:confirm_both":
-        # User confirmed both mode
-        set_live_enabled(uid, True)
-        set_trading_mode(uid, "both")
-        logger.info(f"[{uid}] User confirmed BOTH trading mode - live_enabled=True")
-        text, keyboard = _build_bybit_status_keyboard(uid, t)
-        text += "\n\n✅ *Both режим подтверждён!*"
-        await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        await ctx.bot.send_message(
-            chat_id=uid,
-            text="🔀",
-            reply_markup=main_menu_keyboard(ctx, user_id=uid)
-        )
 
 
 @log_calls
