@@ -1,6 +1,6 @@
 # Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.53.0 | Обновлено: 5 февраля 2026
+# Версия: 3.54.0 | Обновлено: 6 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 5, 2026)
 # =============================================
 #
@@ -41,6 +41,8 @@
 # - SL/TP Fix: set_trading_stop for ALL strategies (Feb 5, 2026) ✅
 # - Strategy Detection: Full audit - correctly saved/logged (Feb 5, 2026) ✅
 # - BlackRock Deep Audit: PASSED (Feb 5, 2026) ✅
+# - iOS Build 75: 2026 Premium Edition with glassmorphism (Feb 6, 2026) ✅
+# - Android 2026 Style: Full glassmorphism design system (Feb 6, 2026) ✅
 
 ---
 
@@ -1185,6 +1187,28 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ FEAT: iOS Build 75 + Android 2026 Glassmorphism Design (Feb 6, 2026)
+- **iOS Build 75:** Загружен в TestFlight с 2026 Premium Edition стилями
+- **Android Full Style Update:** Полная перестройка дизайн-системы
+- **Color.kt изменения:**
+  - `DarkBackground: #050505` (глубже, было #0F0F14)
+  - Glassmorphism colors: `GlassBackground`, `GlassBorder`, `GlassHighlight`, `GlassOverlay`
+  - Extended palette: `EnlikoPink`, `EnlikoViolet`, `EnlikoOrange`, `EnlikoTeal`
+  - Position colors: `PositionLongBg`, `PositionShortBg` с alpha вариантами
+  - Gradient lists: `GradientPrimaryColors`, `GradientProfitColors`, `GradientLossColors`
+- **ModernComponents.kt:**
+  - `GlassCard` - карточка с gradient border и glow shadow
+  - `GlowCard` - карточка с drawBehind circle glow эффектом
+  - `PositionGlassCard` - карточка позиции с side accent bar
+  - `OrderGlassCard` - карточка ордера с orange gradient accent
+  - `GradientButton` - кнопка с gradient background
+  - `PnLCounter`, `SideBadge`, `ExchangeBadge` - новые компоненты
+  - `DashboardStatCard`, `BalanceCard` - статистика с glassmorphism
+- **Theme.kt:** Always dark theme, `GlassOverlay` scrim, deep status bar
+- **PortfolioScreen.kt:** `TotalBalanceCard` и `PositionCard` с glassmorphism
+- **Build:** ✅ BUILD SUCCESSFUL (Android), ✅ TestFlight Build 75 (iOS)
+- **Commit:** `4612719`
 
 ### ✅ FIX: Strategy Display 'Manual' + Position Saved Logging (Feb 5, 2026)
 - **Проблема #1:** При закрытии manual позиции в логах показывалось `strategy=Unknown` вместо `strategy=Manual`
@@ -3487,8 +3511,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 5 февраля 2026*
-*Version: 3.53.0*
+*Last updated: 6 февраля 2026*
+*Version: 3.54.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -3503,8 +3527,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1540+ keys, common button keys*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android*
-*iOS SwiftUI: 40+ files, BUILD SUCCEEDED Feb 2 2026 ✅*
-*Android Kotlin: 30+ files, Jetpack Compose, Hilt DI, Material 3*
+*iOS SwiftUI: 40+ files, BUILD 75 TestFlight (Feb 6, 2026) ✅*
+*Android Kotlin: 30+ files, Jetpack Compose, 2026 Glassmorphism Design ✅*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First*
 *Break-Even (BE): Per-strategy Long/Short settings*
 *Partial Take Profit: Close X% at +Y% profit in 2 steps + VALIDATION Step1+Step2<=100%*
@@ -3512,6 +3536,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Unified Auth: Telegram + Email + Deep Links - same account across all 4 modules*
 *WebApp Service: DO NOT create separate service - runs inside start_bot.sh*
 *API Security: All financial endpoints require JWT auth + IDOR protection*
+*Design System 2026: Glassmorphism, deeper dark (#050505), gradient accents, neon highlights*
 
 
 
