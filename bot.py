@@ -27871,16 +27871,16 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "exchange:set_bybit":
         set_exchange_type(uid, "bybit")
-        await q.edit_message_text(
-            "✅ *Switched to Bybit*\n\n"
-            "All trading operations will now use Bybit.",
-            parse_mode="Markdown"
-        )
-        # Send new keyboard to update ReplyKeyboard
+        # Delete the inline message
+        try:
+            await q.delete_message()
+        except Exception:
+            pass
+        # Send confirmation WITH updated keyboard in ONE message
         t = get_texts(uid)
         await ctx.bot.send_message(
             chat_id=uid,
-            text=t.get("exchange_mode_activated_bybit", "🟠 *Bybit mode activated*"),
+            text="✅ *Switched to Bybit*\n\nAll trading operations will now use Bybit.",
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
@@ -27904,16 +27904,16 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return
         
         set_exchange_type(uid, "hyperliquid")
-        await q.edit_message_text(
-            "✅ *Switched to HyperLiquid*\n\n"
-            "All trading operations will now use HyperLiquid DEX.",
-            parse_mode="Markdown"
-        )
-        # Send new keyboard to update ReplyKeyboard
+        # Delete the inline message
+        try:
+            await q.delete_message()
+        except Exception:
+            pass
+        # Send confirmation WITH updated keyboard in ONE message
         t = get_texts(uid)
         await ctx.bot.send_message(
             chat_id=uid,
-            text=t.get("exchange_mode_activated_hl", "🔷 *HyperLiquid mode activated*"),
+            text="✅ *Switched to HyperLiquid*\n\nAll trading operations will now use HyperLiquid DEX.",
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
@@ -27946,15 +27946,16 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
             if has_legacy or has_mainnet or has_testnet:
                 set_exchange_type(uid, "hyperliquid")
-                await q.edit_message_text(
-                    "✅ *Switched to HyperLiquid*\n\n"
-                    "All trading operations will now use HyperLiquid DEX.",
-                    parse_mode="Markdown"
-                )
+                # Delete the inline message
+                try:
+                    await q.delete_message()
+                except Exception:
+                    pass
+                # Send confirmation WITH updated keyboard in ONE message
                 t = get_texts(uid)
                 await ctx.bot.send_message(
                     chat_id=uid,
-                    text=t.get("exchange_mode_activated_hl", "🔷 *HyperLiquid mode activated*"),
+                    text="✅ *Switched to HyperLiquid*\n\nAll trading operations will now use HyperLiquid DEX.",
                     parse_mode="Markdown",
                     reply_markup=main_menu_keyboard(ctx, user_id=uid)
                 )
@@ -27967,15 +27968,16 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
         else:
             set_exchange_type(uid, "bybit")
-            await q.edit_message_text(
-                "✅ *Switched to Bybit*\n\n"
-                "All trading operations will now use Bybit.",
-                parse_mode="Markdown"
-            )
+            # Delete the inline message
+            try:
+                await q.delete_message()
+            except Exception:
+                pass
+            # Send confirmation WITH updated keyboard in ONE message
             t = get_texts(uid)
             await ctx.bot.send_message(
                 chat_id=uid,
-                text=t.get("exchange_mode_activated_bybit", "🟠 *Bybit mode activated*"),
+                text="✅ *Switched to Bybit*\n\nAll trading operations will now use Bybit.",
                 parse_mode="Markdown",
                 reply_markup=main_menu_keyboard(ctx, user_id=uid)
             )
@@ -28610,14 +28612,16 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             # Auto-enable HL trading
             set_hl_enabled(uid, True)
-            await q.edit_message_text(
-                "🌐 *Switched to Mainnet*\n\n"
-                "⚠️ Now trading with real funds!",
-                parse_mode="Markdown"
-            )
+            # Delete inline message
+            try:
+                await q.delete_message()
+            except Exception:
+                pass
+            # Send confirmation WITH keyboard in ONE message
             await ctx.bot.send_message(
                 chat_id=uid,
-                text="🔷 HL 🌐",
+                text="🌐 *Switched to Mainnet*\n\n⚠️ Now trading with real funds!",
+                parse_mode="Markdown",
                 reply_markup=main_menu_keyboard(ctx, user_id=uid)
             )
             return
@@ -28650,14 +28654,16 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             # Auto-enable HL trading
             set_hl_enabled(uid, True)
-            await q.edit_message_text(
-                "🧪 *Switched to Testnet*\n\n"
-                "Safe for practice trading!",
-                parse_mode="Markdown"
-            )
+            # Delete inline message
+            try:
+                await q.delete_message()
+            except Exception:
+                pass
+            # Send confirmation WITH keyboard in ONE message
             await ctx.bot.send_message(
                 chat_id=uid,
-                text="🔷 HL 🧪",
+                text="🧪 *Switched to Testnet*\n\nSafe for practice trading!",
+                parse_mode="Markdown",
                 reply_markup=main_menu_keyboard(ctx, user_id=uid)
             )
             return
