@@ -105,24 +105,41 @@ class HyperLiquidClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
     
-    async def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Dict[str, Any]:
+    async def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None, retries: int = 3) -> Dict[str, Any]:
         if self._session is None or self._session.closed:
             await self.initialize()
         
         url = f"{self._base_url}{endpoint}"
+        last_error = None
         
-        try:
-            async with self._session.request(method, url, json=data, params=params, headers={"Content-Type": "application/json"}) as response:
-                text = await response.text()
-                if response.status >= 400:
-                    logger.error(f"HyperLiquid API error: {response.status} - {text}")
-                    raise HyperLiquidError(f"API error: {text}", status_code=response.status, response={"error": text})
-                if not text:
-                    return {}
-                return json.loads(text)
-        except aiohttp.ClientError as e:
-            logger.error(f"HyperLiquid request failed: {e}")
-            raise HyperLiquidError(f"Request failed: {e}")
+        for attempt in range(retries):
+            try:
+                async with self._session.request(method, url, json=data, params=params, headers={"Content-Type": "application/json"}) as response:
+                    text = await response.text()
+                    
+                    # Handle rate limiting with exponential backoff
+                    if response.status == 429:
+                        wait_time = (2 ** attempt) + 0.5  # 0.5s, 2.5s, 4.5s
+                        logger.warning(f"HyperLiquid rate limit (429), waiting {wait_time}s (attempt {attempt + 1}/{retries})")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    
+                    if response.status >= 400:
+                        logger.error(f"HyperLiquid API error: {response.status} - {text}")
+                        raise HyperLiquidError(f"API error: {text}", status_code=response.status, response={"error": text})
+                    if not text:
+                        return {}
+                    return json.loads(text)
+            except aiohttp.ClientError as e:
+                logger.error(f"HyperLiquid request failed: {e}")
+                last_error = e
+                if attempt < retries - 1:
+                    await asyncio.sleep(1)
+                    continue
+                raise HyperLiquidError(f"Request failed: {e}")
+        
+        # If we exhausted retries due to rate limiting
+        raise HyperLiquidError(f"Rate limited after {retries} attempts", status_code=429)
     
     async def _info_request(self, request_type: str, **kwargs) -> Dict[str, Any]:
         data = {"type": request_type, **kwargs}
