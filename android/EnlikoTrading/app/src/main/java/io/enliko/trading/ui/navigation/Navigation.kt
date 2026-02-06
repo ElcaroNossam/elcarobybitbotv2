@@ -33,6 +33,7 @@ import io.enliko.trading.ui.screens.ai.AIAssistantScreen
 import io.enliko.trading.ui.screens.stats.StatsScreen
 import io.enliko.trading.ui.screens.spot.SpotTradingScreen
 import io.enliko.trading.ui.screens.strategies.StrategiesScreen
+import io.enliko.trading.ui.screens.trading.ManualTradingScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -74,6 +75,9 @@ sealed class Screen(val route: String) {
     object Stats : Screen("stats")
     object SpotTrading : Screen("spot_trading")
     object Strategies : Screen("strategies")
+    object ManualTrading : Screen("manual_trading/{symbol}") {
+        fun createRoute(symbol: String = "BTCUSDT") = "manual_trading/$symbol"
+    }
 }
 
 fun isLoggedIn(context: Context): Boolean {
@@ -156,6 +160,9 @@ fun EnlikoNavHost(
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Main.route) { inclusive = true }
                         }
+                    },
+                    onNavigateToManualTrading = { symbol ->
+                        navController.navigate(Screen.ManualTrading.createRoute(symbol))
                     }
                 )
             }
@@ -338,6 +345,15 @@ fun EnlikoNavHost(
             composable(Screen.Strategies.route) {
                 StrategiesScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Manual Trading
+            composable(Screen.ManualTrading.route) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: "BTCUSDT"
+                ManualTradingScreen(
+                    symbol = symbol,
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

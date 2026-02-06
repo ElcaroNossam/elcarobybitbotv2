@@ -60,7 +60,8 @@ fun MainScreen(
     onNavigateToScreener: () -> Unit = {},
     onNavigateToAICopilot: () -> Unit = {},
     onNavigateToAdmin: () -> Unit = {},
-    onNavigateToDebug: () -> Unit = {}
+    onNavigateToDebug: () -> Unit = {},
+    onNavigateToManualTrading: (String) -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val navController = rememberNavController()
@@ -123,7 +124,9 @@ fun MainScreen(
                 PortfolioScreen()
             }
             composable(MainTab.TRADING.route) {
-                TradingScreen()
+                TradingScreen(
+                    onNavigateToManualTrading = onNavigateToManualTrading
+                )
             }
             composable(MainTab.SIGNALS.route) {
                 SignalsScreen()

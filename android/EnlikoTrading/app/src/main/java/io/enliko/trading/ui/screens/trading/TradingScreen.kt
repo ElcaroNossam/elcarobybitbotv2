@@ -20,7 +20,8 @@ import io.enliko.trading.util.LocalStrings
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TradingScreen(
-    viewModel: TradingViewModel = hiltViewModel()
+    viewModel: TradingViewModel = hiltViewModel(),
+    onNavigateToManualTrading: (String) -> Unit = {}
 ) {
     val strings = LocalStrings.current
     val uiState by viewModel.uiState.collectAsState()
@@ -100,7 +101,7 @@ fun TradingScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
-                    onClick = { /* Open Long */ },
+                    onClick = { onNavigateToManualTrading(selectedSymbol) },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -116,7 +117,7 @@ fun TradingScreen(
                 }
                 
                 Button(
-                    onClick = { /* Open Short */ },
+                    onClick = { onNavigateToManualTrading(selectedSymbol) },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),

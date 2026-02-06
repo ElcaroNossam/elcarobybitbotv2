@@ -358,6 +358,10 @@ class ManualTradingViewModel @Inject constructor(
         _uiState.update { it.copy(successMessage = null, isOrderPlaced = false) }
     }
     
+    fun clearMessages() {
+        _uiState.update { it.copy(error = null, successMessage = null) }
+    }
+    
     fun resetForm() {
         _uiState.update { 
             it.copy(

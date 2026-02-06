@@ -124,6 +124,8 @@ val EnlikoInfo = EnlikoBlue
 // ═══════════════════════════════════════════════════════════════════════════════
 // POSITION CARD COLORS (side-specific)
 // ═══════════════════════════════════════════════════════════════════════════════
+val PositionLong = EnlikoGreen  // Main long/buy color
+val PositionShort = EnlikoRed   // Main short/sell color
 val PositionLongBg = EnlikoGreen.copy(alpha = 0.08f)
 val PositionLongBorder = EnlikoGreen.copy(alpha = 0.25f)
 val PositionShortBg = EnlikoRed.copy(alpha = 0.08f)
