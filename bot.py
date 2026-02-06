@@ -26760,6 +26760,8 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     
     adapter = None
     try:
+        logger.info(f"[HL-BALANCE] uid={uid} network={'testnet' if is_testnet else 'mainnet'} key_set={bool(private_key)}")
+        
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
@@ -26767,6 +26769,8 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
         )
         
         result = await adapter.get_balance()
+        logger.info(f"[HL-BALANCE] uid={uid} result={result}")
+        
         show_switcher = db.should_show_hl_network_switcher(uid)
         
         # Build keyboard
