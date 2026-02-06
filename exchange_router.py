@@ -38,8 +38,14 @@ logger = logging.getLogger(__name__)
 
 def _get_hl_credentials_for_env(hl_creds: dict, env: str) -> tuple:
     """
-    Get the correct HyperLiquid private key based on env (paper/live).
+    Get the correct HyperLiquid credentials based on env (paper/live).
     Supports both new architecture and legacy format with fallback.
+    
+    HyperLiquid API Wallet Architecture:
+    - private_key: API wallet key (used for signing)
+    - wallet_address: Main wallet address (where funds are, for balance queries)
+    - vault_address: For trading, when API wallet signs on behalf of main wallet,
+                     vault_address should be the MAIN WALLET address (not the API wallet!)
     
     Returns: (private_key, is_testnet, wallet_address, vault_address)
     """
@@ -60,7 +66,10 @@ def _get_hl_credentials_for_env(hl_creds: dict, env: str) -> tuple:
         if private_key:
             is_testnet = hl_creds.get("hl_testnet", False)
     
-    vault_address = hl_creds.get("hl_vault_address")
+    # CRITICAL: For API wallet trading on behalf of main wallet,
+    # vault_address must be the MAIN WALLET address (where funds are)
+    # NOT a separate vault. The API wallet signs, but trades happen on main wallet.
+    vault_address = wallet_address  # Main wallet = vault for API wallet trading
     
     return private_key, is_testnet, wallet_address, vault_address
 
