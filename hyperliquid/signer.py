@@ -1,17 +1,19 @@
 """
 HyperLiquid EIP-712 Signing Utilities
+Based on official hyperliquid-python-sdk
 """
 import time
-import hashlib
 import msgpack
 from typing import Dict, Any, Optional, List
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
+from eth_utils import keccak, to_hex
 
 from .constants import COIN_TO_ASSET, get_size_decimals
 
 
+# Domains are no longer used directly - we use l1_payload() instead
 PHANTOM_DOMAIN = {
     "name": "Exchange",
     "version": "1",
@@ -87,44 +89,113 @@ def cancel_wire_to_action(cancels: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"type": "cancel", "cancels": cancels}
 
 
-def sign_l1_action(
-    private_key: str,
-    action: Dict[str, Any],
-    vault_address: Optional[str] = None,
-    nonce: int = None,
-    is_mainnet: bool = True
-) -> Dict[str, Any]:
-    if nonce is None:
-        nonce = get_timestamp_ms()
+def address_to_bytes(address: str) -> bytes:
+    """Convert address string to bytes."""
+    return bytes.fromhex(address[2:] if address.startswith("0x") else address)
+
+
+def action_hash(action: Dict[str, Any], vault_address: Optional[str], nonce: int, expires_after: Optional[int] = None) -> bytes:
+    """
+    Create action hash for signing.
+    This matches the official SDK implementation.
+    """
+    data = msgpack.packb(action)
+    data += nonce.to_bytes(8, "big")
     
-    action_bytes = msgpack.packb(action)
-    account = Account.from_key(private_key)
-    source = "a" if is_mainnet else "b"
-    connection_id = hashlib.sha256(action_bytes + nonce.to_bytes(8, 'big')).digest()
+    if vault_address is None:
+        data += b"\x00"
+    else:
+        data += b"\x01"
+        data += address_to_bytes(vault_address)
     
-    typed_data = {
+    if expires_after is not None:
+        data += b"\x00"
+        data += expires_after.to_bytes(8, "big")
+    
+    return keccak(data)
+
+
+def construct_phantom_agent(hash_bytes: bytes, is_mainnet: bool) -> Dict[str, Any]:
+    """Construct phantom agent for L1 signing."""
+    return {
+        "source": "a" if is_mainnet else "b",
+        "connectionId": hash_bytes
+    }
+
+
+def l1_payload(phantom_agent: Dict[str, Any]) -> Dict[str, Any]:
+    """Create EIP-712 payload for L1 action. Uses chainId 1337 always."""
+    return {
+        "domain": {
+            "chainId": 1337,
+            "name": "Exchange",
+            "verifyingContract": "0x0000000000000000000000000000000000000000",
+            "version": "1",
+        },
         "types": {
+            "Agent": [
+                {"name": "source", "type": "string"},
+                {"name": "connectionId", "type": "bytes32"},
+            ],
             "EIP712Domain": [
                 {"name": "name", "type": "string"},
                 {"name": "version", "type": "string"},
                 {"name": "chainId", "type": "uint256"},
                 {"name": "verifyingContract", "type": "address"},
             ],
-            "Agent": [
-                {"name": "source", "type": "string"},
-                {"name": "connectionId", "type": "bytes32"},
-            ],
         },
         "primaryType": "Agent",
-        "domain": MAINNET_DOMAIN if is_mainnet else PHANTOM_DOMAIN,
-        "message": {"source": source, "connectionId": connection_id},
+        "message": phantom_agent,
     }
+
+
+def sign_inner(wallet: Account, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Sign EIP-712 typed data and return signature."""
+    structured_data = encode_typed_data(full_message=data)
+    signed = wallet.sign_message(structured_data)
+    return {
+        "r": to_hex(signed["r"]),
+        "s": to_hex(signed["s"]),
+        "v": signed["v"]
+    }
+
+
+def sign_l1_action(
+    private_key: str,
+    action: Dict[str, Any],
+    vault_address: Optional[str] = None,
+    nonce: int = None,
+    expires_after: Optional[int] = None,
+    is_mainnet: bool = True
+) -> Dict[str, Any]:
+    """
+    Sign L1 action and return full payload ready for /exchange endpoint.
+    Based on official hyperliquid-python-sdk implementation.
+    """
+    if nonce is None:
+        nonce = get_timestamp_ms()
     
-    signable = encode_typed_data(full_message=typed_data)
-    signed = account.sign_message(signable)
+    # Create wallet from private key
+    wallet = Account.from_key(private_key)
     
-    signature = {"r": hex(signed.r), "s": hex(signed.s), "v": signed.v}
-    payload = {"action": action, "nonce": nonce, "signature": signature}
+    # Create action hash (using keccak as in official SDK)
+    hash_bytes = action_hash(action, vault_address, nonce, expires_after)
+    
+    # Create phantom agent
+    phantom_agent = construct_phantom_agent(hash_bytes, is_mainnet)
+    
+    # Create L1 payload
+    data = l1_payload(phantom_agent)
+    
+    # Sign
+    signature = sign_inner(wallet, data)
+    
+    # Build final payload
+    payload = {
+        "action": action,
+        "nonce": nonce,
+        "signature": signature
+    }
     
     if vault_address:
         payload["vaultAddress"] = vault_address
