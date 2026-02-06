@@ -5106,10 +5106,15 @@ def set_hl_credentials(user_id: int, creds: dict = None, private_key: str = None
     
     # Support dict or individual params
     if creds:
-        private_key = creds.get("hl_private_key", private_key)
+        # Check for new multitenancy field names first, fallback to legacy
+        private_key = (creds.get("hl_mainnet_private_key") or 
+                      creds.get("hl_testnet_private_key") or 
+                      creds.get("hl_private_key", private_key))
+        wallet_address = (creds.get("hl_mainnet_wallet_address") or 
+                         creds.get("hl_testnet_wallet_address") or 
+                         creds.get("hl_wallet_address"))
         vault_address = creds.get("hl_vault_address", vault_address)
         testnet = creds.get("hl_testnet", testnet)
-        wallet_address = creds.get("hl_wallet_address")
         account_type = creds.get("account_type", account_type)
     else:
         wallet_address = None
