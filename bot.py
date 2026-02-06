@@ -14460,8 +14460,10 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             # Get correct private key for network (multitenancy)
             if testnet:
                 hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
             else:
                 hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
             
             if not hl_private_key:
                 await query.edit_message_text(
@@ -14473,7 +14475,8 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             adapter = HLAdapter(
                 private_key=hl_private_key,
                 testnet=testnet,
-                vault_address=hl_creds.get("hl_vault_address")
+                vault_address=hl_creds.get("hl_vault_address"),
+                main_wallet_address=wallet_address
             )
             
             result = await adapter.get_balance()
@@ -26760,12 +26763,19 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     
     adapter = None
     try:
-        logger.info(f"[HL-BALANCE] uid={uid} network={'testnet' if is_testnet else 'mainnet'} key_set={bool(private_key)}")
+        # Get wallet address for balance queries (may differ from API key address)
+        if is_testnet:
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        else:
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        
+        logger.info(f"[HL-BALANCE] uid={uid} network={'testnet' if is_testnet else 'mainnet'} key_set={bool(private_key)} wallet={wallet_address}")
         
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=hl_creds.get("hl_vault_address"),
+            main_wallet_address=wallet_address  # Query balance from main wallet, not API wallet
         )
         
         result = await adapter.get_balance()
@@ -26874,12 +26884,19 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, netwo
         )
         return
     
+    # Get wallet address for queries
+    if is_testnet:
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+    else:
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+    
     adapter = None
     try:
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=hl_creds.get("hl_vault_address"),
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_positions()
