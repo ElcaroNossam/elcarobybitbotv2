@@ -106,14 +106,17 @@ class LocalizationManager: ObservableObject {
         // Load saved language or detect from system
         if let savedLang = UserDefaults.standard.string(forKey: userDefaultsKey),
            let lang = AppLanguage(rawValue: savedLang) {
-            currentLanguage = lang
+            _currentLanguage = Published(wrappedValue: lang)
         } else {
             // Detect from system locale
             let systemLang = Locale.current.language.languageCode?.identifier ?? "en"
-            currentLanguage = AppLanguage(rawValue: systemLang) ?? .en
+            _currentLanguage = Published(wrappedValue: AppLanguage(rawValue: systemLang) ?? .en)
         }
         
-        loadTranslations()
+        // Load translations AFTER init completes to avoid static property deadlock
+        DispatchQueue.main.async { [weak self] in
+            self?.loadTranslations()
+        }
     }
     
     // MARK: - Public Methods
@@ -148,10 +151,24 @@ class LocalizationManager: ObservableObject {
     }
     
     private func loadTranslations() {
-        // Load from bundled translations (English is always guaranteed to exist)
-        translations = Self.bundledTranslations[currentLanguage] 
-            ?? Self.bundledTranslations[.en] 
-            ?? Self.englishTranslations
+        // Use switch instead of static dictionary to avoid initialization deadlock
+        switch currentLanguage {
+        case .en: translations = Self.englishTranslations
+        case .ru: translations = Self.russianTranslations
+        case .uk: translations = Self.ukrainianTranslations
+        case .de: translations = Self.germanTranslations
+        case .es: translations = Self.spanishTranslations
+        case .fr: translations = Self.frenchTranslations
+        case .it: translations = Self.italianTranslations
+        case .ja: translations = Self.japaneseTranslations
+        case .zh: translations = Self.chineseTranslations
+        case .ar: translations = Self.arabicTranslations
+        case .he: translations = Self.hebrewTranslations
+        case .pl: translations = Self.polishTranslations
+        case .cs: translations = Self.czechTranslations
+        case .lt: translations = Self.lithuanianTranslations
+        case .sq: translations = Self.albanianTranslations
+        }
     }
     
     private func syncLanguageWithServer() async {
@@ -167,27 +184,8 @@ class LocalizationManager: ObservableObject {
         }
     }
     
-    // MARK: - Bundled Translations
-    static let bundledTranslations: [AppLanguage: [String: String]] = [
-        .en: englishTranslations,
-        .ru: russianTranslations,
-        .uk: ukrainianTranslations,
-        .de: germanTranslations,
-        .es: spanishTranslations,
-        .fr: frenchTranslations,
-        .it: italianTranslations,
-        .ja: japaneseTranslations,
-        .zh: chineseTranslations,
-        .ar: arabicTranslations,
-        .he: hebrewTranslations,
-        .pl: polishTranslations,
-        .cs: czechTranslations,
-        .lt: lithuanianTranslations,
-        .sq: albanianTranslations,
-    ]
-    
     // MARK: - English (Reference)
-    static let englishTranslations: [String: String] = [
+    static var englishTranslations: [String: String] { return [
         // Navigation
         "nav_portfolio": "Portfolio",
         "nav_positions": "Positions",
@@ -879,13 +877,10 @@ class LocalizationManager: ObservableObject {
         "tp_sl": "TP / SL",
         "wallet": "Wallet",
         "error": "Error",
-        "market": "Market",
-        "price": "Price",
-        "orders_empty": "No open orders",
-    ]
+    ] }
     
     // MARK: - Russian
-    static let russianTranslations: [String: String] = [
+    static var russianTranslations: [String: String] { return [
         // Navigation
         "nav_portfolio": "Портфель",
         "nav_positions": "Позиции",
@@ -1524,13 +1519,11 @@ class LocalizationManager: ObservableObject {
         "tp_sl": "ТП / СЛ",
         "wallet": "Кошелёк",
         "error": "Ошибка",
-        "market": "Маркет",
-        "price": "Цена",
         "orders_empty": "Нет открытых ордеров",
-    ]
+    ] }
     
     // MARK: - Ukrainian
-    static let ukrainianTranslations: [String: String] = [
+    static var ukrainianTranslations: [String: String] { return [
         "nav_portfolio": "Портфель",
         "nav_positions": "Позиції",
         "nav_trading": "Торгівля",
@@ -1633,10 +1626,10 @@ class LocalizationManager: ObservableObject {
         "market": "Ринок",
         "price": "Ціна",
         "orders_empty": "Немає ордерів",
-    ]
+    ] }
     
     // MARK: - German
-    static let germanTranslations: [String: String] = [
+    static var germanTranslations: [String: String] { return [
         "nav_portfolio": "Portfolio",
         "nav_positions": "Positionen",
         "nav_trading": "Handel",
@@ -1730,10 +1723,10 @@ class LocalizationManager: ObservableObject {
         "market": "Markt",
         "price": "Preis",
         "orders_empty": "Keine Orders",
-    ]
+    ] }
     
     // MARK: - Spanish
-    static let spanishTranslations: [String: String] = [
+    static var spanishTranslations: [String: String] { return [
         "nav_portfolio": "Cartera",
         "nav_positions": "Posiciones",
         "nav_trading": "Trading",
@@ -1827,10 +1820,10 @@ class LocalizationManager: ObservableObject {
         "market": "Mercado",
         "price": "Precio",
         "orders_empty": "Sin órdenes",
-    ]
+    ] }
     
     // MARK: - French
-    static let frenchTranslations: [String: String] = [
+    static var frenchTranslations: [String: String] { return [
         "nav_portfolio": "Portefeuille",
         "nav_positions": "Positions",
         "nav_trading": "Trading",
@@ -1924,10 +1917,10 @@ class LocalizationManager: ObservableObject {
         "market": "Marché",
         "price": "Prix",
         "orders_empty": "Aucun ordre",
-    ]
+    ] }
     
     // MARK: - Italian
-    static let italianTranslations: [String: String] = [
+    static var italianTranslations: [String: String] { return [
         "nav_portfolio": "Portafoglio",
         "nav_positions": "Posizioni",
         "nav_trading": "Trading",
@@ -2021,10 +2014,10 @@ class LocalizationManager: ObservableObject {
         "market": "Mercato",
         "price": "Prezzo",
         "orders_empty": "Nessun ordine",
-    ]
+    ] }
     
     // MARK: - Japanese
-    static let japaneseTranslations: [String: String] = [
+    static var japaneseTranslations: [String: String] { return [
         "nav_portfolio": "ポートフォリオ",
         "nav_positions": "ポジション",
         "nav_trading": "取引",
@@ -2118,10 +2111,10 @@ class LocalizationManager: ObservableObject {
         "market": "マーケット",
         "price": "価格",
         "orders_empty": "注文なし",
-    ]
+    ] }
     
     // MARK: - Chinese
-    static let chineseTranslations: [String: String] = [
+    static var chineseTranslations: [String: String] { return [
         "nav_portfolio": "投资组合",
         "nav_positions": "持仓",
         "nav_trading": "交易",
@@ -2215,10 +2208,10 @@ class LocalizationManager: ObservableObject {
         "market": "市场",
         "price": "价格",
         "orders_empty": "没有订单",
-    ]
+    ] }
     
     // MARK: - Arabic
-    static let arabicTranslations: [String: String] = [
+    static var arabicTranslations: [String: String] { return [
         "nav_portfolio": "المحفظة",
         "nav_positions": "المراكز",
         "nav_trading": "التداول",
@@ -2312,10 +2305,10 @@ class LocalizationManager: ObservableObject {
         "market": "السوق",
         "price": "السعر",
         "orders_empty": "لا توجد أوامر",
-    ]
+    ] }
     
     // MARK: - Hebrew
-    static let hebrewTranslations: [String: String] = [
+    static var hebrewTranslations: [String: String] { return [
         "nav_portfolio": "תיק השקעות",
         "nav_positions": "פוזיציות",
         "nav_trading": "מסחר",
@@ -2409,10 +2402,10 @@ class LocalizationManager: ObservableObject {
         "market": "שוק",
         "price": "מחיר",
         "orders_empty": "אין הזמנות",
-    ]
+    ] }
     
     // MARK: - Polish
-    static let polishTranslations: [String: String] = [
+    static var polishTranslations: [String: String] { return [
         "nav_portfolio": "Portfel",
         "nav_positions": "Pozycje",
         "nav_trading": "Trading",
@@ -2506,10 +2499,10 @@ class LocalizationManager: ObservableObject {
         "market": "Rynek",
         "price": "Cena",
         "orders_empty": "Brak zleceń",
-    ]
+    ] }
     
     // MARK: - Czech
-    static let czechTranslations: [String: String] = [
+    static var czechTranslations: [String: String] { return [
         "nav_portfolio": "Portfolio",
         "nav_positions": "Pozice",
         "nav_trading": "Obchodování",
@@ -2603,10 +2596,10 @@ class LocalizationManager: ObservableObject {
         "market": "Trh",
         "price": "Cena",
         "orders_empty": "Žádné příkazy",
-    ]
+    ] }
     
     // MARK: - Lithuanian
-    static let lithuanianTranslations: [String: String] = [
+    static var lithuanianTranslations: [String: String] { return [
         "nav_portfolio": "Portfelis",
         "nav_positions": "Pozicijos",
         "nav_trading": "Prekyba",
@@ -2700,10 +2693,10 @@ class LocalizationManager: ObservableObject {
         "market": "Rinka",
         "price": "Kaina",
         "orders_empty": "Nėra užsakymų",
-    ]
+    ] }
     
     // MARK: - Albanian
-    static let albanianTranslations: [String: String] = [
+    static var albanianTranslations: [String: String] { return [
         "nav_portfolio": "Portofol",
         "nav_positions": "Pozicionet",
         "nav_trading": "Tregtimi",
@@ -2797,7 +2790,7 @@ class LocalizationManager: ObservableObject {
         "market": "Tregu",
         "price": "Çmimi",
         "orders_empty": "Pa urdhra",
-    ]
+    ] }
 }
 
 // MARK: - String Extension for Localization
