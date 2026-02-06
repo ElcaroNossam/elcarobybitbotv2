@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import io.enliko.trading.ui.theme.LongGreen
 import io.enliko.trading.ui.theme.ShortRed
 import io.enliko.trading.util.LocalStrings
@@ -71,41 +72,20 @@ enum class HistoryTab { ORDERS, TRADES, FUNDING, PNL }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TradeHistoryScreen(
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    viewModel: TradeHistoryViewModel = hiltViewModel()
 ) {
     val strings = LocalStrings.current
-    var selectedTab by remember { mutableStateOf(HistoryTab.TRADES) }
-    var isLoading by remember { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsState()
     
-    var orders by remember { mutableStateOf<List<OrderRecord>>(emptyList()) }
-    var trades by remember { mutableStateOf<List<TradeRecord>>(emptyList()) }
-    var fundings by remember { mutableStateOf<List<FundingRecord>>(emptyList()) }
-    var pnlRecords by remember { mutableStateOf<List<PnlRecord>>(emptyList()) }
+    // Snackbar for errors
+    val snackbarHostState = remember { SnackbarHostState() }
     
-    // Mock data
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(500)
-        orders = listOf(
-            OrderRecord("1", "BTCUSDT", "Buy", "Limit", 97500.0, 0.01, 0.01, "Filled", System.currentTimeMillis() - 3600000),
-            OrderRecord("2", "ETHUSDT", "Sell", "Market", 3250.0, 0.5, 0.5, "Filled", System.currentTimeMillis() - 7200000),
-            OrderRecord("3", "SOLUSDT", "Buy", "Limit", 170.0, 10.0, 0.0, "Cancelled", System.currentTimeMillis() - 10800000)
-        )
-        trades = listOf(
-            TradeRecord("1", "BTCUSDT", "Buy", 97500.0, 0.01, 0.98, null, System.currentTimeMillis() - 3600000),
-            TradeRecord("2", "ETHUSDT", "Sell", 3250.0, 0.5, 1.63, 125.50, System.currentTimeMillis() - 7200000),
-            TradeRecord("3", "BTCUSDT", "Sell", 98000.0, 0.01, 0.98, 5.0, System.currentTimeMillis() - 10800000)
-        )
-        fundings = listOf(
-            FundingRecord("1", "BTCUSDT", 0.0001, -0.98, 1.0, System.currentTimeMillis() - 28800000),
-            FundingRecord("2", "ETHUSDT", 0.00015, -1.25, 0.5, System.currentTimeMillis() - 57600000),
-            FundingRecord("3", "BTCUSDT", -0.0001, 0.49, 0.5, System.currentTimeMillis() - 86400000)
-        )
-        pnlRecords = listOf(
-            PnlRecord("1", "BTCUSDT", "Long", 95000.0, 97000.0, 0.1, 200.0, 2.1, System.currentTimeMillis() - 86400000),
-            PnlRecord("2", "ETHUSDT", "Short", 3300.0, 3200.0, 1.0, 100.0, 3.03, System.currentTimeMillis() - 172800000),
-            PnlRecord("3", "SOLUSDT", "Long", 175.0, 170.0, 20.0, -100.0, -2.86, System.currentTimeMillis() - 259200000)
-        )
-        isLoading = false
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearError()
+        }
     }
     
     Scaffold(
@@ -118,12 +98,27 @@ fun TradeHistoryScreen(
                     }
                 },
                 actions = {
+                    // Refresh button
+                    IconButton(
+                        onClick = { viewModel.refresh() },
+                        enabled = !uiState.isRefreshing
+                    ) {
+                        if (uiState.isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                    }
                     IconButton(onClick = { /* Export */ }) {
                         Icon(Icons.Default.Download, contentDescription = "Export")
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -132,25 +127,25 @@ fun TradeHistoryScreen(
         ) {
             // Tab Selector
             ScrollableTabRow(
-                selectedTabIndex = selectedTab.ordinal,
+                selectedTabIndex = uiState.selectedTab.ordinal,
                 modifier = Modifier.fillMaxWidth(),
                 edgePadding = 16.dp
             ) {
                 HistoryTab.entries.forEach { tab ->
                     Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
+                        selected = uiState.selectedTab == tab,
+                        onClick = { viewModel.selectTab(tab) },
                         text = {
                             Text(
                                 text = tab.name,
-                                fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (uiState.selectedTab == tab) FontWeight.Bold else FontWeight.Normal
                             )
                         }
                     )
                 }
             }
             
-            if (isLoading) {
+            if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -159,17 +154,22 @@ fun TradeHistoryScreen(
                 }
             } else {
                 AnimatedContent(
-                    targetState = selectedTab,
+                    targetState = uiState.selectedTab,
                     transitionSpec = {
                         fadeIn() togetherWith fadeOut()
                     },
                     label = "history_tab"
                 ) { tab ->
                     when (tab) {
-                        HistoryTab.ORDERS -> OrdersTab(orders)
-                        HistoryTab.TRADES -> TradesTab(trades)
-                        HistoryTab.FUNDING -> FundingTab(fundings)
-                        HistoryTab.PNL -> PnLTab(pnlRecords)
+                        HistoryTab.ORDERS -> OrdersTab(uiState.orders)
+                        HistoryTab.TRADES -> TradesTab(uiState.trades)
+                        HistoryTab.FUNDING -> FundingTab(uiState.fundings)
+                        HistoryTab.PNL -> PnLTab(
+                            records = uiState.pnlRecords,
+                            totalPnl = uiState.totalPnl,
+                            winRate = uiState.winRate,
+                            totalTrades = uiState.totalTrades
+                        )
                     }
                 }
             }
@@ -398,19 +398,20 @@ private fun FundingCard(funding: FundingRecord) {
 }
 
 @Composable
-private fun PnLTab(records: List<PnlRecord>) {
+private fun PnLTab(
+    records: List<PnlRecord>,
+    totalPnl: Double,
+    winRate: Double,
+    totalTrades: Int
+) {
     if (records.isEmpty()) {
         EmptyHistoryView("No closed positions")
     } else {
-        val totalPnl = records.sumOf { it.pnl }
-        val winCount = records.count { it.pnl > 0 }
-        val winRate = if (records.isNotEmpty()) winCount.toDouble() / records.size * 100 else 0.0
-        
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Summary Card
+            // Summary Card with stats from server
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -444,7 +445,7 @@ private fun PnLTab(records: List<PnlRecord>) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Trades", style = MaterialTheme.typography.bodySmall)
                             Text(
-                                text = "${records.size}",
+                                text = "$totalTrades",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )

@@ -1,5 +1,6 @@
 package io.enliko.trading.ui.screens.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,38 +17,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import io.enliko.trading.ui.theme.*
 
 /**
- * ApiKeysScreen - Matching iOS SubSettingsViews.swift API Keys section
- * Configure Bybit and HyperLiquid API keys
+ * ApiKeysScreen - Configure Bybit and HyperLiquid API keys
+ * Uses ViewModel for real API integration with offline-first approach
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiKeysScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: ApiKeysViewModel = hiltViewModel()
 ) {
-    var selectedExchange by remember { mutableStateOf("bybit") }
-    var selectedAccount by remember { mutableStateOf("demo") }
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     
-    // Bybit Demo
-    var bybitDemoApiKey by remember { mutableStateOf("") }
-    var bybitDemoApiSecret by remember { mutableStateOf("") }
+    // Show messages
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
     
-    // Bybit Real
-    var bybitRealApiKey by remember { mutableStateOf("") }
-    var bybitRealApiSecret by remember { mutableStateOf("") }
-    
-    // HyperLiquid Testnet
-    var hlTestnetPrivateKey by remember { mutableStateOf("") }
-    var hlTestnetWalletAddress by remember { mutableStateOf("") }
-    
-    // HyperLiquid Mainnet
-    var hlMainnetPrivateKey by remember { mutableStateOf("") }
-    var hlMainnetWalletAddress by remember { mutableStateOf("") }
-    
-    var isSaving by remember { mutableStateOf(false) }
-    var showSuccess by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMessages()
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -63,215 +62,253 @@ fun ApiKeysScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = EnlikoBackground
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Exchange Selector
-            Text(
-                text = "Select Exchange",
-                style = MaterialTheme.typography.titleSmall,
-                color = EnlikoTextSecondary
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                ExchangeChip(
-                    name = "Bybit",
-                    icon = "🟠",
-                    isSelected = selectedExchange == "bybit",
-                    onClick = { selectedExchange = "bybit"; selectedAccount = "demo" },
-                    modifier = Modifier.weight(1f)
-                )
-                ExchangeChip(
-                    name = "HyperLiquid",
-                    icon = "🔷",
-                    isSelected = selectedExchange == "hyperliquid",
-                    onClick = { selectedExchange = "hyperliquid"; selectedAccount = "testnet" },
-                    modifier = Modifier.weight(1f)
-                )
+                CircularProgressIndicator(color = EnlikoPrimary)
             }
-            
-            // Account Type Selector
-            Text(
-                text = "Account Type",
-                style = MaterialTheme.typography.titleSmall,
-                color = EnlikoTextSecondary
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (selectedExchange == "bybit") {
-                    AccountChip(
-                        name = "Demo",
-                        isSelected = selectedAccount == "demo",
-                        onClick = { selectedAccount = "demo" },
+                // Exchange Selector
+                Text(
+                    text = "Select Exchange",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = EnlikoTextSecondary
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ExchangeChip(
+                        name = "Bybit",
+                        icon = "🟠",
+                        isSelected = uiState.selectedExchange == "bybit",
+                        isConfigured = uiState.bybitDemoConfigured || uiState.bybitRealConfigured,
+                        onClick = { viewModel.selectExchange("bybit") },
                         modifier = Modifier.weight(1f)
                     )
-                    AccountChip(
-                        name = "Real",
-                        isSelected = selectedAccount == "real",
-                        onClick = { selectedAccount = "real" },
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    AccountChip(
-                        name = "Testnet",
-                        isSelected = selectedAccount == "testnet",
-                        onClick = { selectedAccount = "testnet" },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AccountChip(
-                        name = "Mainnet",
-                        isSelected = selectedAccount == "mainnet",
-                        onClick = { selectedAccount = "mainnet" },
+                    ExchangeChip(
+                        name = "HyperLiquid",
+                        icon = "🔷",
+                        isSelected = uiState.selectedExchange == "hyperliquid",
+                        isConfigured = uiState.hlTestnetConfigured || uiState.hlMainnetConfigured,
+                        onClick = { viewModel.selectExchange("hyperliquid") },
                         modifier = Modifier.weight(1f)
                     )
                 }
-            }
-            
-            // API Keys Form
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = EnlikoCard),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                
+                // Account Type Selector
+                Text(
+                    text = "Account Type",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = EnlikoTextSecondary
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    when {
-                        selectedExchange == "bybit" && selectedAccount == "demo" -> {
-                            BybitApiFields(
-                                apiKey = bybitDemoApiKey,
-                                onApiKeyChange = { bybitDemoApiKey = it },
-                                apiSecret = bybitDemoApiSecret,
-                                onApiSecretChange = { bybitDemoApiSecret = it },
-                                label = "Bybit Demo"
-                            )
+                    if (uiState.selectedExchange == "bybit") {
+                        AccountChip(
+                            name = "Demo",
+                            isSelected = uiState.selectedAccount == "demo",
+                            isConfigured = uiState.bybitDemoConfigured,
+                            onClick = { viewModel.selectAccount("demo") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AccountChip(
+                            name = "Real",
+                            isSelected = uiState.selectedAccount == "real",
+                            isConfigured = uiState.bybitRealConfigured,
+                            onClick = { viewModel.selectAccount("real") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        AccountChip(
+                            name = "Testnet",
+                            isSelected = uiState.selectedAccount == "testnet",
+                            isConfigured = uiState.hlTestnetConfigured,
+                            onClick = { viewModel.selectAccount("testnet") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AccountChip(
+                            name = "Mainnet",
+                            isSelected = uiState.selectedAccount == "mainnet",
+                            isConfigured = uiState.hlMainnetConfigured,
+                            onClick = { viewModel.selectAccount("mainnet") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                
+                // API Keys Form
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = EnlikoCard),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when {
+                            uiState.selectedExchange == "bybit" && uiState.selectedAccount == "demo" -> {
+                                BybitApiFields(
+                                    apiKey = uiState.bybitDemoApiKey,
+                                    onApiKeyChange = viewModel::updateBybitDemoApiKey,
+                                    apiSecret = uiState.bybitDemoApiSecret,
+                                    onApiSecretChange = viewModel::updateBybitDemoApiSecret,
+                                    label = "Bybit Demo"
+                                )
+                            }
+                            uiState.selectedExchange == "bybit" && uiState.selectedAccount == "real" -> {
+                                BybitApiFields(
+                                    apiKey = uiState.bybitRealApiKey,
+                                    onApiKeyChange = viewModel::updateBybitRealApiKey,
+                                    apiSecret = uiState.bybitRealApiSecret,
+                                    onApiSecretChange = viewModel::updateBybitRealApiSecret,
+                                    label = "Bybit Real"
+                                )
+                            }
+                            uiState.selectedExchange == "hyperliquid" && uiState.selectedAccount == "testnet" -> {
+                                HyperLiquidApiFields(
+                                    privateKey = uiState.hlTestnetPrivateKey,
+                                    onPrivateKeyChange = viewModel::updateHlTestnetPrivateKey,
+                                    walletAddress = uiState.hlTestnetWalletAddress,
+                                    onWalletAddressChange = viewModel::updateHlTestnetWalletAddress,
+                                    label = "HyperLiquid Testnet"
+                                )
+                            }
+                            uiState.selectedExchange == "hyperliquid" && uiState.selectedAccount == "mainnet" -> {
+                                HyperLiquidApiFields(
+                                    privateKey = uiState.hlMainnetPrivateKey,
+                                    onPrivateKeyChange = viewModel::updateHlMainnetPrivateKey,
+                                    walletAddress = uiState.hlMainnetWalletAddress,
+                                    onWalletAddressChange = viewModel::updateHlMainnetWalletAddress,
+                                    label = "HyperLiquid Mainnet"
+                                )
+                            }
                         }
-                        selectedExchange == "bybit" && selectedAccount == "real" -> {
-                            BybitApiFields(
-                                apiKey = bybitRealApiKey,
-                                onApiKeyChange = { bybitRealApiKey = it },
-                                apiSecret = bybitRealApiSecret,
-                                onApiSecretChange = { bybitRealApiSecret = it },
-                                label = "Bybit Real"
-                            )
-                        }
-                        selectedExchange == "hyperliquid" && selectedAccount == "testnet" -> {
-                            HyperLiquidApiFields(
-                                privateKey = hlTestnetPrivateKey,
-                                onPrivateKeyChange = { hlTestnetPrivateKey = it },
-                                walletAddress = hlTestnetWalletAddress,
-                                onWalletAddressChange = { hlTestnetWalletAddress = it },
-                                label = "HyperLiquid Testnet"
-                            )
-                        }
-                        selectedExchange == "hyperliquid" && selectedAccount == "mainnet" -> {
-                            HyperLiquidApiFields(
-                                privateKey = hlMainnetPrivateKey,
-                                onPrivateKeyChange = { hlMainnetPrivateKey = it },
-                                walletAddress = hlMainnetWalletAddress,
-                                onWalletAddressChange = { hlMainnetWalletAddress = it },
-                                label = "HyperLiquid Mainnet"
+                    }
+                }
+                
+                // Test Result
+                uiState.testResult?.let { result ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (result.startsWith("✅")) {
+                                LongGreen.copy(alpha = 0.1f)
+                            } else {
+                                ShortRed.copy(alpha = 0.1f)
+                            }
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = result,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (result.startsWith("✅")) LongGreen else ShortRed
                             )
                         }
                     }
                 }
-            }
-            
-            // Warning Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = EnlikoYellow.copy(alpha = 0.1f)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                
+                // Warning Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = EnlikoYellow.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = EnlikoYellow
-                    )
-                    Text(
-                        text = "Never share your API keys or private keys with anyone. Enable only required permissions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = EnlikoTextSecondary
-                    )
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = EnlikoYellow
+                        )
+                        Text(
+                            text = "Never share your API keys or private keys with anyone. Enable only required permissions.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = EnlikoTextSecondary
+                        )
+                    }
                 }
-            }
-            
-            // Save Button
-            Button(
-                onClick = {
-                    isSaving = true
-                    // TODO: Save API keys to server
-                    showSuccess = true
-                    isSaving = false
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isSaving,
-                colors = ButtonDefaults.buttonColors(containerColor = EnlikoPrimary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Save API Keys", fontWeight = FontWeight.SemiBold)
+                
+                // Save Button
+                Button(
+                    onClick = viewModel::saveCurrentKeys,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = !uiState.isSaving,
+                    colors = ButtonDefaults.buttonColors(containerColor = EnlikoPrimary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Save API Keys", fontWeight = FontWeight.SemiBold)
+                    }
                 }
+                
+                // Test Connection Button
+                OutlinedButton(
+                    onClick = viewModel::testConnection,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    enabled = !uiState.isTesting,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = EnlikoPrimary
+                    )
+                ) {
+                    if (uiState.isTesting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = EnlikoPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Wifi,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Test Connection")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
-            
-            // Test Connection Button
-            OutlinedButton(
-                onClick = { /* TODO: Test connection */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = EnlikoPrimary
-                )
-            ) {
-                Icon(
-                    Icons.Default.Wifi,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Test Connection")
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-    
-    // Success Snackbar
-    if (showSuccess) {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(2000)
-            showSuccess = false
         }
     }
 }
@@ -281,6 +318,7 @@ private fun ExchangeChip(
     name: String,
     icon: String,
     isSelected: Boolean,
+    isConfigured: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -306,6 +344,15 @@ private fun ExchangeChip(
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) Color.White else EnlikoTextPrimary
             )
+            if (isConfigured) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Configured",
+                    modifier = Modifier.size(16.dp),
+                    tint = if (isSelected) Color.White else LongGreen
+                )
+            }
         }
     }
 }
@@ -314,6 +361,7 @@ private fun ExchangeChip(
 private fun AccountChip(
     name: String,
     isSelected: Boolean,
+    isConfigured: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -322,17 +370,28 @@ private fun AccountChip(
         color = if (isSelected) EnlikoPrimary.copy(alpha = 0.2f) else EnlikoSurface,
         shape = RoundedCornerShape(8.dp),
         modifier = modifier,
-        border = if (isSelected) {
-            androidx.compose.foundation.BorderStroke(2.dp, EnlikoPrimary)
-        } else null
+        border = if (isSelected) BorderStroke(2.dp, EnlikoPrimary) else null
     ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) EnlikoPrimary else EnlikoTextSecondary,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) EnlikoPrimary else EnlikoTextSecondary
+            )
+            if (isConfigured) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Configured",
+                    modifier = Modifier.size(14.dp),
+                    tint = LongGreen
+                )
+            }
+        }
     }
 }
 

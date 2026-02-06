@@ -120,6 +120,31 @@ interface EnlikoApi {
     @GET("/api/users/settings")
     suspend fun getUserSettings(): Response<Map<String, @JvmSuppressWildcards Any>>
 
+    // ==================== API KEYS ====================
+    @GET("/api/users/api-keys")
+    suspend fun getApiKeys(): Response<ApiKeysResponse>
+
+    @GET("/api/users/api-keys/status")
+    suspend fun getApiKeysStatus(): Response<ApiKeysStatusResponse>
+
+    @POST("/api/users/api-keys/bybit")
+    suspend fun saveBybitApiKeys(
+        @Body request: SaveBybitApiKeysRequest
+    ): Response<ApiKeysSaveResponse>
+
+    @GET("/api/users/api-keys/bybit/test")
+    suspend fun testBybitApiKeys(
+        @Query("account_type") accountType: String
+    ): Response<ApiTestResponse>
+
+    @POST("/api/users/api-keys/hyperliquid")
+    suspend fun saveHyperLiquidApiKeys(
+        @Body request: SaveHyperLiquidApiKeysRequest
+    ): Response<ApiKeysSaveResponse>
+
+    @GET("/api/users/api-keys/hyperliquid/test")
+    suspend fun testHyperLiquidApiKeys(): Response<ApiTestResponse>
+
     // ==================== SIGNALS ====================
     @GET("/api/signals")
     suspend fun getSignals(
@@ -510,4 +535,62 @@ data class ModifyTpSlRequest(
 data class ModifyTpSlResponse(
     val success: Boolean,
     val message: String? = null
+)
+// ==================== API KEYS MODELS ====================
+
+@kotlinx.serialization.Serializable
+data class ApiKeysResponse(
+    val bybit: BybitApiKeysInfo? = null,
+    val hyperliquid: HyperLiquidApiKeysInfo? = null
+)
+
+@kotlinx.serialization.Serializable
+data class BybitApiKeysInfo(
+    @kotlinx.serialization.SerialName("demo_configured") val demoConfigured: Boolean = false,
+    @kotlinx.serialization.SerialName("real_configured") val realConfigured: Boolean = false,
+    @kotlinx.serialization.SerialName("demo_api_key") val demoApiKeyMasked: String? = null,
+    @kotlinx.serialization.SerialName("real_api_key") val realApiKeyMasked: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class HyperLiquidApiKeysInfo(
+    @kotlinx.serialization.SerialName("testnet_configured") val testnetConfigured: Boolean = false,
+    @kotlinx.serialization.SerialName("mainnet_configured") val mainnetConfigured: Boolean = false,
+    @kotlinx.serialization.SerialName("testnet_wallet") val testnetWalletMasked: String? = null,
+    @kotlinx.serialization.SerialName("mainnet_wallet") val mainnetWalletMasked: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class ApiKeysStatusResponse(
+    @kotlinx.serialization.SerialName("bybit_demo") val bybitDemo: Boolean = false,
+    @kotlinx.serialization.SerialName("bybit_real") val bybitReal: Boolean = false,
+    @kotlinx.serialization.SerialName("hl_testnet") val hlTestnet: Boolean = false,
+    @kotlinx.serialization.SerialName("hl_mainnet") val hlMainnet: Boolean = false
+)
+
+@kotlinx.serialization.Serializable
+data class SaveBybitApiKeysRequest(
+    @kotlinx.serialization.SerialName("account_type") val accountType: String,
+    @kotlinx.serialization.SerialName("api_key") val apiKey: String,
+    @kotlinx.serialization.SerialName("api_secret") val apiSecret: String
+)
+
+@kotlinx.serialization.Serializable
+data class SaveHyperLiquidApiKeysRequest(
+    @kotlinx.serialization.SerialName("account_type") val accountType: String,
+    @kotlinx.serialization.SerialName("private_key") val privateKey: String,
+    @kotlinx.serialization.SerialName("wallet_address") val walletAddress: String
+)
+
+@kotlinx.serialization.Serializable
+data class ApiKeysSaveResponse(
+    val success: Boolean,
+    val message: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class ApiTestResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val balance: Double? = null
 )
