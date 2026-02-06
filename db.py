@@ -1699,13 +1699,14 @@ def get_strategy_trading_mode(user_id: int, strategy: str) -> str:
     return settings.get("trading_mode") or "demo"
 
 
-def set_strategy_trading_mode(user_id: int, strategy: str, mode: str) -> bool:
+def set_strategy_trading_mode(user_id: int, strategy: str, mode: str, exchange: str = None) -> bool:
     """Set trading mode for a specific strategy.
     
     Args:
         user_id: User's Telegram ID
         strategy: Strategy name (oi, scryptomera, etc.)
         mode: 'demo', 'real', or 'both'
+        exchange: Exchange name. If None, uses user's active exchange.
     
     Returns True if successful.
     """
@@ -1716,8 +1717,12 @@ def set_strategy_trading_mode(user_id: int, strategy: str, mode: str) -> bool:
     if strategy_normalized == "rsi_bb":
         strategy_normalized = "rsi_bb"
     
-    # Set in DB - trading_mode is a strategy-level setting, not exchange-specific
-    return set_strategy_setting_db(user_id, strategy_normalized, "trading_mode", mode)
+    # Get user's active exchange if not specified
+    if not exchange:
+        exchange = get_exchange_type(user_id) or "bybit"
+    
+    # Set in DB - trading_mode is saved per exchange
+    return set_strategy_setting_db(user_id, strategy_normalized, "trading_mode", mode, exchange=exchange)
 
 
 def migrate_json_to_db_settings(user_id: int) -> bool:
