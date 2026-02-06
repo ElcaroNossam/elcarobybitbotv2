@@ -29170,12 +29170,13 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
         del _hl_awaiting_input[uid]
         
         await update.message.reply_text(
-            f"✅ *HyperLiquid Connected!* {network}\n\n"
+            f"✅ *HyperLiquid Setup Complete!* {network}\n\n"
             f"*Main Wallet:* `{address[:10]}...{address[-6:]}`\n"
             f"*API Wallet:* `{api_wallet[:10]}...{api_wallet[-6:]}`\n\n"
-            f"💰 Your balance will be read from Main Wallet\n"
-            f"📝 Orders will be signed by API Wallet\n\n"
-            f"Now you can switch to HyperLiquid using 🔄 Switch button.",
+            f"⚠️ *IMPORTANT: Approve API Wallet*\n"
+            f"Go to app.hyperliquid.xyz → API → Click your API Wallet → *Approve Agent*\n\n"
+            f"This allows the API Wallet to trade on behalf of your Main Wallet.\n\n"
+            f"After approval, you can switch to HyperLiquid using 🔄 Switch button.",
             parse_mode="Markdown"
         )
         return True
