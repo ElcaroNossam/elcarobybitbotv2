@@ -27375,12 +27375,20 @@ async def cmd_exchange_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         text, inline_keyboard = _build_bybit_status_keyboard(uid, t)
         keyboard = list(inline_keyboard.inline_keyboard)  # Extract list for modification (tuple → list)
     
-    keyboard.append([InlineKeyboardButton(t.get("button_back", "← Назад"), callback_data="main_menu")])
+    keyboard.append([InlineKeyboardButton(t.get("button_back", "« Назад"), callback_data="menu:main")])
     
+    # Send message with InlineKeyboard for actions
     await update.message.reply_text(
         text, 
         parse_mode="Markdown", 
         reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
+    # ALSO update ReplyKeyboard to reflect current exchange state
+    await ctx.bot.send_message(
+        chat_id=uid,
+        text="⬇️",
+        reply_markup=main_menu_keyboard(ctx, user_id=uid)
     )
 
 
