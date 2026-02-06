@@ -21,13 +21,29 @@ def _safe_float(val, default=0.0):
 
 
 class HLAdapter:
-    def __init__(self, private_key: str, testnet: bool = False, vault_address: Optional[str] = None):
+    def __init__(self, private_key: str, testnet: bool = False, vault_address: Optional[str] = None, main_wallet_address: Optional[str] = None):
+        """
+        Initialize HLAdapter.
+        
+        Args:
+            private_key: API wallet private key (for signing orders)
+            testnet: Whether to use testnet
+            vault_address: Vault address for trading on behalf of another wallet (requires agent registration)
+            main_wallet_address: Main wallet address for balance queries (separate from API wallet)
+                                 If set, balance will be queried from this address instead of API wallet
+        """
         self._client = HyperLiquidClient(private_key=private_key, testnet=testnet, vault_address=vault_address)
+        self._main_wallet_address = main_wallet_address
         self._initialized = False
 
     @property
     def address(self) -> str:
         return self._client.address
+    
+    @property
+    def main_wallet_address(self) -> str:
+        """Returns main wallet address if set, otherwise API wallet address"""
+        return self._main_wallet_address or self._client.address
 
     @property
     def is_testnet(self) -> bool:
@@ -54,11 +70,19 @@ class HLAdapter:
         await self.close()
 
     async def fetch_positions(self, symbol: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Fetch positions. Uses main_wallet_address if set.
+        """
         await self.initialize()
         try:
-            positions = await self._client.get_all_positions()
+            # Query positions from main wallet address if set
+            query_address = self._main_wallet_address or self._client.address
+            state = await self._client.user_state(address=query_address)
+            asset_positions = state.get("assetPositions", [])
+            
             result_list = []
-            for pos in positions:
+            for p in asset_positions:
+                pos = p.get("position", {})
                 coin = pos.get("coin", "")
                 if symbol and self._normalize_symbol(symbol) != coin:
                     continue
@@ -142,16 +166,40 @@ class HLAdapter:
             return {"retCode": 1, "retMsg": str(e), "result": {"list": []}}
 
     async def get_balance(self) -> Dict[str, Any]:
-        """Detailed balance method for UI"""
+        """
+        Detailed balance method for UI.
+        Uses main_wallet_address if set (for API Wallet architecture where
+        funds are on main wallet, not API wallet).
+        """
         await self.initialize()
         try:
-            balance = await self._client.get_balance()
-            pnl = await self._client.get_unrealized_pnl()
-            positions = await self._client.get_all_positions()
+            # Query balance from main wallet address if set, otherwise from API wallet
+            query_address = self._main_wallet_address or self._client.address
             
-            # Calculate additional metrics
-            total_position_value = sum(abs(_safe_float(p.get("positionValue", 0))) for p in positions)
-            num_positions = len([p for p in positions if _safe_float(p.get("szi", 0)) != 0])
+            state = await self._client.user_state(address=query_address)
+            margin = state.get("marginSummary", {})
+            
+            balance = {
+                "account_value": _safe_float(margin.get("accountValue")),
+                "total_margin_used": _safe_float(margin.get("totalMarginUsed")),
+                "total_ntl_pos": _safe_float(margin.get("totalNtlPos")),
+                "withdrawable": _safe_float(state.get("withdrawable")),
+            }
+            
+            # Get positions from main wallet
+            positions = state.get("assetPositions", [])
+            
+            # Calculate metrics
+            total_position_value = 0
+            num_positions = 0
+            pnl = 0
+            for p in positions:
+                pos = p.get("position", {})
+                szi = _safe_float(pos.get("szi"))
+                if szi != 0:
+                    num_positions += 1
+                    total_position_value += abs(_safe_float(pos.get("positionValue", 0)))
+                    pnl += _safe_float(pos.get("unrealizedPnl", 0))
             
             return {
                 "success": True,

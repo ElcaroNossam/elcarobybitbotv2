@@ -741,7 +741,7 @@ class ExchangeRouter:
         try:
             hl_creds = db.get_hl_credentials(user_id)
             env = target.env if target else "paper"
-            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, env)
+            private_key, is_testnet, wallet_address, vault_address = _get_hl_credentials_for_env(hl_creds, env)
             
             if not private_key:
                 return {"equity": 0, "available": 0}
@@ -750,6 +750,7 @@ class ExchangeRouter:
                 private_key=private_key,
                 testnet=is_testnet,
                 vault_address=vault_address,
+                main_wallet_address=wallet_address,  # Query balance from main wallet
             )
             
             async with adapter:
@@ -792,7 +793,7 @@ class ExchangeRouter:
         try:
             hl_creds = db.get_hl_credentials(user_id)
             env = target.env if target else "paper"
-            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, env)
+            private_key, is_testnet, wallet_address, vault_address = _get_hl_credentials_for_env(hl_creds, env)
             
             if not private_key:
                 return []
@@ -801,6 +802,7 @@ class ExchangeRouter:
                 private_key=private_key,
                 testnet=is_testnet,
                 vault_address=vault_address,
+                main_wallet_address=wallet_address,  # Query positions from main wallet
             )
             
             async with adapter:
