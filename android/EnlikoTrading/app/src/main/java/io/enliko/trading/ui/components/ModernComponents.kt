@@ -2,6 +2,7 @@ package io.enliko.trading.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -20,30 +23,48 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.enliko.trading.ui.theme.*
 
-// ============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODERN COMPONENTS LIBRARY - 2026 Design System
-// Glass morphism, smooth animations, dynamic gradients
-// ============================================================================
+// Premium glassmorphism, neon accents, smooth animations
+// Synced with iOS ModernComponents.swift
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// MARK: - Glass Morphism Card
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLASS MORPHISM CARDS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Glass Card - Premium glassmorphism effect
+ */
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 20.dp,
+    glowColor: Color = EnlikoPrimary,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         modifier = modifier
             .shadow(
-                elevation = 8.dp,
+                elevation = 16.dp,
                 shape = RoundedCornerShape(cornerRadius),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                ambientColor = glowColor.copy(alpha = 0.15f),
+                spotColor = glowColor.copy(alpha = 0.25f)
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        GlassHighlight,
+                        GlassBorder
+                    )
+                ),
+                shape = RoundedCornerShape(cornerRadius)
             ),
         shape = RoundedCornerShape(cornerRadius),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        border = ButtonDefaults.outlinedButtonBorder
+        color = DarkSurfaceVariant.copy(alpha = 0.9f)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -52,13 +73,144 @@ fun GlassCard(
     }
 }
 
-// MARK: - Animated Gradient Background
+/**
+ * Glow Card - Card with colored glow effect
+ */
+@Composable
+fun GlowCard(
+    modifier: Modifier = Modifier,
+    glowColor: Color = EnlikoPrimary,
+    cornerRadius: Dp = 20.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .drawBehind {
+                drawCircle(
+                    color = glowColor.copy(alpha = 0.15f),
+                    radius = size.maxDimension * 0.6f,
+                    center = center
+                )
+            }
+    ) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = cornerRadius,
+            glowColor = glowColor,
+            content = content
+        )
+    }
+}
+
+/**
+ * Position Card - With side-based gradient accent
+ */
+@Composable
+fun PositionGlassCard(
+    modifier: Modifier = Modifier,
+    isLong: Boolean,
+    isProfitable: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val sideColor = if (isLong) EnlikoGreen else EnlikoRed
+    val pnlColors = if (isProfitable) GradientProfitColors else GradientLossColors
+    
+    Surface(
+        modifier = modifier
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = sideColor.copy(alpha = 0.1f),
+                spotColor = sideColor.copy(alpha = 0.2f)
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(pnlColors.map { it.copy(alpha = 0.3f) }),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = DarkSurfaceVariant.copy(alpha = 0.95f)
+    ) {
+        Row {
+            // Side accent bar
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = if (isLong) GradientProfitColors else GradientLossColors
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp),
+                content = content
+            )
+        }
+    }
+}
+
+/**
+ * Order Card - With orange gradient accent
+ */
+@Composable
+fun OrderGlassCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = EnlikoOrange.copy(alpha = 0.1f)
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(EnlikoOrange.copy(alpha = 0.3f), GlassBorder)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = DarkSurfaceVariant.copy(alpha = 0.95f)
+    ) {
+        Row {
+            // Orange accent bar
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(
+                        brush = Brush.verticalGradient(GradientPrimaryColors)
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp),
+                content = content
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ANIMATED BACKGROUNDS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Animated Gradient Background - Premium feel
+ */
 @Composable
 fun AnimatedGradientBackground(
     colors: List<Color> = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.primary
+        EnlikoPrimary,
+        EnlikoOrange,
+        EnlikoPrimary
     ),
     modifier: Modifier = Modifier
 ) {
@@ -86,9 +238,12 @@ fun AnimatedGradientBackground(
     )
 }
 
-// MARK: - Neumorphic Button
+// ═══════════════════════════════════════════════════════════════════════════════
+// PREMIUM BUTTONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 enum class NeuButtonStyle {
-    PRIMARY, SECONDARY, SUCCESS, DANGER
+    PRIMARY, SECONDARY, SUCCESS, DANGER, PREMIUM
 }
 
 @Composable
@@ -102,14 +257,15 @@ fun NeuButton(
     enabled: Boolean = true
 ) {
     val containerColor = when (style) {
-        NeuButtonStyle.PRIMARY -> MaterialTheme.colorScheme.primary
-        NeuButtonStyle.SECONDARY -> MaterialTheme.colorScheme.surfaceVariant
-        NeuButtonStyle.SUCCESS -> Color(0xFF4CAF50)
-        NeuButtonStyle.DANGER -> Color(0xFFF44336)
+        NeuButtonStyle.PRIMARY -> EnlikoPrimary
+        NeuButtonStyle.SECONDARY -> DarkSurfaceVariant
+        NeuButtonStyle.SUCCESS -> EnlikoGreen
+        NeuButtonStyle.DANGER -> EnlikoRed
+        NeuButtonStyle.PREMIUM -> EnlikoViolet
     }
     
     val contentColor = when (style) {
-        NeuButtonStyle.SECONDARY -> MaterialTheme.colorScheme.onSurfaceVariant
+        NeuButtonStyle.SECONDARY -> EnlikoTextSecondary
         else -> Color.White
     }
     
@@ -118,9 +274,10 @@ fun NeuButton(
         modifier = modifier
             .height(52.dp)
             .shadow(
-                elevation = 8.dp,
+                elevation = 12.dp,
                 shape = RoundedCornerShape(14.dp),
-                ambientColor = containerColor.copy(alpha = 0.3f)
+                ambientColor = containerColor.copy(alpha = 0.3f),
+                spotColor = containerColor.copy(alpha = 0.4f)
             ),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
@@ -153,7 +310,83 @@ fun NeuButton(
     }
 }
 
-// MARK: - Shimmer Loading Effect
+/**
+ * Gradient Button - Premium gradient style
+ */
+@Composable
+fun GradientButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    gradientColors: List<Color> = GradientPrimaryColors,
+    icon: ImageVector? = null,
+    isLoading: Boolean = false,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(52.dp)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(14.dp),
+                ambientColor = gradientColors.first().copy(alpha = 0.3f)
+            ),
+        enabled = enabled && !isLoading,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent
+        ),
+        contentPadding = PaddingValues(0.dp),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.linearGradient(gradientColors),
+                    shape = RoundedCornerShape(14.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    icon?.let {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = text,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHIMMER & SKELETON LOADING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Shimmer Loading Effect - Premium animation
+ */
 fun Modifier.shimmerEffect(): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by transition.animateFloat(
@@ -169,9 +402,9 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     background(
         brush = Brush.linearGradient(
             colors = listOf(
-                Color.LightGray.copy(alpha = 0.6f),
-                Color.LightGray.copy(alpha = 0.2f),
-                Color.LightGray.copy(alpha = 0.6f)
+                DarkSurfaceHighlight.copy(alpha = 0.6f),
+                DarkSurfaceHighlight.copy(alpha = 0.2f),
+                DarkSurfaceHighlight.copy(alpha = 0.6f)
             ),
             start = Offset(translateAnim - 500, 0f),
             end = Offset(translateAnim, 0f)
@@ -179,7 +412,10 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     )
 }
 
-// MARK: - Skeleton Loaders
+// ═══════════════════════════════════════════════════════════════════════════════
+// SKELETON LOADERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @Composable
 fun SkeletonBox(
     modifier: Modifier = Modifier,
@@ -208,11 +444,10 @@ fun SkeletonText(
 
 @Composable
 fun PositionCardSkeleton() {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
@@ -240,7 +475,10 @@ fun PositionCardSkeleton() {
     }
 }
 
-// MARK: - Animated Counter
+// ═══════════════════════════════════════════════════════════════════════════════
+// ANIMATED COUNTERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @Composable
 fun AnimatedCounter(
     count: Double,
@@ -248,7 +486,7 @@ fun AnimatedCounter(
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
     prefix: String = "",
     suffix: String = "",
-    color: Color = MaterialTheme.colorScheme.onSurface
+    color: Color = EnlikoTextPrimary
 ) {
     var oldCount by remember { mutableDoubleStateOf(count) }
     val animatedCount by animateFloatAsState(
@@ -270,11 +508,40 @@ fun AnimatedCounter(
     )
 }
 
-// MARK: - Pulsating Indicator
+/**
+ * PnL Counter with color change
+ */
+@Composable
+fun PnLCounter(
+    value: Double,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
+    prefix: String = "$"
+) {
+    val color = when {
+        value > 0 -> EnlikoGreen
+        value < 0 -> EnlikoRed
+        else -> EnlikoTextMuted
+    }
+    val sign = if (value > 0) "+" else ""
+    
+    AnimatedCounter(
+        count = value,
+        modifier = modifier,
+        style = style,
+        prefix = "$sign$prefix",
+        color = color
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDICATORS & BADGES
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @Composable
 fun PulsatingDot(
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF4CAF50),
+    color: Color = EnlikoGreen,
     size: Dp = 8.dp
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -305,14 +572,13 @@ fun PulsatingDot(
     )
 }
 
-// MARK: - Price Change Indicator
 @Composable
 fun PriceChangeIndicator(
     changePercent: Double,
     modifier: Modifier = Modifier
 ) {
     val isPositive = changePercent >= 0
-    val color = if (isPositive) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val color = if (isPositive) EnlikoGreen else EnlikoRed
     val icon = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown
     
     Surface(
@@ -341,14 +607,13 @@ fun PriceChangeIndicator(
     }
 }
 
-// MARK: - Status Badge
 @Composable
 fun StatusBadge(
     text: String,
     modifier: Modifier = Modifier,
     isActive: Boolean = true
 ) {
-    val color = if (isActive) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val color = if (isActive) EnlikoGreen else EnlikoRed
     
     Surface(
         modifier = modifier,
@@ -371,7 +636,61 @@ fun StatusBadge(
     }
 }
 
-// MARK: - Empty State
+/**
+ * Side Badge - Long/Short indicator
+ */
+@Composable
+fun SideBadge(
+    isLong: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color = if (isLong) EnlikoGreen else EnlikoRed
+    val text = if (isLong) "LONG" else "SHORT"
+    
+    Surface(
+        modifier = modifier,
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(6.dp)
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+/**
+ * Exchange Badge - Bybit/HyperLiquid indicator
+ */
+@Composable
+fun ExchangeBadge(
+    exchange: String,
+    modifier: Modifier = Modifier
+) {
+    val color = if (exchange.lowercase() == "bybit") EnlikoBybit else EnlikoHL
+    
+    Surface(
+        modifier = modifier,
+        color = color.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(6.dp)
+    ) {
+        Text(
+            text = exchange.uppercase(),
+            color = color,
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMPTY & LOADING STATES
+// ═══════════════════════════════════════════════════════════════════════════════
+
 @Composable
 fun EmptyStateView(
     icon: ImageVector,
@@ -388,34 +707,43 @@ fun EmptyStateView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(DarkSurfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = EnlikoTextMuted
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = EnlikoTextPrimary
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = EnlikoTextMuted
         )
         if (actionText != null && onAction != null) {
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onAction) {
-                Text(actionText)
-            }
+            GradientButton(
+                text = actionText,
+                onClick = onAction
+            )
         }
     }
 }
 
-// MARK: - Loading Overlay
 @Composable
 fun LoadingOverlay(
     isLoading: Boolean,
@@ -428,10 +756,101 @@ fun LoadingOverlay(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
+                    .background(GlassOverlay),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    color = EnlikoPrimary,
+                    strokeWidth = 3.dp
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAT CARDS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Dashboard Stat Card with icon
+ */
+@Composable
+fun DashboardStatCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    iconColor: Color = EnlikoPrimary,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(
+        modifier = modifier,
+        glowColor = iconColor
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(iconColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = EnlikoTextMuted
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = EnlikoTextPrimary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Balance Card with gradient and glass
+ */
+@Composable
+fun BalanceCard(
+    title: String,
+    balance: Double,
+    pnl: Double? = null,
+    modifier: Modifier = Modifier
+) {
+    GlowCard(
+        modifier = modifier,
+        glowColor = if ((pnl ?: 0.0) >= 0) EnlikoGreen else EnlikoRed
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = EnlikoTextMuted
+            )
+            AnimatedCounter(
+                count = balance,
+                prefix = "$",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            pnl?.let {
+                PriceChangeIndicator(changePercent = it)
             }
         }
     }

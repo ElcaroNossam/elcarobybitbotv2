@@ -293,7 +293,7 @@ private fun PeriodFilterRow(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// BALANCE CARDS
+// BALANCE CARDS - 2026 GLASSMORPHISM STYLE
 // ═══════════════════════════════════════════════════════════════════════
 
 @Composable
@@ -312,102 +312,89 @@ private fun TotalBalanceCard(
     val totalUsd = summary?.totalUsd ?: balance?.totalEquity ?: 0.0
     val pnlPeriod = summary?.pnlPeriod ?: 0.0
     val pnlPeriodPct = summary?.pnlPeriodPct ?: 0.0
+    val isProfitable = pnlPeriod >= 0
     
-    Card(
+    // Use GlowCard for premium balance display
+    io.enliko.trading.ui.components.GlowCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        )
+        glowColor = if (isProfitable) io.enliko.trading.ui.theme.EnlikoGreen else io.enliko.trading.ui.theme.EnlikoRed
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
+        Text(
+            text = strings.totalBalance,
+            style = MaterialTheme.typography.bodyMedium,
+            color = io.enliko.trading.ui.theme.EnlikoTextMuted
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Animated balance counter
+        io.enliko.trading.ui.components.AnimatedCounter(
+            count = totalUsd,
+            prefix = "$",
+            style = MaterialTheme.typography.headlineLarge,
+            color = io.enliko.trading.ui.theme.EnlikoTextPrimary
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Period PnL with price change indicator
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = strings.totalBalance,
+                text = "${strings.pnl}: ",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = io.enliko.trading.ui.theme.EnlikoTextMuted
             )
             
-            Text(
-                text = formatter.format(totalUsd),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+            io.enliko.trading.ui.components.PnLCounter(
+                value = pnlPeriod,
+                style = MaterialTheme.typography.titleMedium
             )
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             
-            // Period PnL
+            io.enliko.trading.ui.components.PriceChangeIndicator(changePercent = pnlPeriodPct)
+        }
+        
+        // Spot/Futures breakdown
+        summary?.let { sum ->
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            io.enliko.trading.ui.components.EnlikoDivider()
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val pnlColor = when {
-                    pnlPeriod > 0 -> LongGreen
-                    pnlPeriod < 0 -> ShortRed
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                
-                Text(
-                    text = "${strings.pnl}: ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Text(
-                    text = "${if (pnlPeriod >= 0) "+" else ""}${formatter.format(pnlPeriod)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = pnlColor
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(pnlColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
+                Column {
                     Text(
-                        text = "${if (pnlPeriodPct >= 0) "+" else ""}${String.format("%.2f", pnlPeriodPct)}%",
+                        text = strings.portfolioSpot,
                         style = MaterialTheme.typography.bodySmall,
-                        color = pnlColor,
-                        fontWeight = FontWeight.Medium
+                        color = io.enliko.trading.ui.theme.EnlikoTextMuted
+                    )
+                    Text(
+                        text = formatter.format(sum.spot?.totalUsd ?: 0.0),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = io.enliko.trading.ui.theme.EnlikoTextPrimary
                     )
                 }
-            }
-            
-            // Spot/Futures breakdown
-            summary?.let { sum ->
-                Spacer(modifier = Modifier.height(16.dp))
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = strings.portfolioSpot,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatter.format(sum.spot?.totalUsd ?: 0.0),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                    
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = strings.portfolioFutures,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatter.format(sum.futures?.totalEquity ?: 0.0),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = strings.portfolioFutures,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = io.enliko.trading.ui.theme.EnlikoTextMuted
+                    )
+                    Text(
+                        text = formatter.format(sum.futures?.totalEquity ?: 0.0),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = io.enliko.trading.ui.theme.EnlikoTextPrimary
+                    )
                 }
             }
         }
@@ -1140,90 +1127,93 @@ private fun PositionCard(
 ) {
     val isLong = position.side.equals("Buy", ignoreCase = true) || 
                  position.side.equals("Long", ignoreCase = true)
-    val sideColor by animateColorAsState(if (isLong) LongGreen else ShortRed, label = "sideColor")
+    val pnl = position.unrealizedPnl ?: 0.0
+    val isProfitable = pnl >= 0
+    val sideColor by animateColorAsState(
+        if (isLong) io.enliko.trading.ui.theme.EnlikoGreen else io.enliko.trading.ui.theme.EnlikoRed, 
+        label = "sideColor"
+    )
+    val pnlColor by animateColorAsState(
+        if (isProfitable) io.enliko.trading.ui.theme.EnlikoGreen else io.enliko.trading.ui.theme.EnlikoRed,
+        label = "pnlColor"
+    )
     
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(sideColor.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = if (isLong) strings.long else strings.short,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = sideColor,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(12.dp))
-                    
-                    Text(
-                        text = position.symbol.removeSuffix("USDT"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    
-                    position.leverage?.let { leverage ->
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${leverage.toInt()}x",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+    // Use PositionGlassCard from ModernComponents
+    io.enliko.trading.ui.components.PositionGlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        isLong = isLong,
+        isProfitable = isProfitable
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                io.enliko.trading.ui.components.SideBadge(isLong = isLong)
                 
-                IconButton(
-                    onClick = onClose,
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = ShortRed)
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = strings.close)
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Text(
+                    text = position.symbol.removeSuffix("USDT"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = io.enliko.trading.ui.theme.EnlikoTextPrimary
+                )
+                
+                position.leverage?.let { leverage ->
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${leverage.toInt()}x",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = io.enliko.trading.ui.theme.EnlikoTextMuted
+                    )
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            IconButton(
+                onClick = onClose,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = io.enliko.trading.ui.theme.EnlikoRed)
             ) {
-                Column {
-                    Text(strings.entry, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(String.format("%.4f", position.entryPrice), style = MaterialTheme.typography.bodyMedium)
-                }
-                
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(strings.size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(String.format("%.4f", position.size), style = MaterialTheme.typography.bodyMedium)
-                }
-                
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(strings.pnl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    val pnl = position.unrealizedPnl ?: 0.0
-                    val pnlPct = position.pnlPercent ?: position.markPrice?.let { 
-                        if (position.entryPrice > 0) ((it - position.entryPrice) / position.entryPrice * 100) else 0.0
-                    } ?: 0.0
-                    val pnlColor = when {
-                        pnl > 0 -> LongGreen
-                        pnl < 0 -> ShortRed
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                    Text(
-                        text = "${if (pnl >= 0) "+" else ""}${String.format("%.2f", pnl)} (${String.format("%.2f", pnlPct)}%)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = pnlColor
-                    )
-                }
+                Icon(Icons.Default.Close, contentDescription = strings.close)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(strings.entry, style = MaterialTheme.typography.bodySmall, color = io.enliko.trading.ui.theme.EnlikoTextMuted)
+                Text(
+                    String.format("%.4f", position.entryPrice), 
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = io.enliko.trading.ui.theme.EnlikoTextPrimary
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(strings.size, style = MaterialTheme.typography.bodySmall, color = io.enliko.trading.ui.theme.EnlikoTextMuted)
+                Text(
+                    String.format("%.4f", position.size), 
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = io.enliko.trading.ui.theme.EnlikoTextPrimary
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Text(strings.pnl, style = MaterialTheme.typography.bodySmall, color = io.enliko.trading.ui.theme.EnlikoTextMuted)
+                val pnlPct = position.pnlPercent ?: position.markPrice?.let { 
+                    if (position.entryPrice > 0) ((it - position.entryPrice) / position.entryPrice * 100) else 0.0
+                } ?: 0.0
+                Text(
+                    text = "${if (pnl >= 0) "+" else ""}${String.format("%.2f", pnl)} (${String.format("%.2f", pnlPct)}%)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = pnlColor
+                )
             }
         }
     }

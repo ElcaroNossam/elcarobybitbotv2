@@ -1,64 +1,101 @@
 package io.enliko.trading.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// ═══════════════════════════════════════════════════════════════
-// ENLIKO BRAND COLORS - VIBRANT EDITION 2026
-// Brighter, more saturated colors for modern trading experience
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENLIKO TRADING - MODERN 2026 DESIGN SYSTEM
+// Premium glassmorphism, refined dark theme, neon accents
+// Synced with iOS Color+Extensions.swift
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Primary Brand Colors (More Vibrant!)
-val EnlikoPrimary = Color(0xFFFF3333)      // Bright Red - main accent
-val EnlikoPrimaryLight = Color(0xFFFF6666) // Light red
-val EnlikoPrimaryDark = Color(0xFFCC0000)  // Dark red
-val EnlikoSecondary = Color(0xFFFFD700)    // Bright Gold - secondary accent
-val EnlikoAccent = Color(0xFF00E5FF)       // Vivid Cyan - utility accent
+// ═══════════════════════════════════════════════════════════════════════════════
+// BRAND COLORS
+// ═══════════════════════════════════════════════════════════════════════════════
+val EnlikoPrimary = Color(0xFFDC2626)        // Main brand red
+val EnlikoPrimaryLight = Color(0xFFEF4444)   // Lighter red
+val EnlikoPrimaryDark = Color(0xFFB91C1C)    // Darker red
+val EnlikoSecondary = Color(0xFFFFD700)      // Gold accent
+val EnlikoAccent = Color(0xFF00D4FF)         // Cyan accent
 
-// Status Colors (More Saturated!)
-val SuccessGreen = Color(0xFF00FF88)      // Bright neon green
-val ErrorRed = Color(0xFFFF4444)          // Bright red
-val WarningOrange = Color(0xFFFFAA00)     // Bright orange
-val InfoBlue = Color(0xFF4DA6FF)          // Bright blue
+// Extended brand palette (NEW 2026)
+val EnlikoPink = Color(0xFFEC4899)           // Pink accent
+val EnlikoViolet = Color(0xFF8B5CF6)         // Violet for premium
+val EnlikoOrange = Color(0xFFF97316)         // Orange accent
+val EnlikoTeal = Color(0xFF14B8A6)           // Teal accent
 
-// Trading Colors (Highly Visible)
-val LongGreen = Color(0xFF00FF88)         // Bright neon green for longs
-val ShortRed = Color(0xFFFF4466)          // Bright coral red for shorts
-val NeutralGray = Color(0xFF888899)       // Lighter gray
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRADING STATUS COLORS - VIBRANT & CLEAR
+// ═══════════════════════════════════════════════════════════════════════════════
+val EnlikoGreen = Color(0xFF10B981)          // Emerald - Profit/Long
+val EnlikoGreenBright = Color(0xFF00FF88)    // Neon green for highlights
+val EnlikoRed = Color(0xFFEF4444)            // Red - Loss/Short
+val EnlikoRedBright = Color(0xFFFF4466)      // Bright red for highlights
+val EnlikoYellow = Color(0xFFF59E0B)         // Amber - Warning
+val EnlikoBlue = Color(0xFF3B82F6)           // Blue - Info
 
-// ═══════════════════════════════════════════════════════════════
-// DARK THEME - LESS DARK, MORE CONTRAST
-// ═══════════════════════════════════════════════════════════════
-val DarkBackground = Color(0xFF0F0F14)    // Slightly blue-tinted black
-val DarkSurface = Color(0xFF16161E)       // Card background - lighter
-val DarkSurfaceVariant = Color(0xFF1E1E28) // Elevated cards - even lighter
-val DarkSurfaceHighlight = Color(0xFF252532) // Hover/active states
-val DarkOnBackground = Color(0xFFFFFFFF)  // Pure white text
-val DarkOnSurface = Color(0xFFB8B8CC)     // Lighter secondary text
-val DarkOnSurfaceVariant = Color(0xFF8888AA) // Muted but visible
+// Long/Short specific
+val LongGreen = EnlikoGreen
+val ShortRed = EnlikoRed
+val NeutralGray = Color(0xFF6B7280)
 
-// ═══════════════════════════════════════════════════════════════
-// LIGHT THEME
-// ═══════════════════════════════════════════════════════════════
+// Status colors (aliases)
+val SuccessGreen = EnlikoGreen
+val ErrorRed = EnlikoRed
+val WarningOrange = EnlikoYellow
+val InfoBlue = EnlikoBlue
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DARK THEME - DEEPER, MORE PREMIUM (2026)
+// ═══════════════════════════════════════════════════════════════════════════════
+val DarkBackground = Color(0xFF050505)       // Near black - deeper than before
+val DarkSurface = Color(0xFF0D0D0D)          // Slightly lighter
+val DarkSurfaceVariant = Color(0xFF121212)   // Card background
+val DarkSurfaceHighlight = Color(0xFF1A1A1A) // Hover/elevated states
+val DarkOnBackground = Color(0xFFFFFFFF)     // Pure white text
+val DarkOnSurface = Color(0xFFE5E5E5)        // Primary text
+val DarkOnSurfaceVariant = Color(0xFF9CA3AF) // Secondary text
+val DarkOnSurfaceMuted = Color(0xFF6B7280)   // Muted text
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLASS MORPHISM COLORS (NEW 2026)
+// ═══════════════════════════════════════════════════════════════════════════════
+val GlassBackground = Color(0x0DFFFFFF)      // 5% white
+val GlassBorder = Color(0x1AFFFFFF)          // 10% white
+val GlassHighlight = Color(0x26FFFFFF)       // 15% white
+val GlassOverlay = Color(0x80000000)         // 50% black overlay
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LIGHT THEME (preserved for compatibility)
+// ═══════════════════════════════════════════════════════════════════════════════
 val LightBackground = Color(0xFFF8F9FC)
 val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFF0F1F5)
 val LightOnBackground = Color(0xFF0F0F14)
-val LightOnSurface = Color(0xFF2D2D40)
-val LightOnSurfaceVariant = Color(0xFF6E6E88)
+val LightOnSurface = Color(0xFF1F2937)
+val LightOnSurfaceVariant = Color(0xFF6B7280)
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // GRADIENT COLORS (For premium feel)
-// ═══════════════════════════════════════════════════════════════
-val GradientStart = Color(0xFFFF3366)     // Pink-red
-val GradientMiddle = Color(0xFFFF6633)    // Orange
-val GradientEnd = Color(0xFFFFCC00)       // Gold
+// ═══════════════════════════════════════════════════════════════════════════════
+val GradientStart = Color(0xFFDC2626)     // Red
+val GradientMiddle = Color(0xFFF97316)    // Orange
+val GradientEnd = Color(0xFFFFD700)       // Gold
 
-val PremiumGradientStart = Color(0xFFFFD700)  // Gold
-val PremiumGradientEnd = Color(0xFFFF8C00)    // Dark orange
+val PremiumGradientStart = Color(0xFF8B5CF6)  // Violet
+val PremiumGradientMiddle = Color(0xFFEC4899) // Pink
+val PremiumGradientEnd = Color(0xFFF97316)    // Orange
 
-// ═══════════════════════════════════════════════════════════════
+// Gradient color lists for Brush.linearGradient()
+val GradientPrimaryColors = listOf(EnlikoPrimary, EnlikoOrange)
+val GradientProfitColors = listOf(EnlikoGreen, EnlikoTeal)
+val GradientLossColors = listOf(EnlikoRed, EnlikoPink)
+val GradientPremiumColors = listOf(EnlikoViolet, EnlikoPink, EnlikoOrange)
+val GradientGlassColors = listOf(GlassHighlight, GlassBackground)
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CONVENIENCE ALIASES
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 val EnlikoBackground = DarkBackground
 val EnlikoSurface = DarkSurface
 val EnlikoCard = DarkSurfaceVariant
@@ -66,29 +103,42 @@ val EnlikoCardElevated = DarkSurfaceHighlight
 val EnlikoTextPrimary = DarkOnBackground
 val EnlikoTextSecondary = DarkOnSurface
 val EnlikoTextMuted = DarkOnSurfaceVariant
-val EnlikoBorder = Color(0xFF2E2E3E)      // More visible border
-val EnlikoGreen = LongGreen
-val EnlikoRed = ShortRed
-val EnlikoYellow = WarningOrange
+val EnlikoBorder = Color(0xFF262626)         // Subtle border
+val EnlikoBorderLight = Color(0xFF333333)    // Lighter border
 val EnlikoCyan = EnlikoAccent
-val EnlikoBybit = Color(0xFFFF9500)       // Bright orange for Bybit
-val EnlikoHL = Color(0xFF00E5FF)          // Bright cyan for HyperLiquid
-val EnlikoGold = EnlikoSecondary          // Gold for premium
-val EnlikoWarning = WarningOrange
-val EnlikoPink = Color(0xFFFF66AA)        // For special highlights
-val EnlikoPurple = Color(0xFFAA66FF)      // For strategies
+val EnlikoBybit = Color(0xFFF7931A)          // Bybit orange
+val EnlikoHL = Color(0xFF00D4FF)             // HyperLiquid cyan
+val EnlikoGold = EnlikoSecondary             // Premium gold
+val EnlikoWarning = EnlikoYellow
+val EnlikoPurple = EnlikoViolet
 
-// ═══════════════════════════════════════════════════════════════
+// Semantic colors
+val EnlikoSuccess = EnlikoGreen
+val EnlikoError = EnlikoRed
+val EnlikoInfo = EnlikoBlue
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// POSITION CARD COLORS (side-specific)
+// ═══════════════════════════════════════════════════════════════════════════════
+val PositionLongBg = EnlikoGreen.copy(alpha = 0.08f)
+val PositionLongBorder = EnlikoGreen.copy(alpha = 0.25f)
+val PositionShortBg = EnlikoRed.copy(alpha = 0.08f)
+val PositionShortBorder = EnlikoRed.copy(alpha = 0.25f)
+
+val ProfitBg = EnlikoGreen.copy(alpha = 0.1f)
+val LossBg = EnlikoRed.copy(alpha = 0.1f)
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CHART COLORS (For data visualization)
-// ═══════════════════════════════════════════════════════════════
-val ChartLine1 = Color(0xFF00E5FF)        // Cyan
-val ChartLine2 = Color(0xFFFF3366)        // Pink
-val ChartLine3 = Color(0xFF00FF88)        // Green
-val ChartLine4 = Color(0xFFFFAA00)        // Orange
-val ChartLine5 = Color(0xFFAA66FF)        // Purple
-val ChartLine6 = Color(0xFFFF66AA)        // Pink
+// ═══════════════════════════════════════════════════════════════════════════════
+val ChartLine1 = EnlikoAccent                // Cyan
+val ChartLine2 = EnlikoPink                  // Pink
+val ChartLine3 = EnlikoGreen                 // Green
+val ChartLine4 = EnlikoOrange                // Orange
+val ChartLine5 = EnlikoViolet                // Purple
+val ChartLine6 = EnlikoYellow                // Yellow
 
-val ChartGridLine = Color(0xFF2A2A3A)     // Subtle grid
-val ChartCandleGreen = Color(0xFF00FF88)  // Green candle
-val ChartCandleRed = Color(0xFFFF4466)    // Red candle
+val ChartGridLine = Color(0xFF1F1F1F)        // Subtle grid
+val ChartCandleGreen = EnlikoGreenBright     // Green candle
+val ChartCandleRed = EnlikoRedBright         // Red candle
 

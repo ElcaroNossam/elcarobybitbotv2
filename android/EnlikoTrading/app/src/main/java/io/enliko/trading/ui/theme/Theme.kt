@@ -17,8 +17,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 // ═══════════════════════════════════════════════════════════════
-// DARK COLOR SCHEME - VIBRANT EDITION
-// Brighter colors, better contrast, premium feel
+// DARK COLOR SCHEME - 2026 PREMIUM EDITION
+// Deeper backgrounds, glassmorphism ready, neon accents
 // ═══════════════════════════════════════════════════════════════
 private val DarkColorScheme = darkColorScheme(
     primary = EnlikoPrimary,
@@ -44,23 +44,26 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
     
-    // Brighter outline for better visibility
+    // Subtle borders for glass effect
     outline = EnlikoBorder,
-    outlineVariant = Color(0xFF3A3A4A),
+    outlineVariant = EnlikoBorderLight,
     
-    error = ErrorRed,
+    error = EnlikoRed,
     onError = Color.White,
-    errorContainer = ErrorRed.copy(alpha = 0.2f),
-    onErrorContainer = ErrorRed,
+    errorContainer = EnlikoRed.copy(alpha = 0.15f),
+    onErrorContainer = EnlikoRed,
     
     // Inverse colors for special surfaces
     inverseSurface = Color.White,
     inverseOnSurface = DarkBackground,
-    inversePrimary = EnlikoPrimaryDark
+    inversePrimary = EnlikoPrimaryDark,
+    
+    // Scrim for overlays
+    scrim = GlassOverlay
 )
 
 // ═══════════════════════════════════════════════════════════════
-// LIGHT COLOR SCHEME
+// LIGHT COLOR SCHEME (preserved for compatibility)
 // ═══════════════════════════════════════════════════════════════
 private val LightColorScheme = lightColorScheme(
     primary = EnlikoPrimary,
@@ -83,19 +86,19 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant,
     
-    error = ErrorRed,
+    error = EnlikoRed,
     onError = Color.White,
-    errorContainer = ErrorRed.copy(alpha = 0.1f),
-    onErrorContainer = ErrorRed
+    errorContainer = EnlikoRed.copy(alpha = 0.1f),
+    onErrorContainer = EnlikoRed
 )
 
 @Composable
 fun EnlikoTradingTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // Default to dark for trading
     dynamicColor: Boolean = false, // Keep false for brand consistency
     content: @Composable () -> Unit
 ) {
-    // Always use dark theme for trading app (better for traders)
+    // Always use dark theme for premium trading experience
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -109,12 +112,12 @@ fun EnlikoTradingTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Use darker status bar for immersive feel
+            // Deep dark status/nav bars for immersive experience
             window.statusBarColor = DarkBackground.toArgb()
             window.navigationBarColor = DarkBackground.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }
