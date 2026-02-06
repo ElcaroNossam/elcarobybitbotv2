@@ -1,15 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme -->
+    <!-- Base application theme - ALWAYS DARK -->
     <style name="Theme.EnlikoTrading" parent="android:Theme.Material.NoActionBar">
+        <!-- Window colors -->
+        <item name="android:windowBackground">@color/dark_background</item>
+        <item name="android:colorBackground">@color/dark_background</item>
+        
+        <!-- System bars - Deep dark -->
         <item name="android:statusBarColor">@color/dark_background</item>
         <item name="android:navigationBarColor">@color/dark_background</item>
-        <item name="android:windowBackground">@color/dark_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        
+        <!-- No decorations on nav bar -->
+        <item name="android:navigationBarDividerColor" tools:targetApi="p">@android:color/transparent</item>
+        
+        <!-- Force dark mode for webviews -->
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
     
-    <!-- Splash screen theme -->
+    <!-- Splash screen theme - Same dark appearance -->
     <style name="Theme.EnlikoTrading.Splash" parent="Theme.EnlikoTrading">
         <item name="android:windowSplashScreenBackground" tools:targetApi="s">@color/dark_background</item>
         <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="s">@color/dark_background</item>
     </style>
 </resources>

@@ -1,34 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Primary color for system UI (status bar, etc) -->
-    <color name="primary">#6C5CE7</color>
+    <color name="primary">#DC2626</color>
     
-    <!-- Brand Colors -->
-    <color name="enliko_primary">#6C5CE7</color>
-    <color name="enliko_primary_dark">#5849C4</color>
-    <color name="enliko_primary_variant">#A29BFE</color>
+    <!-- Brand Colors - Synced with Color.kt -->
+    <color name="enliko_primary">#DC2626</color>
+    <color name="enliko_primary_light">#EF4444</color>
+    <color name="enliko_primary_dark">#B91C1C</color>
+    <color name="enliko_secondary">#FFD700</color>
+    <color name="enliko_accent">#00D4FF</color>
     
-    <!-- Trading Colors -->
-    <color name="long_green">#00D9A5</color>
-    <color name="long_green_dark">#00B386</color>
-    <color name="short_red">#FF5B5B</color>
-    <color name="short_red_dark">#E04848</color>
+    <!-- Trading Colors - Synced with Color.kt -->
+    <color name="long_green">#10B981</color>
+    <color name="long_green_bright">#00FF88</color>
+    <color name="short_red">#EF4444</color>
+    <color name="short_red_bright">#FF4466</color>
     
     <!-- Neutral Colors -->
-    <color name="neutral_gray">#64748B</color>
-    <color name="warning_yellow">#FFB545</color>
+    <color name="neutral_gray">#6B7280</color>
+    <color name="warning_yellow">#F59E0B</color>
+    <color name="info_blue">#3B82F6</color>
     
-    <!-- Dark Theme -->
-    <color name="dark_background">#0D0D0F</color>
-    <color name="dark_surface">#1A1A1E</color>
-    <color name="dark_surface_elevated">#252529</color>
-    <color name="dark_on_surface">#FFFFFF</color>
-    <color name="dark_on_surface_variant">#A0A0A5</color>
+    <!-- Dark Theme - Synced with Color.kt (DEEPER 2026) -->
+    <color name="dark_background">#050505</color>
+    <color name="dark_surface">#0D0D0D</color>
+    <color name="dark_surface_variant">#121212</color>
+    <color name="dark_surface_elevated">#1A1A1A</color>
+    <color name="dark_on_surface">#E5E5E5</color>
+    <color name="dark_on_surface_variant">#9CA3AF</color>
+    <color name="dark_on_background">#FFFFFF</color>
+    <color name="dark_border">#262626</color>
     
-    <!-- Light Theme -->
-    <color name="light_background">#FAFAFA</color>
+    <!-- Glass morphism colors -->
+    <color name="glass_background">#0DFFFFFF</color>
+    <color name="glass_border">#1AFFFFFF</color>
+    <color name="glass_highlight">#26FFFFFF</color>
+    <color name="glass_overlay">#80000000</color>
+    
+    <!-- Light Theme (kept for compatibility) -->
+    <color name="light_background">#F8F9FC</color>
     <color name="light_surface">#FFFFFF</color>
-    <color name="light_surface_elevated">#F5F5F5</color>
-    <color name="light_on_surface">#121212</color>
-    <color name="light_on_surface_variant">#666666</color>
+    <color name="light_surface_variant">#F0F1F5</color>
+    <color name="light_on_surface">#1F2937</color>
+    <color name="light_on_surface_variant">#6B7280</color>
+    <color name="light_on_background">#0F0F14</color>
 </resources>
