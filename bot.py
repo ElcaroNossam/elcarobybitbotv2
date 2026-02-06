@@ -23017,11 +23017,38 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 "👑 ПРЕМИУМ"]:
         return await cmd_subscribe(update, ctx)
     
-    # Exchange header button - Show exchange settings menu with Demo/Real/Both options
+    # Exchange button - QUICK TOGGLE between Bybit and HyperLiquid
     if text.startswith("🔷 HL") or text.startswith("🔷 HyperLiquid") or text.startswith("🟠 Bybit"):
-        # Show exchange status menu (not quick toggle anymore)
-        # This allows user to switch Demo/Real/Both mode OR switch to other exchange
-        return await cmd_exchange_status(update, ctx)
+        current_exchange = get_exchange_type(uid)
+        
+        if current_exchange == "bybit":
+            # Switch to HyperLiquid
+            hl_creds = get_hl_credentials(uid)
+            has_hl = (hl_creds.get("hl_private_key") or 
+                      hl_creds.get("hl_mainnet_private_key") or 
+                      hl_creds.get("hl_testnet_private_key"))
+            
+            if has_hl:
+                set_exchange_type(uid, "hyperliquid")
+                await update.message.reply_text(
+                    "✅ *Switched to HyperLiquid*",
+                    parse_mode="Markdown",
+                    reply_markup=main_menu_keyboard(ctx, user_id=uid)
+                )
+            else:
+                await update.message.reply_text(
+                    "❌ HyperLiquid не настроен.\n\nНастройте в 🔗 API Keys",
+                    reply_markup=main_menu_keyboard(ctx, user_id=uid)
+                )
+        else:
+            # Switch to Bybit
+            set_exchange_type(uid, "bybit")
+            await update.message.reply_text(
+                "✅ *Switched to Bybit*",
+                parse_mode="Markdown",
+                reply_markup=main_menu_keyboard(ctx, user_id=uid)
+            )
+        return
     
     # ═══════════════════════════════════════════════════════════════
     # ██  LEGACY SWITCH EXCHANGE (removed from menu, kept for deep links)  ██
