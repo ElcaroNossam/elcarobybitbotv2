@@ -398,7 +398,7 @@ class PositionsOrdersViewModel: ObservableObject {
     @MainActor
     private func fetchPositions(accountType: String, exchange: String) async {
         do {
-            let response: PositionsResponse = try await network.get("/positions", params: ["account_type": accountType, "exchange": exchange])
+            let response: PositionsResponse = try await network.get("/trading/positions", params: ["account_type": accountType, "exchange": exchange])
             positions = response.positionsData
         } catch {
             print("Failed to fetch positions: \(error)")
@@ -408,7 +408,7 @@ class PositionsOrdersViewModel: ObservableObject {
     @MainActor
     private func fetchOrders(accountType: String, exchange: String) async {
         do {
-            let response: OrdersResponse = try await network.get("/orders", params: ["account_type": accountType, "exchange": exchange])
+            let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
             orders = response.ordersData
         } catch {
             print("Failed to fetch orders: \(error)")
@@ -419,7 +419,7 @@ class PositionsOrdersViewModel: ObservableObject {
     func closePosition(position: Position, accountType: String, exchange: String) async {
         do {
             let request = ClosePositionRequest(symbol: position.symbol, side: position.side, qty: nil)
-            let _: EmptyResponse = try await network.post("/close", body: request)
+            let _: EmptyResponse = try await network.post("/trading/close", body: request)
             await fetchPositions(accountType: accountType, exchange: exchange)
         } catch {
             self.error = "Failed to close position: \(error.localizedDescription)"
@@ -430,7 +430,7 @@ class PositionsOrdersViewModel: ObservableObject {
     func cancelOrder(order: Order, accountType: String, exchange: String) async {
         do {
             // Build URL with query params
-            let endpoint = "/orders/\(order.orderId)?account_type=\(accountType)&exchange=\(exchange)"
+            let endpoint = "/trading/orders/\(order.orderId)?account_type=\(accountType)&exchange=\(exchange)"
             try await network.delete(endpoint)
             await fetchOrders(accountType: accountType, exchange: exchange)
         } catch {

@@ -20,6 +20,19 @@ import io.enliko.trading.ui.screens.settings.ExchangeSettingsScreen
 import io.enliko.trading.ui.screens.portfolio.PositionsScreen
 import io.enliko.trading.ui.screens.screener.ScreenerScreen
 import io.enliko.trading.ui.screens.admin.AdminScreen
+import io.enliko.trading.ui.screens.wallet.WalletScreen
+import io.enliko.trading.ui.screens.alerts.AlertsScreen
+import io.enliko.trading.ui.screens.history.TradeHistoryScreen
+import io.enliko.trading.ui.screens.hyperliquid.HyperLiquidScreen
+import io.enliko.trading.ui.screens.orderbook.OrderbookScreen
+import io.enliko.trading.ui.screens.market.MarketHubScreen
+import io.enliko.trading.ui.screens.trading.AdvancedTradingScreen
+import io.enliko.trading.ui.screens.more.MoreScreen
+import io.enliko.trading.ui.screens.copytrading.CopyTradingScreen
+import io.enliko.trading.ui.screens.ai.AIAssistantScreen
+import io.enliko.trading.ui.screens.stats.StatsScreen
+import io.enliko.trading.ui.screens.spot.SpotTradingScreen
+import io.enliko.trading.ui.screens.strategies.StrategiesScreen
 import io.enliko.trading.util.AppLanguage
 import io.enliko.trading.util.ProvideStrings
 
@@ -40,6 +53,27 @@ sealed class Screen(val route: String) {
     object Positions : Screen("positions")
     object Screener : Screen("screener")
     object Admin : Screen("admin")
+    
+    // New screens
+    object Wallet : Screen("wallet")
+    object Alerts : Screen("alerts")
+    object TradeHistory : Screen("trade_history")
+    object HyperLiquid : Screen("hyperliquid")
+    object Orderbook : Screen("orderbook/{symbol}") {
+        fun createRoute(symbol: String) = "orderbook/$symbol"
+    }
+    object MarketHub : Screen("market_hub")
+    object AdvancedTrading : Screen("advanced_trading/{symbol}") {
+        fun createRoute(symbol: String) = "advanced_trading/$symbol"
+    }
+    
+    // Additional screens
+    object More : Screen("more")
+    object CopyTrading : Screen("copy_trading")
+    object AIAssistant : Screen("ai_assistant")
+    object Stats : Screen("stats")
+    object SpotTrading : Screen("spot_trading")
+    object Strategies : Screen("strategies")
 }
 
 fun isLoggedIn(context: Context): Boolean {
@@ -188,6 +222,122 @@ fun EnlikoNavHost(
             composable(Screen.Admin.route) {
                 AdminScreen(
                     onBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Wallet
+            composable(Screen.Wallet.route) {
+                WalletScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Alerts
+            composable(Screen.Alerts.route) {
+                AlertsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Trade History
+            composable(Screen.TradeHistory.route) {
+                TradeHistoryScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // HyperLiquid
+            composable(Screen.HyperLiquid.route) {
+                HyperLiquidScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Orderbook
+            composable(Screen.Orderbook.route) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: "BTCUSDT"
+                OrderbookScreen(
+                    symbol = symbol,
+                    onNavigateBack = { navController.popBackStack() },
+                    onPriceSelected = { /* Handle price selection */ }
+                )
+            }
+            
+            // Market Hub
+            composable(Screen.MarketHub.route) {
+                MarketHubScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onCoinSelected = { symbol -> 
+                        navController.navigate(Screen.Charts.createRoute(symbol))
+                    }
+                )
+            }
+            
+            // Advanced Trading
+            composable(Screen.AdvancedTrading.route) { backStackEntry ->
+                val symbol = backStackEntry.arguments?.getString("symbol") ?: "BTCUSDT"
+                AdvancedTradingScreen(
+                    symbol = symbol,
+                    onNavigateBack = { navController.popBackStack() },
+                    onOpenOrderbook = { navController.navigate(Screen.Orderbook.createRoute(symbol)) },
+                    onOpenChart = { navController.navigate(Screen.Charts.createRoute(symbol)) }
+                )
+            }
+            
+            // More Menu
+            composable(Screen.More.route) {
+                MoreScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateTo = { destination ->
+                        when (destination) {
+                            "wallet" -> navController.navigate(Screen.Wallet.route)
+                            "alerts" -> navController.navigate(Screen.Alerts.route)
+                            "history" -> navController.navigate(Screen.TradeHistory.route)
+                            "hyperliquid" -> navController.navigate(Screen.HyperLiquid.route)
+                            "market_hub" -> navController.navigate(Screen.MarketHub.route)
+                            "orderbook" -> navController.navigate(Screen.Orderbook.createRoute("BTCUSDT"))
+                            "stats" -> navController.navigate(Screen.Stats.route)
+                            "ai" -> navController.navigate(Screen.AIAssistant.route)
+                            "strategies" -> navController.navigate(Screen.Strategies.route)
+                            "spot" -> navController.navigate(Screen.SpotTrading.route)
+                            "copy_trading" -> navController.navigate(Screen.CopyTrading.route)
+                        }
+                    }
+                )
+            }
+            
+            // Copy Trading
+            composable(Screen.CopyTrading.route) {
+                CopyTradingScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // AI Assistant
+            composable(Screen.AIAssistant.route) {
+                AIAssistantScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Stats
+            composable(Screen.Stats.route) {
+                StatsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Spot Trading
+            composable(Screen.SpotTrading.route) {
+                SpotTradingScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            
+            // Strategies
+            composable(Screen.Strategies.route) {
+                StrategiesScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

@@ -825,6 +825,54 @@ async def get_api_keys(user: dict = Depends(get_current_user)):
     }
 
 
+@router.get("/api-keys/status")
+async def get_api_keys_status(user: dict = Depends(get_current_user)):
+    """Get API keys configuration status for iOS app."""
+    user_id = user["user_id"]
+    creds = db.get_all_user_credentials(user_id)
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    # Check Bybit Demo
+    bybit_demo_has_key = bool(creds.get("demo_api_key") and creds.get("demo_api_secret"))
+    
+    # Check Bybit Real
+    bybit_real_has_key = bool(creds.get("real_api_key") and creds.get("real_api_secret"))
+    
+    # Check HyperLiquid Testnet
+    hl_testnet_has_key = bool(hl_creds.get("hl_testnet_private_key"))
+    
+    # Check HyperLiquid Mainnet
+    hl_mainnet_has_key = bool(hl_creds.get("hl_mainnet_private_key"))
+    
+    # Legacy HL key - assign to appropriate network
+    if not hl_testnet_has_key and not hl_mainnet_has_key:
+        legacy_key = hl_creds.get("hl_private_key")
+        if legacy_key:
+            if hl_creds.get("hl_testnet", False):
+                hl_testnet_has_key = True
+            else:
+                hl_mainnet_has_key = True
+    
+    return {
+        "bybit_demo": {
+            "has_key": bybit_demo_has_key,
+            "is_valid": None  # Would need to test to verify
+        },
+        "bybit_real": {
+            "has_key": bybit_real_has_key,
+            "is_valid": None
+        },
+        "hl_testnet": {
+            "has_key": hl_testnet_has_key,
+            "is_valid": None
+        },
+        "hl_mainnet": {
+            "has_key": hl_mainnet_has_key,
+            "is_valid": None
+        }
+    }
+
+
 @router.post("/api-keys/bybit")
 async def save_bybit_api_keys(
     data: BybitApiKeys,

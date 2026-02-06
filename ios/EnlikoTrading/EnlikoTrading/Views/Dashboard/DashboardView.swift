@@ -814,7 +814,7 @@ class DashboardViewModel: ObservableObject {
     
     private func fetchBalance(accountType: String, exchange: String) async {
         do {
-            let response: BalanceResponse = try await network.get("/balance", params: ["account_type": accountType, "exchange": exchange])
+            let response: BalanceResponse = try await network.get("/trading/balance", params: ["account_type": accountType, "exchange": exchange])
             if let balance = response.balanceData {
                 totalBalance = balance.equity
                 unrealizedPnl = balance.unrealizedPnl
@@ -875,7 +875,7 @@ class DashboardViewModel: ObservableObject {
     
     private func fetchPositionsCount(accountType: String, exchange: String) async {
         do {
-            let response: PositionsResponse = try await network.get("/positions", params: ["account_type": accountType, "exchange": exchange])
+            let response: PositionsResponse = try await network.get("/trading/positions", params: ["account_type": accountType, "exchange": exchange])
             openPositionsCount = response.positionsData.count
         } catch {
             print("Dashboard: Failed to fetch positions: \(error)")
@@ -884,7 +884,7 @@ class DashboardViewModel: ObservableObject {
     
     private func fetchOrdersCount(accountType: String, exchange: String) async {
         do {
-            let response: OrdersResponse = try await network.get("/orders", params: ["account_type": accountType, "exchange": exchange])
+            let response: OrdersResponse = try await network.get("/trading/orders", params: ["account_type": accountType, "exchange": exchange])
             pendingOrdersCount = response.ordersData.count
         } catch {
             print("Dashboard: Failed to fetch orders: \(error)")

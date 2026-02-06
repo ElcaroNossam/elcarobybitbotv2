@@ -181,6 +181,37 @@ interface Strings {
     val settingsChanges: String
     val noActivity: String
     
+    // Wallet
+    val wallet: String
+    val deposit: String
+    val withdraw: String
+    val transfer: String
+    val spotWallet: String
+    val futuresWallet: String
+    val marginWallet: String
+    
+    // Alerts
+    val alerts: String
+    val priceAlerts: String
+    val noAlerts: String
+    val addAlert: String
+    val alertAbove: String
+    val alertBelow: String
+    val alertCrosses: String
+    
+    // Copy Trading
+    val copyTrading: String
+    val topTraders: String
+    val following: String
+    val discover: String
+    val copySettings: String
+    val followTrader: String
+    
+    // HyperLiquid
+    val hyperLiquid: String
+    val vaults: String
+    val points: String
+    
     // Common
     val loading: String
     val error: String
@@ -425,6 +456,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "By accepting, you agree to our Terms of Service and Privacy Policy."
         override val disclaimerAcceptedMsg = "Thank you for accepting the disclaimer."
         override val disclaimerDeclinedMsg = "You must accept the disclaimer to use Enliko."
+        
+        // Wallet
+        override val wallet = "Wallet"
+        override val deposit = "Deposit"
+        override val withdraw = "Withdraw"
+        override val transfer = "Transfer"
+        override val spotWallet = "Spot Wallet"
+        override val futuresWallet = "Futures Wallet"
+        override val marginWallet = "Margin Wallet"
+        
+        // Alerts
+        override val alerts = "Alerts"
+        override val priceAlerts = "Price Alerts"
+        override val noAlerts = "No alerts set"
+        override val addAlert = "Add Alert"
+        override val alertAbove = "Alert when above"
+        override val alertBelow = "Alert when below"
+        override val alertCrosses = "Alert when crosses"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Traders"
+        override val following = "Following"
+        override val discover = "Discover"
+        override val copySettings = "Copy Settings"
+        override val followTrader = "Follow Trader"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Vaults"
+        override val points = "Points"
     }
     
     object Russian : Strings {
@@ -579,6 +641,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Принимая, вы соглашаетесь с Условиями использования и Политикой конфиденциальности."
         override val disclaimerAcceptedMsg = "Спасибо за принятие предупреждения."
         override val disclaimerDeclinedMsg = "Для использования Enliko необходимо принять предупреждение."
+        
+        // Wallet
+        override val wallet = "Кошелёк"
+        override val deposit = "Пополнить"
+        override val withdraw = "Вывести"
+        override val transfer = "Перевод"
+        override val spotWallet = "Спот кошелёк"
+        override val futuresWallet = "Фьючерсы кошелёк"
+        override val marginWallet = "Маржа кошелёк"
+        
+        // Alerts
+        override val alerts = "Оповещения"
+        override val priceAlerts = "Ценовые алерты"
+        override val noAlerts = "Нет алертов"
+        override val addAlert = "Добавить алерт"
+        override val alertAbove = "Алерт выше"
+        override val alertBelow = "Алерт ниже"
+        override val alertCrosses = "Алерт при пересечении"
+        
+        // Copy Trading
+        override val copyTrading = "Копи-трейдинг"
+        override val topTraders = "Топ трейдеры"
+        override val following = "Подписки"
+        override val discover = "Поиск"
+        override val copySettings = "Настройки копирования"
+        override val followTrader = "Подписаться"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Хранилища"
+        override val points = "Очки"
     }
     
     object Ukrainian : Strings {
@@ -733,6 +826,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Приймаючи, ви погоджуєтесь з Умовами використання та Політикою конфіденційності."
         override val disclaimerAcceptedMsg = "Дякуємо за прийняття попередження."
         override val disclaimerDeclinedMsg = "Для використання Enliko необхідно прийняти попередження."
+        
+        // Wallet
+        override val wallet = "Гаманець"
+        override val deposit = "Поповнити"
+        override val withdraw = "Вивести"
+        override val transfer = "Переказ"
+        override val spotWallet = "Спот гаманець"
+        override val futuresWallet = "Ф'ючерси гаманець"
+        override val marginWallet = "Маржа гаманець"
+        
+        // Alerts
+        override val alerts = "Сповіщення"
+        override val priceAlerts = "Цінові алерти"
+        override val noAlerts = "Немає алертів"
+        override val addAlert = "Додати алерт"
+        override val alertAbove = "Алерт вище"
+        override val alertBelow = "Алерт нижче"
+        override val alertCrosses = "Алерт при перетині"
+        
+        // Copy Trading
+        override val copyTrading = "Копі-трейдинг"
+        override val topTraders = "Топ трейдери"
+        override val following = "Підписки"
+        override val discover = "Пошук"
+        override val copySettings = "Налаштування копіювання"
+        override val followTrader = "Підписатись"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Сховища"
+        override val points = "Очки"
     }
     
     object German : Strings {
@@ -888,6 +1012,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Mit der Annahme stimmen Sie unseren Nutzungsbedingungen und Datenschutzrichtlinien zu."
         override val disclaimerAcceptedMsg = "Vielen Dank für die Annahme."
         override val disclaimerDeclinedMsg = "Sie müssen den Hinweis akzeptieren, um Enliko zu nutzen."
+        
+        // Wallet
+        override val wallet = "Geldbörse"
+        override val deposit = "Einzahlen"
+        override val withdraw = "Auszahlen"
+        override val transfer = "Überweisung"
+        override val spotWallet = "Spot-Wallet"
+        override val futuresWallet = "Futures-Wallet"
+        override val marginWallet = "Margin-Wallet"
+        
+        // Alerts
+        override val alerts = "Benachrichtigungen"
+        override val priceAlerts = "Preisalarme"
+        override val noAlerts = "Keine Alarme"
+        override val addAlert = "Alarm hinzufügen"
+        override val alertAbove = "Alarm bei Überschreitung"
+        override val alertBelow = "Alarm bei Unterschreitung"
+        override val alertCrosses = "Alarm bei Kreuzung"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top-Trader"
+        override val following = "Folge ich"
+        override val discover = "Entdecken"
+        override val copySettings = "Kopiereinstellungen"
+        override val followTrader = "Trader folgen"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Tresore"
+        override val points = "Punkte"
     }
     
     object Spanish : Strings {
@@ -1040,6 +1195,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Al aceptar, aceptas nuestros Términos de Servicio."
         override val disclaimerAcceptedMsg = "Gracias por aceptar."
         override val disclaimerDeclinedMsg = "Debes aceptar para usar Enliko."
+        
+        // Wallet
+        override val wallet = "Billetera"
+        override val deposit = "Depositar"
+        override val withdraw = "Retirar"
+        override val transfer = "Transferir"
+        override val spotWallet = "Billetera Spot"
+        override val futuresWallet = "Billetera Futuros"
+        override val marginWallet = "Billetera Margen"
+        
+        // Alerts
+        override val alerts = "Alertas"
+        override val priceAlerts = "Alertas de precio"
+        override val noAlerts = "Sin alertas"
+        override val addAlert = "Añadir alerta"
+        override val alertAbove = "Alerta por encima"
+        override val alertBelow = "Alerta por debajo"
+        override val alertCrosses = "Alerta al cruzar"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Traders"
+        override val following = "Siguiendo"
+        override val discover = "Descubrir"
+        override val copySettings = "Config. de copia"
+        override val followTrader = "Seguir trader"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Bóvedas"
+        override val points = "Puntos"
     }
     
     object French : Strings {
@@ -1192,6 +1378,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "En acceptant, vous acceptez nos Conditions d'utilisation."
         override val disclaimerAcceptedMsg = "Merci d'avoir accepté."
         override val disclaimerDeclinedMsg = "Vous devez accepter pour utiliser Enliko."
+        
+        // Wallet
+        override val wallet = "Portefeuille"
+        override val deposit = "Dépôt"
+        override val withdraw = "Retrait"
+        override val transfer = "Transfert"
+        override val spotWallet = "Portefeuille Spot"
+        override val futuresWallet = "Portefeuille Futures"
+        override val marginWallet = "Portefeuille Marge"
+        
+        // Alerts
+        override val alerts = "Alertes"
+        override val priceAlerts = "Alertes de prix"
+        override val noAlerts = "Aucune alerte"
+        override val addAlert = "Ajouter alerte"
+        override val alertAbove = "Alerte au-dessus"
+        override val alertBelow = "Alerte en-dessous"
+        override val alertCrosses = "Alerte au croisement"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Traders"
+        override val following = "Abonnements"
+        override val discover = "Découvrir"
+        override val copySettings = "Paramètres de copie"
+        override val followTrader = "Suivre le trader"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Coffres"
+        override val points = "Points"
     }
     
     object Italian : Strings {
@@ -1344,6 +1561,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Accettando, accetti i nostri Termini di Servizio."
         override val disclaimerAcceptedMsg = "Grazie per aver accettato."
         override val disclaimerDeclinedMsg = "Devi accettare per usare Enliko."
+        
+        // Wallet
+        override val wallet = "Portafoglio"
+        override val deposit = "Deposito"
+        override val withdraw = "Prelievo"
+        override val transfer = "Trasferimento"
+        override val spotWallet = "Portafoglio Spot"
+        override val futuresWallet = "Portafoglio Futures"
+        override val marginWallet = "Portafoglio Margine"
+        
+        // Alerts
+        override val alerts = "Avvisi"
+        override val priceAlerts = "Avvisi di prezzo"
+        override val noAlerts = "Nessun avviso"
+        override val addAlert = "Aggiungi avviso"
+        override val alertAbove = "Avviso sopra"
+        override val alertBelow = "Avviso sotto"
+        override val alertCrosses = "Avviso incrocio"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Trader"
+        override val following = "Seguiti"
+        override val discover = "Scopri"
+        override val copySettings = "Impostazioni copia"
+        override val followTrader = "Segui trader"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Caveau"
+        override val points = "Punti"
     }
     
     object Japanese : Strings {
@@ -1496,6 +1744,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "同意することで、利用規約に同意したことになります。"
         override val disclaimerAcceptedMsg = "ご同意いただきありがとうございます。"
         override val disclaimerDeclinedMsg = "Enlikoを使用するには同意が必要です。"
+        
+        // Wallet
+        override val wallet = "ウォレット"
+        override val deposit = "入金"
+        override val withdraw = "出金"
+        override val transfer = "送金"
+        override val spotWallet = "現物ウォレット"
+        override val futuresWallet = "先物ウォレット"
+        override val marginWallet = "証拠金ウォレット"
+        
+        // Alerts
+        override val alerts = "アラート"
+        override val priceAlerts = "価格アラート"
+        override val noAlerts = "アラートなし"
+        override val addAlert = "アラート追加"
+        override val alertAbove = "上回った時"
+        override val alertBelow = "下回った時"
+        override val alertCrosses = "交差した時"
+        
+        // Copy Trading
+        override val copyTrading = "コピートレード"
+        override val topTraders = "トップトレーダー"
+        override val following = "フォロー中"
+        override val discover = "発見"
+        override val copySettings = "コピー設定"
+        override val followTrader = "フォローする"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "ボールト"
+        override val points = "ポイント"
     }
     
     object Chinese : Strings {
@@ -1648,6 +1927,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "接受即表示您同意我们的服务条款。"
         override val disclaimerAcceptedMsg = "感谢您的接受。"
         override val disclaimerDeclinedMsg = "您必须接受才能使用Enliko。"
+        
+        // Wallet
+        override val wallet = "钱包"
+        override val deposit = "充值"
+        override val withdraw = "提现"
+        override val transfer = "转账"
+        override val spotWallet = "现货钱包"
+        override val futuresWallet = "合约钱包"
+        override val marginWallet = "保证金钱包"
+        
+        // Alerts
+        override val alerts = "提醒"
+        override val priceAlerts = "价格提醒"
+        override val noAlerts = "暂无提醒"
+        override val addAlert = "添加提醒"
+        override val alertAbove = "高于时提醒"
+        override val alertBelow = "低于时提醒"
+        override val alertCrosses = "交叉时提醒"
+        
+        // Copy Trading
+        override val copyTrading = "跟单交易"
+        override val topTraders = "顶级交易员"
+        override val following = "正在关注"
+        override val discover = "发现"
+        override val copySettings = "跟单设置"
+        override val followTrader = "关注交易员"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "金库"
+        override val points = "积分"
     }
     
     object Arabic : Strings {
@@ -1800,6 +2110,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "بالقبول، أنت توافق على شروط الخدمة."
         override val disclaimerAcceptedMsg = "شكراً لقبولك."
         override val disclaimerDeclinedMsg = "يجب قبول الإشعار لاستخدام Enliko."
+        
+        // Wallet
+        override val wallet = "المحفظة"
+        override val deposit = "إيداع"
+        override val withdraw = "سحب"
+        override val transfer = "تحويل"
+        override val spotWallet = "محفظة فورية"
+        override val futuresWallet = "محفظة العقود"
+        override val marginWallet = "محفظة الهامش"
+        
+        // Alerts
+        override val alerts = "التنبيهات"
+        override val priceAlerts = "تنبيهات الأسعار"
+        override val noAlerts = "لا توجد تنبيهات"
+        override val addAlert = "إضافة تنبيه"
+        override val alertAbove = "تنبيه فوق"
+        override val alertBelow = "تنبيه تحت"
+        override val alertCrosses = "تنبيه عند التقاطع"
+        
+        // Copy Trading
+        override val copyTrading = "نسخ التداول"
+        override val topTraders = "أفضل المتداولين"
+        override val following = "المتابعون"
+        override val discover = "اكتشف"
+        override val copySettings = "إعدادات النسخ"
+        override val followTrader = "تابع المتداول"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "الخزائن"
+        override val points = "النقاط"
     }
     
     object Hebrew : Strings {
@@ -1952,6 +2293,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "בקבלה, אתה מסכים לתנאי השירות שלנו."
         override val disclaimerAcceptedMsg = "תודה על הקבלה."
         override val disclaimerDeclinedMsg = "עליך לקבל כדי להשתמש ב-Enliko."
+        
+        // Wallet
+        override val wallet = "ארנק"
+        override val deposit = "הפקדה"
+        override val withdraw = "משיכה"
+        override val transfer = "העברה"
+        override val spotWallet = "ארנק ספוט"
+        override val futuresWallet = "ארנק חוזים"
+        override val marginWallet = "ארנק מרג'ין"
+        
+        // Alerts
+        override val alerts = "התראות"
+        override val priceAlerts = "התראות מחיר"
+        override val noAlerts = "אין התראות"
+        override val addAlert = "הוסף התראה"
+        override val alertAbove = "התראה מעל"
+        override val alertBelow = "התראה מתחת"
+        override val alertCrosses = "התראה בחציה"
+        
+        // Copy Trading
+        override val copyTrading = "העתקת מסחר"
+        override val topTraders = "סוחרים מובילים"
+        override val following = "עוקבים"
+        override val discover = "גלה"
+        override val copySettings = "הגדרות העתקה"
+        override val followTrader = "עקוב אחרי סוחר"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "כספות"
+        override val points = "נקודות"
     }
     
     object Polish : Strings {
@@ -2104,6 +2476,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Akceptując, zgadzasz się z naszymi Warunkami."
         override val disclaimerAcceptedMsg = "Dziękujemy za akceptację."
         override val disclaimerDeclinedMsg = "Musisz zaakceptować, aby używać Enliko."
+        
+        // Wallet
+        override val wallet = "Portfel"
+        override val deposit = "Wpłata"
+        override val withdraw = "Wypłata"
+        override val transfer = "Przelew"
+        override val spotWallet = "Portfel Spot"
+        override val futuresWallet = "Portfel Futures"
+        override val marginWallet = "Portfel Margin"
+        
+        // Alerts
+        override val alerts = "Alerty"
+        override val priceAlerts = "Alerty cenowe"
+        override val noAlerts = "Brak alertów"
+        override val addAlert = "Dodaj alert"
+        override val alertAbove = "Alert powyżej"
+        override val alertBelow = "Alert poniżej"
+        override val alertCrosses = "Alert przy przecięciu"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Traderzy"
+        override val following = "Obserwowani"
+        override val discover = "Odkryj"
+        override val copySettings = "Ustawienia kopiowania"
+        override val followTrader = "Obserwuj tradera"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Sejfy"
+        override val points = "Punkty"
     }
     
     object Czech : Strings {
@@ -2256,6 +2659,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Přijetím souhlasíte s našimi Podmínkami."
         override val disclaimerAcceptedMsg = "Děkujeme za přijetí."
         override val disclaimerDeclinedMsg = "Pro používání Enliko musíte přijmout."
+        
+        // Wallet
+        override val wallet = "Peněženka"
+        override val deposit = "Vklad"
+        override val withdraw = "Výběr"
+        override val transfer = "Převod"
+        override val spotWallet = "Spot peněženka"
+        override val futuresWallet = "Futures peněženka"
+        override val marginWallet = "Margin peněženka"
+        
+        // Alerts
+        override val alerts = "Upozornění"
+        override val priceAlerts = "Cenová upozornění"
+        override val noAlerts = "Žádná upozornění"
+        override val addAlert = "Přidat upozornění"
+        override val alertAbove = "Upozornění nad"
+        override val alertBelow = "Upozornění pod"
+        override val alertCrosses = "Upozornění při překřížení"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Tradeři"
+        override val following = "Sledovaní"
+        override val discover = "Objevit"
+        override val copySettings = "Nastavení kopírování"
+        override val followTrader = "Sledovat tradera"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Trezory"
+        override val points = "Body"
     }
     
     object Lithuanian : Strings {
@@ -2408,6 +2842,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Sutikdami, sutinkate su mūsų Sąlygomis."
         override val disclaimerAcceptedMsg = "Ačiū, kad sutikote."
         override val disclaimerDeclinedMsg = "Turite sutikti, kad galėtumėte naudoti Enliko."
+        
+        // Wallet
+        override val wallet = "Piniginė"
+        override val deposit = "Įnešti"
+        override val withdraw = "Išsiimti"
+        override val transfer = "Pervesti"
+        override val spotWallet = "Spot piniginė"
+        override val futuresWallet = "Futures piniginė"
+        override val marginWallet = "Margin piniginė"
+        
+        // Alerts
+        override val alerts = "Įspėjimai"
+        override val priceAlerts = "Kainų įspėjimai"
+        override val noAlerts = "Nėra įspėjimų"
+        override val addAlert = "Pridėti įspėjimą"
+        override val alertAbove = "Įspėjimas virš"
+        override val alertBelow = "Įspėjimas žemiau"
+        override val alertCrosses = "Įspėjimas kirtus"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Top Treideriai"
+        override val following = "Sekama"
+        override val discover = "Atrasti"
+        override val copySettings = "Kopijavimo nustatymai"
+        override val followTrader = "Sekti treiderį"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Saugyklos"
+        override val points = "Taškai"
     }
     
     object Albanian : Strings {
@@ -2560,6 +3025,37 @@ interface Strings {
         override val disclaimerTermsAgreement = "Duke pranuar, pranoni Kushtet tona të Shërbimit."
         override val disclaimerAcceptedMsg = "Faleminderit për pranimin."
         override val disclaimerDeclinedMsg = "Duhet të pranoni për të përdorur Enliko."
+        
+        // Wallet
+        override val wallet = "Portofoli"
+        override val deposit = "Depozito"
+        override val withdraw = "Tërhiq"
+        override val transfer = "Transfero"
+        override val spotWallet = "Portofol Spot"
+        override val futuresWallet = "Portofol Futures"
+        override val marginWallet = "Portofol Margin"
+        
+        // Alerts
+        override val alerts = "Alarmet"
+        override val priceAlerts = "Alarmet e çmimit"
+        override val noAlerts = "Nuk ka alarme"
+        override val addAlert = "Shto alarm"
+        override val alertAbove = "Alarm mbi"
+        override val alertBelow = "Alarm nën"
+        override val alertCrosses = "Alarm kur kalon"
+        
+        // Copy Trading
+        override val copyTrading = "Copy Trading"
+        override val topTraders = "Tregtarët kryesorë"
+        override val following = "Duke ndjekur"
+        override val discover = "Zbulo"
+        override val copySettings = "Cilësimet e kopjimit"
+        override val followTrader = "Ndiq tregtarin"
+        
+        // HyperLiquid
+        override val hyperLiquid = "HyperLiquid"
+        override val vaults = "Kasafortat"
+        override val points = "Pikët"
     }
 }
 

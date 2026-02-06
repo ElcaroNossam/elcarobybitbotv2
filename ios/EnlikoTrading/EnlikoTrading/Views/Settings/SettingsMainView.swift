@@ -417,7 +417,7 @@ class SettingsMainViewModel: ObservableObject {
     @MainActor
     func fetchAPIStatus() async {
         do {
-            let status: APIKeysStatus = try await network.get("/api-keys/status")
+            let status: APIKeysStatus = try await network.get("/users/api-keys/status")
             apiConfigured = status.bybit.configured || status.hyperliquid.configured
             
             if apiConfigured {
