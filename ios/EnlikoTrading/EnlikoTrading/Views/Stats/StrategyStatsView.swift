@@ -494,7 +494,7 @@ class StrategyStatsViewModel: ObservableObject {
             
             // Fetch stats
             let stats: StrategyStatsResponse = try await network.get(
-                "/stats/by-strategy",
+                "/trading/stats/by-strategy",
                 params: [
                     "strategy": strategyParam,
                     "period": periodParam,

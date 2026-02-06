@@ -825,25 +825,25 @@ class DashboardViewModel: ObservableObject {
     }
     
     private func fetchPnlPeriods(accountType: String, exchange: String) async {
-        // Fetch PnL for different periods from /stats endpoint
+        // Fetch PnL for different periods from /trading/stats endpoint
         do {
             // Today
             let todayResponse: DashboardStatsResponse = try await network.get(
-                "/stats/by-strategy",
+                "/trading/stats/by-strategy",
                 params: ["period": "today", "account_type": accountType, "exchange": exchange, "strategy": "all"]
             )
             todayPnl = todayResponse.summary?.totalPnl ?? 0
             
             // Week
             let weekResponse: DashboardStatsResponse = try await network.get(
-                "/stats/by-strategy",
+                "/trading/stats/by-strategy",
                 params: ["period": "week", "account_type": accountType, "exchange": exchange, "strategy": "all"]
             )
             weekPnl = weekResponse.summary?.totalPnl ?? 0
             
             // Month
             let monthResponse: DashboardStatsResponse = try await network.get(
-                "/stats/by-strategy",
+                "/trading/stats/by-strategy",
                 params: ["period": "month", "account_type": accountType, "exchange": exchange, "strategy": "all"]
             )
             monthPnl = monthResponse.summary?.totalPnl ?? 0
@@ -855,7 +855,7 @@ class DashboardViewModel: ObservableObject {
     func fetchStats(accountType: String, exchange: String) async {
         do {
             let response: DashboardStatsResponse = try await network.get(
-                "/stats/by-strategy",
+                "/trading/stats/by-strategy",
                 params: ["period": selectedPeriod.apiValue, "account_type": accountType, "exchange": exchange, "strategy": "all"]
             )
             if let summary = response.summary {
