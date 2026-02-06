@@ -29153,6 +29153,9 @@ async def on_menu_main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     This handler processes callback_data="menu:main" which is used throughout
     the bot for returning to the main menu from various submenus.
+    
+    IMPORTANT: main_menu_keyboard returns ReplyKeyboardMarkup (not Inline),
+    so we need to DELETE the inline message and SEND a new message.
     """
     q = update.callback_query
     await q.answer()
@@ -29183,23 +29186,22 @@ async def on_menu_main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     welcome_text += t.get('main_menu_hint', '\nSelect an option from the menu below:')
     
+    # Delete inline message first
     try:
-        await q.edit_message_text(
+        await q.message.delete()
+    except Exception:
+        pass
+    
+    # Send new message with ReplyKeyboardMarkup
+    try:
+        await ctx.bot.send_message(
+            chat_id=uid,
             text=welcome_text,
             parse_mode="HTML",
-            reply_markup=main_menu_keyboard(ctx, update=update)
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
     except Exception as e:
-        # If edit fails (e.g., message too old), send new message
-        logger.warning(f"[{uid}] Failed to edit message for menu:main: {e}")
-        try:
-            await q.message.reply_text(
-                text=welcome_text,
-                parse_mode="HTML",
-                reply_markup=main_menu_keyboard(ctx, update=update)
-            )
-        except Exception as e2:
-            logger.error(f"[{uid}] Failed to send menu:main message: {e2}")
+        logger.error(f"[{uid}] Failed to send menu:main message: {e}")
 
 
 async def _shutdown(app: Application):
