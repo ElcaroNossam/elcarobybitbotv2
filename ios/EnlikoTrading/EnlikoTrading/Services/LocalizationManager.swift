@@ -863,6 +863,25 @@ class LocalizationManager: ObservableObject {
         "no_orders_hint": "Your pending orders will appear here",
         "close_position_confirm": "Close this position?",
         "modify_tpsl": "Modify TP/SL",
+        
+        // Missing keys (found in views)
+        "security": "Security",
+        "account": "Account",
+        "configured": "Configured",
+        "view_trades": "View Trades",
+        "details": "Details",
+        "no_open_positions": "No Open Positions",
+        "no_pending_orders": "No Pending Orders",
+        "cancel_order": "Cancel Order",
+        "position_size": "Position Size",
+        "limit_price": "Limit Price",
+        "trigger_price": "Trigger Price",
+        "tp_sl": "TP / SL",
+        "wallet": "Wallet",
+        "error": "Error",
+        "market": "Market",
+        "price": "Price",
+        "orders_empty": "No open orders",
     ]
     
     // MARK: - Russian
@@ -1489,6 +1508,25 @@ class LocalizationManager: ObservableObject {
         "no_orders_hint": "Ваши отложенные ордера появятся здесь",
         "close_position_confirm": "Закрыть эту позицию?",
         "modify_tpsl": "Изменить TP/SL",
+        
+        // Missing keys (found in views)
+        "security": "Безопасность",
+        "account": "Аккаунт",
+        "configured": "Настроено",
+        "view_trades": "История сделок",
+        "details": "Детали",
+        "no_open_positions": "Нет открытых позиций",
+        "no_pending_orders": "Нет отложенных ордеров",
+        "cancel_order": "Отменить ордер",
+        "position_size": "Размер позиции",
+        "limit_price": "Лимитная цена",
+        "trigger_price": "Триггер цена",
+        "tp_sl": "ТП / СЛ",
+        "wallet": "Кошелёк",
+        "error": "Ошибка",
+        "market": "Маркет",
+        "price": "Цена",
+        "orders_empty": "Нет открытых ордеров",
     ]
     
     // MARK: - Ukrainian
@@ -1577,6 +1615,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Увійти",
         "auth_register_button": "Зареєструватися",
         "auth_register_subtitle": "Створити новий акаунт",
+        // NEW: Missing keys
+        "security": "Безпека",
+        "account": "Акаунт",
+        "configured": "Налаштовано",
+        "view_trades": "Переглянути угоди",
+        "details": "Деталі",
+        "no_open_positions": "Немає відкритих позицій",
+        "no_pending_orders": "Немає активних ордерів",
+        "cancel_order": "Скасувати ордер",
+        "position_size": "Розмір позиції",
+        "limit_price": "Ціна ліміту",
+        "trigger_price": "Тригер ціна",
+        "tp_sl": "TP/SL",
+        "wallet": "Гаманець",
+        "error": "Помилка",
+        "market": "Ринок",
+        "price": "Ціна",
+        "orders_empty": "Немає ордерів",
     ]
     
     // MARK: - German
@@ -1656,6 +1712,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Anmelden",
         "auth_register_button": "Registrieren",
         "auth_register_subtitle": "Neues Konto erstellen",
+        // NEW: Missing keys
+        "security": "Sicherheit",
+        "account": "Konto",
+        "configured": "Konfiguriert",
+        "view_trades": "Trades anzeigen",
+        "details": "Details",
+        "no_open_positions": "Keine offenen Positionen",
+        "no_pending_orders": "Keine ausstehenden Orders",
+        "cancel_order": "Order stornieren",
+        "position_size": "Positionsgröße",
+        "limit_price": "Limitpreis",
+        "trigger_price": "Auslösepreis",
+        "tp_sl": "TP/SL",
+        "wallet": "Wallet",
+        "error": "Fehler",
+        "market": "Markt",
+        "price": "Preis",
+        "orders_empty": "Keine Orders",
     ]
     
     // MARK: - Spanish
@@ -1735,6 +1809,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Iniciar sesión",
         "auth_register_button": "Registrarse",
         "auth_register_subtitle": "Crear nueva cuenta",
+        // NEW: Missing keys
+        "security": "Seguridad",
+        "account": "Cuenta",
+        "configured": "Configurado",
+        "view_trades": "Ver operaciones",
+        "details": "Detalles",
+        "no_open_positions": "Sin posiciones abiertas",
+        "no_pending_orders": "Sin órdenes pendientes",
+        "cancel_order": "Cancelar orden",
+        "position_size": "Tamaño de posición",
+        "limit_price": "Precio límite",
+        "trigger_price": "Precio de activación",
+        "tp_sl": "TP/SL",
+        "wallet": "Cartera",
+        "error": "Error",
+        "market": "Mercado",
+        "price": "Precio",
+        "orders_empty": "Sin órdenes",
     ]
     
     // MARK: - French
@@ -1814,6 +1906,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Se connecter",
         "auth_register_button": "S'inscrire",
         "auth_register_subtitle": "Créer un nouveau compte",
+        // NEW: Missing keys
+        "security": "Sécurité",
+        "account": "Compte",
+        "configured": "Configuré",
+        "view_trades": "Voir les trades",
+        "details": "Détails",
+        "no_open_positions": "Aucune position ouverte",
+        "no_pending_orders": "Aucun ordre en attente",
+        "cancel_order": "Annuler l'ordre",
+        "position_size": "Taille de position",
+        "limit_price": "Prix limite",
+        "trigger_price": "Prix de déclenchement",
+        "tp_sl": "TP/SL",
+        "wallet": "Portefeuille",
+        "error": "Erreur",
+        "market": "Marché",
+        "price": "Prix",
+        "orders_empty": "Aucun ordre",
     ]
     
     // MARK: - Italian
@@ -1893,6 +2003,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Accedi",
         "auth_register_button": "Registrati",
         "auth_register_subtitle": "Crea nuovo account",
+        // NEW: Missing keys
+        "security": "Sicurezza",
+        "account": "Account",
+        "configured": "Configurato",
+        "view_trades": "Visualizza trade",
+        "details": "Dettagli",
+        "no_open_positions": "Nessuna posizione aperta",
+        "no_pending_orders": "Nessun ordine in sospeso",
+        "cancel_order": "Annulla ordine",
+        "position_size": "Dimensione posizione",
+        "limit_price": "Prezzo limite",
+        "trigger_price": "Prezzo trigger",
+        "tp_sl": "TP/SL",
+        "wallet": "Portafoglio",
+        "error": "Errore",
+        "market": "Mercato",
+        "price": "Prezzo",
+        "orders_empty": "Nessun ordine",
     ]
     
     // MARK: - Japanese
@@ -1972,6 +2100,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "ログイン",
         "auth_register_button": "登録",
         "auth_register_subtitle": "新規アカウント作成",
+        // NEW: Missing keys
+        "security": "セキュリティ",
+        "account": "アカウント",
+        "configured": "設定済み",
+        "view_trades": "取引を見る",
+        "details": "詳細",
+        "no_open_positions": "オープンポジションなし",
+        "no_pending_orders": "保留中の注文なし",
+        "cancel_order": "注文をキャンセル",
+        "position_size": "ポジションサイズ",
+        "limit_price": "指値価格",
+        "trigger_price": "トリガー価格",
+        "tp_sl": "TP/SL",
+        "wallet": "ウォレット",
+        "error": "エラー",
+        "market": "マーケット",
+        "price": "価格",
+        "orders_empty": "注文なし",
     ]
     
     // MARK: - Chinese
@@ -2051,6 +2197,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "登录",
         "auth_register_button": "注册",
         "auth_register_subtitle": "创建新账户",
+        // NEW: Missing keys
+        "security": "安全",
+        "account": "账户",
+        "configured": "已配置",
+        "view_trades": "查看交易",
+        "details": "详情",
+        "no_open_positions": "没有持仓",
+        "no_pending_orders": "没有挂单",
+        "cancel_order": "取消订单",
+        "position_size": "仓位大小",
+        "limit_price": "限价",
+        "trigger_price": "触发价",
+        "tp_sl": "止盈/止损",
+        "wallet": "钱包",
+        "error": "错误",
+        "market": "市场",
+        "price": "价格",
+        "orders_empty": "没有订单",
     ]
     
     // MARK: - Arabic
@@ -2130,6 +2294,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "تسجيل الدخول",
         "auth_register_button": "التسجيل",
         "auth_register_subtitle": "إنشاء حساب جديد",
+        // NEW: Missing keys
+        "security": "الأمان",
+        "account": "الحساب",
+        "configured": "مُهيأ",
+        "view_trades": "عرض الصفقات",
+        "details": "التفاصيل",
+        "no_open_positions": "لا توجد مراكز مفتوحة",
+        "no_pending_orders": "لا توجد أوامر معلقة",
+        "cancel_order": "إلغاء الأمر",
+        "position_size": "حجم المركز",
+        "limit_price": "السعر المحدد",
+        "trigger_price": "سعر التفعيل",
+        "tp_sl": "جني الأرباح/وقف الخسارة",
+        "wallet": "المحفظة",
+        "error": "خطأ",
+        "market": "السوق",
+        "price": "السعر",
+        "orders_empty": "لا توجد أوامر",
     ]
     
     // MARK: - Hebrew
@@ -2209,6 +2391,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "התחברות",
         "auth_register_button": "הרשמה",
         "auth_register_subtitle": "יצירת חשבון חדש",
+        // NEW: Missing keys
+        "security": "אבטחה",
+        "account": "חשבון",
+        "configured": "מוגדר",
+        "view_trades": "הצג עסקאות",
+        "details": "פרטים",
+        "no_open_positions": "אין פוזיציות פתוחות",
+        "no_pending_orders": "אין הזמנות ממתינות",
+        "cancel_order": "בטל הזמנה",
+        "position_size": "גודל פוזיציה",
+        "limit_price": "מחיר לימיט",
+        "trigger_price": "מחיר טריגר",
+        "tp_sl": "לקיחת רווח/עצירת הפסד",
+        "wallet": "ארנק",
+        "error": "שגיאה",
+        "market": "שוק",
+        "price": "מחיר",
+        "orders_empty": "אין הזמנות",
     ]
     
     // MARK: - Polish
@@ -2288,6 +2488,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Zaloguj się",
         "auth_register_button": "Zarejestruj się",
         "auth_register_subtitle": "Utwórz nowe konto",
+        // NEW: Missing keys
+        "security": "Bezpieczeństwo",
+        "account": "Konto",
+        "configured": "Skonfigurowane",
+        "view_trades": "Zobacz transakcje",
+        "details": "Szczegóły",
+        "no_open_positions": "Brak otwartych pozycji",
+        "no_pending_orders": "Brak oczekujących zleceń",
+        "cancel_order": "Anuluj zlecenie",
+        "position_size": "Wielkość pozycji",
+        "limit_price": "Cena limitowa",
+        "trigger_price": "Cena wyzwalacza",
+        "tp_sl": "TP/SL",
+        "wallet": "Portfel",
+        "error": "Błąd",
+        "market": "Rynek",
+        "price": "Cena",
+        "orders_empty": "Brak zleceń",
     ]
     
     // MARK: - Czech
@@ -2367,6 +2585,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Přihlásit se",
         "auth_register_button": "Registrovat se",
         "auth_register_subtitle": "Vytvořit nový účet",
+        // NEW: Missing keys
+        "security": "Zabezpečení",
+        "account": "Účet",
+        "configured": "Nastaveno",
+        "view_trades": "Zobrazit obchody",
+        "details": "Podrobnosti",
+        "no_open_positions": "Žádné otevřené pozice",
+        "no_pending_orders": "Žádné čekající příkazy",
+        "cancel_order": "Zrušit příkaz",
+        "position_size": "Velikost pozice",
+        "limit_price": "Limitní cena",
+        "trigger_price": "Spouštěcí cena",
+        "tp_sl": "TP/SL",
+        "wallet": "Peněženka",
+        "error": "Chyba",
+        "market": "Trh",
+        "price": "Cena",
+        "orders_empty": "Žádné příkazy",
     ]
     
     // MARK: - Lithuanian
@@ -2446,6 +2682,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Prisijungti",
         "auth_register_button": "Registruotis",
         "auth_register_subtitle": "Sukurti naują paskyrą",
+        // NEW: Missing keys
+        "security": "Saugumas",
+        "account": "Paskyra",
+        "configured": "Sukonfigūruota",
+        "view_trades": "Peržiūrėti sandorius",
+        "details": "Detalės",
+        "no_open_positions": "Nėra atvirų pozicijų",
+        "no_pending_orders": "Nėra laukiančių užsakymų",
+        "cancel_order": "Atšaukti užsakymą",
+        "position_size": "Pozicijos dydis",
+        "limit_price": "Ribinė kaina",
+        "trigger_price": "Paleidimo kaina",
+        "tp_sl": "TP/SL",
+        "wallet": "Piniginė",
+        "error": "Klaida",
+        "market": "Rinka",
+        "price": "Kaina",
+        "orders_empty": "Nėra užsakymų",
     ]
     
     // MARK: - Albanian
@@ -2525,6 +2779,24 @@ class LocalizationManager: ObservableObject {
         "auth_login_button": "Hyr",
         "auth_register_button": "Regjistrohu",
         "auth_register_subtitle": "Krijo llogari të re",
+        // NEW: Missing keys
+        "security": "Siguria",
+        "account": "Llogaria",
+        "configured": "E konfiguruar",
+        "view_trades": "Shiko tregtitë",
+        "details": "Detajet",
+        "no_open_positions": "Pa pozicione të hapura",
+        "no_pending_orders": "Pa urdhra në pritje",
+        "cancel_order": "Anulo urdhrin",
+        "position_size": "Madhësia e pozicionit",
+        "limit_price": "Çmimi limit",
+        "trigger_price": "Çmimi i aktivizimit",
+        "tp_sl": "TP/SL",
+        "wallet": "Portofoli",
+        "error": "Gabim",
+        "market": "Tregu",
+        "price": "Çmimi",
+        "orders_empty": "Pa urdhra",
     ]
 }
 

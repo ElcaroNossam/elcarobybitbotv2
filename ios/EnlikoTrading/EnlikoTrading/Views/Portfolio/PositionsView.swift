@@ -391,9 +391,30 @@ struct PositionCard: View {
                 .padding(12)
             }
         }
-        .background(Color.enlikoCard)
-        .cornerRadius(12)
-        .onTapGesture { withAnimation { isExpanded.toggle() } }
+        .background(
+            ZStack {
+                Color.enlikoCard
+                // Gradient overlay based on PnL
+                LinearGradient(
+                    colors: [
+                        (position.unrealizedPnl >= 0 ? Color.enlikoGreen : Color.enlikoRed).opacity(0.08),
+                        Color.clear
+                    ],
+                    startPoint: .topTrailing,
+                    endPoint: .bottomLeading
+                )
+            }
+        )
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    (isLong ? Color.enlikoGreen : Color.enlikoRed).opacity(0.25),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: (isLong ? Color.enlikoGreen : Color.enlikoRed).opacity(0.1), radius: 8, y: 4)
+        .onTapGesture { withAnimation(.spring(response: 0.3)) { isExpanded.toggle() } }
     }
 }
 
@@ -461,8 +482,21 @@ struct OrderCard: View {
             }
             .padding(12)
         }
-        .background(Color.enlikoCard)
-        .cornerRadius(12)
+        .background(
+            ZStack {
+                Color.enlikoCard
+                LinearGradient(
+                    colors: [Color.orange.opacity(0.05), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 

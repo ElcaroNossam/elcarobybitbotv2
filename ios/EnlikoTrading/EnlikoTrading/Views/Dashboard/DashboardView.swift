@@ -192,20 +192,20 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - Balance Card
+    // MARK: - Balance Card (Modern Glassmorphism)
     private var balanceCard: some View {
         VStack(spacing: 16) {
             VStack(spacing: 8) {
                 Text("total_balance".localized)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.enlikoTextSecondary)
                 
                 if viewModel.isLoading {
                     ProgressView()
                         .frame(height: 40)
                 } else {
                     Text(viewModel.totalBalance.formattedCurrency)
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
                 
@@ -214,7 +214,7 @@ struct DashboardView: View {
                     HStack(spacing: 4) {
                         Text("unrealized".localized + ":")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.enlikoTextSecondary)
                         Text(viewModel.unrealizedPnl.formattedSignedAmount)
                             .font(.caption.bold())
                             .foregroundColor(viewModel.unrealizedPnl >= 0 ? .enlikoGreen : .enlikoRed)
@@ -231,16 +231,27 @@ struct DashboardView: View {
                 pnlCell(title: "30d".localized, value: viewModel.monthPnl)
             }
         }
-        .padding(20)
+        .padding(24)
         .frame(maxWidth: .infinity)
         .background(
-            LinearGradient(
-                colors: [Color.enlikoPrimary.opacity(0.3), Color.enlikoSurface],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                // Gradient base
+                LinearGradient(
+                    colors: [Color.enlikoPrimary.opacity(0.2), Color.enlikoCard],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                // Glass overlay
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial.opacity(0.3))
+            }
         )
-        .cornerRadius(20)
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(Color.enlikoPrimary.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: Color.enlikoPrimary.opacity(0.2), radius: 20, y: 10)
     }
     
     private func pnlCell(title: String, value: Double) -> some View {
@@ -635,7 +646,7 @@ struct StrategyClusterRow: View {
     }
 }
 
-// MARK: - Quick Action Card
+// MARK: - Quick Action Card (Glass Style)
 struct QuickActionCard: View {
     let icon: String
     let title: String
@@ -645,33 +656,50 @@ struct QuickActionCard: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundColor(color)
+                }
                 Spacer()
                 if count > 0 {
                     Text("\(count)")
                         .font(.caption.bold())
                         .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(color)
-                        .cornerRadius(12)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(color)
+                        )
                 }
             }
             
             Text(title)
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .background(Color.enlikoSurface)
-        .cornerRadius(12)
+        .padding(16)
+        .background(
+            ZStack {
+                Color.enlikoSurface
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(color.opacity(0.05))
+            }
+        )
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
-// MARK: - Dashboard Stat Card
+// MARK: - Dashboard Stat Card (Modern Glass)
 struct DashboardStatCard: View {
     let title: String
     let value: String
@@ -680,10 +708,16 @@ struct DashboardStatCard: View {
     var valueColor: Color = .white
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Image(systemName: icon)
-                    .foregroundColor(iconColor)
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: icon)
+                        .font(.subheadline)
+                        .foregroundColor(iconColor)
+                }
                 Spacer()
             }
             Text(value)
@@ -691,11 +725,16 @@ struct DashboardStatCard: View {
                 .foregroundColor(valueColor)
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.enlikoTextSecondary)
         }
-        .padding(12)
-        .background(Color.enlikoBackground)
-        .cornerRadius(12)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.enlikoCard)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.enlikoBorder, lineWidth: 0.5)
+        )
     }
 }
 

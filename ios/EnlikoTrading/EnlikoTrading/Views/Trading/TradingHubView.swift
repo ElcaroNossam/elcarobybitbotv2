@@ -537,9 +537,27 @@ struct PositionCardEnhanced: View {
                         }
                     }
                 }
-                .padding()
-                .background(Color.enlikoSurface)
-                .cornerRadius(12)
+                .padding(16)
+                .background(
+                    ZStack {
+                        Color.enlikoCard
+                        // Subtle side accent based on position side
+                        HStack {
+                            Rectangle()
+                                .fill(position.side.lowercased() == "buy" ? Color.enlikoGreen : Color.enlikoRed)
+                                .frame(width: 3)
+                            Spacer()
+                        }
+                    }
+                )
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            (position.side.lowercased() == "buy" ? Color.enlikoGreen : Color.enlikoRed).opacity(0.3),
+                            lineWidth: 1
+                        )
+                )
             }
             .buttonStyle(.plain)
             .offset(x: offset)
