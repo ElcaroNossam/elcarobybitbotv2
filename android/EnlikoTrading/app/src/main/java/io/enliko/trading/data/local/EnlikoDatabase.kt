@@ -10,6 +10,7 @@ import io.enliko.trading.data.local.entities.*
  * 
  * Version History:
  * 1 - Initial schema with all entities
+ * 2 - Added userId and synced fields to ActivityLogEntity
  */
 @Database(
     entities = [
@@ -26,7 +27,7 @@ import io.enliko.trading.data.local.entities.*
         SyncMetadataEntity::class,
         ActivityLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class EnlikoDatabase : RoomDatabase() {

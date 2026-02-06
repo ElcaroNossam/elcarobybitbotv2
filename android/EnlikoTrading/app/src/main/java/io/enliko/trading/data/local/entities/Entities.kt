@@ -287,17 +287,23 @@ data class SyncMetadataEntity(
 
 @Entity(
     tableName = "activity_log",
-    indices = [Index(value = ["timestamp"])]
+    indices = [
+        Index(value = ["timestamp"]),
+        Index(value = ["userId"]),
+        Index(value = ["synced"])
+    ]
 )
 data class ActivityLogEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: Long,
     val actionType: String, // "trade_opened", "trade_closed", "settings_changed", etc.
     val actionCategory: String, // "trading", "settings", "auth"
     val source: String, // "android", "ios", "webapp", "telegram"
     val entityType: String?,
     val oldValue: String?, // JSON
     val newValue: String?, // JSON
-    val message: String?,
-    val timestamp: Long = System.currentTimeMillis()
+    val message: String? = null,
+    val timestamp: Long = System.currentTimeMillis(),
+    val synced: Boolean = false
 )

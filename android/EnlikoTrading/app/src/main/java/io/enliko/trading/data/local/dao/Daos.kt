@@ -323,4 +323,10 @@ interface ActivityLogDao {
     
     @Query("DELETE FROM activity_log WHERE timestamp < :before")
     suspend fun deleteOlderThan(before: Long)
+    
+    @Query("SELECT * FROM activity_log WHERE synced = 0 ORDER BY timestamp ASC LIMIT 50")
+    suspend fun getUnsyncedActivities(): List<ActivityLogEntity>
+    
+    @Query("UPDATE activity_log SET synced = 1 WHERE id = :id")
+    suspend fun markAsSynced(id: Long)
 }
