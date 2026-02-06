@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -45,7 +46,10 @@ fun LoginScreen(
     
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -101,6 +105,30 @@ fun LoginScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
+            // Name field (only for registration)
+            if (isRegisterMode) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(strings.name) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = null)
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+            
             // Email field
             OutlinedTextField(
                 value = email,
@@ -147,21 +175,69 @@ fun LoginScreen(
                     PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
+                    imeAction = if (isRegisterMode) ImeAction.Next else ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
+                    onNext = { if (isRegisterMode) focusManager.moveFocus(FocusDirection.Down) },
                     onDone = {
-                        focusManager.clearFocus()
-                        if (isRegisterMode) {
-                            viewModel.register(email, password)
-                        } else {
+                        if (!isRegisterMode) {
+                            focusManager.clearFocus()
                             viewModel.login(email, password)
                         }
                     }
                 ),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                supportingText = if (isRegisterMode) {
+                    { Text(strings.passwordRequirements) }
+                } else null
             )
+            
+            // Confirm Password field (only for registration)
+            if (isRegisterMode) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text(strings.confirmPassword) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = null)
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                if (confirmPasswordVisible) Icons.Default.Visibility 
+                                else Icons.Default.VisibilityOff,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    visualTransformation = if (confirmPasswordVisible) 
+                        VisualTransformation.None 
+                    else 
+                        PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            if (password == confirmPassword) {
+                                viewModel.register(email, password, name.ifBlank { null })
+                            }
+                        }
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    isError = confirmPassword.isNotEmpty() && password != confirmPassword,
+                    supportingText = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+                        { Text(strings.passwordsDoNotMatch, color = MaterialTheme.colorScheme.error) }
+                    } else null
+                )
+            }
             
             if (!isRegisterMode) {
                 TextButton(
@@ -197,10 +273,14 @@ fun LoginScreen(
             }
             
             // Login/Register button
+            val canRegister = email.isNotBlank() && password.isNotBlank() && 
+                             password == confirmPassword && password.length >= 8
+            val canLogin = email.isNotBlank() && password.isNotBlank()
+            
             Button(
                 onClick = {
                     if (isRegisterMode) {
-                        viewModel.register(email, password)
+                        viewModel.register(email, password, name.ifBlank { null })
                     } else {
                         viewModel.login(email, password)
                     }
@@ -208,7 +288,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !uiState.isLoading && email.isNotBlank() && password.isNotBlank(),
+                enabled = !uiState.isLoading && (if (isRegisterMode) canRegister else canLogin),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = EnlikoPrimary
