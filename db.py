@@ -5424,9 +5424,14 @@ def get_exchange_status(user_id: int) -> dict:
         },
         "hyperliquid": {
             "active": active_type == "hyperliquid" or mode == "both",
-            "configured": bool(hl_creds.get("hl_private_key") or hl_creds.get("hl_wallet_address")),
+            "configured": bool(
+                hl_creds.get("hl_private_key") or 
+                hl_creds.get("hl_wallet_address") or
+                hl_creds.get("hl_mainnet_private_key") or
+                hl_creds.get("hl_testnet_private_key")
+            ),
             "testnet": hl_creds.get("hl_testnet", False),
-            "wallet": hl_creds.get("hl_wallet_address"),
+            "wallet": hl_creds.get("hl_wallet_address") or hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_testnet_wallet_address"),
         }
     }
 
