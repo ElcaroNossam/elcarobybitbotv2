@@ -29154,14 +29154,24 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("❌ Session expired. Please start setup again.")
             return True
         
-        # Save credentials
+        # Save credentials with proper multitenancy field names
         account_type = "testnet" if testnet else "mainnet"
-        set_hl_credentials(uid, creds={
-            "hl_private_key": private_key,
-            "hl_wallet_address": address,  # Main wallet address
-            "hl_testnet": testnet,
-            "account_type": account_type
-        })
+        if testnet:
+            creds = {
+                "hl_testnet_private_key": private_key,
+                "hl_testnet_wallet_address": address,
+                "hl_testnet": True,
+                "account_type": "testnet"
+            }
+        else:
+            creds = {
+                "hl_mainnet_private_key": private_key,
+                "hl_mainnet_wallet_address": address,
+                "hl_testnet": False,
+                "account_type": "mainnet"
+            }
+        set_hl_credentials(uid, creds=creds)
+        logger.info(f"[{uid}] HyperLiquid {account_type} credentials saved: wallet={address[:10]}...")
         
         # Enable HL for user
         set_hl_enabled(uid, True)
