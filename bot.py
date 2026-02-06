@@ -6773,16 +6773,17 @@ async def cmd_market(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         alt_signal=alt_signal
     )
     emoji_map = {
-        "LONG":    ctx.t["emoji_long"],
-        "SHORT":   ctx.t["emoji_short"],
-        "NEUTRAL": ctx.t["emoji_neutral"],
+        "LONG":    ctx.t.get("emoji_long", "🟢"),
+        "SHORT":   ctx.t.get("emoji_short", "🔴"),
+        "NEUTRAL": ctx.t.get("emoji_neutral", "⚪"),
     }
-    dom_emo = {
-        "rising":  ctx.t['dominance_rising'],
-        "falling": ctx.t['dominance_falling'],
-        "stable":  ctx.t['dominance_stable'],
-        "unknown": ctx.t['dominance_unknown']
-    }[dom_trend]
+    dom_emo_map = {
+        "rising":  ctx.t.get('dominance_rising', '📈 Rising'),
+        "falling": ctx.t.get('dominance_falling', '📉 Falling'),
+        "stable":  ctx.t.get('dominance_stable', '➖ Stable'),
+        "unknown": ctx.t.get('dominance_unknown', '❓ Unknown')
+    }
+    dom_emo = dom_emo_map.get(dom_trend, dom_emo_map['unknown'])
 
     # S&P 500 emoji
     sp_emoji = "📈" if sp500_change > 0 else "📉" if sp500_change < 0 else "➖"
@@ -6842,13 +6843,13 @@ async def cmd_market(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             indices_text += f"• Altseason Index: {alt_emoji} {altseason_index}"
 
     header = (
-        f"{ctx.t['market_status_heading']}\n\n"
+        f"{ctx.t.get('market_status_heading', '📊 *Market Overview*')}\n\n"
         f"• BTC: ${btc_price:,.0f} {btc_emoji} {btc_change:+.2f}%\n"
-        f"• {ctx.t['btc_dominance']}: {btc_dom:.2f}% ({dom_emo})\n"
-        f"• {ctx.t['usdt_dominance']}: {usdt_dom:.2f}%\n"
+        f"• {ctx.t.get('btc_dominance', 'BTC Dominance')}: {btc_dom:.2f}% ({dom_emo})\n"
+        f"• {ctx.t.get('usdt_dominance', 'USDT Dominance')}: {usdt_dom:.2f}%\n"
         f"• S&P 500: {sp500:,.0f} {sp_emoji} {sp500_change:+.2f}%\n"
         f"• Gold: ${gold_price:,.0f} {gold_emoji} {gold_change:+.2f}%\n\n"
-        f"• {ctx.t['alt_signal_label']}: {emoji_map[alt_signal]} *{ctx.t[f'alt_signal_{alt_signal.lower()}']}*"
+        f"• {ctx.t.get('alt_signal_label', 'ALT Signal')}: {emoji_map.get(alt_signal, '⚪')} *{ctx.t.get(f'alt_signal_{alt_signal.lower()}', alt_signal)}*"
         f"{indices_text}"
         f"{top_coins_text}"
         f"{total_text}"
@@ -27879,9 +27880,13 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "exchange:set_hl":
-        # Check if HL is configured
+        # Check if HL is configured - check BOTH legacy and multitenancy fields
         hl_creds = get_hl_credentials(uid)
-        if not hl_creds.get("hl_wallet_address") and not hl_creds.get("hl_private_key"):
+        has_legacy = hl_creds.get("hl_wallet_address") or hl_creds.get("hl_private_key")
+        has_mainnet = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_mainnet_wallet_address")
+        has_testnet = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_testnet_wallet_address")
+        
+        if not has_legacy and not has_mainnet and not has_testnet:
             await q.edit_message_text(
                 "❌ *HyperLiquid not configured*\n\n"
                 "Please setup HyperLiquid first.",
@@ -27928,7 +27933,12 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         current = get_exchange_type(uid)
         if current == "bybit":
             hl_creds = get_hl_credentials(uid)
-            if hl_creds.get("hl_wallet_address") or hl_creds.get("hl_private_key"):
+            # Check BOTH legacy and multitenancy fields
+            has_legacy = hl_creds.get("hl_wallet_address") or hl_creds.get("hl_private_key")
+            has_mainnet = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_mainnet_wallet_address")
+            has_testnet = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_testnet_wallet_address")
+            
+            if has_legacy or has_mainnet or has_testnet:
                 set_exchange_type(uid, "hyperliquid")
                 await q.edit_message_text(
                     "✅ *Switched to HyperLiquid*\n\n"
