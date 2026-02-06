@@ -46,7 +46,22 @@ class BybitApiKeys(BaseModel):
 
 
 class HLApiKeys(BaseModel):
-    wallet_address: str
+    """HyperLiquid API credentials.
+    
+    HyperLiquid uses API Wallets (agent wallets) architecture:
+    - api_wallet_private_key: Private key of API wallet (for signing orders)
+    - main_wallet_address: Address of main wallet (where funds are)
+    
+    Legacy fields (backward compatibility):
+    - wallet_address: Now used as main_wallet_address
+    - private_key: Now used as api_wallet_private_key
+    """
+    # New architecture (recommended)
+    api_wallet_private_key: Optional[str] = None  # For signing orders
+    main_wallet_address: Optional[str] = None     # Where funds are (for balance)
+    
+    # Legacy fields (backward compatibility)
+    wallet_address: Optional[str] = None
     private_key: Optional[str] = None
     vault_address: Optional[str] = None
     testnet: bool = False
@@ -979,37 +994,76 @@ async def save_hl_api_keys(
     data: HLApiKeys,
     user: dict = Depends(get_current_user)
 ):
-    """Save HyperLiquid API keys."""
+    """Save HyperLiquid API keys.
+    
+    HyperLiquid uses API Wallets architecture:
+    - API Wallet: Can sign orders on behalf of main wallet (no withdraw)
+    - Main Wallet: Where your funds are
+    
+    Required:
+    - api_wallet_private_key OR private_key (legacy)
+    - main_wallet_address OR wallet_address (legacy)
+    """
     user_id = user["user_id"]
     
-    if not data.wallet_address:
-        raise HTTPException(status_code=400, detail="Wallet address required")
+    # Support both new and legacy field names
+    api_private_key = data.api_wallet_private_key or data.private_key
+    main_address = data.main_wallet_address or data.wallet_address
     
-    # Validate wallet address format
-    if not data.wallet_address.startswith("0x") or len(data.wallet_address) != 42:
-        raise HTTPException(status_code=400, detail="Invalid wallet address format")
+    if not main_address:
+        raise HTTPException(status_code=400, detail="Main wallet address required")
     
-    db.set_user_field(user_id, "hl_wallet_address", data.wallet_address)
+    # Validate main wallet address format
+    if not main_address.startswith("0x") or len(main_address) != 42:
+        raise HTTPException(status_code=400, detail="Invalid main wallet address format. Expected 42 characters starting with 0x")
     
-    if data.private_key:
+    if api_private_key:
         # Validate private key format
-        pk = data.private_key.strip()
+        pk = api_private_key.strip()
         if not pk.startswith("0x"):
             pk = "0x" + pk
         if len(pk) != 66:
-            raise HTTPException(status_code=400, detail="Invalid private key format")
-        db.set_user_field(user_id, "hl_private_key", pk)
+            raise HTTPException(status_code=400, detail="Invalid API wallet private key format. Expected 64 hex characters")
+        
+        # Derive API wallet address from private key for verification
+        try:
+            from eth_account import Account
+            api_wallet = Account.from_key(pk).address
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid private key: {str(e)}")
+    else:
+        api_wallet = None
+        pk = None
     
+    # Determine account type
+    account_type = "testnet" if data.testnet else "mainnet"
+    
+    # Save using proper multitenancy columns
+    from db import set_hl_credentials, set_hl_enabled
+    set_hl_credentials(user_id, creds={
+        "hl_private_key": pk,
+        "hl_wallet_address": main_address,  # Main wallet address
+        "hl_testnet": data.testnet,
+        "account_type": account_type
+    })
+    
+    # Also save vault_address if provided (for Vault trading)
     if data.vault_address:
         if not data.vault_address.startswith("0x") or len(data.vault_address) != 42:
             raise HTTPException(status_code=400, detail="Invalid vault address format")
         db.set_user_field(user_id, "hl_vault_address", data.vault_address)
     
-    db.set_user_field(user_id, "hl_testnet", data.testnet)
+    # Enable HL for user
+    set_hl_enabled(user_id, True)
     
-    logger.info(f"User {user_id} saved HyperLiquid API keys")
+    logger.info(f"User {user_id} saved HyperLiquid API keys (main: {main_address[:10]}..., api: {api_wallet[:10] if api_wallet else 'N/A'}...)")
     
-    return {"success": True}
+    return {
+        "success": True,
+        "main_wallet": main_address,
+        "api_wallet": api_wallet,
+        "network": "testnet" if data.testnet else "mainnet"
+    }
 
 
 @router.get("/api-keys/hyperliquid/test")

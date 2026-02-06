@@ -26533,9 +26533,13 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # HyperLiquid DEX Commands
 # ========================
 
-# Global dict to track users waiting for private key input
-_hl_awaiting_key = {}
+# Global dict to track users waiting for HyperLiquid input
+# Structure: {uid: {"step": "private_key"|"wallet_address", "testnet": bool, "private_key": str (for step 2)}}
+_hl_awaiting_input = {}
 _awaiting_hl_param = {}  # {uid: {strategy, param}}
+
+# Legacy alias for backward compatibility
+_hl_awaiting_key = _hl_awaiting_input
 
 # HyperLiquid requires premium license
 HYPERLIQUID_LICENSE_TYPES = ["premium", "vip", "enterprise"]
@@ -26655,15 +26659,17 @@ Select network to start:
 async def cmd_hl_setkey(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Command to set HyperLiquid private key"""
     uid = update.effective_user.id
-    _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+    _hl_awaiting_input[uid] = {"step": "private_key", "testnet": False}
     
     await update.message.reply_text(
-        "🔑 *Set HyperLiquid Private Key*\n\n"
-        "Please send your ETH private key (with or without 0x prefix).\n\n"
-        "⚠️ *Security Tips:*\n"
-        "• Use a dedicated trading wallet\n"
-        "• Never share your key with anyone\n"
-        "• The key will be stored encrypted\n\n"
+        "🔷 *HyperLiquid Mainnet Setup (Step 1/2)*\n\n"
+        "*Step 1:* Send your *API Wallet Private Key*\n\n"
+        "💡 *How to get it:*\n"
+        "1. Go to app.hyperliquid.xyz/API\n"
+        "2. Create an API Wallet (give it a name)\n"
+        "3. Click 'Generate' to create private key\n"
+        "4. Copy the private key and send it here\n\n"
+        "⚠️ *Security:* API Wallet can trade but cannot withdraw!\n\n"
         "Send /cancel to abort.",
         parse_mode="Markdown"
     )
@@ -27485,25 +27491,31 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = q.data
     
     if data == "hl_api:setup_mainnet":
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": False}
         await q.edit_message_text(
-            "🌐 <b>HyperLiquid Mainnet Setup</b>\n\n"
-            "Send your ETH private key (with or without 0x prefix).\n\n"
-            "⚠️ <b>Security Tips:</b>\n"
-            "• Use a dedicated trading wallet\n"
-            "• Never share your key with anyone\n\n"
+            "🌐 <b>HyperLiquid Mainnet Setup (Step 1/2)</b>\n\n"
+            "<b>Step 1:</b> Send your <b>API Wallet Private Key</b>\n\n"
+            "💡 <b>How to get it:</b>\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
+            "⚠️ <b>Security:</b> API Wallet can trade but cannot withdraw!\n\n"
             "Send /cancel to abort.",
             parse_mode="HTML"
         )
     
     elif data == "hl_api:setup_testnet":
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": True}
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": True}
         await q.edit_message_text(
-            "🧪 <b>HyperLiquid Testnet Setup</b>\n\n"
-            "Send your ETH private key (with or without 0x prefix).\n\n"
-            "⚠️ <b>Security Tips:</b>\n"
-            "• Use a dedicated trading wallet\n"
-            "• Never share your key with anyone\n\n"
+            "🧪 <b>HyperLiquid Testnet Setup (Step 1/2)</b>\n\n"
+            "<b>Step 1:</b> Send your <b>API Wallet Private Key</b>\n\n"
+            "💡 <b>How to get it:</b>\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
+            "⚠️ <b>Security:</b> API Wallet can trade but cannot withdraw!\n\n"
             "Send /cancel to abort.",
             parse_mode="HTML"
         )
@@ -27610,15 +27622,18 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Determine which network to set key for based on current setting
         hl_creds = get_hl_credentials(uid)
         is_testnet = hl_creds.get("hl_testnet", False)
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": is_testnet}
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": is_testnet}
         network = "Testnet" if is_testnet else "Mainnet"
         network_emoji = "🧪" if is_testnet else "🌐"
         await q.edit_message_text(
-            f"{network_emoji} <b>HyperLiquid {network} Setup</b>\n\n"
-            "Send your ETH private key (with or without 0x prefix).\n\n"
-            "⚠️ <b>Security Tips:</b>\n"
-            "• Use a dedicated trading wallet\n"
-            "• Never share your key with anyone\n\n"
+            f"{network_emoji} <b>HyperLiquid {network} Setup (Step 1/2)</b>\n\n"
+            "<b>Step 1:</b> Send your <b>API Wallet Private Key</b>\n\n"
+            "💡 <b>How to get it:</b>\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
+            "⚠️ <b>Security:</b> API Wallet can trade but cannot withdraw!\n\n"
             "Send /cancel to abort.",
             parse_mode="HTML"
         )
@@ -27656,11 +27671,35 @@ async def _refresh_hl_settings_inline(q, uid: int, ctx):
     
     key_status = "✅" if has_key else "❌"
     
+    # Get API wallet address (derived from private key)
+    if is_testnet:
+        api_key = hl_creds.get("hl_testnet_private_key")
+    else:
+        api_key = hl_creds.get("hl_mainnet_private_key")
+    
+    if not api_key:
+        api_key = hl_creds.get("hl_private_key")
+    
+    api_wallet = ""
+    if api_key:
+        try:
+            from eth_account import Account
+            api_wallet = Account.from_key(api_key).address
+        except:
+            pass
+    
+    api_wallet_display = f"{api_wallet[:8]}...{api_wallet[-6:]}" if api_wallet and len(api_wallet) > 14 else "Not set"
+    
     hl_msg = f"""🔷 <b>HyperLiquid Settings</b>
 
 <b>Network:</b> {network}
-<b>Wallet:</b> <code>{wallet_display}</code>
-<b>Private Key:</b> {key_status}
+<b>Main Wallet:</b> <code>{wallet_display}</code>
+<b>API Wallet:</b> <code>{api_wallet_display}</code>
+<b>Status:</b> {key_status}
+
+💡 <b>Setup requires 2 things:</b>
+1. API Wallet Private Key (for signing orders)
+2. Main Wallet Address (where your funds are)
 
 Use the buttons below to configure:"""
     
@@ -27669,7 +27708,7 @@ Use the buttons below to configure:"""
             InlineKeyboardButton("✅ Testnet" if is_testnet else "🧪 Testnet", callback_data="hl_api:testnet"),
             InlineKeyboardButton("🌐 Mainnet" if is_testnet else "✅ Mainnet", callback_data="hl_api:mainnet"),
         ],
-        [InlineKeyboardButton("🔑 Set Private Key", callback_data="hl_api:set_key")],
+        [InlineKeyboardButton("🔧 Setup API Wallet", callback_data="hl_api:set_key")],
         [InlineKeyboardButton("🔄 Test Connection", callback_data="hl_api:test")],
         [InlineKeyboardButton("⬅️ Back to API Settings", callback_data="hl_api:back")],
     ]
@@ -28641,14 +28680,17 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        # New setup
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        # New setup - 2-step flow
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": False}
         await q.edit_message_text(
-            "🔑 *Connect to HyperLiquid Mainnet*\n\n"
-            "Please send your ETH private key (with or without 0x prefix).\n\n"
-            "⚠️ *Security Tips:*\n"
-            "• Use a dedicated trading wallet\n"
-            "• Never share your key with anyone\n\n"
+            "🌐 *HyperLiquid Mainnet Setup (Step 1/2)*\n\n"
+            "*Step 1:* Send your *API Wallet Private Key*\n\n"
+            "💡 *How to get it:*\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
+            "⚠️ *Security:* API Wallet can trade but cannot withdraw!\n\n"
             "Send /cancel to abort.",
             parse_mode="Markdown"
         )
@@ -28678,14 +28720,17 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return
         
-        # New setup
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": True}
+        # New setup - 2-step flow
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": True}
         await q.edit_message_text(
-            "🔑 *Connect to HyperLiquid Testnet*\n\n"
-            "Please send your ETH private key (with or without 0x prefix).\n\n"
-            "⚠️ *Security Tips:*\n"
-            "• Use a dedicated trading wallet\n"
-            "• Never share your key with anyone\n\n"
+            "🧪 *HyperLiquid Testnet Setup (Step 1/2)*\n\n"
+            "*Step 1:* Send your *API Wallet Private Key*\n\n"
+            "💡 *How to get it:*\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
+            "⚠️ *Security:* API Wallet can trade but cannot withdraw!\n\n"
             "Send /cancel to abort.",
             parse_mode="Markdown"
         )
@@ -28891,10 +28936,18 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
     
     elif data == "hl:setkey":
-        _hl_awaiting_key[uid] = {"waiting": True, "testnet": False}
+        hl_creds = get_hl_credentials(uid)
+        is_testnet = hl_creds.get("hl_testnet", False)
+        _hl_awaiting_input[uid] = {"step": "private_key", "testnet": is_testnet}
+        network = "Testnet" if is_testnet else "Mainnet"
         await q.edit_message_text(
-            "🔑 *Update Private Key*\n\n"
-            "Send your new ETH private key.\n"
+            f"🔷 *Update HyperLiquid {network} (Step 1/2)*\n\n"
+            "*Step 1:* Send your *API Wallet Private Key*\n\n"
+            "💡 *How to get it:*\n"
+            "1. Go to app.hyperliquid.xyz/API\n"
+            "2. Create an API Wallet (give it a name)\n"
+            "3. Click 'Generate' to create private key\n"
+            "4. Copy the private key and send it here\n\n"
             "Send /cancel to abort.",
             parse_mode="Markdown"
         )
@@ -28969,10 +29022,17 @@ async def handle_hl_strategy_param(update: Update, ctx: ContextTypes.DEFAULT_TYP
 
 
 async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> bool:
-    """Handle private key input for HyperLiquid setup. Returns True if handled."""
+    """Handle 2-step HyperLiquid setup input. Returns True if handled."""
     uid = update.effective_user.id
     
-    if uid not in _hl_awaiting_key or not _hl_awaiting_key[uid].get("waiting"):
+    # Check if user is in HL setup flow
+    if uid not in _hl_awaiting_input:
+        return False
+    
+    state = _hl_awaiting_input[uid]
+    step = state.get("step")
+    
+    if not step:
         return False
     
     # Get translations
@@ -28984,57 +29044,55 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
     
     # Cancel
     if text.lower() == "/cancel":
-        del _hl_awaiting_key[uid]
+        del _hl_awaiting_input[uid]
         await update.message.reply_text(t.get("hl_setup_cancelled", "❌ HyperLiquid setup cancelled."))
         return True
     
-    # Validate private key format
-    key = text.replace("0x", "").strip()
+    testnet = state.get("testnet", False)
+    network = "🧪 Testnet" if testnet else "🌐 Mainnet"
     
-    # Check if user sent wallet address instead of private key
-    if len(key) == 40:
-        await update.message.reply_text(
-            "❌ *This looks like a wallet address, not a private key!*\n\n"
-            "• Wallet address: 40 characters (what you sent)\n"
-            "• Private key: 64 characters (what we need)\n\n"
-            "Your private key is in your wallet app under 'Export Private Key'.\n\n"
-            "Try again or send /cancel to abort.",
-            parse_mode="Markdown"
-        )
-        return True
-    
-    if len(key) != 64 or not all(c in "0123456789abcdefABCDEF" for c in key):
-        await update.message.reply_text(
-            f"❌ *Invalid private key format*\n\n"
-            f"You sent: {len(key)} characters\n"
-            f"Expected: 64 hex characters\n\n"
-            "Private key should look like:\n"
-            "`47b6e4448f97b26f...40e5981a`\n\n"
-            "Try again or send /cancel to abort.",
-            parse_mode="Markdown"
-        )
-        return True
-    
-    testnet = _hl_awaiting_key[uid].get("testnet", False)
-    del _hl_awaiting_key[uid]
-    
-    # Try to derive address and validate
-    try:
-        from eth_account import Account
-        account = Account.from_key("0x" + key)
-        address = account.address
+    # ==========================
+    # STEP 1: API Wallet Private Key
+    # ==========================
+    if step == "private_key":
+        key = text.replace("0x", "").strip()
         
-        # Save credentials - use account_type for proper column placement
-        account_type = "testnet" if testnet else "mainnet"
-        set_hl_credentials(uid, creds={
-            "hl_private_key": "0x" + key,
-            "hl_wallet_address": address,
-            "hl_testnet": testnet,
-            "account_type": account_type
-        })
+        # Check if user sent wallet address instead of private key
+        if len(key) == 40:
+            await update.message.reply_text(
+                "❌ *This looks like a wallet address, not a private key!*\n\n"
+                "• Wallet address: 40 characters (what you sent)\n"
+                "• Private key: 64 characters (what we need)\n\n"
+                "Go to app.hyperliquid.xyz/API and click 'Generate' to create API wallet.\n\n"
+                "Try again or send /cancel to abort.",
+                parse_mode="Markdown"
+            )
+            return True
         
-        # Enable HL for user
-        set_hl_enabled(uid, True)
+        if len(key) != 64 or not all(c in "0123456789abcdefABCDEF" for c in key):
+            await update.message.reply_text(
+                f"❌ *Invalid private key format*\n\n"
+                f"You sent: {len(key)} characters\n"
+                f"Expected: 64 hex characters\n\n"
+                "Private key should look like:\n"
+                "`47b6e4448f97b26f...40e5981a`\n\n"
+                "Try again or send /cancel to abort.",
+                parse_mode="Markdown"
+            )
+            return True
+        
+        # Validate key by deriving address
+        try:
+            from eth_account import Account
+            account = Account.from_key("0x" + key)
+            api_wallet_address = account.address
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ *Invalid private key*: {str(e)[:50]}\n\n"
+                "Try again or send /cancel to abort.",
+                parse_mode="Markdown"
+            )
+            return True
         
         # Delete the message containing the private key for security
         try:
@@ -29042,22 +29100,88 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
         except Exception:
             pass
         
-        network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+        # Move to step 2 - ask for main wallet address
+        _hl_awaiting_input[uid] = {
+            "step": "wallet_address",
+            "testnet": testnet,
+            "private_key": "0x" + key,
+            "api_wallet": api_wallet_address
+        }
+        
         await update.message.reply_text(
-            f"✅ *HyperLiquid Connected!*\n\n"
-            f"*Network:* {network}\n"
-            f"*Wallet:* `{address[:10]}...{address[-6:]}`\n\n"
+            f"✅ *Step 1 Complete!*\n\n"
+            f"API Wallet: `{api_wallet_address[:10]}...{api_wallet_address[-6:]}`\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"*Step 2/2:* Send your *Main Wallet Address*\n\n"
+            f"💡 *How to find it:*\n"
+            f"• Look at top-right corner on app.hyperliquid.xyz\n"
+            f"• Click on your wallet address (0x...)\n"
+            f"• Copy the full address\n\n"
+            f"⚠️ This is where your funds are - NOT the API wallet!\n\n"
+            f"Send /cancel to abort.",
+            parse_mode="Markdown"
+        )
+        return True
+    
+    # ==========================
+    # STEP 2: Main Wallet Address
+    # ==========================
+    elif step == "wallet_address":
+        address = text.strip()
+        
+        # Clean up address
+        if not address.startswith("0x"):
+            address = "0x" + address
+        
+        # Validate address format (42 chars: 0x + 40 hex)
+        addr_hex = address[2:] if address.startswith("0x") else address
+        if len(addr_hex) != 40 or not all(c in "0123456789abcdefABCDEF" for c in addr_hex):
+            await update.message.reply_text(
+                f"❌ *Invalid wallet address format*\n\n"
+                f"Expected: 42 characters starting with 0x\n"
+                f"Example: `0xF38498bFec6DCD4A27809e5d70A8989Df73d0C6c`\n\n"
+                "Try again or send /cancel to abort.",
+                parse_mode="Markdown"
+            )
+            return True
+        
+        # Get saved private key from step 1
+        private_key = state.get("private_key")
+        api_wallet = state.get("api_wallet")
+        
+        if not private_key:
+            del _hl_awaiting_input[uid]
+            await update.message.reply_text("❌ Session expired. Please start setup again.")
+            return True
+        
+        # Save credentials
+        account_type = "testnet" if testnet else "mainnet"
+        set_hl_credentials(uid, creds={
+            "hl_private_key": private_key,
+            "hl_wallet_address": address,  # Main wallet address
+            "hl_testnet": testnet,
+            "account_type": account_type
+        })
+        
+        # Enable HL for user
+        set_hl_enabled(uid, True)
+        
+        # Clear state
+        del _hl_awaiting_input[uid]
+        
+        await update.message.reply_text(
+            f"✅ *HyperLiquid Connected!* {network}\n\n"
+            f"*Main Wallet:* `{address[:10]}...{address[-6:]}`\n"
+            f"*API Wallet:* `{api_wallet[:10]}...{api_wallet[-6:]}`\n\n"
+            f"💰 Your balance will be read from Main Wallet\n"
+            f"📝 Orders will be signed by API Wallet\n\n"
             f"Now you can switch to HyperLiquid using 🔄 Switch button.",
             parse_mode="Markdown"
         )
-    except Exception as e:
-        logger.error(f"HL key setup error: {e}")
-        await update.message.reply_text(
-            f"❌ Error setting up HyperLiquid: {str(e)}\n\n"
-            "Make sure you have eth-account installed: pip install eth-account"
-        )
+        return True
     
-    return True
+    return False
+
 
 @with_texts
 @log_calls
