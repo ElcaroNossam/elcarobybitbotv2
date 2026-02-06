@@ -1516,8 +1516,14 @@ def require_license(license_types: list[str] | None = None):
 
 
 
-def get_texts(ctx: ContextTypes.DEFAULT_TYPE) -> dict:
-    lang = ctx.user_data.get('lang', DEFAULT_LANG)
+def get_texts(ctx_or_uid) -> dict:
+    """Get translations for user. Accepts ctx or user_id (int)."""
+    if isinstance(ctx_or_uid, int):
+        # user_id passed directly - load lang from DB
+        lang = db.get_user_lang(ctx_or_uid) or DEFAULT_LANG
+    else:
+        # ctx passed - get from user_data
+        lang = ctx_or_uid.user_data.get('lang', DEFAULT_LANG)
     return LANGS.get(lang, LANGS[DEFAULT_LANG])
 
 def _stricter_sl(side_: str, new_sl: float, cur_sl):
