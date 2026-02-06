@@ -2042,6 +2042,15 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             if "not modified" not in str(e).lower():
                 raise
     
+    # ─── Show main API Settings menu ───
+    if action == "settings":
+        await q.answer()
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
     # ─── HyperLiquid Settings ───
     if action == "hl_settings":
         await q.answer()
@@ -28074,7 +28083,19 @@ async def on_exchange_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     elif data == "main_menu":
         t = get_texts(uid)
-        await q.edit_message_text(t.get("use_start_menu", "Use /start to return to main menu."))
+        # Delete the inline message and send new message with main menu keyboard
+        try:
+            await q.message.delete()
+        except Exception:
+            pass
+        # Send fresh main menu
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=t.get("main_menu_welcome", "🏠 *Main Menu*\n\nUse buttons below to navigate."),
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+        return
 
 
 def _build_bybit_status_keyboard(uid: int, t: dict) -> tuple[str, InlineKeyboardMarkup]:
@@ -29081,6 +29102,9 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
         # Enable HL for user
         set_hl_enabled(uid, True)
         
+        # Switch to HyperLiquid as active exchange
+        set_exchange_type(uid, "hyperliquid")
+        
         # Clear state
         del _hl_awaiting_input[uid]
         
@@ -29090,9 +29114,16 @@ async def handle_hl_private_key(update: Update, ctx: ContextTypes.DEFAULT_TYPE) 
             f"*API Wallet:* `{api_wallet[:10]}...{api_wallet[-6:]}`\n\n"
             f"⚠️ *IMPORTANT: Approve API Wallet*\n"
             f"Go to app.hyperliquid.xyz → API → Click your API Wallet → *Approve Agent*\n\n"
-            f"This allows the API Wallet to trade on behalf of your Main Wallet.\n\n"
-            f"After approval, you can switch to HyperLiquid using 🔄 Switch button.",
+            f"This allows the API Wallet to trade on behalf of your Main Wallet.",
             parse_mode="Markdown"
+        )
+        
+        # Update main menu keyboard to show HyperLiquid
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="🔷 *HyperLiquid mode activated!*\n\nUse the updated menu below.",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
         )
         return True
     
