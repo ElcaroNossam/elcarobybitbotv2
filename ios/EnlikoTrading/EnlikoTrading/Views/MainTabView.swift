@@ -225,13 +225,13 @@ struct MoreView: View {
         NavigationView {
             List {
                 // 🔥 Premium Features Section (some features in beta)
-                Section(header: Text("✨ Premium Features")) {
+                Section(header: Text("section_premium_features".localized)) {
                     // AI Copilot - Live feature
                     NavigationLink(destination: AICopilotView()) {
                         MoreMenuItem(
                             icon: "sparkles",
-                            title: "AI Trading Copilot",
-                            subtitle: "Smart trading assistant",
+                            title: "ai_trading_copilot".localized,
+                            subtitle: "smart_trading_assistant".localized,
                             color: .purple
                         )
                     }
@@ -240,8 +240,8 @@ struct MoreView: View {
                     NavigationLink(destination: MarketHeatmapView()) {
                         MoreMenuItemWithBeta(
                             icon: "square.grid.3x3.fill",
-                            title: "Market Heatmap",
-                            subtitle: "Visual market overview",
+                            title: "market_heatmap".localized,
+                            subtitle: "visual_market_overview".localized,
                             color: .orange,
                             isBeta: true
                         )
@@ -251,8 +251,8 @@ struct MoreView: View {
                     NavigationLink(destination: SocialTradingView()) {
                         MoreMenuItemWithBeta(
                             icon: "person.2.fill",
-                            title: "Social Trading",
-                            subtitle: "Copy top traders",
+                            title: "social_trading".localized,
+                            subtitle: "copy_top_traders".localized,
                             color: .green,
                             isBeta: true,
                             isComingSoon: true
@@ -260,7 +260,7 @@ struct MoreView: View {
                     }
                 }
                 
-                Section(header: Text("Trading")) {
+                Section(header: Text("section_trading".localized)) {
                     // Spot Trading - NEW!
                     NavigationLink(destination: SpotTradingView()) {
                         MoreMenuItem(
@@ -302,7 +302,7 @@ struct MoreView: View {
                     }
                 }
                 
-                Section(header: Text("Analytics")) {
+                Section(header: Text("section_analytics".localized)) {
                     // Statistics
                     NavigationLink(destination: StatsView()) {
                         MoreMenuItem(
@@ -324,7 +324,7 @@ struct MoreView: View {
                     }
                 }
                 
-                Section(header: Text("Sync & Notifications")) {
+                Section(header: Text("section_sync_notifications".localized)) {
                     // Activity (Cross-platform sync)
                     NavigationLink(destination: ActivityView()) {
                         MoreMenuItem(
@@ -348,13 +348,13 @@ struct MoreView: View {
                 }
                 
                 // 🔥 NEW: Siri Shortcuts Guide
-                Section(header: Text("Quick Access")) {
+                Section(header: Text("section_quick_access".localized)) {
                     if #available(iOS 16.0, *) {
                         NavigationLink(destination: ShortcutsTestView()) {
                             MoreMenuItem(
                                 icon: "mic.fill",
-                                title: "Siri Shortcuts",
-                                subtitle: "Voice commands setup",
+                                title: "siri_shortcuts".localized,
+                                subtitle: "voice_commands_setup".localized,
                                 color: .pink
                             )
                         }

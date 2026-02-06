@@ -310,28 +310,28 @@ struct PendingPaymentRow: View {
 // MARK: - Placeholder Views
 struct AdminUsersView: View {
     var body: some View {
-        Text("Users Management")
+        Text("users_management".localized)
             .navigationTitle("manage_users".localized)
     }
 }
 
 struct AdminPaymentsView: View {
     var body: some View {
-        Text("Payments")
+        Text("payments".localized)
             .navigationTitle("payments".localized)
     }
 }
 
 struct AdminLicensesView: View {
     var body: some View {
-        Text("Licenses")
+        Text("licenses".localized)
             .navigationTitle("licenses".localized)
     }
 }
 
 struct AdminErrorsView: View {
     var body: some View {
-        Text("Errors")
+        Text("errors".localized)
             .navigationTitle("errors".localized)
     }
 }

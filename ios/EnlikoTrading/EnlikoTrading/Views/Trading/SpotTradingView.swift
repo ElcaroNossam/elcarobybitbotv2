@@ -336,7 +336,7 @@ struct SpotSettingsTab: View {
             }
             
             // Auto DCA
-            Section(header: Text("📈 Auto DCA")) {
+            Section(header: Text("📈 " + "spot_auto_dca".localized)) {
                 Toggle("Enable Auto DCA", isOn: $dcaEnabled)
                 
                 if dcaEnabled {
@@ -356,7 +356,7 @@ struct SpotSettingsTab: View {
             }
             
             // Take Profit
-            Section(header: Text("🎯 Take Profit")) {
+            Section(header: Text("🎯 " + "spot_take_profit".localized)) {
                 Toggle("Enable TP Levels", isOn: $tpEnabled)
                 
                 if tpEnabled {
@@ -372,7 +372,7 @@ struct SpotSettingsTab: View {
             }
             
             // Advanced Features
-            Section(header: Text("⚙️ Advanced")) {
+            Section(header: Text("⚙️ " + "spot_advanced".localized)) {
                 Toggle("🔒 Profit Lock", isOn: $profitLockEnabled)
                 if profitLockEnabled {
                     Text("Sell 50% when +30% profit")

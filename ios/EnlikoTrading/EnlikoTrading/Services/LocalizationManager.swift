@@ -877,6 +877,39 @@ class LocalizationManager: ObservableObject {
         "tp_sl": "TP / SL",
         "wallet": "Wallet",
         "error": "Error",
+        
+        // Section Headers (More View)
+        "section_premium_features": "✨ Premium Features",
+        "section_trading": "Trading",
+        "section_analytics": "Analytics",
+        "section_sync_notifications": "Sync & Notifications",
+        "section_quick_access": "Quick Access",
+        
+        // More View Items
+        "ai_trading_copilot": "AI Trading Copilot",
+        "smart_trading_assistant": "Smart trading assistant",
+        "market_heatmap": "Market Heatmap",
+        "visual_market_overview": "Visual market overview",
+        "social_trading": "Social Trading",
+        "copy_top_traders": "Copy top traders",
+        "siri_shortcuts": "Siri Shortcuts",
+        "voice_commands_setup": "Voice commands setup",
+        
+        // Spot Trading Sections
+        "spot_auto_dca": "Auto DCA",
+        "spot_take_profit": "Take Profit",
+        "spot_advanced": "Advanced",
+        "select_coin": "Select Coin",
+        "amount_usdt": "Amount (USDT)",
+        "sell_coin": "Sell %@",
+        "select_portfolio": "Select Portfolio",
+        "additional_investment": "Additional Investment (optional)",
+        
+        // Exchange Selector
+        "account_type": "Account Type",
+        
+        // Admin
+        "users_management": "Users Management",
     ] }
     
     // MARK: - Russian
@@ -1520,6 +1553,39 @@ class LocalizationManager: ObservableObject {
         "wallet": "Кошелёк",
         "error": "Ошибка",
         "orders_empty": "Нет открытых ордеров",
+        
+        // Section Headers (More View)
+        "section_premium_features": "✨ Премиум функции",
+        "section_trading": "Торговля",
+        "section_analytics": "Аналитика",
+        "section_sync_notifications": "Синхронизация",
+        "section_quick_access": "Быстрый доступ",
+        
+        // More View Items
+        "ai_trading_copilot": "AI Копилот",
+        "smart_trading_assistant": "Умный торговый помощник",
+        "market_heatmap": "Тепловая карта",
+        "visual_market_overview": "Визуальный обзор рынка",
+        "social_trading": "Социальный трейдинг",
+        "copy_top_traders": "Копируйте лучших трейдеров",
+        "siri_shortcuts": "Команды Siri",
+        "voice_commands_setup": "Настройка голосовых команд",
+        
+        // Spot Trading Sections
+        "spot_auto_dca": "Авто DCA",
+        "spot_take_profit": "Тейк-профит",
+        "spot_advanced": "Расширенные",
+        "select_coin": "Выберите монету",
+        "amount_usdt": "Сумма (USDT)",
+        "sell_coin": "Продать %@",
+        "select_portfolio": "Выберите портфель",
+        "additional_investment": "Дополнительные инвестиции",
+        
+        // Exchange Selector
+        "account_type": "Тип аккаунта",
+        
+        // Admin
+        "users_management": "Управление пользователями",
     ] }
     
     // MARK: - Ukrainian
