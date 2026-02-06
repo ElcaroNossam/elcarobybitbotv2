@@ -5830,11 +5830,154 @@ async def set_trading_stop(
     side_hint: str | None = None,
     is_trailing: bool = False,  # Skip entry price validation for trailing SL
     is_be: bool = False,  # Skip validation for Break-Even SL (SL = entry)
-    account_type: str | None = None,  # 'demo', 'real', or None (auto-detect)
+    account_type: str | None = None,  # 'demo', 'real', 'testnet', 'mainnet' or None (auto-detect)
+    exchange: str | None = None,  # 'bybit' or 'hyperliquid' or None (auto-detect)
 ) -> bool:
-    """Set TP/SL for a position. Returns True if successful, False if position not found."""
+    """
+    Set TP/SL for a position on Bybit OR HyperLiquid.
+    Returns True if successful, False if position not found.
+    
+    Supports both exchanges with 1:1 functionality parity:
+    - Bybit: uses /v5/position/trading-stop API
+    - HyperLiquid: uses set_tp_sl via HLAdapter
+    """
     if tp_price is None and sl_price is None:
         raise ValueError("You must specify at least one of the levels: TP or SL")
+    
+    # Auto-detect exchange if not specified
+    if exchange is None:
+        exchange = db.get_exchange_type(uid)
+    
+    # Route to exchange-specific implementation
+    if exchange == "hyperliquid":
+        return await _set_trading_stop_hyperliquid(
+            uid, symbol, tp_price, sl_price, side_hint, is_trailing, is_be, account_type
+        )
+    else:
+        return await _set_trading_stop_bybit(
+            uid, symbol, tp_price, sl_price, side_hint, is_trailing, is_be, account_type
+        )
+
+
+async def _set_trading_stop_hyperliquid(
+    uid: int,
+    symbol: str,
+    tp_price: float | None = None,
+    sl_price: float | None = None,
+    side_hint: str | None = None,
+    is_trailing: bool = False,
+    is_be: bool = False,
+    account_type: str | None = None,
+) -> bool:
+    """
+    Set TP/SL for a position on HyperLiquid.
+    Implements same validation as Bybit for 1:1 parity.
+    """
+    try:
+        # Get HL credentials
+        hl_creds = db.get_hl_credentials(uid)
+        is_testnet = account_type in ("testnet", "paper", "demo") if account_type else hl_creds.get("hl_testnet", False)
+        
+        # Get correct private key for network (multitenancy)
+        if is_testnet:
+            private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        else:
+            private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        
+        if not private_key:
+            logger.warning(f"[{uid}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
+            return False
+        
+        # Create adapter
+        adapter = HLAdapter(
+            private_key=private_key,
+            testnet=is_testnet,
+            vault_address=hl_creds.get("hl_vault_address")
+        )
+        
+        try:
+            # Get position to validate side
+            positions_result = await adapter.fetch_positions(symbol)
+            positions = positions_result.get("result", {}).get("list", [])
+            
+            if not positions:
+                logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
+                return False
+            
+            pos = positions[0]  # Get first/only position for symbol
+            effective_side = pos.get("side")
+            entry_price = float(pos.get("entryPrice", 0))
+            
+            # Validate TP/SL prices (same logic as Bybit)
+            if tp_price is not None:
+                if effective_side == "Buy" and entry_price > 0 and tp_price <= entry_price:
+                    logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) <= entry ({entry_price}) for LONG - skipping")
+                    tp_price = None
+                elif effective_side == "Sell" and entry_price > 0 and tp_price >= entry_price:
+                    logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) >= entry ({entry_price}) for SHORT - skipping")
+                    tp_price = None
+            
+            if sl_price is not None and not is_be:
+                if effective_side == "Buy" and entry_price > 0 and sl_price >= entry_price:
+                    logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) >= entry ({entry_price}) for LONG - skipping")
+                    sl_price = None
+                elif effective_side == "Sell" and entry_price > 0 and sl_price <= entry_price:
+                    logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) <= entry ({entry_price}) for SHORT - skipping")
+                    sl_price = None
+            
+            if tp_price is None and sl_price is None:
+                logger.debug(f"[{uid}] {symbol} HL: No valid TP/SL to set after validation")
+                return True
+            
+            # Set TP/SL via HyperLiquid API
+            coin = hl_symbol_to_coin(symbol)
+            result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price)
+            
+            # Check results
+            success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
+            
+            if success:
+                logger.info(f"[{uid}] {symbol} HL: TP/SL set successfully - tp={tp_price}, sl={sl_price}")
+                
+                # Save to DB
+                db_account_type = "testnet" if is_testnet else "mainnet"
+                try:
+                    update_position_sltp(
+                        user_id=uid,
+                        symbol=symbol,
+                        account_type=db_account_type,
+                        sl_price=sl_price,
+                        tp_price=tp_price,
+                        respect_manual_override=True,
+                        exchange="hyperliquid"
+                    )
+                except Exception as db_err:
+                    logger.warning(f"[{uid}] {symbol} HL: Failed to save SL/TP to DB: {db_err}")
+                
+                return True
+            else:
+                logger.warning(f"[{uid}] {symbol} HL: TP/SL not set - result: {result}")
+                return False
+                
+        finally:
+            await adapter.close()
+            
+    except Exception as e:
+        logger.error(f"[{uid}] {symbol} HL set_trading_stop error: {e}")
+        return False
+
+
+async def _set_trading_stop_bybit(
+    uid: int,
+    symbol: str,
+    tp_price: float | None = None,
+    sl_price: float | None = None,
+    side_hint: str | None = None,
+    is_trailing: bool = False,
+    is_be: bool = False,
+    account_type: str | None = None,
+) -> bool:
+    """Set TP/SL for a position on Bybit. Returns True if successful, False if position not found."""
 
     filt = await get_symbol_filters(uid, symbol)
     tick = float(filt["tickSize"])

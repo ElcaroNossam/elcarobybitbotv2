@@ -490,6 +490,76 @@ class HLTradingTester:
         self.record_test("Multitenancy Credentials", True)
         return True
     
+    async def test_tpsl_setting(self, symbol: str = "BTC") -> bool:
+        """Test 13: Set TP/SL on HyperLiquid (1:1 parity with Bybit)"""
+        print_header(f"Test 13: TP/SL Setting ({symbol})")
+        
+        try:
+            # First check if we have an open position
+            result = await self.adapter.fetch_positions(f"{symbol}USDT")
+            positions = result.get("result", {}).get("list", [])
+            
+            if not positions:
+                print_info(f"No open position for {symbol}USDT - testing TP/SL API structure only")
+                
+                # Still verify the adapter has the methods
+                has_set_tp_sl = hasattr(self.adapter, 'set_stop_loss') and hasattr(self.adapter, 'set_take_profit')
+                if has_set_tp_sl:
+                    print_success("Adapter has set_stop_loss and set_take_profit methods")
+                    self.record_test(f"TP/SL Setting {symbol}", True, "No position - API verified")
+                    return True
+                else:
+                    print_error("Adapter missing TP/SL methods!")
+                    self.record_test(f"TP/SL Setting {symbol}", False, "Missing methods")
+                    return False
+            
+            pos = positions[0]
+            entry_price = float(pos.get("entryPrice", 0))
+            side = pos.get("side", "Buy")
+            size = float(pos.get("size", 0))
+            
+            print_info(f"Found position: {side} {size} @ ${entry_price:,.2f}")
+            
+            # Calculate TP/SL based on side
+            if side == "Buy":
+                tp_price = entry_price * 1.05  # 5% profit
+                sl_price = entry_price * 0.97  # 3% loss
+            else:
+                tp_price = entry_price * 0.95  # 5% profit (SHORT)
+                sl_price = entry_price * 1.03  # 3% loss (SHORT)
+            
+            print_info(f"Setting TP: ${tp_price:,.2f}, SL: ${sl_price:,.2f}")
+            
+            # Test via adapter's set_tp_sl method
+            coin = symbol  # HyperLiquid uses coin without suffix
+            result = await self.adapter._client.set_tp_sl(
+                coin=coin,
+                tp_price=tp_price,
+                sl_price=sl_price
+            )
+            
+            # Check result
+            success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
+            
+            if success:
+                print_success(f"TP/SL set successfully!")
+                print(f"\n  🎯 TP/SL Details:")
+                print(f"     Take Profit: ${tp_price:,.2f}")
+                print(f"     Stop Loss: ${sl_price:,.2f}")
+                self.record_test(f"TP/SL Setting {symbol}", True, f"TP={tp_price:.2f}, SL={sl_price:.2f}")
+                return True
+            else:
+                print_error(f"TP/SL setting failed: {result}")
+                self.record_test(f"TP/SL Setting {symbol}", False, str(result))
+                return False
+                
+        except Exception as e:
+            print_error(f"Exception: {e}")
+            import traceback
+            traceback.print_exc()
+            self.record_test(f"TP/SL Setting {symbol}", False, str(e))
+            return False
+    
     def print_summary(self):
         """Print test summary"""
         print_header("Test Summary")
@@ -555,6 +625,7 @@ async def main():
             await tester.test_strategy_settings_parity()
             await tester.test_exchange_router_hl_target()
             await tester.test_multitenancy_credentials()
+            await tester.test_tpsl_setting("BTC")  # Test 13: TP/SL parity with Bybit
         
         # Summary
         tester.print_summary()
