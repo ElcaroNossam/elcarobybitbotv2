@@ -951,6 +951,14 @@ def get_execution_targets(
     # Get user's current active exchange
     current_exchange = get_exchange_type(user_id)  # 'bybit' or 'hyperliquid'
     
+    # FALLBACK: If exchange_type not set, auto-detect based on which exchange is enabled
+    if not current_exchange:
+        if hl_enabled and not bybit_enabled:
+            current_exchange = "hyperliquid"
+        elif bybit_enabled:
+            current_exchange = "bybit"
+        # If both enabled but no preference, default to bybit for safety
+    
     if strat_mode == "both":
         # FIX: "both" means BOTH account types (demo+real or testnet+mainnet)
         # on the CURRENT active exchange, NOT both exchanges!
@@ -1151,6 +1159,8 @@ def get_user_config(user_id: int) -> dict:
             "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
             # совместимость
             "first_seen_ts", "last_seen_ts",
+            # exchange settings (IMPORTANT for routing!)
+            "exchange_type", "trading_mode", "live_enabled",
         ]
         if _col_exists(conn, "users", "trade_scryptomera"):
             cols.append("trade_scryptomera")
@@ -1259,6 +1269,10 @@ def get_user_config(user_id: int) -> dict:
             "atr_trigger_pct": 2.0,
             "atr_step_pct": 0.5,
             "direction": "all",
+            # Exchange settings
+            "exchange_type": "bybit",
+            "trading_mode": "demo",
+            "live_enabled": False,
         }
 
     data = dict(zip(cols, row))
@@ -1356,6 +1370,10 @@ def get_user_config(user_id: int) -> dict:
         "direction": data.get("direction", "all")
         if "direction" in data
         else "all",
+        # Exchange settings (IMPORTANT for routing!)
+        "exchange_type": data.get("exchange_type") or "bybit",
+        "trading_mode": data.get("trading_mode") or "demo",
+        "live_enabled": bool(data.get("live_enabled") or 0),
     }
     # Store in cache
     _user_config_cache[user_id] = (time.time(), cfg)
