@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""
+Test HyperLiquid Orders - Both Testnet and Mainnet
+Minimal amounts for testing
+"""
+import asyncio
+import logging
+import sys
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+# Disable debug logs from aiohttp/other libs
+logging.getLogger('aiohttp').setLevel(logging.WARNING)
+
+
+async def test_hl_full(uid: int = 511692487):
+    """Full HyperLiquid test: balance, open, close"""
+    import db
+    from hl_adapter import HLAdapter
+    from hyperliquid import get_size_decimals
+    
+    user = db.execute_one(
+        'SELECT hl_testnet_private_key, hl_mainnet_private_key FROM users WHERE user_id = %s', 
+        (uid,)
+    )
+    
+    results = {}
+    
+    # ═══════════════════════════════════════════════════════════════
+    # TEST 1: MAINNET
+    # ═══════════════════════════════════════════════════════════════
+    print("\n" + "="*60)
+    print("TEST 1: HYPERLIQUID MAINNET")
+    print("="*60)
+    
+    adapter = HLAdapter(
+        private_key=user['hl_mainnet_private_key'],
+        testnet=False
+    )
+    
+    try:
+        await adapter.initialize()
+        
+        # 1a. Get Balance
+        print("\n[1a] BALANCE:")
+        bal = await adapter.get_balance(use_cache=False)
+        if bal.get('success'):
+            data = bal.get('data', {})
+            equity = data.get('equity', 0)
+            available = data.get('available', 0)
+            is_unified = data.get('is_unified_account', False)
+            print(f"  Equity: ${equity:.2f}")
+            print(f"  Available: ${available:.2f}")
+            print(f"  Unified Account: {is_unified}")
+            results['mainnet_balance'] = equity
+        else:
+            print(f"  ERROR: {bal.get('error')}")
+            return results
+        
+        # 1b. Check existing positions
+        print("\n[1b] EXISTING POSITIONS:")
+        pos = await adapter.fetch_positions()
+        pos_list = pos.get('result', {}).get('list', [])
+        print(f"  Count: {len(pos_list)}")
+        for p in pos_list:
+            print(f"    - {p['symbol']} {p['side']} size={p['size']} entry={p['entryPrice']}")
+        
+        # 1c. Get current ETH price
+        print("\n[1c] ETH PRICE:")
+        eth_price = await adapter._client.get_mid_price("ETH")
+        print(f"  ETH mid price: ${eth_price:.2f}")
+        
+        # 1d. Open minimal position (0.001 ETH ~ $3)
+        if equity >= 3:
+            print("\n[1d] OPEN TEST POSITION (0.001 ETH LONG):")
+            try:
+                result = await adapter._client.market_open(
+                    coin="ETH",
+                    is_buy=True,
+                    sz=0.001,  # Minimal size
+                    slippage=0.01
+                )
+                print(f"  Result: {result}")
+                results['mainnet_open'] = result.get('status') == 'ok'
+                
+                # Wait a moment
+                await asyncio.sleep(2)
+                
+                # 1e. Check position again
+                print("\n[1e] VERIFY POSITION:")
+                pos2 = await adapter.fetch_positions()
+                pos_list2 = pos2.get('result', {}).get('list', [])
+                eth_pos = None
+                for p in pos_list2:
+                    if 'ETH' in p['symbol']:
+                        eth_pos = p
+                        print(f"  ✅ ETH Position: {p['side']} size={p['size']} entry={p['entryPrice']}")
+                        break
+                
+                # 1f. Close position
+                if eth_pos:
+                    print("\n[1f] CLOSE POSITION:")
+                    close_result = await adapter._client.market_close(
+                        coin="ETH",
+                        slippage=0.01
+                    )
+                    print(f"  Result: {close_result}")
+                    results['mainnet_close'] = close_result.get('status') == 'ok'
+                    
+            except Exception as e:
+                print(f"  ERROR: {e}")
+                results['mainnet_open'] = False
+        else:
+            print(f"\n  ⚠️ Insufficient balance for mainnet test (need $3, have ${equity:.2f})")
+    
+    finally:
+        await adapter.close()
+    
+    # ═══════════════════════════════════════════════════════════════
+    # TEST 2: TESTNET
+    # ═══════════════════════════════════════════════════════════════
+    print("\n" + "="*60)
+    print("TEST 2: HYPERLIQUID TESTNET")
+    print("="*60)
+    
+    adapter2 = HLAdapter(
+        private_key=user['hl_testnet_private_key'],
+        testnet=True
+    )
+    
+    try:
+        await adapter2.initialize()
+        
+        # 2a. Get Balance
+        print("\n[2a] BALANCE:")
+        bal2 = await adapter2.get_balance(use_cache=False)
+        if bal2.get('success'):
+            data = bal2.get('data', {})
+            equity = data.get('equity', 0)
+            available = data.get('available', 0)
+            is_unified = data.get('is_unified_account', False)
+            print(f"  Equity: ${equity:.2f}")
+            print(f"  Available: ${available:.2f}")
+            print(f"  Unified Account: {is_unified}")
+            results['testnet_balance'] = equity
+        else:
+            print(f"  ERROR: {bal2.get('error')}")
+            return results
+        
+        # 2b. Check existing positions
+        print("\n[2b] EXISTING POSITIONS:")
+        pos = await adapter2.fetch_positions()
+        pos_list = pos.get('result', {}).get('list', [])
+        print(f"  Count: {len(pos_list)}")
+        for p in pos_list:
+            print(f"    - {p['symbol']} {p['side']} size={p['size']} entry={p['entryPrice']}")
+        
+        # 2c. Get current ETH price
+        print("\n[2c] ETH PRICE:")
+        eth_price = await adapter2._client.get_mid_price("ETH")
+        if eth_price:
+            print(f"  ETH mid price: ${eth_price:.2f}")
+        else:
+            print("  Could not get ETH price on testnet")
+        
+        # 2d. Open minimal position if we have balance
+        if equity >= 3 and eth_price:
+            print("\n[2d] OPEN TEST POSITION (0.001 ETH LONG):")
+            try:
+                result = await adapter2._client.market_open(
+                    coin="ETH",
+                    is_buy=True,
+                    sz=0.001,
+                    slippage=0.01
+                )
+                print(f"  Result: {result}")
+                results['testnet_open'] = result.get('status') == 'ok'
+                
+                await asyncio.sleep(2)
+                
+                # 2e. Close position
+                print("\n[2e] CLOSE POSITION:")
+                try:
+                    close_result = await adapter2._client.market_close(
+                        coin="ETH",
+                        slippage=0.01
+                    )
+                    print(f"  Result: {close_result}")
+                    results['testnet_close'] = close_result.get('status') == 'ok'
+                except Exception as ce:
+                    print(f"  Close error (may have no position): {ce}")
+                    
+            except Exception as e:
+                print(f"  ERROR: {e}")
+                results['testnet_open'] = False
+        else:
+            print(f"\n  ⚠️ Testnet: balance=${equity:.2f}, need faucet tokens")
+            print("  Get testnet tokens at: https://app.hyperliquid-testnet.xyz/drip")
+    
+    finally:
+        await adapter2.close()
+    
+    # ═══════════════════════════════════════════════════════════════
+    # SUMMARY
+    # ═══════════════════════════════════════════════════════════════
+    print("\n" + "="*60)
+    print("SUMMARY")
+    print("="*60)
+    for k, v in results.items():
+        status = "✅" if v else "❌" if v is False else f"${v:.2f}" if isinstance(v, float) else str(v)
+        print(f"  {k}: {status}")
+    
+    return results
+
+
+if __name__ == "__main__":
+    uid = int(sys.argv[1]) if len(sys.argv) > 1 else 511692487
+    asyncio.run(test_hl_full(uid))
