@@ -446,8 +446,8 @@ class HLAdapter:
         """Fetch trade history for UI"""
         await self.initialize()
         try:
-            # HyperLiquid API for user fills
-            fills = await self._client.user_fills()
+            # HyperLiquid API for user fills - use main_wallet_address for Unified Account support
+            fills = await self._client.user_fills(address=self._main_wallet_address)
             result_list = []
             for fill in fills[:limit]:
                 result_list.append({
