@@ -7342,56 +7342,72 @@ async def place_order_for_targets(
         try:
             if target_exchange == "hyperliquid":
                 # ═══════════════════════════════════════════════════════════
-                # HyperLiquid order
+                # HyperLiquid order (via HLAdapter directly)
                 # ═══════════════════════════════════════════════════════════
                 is_testnet = (target_env == "paper" or target_account_type == "testnet")
                 
-                # Set leverage first
-                try:
-                    hl_creds = db.get_hl_credentials(user_id)
-                    # Get correct private key for network (multitenancy)
-                    if is_testnet:
-                        hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-                    else:
-                        hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-                    
-                    if hl_private_key:
-                        adapter = HLAdapter(
-                            private_key=hl_private_key,
-                            testnet=is_testnet,
-                            vault_address=hl_creds.get("hl_vault_address")
-                        )
-                        try:
-                            await adapter.set_leverage(hl_symbol_to_coin(symbol), target_leverage or leverage)
-                        finally:
-                            await adapter.close()
-                except Exception as lev_err:
-                    logger.warning(f"[{user_id}] Failed to set HL leverage for {symbol}: {lev_err}")
+                # Get HL credentials
+                hl_creds = db.get_hl_credentials(user_id)
+                # Get correct private key for network (multitenancy)
+                if is_testnet:
+                    hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                else:
+                    hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
                 
-                # Calculate limit price if using limit order
-                limit_price = price
-                if target_order_type == "Limit" and entry_price and not price:
-                    # Calculate limit price with offset
-                    if side == "Buy":
-                        # For buy, set limit below current price
-                        limit_price = entry_price * (1 - target_limit_offset_pct / 100)
-                    else:
-                        # For sell, set limit above current price
-                        limit_price = entry_price * (1 + target_limit_offset_pct / 100)
-                    logger.info(f"[{user_id}] Limit order price for {symbol}: {limit_price:.4f} (offset {target_limit_offset_pct}%)")
+                if not hl_private_key:
+                    errors.append(f"[{target_key.upper()}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
+                    continue
                 
-                # Place order with target-specific qty and order type
-                res = await place_order_hyperliquid(
-                    user_id=user_id,
-                    symbol=symbol,
-                    side=side,
-                    orderType=target_order_type,
-                    qty=target_qty,
-                    price=limit_price,
-                    account_type=target_account_type or ("testnet" if is_testnet else "mainnet")
+                # Create adapter
+                adapter = HLAdapter(
+                    private_key=hl_private_key,
+                    testnet=is_testnet,
+                    vault_address=hl_creds.get("hl_vault_address")
                 )
-                results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "order_type": target_order_type}
-                logger.info(f"✅ [{target_key.upper()}] {target_order_type} order placed: {symbol} {side} qty={target_qty}")
+                
+                try:
+                    coin = hl_symbol_to_coin(symbol)
+                    is_buy = side.lower() in ("buy", "long")
+                    hl_leverage = target_leverage or leverage or 10
+                    
+                    # Set leverage first
+                    try:
+                        await adapter._client.update_leverage(coin=coin, leverage=hl_leverage, is_cross=True)
+                    except Exception as lev_err:
+                        logger.warning(f"[{user_id}] Could not set HL leverage: {lev_err}")
+                    
+                    # Calculate limit price if using limit order
+                    limit_price = price
+                    if target_order_type == "Limit" and entry_price and not price:
+                        if side == "Buy":
+                            limit_price = entry_price * (1 - target_limit_offset_pct / 100)
+                        else:
+                            limit_price = entry_price * (1 + target_limit_offset_pct / 100)
+                        logger.info(f"[{user_id}] Limit order price for {symbol}: {limit_price:.4f} (offset {target_limit_offset_pct}%)")
+                    
+                    # Place order based on order type
+                    if target_order_type == "Limit" and limit_price:
+                        res = await adapter._client.limit_open(
+                            coin=coin,
+                            is_buy=is_buy,
+                            sz=target_qty,
+                            px=limit_price,
+                            reduce_only=False
+                        )
+                    else:
+                        # Market order
+                        res = await adapter._client.market_open(
+                            coin=coin,
+                            is_buy=is_buy,
+                            sz=target_qty,
+                            slippage=0.01
+                        )
+                    
+                    results[target_key] = {"success": True, "result": res, "exchange": target_exchange, "qty": target_qty, "order_type": target_order_type}
+                    logger.info(f"✅ [{target_key.upper()}] {target_order_type} order placed: {symbol} {side} qty={target_qty}")
+                    
+                finally:
+                    await adapter.close()
                 
             else:
                 # ═══════════════════════════════════════════════════════════
