@@ -346,11 +346,19 @@ async def get_balance(
         if not private_key:
             return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": f"HL {account_type} not configured"}
         
+        # Get wallet address to skip auto-discovery (avoids rate limits)
+        wallet_address = None
+        if is_testnet:
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        else:
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        
         adapter = None
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                main_wallet_address=wallet_address  # Skip discovery, use stored address
             )
             result = await adapter.get_balance()
             

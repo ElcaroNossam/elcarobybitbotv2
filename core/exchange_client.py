@@ -158,7 +158,8 @@ class UnifiedExchangeClient:
             self._client = HLAdapter(
                 private_key=self.credentials.private_key,
                 testnet=(self.credentials.mode == AccountMode.TESTNET),
-                vault_address=self.credentials.vault_address
+                vault_address=self.credentials.vault_address,
+                main_wallet_address=self.credentials.wallet_address  # Skip discovery, use stored address
             )
             await self._client.initialize()
         else:
