@@ -911,39 +911,28 @@ def get_execution_targets(
     override_policy: str = None
 ) -> list[dict]:
     """
-    Get list of execution targets based on strategy's trading_mode and CURRENT ACTIVE EXCHANGE.
+    Get list of execution targets based on routing_policy or strategy's trading_mode.
     
     Returns list of dicts with keys: exchange, env, account_type
     
     Logic:
-    - Get user's current active exchange (exchange_type: bybit or hyperliquid)
-    - Get strategy's trading_mode (demo/real/both/global)
-    - If global, use user's trading_mode
-    - If demo: Demo for current exchange (Bybit Demo OR HL Testnet)
-    - If real: Real for current exchange (Bybit Real OR HL Mainnet)
-    - If both: BOTH account types on CURRENT exchange only (Demo+Real OR Testnet+Mainnet)
+    1. Check routing_policy first:
+       - ALL_ENABLED: return targets for ALL enabled exchanges (Bybit + HL)
+       - SAME_EXCHANGE_ALL_ENVS: all account types on current exchange
+       - ACTIVE_ONLY: only currently selected target
     
-    IMPORTANT: "both" mode does NOT mean both exchanges! It means both account types
-    (demo+real for Bybit, testnet+mainnet for HyperLiquid) on the CURRENT active exchange.
+    2. If no special policy, use strategy's trading_mode:
+       - demo: Demo for current exchange (Bybit Demo OR HL Testnet)
+       - real: Real for current exchange (Bybit Real OR HL Mainnet)
+       - both: BOTH account types on CURRENT exchange only (Demo+Real OR Testnet+Mainnet)
+    
+    IMPORTANT: "both" trading_mode means both account types on ONE exchange.
+    To trade on BOTH EXCHANGES, use routing_policy=ALL_ENABLED.
     
     Safety: Filters out live targets if live_enabled=False
     """
     targets = []
     live_enabled = get_live_enabled(user_id)
-    
-    # Get strategy's trading_mode
-    strat_mode = "demo"  # Default
-    if strategy:
-        strat_mode = get_strategy_trading_mode(user_id, strategy)
-    
-    # If strategy uses global, get user's global mode
-    if strat_mode == "global":
-        strat_mode = get_trading_mode(user_id) or "demo"
-    
-    # Determine which account types to use based on mode
-    # demo → demo for Bybit, testnet for HL
-    # real → real for Bybit, mainnet for HL
-    # both → all configured accounts ON CURRENT ACTIVE EXCHANGE (not all exchanges!)
     
     bybit_enabled = is_bybit_enabled(user_id)
     hl_enabled = is_hl_enabled(user_id)
@@ -957,7 +946,61 @@ def get_execution_targets(
             current_exchange = "hyperliquid"
         elif bybit_enabled:
             current_exchange = "bybit"
-        # If both enabled but no preference, default to bybit for safety
+    
+    # Check routing policy (can be overridden)
+    routing_policy = override_policy or get_routing_policy(user_id)
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ALL_ENABLED: Trade on ALL enabled exchanges with their configured accounts
+    # This allows up to 4 targets: Bybit Demo + Bybit Real + HL Testnet + HL Mainnet
+    # ═══════════════════════════════════════════════════════════════════════════
+    if routing_policy == RoutingPolicy.ALL_ENABLED:
+        # Add all Bybit targets
+        if bybit_enabled:
+            bybit_types = _get_bybit_account_types(user_id)
+            for acc_type in bybit_types:
+                env = "paper" if acc_type == "demo" else "live"
+                if env == "live" and not live_enabled:
+                    continue
+                targets.append({
+                    "exchange": "bybit",
+                    "env": env,
+                    "account_type": acc_type
+                })
+        
+        # Add all HyperLiquid targets  
+        if hl_enabled:
+            hl_types = _get_hl_account_types(user_id)
+            for acc_type in hl_types:
+                env = "paper" if acc_type == "testnet" else "live"
+                if env == "live" and not live_enabled:
+                    continue
+                targets.append({
+                    "exchange": "hyperliquid",
+                    "env": env,
+                    "account_type": acc_type
+                })
+        
+        return targets
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # SAME_EXCHANGE_ALL_ENVS or trading_mode based routing (default)
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    # Get strategy's trading_mode
+    strat_mode = "demo"  # Default
+    if strategy:
+        strat_mode = get_strategy_trading_mode(user_id, strategy)
+    
+    # If strategy uses global, get user's global mode
+    if strat_mode == "global":
+        strat_mode = get_trading_mode(user_id) or "demo"
+        # FIX: "both" means BOTH account types (demo+real or testnet+mainnet)
+        # on the CURRENT active exchange, NOT both exchanges!
+    # Determine which account types to use based on mode
+    # demo → demo for Bybit, testnet for HL
+    # real → real for Bybit, mainnet for HL  
+    # both → all configured accounts ON CURRENT ACTIVE EXCHANGE (not all exchanges!)
     
     if strat_mode == "both":
         # FIX: "both" means BOTH account types (demo+real or testnet+mainnet)

@@ -1862,11 +1862,18 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         hl_configured = bool(db.get_user_field(uid, "hl_mainnet_private_key") or 
                             db.get_user_field(uid, "hl_testnet_private_key"))
     
+    # Get multi-exchange mode (routing_policy)
+    multi_exchange = False
+    if uid:
+        routing_policy = db.get_routing_policy(uid)
+        multi_exchange = routing_policy == db.RoutingPolicy.ALL_ENABLED
+    
     # Status indicators
     bybit_cfg_status = "✅" if bybit_any else "❌"
     bybit_trade_status = "🟢" if bybit_enabled else "🔴"
     hl_cfg_status = "✅" if hl_configured else "❌"
     hl_trade_status = "🟢" if hl_enabled else "🔴"
+    multi_status = "✅" if multi_exchange else "❌"
     
     demo_key_status = "✅" if demo_key else "❌"
     demo_secret_status = "✅" if demo_secret else "❌"
@@ -1896,6 +1903,11 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
                 callback_data="api:toggle_hl"
             ),
         ],
+        # Multi-exchange trading (both at once)
+        [InlineKeyboardButton(
+            f"{multi_status} 🔀 Trade Both Exchanges {'ON' if multi_exchange else 'OFF'}",
+            callback_data="api:toggle_multi_exchange"
+        )],
         
         # ─── Bybit Demo ───
         [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 BYBIT DEMO ══'), callback_data="noop")],
@@ -2153,6 +2165,35 @@ Use the buttons below to configure:"""
         
         status = "🟢 ON" if new_val else "🔴 OFF"
         await q.answer(f"HyperLiquid Trading: {status}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Toggle Multi-Exchange Trading ───
+    if action == "toggle_multi_exchange":
+        current_policy = db.get_routing_policy(uid)
+        is_multi = current_policy == db.RoutingPolicy.ALL_ENABLED
+        
+        if is_multi:
+            # Disable multi-exchange → use current exchange only
+            new_policy = db.RoutingPolicy.SAME_EXCHANGE_ALL_ENVS
+        else:
+            # Enable multi-exchange → trade on ALL enabled exchanges
+            new_policy = db.RoutingPolicy.ALL_ENABLED
+        
+        db.set_routing_policy(uid, new_policy)
+        
+        if new_policy == db.RoutingPolicy.ALL_ENABLED:
+            status = "🟢 ON"
+            msg_text = "⚠️ Multi-Exchange Trading ENABLED!\n\nSignals will open positions on BOTH Bybit AND HyperLiquid simultaneously."
+        else:
+            status = "🔴 OFF"
+            msg_text = "Multi-Exchange Trading disabled. Signals will only trade on your active exchange."
+        
+        await q.answer(f"Trade Both Exchanges: {status}", show_alert=False)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)
