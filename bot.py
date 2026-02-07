@@ -7361,12 +7361,11 @@ async def place_order_for_targets(
                     errors.append(f"[{target_key.upper()}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
                     continue
                 
-                # Create adapter with main_wallet_address for Unified Account
+                # Create adapter - let it auto-discover main wallet via userRole API
                 adapter = HLAdapter(
                     private_key=hl_private_key,
-                    testnet=is_testnet,
-                    vault_address=wallet_address,
-                    main_wallet_address=wallet_address
+                    testnet=is_testnet
+                    # vault_address and main_wallet_address auto-discovered
                 )
                 
                 try:
@@ -7464,8 +7463,8 @@ async def place_order_for_targets(
                         if hl_private_key:
                             adapter = HLAdapter(
                                 private_key=hl_private_key,
-                                testnet=is_testnet_for_price,
-                                main_wallet_address=wallet_address_for_price
+                                testnet=is_testnet_for_price
+                                # main_wallet_address auto-discovered
                             )
                             try:
                                 # Try to get actual position entry price
@@ -10828,9 +10827,8 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
                     wallet_addr = creds.get("hl_mainnet_wallet_address") or creds.get("hl_wallet_address")
                 adapter = HLAdapter(
                     private_key=creds["hl_private_key"],
-                    testnet=is_testnet,
-                    vault_address=wallet_addr,
-                    main_wallet_address=wallet_addr
+                    testnet=is_testnet
+                    # vault_address and main_wallet_address auto-discovered
                 )
                 try:
                     await adapter.initialize()
@@ -14618,9 +14616,8 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             
             adapter = HLAdapter(
                 private_key=hl_private_key,
-                testnet=testnet,
-                vault_address=hl_creds.get("hl_vault_address"),
-                main_wallet_address=wallet_address
+                testnet=testnet
+                # main_wallet_address auto-discovered via userRole API
             )
             
             result = await adapter.get_balance()
@@ -26944,10 +26941,10 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
         
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address"),
-            main_wallet_address=wallet_address  # Query balance from main wallet, not API wallet
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.get_balance()
         
@@ -27085,10 +27082,10 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, netwo
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address"),
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_positions()
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -27236,10 +27233,10 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_open_orders()
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -27403,10 +27400,10 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_trade_history(limit=10)
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -27507,22 +27504,60 @@ async def cmd_hl_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 has_mainnet_key = True
                 mainnet_wallet = legacy_wallet
     
+    # Auto-discover main wallets for display
+    testnet_main_wallet = None
+    mainnet_main_wallet = None
+    
+    if has_testnet_key:
+        try:
+            from hl_adapter import HLAdapter
+            adapter = HLAdapter(
+                private_key=hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key"),
+                testnet=True
+            )
+            await adapter.initialize()
+            testnet_main_wallet = adapter._main_wallet_address
+            await adapter.close()
+        except Exception as e:
+            logger.debug(f"Failed to discover testnet main wallet: {e}")
+    
+    if has_mainnet_key:
+        try:
+            from hl_adapter import HLAdapter
+            adapter = HLAdapter(
+                private_key=hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key"),
+                testnet=False
+            )
+            await adapter.initialize()
+            mainnet_main_wallet = adapter._main_wallet_address
+            await adapter.close()
+        except Exception as e:
+            logger.debug(f"Failed to discover mainnet main wallet: {e}")
+    
     # Build status message
     msg = "🔷 <b>HyperLiquid API Settings</b>\n\n"
     
     # Show testnet status
     if has_testnet_key:
-        wallet_short = f"{testnet_wallet[:8]}...{testnet_wallet[-6:]}" if len(testnet_wallet) > 14 else testnet_wallet
+        api_short = f"{testnet_wallet[:8]}...{testnet_wallet[-6:]}" if len(testnet_wallet) > 14 else testnet_wallet
         msg += f"🧪 <b>Testnet:</b> ✅ Configured\n"
-        msg += f"   Wallet: <code>{wallet_short}</code>\n\n"
+        msg += f"   API Wallet: <code>{api_short}</code>\n"
+        if testnet_main_wallet:
+            main_short = f"{testnet_main_wallet[:8]}...{testnet_main_wallet[-6:]}"
+            msg += f"   Main Wallet: <code>{main_short}</code>\n"
+        msg += "\n"
     else:
         msg += f"🧪 <b>Testnet:</b> ❌ Not configured\n\n"
     
     # Show mainnet status
     if has_mainnet_key:
-        wallet_short = f"{mainnet_wallet[:8]}...{mainnet_wallet[-6:]}" if len(mainnet_wallet) > 14 else mainnet_wallet
+        api_short = f"{mainnet_wallet[:8]}...{mainnet_wallet[-6:]}" if len(mainnet_wallet) > 14 else mainnet_wallet
         msg += f"🌐 <b>Mainnet:</b> ✅ Configured\n"
-        msg += f"   Wallet: <code>{wallet_short}</code>\n\n"
+        msg += f"   API Wallet: <code>{api_short}</code>\n"
+        if mainnet_main_wallet:
+            main_short = f"{mainnet_main_wallet[:8]}...{mainnet_main_wallet[-6:]}"
+            msg += f"   Main Wallet: <code>{main_short}</code>\n"
+        msg += "\n"
     else:
         msg += f"🌐 <b>Mainnet:</b> ❌ Not configured\n\n"
     
@@ -28513,10 +28548,10 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.get_balance()
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -28638,10 +28673,10 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_positions()
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -28735,10 +28770,10 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_open_orders()
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -28829,10 +28864,10 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
         )
+        await adapter.initialize()  # Trigger auto-discovery
         
         result = await adapter.fetch_trade_history(limit=10)
         show_switcher = db.should_show_hl_network_switcher(uid)
@@ -29006,10 +29041,10 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             adapter = HLAdapter(
                 private_key=hl_private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
+                # main_wallet_address auto-discovered via userRole API
             )
+            await adapter.initialize()  # Trigger auto-discovery
             result = await adapter.get_balance()
             
             if result.get("success"):
