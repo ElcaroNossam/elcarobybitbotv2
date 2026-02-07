@@ -1323,6 +1323,27 @@ except Exception as e:
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
 
+### ✅ CRITICAL: set_tp_sl Missing main_wallet_address for Unified Account (Feb 7, 2026)
+- **Проблема:** TP/SL не устанавливались для позиций на HyperLiquid с Unified Account
+- **Причина:** `set_tp_sl()` вызывался без `address` параметра → использовался API wallet вместо Main wallet
+- **Исправленные файлы:**
+  | Файл | Строки | Исправление |
+  |------|--------|-------------|
+  | `bot.py` | 5992, 7847 | Добавлен `address=adapter.main_wallet_address` |
+  | `exchanges/hyperliquid.py` | 162, 177 | Добавлен `address=self._client.main_wallet_address` |
+  | `hl_adapter.py` | 489 | Добавлен `address=self._main_wallet_address` |
+- **Правильный паттерн:**
+  ```python
+  # Для Unified Account позиции на main wallet, не API wallet
+  await adapter._client.set_tp_sl(
+      coin=coin,
+      tp_price=tp_price,
+      sl_price=sl_price,
+      address=adapter.main_wallet_address  # КРИТИЧНО!
+  )
+  ```
+- **Commit:** `f1cd354`
+
 ### ✅ CRITICAL: HLAdapter Auto-Discovery - Remove Hardcoded main_wallet_address (Feb 7, 2026)
 - **Проблема:** Баланс HyperLiquid показывал $0 во всех местах (бот, веб, iOS)
 - **Причина:** Код передавал `main_wallet_address=wallet_address` в HLAdapter, где `wallet_address` = API wallet из БД
