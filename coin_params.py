@@ -148,13 +148,6 @@ BLACKLIST = {"FUSDT", "SKLUSDT", "BNBUSDT"}
 ORDER_TYPE, ORDER_PARAMS = range(2)
 CHECK_INTERVAL = 15  # секунда интервала проверки
 
-THRESHOLD_MAP = {
-    "5m":  float("inf"),
-    "15m": float("inf"),
-    "1h":  float("inf"),
-    "4h":  float("inf"),
-    "24h": float("inf"),
-}
 # Проценты TP и SL для каждой монеты.
 # Если монеты нет в этом словаре, будет подставлен default = 3%
 COIN_PARAMS = {

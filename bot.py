@@ -212,7 +212,6 @@ from coin_params import (
     SYMBOL_FILTER,
     ADMIN_ID,
     GLOBAL_PAUSED,
-    THRESHOLD_MAP,
     TIMEFRAME_PARAMS,
     DEFAULT_LANG,
     MAX_OPEN_POSITIONS,
@@ -18799,48 +18798,6 @@ async def monitor_positions_loop(app: Application):
                         # Refresh active positions for this account type
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         existing_syms = {ap.get("symbol") for ap in active if ap.get("symbol")}
-                        tf_map = {ap.get("symbol"): ap.get("timeframe", "24h") for ap in active if ap.get("symbol")}
-                        
-                        for ap in active:
-                            open_ts = ap.get("open_ts")
-                            if not open_ts:
-                                continue  # Skip positions without open_ts
-                            entry_ts = _parse_sqlite_ts_to_utc(open_ts)
-                            elapsed = now - entry_ts 
-                            tf = ap.get("timeframe", "24h")
-                            secs = THRESHOLD_MAP.get(tf, THRESHOLD_MAP['24h'])
-                            sym = ap.get("symbol")
-                            if not sym:
-                                continue  # Skip positions without symbol
-                            pos = next((p for p in open_positions if p["symbol"] == sym), None)
-                            raw_tp = pos.get("takeProfit") if pos else None
-                            ap_account_type = ap.get("account_type", current_account_type)
-                            if pos and elapsed >= secs and float(pos.get("unrealisedPnl", 0)) < 0:
-                                close_side = "Sell" if pos["side"] == "Buy" else "Buy"
-                                size       = float(pos["size"])
-                                try:
-                                    await place_order(
-                                        user_id=uid,
-                                        symbol=pos["symbol"],
-                                        side=close_side,
-                                        orderType="Market",
-                                        qty=size,
-                                        account_type=current_account_type
-                                    )
-                                    await bot.send_message(
-                                        uid,
-                                        t['auto_close_position'].format(symbol=pos["symbol"], tf=tf)
-                                    )
-                                    # Use ap entry_price to prevent race condition
-                                    remove_active_position(uid, pos["symbol"], account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
-                                    reset_pyramid(uid, pos["symbol"])
-                                    _atr_triggered.pop((uid, pos["symbol"]), None)
-                                    _atr_was_enabled.pop((uid, pos["symbol"]), None)  # Clear ATR was enabled cache
-                                    _be_triggered.pop((uid, pos["symbol"]), None)  # Clear BE cache
-                                    _sl_notified.pop((uid, pos["symbol"]), None)  # Clear SL notification cache
-                                    _deep_loss_notified.pop((uid, pos["symbol"]), None)  # Clear deep loss cache
-                                except Exception as e:
-                                    logger.error(f"Auto-close {pos['symbol']} failed: {e}")
                                     
                         for p in open_positions:
                             sym     = p["symbol"]
@@ -18868,7 +18825,8 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[{uid}] Skipping {sym} - position with entry={entry_price_check} was recently closed (API sync delay)")
                                     continue
                                 
-                                tf_for_sym = tf_map.get(sym, "24h") 
+                                # Timeframe will be determined from signal or default
+                                tf_for_sym = "1h"  # Default timeframe for detected positions
                                 
                                 # Try to find a recent signal for this position
                                 # This helps determine correct strategy when bot restarts and finds
