@@ -1992,6 +1992,7 @@ def get_active_trading_users() -> list[int]:
     Get users with API keys configured - optimized for monitoring loop.
     
     P0.10: Now includes users with HyperLiquid credentials too.
+    Supports both legacy (hl_private_key) and new multitenancy (hl_testnet/mainnet_private_key).
     """
     global _active_users_cache
     now = time.time()
@@ -2000,7 +2001,7 @@ def get_active_trading_users() -> list[int]:
         return users.copy()
     
     with get_conn() as conn:
-        # P0.10: Include HL users in the query
+        # P0.10: Include HL users in the query (both legacy and new multitenancy architecture)
         rows = conn.execute("""
             SELECT user_id FROM users 
             WHERE is_banned = 0 
@@ -2008,6 +2009,8 @@ def get_active_trading_users() -> list[int]:
                 demo_api_key IS NOT NULL 
                 OR real_api_key IS NOT NULL
                 OR (hl_private_key IS NOT NULL AND hl_enabled = TRUE)
+                OR (hl_testnet_private_key IS NOT NULL AND hl_enabled = TRUE)
+                OR (hl_mainnet_private_key IS NOT NULL AND hl_enabled = TRUE)
             )
         """).fetchall()
     users = [r[0] for r in rows]
