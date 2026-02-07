@@ -6,6 +6,7 @@ import sys
 import time
 import json
 import hmac
+import asyncio
 import hashlib
 import logging
 import aiohttp
@@ -1949,12 +1950,14 @@ async def modify_position_tpsl(
             
             is_long = pos.get("side", "").lower() == "buy" or pos.get("side", "").lower() == "long"
             
-            # Set TP/SL via trigger orders
+            # Normalize symbol for HyperLiquid (remove USDT suffix)
+            coin = req.symbol.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
+            
+            # Set TP/SL via adapter - it will use main_wallet_address for Unified Account
             result = await adapter.set_tp_sl(
-                symbol=req.symbol,
-                is_long=is_long,
-                take_profit=req.take_profit,
-                stop_loss=req.stop_loss
+                coin=coin,
+                tp_price=req.take_profit,
+                sl_price=req.stop_loss
             )
             await adapter.close()
             

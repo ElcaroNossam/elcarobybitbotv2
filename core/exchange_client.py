@@ -437,6 +437,38 @@ class UnifiedExchangeClient:
                 logger.error(f"set_leverage error: {e}")
             return ExchangeResult(success=False, error=str(e), exchange=self.credentials.exchange.value)
     
+    async def set_tp_sl(self, symbol: str, take_profit: Optional[float] = None, stop_loss: Optional[float] = None) -> ExchangeResult:
+        """Set take profit and/or stop loss for a position"""
+        try:
+            symbol = self._normalize_symbol(symbol)
+            
+            if self.credentials.exchange == ExchangeType.HYPERLIQUID:
+                # For HyperLiquid, use main_wallet_address for Unified Account support
+                # The main wallet holds the positions, not the API wallet
+                main_wallet = getattr(self._client, '_main_wallet_address', None)
+                result = await self._client.set_tp_sl(
+                    coin=symbol,
+                    tp_price=take_profit,
+                    sl_price=stop_loss,
+                    address=main_wallet  # CRITICAL for Unified Account!
+                )
+                return ExchangeResult(success=True, data=result, exchange=self.credentials.exchange.value)
+            else:
+                # Bybit - set TP and SL separately
+                if take_profit:
+                    await self._client.set_take_profit(symbol, take_profit)
+                if stop_loss:
+                    await self._client.set_stop_loss(symbol, stop_loss)
+                return ExchangeResult(success=True, exchange=self.credentials.exchange.value)
+            
+        except Exception as e:
+            # Check if this is an auth error and cache it
+            if self._is_auth_error(e):
+                self._cache_auth_error()
+            else:
+                logger.error(f"set_tp_sl error: {e}")
+            return ExchangeResult(success=False, error=str(e), exchange=self.credentials.exchange.value)
+    
     async def close_position(self, symbol: str, size: Optional[float] = None) -> ExchangeResult:
         """Close an open position"""
         try:

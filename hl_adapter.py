@@ -561,6 +561,38 @@ class HLAdapter:
             logger.error(f"set_take_profit error: {e}")
             return {"retCode": 1, "retMsg": str(e), "result": {}}
 
+    async def set_tp_sl(self, coin: str, tp_price: Optional[float] = None, sl_price: Optional[float] = None, sz: Optional[float] = None, address: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Set TP/SL for a position.
+        This method is a direct wrapper for the underlying client's set_tp_sl.
+        
+        Args:
+            coin: Trading coin (e.g., 'BTC')
+            tp_price: Take profit price (optional)
+            sl_price: Stop loss price (optional)
+            sz: Size (optional, uses full position if not specified)
+            address: Main wallet address (CRITICAL for Unified Account!)
+                     If None, uses self._main_wallet_address
+        
+        Returns:
+            List of result dicts with 'type': 'tp' or 'sl' and 'result': {...}
+        """
+        await self.initialize()
+        coin = self._normalize_symbol(coin)
+        # Use main_wallet_address if not specified - CRITICAL for Unified Account
+        wallet_address = address or self._main_wallet_address
+        try:
+            return await self._client.set_tp_sl(
+                coin=coin,
+                tp_price=tp_price,
+                sl_price=sl_price,
+                sz=sz,
+                address=wallet_address
+            )
+        except HyperLiquidError as e:
+            logger.error(f"set_tp_sl error: {e}")
+            return []
+
     async def close_position(self, symbol: str, qty: Optional[float] = None) -> Dict[str, Any]:
         await self.initialize()
         coin = self._normalize_symbol(symbol)
