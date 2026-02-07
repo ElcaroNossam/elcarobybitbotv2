@@ -1439,7 +1439,6 @@ class LocalizationManager: ObservableObject {
         "test_connection": "Проверить",
         "valid": "Активен",
         "invalid": "Ошибка",
-        "not_configured": "Не настроен",
         "security_warning": "⚠️ API ключи хранятся локально на сервере в зашифрованном виде",
         "hl_security_warning": "⚠️ Приватный ключ НЕ хранится на сервере — только подпись",
         "hl_api_wallet_info": "Архитектура API Wallet",
