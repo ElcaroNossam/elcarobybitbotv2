@@ -18587,9 +18587,17 @@ async def monitor_positions_loop(app: Application):
                         # Use targets from unified architecture
                         targets_to_check = [(tgt.exchange, tgt.account_type) for tgt in user_targets]
                         user_trading_mode = targets_to_check[0][1] if targets_to_check else "demo"
+                        # Debug: log targets for HL users
+                        hl_targets = [t for t in targets_to_check if t[0] == 'hyperliquid']
+                        if hl_targets:
+                            logger.info(f"[MONITOR] User {uid} has HyperLiquid targets: {hl_targets}")
                     
                     # Process EACH target for this user (supports multi-exchange and multi-account)
                     for current_exchange, current_account_type in targets_to_check:
+                        # DEBUG: log each target being processed
+                        if current_exchange == 'hyperliquid':
+                            logger.info(f"[MONITOR] Processing HL target for uid={uid}: exchange={current_exchange}, account={current_account_type}")
+                        
                         # Get previous symbols to avoid duplicate notifications
                         cache_key = f"{uid}:{current_exchange}:{current_account_type}"
                         open_syms_prev = _open_syms_prev.get(cache_key, set())
