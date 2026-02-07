@@ -9,12 +9,58 @@ These functions use the new unified architecture:
 Replace old bot.py functions with these.
 """
 import logging
-from typing import Optional, List, Dict, Any
+import time
+from typing import Optional, List, Dict, Any, Tuple
 from models import Position, Order, Balance, OrderResult, OrderSide, OrderType, PositionSide, normalize_symbol
 from core import get_exchange_client, track_latency, count_errors
 import db
 
 logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# HYPERLIQUID CACHE - Prevent rate limiting (429 errors)
+# HyperLiquid has strict rate limits: 1200 weight/minute, info requests = 20 weight
+# This means ~60 info requests/minute MAX
+# Cache positions/balance for 30 seconds to avoid rate limits
+# ═══════════════════════════════════════════════════════════════
+_hl_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
+HL_CACHE_TTL = 30  # seconds - cache HyperLiquid data for 30 seconds
+
+
+def _get_hl_cache(key: str) -> Optional[Any]:
+    """Get cached HyperLiquid data if not expired"""
+    if key in _hl_cache:
+        data, ts = _hl_cache[key]
+        if time.time() - ts < HL_CACHE_TTL:
+            logger.debug(f"[HL-CACHE] Hit for {key}")
+            return data
+    return None
+
+
+def _set_hl_cache(key: str, data: Any):
+    """Set HyperLiquid cache with current timestamp"""
+    _hl_cache[key] = (data, time.time())
+    logger.debug(f"[HL-CACHE] Set {key}")
+
+
+def invalidate_hl_cache(user_id: int, account_type: str = None):
+    """
+    Invalidate HyperLiquid cache for a user.
+    Call this after placing/closing orders to refresh data.
+    """
+    keys_to_remove = []
+    prefix = f"positions:{user_id}:" if account_type is None else f"positions:{user_id}:{account_type}"
+    balance_prefix = f"balance:{user_id}:" if account_type is None else f"balance:{user_id}:{account_type}"
+    
+    for key in _hl_cache.keys():
+        if key.startswith(prefix) or key.startswith(balance_prefix):
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        del _hl_cache[key]
+    
+    if keys_to_remove:
+        logger.info(f"[HL-CACHE] Invalidated cache for user {user_id}: {keys_to_remove}")
 
 
 def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
@@ -37,7 +83,7 @@ def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> 
 # ═══════════════════════════════════════════════════════════════
 
 @track_latency(name='bot.get_balance')
-async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_type: str = 'demo') -> Optional[Balance]:
+async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_type: str = 'demo', use_cache: bool = True) -> Optional[Balance]:
     """
     Get user balance using unified client
     
@@ -45,12 +91,20 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
         user_id: Telegram user ID
         exchange: 'bybit' or 'hyperliquid'
         account_type: 'demo', 'real', or 'testnet'
+        use_cache: Use cache for HyperLiquid (default True to avoid rate limits)
     
     Returns:
         Balance object or None if error
     """
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange)
+    
+    # Check HyperLiquid cache to avoid rate limits
+    if exchange == 'hyperliquid' and use_cache:
+        cache_key = f"balance:{user_id}:{account_type}"
+        cached = _get_hl_cache(cache_key)
+        if cached is not None:
+            return cached
     
     client = None
     try:
@@ -60,15 +114,16 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
         result = await client.get_balance()
         
         # Handle different return types - could be Balance object directly or dict
+        balance = None
         if isinstance(result, Balance):
-            return result
+            balance = result
         elif isinstance(result, dict):
             if not result.get('success'):
                 logger.error(f"Balance fetch failed: {result.get('error')}")
                 return None
             
             data = result.get('data', result)
-            return Balance(
+            balance = Balance(
                 total_equity=data.get('total_equity', 0),
                 available_balance=data.get('available_balance', 0),
                 margin_used=data.get('margin_used', 0),
@@ -78,6 +133,13 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
         else:
             logger.error(f"Unexpected result type from get_balance: {type(result)}")
             return None
+        
+        # Cache HyperLiquid result
+        if exchange == 'hyperliquid' and balance is not None:
+            cache_key = f"balance:{user_id}:{account_type}"
+            _set_hl_cache(cache_key, balance)
+        
+        return balance
     except Exception as e:
         error_str = str(e)
         # Don't log cached auth errors at ERROR level - they are expected
@@ -113,7 +175,7 @@ def _safe_int(value, default=0):
         return default
 
 @track_latency(name='bot.get_positions')
-async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exchange: str = 'bybit', account_type: str = 'demo') -> List[Position]:
+async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exchange: str = 'bybit', account_type: str = 'demo', use_cache: bool = True) -> List[Position]:
     """
     Get user positions using unified client
     
@@ -122,12 +184,20 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         symbol: Optional symbol filter
         exchange: 'bybit' or 'hyperliquid'
         account_type: 'demo', 'real', or 'testnet'
+        use_cache: Use cache for HyperLiquid (default True to avoid rate limits)
     
     Returns:
         List of Position objects
     """
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange)
+    
+    # Check HyperLiquid cache to avoid rate limits
+    if exchange == 'hyperliquid' and use_cache and symbol is None:
+        cache_key = f"positions:{user_id}:{account_type}"
+        cached = _get_hl_cache(cache_key)
+        if cached is not None:
+            return cached
     
     client = None
     try:
@@ -183,6 +253,11 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
                 except Exception as pos_err:
                     logger.warning(f"Skipping invalid position: {pos_err}, data: {pos_dict}")
                     continue
+        
+        # Cache HyperLiquid result (only if no symbol filter)
+        if exchange == 'hyperliquid' and symbol is None and positions:
+            cache_key = f"positions:{user_id}:{account_type}"
+            _set_hl_cache(cache_key, positions)
         
         return positions
     except Exception as e:
