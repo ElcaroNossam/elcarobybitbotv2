@@ -76,10 +76,19 @@ class TradingService:
                     raise PremiumRequiredError("HyperLiquid requires Premium license")
             
             # Get current balance
-            balance = await adapter.get_balance()
+            balance_result = await adapter.get_balance()
+            
+            # Handle both dict response (HLAdapter) and AccountBalance dataclass (ExchangeAdapter)
+            if isinstance(balance_result, dict):
+                # HLAdapter returns {"success": True, "data": {"equity": ..., "available": ...}}
+                balance_data = balance_result.get("data", balance_result)
+                available_balance = float(balance_data.get("available", balance_data.get("available_balance", 0)))
+            else:
+                # AccountBalance dataclass from ExchangeAdapter
+                available_balance = balance_result.available_balance
             
             # Calculate position size
-            position_value = balance.available_balance * (request.size_percent / 100)
+            position_value = available_balance * (request.size_percent / 100)
             
             # Get current price
             ticker = await adapter.get_ticker(request.symbol)
@@ -261,7 +270,21 @@ class TradingService:
         adapter: ExchangeAdapter
     ) -> AccountBalance:
         """Get user's account balance"""
-        return await adapter.get_balance()
+        balance_result = await adapter.get_balance()
+        
+        # Handle both dict response (HLAdapter) and AccountBalance dataclass (ExchangeAdapter)
+        if isinstance(balance_result, dict):
+            # HLAdapter returns {"success": True, "data": {"equity": ..., "available": ...}}
+            balance_data = balance_result.get("data", balance_result)
+            return AccountBalance(
+                total_equity=float(balance_data.get("equity", 0)),
+                available_balance=float(balance_data.get("available", 0)),
+                used_margin=float(balance_data.get("margin_used", 0)),
+                unrealized_pnl=float(balance_data.get("unrealized_pnl", 0)),
+                currency=balance_data.get("currency", "USDT")
+            )
+        # Already AccountBalance dataclass
+        return balance_result
     
     async def execute_dca(
         self,

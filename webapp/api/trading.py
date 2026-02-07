@@ -316,8 +316,14 @@ async def get_balance(
         try:
             result = await get_balance_service(user_id, exchange, account_type)
             if result.get("success"):
-                return result["data"]
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": result.get("error")}
+                data = result["data"]
+                # Add Android compatibility aliases if missing
+                if "total_equity" not in data:
+                    data["total_equity"] = data.get("equity", 0)
+                if "available_balance" not in data:
+                    data["available_balance"] = data.get("available", 0)
+                return data
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": result.get("error")}
         except Exception as e:
             logger.error(f"Services balance error: {e}")
             # Fall through to old code
@@ -344,7 +350,7 @@ async def get_balance(
             is_testnet = False
         
         if not private_key:
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": f"HL {account_type} not configured"}
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": f"HL {account_type} not configured"}
         
         # Get wallet address to skip auto-discovery (avoids rate limits)
         wallet_address = None
@@ -363,10 +369,16 @@ async def get_balance(
             result = await adapter.get_balance()
             
             if result.get("success"):
-                return result["data"]
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": result.get("error")}
+                data = result["data"]
+                # Add Android compatibility aliases
+                data["total_equity"] = data.get("equity", 0)
+                data["available_balance"] = data.get("available", 0)
+                if "currency" not in data:
+                    data["currency"] = "USDC"  # HL uses USDC
+                return data
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": result.get("error")}
         except Exception as e:
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": str(e)}
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": str(e)}
         finally:
             if adapter:
                 await adapter.close()
@@ -386,7 +398,7 @@ async def get_balance(
             base_url = BYBIT_DEMO_URL
         
         if not api_key or not api_secret:
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": f"Bybit {account_type} not configured"}
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": f"Bybit {account_type} not configured"}
         
         try:
             # Call Bybit wallet balance API
@@ -402,19 +414,28 @@ async def get_balance(
             equity = float(coins.get("totalEquity", 0))
             available = float(coins.get("totalAvailableBalance", 0))
             position_im = float(coins.get("totalPositionIM", 0))  # Initial Margin for positions
+            unrealized_pnl = float(coins.get("totalPerpUPL", 0))
+            margin_balance = float(coins.get("totalMarginBalance", 0))
             
             return {
+                # Primary fields (iOS uses these)
                 "equity": equity,
                 "available": available,
-                "unrealized_pnl": float(coins.get("totalPerpUPL", 0)),
-                "margin_balance": float(coins.get("totalMarginBalance", 0)),
+                "unrealized_pnl": unrealized_pnl,
+                # Android compatibility aliases
+                "total_equity": equity,
+                "available_balance": available,
+                # Additional fields
+                "margin_balance": margin_balance,
+                "margin_used": margin_balance,
                 "position_margin": position_im if position_im > 0 else (equity - available),  # Fallback
-                "account_type": account_type
+                "account_type": account_type,
+                "currency": "USDT"
             }
         except HTTPException as e:
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": e.detail}
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": e.detail}
         except Exception as e:
-            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": str(e)}
+            return {"equity": 0, "available": 0, "unrealized_pnl": 0, "total_equity": 0, "available_balance": 0, "error": str(e)}
 
 
 @router.get("/balance/spot")
