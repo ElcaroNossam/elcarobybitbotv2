@@ -31,16 +31,19 @@ def _get_hl_cache(key: str) -> Optional[Any]:
     """Get cached HyperLiquid data if not expired"""
     if key in _hl_cache:
         data, ts = _hl_cache[key]
-        if time.time() - ts < HL_CACHE_TTL:
-            logger.debug(f"[HL-CACHE] Hit for {key}")
+        age = time.time() - ts
+        if age < HL_CACHE_TTL:
+            logger.info(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")
             return data
+        else:
+            logger.info(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")
     return None
 
 
 def _set_hl_cache(key: str, data: Any):
     """Set HyperLiquid cache with current timestamp"""
     _hl_cache[key] = (data, time.time())
-    logger.debug(f"[HL-CACHE] Set {key}")
+    logger.info(f"[HL-CACHE] SET {key}")
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):
