@@ -159,7 +159,8 @@ class HyperLiquidExchange(BaseExchange):
     async def set_take_profit(self, symbol: str, price: float, size: Optional[float] = None) -> OrderResult:
         coin = self.normalize_symbol(symbol)
         try:
-            results = await self._client.set_tp_sl(coin=coin, tp_price=price, sz=size)
+            # Use main_wallet_address for Unified Account support
+            results = await self._client.set_tp_sl(coin=coin, tp_price=price, sz=size, address=self._client.main_wallet_address)
             for r in results:
                 if r.get("type") == "tp":
                     result = r.get("result", {})
@@ -174,7 +175,8 @@ class HyperLiquidExchange(BaseExchange):
     async def set_stop_loss(self, symbol: str, price: float, size: Optional[float] = None) -> OrderResult:
         coin = self.normalize_symbol(symbol)
         try:
-            results = await self._client.set_tp_sl(coin=coin, sl_price=price, sz=size)
+            # Use main_wallet_address for Unified Account support
+            results = await self._client.set_tp_sl(coin=coin, sl_price=price, sz=size, address=self._client.main_wallet_address)
             for r in results:
                 if r.get("type") == "sl":
                     result = r.get("result", {})

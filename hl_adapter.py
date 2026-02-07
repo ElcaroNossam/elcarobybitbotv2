@@ -486,7 +486,8 @@ class HLAdapter:
 
             if order_id and (take_profit or stop_loss):
                 try:
-                    await self._client.set_tp_sl(coin=coin, tp_price=take_profit, sl_price=stop_loss)
+                    # Use main_wallet_address for Unified Account support
+                    await self._client.set_tp_sl(coin=coin, tp_price=take_profit, sl_price=stop_loss, address=self._main_wallet_address)
                 except Exception as e:
                     logger.warning(f"Failed to set TP/SL: {e}")
 
