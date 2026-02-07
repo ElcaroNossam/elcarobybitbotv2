@@ -206,12 +206,20 @@ async def test_hl_full(uid: int = 511692487):
         MIN_ETH_SIZE_TESTNET = 0.01
         if equity >= 30 and eth_price:
             print(f"\n[2d] OPEN TEST POSITION ({MIN_ETH_SIZE_TESTNET} ETH LONG):")
+            
+            # Debug: show what price will be used
+            slippage = 0.01  # Try smaller slippage (1%)
+            from hyperliquid.client import round_price
+            calculated_px = eth_price * (1 + slippage)
+            rounded_px = round_price(calculated_px, "ETH")
+            print(f"  Mid: ${eth_price:.2f}, +{slippage*100:.0f}% slippage = ${calculated_px:.4f}, rounded = ${rounded_px}")
+            
             try:
                 result = await adapter2._client.market_open(
                     coin="ETH",
                     is_buy=True,
                     sz=MIN_ETH_SIZE_TESTNET,
-                    slippage=0.05
+                    slippage=slippage  # Reduced slippage
                 )
                 print(f"  Result: {result}")
                 order_ok = result.get('status') == 'ok'
