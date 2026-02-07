@@ -139,6 +139,45 @@ class HLAdapter:
             logger.error(f"fetch_positions error: {e}")
             return {"retCode": 1, "retMsg": str(e), "result": {"list": []}}
 
+    async def get_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get raw position list from HyperLiquid API.
+        Returns list of position dicts with fields: coin, szi, entryPx, etc.
+        Used for entry price lookup.
+        """
+        await self.initialize()
+        try:
+            query_address = self._main_wallet_address or self._client.address
+            state = await self._client.user_state(address=query_address)
+            asset_positions = state.get("assetPositions", [])
+            
+            result = []
+            for p in asset_positions:
+                pos = p.get("position", {})
+                coin = pos.get("coin", "")
+                if symbol:
+                    # Normalize symbol for comparison (e.g., BTCUSDT -> BTC)
+                    target_coin = self._normalize_symbol(symbol)
+                    if target_coin != coin:
+                        continue
+                size = _safe_float(pos.get("szi"))
+                if size == 0:
+                    continue
+                result.append({
+                    "coin": coin,
+                    "szi": pos.get("szi"),
+                    "entryPx": pos.get("entryPx"),
+                    "positionValue": pos.get("positionValue"),
+                    "unrealizedPnl": pos.get("unrealizedPnl"),
+                    "liquidationPx": pos.get("liquidationPx"),
+                    "leverage": pos.get("leverage"),
+                    "marginUsed": pos.get("marginUsed"),
+                })
+            return result
+        except HyperLiquidError as e:
+            logger.error(f"get_positions error: {e}")
+            return []
+
     async def fetch_orders(self, symbol: Optional[str] = None) -> Dict[str, Any]:
         await self.initialize()
         try:
