@@ -25,6 +25,21 @@ from .signer import (
 logger = logging.getLogger(__name__)
 
 
+def round_price(px: float, coin: str) -> float:
+    """
+    Round price according to HyperLiquid rules:
+    - Prices can have up to 5 significant figures
+    - But no more than (6 - szDecimals) decimal places for perps
+    
+    From official SDK (examples/rounding.py):
+    round(float(f"{px:.5g}"), 6 - sz_decimals)
+    """
+    sz_decimals = get_size_decimals(coin)
+    max_decimals = 6 - sz_decimals  # For perps, MAX_DECIMALS=6
+    # First reduce to 5 significant figures, then limit decimal places
+    return round(float(f"{px:.5g}"), max_decimals)
+
+
 def _safe_float(val, default=0.0):
     """Safely convert value to float, handling empty strings and None"""
     if val is None or val == '':
@@ -213,7 +228,7 @@ class HyperLiquidClient:
             raise HyperLiquidError(f"Cannot get price for {coin}")
         
         limit_px = mid_price * (1 + slippage) if is_buy else mid_price * (1 - slippage)
-        limit_px = round(limit_px, 5)
+        limit_px = round_price(limit_px, coin)  # Fixed: use proper rounding per HyperLiquid SDK
         
         return await self.order(coin=coin, is_buy=is_buy, sz=sz, limit_px=limit_px, reduce_only=False, order_type={"limit": {"tif": "Ioc"}}, cloid=cloid)
     
@@ -242,7 +257,7 @@ class HyperLiquidClient:
             raise HyperLiquidError(f"Cannot get price for {coin}")
         
         limit_px = mid_price * (1 + slippage) if is_buy else mid_price * (1 - slippage)
-        limit_px = round(limit_px, 5)
+        limit_px = round_price(limit_px, coin)  # Fixed: use proper rounding per HyperLiquid SDK
         
         return await self.order(coin=coin, is_buy=is_buy, sz=close_size, limit_px=limit_px, reduce_only=True, order_type={"limit": {"tif": "Ioc"}}, cloid=cloid)
     
@@ -297,11 +312,13 @@ class HyperLiquidClient:
         results = []
         
         if tp_price is not None:
-            tp_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=tp_price, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": tp_price, "tpsl": "tp"}})
+            tp_price_rounded = round_price(tp_price, coin)  # Fixed: proper price rounding
+            tp_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=tp_price_rounded, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": tp_price_rounded, "tpsl": "tp"}})
             results.append({"type": "tp", "result": tp_result})
         
         if sl_price is not None:
-            sl_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=sl_price, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": sl_price, "tpsl": "sl"}})
+            sl_price_rounded = round_price(sl_price, coin)  # Fixed: proper price rounding
+            sl_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=sl_price_rounded, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": sl_price_rounded, "tpsl": "sl"}})
             results.append({"type": "sl", "result": sl_result})
         
         return results
