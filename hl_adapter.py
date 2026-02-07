@@ -486,7 +486,8 @@ class HLAdapter:
         await self.initialize()
         coin = self._normalize_symbol(symbol)
         try:
-            results = await self._client.set_tp_sl(coin=coin, sl_price=stop_loss_price, sz=qty)
+            # Pass main_wallet_address for Unified Account - positions are on main wallet
+            results = await self._client.set_tp_sl(coin=coin, sl_price=stop_loss_price, sz=qty, address=self._main_wallet_address)
             for r in results:
                 if r.get("type") == "sl":
                     result = r.get("result", {})
@@ -500,7 +501,8 @@ class HLAdapter:
         await self.initialize()
         coin = self._normalize_symbol(symbol)
         try:
-            results = await self._client.set_tp_sl(coin=coin, tp_price=take_profit_price, sz=qty)
+            # Pass main_wallet_address for Unified Account - positions are on main wallet
+            results = await self._client.set_tp_sl(coin=coin, tp_price=take_profit_price, sz=qty, address=self._main_wallet_address)
             for r in results:
                 if r.get("type") == "tp":
                     result = r.get("result", {})
@@ -514,7 +516,8 @@ class HLAdapter:
         await self.initialize()
         coin = self._normalize_symbol(symbol)
         try:
-            result = await self._client.market_close(coin=coin, sz=qty)
+            # Pass main_wallet_address for Unified Account - positions are on main wallet
+            result = await self._client.market_close(coin=coin, sz=qty, address=self._main_wallet_address)
             return {"retCode": 0 if result.get("status") == "ok" else 1, "retMsg": "OK" if result.get("status") == "ok" else str(result), "result": {}}
         except HyperLiquidError as e:
             logger.error(f"close_position error: {e}")

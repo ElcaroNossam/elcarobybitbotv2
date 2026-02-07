@@ -232,8 +232,20 @@ class HyperLiquidClient:
         
         return await self.order(coin=coin, is_buy=is_buy, sz=sz, limit_px=limit_px, reduce_only=False, order_type={"limit": {"tif": "Ioc"}}, cloid=cloid)
     
-    async def market_close(self, coin: str, sz: Optional[float] = None, slippage: float = 0.01, cloid: Optional[str] = None) -> Dict[str, Any]:
-        state = await self.user_state()
+    async def market_close(self, coin: str, sz: Optional[float] = None, slippage: float = 0.01, cloid: Optional[str] = None, address: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Close position with market order.
+        
+        Args:
+            coin: Coin symbol (ETH, BTC, etc.)
+            sz: Size to close (None = close all)
+            slippage: Slippage tolerance (default 1%)
+            cloid: Optional client order ID
+            address: Address to check positions on (for Unified Account - main wallet holds positions)
+        """
+        # Use provided address or default to self._address
+        query_address = address or self._address
+        state = await self.user_state(address=query_address)
         position = None
         
         for pos in state.get("assetPositions", []):
@@ -290,8 +302,19 @@ class HyperLiquidClient:
         signed_payload = sign_update_leverage_action(self._private_key, asset, is_cross, leverage, nonce=nonce, is_mainnet=not self._testnet)
         return await self._request("POST", "/exchange", data=signed_payload)
     
-    async def set_tp_sl(self, coin: str, tp_price: Optional[float] = None, sl_price: Optional[float] = None, sz: Optional[float] = None) -> List[Dict[str, Any]]:
-        state = await self.user_state()
+    async def set_tp_sl(self, coin: str, tp_price: Optional[float] = None, sl_price: Optional[float] = None, sz: Optional[float] = None, address: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Set TP/SL orders for a position.
+        
+        Args:
+            coin: Coin symbol
+            tp_price: Take profit price
+            sl_price: Stop loss price
+            sz: Size (None = full position)
+            address: Address to check positions on (for Unified Account)
+        """
+        query_address = address or self._address
+        state = await self.user_state(address=query_address)
         position = None
         
         for pos in state.get("assetPositions", []):

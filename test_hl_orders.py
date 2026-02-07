@@ -112,15 +112,15 @@ async def test_hl_full(uid: int = 511692487):
                         print(f"  ✅ ETH Position: {p['side']} size={p['size']} entry={p['entryPrice']}")
                         break
                 
-                # 1f. Close position
+                # 1f. Close position (use adapter.close_position which passes main_wallet_address)
                 if eth_pos:
                     print("\n[1f] CLOSE POSITION:")
-                    close_result = await adapter._client.market_close(
-                        coin="ETH",
-                        slippage=0.01
+                    close_result = await adapter.close_position(
+                        symbol="ETH",
+                        qty=None  # Close all
                     )
                     print(f"  Result: {close_result}")
-                    results['mainnet_close'] = close_result.get('status') == 'ok'
+                    results['mainnet_close'] = close_result.get('retCode') == 0
                     
             except Exception as e:
                 print(f"  ERROR: {e}")
@@ -204,15 +204,15 @@ async def test_hl_full(uid: int = 511692487):
                 
                 await asyncio.sleep(2)
                 
-                # 2e. Close position
+                # 2e. Close position (use adapter.close_position which passes main_wallet_address)
                 print("\n[2e] CLOSE POSITION:")
                 try:
-                    close_result = await adapter2._client.market_close(
-                        coin="ETH",
-                        slippage=0.01
+                    close_result = await adapter2.close_position(
+                        symbol="ETH",
+                        qty=None  # Close all
                     )
                     print(f"  Result: {close_result}")
-                    results['testnet_close'] = close_result.get('status') == 'ok'
+                    results['testnet_close'] = close_result.get('retCode') == 0
                 except Exception as ce:
                     print(f"  Close error (may have no position): {ce}")
                     
