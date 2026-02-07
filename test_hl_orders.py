@@ -21,7 +21,9 @@ async def test_hl_full(uid: int = 511692487):
     from hyperliquid import get_size_decimals
     
     user = db.execute_one(
-        'SELECT hl_testnet_private_key, hl_mainnet_private_key FROM users WHERE user_id = %s', 
+        '''SELECT hl_testnet_private_key, hl_mainnet_private_key, 
+                  hl_testnet_wallet_address, hl_mainnet_wallet_address 
+           FROM users WHERE user_id = %s''', 
         (uid,)
     )
     
@@ -34,9 +36,11 @@ async def test_hl_full(uid: int = 511692487):
     print("TEST 1: HYPERLIQUID MAINNET")
     print("="*60)
     
+    # Use main_wallet_address for Unified Account / API Wallet architecture
     adapter = HLAdapter(
         private_key=user['hl_mainnet_private_key'],
-        testnet=False
+        testnet=False,
+        main_wallet_address=user.get('hl_mainnet_wallet_address')  # Main wallet for balance
     )
     
     try:
@@ -126,7 +130,8 @@ async def test_hl_full(uid: int = 511692487):
     
     adapter2 = HLAdapter(
         private_key=user['hl_testnet_private_key'],
-        testnet=True
+        testnet=True,
+        main_wallet_address=user.get('hl_testnet_wallet_address')  # Main wallet for balance
     )
     
     try:
