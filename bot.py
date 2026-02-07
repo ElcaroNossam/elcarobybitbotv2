@@ -5946,12 +5946,10 @@ async def _set_trading_stop_hyperliquid(
             logger.warning(f"[{uid}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
             return False
         
-        # Create adapter with main_wallet_address for Unified Account
+        # Create adapter - main wallet auto-discovered if agent wallet
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
         )
         
         try:
@@ -7780,18 +7778,12 @@ async def place_order_hyperliquid(
         hl_tp = hl_settings.get("tp_percent", tp_percent or 3.0)
         hl_leverage = hl_settings.get("leverage", leverage or 10)
         
-        # Get main wallet address for Unified Account architecture
-        if testnet:
-            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
-        else:
-            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
-        
-        # Create adapter with main_wallet_address for Unified Account
+        # Create adapter - main wallet will be auto-discovered if this is an agent wallet
+        # No need to pass vault_address or main_wallet_address anymore!
         adapter = HLAdapter(
             private_key=hl_private_key,
             testnet=testnet,
-            vault_address=wallet_address,  # Trade on behalf of main wallet
-            main_wallet_address=wallet_address  # Query balance from main wallet
+            # vault_address and main_wallet_address will be auto-discovered from userRole API
         )
         
         async with adapter:
@@ -11203,12 +11195,13 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity:
                 private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
                 wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
             
-            if not private_key or not wallet_address:
-                logger.warning(f"[{user_id}] Missing HL private_key or wallet_address")
+            if not private_key:
+                logger.warning(f"[{user_id}] Missing HL private_key")
                 return 0.0
             
             from hl_adapter import HLAdapter
-            async with HLAdapter(private_key=private_key, testnet=is_testnet, main_wallet_address=wallet_address) as adapter:
+            # Main wallet auto-discovered if agent wallet
+            async with HLAdapter(private_key=private_key, testnet=is_testnet) as adapter:
                 balance_result = await adapter.get_balance(use_cache=True)
                 if balance_result.get("success"):
                     data = balance_result.get("data", {})

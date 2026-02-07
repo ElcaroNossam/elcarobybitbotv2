@@ -86,10 +86,18 @@ class HyperLiquidClient:
         self._meta_cache: Optional[Dict] = None
         self._meta_cache_time: float = 0
         self._meta_cache_ttl: float = 60
+        # Cached main wallet address (discovered from agent role)
+        self._main_wallet_address: Optional[str] = None
+        self._role_checked: bool = False
     
     @property
     def address(self) -> str:
         return self._address
+    
+    @property
+    def main_wallet_address(self) -> Optional[str]:
+        """Return main wallet address if this is an agent wallet"""
+        return self._main_wallet_address
     
     @property
     def is_testnet(self) -> bool:
@@ -101,6 +109,46 @@ class HyperLiquidClient:
                 timeout=aiohttp.ClientTimeout(total=30)
             )
             self._own_session = True
+    
+    async def discover_main_wallet(self) -> Optional[str]:
+        """
+        Check if this wallet is an API agent and discover the main wallet.
+        Returns main wallet address if this is an agent, None otherwise.
+        
+        If vault_address was not provided but we're an agent, automatically
+        sets vault_address to the main wallet for trading on its behalf.
+        """
+        if self._role_checked:
+            return self._main_wallet_address
+        
+        self._role_checked = True
+        
+        try:
+            await self.initialize()
+            role_info = await self.get_user_role(self._address)
+            
+            if role_info.get("role") == "agent":
+                # This is an API wallet! Get the main wallet address
+                main_wallet = role_info.get("data", {}).get("user")
+                if main_wallet:
+                    self._main_wallet_address = main_wallet.lower()
+                    logger.info(f"[HL] Discovered main wallet: {self._main_wallet_address} for agent {self._address}")
+                    
+                    # Auto-set vault_address for trading on behalf of main wallet
+                    if self._vault_address is None:
+                        self._vault_address = self._main_wallet_address
+                        logger.info(f"[HL] Auto-set vault_address for agent trading")
+                    
+                    return self._main_wallet_address
+            elif role_info.get("role") == "missing":
+                logger.warning(f"[HL] Wallet {self._address} is not registered as agent")
+            else:
+                logger.info(f"[HL] Wallet role: {role_info.get('role')} (not an agent)")
+                
+        except Exception as e:
+            logger.warning(f"[HL] Could not discover main wallet: {e}")
+        
+        return None
     
     async def close(self):
         if self._session and not self._session.closed:

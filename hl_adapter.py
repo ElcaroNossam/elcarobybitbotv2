@@ -52,13 +52,14 @@ class HLAdapter:
         Args:
             private_key: API wallet private key (for signing orders)
             testnet: Whether to use testnet
-            vault_address: Vault address for trading on behalf of another wallet (requires agent registration)
-            main_wallet_address: Main wallet address for balance queries (separate from API wallet)
-                                 If set, balance will be queried from this address instead of API wallet
+            vault_address: Vault address for trading on behalf of another wallet (auto-discovered if agent)
+            main_wallet_address: Main wallet address for balance queries (auto-discovered if agent)
+                                 If not set and wallet is an agent, will be auto-discovered
         """
         self._client = HyperLiquidClient(private_key=private_key, testnet=testnet, vault_address=vault_address)
         self._main_wallet_address = main_wallet_address
         self._initialized = False
+        self._agent_checked = False
 
     @property
     def address(self) -> str:
@@ -66,8 +67,8 @@ class HLAdapter:
     
     @property
     def main_wallet_address(self) -> str:
-        """Returns main wallet address if set, otherwise API wallet address"""
-        return self._main_wallet_address or self._client.address
+        """Returns main wallet address if set/discovered, otherwise API wallet address"""
+        return self._main_wallet_address or self._client.main_wallet_address or self._client.address
 
     @property
     def is_testnet(self) -> bool:
@@ -77,6 +78,14 @@ class HLAdapter:
         if not self._initialized:
             await self._client.initialize()
             self._initialized = True
+        
+        # Auto-discover main wallet if not set and not checked yet
+        if not self._agent_checked and self._main_wallet_address is None:
+            self._agent_checked = True
+            discovered = await self._client.discover_main_wallet()
+            if discovered:
+                self._main_wallet_address = discovered
+                logger.info(f"[HLAdapter] Auto-discovered main wallet: {discovered}")
 
     async def close(self):
         if self._client:
