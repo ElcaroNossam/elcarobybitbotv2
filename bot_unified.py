@@ -126,9 +126,10 @@ async def get_balance_unified(user_id: int, exchange: str = 'bybit', account_typ
                 return None
             
             data = result.get('data', result)
+            # HLAdapter returns 'equity'/'available', Bybit returns 'total_equity'/'available_balance'
             balance = Balance(
-                total_equity=data.get('total_equity', 0),
-                available_balance=data.get('available_balance', 0),
+                total_equity=data.get('equity') or data.get('total_equity') or 0,
+                available_balance=data.get('available') or data.get('available_balance') or 0,
                 margin_used=data.get('margin_used', 0),
                 unrealized_pnl=data.get('unrealized_pnl', 0),
                 currency=data.get('currency', 'USDT')
