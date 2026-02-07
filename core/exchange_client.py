@@ -155,11 +155,14 @@ class UnifiedExchangeClient:
                 raise ValueError("HyperLiquid private_key is required")
             
             from hl_adapter import HLAdapter
+            # DO NOT pass main_wallet_address - let HLAdapter auto-discover via userRole API
+            # wallet_address in DB is API wallet (derived from private key)
+            # main wallet (where funds are) is discovered via userRole API call
             self._client = HLAdapter(
                 private_key=self.credentials.private_key,
                 testnet=(self.credentials.mode == AccountMode.TESTNET),
-                vault_address=self.credentials.vault_address,
-                main_wallet_address=self.credentials.wallet_address  # Skip discovery, use stored address
+                vault_address=self.credentials.vault_address
+                # main_wallet_address=None allows auto-discovery
             )
             await self._client.initialize()
         else:
