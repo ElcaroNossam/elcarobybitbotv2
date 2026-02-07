@@ -221,7 +221,9 @@ def get_user_targets(user_id: int) -> list[Target]:
         has_hl_key = (hl_creds.get("hl_testnet_private_key") or 
                       hl_creds.get("hl_mainnet_private_key") or
                       hl_creds.get("hl_private_key"))
-        if has_hl_key and hl_creds.get("hl_enabled"):
+        hl_enabled = hl_creds.get("hl_enabled")
+        logger.debug(f"[get_user_targets] User {user_id} HL check: has_key={bool(has_hl_key)}, enabled={hl_enabled}")
+        if has_hl_key and hl_enabled:
             env = Env.PAPER.value if hl_creds.get("hl_testnet") else Env.LIVE.value
             targets.append(Target(
                 exchange=Exchange.HYPERLIQUID.value,
@@ -229,9 +231,11 @@ def get_user_targets(user_id: int) -> list[Target]:
                 is_enabled=True,
                 label=f"HyperLiquid {'Testnet' if env == Env.PAPER.value else 'Mainnet'}"
             ))
+            logger.info(f"[get_user_targets] User {user_id} has HyperLiquid {env} target")
     except Exception as e:
         logger.warning(f"Failed to get HL credentials for {user_id}: {e}")
     
+    logger.debug(f"[get_user_targets] User {user_id} final targets: {[t.label for t in targets]}")
     return targets
 
 
