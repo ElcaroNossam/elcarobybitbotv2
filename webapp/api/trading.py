@@ -1230,7 +1230,7 @@ async def get_execution_history(
     account_type = _normalize_both_account_type(account_type, exchange)
     
     if exchange == "hyperliquid":
-        # HyperLiquid execution history
+        # HyperLiquid execution history via user_fills API
         hl_creds = db.get_hl_credentials(user_id)
         private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
@@ -1243,9 +1243,34 @@ async def get_execution_history(
                 testnet=is_testnet
             )
             await adapter.initialize()  # Auto-discover main wallet
-            # Note: HyperLiquid fill history would require separate implementation
+            
+            # Fetch trade history using main_wallet_address for Unified Account support
+            result = await adapter.fetch_trade_history(limit=limit)
             await adapter.close()
-            return {"executions": [], "message": "HL execution history not yet implemented"}
+            
+            if result.get("success"):
+                trades = result.get("data", [])
+                executions = []
+                for t in trades:
+                    executions.append({
+                        "id": str(t.get("time", 0)),
+                        "symbol": t.get("symbol", ""),
+                        "side": t.get("side", "").lower(),
+                        "entry_price": 0,  # Not available in fills
+                        "exit_price": float(t.get("price", 0)),
+                        "size": float(t.get("size", 0)),
+                        "pnl": float(t.get("pnl", 0)),
+                        "leverage": None,
+                        "order_type": "market",
+                        "exec_type": "fill",
+                        "created_at": int(t.get("time", 0)),
+                        "updated_at": int(t.get("time", 0)),
+                        "exchange": "hyperliquid",
+                        "account_type": account_type
+                    })
+                return {"executions": executions, "total": len(executions)}
+            else:
+                return {"executions": [], "error": result.get("error", "Unknown error")}
         except Exception as e:
             return {"executions": [], "error": str(e)}
     
