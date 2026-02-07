@@ -215,11 +215,13 @@ class UnifiedExchangeClient:
             
             if self.credentials.exchange == ExchangeType.HYPERLIQUID:
                 result = await self._client.get_balance()
+                # HLAdapter returns {"success": True, "data": {...}}
+                balance_data = result.get("data", result) if isinstance(result, dict) else {}
                 data = {
-                    "total_equity": _safe_float(result.get("accountValue")),
-                    "available_balance": _safe_float(result.get("withdrawable")),
-                    "margin_used": _safe_float(result.get("marginUsed")),
-                    "unrealized_pnl": _safe_float(result.get("unrealizedPnl")),
+                    "total_equity": _safe_float(balance_data.get("equity", balance_data.get("accountValue"))),
+                    "available_balance": _safe_float(balance_data.get("available", balance_data.get("withdrawable"))),
+                    "margin_used": _safe_float(balance_data.get("margin_used", balance_data.get("marginUsed"))),
+                    "unrealized_pnl": _safe_float(balance_data.get("unrealized_pnl", balance_data.get("unrealizedPnl"))),
                     "currency": "USDC"
                 }
             else:
