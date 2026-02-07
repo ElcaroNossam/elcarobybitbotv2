@@ -1,8 +1,9 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.56.0 | Обновлено: 7 февраля 2026
-# BlackRock-Level Deep Audit: PASSED ✅ (Feb 5, 2026)
+# Версия: 3.57.0 | Обновлено: 7 февраля 2026
+# BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
+# Auto-Close by Timeframe: REMOVED ✅ (Feb 7, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -47,6 +48,8 @@
 # - HyperLiquid Unified Account: Full support in bot.py (Feb 6, 2026) ✅
 # - iOS Build 80: TestFlight with HL Unified Account support (Feb 6, 2026) ✅
 # - HyperLiquid Auto-Discovery: Main wallet auto-discovery from API wallet (Feb 7, 2026) ✅
+# - Auto-Close by Timeframe: REMOVED - was disabled (all inf values) (Feb 7, 2026) ✅
+# - Full BlackRock Re-Audit: Bybit + HL order flows, 4D multitenancy, credentials (Feb 7, 2026) ✅
 
 ---
 
@@ -1322,6 +1325,34 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ CLEANUP: Auto-Close by Timeframe REMOVED (Feb 7, 2026)
+- **Удалено:** Функционал автоматического закрытия позиций по таймфрейму
+- **Причина:** Был отключён (все значения THRESHOLD_MAP = `float("inf")`) - мёртвый код
+- **Удалённые компоненты:**
+  | Компонент | Файл | Строки |
+  |-----------|------|--------|
+  | `THRESHOLD_MAP` constant | coin_params.py | 151-159 |
+  | `THRESHOLD_MAP` import | bot.py | 215 |
+  | Auto-close logic | bot.py | ~45 lines in monitor_positions_loop |
+- **Исправление:** `tf_for_sym` теперь дефолт `"1h"` вместо `tf_map.get(sym)` (удалённый)
+- **Commit:** `f9eb8eb`
+
+### ✅ AUDIT: Full BlackRock Re-Audit (Feb 7, 2026)
+- **Аудит:** Полная верификация всех order flows после удаления auto-close
+- **Проверенные компоненты:**
+  | Компонент | Статус | Детали |
+  |-----------|--------|--------|
+  | Bybit: `place_order()` | ✅ PASS | Lock, notional validation, error handling |
+  | Bybit: `set_trading_stop()` | ✅ PASS | tpslMode=Full, MarkPrice trigger |
+  | HL: `place_order_hyperliquid()` | ✅ PASS | No vault_address, auto-discovery |
+  | HL: `_set_trading_stop_hyperliquid()` | ✅ PASS | Uses `main_wallet_address` |
+  | HL: `on_hl_close_callback()` | ✅ PASS | Calls `initialize()` |
+  | `add_active_position()` | ✅ PASS | All 4 calls pass `exchange` |
+  | `log_exit_and_remove_position()` | ✅ PASS | All 3 calls pass `exchange` |
+  | webapp/api/trading.py | ✅ PASS | Both Bybit/HL pass exchange |
+  | Credentials handling | ✅ PASS | `get_hl_credentials_for_account()` correct |
+- **Результат:** 0 багов найдено, все flows корректны
 
 ### ✅ CRITICAL: set_tp_sl Missing main_wallet_address for Unified Account (Feb 7, 2026)
 - **Проблема:** TP/SL не устанавливались для позиций на HyperLiquid с Unified Account
