@@ -7771,12 +7771,18 @@ async def place_order_hyperliquid(
                 return None
             
             # Calculate qty based on HL percent
-            user_state = await adapter._client.user_state()
-            margin_summary = user_state.get("marginSummary", {})
-            account_value = float(margin_summary.get("accountValue", 0))
+            # Use get_balance() which supports Unified Account
+            balance_result = await adapter.get_balance(use_cache=True)
+            if not balance_result.get("success"):
+                logger.warning(f"[{user_id}] HL balance error: {balance_result.get('error')}")
+                return None
+            
+            balance_data = balance_result.get("data", {})
+            account_value = balance_data.get("equity", 0)
+            is_unified = balance_data.get("is_unified_account", False)
             
             if account_value <= 0:
-                logger.warning(f"[{user_id}] HL account value is 0")
+                logger.warning(f"[{user_id}] HL account value is 0 (unified={is_unified})")
                 return None
             
             # Calculate position size
@@ -7787,6 +7793,8 @@ async def place_order_hyperliquid(
             hl_qty = round(hl_qty, 4)
             if hl_qty <= 0:
                 return None
+            
+            logger.info(f"[{user_id}] HL qty calc: equity={account_value:.2f}, unified={is_unified}, percent={hl_percent}%, qty={hl_qty:.4f}")
             
             # Set leverage first (required before placing order)
             is_buy = side.lower() in ("buy", "long")
@@ -11119,6 +11127,8 @@ async def fetch_account_balance(user_id: int, account_type: str = None) -> dict:
 async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity: bool = True) -> float:
     """Fetch USDT balance for position sizing.
     
+    Supports both Bybit and HyperLiquid exchanges.
+    
     Args:
         use_equity: If True (default), returns total equity (walletBalance) for consistent
                     position sizing regardless of open positions.
@@ -11127,6 +11137,63 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity:
     Using equity ensures entry% is always calculated from total capital,
     making position sizes consistent and predictable.
     """
+    # Check exchange type
+    user_exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    # ═══════════════════════════════════════════════════════════════
+    # HYPERLIQUID BALANCE
+    # ═══════════════════════════════════════════════════════════════
+    if user_exchange == "hyperliquid":
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                logger.warning(f"[{user_id}] No HL credentials for balance fetch")
+                return 0.0
+            
+            # Determine testnet/mainnet based on account_type or hl_testnet flag
+            is_testnet = hl_creds.get("hl_testnet", False)
+            if account_type in ("testnet", "demo"):
+                is_testnet = True
+            elif account_type in ("mainnet", "real"):
+                is_testnet = False
+            
+            # Get the right credentials
+            if is_testnet:
+                private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+            else:
+                private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+            
+            if not private_key or not wallet_address:
+                logger.warning(f"[{user_id}] Missing HL private_key or wallet_address")
+                return 0.0
+            
+            from hl_adapter import HLAdapter
+            async with HLAdapter(private_key=private_key, testnet=is_testnet, main_wallet_address=wallet_address) as adapter:
+                balance_result = await adapter.get_balance(use_cache=True)
+                if balance_result.get("success"):
+                    data = balance_result.get("data", {})
+                    equity = data.get("equity", 0.0)
+                    available = data.get("available", 0.0)
+                    is_unified = data.get("is_unified_account", False)
+                    
+                    if use_equity:
+                        logger.info(f"[{user_id}] HL USDC equity for sizing: {equity:.2f} (available={available:.2f}, unified={is_unified}) [{account_type or 'auto'}]")
+                        return equity
+                    else:
+                        logger.info(f"[{user_id}] HL USDC available: {available:.2f} (equity={equity:.2f}, unified={is_unified}) [{account_type or 'auto'}]")
+                        return available
+                else:
+                    logger.error(f"[{user_id}] HL balance error: {balance_result.get('error')}")
+                    return 0.0
+        except Exception as e:
+            logger.error(f"[{user_id}] HL balance fetch error: {e}")
+            return 0.0
+    
+    # ═══════════════════════════════════════════════════════════════
+    # BYBIT BALANCE
+    # ═══════════════════════════════════════════════════════════════
     params = {"accountType": "UNIFIED", "coin": "USDT"}
     try:
         res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
@@ -16221,7 +16288,12 @@ async def calc_qty(
     
     NOTE: Leverage does NOT affect the risk calculation!
     Leverage only affects required margin, not the P&L per contract.
+    
+    Supports both Bybit and HyperLiquid exchanges.
     """
+    # Check exchange type
+    user_exchange = db.get_exchange_type(user_id) or "bybit"
+    
     # Use equity (total capital) for consistent position sizing
     equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
     
@@ -16230,7 +16302,7 @@ async def calc_qty(
         asyncio.create_task(error_monitor.record_error(
             user_id=user_id,
             error_type="EQUITY_ZERO",
-            error_message=f"equity={equity}, account_type={account_type}",
+            error_message=f"equity={equity}, account_type={account_type}, exchange={user_exchange}",
             function_name="calc_qty",
             symbol=symbol,
             account_type=account_type,
@@ -16238,7 +16310,7 @@ async def calc_qty(
             risk_pct=risk_pct,
             sl_pct=sl_pct
         ))
-        raise ValueError(f"Don't have USDT (equity={equity}, account_type={account_type})")
+        raise ValueError(f"Don't have USDT (equity={equity}, account_type={account_type}, exchange={user_exchange})")
     
     risk_usdt = equity * (risk_pct / 100)
     price_move = price * (sl_pct / 100)
@@ -16252,9 +16324,32 @@ async def calc_qty(
     logger.info(
         f"[calc_qty] uid={user_id} {symbol}: "
         f"equity=${equity:.2f}, risk%={risk_pct:.2f}%, sl%={sl_pct:.2f}% → "
-        f"risk_usdt=${risk_usdt:.2f}, price_move=${price_move:.4f}, raw_qty={raw_qty:.4f}"
+        f"risk_usdt=${risk_usdt:.2f}, price_move=${price_move:.4f}, raw_qty={raw_qty:.4f} [exchange={user_exchange}]"
     )
 
+    # ═══════════════════════════════════════════════════════════════
+    # HYPERLIQUID: Use built-in size decimals from constants
+    # ═══════════════════════════════════════════════════════════════
+    if user_exchange == "hyperliquid":
+        from hyperliquid.constants import get_size_decimals, DEFAULT_SIZE_DECIMALS
+        
+        # Normalize symbol (remove USDT/USDC suffix)
+        coin = symbol.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
+        sz_decimals = get_size_decimals(coin)
+        
+        # HyperLiquid has less strict min_qty (typically 0.001)
+        min_qty = 10 ** (-sz_decimals)  # e.g., decimals=2 → min=0.01
+        step_qty = min_qty
+        
+        qty = round(raw_qty, sz_decimals)
+        qty = max(min_qty, qty)
+        
+        logger.info(f"[calc_qty] uid={user_id} {symbol}: final_qty={qty:.{sz_decimals}f} (HL decimals={sz_decimals})")
+        return qty
+    
+    # ═══════════════════════════════════════════════════════════════
+    # BYBIT: Query instrument info for precise lot sizes
+    # ═══════════════════════════════════════════════════════════════
     inst = await _bybit_request(
         user_id, "GET", "/v5/market/instruments-info",
         params={"category":"linear", "symbol": symbol},
