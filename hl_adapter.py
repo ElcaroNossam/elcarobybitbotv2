@@ -215,11 +215,41 @@ class HLAdapter:
             state = await self._client.user_state(address=query_address)
             margin = state.get("marginSummary", {})
             
+            perp_account_value = _safe_float(margin.get("accountValue"))
+            perp_withdrawable = _safe_float(state.get("withdrawable"))
+            
+            # ═══════════════════════════════════════════════════════════════
+            # UNIFIED ACCOUNT SUPPORT: If Perp balance is 0, check Spot
+            # HyperLiquid Unified Account keeps funds in Spot, not Perp
+            # ═══════════════════════════════════════════════════════════════
+            spot_usdc_balance = 0.0
+            is_unified_account = False
+            
+            if perp_account_value == 0:
+                try:
+                    spot_state = await self._client.spot_state(address=query_address)
+                    spot_balances = spot_state.get("balances", [])
+                    for bal in spot_balances:
+                        if bal.get("coin") == "USDC":
+                            spot_usdc_balance = _safe_float(bal.get("total", 0))
+                            break
+                    
+                    # If Spot has USDC but Perp is 0, this is Unified Account
+                    if spot_usdc_balance > 0:
+                        is_unified_account = True
+                        logger.info(f"[HL-UNIFIED] Detected Unified Account for {query_address}: Spot USDC={spot_usdc_balance}")
+                except Exception as spot_err:
+                    logger.debug(f"Error fetching Spot state: {spot_err}")
+            
+            # Use Spot balance if Unified Account detected
+            effective_balance = spot_usdc_balance if is_unified_account else perp_account_value
+            effective_available = spot_usdc_balance if is_unified_account else perp_withdrawable
+            
             balance = {
-                "account_value": _safe_float(margin.get("accountValue")),
+                "account_value": effective_balance,
                 "total_margin_used": _safe_float(margin.get("totalMarginUsed")),
                 "total_ntl_pos": _safe_float(margin.get("totalNtlPos")),
-                "withdrawable": _safe_float(state.get("withdrawable")),
+                "withdrawable": effective_available,
             }
             
             # Get positions from main wallet
@@ -247,7 +277,9 @@ class HLAdapter:
                     "unrealized_pnl": pnl,
                     "position_value": total_position_value,
                     "num_positions": num_positions,
-                    "currency": "USDC"  # HL uses USDC
+                    "currency": "USDC",  # HL uses USDC
+                    "is_unified_account": is_unified_account,
+                    "spot_usdc": spot_usdc_balance if is_unified_account else 0,
                 }
             }
             
