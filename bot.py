@@ -27356,6 +27356,133 @@ async def cmd_hl_close_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+@log_calls
+async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle HyperLiquid close all positions confirmation callbacks"""
+    q = update.callback_query
+    await q.answer()
+    
+    uid = q.from_user.id
+    data = q.data
+    
+    # hl_close:confirm or hl_close:cancel
+    action = data.split(":")[1] if ":" in data else ""
+    
+    if action == "cancel":
+        try:
+            await q.delete_message()
+        except Exception:
+            pass
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text="❌ Cancelled. Positions not closed.",
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+        return
+    
+    if action != "confirm":
+        return
+    
+    # Confirm - close all positions
+    hl_creds = get_hl_credentials(uid)
+    is_testnet = hl_creds.get("hl_testnet", False)
+    
+    # Get correct private key for network (multitenancy)
+    if is_testnet:
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+    else:
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    
+    if not private_key:
+        await q.edit_message_text(
+            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
+            parse_mode="Markdown"
+        )
+        return
+    
+    adapter = None
+    try:
+        adapter = HLAdapter(
+            private_key=private_key,
+            testnet=is_testnet
+            # main_wallet_address auto-discovered via userRole API
+        )
+        await adapter.initialize()  # Trigger auto-discovery
+        
+        # Get positions first
+        positions_result = await adapter.fetch_positions()
+        positions = positions_result.get("data", [])
+        
+        if not positions:
+            await q.edit_message_text(
+                "📭 No open positions to close.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        # Close each position
+        closed_count = 0
+        failed_count = 0
+        
+        for pos in positions:
+            try:
+                coin = pos.get("coin") or pos.get("symbol", "").replace("USDT", "")
+                size = float(pos.get("size") or pos.get("szi") or 0)
+                side = pos.get("side", "Buy")
+                
+                if abs(size) <= 0:
+                    continue
+                
+                # market_close needs is_buy=True to close a short (Buy to close), is_buy=False to close a long (Sell to close)
+                is_buy = side != "Buy"  # Opposite direction to close
+                
+                result = await adapter._client.market_close(
+                    coin=coin,
+                    sz=abs(size),
+                    slippage=0.02  # 2% slippage for closing
+                )
+                
+                if result.get("status") == "ok":
+                    closed_count += 1
+                    logger.info(f"[{uid}] Closed HL position: {coin} {side} size={size}")
+                else:
+                    failed_count += 1
+                    logger.warning(f"[{uid}] Failed to close HL position {coin}: {result}")
+            except Exception as pos_err:
+                failed_count += 1
+                logger.error(f"[{uid}] Error closing HL position: {pos_err}")
+        
+        # Report results
+        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
+        if closed_count > 0 and failed_count == 0:
+            text = f"✅ Closed {closed_count} position(s) on HyperLiquid {network_label}."
+        elif closed_count > 0 and failed_count > 0:
+            text = f"⚠️ Closed {closed_count} position(s), {failed_count} failed on HyperLiquid {network_label}."
+        else:
+            text = f"❌ Failed to close positions on HyperLiquid {network_label}."
+        
+        try:
+            await q.delete_message()
+        except Exception:
+            pass
+        
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=text,
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+        
+    except Exception as e:
+        logger.error(f"[{uid}] HL close all failed: {e}")
+        await q.edit_message_text(
+            f"❌ Error closing positions: {str(e)}",
+            parse_mode="Markdown"
+        )
+    finally:
+        if adapter:
+            await adapter.close()
+
+
 @require_premium_for_hl
 @with_texts
 @log_calls
@@ -29671,6 +29798,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_hl_positions_callback, pattern=r"^hl_pos:"))
     app.add_handler(CallbackQueryHandler(on_hl_orders_callback, pattern=r"^hl_ord:"))
     app.add_handler(CallbackQueryHandler(on_hl_history_callback, pattern=r"^hl_hist:"))
+    app.add_handler(CallbackQueryHandler(on_hl_close_callback, pattern=r"^hl_close:"))
     app.add_handler(CallbackQueryHandler(on_deep_loss_callback, pattern=r"^deep_loss:"))
     app.add_handler(CallbackQueryHandler(on_exchange_callback, pattern=r"^exchange:"))
     app.add_handler(CallbackQueryHandler(on_bybit_callback, pattern=r"^bybit:"))
