@@ -12674,10 +12674,15 @@ def _normalize_order_id(res: dict) -> str:
 
 
 @log_calls
-async def fetch_open_positions(user_id, *args, **kwargs) -> list:
+async def fetch_open_positions(user_id, *args, exchange: str = None, **kwargs) -> list:
     """
     Fetch open positions using unified architecture when available
     Falls back to direct Bybit API if unified is disabled
+    
+    Args:
+        user_id: User ID or Update object
+        exchange: Exchange type ('bybit' or 'hyperliquid'), if None uses user's default
+        **kwargs: account_type etc
     """
     # Use unified architecture if available
     if USE_UNIFIED_ARCHITECTURE and UNIFIED_AVAILABLE:
@@ -12696,7 +12701,7 @@ async def fetch_open_positions(user_id, *args, **kwargs) -> list:
                 raise RuntimeError("fetch_open_positions: не удалось определить user_id")
             
             # Get exchange and account type from user settings
-            exchange_type = db.get_exchange_type(uid) or 'bybit'
+            exchange_type = exchange or db.get_exchange_type(uid) or 'bybit'
             account_type = kwargs.get('account_type')
             if account_type is None:
                 # Use get_last_viewed_account which prefers Real if has API keys
@@ -18589,7 +18594,8 @@ async def monitor_positions_loop(app: Application):
                         cache_key = f"{uid}:{current_exchange}:{current_account_type}"
                         open_syms_prev = _open_syms_prev.get(cache_key, set())
                         
-                        open_positions = await fetch_open_positions(uid, account_type=current_account_type)
+                        # Pass exchange explicitly to ensure correct API is used
+                        open_positions = await fetch_open_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         
