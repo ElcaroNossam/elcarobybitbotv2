@@ -26859,10 +26859,31 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
                 level_pct = (equity / margin_used) * 100
                 margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
             
+            # Get SPOT balance
+            spot_section = ""
+            try:
+                spot_result = await adapter.get_spot_balance()
+                if spot_result.get("success"):
+                    spot_data = spot_result.get("data", {})
+                    spot_tokens = spot_data.get("tokens", [])
+                    spot_total = float(spot_data.get("total_usd_value", 0))
+                    
+                    if spot_tokens:
+                        spot_section = f"\n\n🛒 *Spot Balance:* ${spot_total:,.2f}"
+                        for tok in spot_tokens[:5]:  # Max 5 tokens to display
+                            token_name = tok.get("token", "?")
+                            token_total = tok.get("total", 0)
+                            token_usd = tok.get("usd_value", 0)
+                            spot_section += f"\n  • {token_name}: {token_total:,.4f} (${token_usd:,.2f})"
+                        if equity == 0 and spot_total > 0:
+                            spot_section += f"\n\n⚠️ _Деньги на Spot! Переведи на Perp для торговли._"
+            except Exception as spot_err:
+                logger.debug(f"Spot balance fetch error: {spot_err}")
+            
             text = f"""
 💰 *HyperLiquid Balance* {network_label}
 
-💎 *Account Equity:* ${equity:,.2f} {currency}
+💎 *Perp Equity:* ${equity:,.2f} {currency}
 ✅ *Available for Trading:* ${available:,.2f} {currency}
 📊 *Margin Used:* ${margin_used:,.2f} {currency}{margin_level}
 
@@ -26871,7 +26892,7 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
   • Notional Value: ${total_notional:,.2f}
   • Position Value: ${position_value:,.2f}
 
-{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}{spot_section}
 """
             await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
         else:
@@ -28342,10 +28363,17 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     
     adapter = None
     try:
+        # Get wallet address for balance queries
+        if is_testnet:
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        else:
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=hl_creds.get("hl_vault_address"),
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.get_balance()
@@ -28382,10 +28410,31 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
                 level_pct = (equity / margin_used) * 100
                 margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
             
+            # Get SPOT balance
+            spot_section = ""
+            try:
+                spot_result = await adapter.get_spot_balance()
+                if spot_result.get("success"):
+                    spot_data = spot_result.get("data", {})
+                    spot_tokens = spot_data.get("tokens", [])
+                    spot_total = float(spot_data.get("total_usd_value", 0))
+                    
+                    if spot_tokens:
+                        spot_section = f"\n\n🛒 *Spot Balance:* ${spot_total:,.2f}"
+                        for tok in spot_tokens[:5]:
+                            token_name = tok.get("token", "?")
+                            token_total = tok.get("total", 0)
+                            token_usd = tok.get("usd_value", 0)
+                            spot_section += f"\n  • {token_name}: {token_total:,.4f} (${token_usd:,.2f})"
+                        if equity == 0 and spot_total > 0:
+                            spot_section += f"\n\n⚠️ _Деньги на Spot! Переведи на Perp для торговли._"
+            except Exception as spot_err:
+                logger.debug(f"Spot balance fetch error: {spot_err}")
+            
             text = f"""
 💰 *HyperLiquid Balance* {network_label}
 
-💎 *Account Equity:* ${equity:,.2f} {currency}
+💎 *Perp Equity:* ${equity:,.2f} {currency}
 ✅ *Available for Trading:* ${available:,.2f} {currency}
 📊 *Margin Used:* ${margin_used:,.2f} {currency}{margin_level}
 
@@ -28394,7 +28443,7 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
   • Notional Value: ${total_notional:,.2f}
   • Position Value: ${position_value:,.2f}
 
-{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}
+{pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}{spot_section}
 """
             await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         else:

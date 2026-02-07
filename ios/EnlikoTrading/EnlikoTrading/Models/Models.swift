@@ -255,6 +255,37 @@ struct Balance: Codable {
     var totalTrades: Int? { nil }
 }
 
+// MARK: - HyperLiquid Spot Balance
+struct HLSpotToken: Codable, Identifiable {
+    var id: String { token }
+    let token: String
+    let total: Double
+    let available: Double
+    let hold: Double
+    let usdValue: Double
+    
+    enum CodingKeys: String, CodingKey {
+        case token, total, available, hold
+        case usdValue = "usd_value"
+    }
+}
+
+struct HLSpotBalance: Codable {
+    let tokens: [HLSpotToken]
+    let totalUsdValue: Double
+    let numTokens: Int
+    let error: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case tokens
+        case totalUsdValue = "total_usd_value"
+        case numTokens = "num_tokens"
+        case error
+    }
+    
+    var hasBalance: Bool { totalUsdValue > 0 }
+}
+
 struct BalanceResponse: Codable {
     let success: Bool?
     let balance: Balance?

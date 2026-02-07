@@ -48,6 +48,7 @@ struct Config {
         
         // Trading
         static let balance = "/trading/balance"
+        static let balanceSpot = "/trading/balance/spot"  // HyperLiquid Spot balance
         static let positions = "/trading/positions"
         static let orders = "/trading/orders"
         static let symbols = "/trading/symbols"

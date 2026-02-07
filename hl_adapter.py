@@ -262,6 +262,85 @@ class HLAdapter:
             logger.error(f"get_balance error: {e}")
             return {"success": False, "error": str(e)}
 
+    async def get_spot_balance(self, use_cache: bool = True) -> Dict[str, Any]:
+        """
+        Get SPOT balance (separate from Perp balance).
+        Returns list of tokens with their balances.
+        
+        Args:
+            use_cache: Use cache to avoid rate limits (default True)
+        """
+        await self.initialize()
+        
+        # Query balance from main wallet address if set, otherwise from API wallet
+        query_address = self._main_wallet_address or self._client.address
+        
+        # Check cache first to avoid rate limits
+        if use_cache:
+            network = "testnet" if self._client.is_testnet else "mainnet"
+            cache_key = f"spot_balance:{query_address}:{network}"
+            cached = _get_adapter_cache(cache_key)
+            if cached is not None:
+                return cached
+        
+        try:
+            spot_state = await self._client.spot_state(address=query_address)
+            balances = spot_state.get("balances", [])
+            
+            tokens = []
+            total_usdc_value = 0.0
+            
+            for bal in balances:
+                token = bal.get("coin", "")
+                total_str = bal.get("total", "0")
+                hold_str = bal.get("hold", "0")
+                entry_ntl_str = bal.get("entryNtl", "0")
+                
+                total_balance = _safe_float(total_str)
+                hold_balance = _safe_float(hold_str)
+                entry_ntl = _safe_float(entry_ntl_str)
+                available = total_balance - hold_balance
+                
+                # Skip zero balances
+                if total_balance == 0:
+                    continue
+                
+                # Get USD value (entry_ntl for non-USDC, or total for USDC)
+                if token == "USDC":
+                    usd_value = total_balance
+                else:
+                    usd_value = entry_ntl if entry_ntl > 0 else total_balance
+                
+                total_usdc_value += usd_value
+                
+                tokens.append({
+                    "token": token,
+                    "total": total_balance,
+                    "available": available,
+                    "hold": hold_balance,
+                    "usd_value": usd_value
+                })
+            
+            result = {
+                "success": True,
+                "data": {
+                    "tokens": tokens,
+                    "total_usd_value": total_usdc_value,
+                    "num_tokens": len(tokens)
+                }
+            }
+            
+            # Cache the result
+            if use_cache:
+                network = "testnet" if self._client.is_testnet else "mainnet"
+                cache_key = f"spot_balance:{query_address}:{network}"
+                _set_adapter_cache(cache_key, result)
+            
+            return result
+        except Exception as e:
+            logger.error(f"get_spot_balance error: {e}")
+            return {"success": False, "error": str(e), "data": {"tokens": [], "total_usd_value": 0, "num_tokens": 0}}
+
     async def fetch_open_orders(self) -> Dict[str, Any]:
         """Simplified open orders for UI"""
         await self.initialize()

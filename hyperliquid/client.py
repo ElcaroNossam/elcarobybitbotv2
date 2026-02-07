@@ -168,8 +168,14 @@ class HyperLiquidClient:
         return mids.get(coin)
     
     async def user_state(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Get perpetual clearinghouse state (Perp balance)"""
         addr = address or self._address
         return await self._info_request("clearinghouseState", user=addr)
+    
+    async def spot_state(self, address: Optional[str] = None) -> Dict[str, Any]:
+        """Get spot clearinghouse state (Spot balance)"""
+        addr = address or self._address
+        return await self._info_request("spotClearinghouseState", user=addr)
     
     async def open_orders(self, address: Optional[str] = None) -> List[Dict[str, Any]]:
         addr = address or self._address

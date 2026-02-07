@@ -12,6 +12,7 @@ class TradingService: ObservableObject {
     static let shared = TradingService()
     
     @Published var balance: Balance?
+    @Published var hlSpotBalance: HLSpotBalance?  // NEW: HyperLiquid Spot balance
     @Published var positions: [Position] = []
     @Published var orders: [Order] = []
     @Published var trades: [Trade] = []
@@ -59,6 +60,13 @@ class TradingService: ObservableObject {
             )
             self.balance = balance
             logger.logBalanceUpdate(equity: balance.totalEquity, available: balance.available)
+            
+            // If HyperLiquid, also fetch Spot balance
+            if appState.currentExchange == .hyperliquid {
+                await fetchHLSpotBalance()
+            } else {
+                self.hlSpotBalance = nil
+            }
         } catch {
             // Fallback to wrapped response
             do {
@@ -69,11 +77,42 @@ class TradingService: ObservableObject {
                 if let balance = response.balanceData {
                     self.balance = balance
                     logger.logBalanceUpdate(equity: balance.totalEquity, available: balance.available)
+                    
+                    // If HyperLiquid, also fetch Spot balance
+                    if appState.currentExchange == .hyperliquid {
+                        await fetchHLSpotBalance()
+                    }
                 }
             } catch {
                 logger.error("Failed to fetch balance: \(error)", category: .trading)
                 lastError = error.localizedDescription
             }
+        }
+    }
+    
+    // MARK: - HyperLiquid Spot Balance
+    @MainActor
+    func fetchHLSpotBalance() async {
+        guard appState.currentExchange == .hyperliquid else {
+            hlSpotBalance = nil
+            return
+        }
+        
+        logger.debug("Fetching HyperLiquid Spot balance", category: .trading)
+        
+        do {
+            let spotBalance: HLSpotBalance = try await network.get(
+                Config.Endpoints.balanceSpot,
+                params: ["account_type": appState.currentAccountType.rawValue]
+            )
+            self.hlSpotBalance = spotBalance
+            
+            if spotBalance.hasBalance {
+                logger.info("HL Spot balance: $\(spotBalance.totalUsdValue) (\(spotBalance.numTokens) tokens)", category: .trading)
+            }
+        } catch {
+            logger.warning("Failed to fetch HL Spot balance: \(error)", category: .trading)
+            // Don't set lastError - Spot balance is optional
         }
     }
     

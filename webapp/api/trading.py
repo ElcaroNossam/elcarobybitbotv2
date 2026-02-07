@@ -409,6 +409,52 @@ async def get_balance(
             return {"equity": 0, "available": 0, "unrealized_pnl": 0, "error": str(e)}
 
 
+@router.get("/balance/spot")
+async def get_spot_balance(
+    account_type: str = Query("mainnet"),
+    user: dict = Depends(get_current_user)
+):
+    """Get HyperLiquid SPOT balance (separate from Perp)."""
+    user_id = user["user_id"]
+    
+    hl_creds = db.get_hl_credentials(user_id)
+    
+    # Determine which private key to use based on account_type
+    private_key = None
+    is_testnet = False
+    wallet_address = None
+    
+    if account_type in ("testnet", "demo"):
+        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        is_testnet = True
+    else:  # mainnet/real
+        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        is_testnet = False
+    
+    if not private_key:
+        return {"tokens": [], "total_usd_value": 0, "num_tokens": 0, "error": f"HL {account_type} not configured"}
+    
+    adapter = None
+    try:
+        adapter = HLAdapter(
+            private_key=private_key,
+            testnet=is_testnet,
+            main_wallet_address=wallet_address
+        )
+        result = await adapter.get_spot_balance()
+        
+        if result.get("success"):
+            return result["data"]
+        return {"tokens": [], "total_usd_value": 0, "num_tokens": 0, "error": result.get("error")}
+    except Exception as e:
+        return {"tokens": [], "total_usd_value": 0, "num_tokens": 0, "error": str(e)}
+    finally:
+        if adapter:
+            await adapter.close()
+
+
 @router.get("/positions")
 async def get_positions(
     exchange: str = Query("bybit"),

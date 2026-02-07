@@ -392,6 +392,11 @@ struct PortfolioView: View {
             .background(LinearGradient(colors: [Color.enlikoCard, Color.enlikoCard.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
             .cornerRadius(16).overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.enlikoPrimary.opacity(0.3), lineWidth: 1))
             
+            // HyperLiquid Spot Balance section
+            if appState.currentExchange == .hyperliquid, let spotBalance = tradingService.hlSpotBalance, spotBalance.hasBalance {
+                hlSpotBalanceCard(spotBalance)
+            }
+            
             quickStatsGrid
         }
     }
@@ -506,6 +511,45 @@ struct PortfolioView: View {
             showCandleDetail = true
             HapticFeedback.selection()
         }
+    }
+    
+    // MARK: - HyperLiquid Spot Balance Card
+    private func hlSpotBalanceCard(_ spotBalance: HLSpotBalance) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "cart.fill").foregroundColor(.enlikoYellow)
+                Text("🛒 Spot Balance").font(.headline).foregroundColor(.white)
+                Spacer()
+                Text("$\(String(format: "%.2f", spotBalance.totalUsdValue))").font(.title2.bold()).foregroundColor(.enlikoYellow)
+            }
+            
+            Divider().background(Color.enlikoBorder)
+            
+            ForEach(spotBalance.tokens.prefix(5)) { token in
+                HStack {
+                    Text(token.token).font(.subheadline.weight(.medium)).foregroundColor(.white)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(String(format: "%.4f", token.total)).font(.subheadline).foregroundColor(.enlikoTextSecondary)
+                        Text("$\(String(format: "%.2f", token.usdValue))").font(.caption).foregroundColor(.enlikoTextMuted)
+                    }
+                }
+            }
+            
+            // Warning if Perp balance is 0 but Spot has money
+            if tradingService.balance?.equity ?? 0 == 0 && spotBalance.totalUsdValue > 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.enlikoOrange)
+                    Text("Funds on Spot! Transfer to Perp to trade.").font(.caption).foregroundColor(.enlikoOrange)
+                }.padding(.top, 4)
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(colors: [Color.enlikoCard, Color.enlikoCard.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.enlikoYellow.opacity(0.3), lineWidth: 1))
     }
     
     private var quickStatsGrid: some View {
