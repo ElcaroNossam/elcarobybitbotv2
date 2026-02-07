@@ -456,23 +456,34 @@ data class TradeStatsData(
 data class TradesResponse(
     val success: Boolean = true,
     val data: List<TradeData>? = null,
+    val trades: List<TradeData>? = null,  // iOS/WebApp format
     val error: String? = null
-)
+) {
+    val allTrades: List<TradeData>
+        get() = data ?: trades ?: emptyList()
+}
 
 @kotlinx.serialization.Serializable
 data class TradeData(
     val id: String? = null,
     val symbol: String,
     val side: String,
-    @kotlinx.serialization.SerialName("entry_price") val entryPrice: Double,
-    @kotlinx.serialization.SerialName("exit_price") val exitPrice: Double,
-    val size: Double,
-    val pnl: Double,
-    @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double,
+    @kotlinx.serialization.SerialName("entry_price") val entryPrice: Double = 0.0,
+    @kotlinx.serialization.SerialName("exit_price") val exitPrice: Double? = null,
+    val size: Double? = null,
+    val pnl: Double? = null,
+    @kotlinx.serialization.SerialName("pnl_pct") val pnlPct: Double? = null,  // iOS format
+    @kotlinx.serialization.SerialName("pnl_percent") val pnlPercent: Double? = null,  // WebApp format
     val strategy: String? = null,
     @kotlinx.serialization.SerialName("exit_reason") val exitReason: String? = null,
-    val timestamp: Long
-)
+    val timestamp: String? = null,  // Server returns string, not Long
+    val ts: String? = null,  // iOS format
+    @kotlinx.serialization.SerialName("account_type") val accountType: String? = null
+) {
+    val pnlValue: Double get() = pnl ?: 0.0
+    val pnlPercentValue: Double get() = pnlPct ?: pnlPercent ?: 0.0
+    val timestampStr: String get() = timestamp ?: ts ?: ""
+}
 
 // ==================== MANUAL TRADING REQUESTS/RESPONSES ====================
 

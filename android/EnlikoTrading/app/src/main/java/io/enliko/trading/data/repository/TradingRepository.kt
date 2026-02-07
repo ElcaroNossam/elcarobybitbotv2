@@ -311,21 +311,21 @@ private fun OrderEntity.toOrderData() = OrderData(
 
 // TradeData -> TradeEntity
 private fun TradeData.toEntity(userId: Long, exchange: String, accountType: String) = TradeEntity(
-    id = id ?: "${userId}_${symbol}_$timestamp",
+    id = id ?: "${userId}_${symbol}_$timestampStr",
     userId = userId,
     symbol = symbol,
     side = side,
     entryPrice = entryPrice,
-    exitPrice = exitPrice,
-    size = size,
-    pnl = pnl,
-    pnlPercent = pnlPercent,
+    exitPrice = exitPrice ?: 0.0,
+    size = size ?: 0.0,
+    pnl = pnlValue,
+    pnlPercent = pnlPercentValue,
     strategy = strategy ?: "manual",
     exitReason = exitReason,
     leverage = null,
     exchange = exchange,
     accountType = accountType,
-    timestamp = timestamp
+    timestamp = try { timestampStr.toLong() } catch (e: Exception) { System.currentTimeMillis() }
 )
 
 // TradeEntity -> TradeData
@@ -337,8 +337,11 @@ private fun TradeEntity.toTradeData() = TradeData(
     exitPrice = exitPrice,
     size = size,
     pnl = pnl,
+    pnlPct = pnlPercent,
     pnlPercent = pnlPercent,
     strategy = strategy,
     exitReason = exitReason,
-    timestamp = timestamp
+    timestamp = timestamp.toString(),
+    ts = timestamp.toString(),
+    accountType = accountType
 )

@@ -1363,6 +1363,7 @@ async def get_trades(
         
         trades = []
         for row in trades_data:
+            ts_str = str(row.get("ts")) if row.get("ts") else None
             trades.append({
                 "id": row.get("id"),
                 "symbol": row.get("symbol"),
@@ -1370,20 +1371,24 @@ async def get_trades(
                 "entry_price": row.get("entry_price"),
                 "exit_price": row.get("exit_price"),
                 "pnl": row.get("pnl"),
-                "pnl_percent": row.get("pnl_pct"),
+                "pnl_pct": row.get("pnl_pct"),  # iOS expects pnl_pct
+                "pnl_percent": row.get("pnl_pct"),  # WebApp expects pnl_percent
                 "exchange": row.get("exchange") or exchange,
                 "strategy": row.get("strategy") or "unknown",
-                "created_at": str(row.get("ts")) if row.get("ts") else None,
-                "closed_at": str(row.get("ts")) if row.get("ts") else None,
+                "ts": ts_str,  # iOS expects ts
+                "timestamp": ts_str,  # iOS fallback / Android expects this
+                "created_at": ts_str,  # WebApp compatibility
+                "closed_at": ts_str,  # WebApp compatibility
                 "account_type": row.get("account_type") or "demo",
                 "exit_reason": row.get("exit_reason"),
             })
         
-        return {"trades": trades, "total": total}
+        # Return both formats for compatibility: iOS expects "trades", Android expects "data"
+        return {"success": True, "trades": trades, "data": trades, "total": total}
         
     except Exception as e:
         logger.error(f"Trades fetch error: {e}")
-        return {"trades": [], "total": 0, "error": str(e)}
+        return {"success": False, "trades": [], "data": [], "total": 0, "error": str(e)}
 
 
 @router.get("/stats")

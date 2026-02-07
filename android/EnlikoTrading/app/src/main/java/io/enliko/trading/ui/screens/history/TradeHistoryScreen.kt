@@ -39,11 +39,11 @@ data class TradeRecord(
     val id: String,
     val symbol: String,
     val side: String,
-    val price: Double,
-    val qty: Double,
+    val price: Double?,
+    val qty: Double?,
     val fee: Double,
     val realizedPnl: Double?,
-    val executedAt: Long
+    val executedAt: String  // Server returns string timestamp
 )
 
 data class FundingRecord(
@@ -60,11 +60,11 @@ data class PnlRecord(
     val symbol: String,
     val side: String,
     val entryPrice: Double,
-    val exitPrice: Double,
-    val qty: Double,
-    val pnl: Double,
-    val pnlPercent: Double,
-    val closedAt: Long
+    val exitPrice: Double?,
+    val qty: Double?,
+    val pnl: Double?,
+    val pnlPercent: Double?,
+    val closedAt: String  // Server returns string timestamp
 )
 
 enum class HistoryTab { ORDERS, TRADES, FUNDING, PNL }
@@ -298,10 +298,10 @@ private fun TradeCard(trade: TradeRecord) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                InfoColumn("Price", formatPrice(trade.price))
-                InfoColumn("Qty", trade.qty.toString())
+                InfoColumn("Price", formatPrice(trade.price ?: 0.0))
+                InfoColumn("Qty", (trade.qty ?: 0.0).toString())
                 InfoColumn("Fee", formatCurrency(trade.fee))
-                InfoColumn("Time", formatTime(trade.executedAt))
+                InfoColumn("Time", trade.executedAt)  // Already a string
             }
         }
     }
@@ -490,16 +490,18 @@ private fun PnLCard(record: PnlRecord) {
                 }
                 
                 Column(horizontalAlignment = Alignment.End) {
+                    val pnlVal = record.pnl ?: 0.0
+                    val pnlPctVal = record.pnlPercent ?: 0.0
                     Text(
-                        text = "${if (record.pnl >= 0) "+" else ""}${formatCurrency(record.pnl)}",
+                        text = "${if (pnlVal >= 0) "+" else ""}${formatCurrency(pnlVal)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (record.pnl >= 0) LongGreen else ShortRed
+                        color = if (pnlVal >= 0) LongGreen else ShortRed
                     )
                     Text(
-                        text = "${if (record.pnlPercent >= 0) "+" else ""}${String.format("%.2f", record.pnlPercent)}%",
+                        text = "${if (pnlPctVal >= 0) "+" else ""}${String.format("%.2f", pnlPctVal)}%",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (record.pnlPercent >= 0) LongGreen else ShortRed
+                        color = if (pnlPctVal >= 0) LongGreen else ShortRed
                     )
                 }
             }
@@ -511,9 +513,9 @@ private fun PnLCard(record: PnlRecord) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 InfoColumn("Entry", formatPrice(record.entryPrice))
-                InfoColumn("Exit", formatPrice(record.exitPrice))
-                InfoColumn("Qty", record.qty.toString())
-                InfoColumn("Closed", formatDate(record.closedAt))
+                InfoColumn("Exit", formatPrice(record.exitPrice ?: 0.0))
+                InfoColumn("Qty", (record.qty ?: 0.0).toString())
+                InfoColumn("Closed", record.closedAt)  // Already a string
             }
         }
     }

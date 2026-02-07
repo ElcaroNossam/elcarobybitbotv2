@@ -100,7 +100,7 @@ class TradeHistoryViewModel @Inject constructor(
                     qty = trade.size,
                     pnl = trade.pnl,
                     pnlPercent = trade.pnlPercent,
-                    closedAt = trade.timestamp
+                    closedAt = trade.timestamp.toString()  // Convert Long to String
                 )
             }
             
@@ -204,32 +204,32 @@ class TradeHistoryViewModel @Inject constructor(
             // Fetch closed PnL records (trade_logs) using getTrades
             val tradesResponse = api.getTrades(exchange, accountType, limit = 50)
             if (tradesResponse.isSuccessful) {
-                val tradesData = tradesResponse.body()?.data ?: emptyList()
+                val tradesData = tradesResponse.body()?.allTrades ?: emptyList()
                 val pnlRecords = tradesData.map { trade ->
                     PnlRecord(
-                        id = trade.id ?: "${trade.symbol}_${trade.timestamp}",
+                        id = trade.id ?: "${trade.symbol}_${trade.timestampStr}",
                         symbol = trade.symbol,
                         side = trade.side,
                         entryPrice = trade.entryPrice,
                         exitPrice = trade.exitPrice,
                         qty = trade.size,
-                        pnl = trade.pnl,
-                        pnlPercent = trade.pnlPercent,
-                        closedAt = trade.timestamp
+                        pnl = trade.pnlValue,
+                        pnlPercent = trade.pnlPercentValue,
+                        closedAt = trade.timestampStr
                     )
                 }
                 
                 // Convert to TradeRecord format for Trades tab (execution-like view)
                 val tradeRecords = tradesData.map { trade ->
                     TradeRecord(
-                        id = trade.id ?: "${trade.symbol}_${trade.timestamp}",
+                        id = trade.id ?: "${trade.symbol}_${trade.timestampStr}",
                         symbol = trade.symbol,
                         side = trade.side,
                         price = trade.exitPrice, // Show exit price
                         qty = trade.size,
                         fee = 0.0, // Not available in trade_logs
-                        realizedPnl = trade.pnl,
-                        executedAt = trade.timestamp
+                        realizedPnl = trade.pnlValue,
+                        executedAt = trade.timestampStr
                     )
                 }
                 
@@ -241,16 +241,16 @@ class TradeHistoryViewModel @Inject constructor(
                         symbol = record.symbol,
                         side = record.side,
                         entryPrice = record.entryPrice,
-                        exitPrice = record.exitPrice,
-                        size = record.qty,
-                        pnl = record.pnl,
-                        pnlPercent = record.pnlPercent,
+                        exitPrice = record.exitPrice ?: 0.0,
+                        size = record.qty ?: 0.0,
+                        pnl = record.pnl ?: 0.0,
+                        pnlPercent = record.pnlPercent ?: 0.0,
                         strategy = "unknown",
                         exitReason = null,
                         leverage = null,
                         exchange = exchange,
                         accountType = accountType,
-                        timestamp = record.closedAt
+                        timestamp = try { record.closedAt.toLong() } catch (e: Exception) { System.currentTimeMillis() }
                     )
                 }
                 
