@@ -496,7 +496,7 @@ async def get_positions(
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = _normalize_both_account_type(account_type, "hyperliquid")
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return []
@@ -505,7 +505,9 @@ async def get_positions(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             result = await adapter.fetch_positions()
             
@@ -629,7 +631,7 @@ async def get_orders(
     
     if exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return []
@@ -638,7 +640,9 @@ async def get_orders(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             result = await adapter.fetch_open_orders()
             
@@ -731,7 +735,7 @@ async def close_position(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             raise HTTPException(status_code=400, detail=f"HL {account_type} not configured")
@@ -740,7 +744,9 @@ async def close_position(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             # Get position info before closing
             pos_result = await adapter.fetch_positions()
@@ -930,7 +936,7 @@ async def close_all_positions(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = _normalize_both_account_type(req.account_type, "hyperliquid")
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             raise HTTPException(status_code=400, detail=f"HL {account_type} not configured")
@@ -939,7 +945,9 @@ async def close_all_positions(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             
             hl_account_type = "testnet" if is_testnet else "mainnet"
@@ -1198,7 +1206,7 @@ async def get_execution_history(
     if exchange == "hyperliquid":
         # HyperLiquid execution history
         hl_creds = db.get_hl_credentials(user_id)
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return {"executions": [], "error": f"HL {account_type} not configured"}
@@ -1206,7 +1214,9 @@ async def get_execution_history(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             # Note: HyperLiquid fill history would require separate implementation
             await adapter.close()
@@ -1669,7 +1679,7 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
     """Place order on HyperLiquid with TP/SL support (same as Bybit)"""
     hl_creds = db.get_hl_credentials(user_id)
     account_type = req.account_type if hasattr(req, 'account_type') else 'testnet'
-    private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+    private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
     
     if not private_key:
         return {"success": False, "error": f"HyperLiquid {account_type} not configured", "exchange": "hyperliquid"}
@@ -1679,7 +1689,8 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         # Normalize symbol for HL (remove USDT/USDC suffix)
@@ -1761,7 +1772,7 @@ async def set_leverage(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = getattr(req, 'account_type', 'testnet')
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
@@ -1769,7 +1780,9 @@ async def set_leverage(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             await adapter.set_leverage(req.symbol.replace("USDT", "").replace("USDC", ""), req.leverage)
             await adapter.close()
@@ -1805,7 +1818,7 @@ async def cancel_order(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = getattr(req, 'account_type', 'testnet')
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
@@ -1813,7 +1826,9 @@ async def cancel_order(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             result = await adapter.cancel_order(req.symbol, req.order_id)
             await adapter.close()
@@ -1890,7 +1905,7 @@ async def modify_position_tpsl(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = getattr(req, 'account_type', 'testnet')
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
@@ -1898,7 +1913,9 @@ async def modify_position_tpsl(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             
             # Get position to determine side
@@ -1993,7 +2010,7 @@ async def cancel_order_by_id(
     if req.exchange == "hyperliquid":
         hl_creds = db.get_hl_credentials(user_id)
         account_type = getattr(req, 'account_type', 'testnet')
-        private_key, is_testnet = _get_hl_credentials_for_account(hl_creds, account_type)
+        private_key, is_testnet, wallet_address = _get_hl_credentials_for_account(hl_creds, account_type)
         
         if not private_key:
             return {"success": False, "error": f"HL {account_type} not configured"}
@@ -2001,7 +2018,9 @@ async def cancel_order_by_id(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet
+                testnet=is_testnet,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             result = await adapter.cancel_order(req.symbol, req.order_id)
             await adapter.close()

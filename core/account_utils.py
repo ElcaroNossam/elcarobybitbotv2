@@ -32,41 +32,52 @@ def normalize_account_type(account_type: Optional[str], exchange: str = 'bybit')
     return account_type
 
 
-def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> Tuple[Optional[str], bool]:
+def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> Tuple[Optional[str], bool, Optional[str]]:
     """
     Get HyperLiquid credentials for specified account type.
     
     Supports both new architecture (testnet/mainnet separate keys)
     and legacy format (single key with hl_testnet flag).
     
+    For Unified Account architecture:
+    - API wallet signs orders
+    - Main wallet holds funds/positions
+    - wallet_address should be passed to HLAdapter for balance queries
+    
     Args:
         hl_creds: Dictionary with HL credentials from db.get_hl_credentials()
         account_type: 'testnet', 'mainnet', 'demo', or 'real'
     
     Returns:
-        Tuple of (private_key, is_testnet)
+        Tuple of (private_key, is_testnet, wallet_address)
     """
     is_testnet = account_type in ("testnet", "demo")
     
     # Try new architecture first
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address")
         if not private_key:
             # Fallback to legacy format
             private_key = hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_wallet_address")
             if private_key and not hl_creds.get("hl_testnet", False):
                 # Legacy key is for mainnet, not testnet
                 private_key = None
+                wallet_address = None
     else:
         private_key = hl_creds.get("hl_mainnet_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address")
         if not private_key:
             # Fallback to legacy format
             private_key = hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_wallet_address")
             if private_key and hl_creds.get("hl_testnet", False):
                 # Legacy key is for testnet, not mainnet
                 private_key = None
+                wallet_address = None
     
-    return private_key, is_testnet
+    return private_key, is_testnet, wallet_address
 
 
 def is_live_account(account_type: str, exchange: str = 'bybit') -> bool:

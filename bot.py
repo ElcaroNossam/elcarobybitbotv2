@@ -5937,18 +5937,21 @@ async def _set_trading_stop_hyperliquid(
         # Get correct private key for network (multitenancy)
         if is_testnet:
             private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
         else:
             private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
         
         if not private_key:
             logger.warning(f"[{uid}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
             return False
         
-        # Create adapter
+        # Create adapter with main_wallet_address for Unified Account
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         try:
@@ -5987,7 +5990,7 @@ async def _set_trading_stop_hyperliquid(
             
             # Set TP/SL via HyperLiquid API
             coin = hl_symbol_to_coin(symbol)
-            result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price)
+            result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=wallet_address)
             
             # Check results
             success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
@@ -7348,21 +7351,24 @@ async def place_order_for_targets(
                 
                 # Get HL credentials
                 hl_creds = db.get_hl_credentials(user_id)
-                # Get correct private key for network (multitenancy)
+                # Get correct private key and wallet_address for network (multitenancy)
                 if is_testnet:
                     hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                    wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
                 else:
                     hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                    wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
                 
                 if not hl_private_key:
                     errors.append(f"[{target_key.upper()}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
                     continue
                 
-                # Create adapter
+                # Create adapter with main_wallet_address for Unified Account
                 adapter = HLAdapter(
                     private_key=hl_private_key,
                     testnet=is_testnet,
-                    vault_address=hl_creds.get("hl_vault_address")
+                    vault_address=wallet_address,
+                    main_wallet_address=wallet_address
                 )
                 
                 try:
@@ -7449,16 +7455,19 @@ async def place_order_for_targets(
                         # Get price from HL position
                         hl_creds = db.get_hl_credentials(user_id)
                         is_testnet_for_price = (target_env == "paper")
-                        # Get correct private key for network (multitenancy)
+                        # Get correct private key and wallet_address for network (multitenancy)
                         if is_testnet_for_price:
                             hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                            wallet_address_for_price = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
                         else:
                             hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                            wallet_address_for_price = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
                         
                         if hl_private_key:
                             adapter = HLAdapter(
                                 private_key=hl_private_key,
-                                testnet=is_testnet_for_price
+                                testnet=is_testnet_for_price,
+                                main_wallet_address=wallet_address_for_price
                             )
                             try:
                                 # Try to get actual position entry price
@@ -7771,11 +7780,18 @@ async def place_order_hyperliquid(
         hl_tp = hl_settings.get("tp_percent", tp_percent or 3.0)
         hl_leverage = hl_settings.get("leverage", leverage or 10)
         
-        # Create adapter
+        # Get main wallet address for Unified Account architecture
+        if testnet:
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        else:
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+        
+        # Create adapter with main_wallet_address for Unified Account
         adapter = HLAdapter(
             private_key=hl_private_key,
             testnet=testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,  # Trade on behalf of main wallet
+            main_wallet_address=wallet_address  # Query balance from main wallet
         )
         
         async with adapter:
@@ -7836,7 +7852,7 @@ async def place_order_hyperliquid(
                         tp_price = price * (1 + hl_tp / 100) if is_buy else price * (1 - hl_tp / 100)
                     if hl_sl and hl_sl > 0:
                         sl_price = price * (1 - hl_sl / 100) if is_buy else price * (1 + hl_sl / 100)
-                    await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price)
+                    await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=wallet_address)
                 except Exception as tpsl_err:
                     logger.warning(f"[{user_id}] Could not set HL TP/SL: {tpsl_err}")
             
@@ -10813,10 +10829,16 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
             creds = db.get_hl_credentials(uid)
             if creds and creds.get("hl_private_key"):
                 from hl_adapter import HLAdapter
+                is_testnet = bool(creds.get("hl_testnet", False))
+                if is_testnet:
+                    wallet_addr = creds.get("hl_testnet_wallet_address") or creds.get("hl_wallet_address")
+                else:
+                    wallet_addr = creds.get("hl_mainnet_wallet_address") or creds.get("hl_wallet_address")
                 adapter = HLAdapter(
                     private_key=creds["hl_private_key"],
-                    testnet=bool(creds.get("hl_testnet", False)),
-                    vault_address=creds.get("hl_vault_address")
+                    testnet=is_testnet,
+                    vault_address=wallet_addr,
+                    main_wallet_address=wallet_addr
                 )
                 try:
                     await adapter.initialize()
@@ -27205,8 +27227,10 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
     # Get credentials for specific network
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
     else:
         private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
     
     if not private_key:
         await update.message.reply_text(
@@ -27220,7 +27244,8 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_open_orders()
@@ -27369,8 +27394,10 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     # Get credentials for specific network (multitenancy pattern)
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
     else:
         private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
     
     if not private_key:
         await update.message.reply_text(
@@ -27384,7 +27411,8 @@ async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_trade_history(limit=10)
@@ -28483,7 +28511,7 @@ async def on_hl_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address"),
+            vault_address=wallet_address,
             main_wallet_address=wallet_address
         )
         
@@ -28591,8 +28619,10 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
     # Get credentials for specific network
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
     else:
         private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
     
     if not private_key:
         await q.edit_message_text(
@@ -28606,7 +28636,8 @@ async def on_hl_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TYP
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_positions()
@@ -28685,8 +28716,10 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Get credentials for specific network
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
     else:
         private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
     
     if not private_key:
         await q.edit_message_text(
@@ -28700,7 +28733,8 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_open_orders()
@@ -28776,8 +28810,10 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
     # Get credentials for specific network
     if is_testnet:
         private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
     else:
         private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
     
     if not private_key:
         await q.edit_message_text(
@@ -28791,7 +28827,8 @@ async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE)
         adapter = HLAdapter(
             private_key=private_key,
             testnet=is_testnet,
-            vault_address=hl_creds.get("hl_vault_address")
+            vault_address=wallet_address,
+            main_wallet_address=wallet_address
         )
         
         result = await adapter.fetch_trade_history(limit=10)
@@ -28947,11 +28984,13 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         hl_creds = get_hl_credentials(uid)
         is_testnet = hl_creds.get("hl_testnet", False)
         
-        # Get correct private key for network (multitenancy)
+        # Get correct private key and wallet_address for network (multitenancy)
         if is_testnet:
             hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
         else:
             hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
         
         if not hl_private_key:
             await q.edit_message_text(
@@ -28965,7 +29004,8 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             adapter = HLAdapter(
                 private_key=hl_private_key,
                 testnet=is_testnet,
-                vault_address=hl_creds.get("hl_vault_address")
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address
             )
             result = await adapter.get_balance()
             

@@ -633,7 +633,7 @@ class ExchangeRouter:
         try:
             # Get HL credentials
             hl_creds = db.get_hl_credentials(intent.user_id)
-            private_key, is_testnet, _, vault_address = _get_hl_credentials_for_env(hl_creds, target.env)
+            private_key, is_testnet, wallet_address, vault_address = _get_hl_credentials_for_env(hl_creds, target.env)
             
             if not private_key:
                 return ExecutionResult(
@@ -642,11 +642,12 @@ class ExchangeRouter:
                     error=f"HyperLiquid {target.env} not configured",
                 )
             
-            # Create adapter
+            # Create adapter with main_wallet_address for Unified Account
             adapter = HLAdapter(
                 private_key=private_key,
                 testnet=is_testnet,
-                vault_address=vault_address,
+                vault_address=wallet_address,
+                main_wallet_address=wallet_address,
             )
             
             async with adapter:
@@ -887,11 +888,13 @@ class ExchangeRouter:
             try:
                 if t.exchange == Exchange.HYPERLIQUID.value:
                     hl_creds = db.get_hl_credentials(user_id)
-                    private_key, is_testnet, _, _ = _get_hl_credentials_for_env(hl_creds, t.env)
+                    private_key, is_testnet, wallet_address, _ = _get_hl_credentials_for_env(hl_creds, t.env)
                     if private_key:
                         adapter = HLAdapter(
                             private_key=private_key,
                             testnet=is_testnet,
+                            vault_address=wallet_address,
+                            main_wallet_address=wallet_address,
                         )
                         async with adapter:
                             hl_symbol = normalize_symbol(symbol, Exchange.HYPERLIQUID.value)

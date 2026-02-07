@@ -921,7 +921,26 @@ class HLAdapter:
             return {"success": False, "error": str(e)}
 
 
-async def create_hl_adapter(private_key: str, testnet: bool = False, vault_address: Optional[str] = None) -> HLAdapter:
-    adapter = HLAdapter(private_key=private_key, testnet=testnet, vault_address=vault_address)
+async def create_hl_adapter(
+    private_key: str, 
+    testnet: bool = False, 
+    vault_address: Optional[str] = None,
+    main_wallet_address: Optional[str] = None
+) -> HLAdapter:
+    """
+    Create and initialize HLAdapter.
+    
+    Args:
+        private_key: API wallet private key (for signing orders)
+        testnet: Whether to use testnet
+        vault_address: Vault address for trading on behalf of another wallet (requires agent registration)
+        main_wallet_address: Main wallet address for balance/position queries (for API Wallet architecture)
+    """
+    adapter = HLAdapter(
+        private_key=private_key, 
+        testnet=testnet, 
+        vault_address=vault_address,
+        main_wallet_address=main_wallet_address
+    )
     await adapter.initialize()
     return adapter
