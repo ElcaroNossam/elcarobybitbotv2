@@ -33,17 +33,17 @@ def _get_hl_cache(key: str) -> Optional[Any]:
         data, ts = _hl_cache[key]
         age = time.time() - ts
         if age < HL_CACHE_TTL:
-            logger.info(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")
+            logger.debug(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")
             return data
         else:
-            logger.info(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")
+            logger.debug(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")
     return None
 
 
 def _set_hl_cache(key: str, data: Any):
     """Set HyperLiquid cache with current timestamp"""
     _hl_cache[key] = (data, time.time())
-    logger.info(f"[HL-CACHE] SET {key}")
+    logger.debug(f"[HL-CACHE] SET {key}")
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):
@@ -200,9 +200,9 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         cache_key = f"positions:{user_id}:{account_type}"
         cached = _get_hl_cache(cache_key)
         if cached is not None:
-            logger.info(f"[HL-CACHE] Using cached positions for user {user_id}")
+            logger.debug(f"[HL-CACHE] Using cached positions for user {user_id}")
             return cached
-        logger.info(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
+        logger.debug(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
     
     client = None
     try:
