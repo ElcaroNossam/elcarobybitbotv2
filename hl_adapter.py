@@ -2,12 +2,36 @@
 HyperLiquid Adapter for Bot Compatibility
 """
 import logging
-from typing import Dict, Any, Optional, List
+import time
+from typing import Dict, Any, Optional, List, Tuple
 
 from hyperliquid import HyperLiquidClient, HyperLiquidError, coin_to_asset_id
 from models import Position, Order, Balance, OrderResult, OrderSide, PositionSide
 
 logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# HYPERLIQUID ADAPTER CACHE - Prevent rate limiting (429 errors)
+# Cache responses for 30 seconds per wallet address
+# ═══════════════════════════════════════════════════════════════
+_hl_adapter_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
+HL_ADAPTER_CACHE_TTL = 30  # seconds
+
+
+def _get_adapter_cache(key: str) -> Optional[Any]:
+    """Get cached HyperLiquid adapter data if not expired"""
+    if key in _hl_adapter_cache:
+        data, ts = _hl_adapter_cache[key]
+        if time.time() - ts < HL_ADAPTER_CACHE_TTL:
+            logger.debug(f"[HL-ADAPTER-CACHE] Hit for {key}")
+            return data
+    return None
+
+
+def _set_adapter_cache(key: str, data: Any):
+    """Set HyperLiquid adapter cache with current timestamp"""
+    _hl_adapter_cache[key] = (data, time.time())
+    logger.debug(f"[HL-ADAPTER-CACHE] Set {key}")
 
 
 def _safe_float(val, default=0.0):
@@ -165,17 +189,29 @@ class HLAdapter:
             logger.error(f"fetch_balance error: {e}")
             return {"retCode": 1, "retMsg": str(e), "result": {"list": []}}
 
-    async def get_balance(self) -> Dict[str, Any]:
+    async def get_balance(self, use_cache: bool = True) -> Dict[str, Any]:
         """
         Detailed balance method for UI.
         Uses main_wallet_address if set (for API Wallet architecture where
         funds are on main wallet, not API wallet).
+        
+        Args:
+            use_cache: Use cache to avoid rate limits (default True)
         """
         await self.initialize()
+        
+        # Query balance from main wallet address if set, otherwise from API wallet
+        query_address = self._main_wallet_address or self._client.address
+        
+        # Check cache first to avoid rate limits
+        if use_cache:
+            network = "testnet" if self._client.is_testnet else "mainnet"
+            cache_key = f"balance:{query_address}:{network}"
+            cached = _get_adapter_cache(cache_key)
+            if cached is not None:
+                return cached
+        
         try:
-            # Query balance from main wallet address if set, otherwise from API wallet
-            query_address = self._main_wallet_address or self._client.address
-            
             state = await self._client.user_state(address=query_address)
             margin = state.get("marginSummary", {})
             
@@ -201,7 +237,7 @@ class HLAdapter:
                     total_position_value += abs(_safe_float(pos.get("positionValue", 0)))
                     pnl += _safe_float(pos.get("unrealizedPnl", 0))
             
-            return {
+            result = {
                 "success": True,
                 "data": {
                     "equity": balance.get("account_value", 0),
@@ -214,6 +250,14 @@ class HLAdapter:
                     "currency": "USDC"  # HL uses USDC
                 }
             }
+            
+            # Cache the result
+            if use_cache:
+                network = "testnet" if self._client.is_testnet else "mainnet"
+                cache_key = f"balance:{query_address}:{network}"
+                _set_adapter_cache(cache_key, result)
+            
+            return result
         except Exception as e:
             logger.error(f"get_balance error: {e}")
             return {"success": False, "error": str(e)}
