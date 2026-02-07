@@ -334,8 +334,11 @@ def generate_email_user_id() -> int:
 
 async def send_email(to: str, subject: str, body_html: str) -> bool:
     """Send email via SMTP"""
+    logger.info(f"[EMAIL] Starting send_email to {to}, subject: {subject}")
+    logger.info(f"[EMAIL] SMTP config: host={SMTP_HOST}, port={SMTP_PORT}, user={SMTP_USER}, from={SMTP_FROM}")
+    
     if not SMTP_USER or not SMTP_PASSWORD:
-        logger.warning(f"SMTP not configured, would send to {to}: {subject}")
+        logger.warning(f"[EMAIL] SMTP not configured, would send to {to}: {subject}")
         return True  # Pretend success in dev mode
     
     try:
@@ -349,20 +352,23 @@ async def send_email(to: str, subject: str, body_html: str) -> bool:
         msg.attach(MIMEText(text_body, 'plain'))
         msg.attach(MIMEText(body_html, 'html'))
         
+        logger.info(f"[EMAIL] Connecting to SMTP server...")
         if SMTP_USE_TLS:
-            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
             server.starttls()
         else:
-            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
         
+        logger.info(f"[EMAIL] Logging in to SMTP...")
         server.login(SMTP_USER, SMTP_PASSWORD)
+        logger.info(f"[EMAIL] Sending email...")
         server.sendmail(SMTP_FROM, [to], msg.as_string())
         server.quit()
         
-        logger.info(f"Email sent to {to}: {subject}")
+        logger.info(f"[EMAIL] ✅ Email sent successfully to {to}: {subject}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to}: {e}")
+        logger.error(f"[EMAIL] ❌ Failed to send email to {to}: {e}", exc_info=True)
         return False
 
 
