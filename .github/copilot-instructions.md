@@ -1,7 +1,8 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.54.0 | Обновлено: 6 февраля 2026
+# Версия: 3.55.0 | Обновлено: 6 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 5, 2026)
+# HyperLiquid Unified Account: FULL SUPPORT ✅ (Feb 6, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -43,6 +44,8 @@
 # - BlackRock Deep Audit: PASSED (Feb 5, 2026) ✅
 # - iOS Build 75: 2026 Premium Edition with glassmorphism (Feb 6, 2026) ✅
 # - Android 2026 Style: Full glassmorphism design system (Feb 6, 2026) ✅
+# - HyperLiquid Unified Account: Full support in bot.py (Feb 6, 2026) ✅
+# - iOS Build 80: TestFlight with HL Unified Account support (Feb 6, 2026) ✅
 
 ---
 
@@ -1187,6 +1190,54 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ CRITICAL: HyperLiquid Unified Account Full Support (Feb 6, 2026)
+- **Проблема:** Пользователи с включённым Unified Account на HyperLiquid не могли открывать позиции
+- **Причина:** Unified Account хранит баланс в Spot (возвращается через `spotClearinghouseState`), а не в Perp (`clearinghouseState`)
+- **Затронутые функции:**
+  | Функция | Файл | Проблема | Решение |
+  |---------|------|----------|---------|
+  | `fetch_usdt_balance()` | bot.py | Только Bybit API | Добавлен HyperLiquid branch с `adapter.get_balance()` |
+  | `calc_qty()` | bot.py | Использовал Bybit API для instrument info | Добавлен HL branch с `SIZE_DECIMALS` |
+  | `place_order_hyperliquid()` | bot.py | Использовал `user_state` напрямую | Заменён на `adapter.get_balance()` |
+- **Как работает Unified Account:**
+  ```
+  Normal Account:        Unified Account:
+  ┌──────────┐           ┌──────────────────┐
+  │ Spot: $0 │           │ Spot: $32.76     │ ← Общий баланс
+  ├──────────┤           │ (используется    │
+  │ Perp: $X │           │  для Perp)       │
+  └──────────┘           └──────────────────┘
+  ```
+- **API Response для Unified Account:**
+  ```python
+  # clearinghouseState.marginSummary.accountValue = 0  ← НЕ использовать!
+  # spotClearinghouseState.balances = [{"coin": "USDC", "total": "32.76"}]  ← Реальный баланс
+  ```
+- **Паттерн детекции в `hl_adapter.py`:**
+  ```python
+  perp_value = float(margin_summary.get("accountValue", 0))
+  spot_balances = user_state.get("spotClearinghouseState", {}).get("balances", [])
+  is_unified = (perp_value == 0 and len(spot_balances) > 0)
+  ```
+- **Исправленные файлы:**
+  - `bot.py` - `fetch_usdt_balance()` (~line 11119-11200)
+  - `bot.py` - `calc_qty()` (~line 16258-16380)
+  - `bot.py` - `place_order_hyperliquid()` (~line 7765-7810)
+  - `hl_adapter.py` - `get_balance()` (уже исправлено ранее)
+- **WebApp/iOS/Android:** Уже использовали `/balance` API → автоматически исправлены
+- **Commit:** `514a67d`
+
+### ✅ FEAT: iOS Build 80 + Android APK Generation (Feb 6, 2026)
+- **iOS Build 80:** Загружен в TestFlight с полной поддержкой HyperLiquid Unified Account
+- **Android APK:** Собран успешно (~23MB debug build)
+- **Java 17 Required:** Android Gradle 8.10.2 не поддерживает Java 25!
+  ```bash
+  # Правильная команда сборки Android:
+  JAVA_HOME=$(/usr/libexec/java_home -v 17) ./gradlew assembleDebug
+  ```
+- **APK Location:** `builds/EnlikoTrading-debug-20260206.apk`
+- **Commits:** iOS `e3d2944`, Backend `514a67d`
 
 ### ✅ FEAT: iOS Build 75 + Android 2026 Glassmorphism Design (Feb 6, 2026)
 - **iOS Build 75:** Загружен в TestFlight с 2026 Premium Edition стилями
