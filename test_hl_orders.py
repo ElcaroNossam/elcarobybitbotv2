@@ -75,18 +75,28 @@ async def test_hl_full(uid: int = 511692487):
         eth_price = await adapter._client.get_mid_price("ETH")
         print(f"  ETH mid price: ${eth_price:.2f}")
         
-        # 1d. Open minimal position (0.001 ETH ~ $3)
-        if equity >= 3:
-            print("\n[1d] OPEN TEST POSITION (0.001 ETH LONG):")
+        # 1d. Open minimal position (0.01 ETH ~ $20 on mainnet)
+        MIN_ETH_SIZE = 0.01  # ~$20 notional at $2000 ETH
+        if equity >= 30:
+            print(f"\n[1d] OPEN TEST POSITION ({MIN_ETH_SIZE} ETH LONG):")
             try:
                 result = await adapter._client.market_open(
                     coin="ETH",
                     is_buy=True,
-                    sz=0.001,  # Minimal size
-                    slippage=0.01
+                    sz=MIN_ETH_SIZE,  # Minimal size ~$20
+                    slippage=0.05  # 5% slippage for market order
                 )
                 print(f"  Result: {result}")
-                results['mainnet_open'] = result.get('status') == 'ok'
+                order_ok = result.get('status') == 'ok'
+                statuses = result.get('response', {}).get('data', {}).get('statuses', [])
+                if statuses and 'filled' in statuses[0]:
+                    print(f"  ✅ Order filled: {statuses[0]['filled']}")
+                    results['mainnet_open'] = True
+                elif statuses and 'error' in statuses[0]:
+                    print(f"  ❌ Order error: {statuses[0]['error']}")
+                    results['mainnet_open'] = False
+                else:
+                    results['mainnet_open'] = order_ok
                 
                 # Wait a moment
                 await asyncio.sleep(2)
@@ -170,17 +180,27 @@ async def test_hl_full(uid: int = 511692487):
             print("  Could not get ETH price on testnet")
         
         # 2d. Open minimal position if we have balance
-        if equity >= 3 and eth_price:
-            print("\n[2d] OPEN TEST POSITION (0.001 ETH LONG):")
+        MIN_ETH_SIZE_TESTNET = 0.01
+        if equity >= 30 and eth_price:
+            print(f"\n[2d] OPEN TEST POSITION ({MIN_ETH_SIZE_TESTNET} ETH LONG):")
             try:
                 result = await adapter2._client.market_open(
                     coin="ETH",
                     is_buy=True,
-                    sz=0.001,
-                    slippage=0.01
+                    sz=MIN_ETH_SIZE_TESTNET,
+                    slippage=0.05
                 )
                 print(f"  Result: {result}")
-                results['testnet_open'] = result.get('status') == 'ok'
+                order_ok = result.get('status') == 'ok'
+                statuses = result.get('response', {}).get('data', {}).get('statuses', [])
+                if statuses and 'filled' in statuses[0]:
+                    print(f"  ✅ Order filled: {statuses[0]['filled']}")
+                    results['testnet_open'] = True
+                elif statuses and 'error' in statuses[0]:
+                    print(f"  ❌ Order error: {statuses[0]['error']}")
+                    results['testnet_open'] = False
+                else:
+                    results['testnet_open'] = order_ok
                 
                 await asyncio.sleep(2)
                 
