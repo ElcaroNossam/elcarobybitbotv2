@@ -231,6 +231,87 @@ fun ApiKeysScreen(
                     }
                 }
                 
+                // HyperLiquid Wallet Info (auto-discovered)
+                if (uiState.selectedExchange == "hyperliquid") {
+                    val apiWallet = if (uiState.selectedAccount == "testnet") uiState.hlTestnetApiWallet else uiState.hlMainnetApiWallet
+                    val mainWallet = if (uiState.selectedAccount == "testnet") uiState.hlTestnetMainWallet else uiState.hlMainnetMainWallet
+                    val balance = if (uiState.selectedAccount == "testnet") uiState.hlTestnetBalance else uiState.hlMainnetBalance
+                    
+                    if (apiWallet != null || mainWallet != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = EnlikoPrimary.copy(alpha = 0.1f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Wallet Info (Auto-Discovered)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = EnlikoPrimary
+                                )
+                                
+                                apiWallet?.let {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Key,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = EnlikoTextMuted
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "API: ${it.take(6)}...${it.takeLast(4)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = EnlikoTextSecondary
+                                        )
+                                    }
+                                }
+                                
+                                mainWallet?.let {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.AccountBalanceWallet,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = LongGreen
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Main: ${it.take(6)}...${it.takeLast(4)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = LongGreen
+                                        )
+                                    }
+                                }
+                                
+                                balance?.let {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.AttachMoney,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = EnlikoYellow
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Balance: $${String.format("%.2f", it)} USDC",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = EnlikoYellow
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Warning Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),

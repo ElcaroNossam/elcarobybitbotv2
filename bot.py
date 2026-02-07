@@ -27790,57 +27790,67 @@ async def on_hl_api_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
     
     elif data == "hl_api:test":
-        # Test HyperLiquid connection
+        # Test HyperLiquid connection - test both testnet and mainnet if configured
         hl_creds = get_hl_credentials(uid)
-        is_testnet = hl_creds.get("hl_testnet", False)
         
-        # Get credentials based on network (multitenancy)
-        if is_testnet:
-            wallet = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
-            private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-        else:
-            wallet = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
-            private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        results = []
         
-        if not wallet or not private_key:
-            t = getattr(ctx, 't', None) or get_texts(uid)
-            await q.edit_message_text("❌ No wallet configured for " + ("Testnet" if is_testnet else "Mainnet") + ".\n\nGo to API Settings → HyperLiquid to set up.")
+        # Test Testnet
+        testnet_key = hl_creds.get("hl_testnet_private_key") or (
+            hl_creds.get("hl_private_key") if hl_creds.get("hl_testnet") else None
+        )
+        if testnet_key:
+            try:
+                from hl_adapter import HLAdapter
+                adapter = HLAdapter(private_key=testnet_key, testnet=True)
+                await adapter.initialize()
+                balance_data = await adapter.get_balance()
+                await adapter.close()
+                
+                balance = balance_data.get("data", {}).get("equity", 0) if isinstance(balance_data, dict) else 0
+                api_wallet = adapter._client._api_wallet_address or "?"
+                main_wallet = adapter._client._main_wallet_address or api_wallet
+                
+                results.append(f"🧪 <b>Testnet:</b> ✅\n   API: <code>{api_wallet[:8]}...{api_wallet[-4:]}</code>\n   Main: <code>{main_wallet[:8]}...{main_wallet[-4:]}</code>\n   Balance: ${balance:.2f}")
+            except Exception as e:
+                results.append(f"🧪 <b>Testnet:</b> ❌ {str(e)[:50]}")
+        
+        # Test Mainnet
+        mainnet_key = hl_creds.get("hl_mainnet_private_key") or (
+            hl_creds.get("hl_private_key") if not hl_creds.get("hl_testnet") else None
+        )
+        if mainnet_key:
+            try:
+                from hl_adapter import HLAdapter
+                adapter = HLAdapter(private_key=mainnet_key, testnet=False)
+                await adapter.initialize()
+                balance_data = await adapter.get_balance()
+                await adapter.close()
+                
+                balance = balance_data.get("data", {}).get("equity", 0) if isinstance(balance_data, dict) else 0
+                api_wallet = adapter._client._api_wallet_address or "?"
+                main_wallet = adapter._client._main_wallet_address or api_wallet
+                
+                results.append(f"🌐 <b>Mainnet:</b> ✅\n   API: <code>{api_wallet[:8]}...{api_wallet[-4:]}</code>\n   Main: <code>{main_wallet[:8]}...{main_wallet[-4:]}</code>\n   Balance: ${balance:.2f}")
+            except Exception as e:
+                results.append(f"🌐 <b>Mainnet:</b> ❌ {str(e)[:50]}")
+        
+        if not results:
+            await q.edit_message_text(
+                "❌ No HyperLiquid credentials configured.\n\nUse Setup buttons to configure.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+                ])
+            )
             return
         
-        try:
-            from hl_adapter import HLAdapter
-            adapter = HLAdapter(
-                private_key=private_key,
-                testnet=is_testnet,
-                vault_address=None,
-                main_wallet_address=wallet
-            )
-            await adapter.initialize()
-            balance_data = await adapter.get_balance()
-            await adapter.close()
-            balance = balance_data.get("equity", 0) if isinstance(balance_data, dict) else 0
-            
-            network = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
-            await q.edit_message_text(
-                f"✅ <b>Connection Successful!</b>\n\n"
-                f"<b>Network:</b> {network}\n"
-                f"<b>Wallet:</b> <code>{wallet[:10]}...{wallet[-6:]}</code>\n"
-                f"<b>Balance:</b> ${balance:.2f}\n\n"
-                f"🟢 HyperLiquid is ready!",
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
-                ])
-            )
-        except Exception as e:
-            await q.edit_message_text(
-                f"❌ <b>Connection Failed</b>\n\n"
-                f"Error: {str(e)[:100]}",
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
-                ])
-            )
+        await q.edit_message_text(
+            f"🔷 <b>HyperLiquid Connection Test</b>\n\n" + "\n\n".join(results),
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back", callback_data="hl_api:back")]
+            ])
+        )
     
     elif data == "hl_api:clear":
         clear_hl_credentials(uid)

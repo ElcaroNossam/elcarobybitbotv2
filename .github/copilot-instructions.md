@@ -1,8 +1,8 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.55.0 | Обновлено: 6 февраля 2026
+# Версия: 3.56.0 | Обновлено: 7 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 5, 2026)
-# HyperLiquid Unified Account: FULL SUPPORT ✅ (Feb 6, 2026)
+# HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -46,6 +46,7 @@
 # - Android 2026 Style: Full glassmorphism design system (Feb 6, 2026) ✅
 # - HyperLiquid Unified Account: Full support in bot.py (Feb 6, 2026) ✅
 # - iOS Build 80: TestFlight with HL Unified Account support (Feb 6, 2026) ✅
+# - HyperLiquid Auto-Discovery: Main wallet auto-discovery from API wallet (Feb 7, 2026) ✅
 
 ---
 
@@ -875,17 +876,108 @@ account_type = _normalize_both_account_type(account_type, exchange='bybit')
 - Юзер переключает через кнопки Demo/Real (или Testnet/Mainnet)
 - API не поддерживает mode='both' - только конкретный account_type
 
-## HyperLiquid Credentials Architecture (IMPORTANT!)
+## HyperLiquid API Wallet Architecture (UPDATED Feb 7, 2026)
+
+> **КРИТИЧНО:** HyperLiquid использует **API Wallet** (agent) для торговли от имени **Main Wallet**!
+
+### Архитектура кошельков
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    HyperLiquid Wallet Architecture                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌──────────────────┐         ┌──────────────────┐                  │
+│  │   MAIN WALLET    │◄────────│   API WALLET     │                  │
+│  │  (Your account)  │  agent  │  (Generated key) │                  │
+│  │                  │   of    │                  │                  │
+│  │ • Holds funds    │         │ • Signs orders   │                  │
+│  │ • Shows balance  │         │ • No withdrawal  │                  │
+│  │ • 0xf38498...    │         │ • 0x157a40d2...  │                  │
+│  └──────────────────┘         └──────────────────┘                  │
+│                                                                      │
+│  User enters in bot:                                                 │
+│  ├── Private Key → Derives API Wallet address automatically         │
+│  └── (Wallet address field is optional - auto-derived)              │
+│                                                                      │
+│  Auto-discovery via userRole API:                                    │
+│  POST /info {"type": "userRole", "user": "<api_wallet>"}            │
+│  Response: {"role": "agent", "data": {"user": "<main_wallet>"}}     │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Credentials в БД (users table)
 
 ```python
-# НОВАЯ архитектура (multitenancy):
-# - hl_testnet_private_key + hl_testnet_wallet_address  # Для testnet
-# - hl_mainnet_private_key + hl_mainnet_wallet_address  # Для mainnet
+# Multitenancy architecture - раздельные ключи для testnet/mainnet:
+hl_testnet_private_key      TEXT  # Private key для testnet
+hl_testnet_wallet_address   TEXT  # API wallet address (auto-derived from key)
+hl_mainnet_private_key      TEXT  # Private key для mainnet  
+hl_mainnet_wallet_address   TEXT  # API wallet address (auto-derived from key)
 
-# LEGACY архитектура (fallback):
-# - hl_private_key + hl_wallet_address + hl_testnet (boolean)
+# Legacy fields (deprecated, fallback only):
+hl_private_key              TEXT  # Old single key
+hl_wallet_address           TEXT  # Old wallet address
+hl_testnet                  BOOL  # Old testnet flag
+```
 
-# Правильный паттерн получения credentials:
+### Auto-Discovery Flow (NEW!)
+
+```python
+# hyperliquid/client.py - discover_main_wallet()
+async def discover_main_wallet(self):
+    """Auto-discover main wallet if API wallet is registered as agent."""
+    response = await self._post_info({"type": "userRole", "user": self._api_wallet_address})
+    
+    if response.get("role") == "agent":
+        main_wallet = response["data"]["user"]
+        self._main_wallet_address = main_wallet
+        self._vault_address = main_wallet  # Use main wallet as vault for trading
+        logger.info(f"[HL] Auto-discovered main wallet: {main_wallet}")
+```
+
+### Unified Account Support
+
+```python
+# HyperLiquid Unified Account stores balance in SPOT, not PERP!
+# hl_adapter.py - get_balance()
+
+perp_value = float(margin_summary.get("accountValue", 0))
+spot_balances = user_state.get("spotClearinghouseState", {}).get("balances", [])
+
+# Detect Unified Account
+is_unified = (perp_value == 0 and len(spot_balances) > 0)
+
+if is_unified:
+    # Get USDC from spot balances
+    for bal in spot_balances:
+        if bal.get("coin") == "USDC":
+            equity = float(bal.get("total", 0))
+```
+
+### Правильный паттерн создания HLAdapter
+
+```python
+# bot.py / webapp - создание адаптера
+from hl_adapter import HLAdapter
+
+# Достаточно передать только private_key!
+adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+await adapter.initialize()  # Auto-discovers main wallet
+
+# Адаптер сам:
+# 1. Derive API wallet address from private key
+# 2. Call userRole API to find main wallet
+# 3. Set vault_address = main_wallet for trading
+# 4. Query balance from main wallet (handles Unified Account)
+
+balance = await adapter.get_balance()  # Returns main wallet balance
+```
+
+### Получение credentials по account_type
+
+```python
 def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> tuple:
     is_testnet = account_type in ("testnet", "demo")
     
@@ -898,17 +990,22 @@ def get_hl_credentials_for_account(hl_creds: dict, account_type: str) -> tuple:
         is_testnet = hl_creds.get("hl_testnet", False)
     
     return private_key, is_testnet
-
-# ИСПОЛЬЗОВАТЬ В:
-# - webapp/api/trading.py - _get_hl_credentials_for_account()
-# - core/exchange_client.py - get_exchange_client()
-# - bot.py - все HL endpoints
 ```
 
+### Key Files
+
+| File | Description |
+|------|-------------|
+| `hyperliquid/client.py` | Low-level API client with auto-discovery |
+| `hl_adapter.py` | High-level adapter for bot.py |
+| `bot.py` | HL menu handlers, order placement |
+| `webapp/api/trading.py` | REST API for HL trading |
+
 ⚠️ **При добавлении новых HL endpoints:**
-- ВСЕГДА использовать `account_type` для выбора testnet/mainnet ключа
-- ВСЕГДА проверять оба формата (new + legacy fallback)
-- НИКОГДА не использовать только `hl_private_key` напрямую
+- ВСЕГДА вызывать `adapter.initialize()` перед использованием
+- НИКОГДА не передавать vault_address вручную - auto-discovery сделает это
+- Баланс запрашивается для MAIN wallet, не для API wallet
+- Unified Account хранит баланс в SPOT, не в PERP
 
 ## Leverage Fallback
 
@@ -2724,7 +2821,41 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 | Биржа | Тип | Режимы | Файлы |
 |-------|-----|--------|-------|
 | **Bybit** | CEX | Demo, Real, Both | `exchanges/bybit.py`, `bot_unified.py` |
-| **HyperLiquid** | DEX | Real only | `hl_adapter.py`, `hyperliquid/` |
+| **HyperLiquid** | DEX | Testnet, Mainnet | `hl_adapter.py`, `hyperliquid/client.py` |
+
+## Унифицированная структура API Settings
+
+### Bybit API Settings
+```
+🟠 Bybit API Settings
+
+🎮 Demo: ✅ Configured
+   API Key: abc123...xyz789
+
+💰 Real: ❌ Not configured
+
+[🎮 Setup Demo] [💰 Setup Real]
+[🧪 Test Connection]
+[🗑 Clear Demo] [🗑 Clear Real]
+[🔙 Back]
+```
+
+### HyperLiquid API Settings
+```
+🔷 HyperLiquid API Settings
+
+🧪 Testnet: ✅ Configured
+   Wallet: 0x5a19...67ec
+
+🌐 Mainnet: ✅ Configured
+   Wallet: 0x157a...6a2f
+   Main: 0xf384...0c6c (auto-discovered)
+
+[🧪 Setup Testnet] [🌐 Setup Mainnet]
+[🔄 Test Connection]
+[🗑 Clear Testnet] [🗑 Clear Mainnet]
+[🔙 Back]
+```
 
 ## Роутинг между биржами
 ```python
@@ -2735,12 +2866,20 @@ exchange = db.get_exchange_type(uid)  # 'bybit' | 'hyperliquid'
 await place_order_universal(uid, symbol, side, ...)  # Автоматически выбирает биржу
 ```
 
-## Cold Wallet Trading (HyperLiquid)
+## HyperLiquid Order Flow
 ```python
-# cold_wallet_trading.py
-await connect_wallet(user_id, wallet_address, signature, message)
-await prepare_hl_order(user_id, symbol, side, ...)  # Возвращает unsigned tx
-await submit_signed_order(user_id, order_data, signature)  # Отправляет signed tx
+# 1. Create adapter with private key only
+adapter = HLAdapter(private_key=key, testnet=False)
+await adapter.initialize()  # Auto-discovers main wallet
+
+# 2. Place order (uses vault_address internally)
+result = await adapter.market_open(
+    coin="BTC",
+    is_buy=True,
+    sz=0.001,
+    leverage=10
+)
+# Order is signed by API wallet, executed on main wallet
 ```
 
 ---

@@ -50,11 +50,17 @@ class ApiKeysViewModel @Inject constructor(
         val hlTestnetPrivateKey: String = "",
         val hlTestnetWalletAddress: String = "",
         val hlTestnetConfigured: Boolean = false,
+        val hlTestnetApiWallet: String? = null,
+        val hlTestnetMainWallet: String? = null,
+        val hlTestnetBalance: Double? = null,
         
         // HyperLiquid Mainnet
         val hlMainnetPrivateKey: String = "",
         val hlMainnetWalletAddress: String = "",
         val hlMainnetConfigured: Boolean = false,
+        val hlMainnetApiWallet: String? = null,
+        val hlMainnetMainWallet: String? = null,
+        val hlMainnetBalance: Double? = null,
         
         // Status
         val successMessage: String? = null,
@@ -313,33 +319,87 @@ class ApiKeysViewModel @Inject constructor(
             _uiState.update { it.copy(isTesting = true, testResult = null, errorMessage = null) }
             
             try {
-                val response = when {
-                    state.selectedExchange == "bybit" -> {
-                        api.testBybitApiKeys(state.selectedAccount)
-                    }
-                    else -> {
-                        api.testHyperLiquidApiKeys()
-                    }
-                }
-                
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val balance = response.body()?.balance
-                    _uiState.update { 
-                        it.copy(
-                            isTesting = false,
-                            testResult = if (balance != null) {
-                                "✅ Connection successful! Balance: $${String.format("%.2f", balance)}"
-                            } else {
-                                "✅ Connection successful!"
-                            }
-                        )
+                if (state.selectedExchange == "bybit") {
+                    // Test Bybit connection
+                    val response = api.testBybitApiKeys(state.selectedAccount)
+                    
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val balance = response.body()?.balance
+                        _uiState.update { 
+                            it.copy(
+                                isTesting = false,
+                                testResult = if (balance != null) {
+                                    "✅ Connection successful! Balance: $${String.format("%.2f", balance)}"
+                                } else {
+                                    "✅ Connection successful!"
+                                }
+                            )
+                        }
+                    } else {
+                        _uiState.update { 
+                            it.copy(
+                                isTesting = false,
+                                testResult = "❌ ${response.body()?.message ?: "Connection failed"}"
+                            )
+                        }
                     }
                 } else {
-                    _uiState.update { 
-                        it.copy(
-                            isTesting = false,
-                            testResult = "❌ ${response.body()?.message ?: "Connection failed"}"
+                    // Test HyperLiquid with auto-discovery
+                    val privateKey = if (state.selectedAccount == "testnet") {
+                        state.hlTestnetPrivateKey
+                    } else {
+                        state.hlMainnetPrivateKey
+                    }
+                    
+                    if (privateKey.isBlank()) {
+                        _uiState.update { 
+                            it.copy(
+                                isTesting = false,
+                                testResult = "❌ Private key is required"
+                            )
+                        }
+                        return@launch
+                    }
+                    
+                    val response = api.testHyperLiquidApiKeysWithKey(
+                        io.enliko.trading.data.api.TestHyperLiquidKeyRequest(
+                            privateKey = privateKey,
+                            isTestnet = state.selectedAccount == "testnet"
                         )
+                    )
+                    
+                    if (response.isSuccessful && response.body()?.valid == true) {
+                        val body = response.body()!!
+                        val balanceStr = body.balance?.let { "Balance: $${String.format("%.2f", it)}" } ?: ""
+                        val apiWalletStr = body.apiWallet?.let { "API: ${it.take(6)}...${it.takeLast(4)}" } ?: ""
+                        val mainWalletStr = body.mainWallet?.let { "Main: ${it.take(6)}...${it.takeLast(4)}" } ?: ""
+                        
+                        _uiState.update { 
+                            if (state.selectedAccount == "testnet") {
+                                it.copy(
+                                    isTesting = false,
+                                    testResult = "✅ Connected! $balanceStr",
+                                    hlTestnetApiWallet = body.apiWallet,
+                                    hlTestnetMainWallet = body.mainWallet,
+                                    hlTestnetBalance = body.balance
+                                )
+                            } else {
+                                it.copy(
+                                    isTesting = false,
+                                    testResult = "✅ Connected! $balanceStr",
+                                    hlMainnetApiWallet = body.apiWallet,
+                                    hlMainnetMainWallet = body.mainWallet,
+                                    hlMainnetBalance = body.balance
+                                )
+                            }
+                        }
+                    } else {
+                        _uiState.update { 
+                            it.copy(
+                                isTesting = false,
+                                testResult = "❌ ${response.body()?.error ?: "Connection failed"}"
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {

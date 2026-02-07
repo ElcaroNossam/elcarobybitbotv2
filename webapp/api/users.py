@@ -1068,7 +1068,7 @@ async def save_hl_api_keys(
 
 @router.get("/api-keys/hyperliquid/test")
 async def test_hl_api(user: dict = Depends(get_current_user)):
-    """Test HyperLiquid API connection."""
+    """Test HyperLiquid API connection (legacy - uses saved keys)."""
     user_id = user["user_id"]
     
     hl_creds = db.get_hl_credentials(user_id)
@@ -1100,6 +1100,102 @@ async def test_hl_api(user: dict = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"HL API test failed: {e}")
         return {"success": False, "error": str(e)}
+
+
+class TestHLKeyRequest(BaseModel):
+    private_key: str
+    is_testnet: bool = False
+
+
+@router.post("/api-keys/hyperliquid/test")
+async def test_hl_api_with_key(
+    data: TestHLKeyRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Test HyperLiquid API connection with auto-discovery.
+    
+    Uses the new API Wallet architecture:
+    1. Derives API wallet address from private key
+    2. Calls userRole API to discover main wallet
+    3. Gets balance from main wallet (supports Unified Account)
+    
+    Returns: {valid, api_wallet, main_wallet, balance, error}
+    """
+    user_id = user["user_id"]
+    
+    try:
+        import aiohttp
+        from eth_account import Account
+        
+        # Validate and normalize private key
+        pk = data.private_key.strip()
+        if not pk.startswith("0x"):
+            pk = "0x" + pk
+        if len(pk) != 66:
+            return {"valid": False, "error": "Invalid private key format. Expected 64 hex characters"}
+        
+        # Derive API wallet address from private key
+        try:
+            api_wallet = Account.from_key(pk).address
+        except Exception as e:
+            return {"valid": False, "error": f"Invalid private key: {str(e)}"}
+        
+        base_url = "https://api.hyperliquid-testnet.xyz" if data.is_testnet else "https://api.hyperliquid.xyz"
+        
+        async with aiohttp.ClientSession() as session:
+            # Step 1: Try to discover main wallet via userRole API
+            main_wallet = None
+            try:
+                async with session.post(
+                    f"{base_url}/info",
+                    json={"type": "userRole", "user": api_wallet},
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+                    role_data = await resp.json()
+                    if role_data.get("role") == "agent":
+                        main_wallet = role_data.get("data", {}).get("user")
+                        logger.info(f"[HL Test] Auto-discovered main wallet: {main_wallet}")
+            except Exception as e:
+                logger.warning(f"[HL Test] userRole API failed: {e}")
+            
+            # Use API wallet as fallback if no main wallet discovered
+            query_wallet = main_wallet or api_wallet
+            
+            # Step 2: Get balance (handle Unified Account)
+            async with session.post(
+                f"{base_url}/info",
+                json={"type": "clearinghouseState", "user": query_wallet},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                state = await resp.json()
+            
+            # Check for Unified Account (balance in spot, not perp)
+            perp_value = float(state.get("marginSummary", {}).get("accountValue", 0))
+            spot_balances = state.get("spotClearinghouseState", {}).get("balances", [])
+            
+            balance = perp_value
+            
+            # If perp_value is 0 but has spot balances, it's a Unified Account
+            if perp_value == 0 and spot_balances:
+                for bal in spot_balances:
+                    if bal.get("coin") == "USDC":
+                        balance = float(bal.get("total", 0))
+                        logger.info(f"[HL Test] Unified Account detected, USDC balance: {balance}")
+                        break
+            
+            logger.info(f"[HL Test] User {user_id} test successful - API: {api_wallet}, Main: {main_wallet}, Balance: ${balance:.2f}")
+            
+            return {
+                "valid": True,
+                "api_wallet": api_wallet,
+                "main_wallet": main_wallet,
+                "balance": balance,
+                "error": None
+            }
+                    
+    except Exception as e:
+        logger.error(f"HL API test failed for user {user_id}: {e}")
+        return {"valid": False, "error": str(e)}
 
 
 # ========== STRATEGY SETTINGS ==========

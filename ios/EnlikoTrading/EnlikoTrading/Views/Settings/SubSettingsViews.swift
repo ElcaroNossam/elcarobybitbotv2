@@ -381,6 +381,14 @@ struct APIKeysSheetView: View {
     @State private var hlTestnetKey = ""
     @State private var hlMainnetKey = ""
     
+    // HyperLiquid Wallet Info (auto-discovered)
+    @State private var hlTestnetApiWallet: String?
+    @State private var hlTestnetMainWallet: String?
+    @State private var hlTestnetBalance: Double?
+    @State private var hlMainnetApiWallet: String?
+    @State private var hlMainnetMainWallet: String?
+    @State private var hlMainnetBalance: Double?
+    
     // Key Status
     @State private var bybitDemoStatus: APIKeyStatus = .notConfigured
     @State private var bybitRealStatus: APIKeyStatus = .notConfigured
@@ -536,6 +544,10 @@ struct APIKeysSheetView: View {
                 color: .enlikoGreen,
                 status: hlTestnetStatus,
                 privateKey: $hlTestnetKey,
+                apiWallet: hlTestnetApiWallet,
+                mainWallet: hlTestnetMainWallet,
+                balance: hlTestnetBalance,
+                onTest: { await testHLKey(isTestnet: true) },
                 onDelete: {
                     keyToDelete = .hlTestnet
                     showDeleteConfirm = true
@@ -550,11 +562,32 @@ struct APIKeysSheetView: View {
                 color: .enlikoYellow,
                 status: hlMainnetStatus,
                 privateKey: $hlMainnetKey,
+                apiWallet: hlMainnetApiWallet,
+                mainWallet: hlMainnetMainWallet,
+                balance: hlMainnetBalance,
+                onTest: { await testHLKey(isTestnet: false) },
                 onDelete: {
                     keyToDelete = .hlMainnet
                     showDeleteConfirm = true
                 }
             )
+            
+            // Info about API Wallet architecture
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.enlikoPrimary)
+                    Text("hl_api_wallet_info".localized)
+                        .font(.headline)
+                }
+                
+                Text("hl_api_wallet_description".localized)
+                    .font(.caption)
+                    .foregroundColor(.enlikoTextSecondary)
+            }
+            .padding()
+            .background(Color.enlikoPrimary.opacity(0.1))
+            .cornerRadius(12)
             
             // Warning Card
             VStack(alignment: .leading, spacing: 12) {
@@ -638,6 +671,39 @@ struct APIKeysSheetView: View {
                 bybitDemoStatus = .invalid
             } else {
                 bybitRealStatus = .invalid
+            }
+        }
+    }
+    
+    private func testHLKey(isTestnet: Bool) async {
+        let key = isTestnet ? hlTestnetKey : hlMainnetKey
+        
+        guard !key.isEmpty else { return }
+        
+        do {
+            let request = TestHLKeyRequest(privateKey: key, isTestnet: isTestnet)
+            let response: TestHLKeyResponse = try await NetworkService.shared.post("/users/api-keys/hyperliquid/test", body: request)
+            
+            if isTestnet {
+                hlTestnetStatus = response.valid ? .valid : .invalid
+                hlTestnetApiWallet = response.apiWallet
+                hlTestnetMainWallet = response.mainWallet
+                hlTestnetBalance = response.balance
+            } else {
+                hlMainnetStatus = response.valid ? .valid : .invalid
+                hlMainnetApiWallet = response.apiWallet
+                hlMainnetMainWallet = response.mainWallet
+                hlMainnetBalance = response.balance
+            }
+            
+            // Haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(response.valid ? .success : .error)
+        } catch {
+            if isTestnet {
+                hlTestnetStatus = .invalid
+            } else {
+                hlMainnetStatus = .invalid
             }
         }
     }
@@ -830,6 +896,32 @@ struct TestAPIKeyResponse: Codable {
     let error: String?
 }
 
+struct TestHLKeyRequest: Codable {
+    let privateKey: String
+    let isTestnet: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case privateKey = "private_key"
+        case isTestnet = "is_testnet"
+    }
+}
+
+struct TestHLKeyResponse: Codable {
+    let valid: Bool
+    let apiWallet: String?
+    let mainWallet: String?
+    let balance: Double?
+    let error: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case valid
+        case apiWallet = "api_wallet"
+        case mainWallet = "main_wallet"
+        case balance
+        case error
+    }
+}
+
 struct SaveAPIKeyRequest: Codable {
     let exchange: String
     let accountType: String
@@ -975,7 +1067,13 @@ struct HLKeyCard: View {
     let color: Color
     let status: APIKeyStatus
     @Binding var privateKey: String
+    let apiWallet: String?
+    let mainWallet: String?
+    let balance: Double?
+    let onTest: () async -> Void
     let onDelete: () -> Void
+    
+    @State private var isTesting = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1003,20 +1101,90 @@ struct HLKeyCard: View {
             
             SecureInputField(placeholder: "Private Key (0x...)", text: $privateKey)
             
-            if status != .notConfigured {
-                HStack {
-                    Spacer()
-                    Button(action: onDelete) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("delete_key".localized)
+            // Show discovered wallets and balance if available
+            if let apiWallet = apiWallet, !apiWallet.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "key.fill")
+                            .font(.caption2)
+                            .foregroundColor(.enlikoTextMuted)
+                        Text("API Wallet:")
+                            .font(.caption2)
+                            .foregroundColor(.enlikoTextMuted)
+                        Text(formatWallet(apiWallet))
+                            .font(.caption2.monospaced())
+                            .foregroundColor(.enlikoTextSecondary)
+                    }
+                    
+                    if let mainWallet = mainWallet, !mainWallet.isEmpty {
+                        HStack(spacing: 6) {
+                            Image(systemName: "wallet.pass.fill")
+                                .font(.caption2)
+                                .foregroundColor(.enlikoGreen)
+                            Text("Main Wallet:")
+                                .font(.caption2)
+                                .foregroundColor(.enlikoTextMuted)
+                            Text(formatWallet(mainWallet))
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.enlikoGreen)
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.enlikoRed)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.enlikoRed.opacity(0.15))
-                        .cornerRadius(10)
+                    }
+                    
+                    if let balance = balance {
+                        HStack(spacing: 6) {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.enlikoYellow)
+                            Text("Balance:")
+                                .font(.caption2)
+                                .foregroundColor(.enlikoTextMuted)
+                            Text(String(format: "$%.2f USDC", balance))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundColor(.enlikoYellow)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(Color.enlikoSurface.opacity(0.5))
+                .cornerRadius(8)
+            }
+            
+            // Actions
+            HStack {
+                Button(action: {
+                    Task {
+                        isTesting = true
+                        await onTest()
+                        isTesting = false
+                    }
+                }) {
+                    HStack {
+                        if isTesting {
+                            ProgressView()
+                                .tint(.enlikoPrimary)
+                        } else {
+                            Image(systemName: "checkmark.shield")
+                        }
+                        Text("test_connection".localized)
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.enlikoPrimary.opacity(0.2))
+                    .foregroundColor(.enlikoPrimary)
+                    .cornerRadius(10)
+                }
+                .disabled(privateKey.isEmpty || isTesting)
+                
+                Spacer()
+                
+                if status != .notConfigured {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.enlikoRed)
+                            .padding(10)
+                            .background(Color.enlikoRed.opacity(0.15))
+                            .cornerRadius(10)
                     }
                 }
             }
@@ -1028,6 +1196,13 @@ struct HLKeyCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(status == .valid ? color.opacity(0.3) : Color.clear, lineWidth: 2)
         )
+    }
+    
+    private func formatWallet(_ address: String) -> String {
+        if address.count > 12 {
+            return String(address.prefix(6)) + "..." + String(address.suffix(4))
+        }
+        return address
     }
 }
 

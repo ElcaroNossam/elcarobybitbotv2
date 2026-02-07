@@ -145,6 +145,11 @@ interface EnlikoApi {
     @GET("/api/users/api-keys/hyperliquid/test")
     suspend fun testHyperLiquidApiKeys(): Response<ApiTestResponse>
 
+    @POST("/api/users/api-keys/hyperliquid/test")
+    suspend fun testHyperLiquidApiKeysWithKey(
+        @Body request: TestHyperLiquidKeyRequest
+    ): Response<HyperLiquidTestResponse>
+
     // ==================== SIGNALS ====================
     @GET("/api/signals")
     suspend fun getSignals(
@@ -580,6 +585,21 @@ data class SaveHyperLiquidApiKeysRequest(
     @kotlinx.serialization.SerialName("account_type") val accountType: String,
     @kotlinx.serialization.SerialName("private_key") val privateKey: String,
     @kotlinx.serialization.SerialName("wallet_address") val walletAddress: String
+)
+
+@kotlinx.serialization.Serializable
+data class TestHyperLiquidKeyRequest(
+    @kotlinx.serialization.SerialName("private_key") val privateKey: String,
+    @kotlinx.serialization.SerialName("is_testnet") val isTestnet: Boolean
+)
+
+@kotlinx.serialization.Serializable
+data class HyperLiquidTestResponse(
+    val valid: Boolean,
+    @kotlinx.serialization.SerialName("api_wallet") val apiWallet: String? = null,
+    @kotlinx.serialization.SerialName("main_wallet") val mainWallet: String? = null,
+    val balance: Double? = null,
+    val error: String? = null
 )
 
 @kotlinx.serialization.Serializable
