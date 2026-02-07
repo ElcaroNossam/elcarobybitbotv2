@@ -70,6 +70,29 @@ async def test_hl_full(uid: int = 511692487):
         for p in pos_list:
             print(f"    - {p['symbol']} {p['side']} size={p['size']} entry={p['entryPrice']}")
         
+        # 1b-extra: Close any existing ETH position first
+        eth_pos = None
+        for p in pos_list:
+            if 'ETH' in p['symbol']:
+                eth_pos = p
+                break
+        
+        if eth_pos:
+            print("\n[1b-extra] CLOSING EXISTING ETH POSITION:")
+            close_result = await adapter.close_position(symbol="ETH", qty=None)
+            print(f"  Result: {close_result}")
+            if close_result.get('retCode') == 0:
+                print("  ✅ Position closed successfully!")
+                results['mainnet_close_existing'] = True
+            else:
+                print(f"  ❌ Close failed: {close_result.get('retMsg')}")
+            await asyncio.sleep(2)
+            # Re-fetch balance after closing
+            bal = await adapter.get_balance(use_cache=False)
+            if bal.get('success'):
+                equity = bal.get('data', {}).get('equity', 0)
+                print(f"  Updated equity after close: ${equity:.2f}")
+        
         # 1c. Get current ETH price
         print("\n[1c] ETH PRICE:")
         eth_price = await adapter._client.get_mid_price("ETH")
