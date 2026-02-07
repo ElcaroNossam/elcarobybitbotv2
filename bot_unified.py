@@ -200,7 +200,9 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         cache_key = f"positions:{user_id}:{account_type}"
         cached = _get_hl_cache(cache_key)
         if cached is not None:
+            logger.info(f"[HL-CACHE] Using cached positions for user {user_id}")
             return cached
+        logger.info(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
     
     client = None
     try:
