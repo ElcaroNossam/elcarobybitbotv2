@@ -853,13 +853,21 @@ class DashboardViewModel: ObservableObject {
     
     private func fetchBalance(accountType: String, exchange: String) async {
         do {
-            let response: BalanceResponse = try await network.get("/trading/balance", params: ["account_type": accountType, "exchange": exchange])
-            if let balance = response.balanceData {
-                totalBalance = balance.equity
-                unrealizedPnl = balance.unrealizedPnl
-            }
+            // Try direct Balance decode first (API returns balance directly, not wrapped)
+            let balance: Balance = try await network.get("/trading/balance", params: ["account_type": accountType, "exchange": exchange])
+            totalBalance = balance.equity
+            unrealizedPnl = balance.unrealizedPnl
         } catch {
-            print("Dashboard: Failed to fetch balance: \(error)")
+            // Fallback to wrapped BalanceResponse
+            do {
+                let response: BalanceResponse = try await network.get("/trading/balance", params: ["account_type": accountType, "exchange": exchange])
+                if let balance = response.balanceData {
+                    totalBalance = balance.equity
+                    unrealizedPnl = balance.unrealizedPnl
+                }
+            } catch {
+                print("Dashboard: Failed to fetch balance: \(error)")
+            }
         }
     }
     
