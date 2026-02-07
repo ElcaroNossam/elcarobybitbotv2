@@ -363,9 +363,9 @@ async def get_balance(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                main_wallet_address=wallet_address  # Skip discovery, use stored address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.get_balance()
             
             if result.get("success"):
@@ -469,9 +469,9 @@ async def get_spot_balance(
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
         )
+        await adapter.initialize()  # Auto-discover main wallet
         result = await adapter.get_spot_balance()
         
         if result.get("success"):
@@ -534,10 +534,9 @@ async def get_positions(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.fetch_positions()
             
             positions = result.get("result", {}).get("list", [])
@@ -669,10 +668,9 @@ async def get_orders(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.fetch_open_orders()
             
             if result.get("success"):
@@ -773,10 +771,9 @@ async def close_position(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             # Get position info before closing
             pos_result = await adapter.fetch_positions()
             positions = pos_result.get("result", {}).get("list", [])
@@ -974,10 +971,9 @@ async def close_all_positions(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             
             hl_account_type = "testnet" if is_testnet else "mainnet"
             
@@ -1243,10 +1239,9 @@ async def get_execution_history(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             # Note: HyperLiquid fill history would require separate implementation
             await adapter.close()
             return {"executions": [], "message": "HL execution history not yet implemented"}
@@ -1717,10 +1712,9 @@ async def _place_order_hyperliquid(user_id: int, req: PlaceOrderRequest, side: s
     try:
         adapter = HLAdapter(
             private_key=private_key,
-            testnet=is_testnet,
-            vault_address=wallet_address,
-            main_wallet_address=wallet_address
+            testnet=is_testnet
         )
+        await adapter.initialize()  # Auto-discover main wallet
         
         # Normalize symbol for HL (remove USDT/USDC suffix)
         hl_symbol = req.symbol.replace("USDT", "").replace("USDC", "")
@@ -1809,10 +1803,9 @@ async def set_leverage(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             await adapter.set_leverage(req.symbol.replace("USDT", "").replace("USDC", ""), req.leverage)
             await adapter.close()
             return {"success": True, "leverage": req.leverage}
@@ -1855,10 +1848,9 @@ async def cancel_order(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.cancel_order(req.symbol, req.order_id)
             await adapter.close()
             return {"success": result.get("retCode") == 0}
@@ -1942,10 +1934,9 @@ async def modify_position_tpsl(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             
             # Get position to determine side
             pos_result = await adapter.fetch_positions()
@@ -2047,10 +2038,9 @@ async def cancel_order_by_id(
         try:
             adapter = HLAdapter(
                 private_key=private_key,
-                testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address
+                testnet=is_testnet
             )
+            await adapter.initialize()  # Auto-discover main wallet
             result = await adapter.cancel_order(req.symbol, req.order_id)
             await adapter.close()
             

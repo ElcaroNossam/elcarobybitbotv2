@@ -642,12 +642,10 @@ class ExchangeRouter:
                     error=f"HyperLiquid {target.env} not configured",
                 )
             
-            # Create adapter with main_wallet_address for Unified Account
+            # Create adapter - auto-discovery will find main wallet
             adapter = HLAdapter(
                 private_key=private_key,
                 testnet=is_testnet,
-                vault_address=wallet_address,
-                main_wallet_address=wallet_address,
             )
             
             async with adapter:
@@ -762,8 +760,6 @@ class ExchangeRouter:
             adapter = HLAdapter(
                 private_key=private_key,
                 testnet=is_testnet,
-                vault_address=vault_address,
-                main_wallet_address=wallet_address,  # Query balance from main wallet
             )
             
             async with adapter:
@@ -814,8 +810,6 @@ class ExchangeRouter:
             adapter = HLAdapter(
                 private_key=private_key,
                 testnet=is_testnet,
-                vault_address=vault_address,
-                main_wallet_address=wallet_address,  # Query positions from main wallet
             )
             
             async with adapter:
@@ -893,8 +887,6 @@ class ExchangeRouter:
                         adapter = HLAdapter(
                             private_key=private_key,
                             testnet=is_testnet,
-                            vault_address=wallet_address,
-                            main_wallet_address=wallet_address,
                         )
                         async with adapter:
                             hl_symbol = normalize_symbol(symbol, Exchange.HYPERLIQUID.value)

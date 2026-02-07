@@ -878,7 +878,8 @@ account_type = _normalize_both_account_type(account_type, exchange='bybit')
 
 ## HyperLiquid API Wallet Architecture (UPDATED Feb 7, 2026)
 
-> **КРИТИЧНО:** HyperLiquid использует **API Wallet** (agent) для торговли от имени **Main Wallet**!
+> **🚨 КРИТИЧНО:** HyperLiquid использует **API Wallet** (agent) для торговли от имени **Main Wallet**!
+> **От пользователя требуется ТОЛЬКО Private Key** - всё остальное auto-discover!
 
 ### Архитектура кошельков
 
@@ -893,18 +894,43 @@ account_type = _normalize_both_account_type(account_type, exchange='bybit')
 │  │                  │   of    │                  │                  │
 │  │ • Holds funds    │         │ • Signs orders   │                  │
 │  │ • Shows balance  │         │ • No withdrawal  │                  │
-│  │ • 0xf38498...    │         │ • 0x157a40d2...  │                  │
+│  │ • 0xF38498...    │         │ • 0x157a40...    │                  │
 │  └──────────────────┘         └──────────────────┘                  │
+│           ▲                            │                             │
+│           │                            │                             │
+│           └────── AUTO-DISCOVERED ─────┘                             │
+│                   via userRole API                                   │
 │                                                                      │
-│  User enters in bot:                                                 │
-│  ├── Private Key → Derives API Wallet address automatically         │
-│  └── (Wallet address field is optional - auto-derived)              │
+│  User provides: ONLY Private Key                                     │
+│  System derives: API Wallet Address (from key via eth_account)       │
+│  System discovers: Main Wallet (via userRole API at RUNTIME)         │
 │                                                                      │
-│  Auto-discovery via userRole API:                                    │
-│  POST /info {"type": "userRole", "user": "<api_wallet>"}            │
-│  Response: {"role": "agent", "data": {"user": "<main_wallet>"}}     │
+│  DB Storage:                                                         │
+│  ├── hl_testnet_private_key → for signing testnet transactions       │
+│  ├── hl_testnet_wallet_address → API wallet (derived, reference)     │
+│  ├── hl_mainnet_private_key → for signing mainnet transactions       │
+│  └── hl_mainnet_wallet_address → API wallet (derived, reference)     │
+│                                                                      │
+│  Main Wallet → NOT stored, auto-discovered each time                 │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+### ⚠️ КРИТИЧЕСКИЕ ПРАВИЛА ДЛЯ HLAdapter
+
+```python
+# ✅ ПРАВИЛЬНО - только private_key, auto-discovery main wallet
+adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+await adapter.initialize()  # ОБЯЗАТЕЛЬНО! Triggers auto-discovery
+balance = await adapter.get_balance()
+
+# ❌ НЕПРАВИЛЬНО - НЕ передавать main_wallet_address!
+adapter = HLAdapter(
+    private_key=private_key,
+    testnet=is_testnet,
+    main_wallet_address=wallet_address  # ЭТО БАГ! Пропускает auto-discovery!
+)
+# Это приведёт к $0 balance потому что wallet_address = API wallet, не Main wallet
 ```
 
 ### Credentials в БД (users table)
@@ -912,29 +938,38 @@ account_type = _normalize_both_account_type(account_type, exchange='bybit')
 ```python
 # Multitenancy architecture - раздельные ключи для testnet/mainnet:
 hl_testnet_private_key      TEXT  # Private key для testnet
-hl_testnet_wallet_address   TEXT  # API wallet address (auto-derived from key)
+hl_testnet_wallet_address   TEXT  # API wallet address (auto-derived from key, for display only)
 hl_mainnet_private_key      TEXT  # Private key для mainnet  
-hl_mainnet_wallet_address   TEXT  # API wallet address (auto-derived from key)
+hl_mainnet_wallet_address   TEXT  # API wallet address (auto-derived from key, for display only)
 
 # Legacy fields (deprecated, fallback only):
 hl_private_key              TEXT  # Old single key
 hl_wallet_address           TEXT  # Old wallet address
 hl_testnet                  BOOL  # Old testnet flag
+
+# ВАЖНО: Main Wallet НЕ хранится в БД - auto-discover при каждом запросе!
 ```
 
-### Auto-Discovery Flow (NEW!)
+### Auto-Discovery Flow
 
 ```python
-# hyperliquid/client.py - discover_main_wallet()
-async def discover_main_wallet(self):
-    """Auto-discover main wallet if API wallet is registered as agent."""
+# hl_adapter.py - initialize()
+async def initialize(self):
+    """Initialize adapter - MUST call before any API operations."""
+    # 1. Derive API wallet from private key
+    self._api_wallet_address = Account.from_key(self._private_key).address
+    
+    # 2. Auto-discover main wallet via userRole API
     response = await self._post_info({"type": "userRole", "user": self._api_wallet_address})
     
     if response.get("role") == "agent":
         main_wallet = response["data"]["user"]
         self._main_wallet_address = main_wallet
-        self._vault_address = main_wallet  # Use main wallet as vault for trading
+        self._vault_address = main_wallet  # Use for trading
         logger.info(f"[HL] Auto-discovered main wallet: {main_wallet}")
+    else:
+        # Fallback to API wallet if not an agent
+        self._main_wallet_address = self._api_wallet_address
 ```
 
 ### Unified Account Support
@@ -956,15 +991,15 @@ if is_unified:
             equity = float(bal.get("total", 0))
 ```
 
-### Правильный паттерн создания HLAdapter
+### Правильный паттерн создания HLAdapter (ВЕЗДЕ!)
 
 ```python
-# bot.py / webapp - создание адаптера
+# bot.py / webapp / exchange_client - создание адаптера
 from hl_adapter import HLAdapter
 
 # Достаточно передать только private_key!
 adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
-await adapter.initialize()  # Auto-discovers main wallet
+await adapter.initialize()  # ОБЯЗАТЕЛЬНО! Auto-discovers main wallet
 
 # Адаптер сам:
 # 1. Derive API wallet address from private key
@@ -972,7 +1007,7 @@ await adapter.initialize()  # Auto-discovers main wallet
 # 3. Set vault_address = main_wallet for trading
 # 4. Query balance from main wallet (handles Unified Account)
 
-balance = await adapter.get_balance()  # Returns main wallet balance
+balance = await adapter.get_balance()  # Returns MAIN wallet balance
 ```
 
 ### Получение credentials по account_type
@@ -1287,6 +1322,29 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ CRITICAL: HLAdapter Auto-Discovery - Remove Hardcoded main_wallet_address (Feb 7, 2026)
+- **Проблема:** Баланс HyperLiquid показывал $0 во всех местах (бот, веб, iOS)
+- **Причина:** Код передавал `main_wallet_address=wallet_address` в HLAdapter, где `wallet_address` = API wallet из БД
+- **Это пропускало auto-discovery** и баланс запрашивался для API wallet (который пустой) вместо Main wallet
+- **Исправленные файлы:**
+  | Файл | Кол-во мест | Исправление |
+  |------|-------------|-------------|
+  | `core/exchange_client.py` | 1 | Убран `main_wallet_address` параметр |
+  | `bot.py` | 13+ | Убраны все `main_wallet_address=wallet_address` и `vault_address=wallet_address` |
+- **Архитектура теперь правильная:**
+  ```python
+  # ✅ ПРАВИЛЬНО - auto-discovery работает
+  adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+  await adapter.initialize()  # ОБЯЗАТЕЛЬНО! Auto-discovers main wallet
+  
+  # ❌ БЫЛО НЕПРАВИЛЬНО - пропускало auto-discovery
+  adapter = HLAdapter(private_key=..., main_wallet_address=api_wallet)  # БАГ!
+  ```
+- **UI Enhancement:** `cmd_hl_settings` теперь показывает:
+  - API Wallet: `0x5a1928...d67ec` (derived from key)
+  - Main Wallet: `0xF38498...0C6c` (auto-discovered)
+- **Commit:** `e67553e`
 
 ### ✅ CRITICAL: HyperLiquid Unified Account Full Support (Feb 6, 2026)
 - **Проблема:** Пользователи с включённым Unified Account на HyperLiquid не могли открывать позиции
