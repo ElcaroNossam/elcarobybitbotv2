@@ -236,6 +236,10 @@ logger.setLevel(logging.INFO)
 exchanges_logger = logging.getLogger("exchanges")
 exchanges_logger.setLevel(logging.INFO)
 
+# Also configure bot_unified module logger
+bot_unified_logger = logging.getLogger("bot_unified")
+bot_unified_logger.setLevel(logging.INFO)
+
 if not logger.handlers: 
     console_h = logging.StreamHandler()
     console_h.setLevel(logging.INFO)
@@ -243,6 +247,8 @@ if not logger.handlers:
     logger.addHandler(console_h)
     # Add same handler to exchanges logger for proper formatting
     exchanges_logger.addHandler(console_h)
+    # Add same handler to bot_unified logger
+    bot_unified_logger.addHandler(console_h)
 
 # ═══════════════════════════════════════════════════════════════
 # UNIFIED ARCHITECTURE - Feature Flag
