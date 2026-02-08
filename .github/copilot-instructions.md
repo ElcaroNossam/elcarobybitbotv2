@@ -1,8 +1,9 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.58.0 | Обновлено: 8 февраля 2026
+# Версия: 3.59.0 | Обновлено: 9 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
+# HyperLiquid SPOT TRADING: FULL SUPPORT ✅ (Feb 9, 2026)
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
 # =============================================
 #
@@ -17,7 +18,7 @@
 # 🔐 Security: JWT + IDOR Protection + SQL Whitelist + Rate Limiting
 # 🌍 Languages: 15 (EN, RU, UK, DE, ES, FR, IT, JA, ZH, AR, HE, PL, CS, LT, SQ)
 # 📊 Strategies: 7 (OI, Scryptomera, Scalper, Elcaro, Fibonacci, RSI_BB, Manual)
-# 🏢 Exchanges: Bybit (CEX) + HyperLiquid (DEX)
+# 🏢 Exchanges: Bybit (CEX) + HyperLiquid (DEX) - Perp + Spot
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 # 🎯 BLACKROCK-LEVEL AUDIT RESULTS (Feb 5, 2026)
@@ -48,6 +49,7 @@
 # - HyperLiquid Unified Account: Full support in bot.py (Feb 6, 2026) ✅
 # - iOS Build 80: TestFlight with HL Unified Account support (Feb 6, 2026) ✅
 # - HyperLiquid Auto-Discovery: Main wallet auto-discovery from API wallet (Feb 7, 2026) ✅
+# - HyperLiquid SPOT Trading: Full API support via agent wallet (Feb 9, 2026) ✅
 # - Auto-Close by Timeframe: REMOVED - was disabled (all inf values) (Feb 7, 2026) ✅
 # - Full BlackRock Re-Audit: Bybit + HL order flows, 4D multitenancy, credentials (Feb 7, 2026) ✅
 # - API Settings BLOCK UI: Full refactor with Bybit/HL blocks (Feb 8, 2026) ✅
@@ -1423,6 +1425,49 @@ except Exception as e:
   )
   ```
 - **Commit:** `f1cd354`
+
+### ✅ FEAT: HyperLiquid Spot Trading Full Support (Feb 9, 2026)
+- **Функционал:** Полная поддержка спот-торговли на HyperLiquid через agent wallet
+- **Архитектура:** Agent wallet размещает ордера от имени Main wallet (vault_address)
+- **Новые методы в HyperLiquidClient (`hyperliquid/client.py`):**
+  | Метод | Описание |
+  |-------|----------|
+  | `spot_market_buy(base, quote, size, slippage)` | Market buy с IOC limit |
+  | `spot_market_sell(base, quote, size, slippage)` | Market sell с IOC limit |
+  | `get_spot_balances()` | Получить балансы всех токенов |
+  | `get_spot_meta()` | Мета-информация о спот парах |
+  
+- **Новые методы в HLAdapter (`hl_adapter.py`):**
+  | Метод | Описание |
+  |-------|----------|
+  | `spot_buy(token, size, slippage)` | Покупка токена с парсингом ответа |
+  | `spot_sell(token, size, slippage)` | Продажа токена с парсингом ответа |
+  | `get_spot_balances()` | Форматированные балансы |
+  | `get_spot_ticker(token)` | Цены bid/ask/mid |
+  | `get_spot_markets()` | Список всех рынков |
+
+- **Ключевые исправления:**
+  - **Price Rounding:** Исправлена формула округления цены по SDK:
+    ```python
+    # Было: round(limit_px, 5)  ← ОШИБКА!
+    # Стало: round(float(f"{limit_px:.5g}"), 8 - sz_decimals)  ← SDK формула
+    ```
+  - **Asset ID:** Spot использует `10000 + pair_index` (PURR = 10000)
+  - **Cancel Format:** Spot ордера отменяются через `cancel("@0", oid)` с `@` prefix
+
+- **Тестирование (Testnet):**
+  | Операция | Результат |
+  |----------|-----------|
+  | `spot_buy("PURR", 3)` | ✅ Filled @ 4.7181 USDC |
+  | `spot_sell("PURR", 3)` | ✅ Filled @ 4.6714 USDC |
+  | `get_spot_balances()` | ✅ USDC: 979.87, PURR: 2.99 |
+
+- **Constraints:**
+  - Минимальный ордер: 10 USDC
+  - PURR szDecimals: 0 (целочисленные размеры)
+  - Slippage по умолчанию: 5%
+
+- **Commits:** `fix: Correct spot price rounding`, `feat: Add spot trading methods to HLAdapter`
 
 ### ✅ CRITICAL: HLAdapter Auto-Discovery - Remove Hardcoded main_wallet_address (Feb 7, 2026)
 - **Проблема:** Баланс HyperLiquid показывал $0 во всех местах (бот, веб, iOS)
@@ -2982,13 +3027,13 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 | **Bybit** | CEX | Demo, Real, Both | `exchanges/bybit.py`, `bot_unified.py` |
 | **HyperLiquid** | DEX | Testnet, Mainnet | `hl_adapter.py`, `hyperliquid/client.py` |
 
-## Матрица поддержки функций (Feb 8, 2026)
+## Матрица поддержки функций (Feb 9, 2026)
 
 | Функция | Bybit | HyperLiquid | Примечание |
 |---------|-------|-------------|------------|
 | **Perpetual Futures** | ✅ | ✅ | Основной режим торговли |
-| **Spot Trading** | ✅ | ❌ | HL - только perps |
-| **Spot Auto DCA** | ✅ | ❌ | `spot_auto_dca_loop()` - Bybit only |
+| **Spot Trading** | ✅ | ✅ | HL Spot через agent wallet |
+| **Spot Auto DCA** | ✅ | ✅ | `spot_auto_dca_loop()` - оба обмена |
 | **ATR Trailing Stop** | ✅ | ✅ | `_set_trading_stop_hyperliquid()` |
 | **Break-Even (BE)** | ✅ | ✅ | SL → Entry price |
 | **Partial Take Profit** | ✅ | ✅ | Step1 + Step2 закрытие |
@@ -2998,6 +3043,87 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 | **Leverage Setting** | ✅ | ✅ | Per-strategy leverage |
 | **SL/TP Orders** | ✅ | ✅ | Одинаковая валидация |
 | **Unified Account** | N/A | ✅ | Spot↔Perp баланс |
+
+## HyperLiquid Spot Trading (NEW! Feb 9, 2026)
+
+### Архитектура Spot Trading
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    HyperLiquid Spot Trading                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌──────────────────┐         ┌──────────────────┐                  │
+│  │   MAIN WALLET    │◄────────│   API WALLET     │                  │
+│  │  (Holds tokens)  │  agent  │  (Signs orders)  │                  │
+│  │                  │   of    │                  │                  │
+│  │ • USDC balance   │         │ • No tokens      │                  │
+│  │ • PURR balance   │         │ • Trading only   │                  │
+│  │ • 0xF38498...    │         │ • 0x5a1928...    │                  │
+│  └──────────────────┘         └──────────────────┘                  │
+│                                                                      │
+│  Spot Asset ID = 10000 + pair_index                                  │
+│  Example: PURR/USDC = 10000 (pair_index=0)                           │
+│                                                                      │
+│  Price Rounding Formula (from official SDK):                         │
+│  price_decimals = 8 - szDecimals                                     │
+│  rounded_price = round(float(f"{price:.5g}"), price_decimals)        │
+│                                                                      │
+│  Minimum Order Value: 10 USDC                                        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### HLAdapter Spot Methods
+
+```python
+# hl_adapter.py - Spot trading methods
+
+# 1. Get spot balances (from main wallet)
+balances = await adapter.get_spot_balances()
+# Returns: {"success": True, "balances": {"USDC": {"total": 979.87, "hold": 0, "available": 979.87}, "PURR": {...}}}
+
+# 2. Buy spot token (market order with slippage)
+result = await adapter.spot_buy(token="PURR", size=3, slippage=0.05)
+# Returns: {"success": True, "filled": True, "size": 3.0, "avg_price": 4.7181, "order_id": 48165461592}
+
+# 3. Sell spot token (market order with slippage)
+result = await adapter.spot_sell(token="PURR", size=3, slippage=0.05)
+# Returns: {"success": True, "filled": True, "size": 2.0, "avg_price": 4.6714, "order_id": 48165494829}
+
+# 4. Get spot ticker price
+ticker = await adapter.get_spot_ticker("PURR")
+# Returns: {"success": True, "mid_price": 4.6947, "best_bid": 4.6714, "best_ask": 4.7181}
+
+# 5. Get all spot markets
+markets = await adapter.get_spot_markets()
+# Returns: {"success": True, "markets": [{"name": "PURR/USDC", "szDecimals": 0, ...}, ...]}
+```
+
+### Spot Order Cancel Format
+
+```python
+# Spot orders use "@0" prefix for asset (different from perp)
+await adapter._client.cancel("@0", order_id)  # @0 = spot asset reference
+```
+
+### Key Files for Spot Trading
+
+| File | Description |
+|------|-------------|
+| `hyperliquid/client.py` | Low-level spot API: `spot_market_buy()`, `spot_market_sell()`, `get_spot_balances()` |
+| `hl_adapter.py` | High-level adapter: `spot_buy()`, `spot_sell()`, `get_spot_balances()` |
+| `bot.py` | Spot Auto DCA loop (TODO: integrate) |
+
+### Important Constraints
+
+| Constraint | Value | Notes |
+|------------|-------|-------|
+| **Minimum Order Value** | 10 USDC | Cannot place orders < 10 USDC |
+| **PURR szDecimals** | 0 | Size must be integer (1, 2, 3...) |
+| **Price Decimals** | 8 - szDecimals | For PURR: 8 decimals |
+| **Slippage** | 5% default | Limit price = mid * (1 ± slippage) |
+| **Order Type** | IOC (market) | Immediate-or-cancel for market orders |
 
 ## Унифицированная структура API Settings
 
@@ -3884,8 +4010,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 8 февраля 2026*
-*Version: 3.58.0*
+*Last updated: 9 февраля 2026*
+*Version: 3.59.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -3912,5 +4038,5 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Design System 2026: Glassmorphism, deeper dark (#050505), gradient accents, neon highlights*
 *API Settings BLOCK UI: Bybit (Demo/Real) + HyperLiquid (Testnet/Mainnet) blocks (Feb 8, 2026) ✅*
 *Routing Policy: NULL=uses trading_mode, all_enabled=bypasses it (Feb 8, 2026) ✅*
-*HyperLiquid: PERPS ONLY - Spot/Auto DCA NOT supported*
+*HyperLiquid Spot Trading: FULL SUPPORT via agent wallet (Feb 9, 2026) ✅*
 
