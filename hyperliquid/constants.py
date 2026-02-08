@@ -54,6 +54,20 @@ def get_size_decimals(coin: str) -> int:
     return SIZE_DECIMALS.get(coin.upper(), DEFAULT_SIZE_DECIMALS)
 
 def coin_to_asset_id(coin: str) -> int:
+    """Convert coin name to asset ID.
+    
+    Supports:
+    - Perp coins: BTC, ETH, BTCUSDT, etc. -> 0, 1, ...
+    - Spot tokens: @0, @1, etc. -> 10000, 10001, ... (spot asset = 10000 + pair_index)
+    """
+    # Spot token format: @INDEX (e.g. @0 for PURR/USDC)
+    if coin.startswith("@"):
+        try:
+            pair_index = int(coin[1:])
+            return 10000 + pair_index  # Spot asset IDs start at 10000
+        except ValueError:
+            return None
+    
     clean_coin = coin.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
     return COIN_TO_ASSET.get(clean_coin)
 
