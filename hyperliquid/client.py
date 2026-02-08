@@ -918,17 +918,20 @@ class HyperLiquidClient:
         spot_ctxs = spot_data[1]
         universe = spot_meta.get("universe", [])
         
-        # Find the pair and get mid price
+        # Find the pair and get mid price + szDecimals
         mid_price = None
         asset_id = None
+        sz_decimals = 0
+        tokens = spot_meta.get("tokens", [])
+        
         for idx, pair in enumerate(universe):
-            tokens = spot_meta.get("tokens", [])
             token_indices = pair.get("tokens", [])
             base_idx = token_indices[0] if len(token_indices) > 0 else None
             base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else None
             
             if base_name and base_name.upper() == base_token.upper():
                 asset_id = 10000 + idx
+                sz_decimals = tokens[base_idx].get("szDecimals", 0) if base_idx is not None else 0
                 if idx < len(spot_ctxs):
                     mid_price = _safe_float(spot_ctxs[idx].get("midPx"))
                 break
@@ -936,9 +939,10 @@ class HyperLiquidClient:
         if mid_price is None or mid_price == 0:
             raise HyperLiquidError(f"Cannot get price for spot token: {base_token}")
         
-        # Apply slippage
+        # Apply slippage using SDK formula: round(float(f"{px:.5g}"), 8 - sz_decimals)
         limit_px = mid_price * (1 + slippage)
-        limit_px = round(limit_px, 5)  # Spot prices typically 5 decimals
+        price_decimals = 8 - sz_decimals  # Spot uses 8 decimals base minus szDecimals
+        limit_px = round(float(f"{limit_px:.5g}"), price_decimals)
         
         return await self.spot_order(
             base_token=base_token,
@@ -977,15 +981,18 @@ class HyperLiquidClient:
         spot_ctxs = spot_data[1]
         universe = spot_meta.get("universe", [])
         
-        # Find the pair and get mid price
+        # Find the pair and get mid price + szDecimals
         mid_price = None
+        sz_decimals = 0
+        tokens = spot_meta.get("tokens", [])
+        
         for idx, pair in enumerate(universe):
-            tokens = spot_meta.get("tokens", [])
             token_indices = pair.get("tokens", [])
             base_idx = token_indices[0] if len(token_indices) > 0 else None
             base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else None
             
             if base_name and base_name.upper() == base_token.upper():
+                sz_decimals = tokens[base_idx].get("szDecimals", 0) if base_idx is not None else 0
                 if idx < len(spot_ctxs):
                     mid_price = _safe_float(spot_ctxs[idx].get("midPx"))
                 break
@@ -993,9 +1000,10 @@ class HyperLiquidClient:
         if mid_price is None or mid_price == 0:
             raise HyperLiquidError(f"Cannot get price for spot token: {base_token}")
         
-        # Apply slippage
+        # Apply slippage using SDK formula: round(float(f"{px:.5g}"), 8 - sz_decimals)
         limit_px = mid_price * (1 - slippage)
-        limit_px = round(limit_px, 5)  # Spot prices typically 5 decimals
+        price_decimals = 8 - sz_decimals  # Spot uses 8 decimals base minus szDecimals
+        limit_px = round(float(f"{limit_px:.5g}"), price_decimals)
         
         return await self.spot_order(
             base_token=base_token,
