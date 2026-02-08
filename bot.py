@@ -16797,19 +16797,48 @@ async def normalize_qty_price(
     return qty_str, price_str, min_qty, max_qty, tick_size
 
 @log_calls
-async def get_symbol_filters(user_id: int, symbol: str, account_type: str = None) -> dict:
-    """Get symbol trading filters with caching (1 hour TTL)."""
-    now = time.time()
+async def get_symbol_filters(user_id: int, symbol: str, account_type: str = None, exchange: str = None) -> dict:
+    """Get symbol trading filters with caching (1 hour TTL).
     
-    # Check cache first - filters are same for all users
-    if symbol in _symbol_filters_cache:
-        ts, cached = _symbol_filters_cache[symbol]
+    For HyperLiquid: Uses local constants for size decimals (no API call needed).
+    For Bybit: Fetches from Bybit API instruments-info.
+    """
+    # Determine exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    now = time.time()
+    cache_key = f"{exchange}:{symbol}"
+    
+    # Check cache first - filters are same for all users per exchange
+    if cache_key in _symbol_filters_cache:
+        ts, cached = _symbol_filters_cache[cache_key]
         if now - ts < SYMBOL_FILTERS_CACHE_TTL:
             return cached
     
+    # HyperLiquid - use local constants
+    if exchange == "hyperliquid":
+        from hyperliquid.constants import get_size_decimals, DEFAULT_SIZE_DECIMALS
+        # Convert symbol to coin (BTCUSDC -> BTC, BTC -> BTC)
+        coin = symbol.replace("USDC", "").replace("USDT", "")
+        sz_decimals = get_size_decimals(coin)
+        qty_step = 10 ** (-sz_decimals)
+        min_qty = qty_step  # Minimum is 1 step
+        # HyperLiquid uses 5 significant digits for price (tick_size derived from price level)
+        tick_size = 0.00001  # Default, actual precision varies by price
+        filters = {
+            "tickSize":      tick_size,
+            "minPrice":      0.0,
+            "minQty":        min_qty,
+            "qtyStep":       qty_step,
+        }
+        _symbol_filters_cache[cache_key] = (now, filters)
+        return filters
+    
+    # Bybit - fetch from API
     res = await _bybit_request(user_id, "GET", "/v5/market/instruments-info", params={"category":"linear","symbol":symbol}, account_type=account_type)
     if not res.get("list"):
-        raise ValueError(f"Symbol {symbol} not have")
+        raise ValueError(f"Symbol {symbol} not found on Bybit")
     inst = res["list"][0]
     price_f = inst["priceFilter"]
     lot_f   = inst["lotSizeFilter"]
@@ -16820,7 +16849,7 @@ async def get_symbol_filters(user_id: int, symbol: str, account_type: str = None
         "qtyStep":       float(lot_f["qtyStep"]),
     }
     # Store in cache
-    _symbol_filters_cache[symbol] = (now, filters)
+    _symbol_filters_cache[cache_key] = (now, filters)
     return filters
 
 @log_calls
@@ -19299,7 +19328,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         except Exception as e:
                             logger.warning(f"[{uid}] oi: failed to set leverage: {e}")
 
-                    filt     = await get_symbol_filters(uid, symbol)
+                    filt     = await get_symbol_filters(uid, symbol, exchange=ctx_exchange)
                     step_qty = float(filt["qtyStep"])
                     min_qty  = float(filt["minQty"])
                     def q_qty(v: float) -> float:
@@ -20724,7 +20753,7 @@ async def monitor_positions_loop(app: Application):
                                 
                                 if should_move_to_be:
                                     try:
-                                        filt = await get_symbol_filters(uid, sym)
+                                        filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
                                         tick = filt["tickSize"]
                                         # Quantize BE SL to valid price
                                         be_sl_quantized = quantize_up(be_sl, tick) if side == "Buy" else quantize(be_sl, tick)
@@ -20807,7 +20836,7 @@ async def monitor_positions_loop(app: Application):
                                         try:
                                             close_qty = pos_size * (ptp_1_close / 100)
                                             # Get symbol filters for qty step
-                                            filt = await get_symbol_filters(uid, sym)
+                                            filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
                                             qty_step = float(filt.get("qtyStep", 0.001))
                                             close_qty = math.floor(close_qty / qty_step) * qty_step
                                             
@@ -20872,7 +20901,7 @@ async def monitor_positions_loop(app: Application):
                                                 close_qty = current_size * (ptp_2_close / 100)
                                                 
                                                 # Get symbol filters for qty step
-                                                filt = await get_symbol_filters(uid, sym)
+                                                filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
                                                 qty_step = float(filt.get("qtyStep", 0.001))
                                                 close_qty = math.floor(close_qty / qty_step) * qty_step
                                                 
@@ -21125,7 +21154,7 @@ async def monitor_positions_loop(app: Application):
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
 
-                                    tick = (await get_symbol_filters(uid, sym))["tickSize"]
+                                    tick = (await get_symbol_filters(uid, sym, exchange=current_exchange))["tickSize"]
 
                                     sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
                                     
@@ -21154,7 +21183,7 @@ async def monitor_positions_loop(app: Application):
                                 _atr_triggered[key] = True
                                 logger.info(f"[ATR-ACTIVATED] {sym} uid={uid} - ATR trailing now active!")
 
-                                filt = await get_symbol_filters(uid, sym)
+                                filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
                                 tick = filt["tickSize"]
                                 try:
                                     atr_val = await calc_atr(sym, interval=ATR_INTERVAL, periods=atr_periods)

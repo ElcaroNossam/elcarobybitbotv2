@@ -1642,8 +1642,9 @@ async def _place_order_bybit(user_id: int, req: PlaceOrderRequest, side: str, or
             },
             account_type=req.account_type
         )
-    except Exception:
-        pass  # Leverage might already be set
+    except Exception as e:
+        # Leverage might already be set - log at debug level
+        logger.debug(f"Set leverage for {req.symbol}: {e}")
     
     # Build order body
     order_link_id = f"web_{uuid.uuid4().hex[:16]}"

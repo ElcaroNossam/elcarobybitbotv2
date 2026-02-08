@@ -454,15 +454,17 @@ class NotificationService:
             
     async def check_market_movements(self):
         """
-        Check for significant market movements and notify
+        Check for significant market movements and notify.
+        
+        TODO: This feature requires external price data source integration.
+        For now we log debug and return. When implementing:
+        1. Fetch current prices for major pairs
+        2. Compare with cached 24h prices
+        3. If >5% movement, notify users
         """
-        try:
-            # Monitor major pairs for >5% moves
-            major_pairs = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
-            pass  # Implement based on your price data source
-            
-        except Exception as e:
-            logger.error(f"Error checking market movements: {e}")
+        # Skip if no price source configured
+        # This prevents spamming logs with errors
+        logger.debug("check_market_movements: Not implemented - no price data source configured")
             
     async def start_notification_loop(self):
         """
