@@ -62,7 +62,7 @@ def invalidate_hl_cache(user_id: int, account_type: str = None):
         del _hl_cache[key]
     
     if keys_to_remove:
-        logger.info(f"[HL-CACHE] Invalidated cache for user {user_id}: {keys_to_remove}")
+        logger.debug(f"[HL-CACHE] Invalidated cache for user {user_id}: {keys_to_remove}")
 
 
 def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
@@ -195,17 +195,12 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange)
     
-    # Log for diagnostics - to understand why cache isn't being used
-    logger.info(f"[get_positions_unified] user={user_id} exchange={exchange} acc={account_type} use_cache={use_cache} symbol={symbol}")
-    
     # Check HyperLiquid cache to avoid rate limits
     if exchange == 'hyperliquid' and use_cache and symbol is None:
         cache_key = f"positions:{user_id}:{account_type}"
         cached = _get_hl_cache(cache_key)
         if cached is not None:
-            logger.info(f"[HL-CACHE] Using cached positions for user {user_id}")
-            return cached
-        logger.info(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
+            return cached  # Cache hit - no logging needed
     
     client = None
     try:
