@@ -34,17 +34,15 @@ def _get_hl_cache(key: str) -> Optional[Any]:
         data, ts = _hl_cache[key]
         age = time.time() - ts
         if age < HL_CACHE_TTL:
-            logger.info(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")  # Changed to INFO for diagnostics
+            # Cache hit - no logging to reduce spam
             return data
-        else:
-            logger.info(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")  # Changed to INFO
     return None
 
 
 def _set_hl_cache(key: str, data: Any):
     """Set HyperLiquid cache with current timestamp"""
     _hl_cache[key] = (data, time.time())
-    logger.info(f"[HL-CACHE] SET {key}")  # Changed to INFO for diagnostics
+    # Reduced logging - SET is logged by caller if needed
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):

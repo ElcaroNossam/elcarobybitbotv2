@@ -25,6 +25,32 @@ from .signer import (
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════
+# GLOBAL RATE LIMITER - Prevent 429 errors across all clients
+# HyperLiquid limit: 1200 weight/min, info requests = 20 weight
+# Max ~60 info requests/minute = 1 request/second average
+# ═══════════════════════════════════════════════════════════════
+_hl_last_request_time: float = 0
+_hl_request_lock: asyncio.Lock = None  # Will be initialized on first use
+HL_MIN_REQUEST_INTERVAL = 0.5  # 500ms between requests (2 req/sec max)
+
+
+async def _hl_rate_limit():
+    """Global rate limiter for HyperLiquid API requests"""
+    global _hl_last_request_time, _hl_request_lock
+    
+    if _hl_request_lock is None:
+        _hl_request_lock = asyncio.Lock()
+    
+    async with _hl_request_lock:
+        now = time.time()
+        elapsed = now - _hl_last_request_time
+        if elapsed < HL_MIN_REQUEST_INTERVAL:
+            sleep_time = HL_MIN_REQUEST_INTERVAL - elapsed
+            await asyncio.sleep(sleep_time)
+        _hl_last_request_time = time.time()
+
+
+# ═══════════════════════════════════════════════════════════════
 # GLOBAL MAIN WALLET CACHE - Prevent rate limiting on discover_main_wallet
 # Key: api_wallet_address (lowercase), Value: (main_wallet_address, timestamp)
 # ═══════════════════════════════════════════════════════════════
@@ -38,7 +64,6 @@ def _get_cached_main_wallet(api_address: str) -> Optional[str]:
     if key and key in _main_wallet_cache:
         main_wallet, ts = _main_wallet_cache[key]
         if time.time() - ts < MAIN_WALLET_CACHE_TTL:
-            logger.debug(f"[HL-CACHE] Main wallet cache hit for {key}: {main_wallet}")
             return main_wallet
     return None
 
@@ -48,7 +73,6 @@ def _set_cached_main_wallet(api_address: str, main_wallet: str):
     key = api_address.lower() if api_address else None
     if key and main_wallet:
         _main_wallet_cache[key] = (main_wallet.lower(), time.time())
-        logger.info(f"[HL-CACHE] Cached main wallet {main_wallet} for {key}")
 
 
 def round_price(px: float, coin: str) -> float:
@@ -217,6 +241,9 @@ class HyperLiquidClient:
     async def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None, retries: int = 5) -> Dict[str, Any]:
         if self._session is None or self._session.closed:
             await self.initialize()
+        
+        # Apply global rate limiting
+        await _hl_rate_limit()
         
         url = f"{self._base_url}{endpoint}"
         last_error = None

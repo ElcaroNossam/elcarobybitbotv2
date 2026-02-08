@@ -15179,28 +15179,15 @@ async def _fetch_balance_data_parallel(uid: int, account_type: str, tz_str: str)
     Instead of 5 sequential API calls, runs them all in parallel via asyncio.gather().
     This reduces total wait time from ~5-10 seconds to ~1-2 seconds.
     """
-    import time as _time
-    start_time = _time.time()
-    
-    # Wrap each function with timing
-    async def timed_fetch(name: str, coro):
-        t0 = _time.time()
-        result = await coro
-        logger.info(f"[{uid}] ⏱️ {name}: {_time.time() - t0:.2f}s")
-        return result
-    
-    # Run all fetches in parallel with timing
+    # Run all fetches in parallel (no per-call logging to reduce noise)
     results = await asyncio.gather(
-        timed_fetch("account_balance", fetch_account_balance(uid, account_type=account_type)),
-        timed_fetch("today_pnl", fetch_today_realized_pnl(uid, tz_str=tz_str, account_type=account_type)),
-        timed_fetch("week_pnl", fetch_realized_pnl(uid, days=7, account_type=account_type)),
-        timed_fetch("positions", fetch_open_positions(uid, account_type=account_type)),
-        timed_fetch("spot_pnl", fetch_spot_pnl(uid, days=7, account_type=account_type)),
+        fetch_account_balance(uid, account_type=account_type),
+        fetch_today_realized_pnl(uid, tz_str=tz_str, account_type=account_type),
+        fetch_realized_pnl(uid, days=7, account_type=account_type),
+        fetch_open_positions(uid, account_type=account_type),
+        fetch_spot_pnl(uid, days=7, account_type=account_type),
         return_exceptions=True
     )
-    
-    elapsed = _time.time() - start_time
-    logger.info(f"[{uid}] ⚡ Balance parallel fetch completed in {elapsed:.2f}s")
     
     # Unpack results with error handling
     account_bal = results[0] if not isinstance(results[0], Exception) else {}
@@ -21316,8 +21303,8 @@ async def monitor_positions_loop(app: Application):
                                 # Mark ATR as enabled for this position (for detecting when it gets disabled later)
                                 _atr_was_enabled[key] = True
                                 
-                                # Log current ATR state for debugging
-                                logger.info(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
+                                # Log current ATR state for debugging (DEBUG level to reduce spam)
+                                logger.debug(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
                                 
                                 # CRITICAL: Remove TP when ATR is active - TP should be managed by ATR trailing
                                 # Only remove once (use _atr_tp_removed cache to prevent repeated API calls)
@@ -21330,8 +21317,8 @@ async def monitor_positions_loop(app: Application):
                                         logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
-                                    # Log ATR status for debugging
-                                    logger.info(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
+                                    # Log ATR status for debugging (DEBUG level to reduce spam)
+                                    logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
                                 
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)

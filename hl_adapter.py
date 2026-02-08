@@ -12,18 +12,20 @@ logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════
 # HYPERLIQUID ADAPTER CACHE - Prevent rate limiting (429 errors)
-# Cache responses for 30 seconds per wallet address
+# HyperLiquid rate limit: 1200 weight/minute, info = 20 weight (~60 req/min)
+# Cache responses for 120 seconds per wallet address
 # ═══════════════════════════════════════════════════════════════
 _hl_adapter_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
-HL_ADAPTER_CACHE_TTL = 30  # seconds
+HL_ADAPTER_CACHE_TTL = 120  # seconds - 2 minutes to avoid rate limits
 
 
 def _get_adapter_cache(key: str) -> Optional[Any]:
     """Get cached HyperLiquid adapter data if not expired"""
     if key in _hl_adapter_cache:
         data, ts = _hl_adapter_cache[key]
-        if time.time() - ts < HL_ADAPTER_CACHE_TTL:
-            logger.debug(f"[HL-ADAPTER-CACHE] Hit for {key}")
+        age = time.time() - ts
+        if age < HL_ADAPTER_CACHE_TTL:
+            # Reduced logging - only log cache hits rarely
             return data
     return None
 
@@ -31,7 +33,7 @@ def _get_adapter_cache(key: str) -> Optional[Any]:
 def _set_adapter_cache(key: str, data: Any):
     """Set HyperLiquid adapter cache with current timestamp"""
     _hl_adapter_cache[key] = (data, time.time())
-    logger.debug(f"[HL-ADAPTER-CACHE] Set {key}")
+    # Reduced logging
 
 
 def _safe_float(val, default=0.0):
