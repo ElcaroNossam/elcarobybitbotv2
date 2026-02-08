@@ -156,6 +156,13 @@ USER_FIELDS_WHITELIST = {
     # Coins group per exchange (simplified settings - Feb 10, 2026)
     "bybit_coins_group",  # 'ALL', 'TOP', 'VOLATILE' for Bybit
     "hl_coins_group",  # 'ALL', 'TOP', 'VOLATILE' for HyperLiquid
+    # Per-exchange trading settings (Feb 10, 2026)
+    "bybit_leverage",  # Global leverage for Bybit (default 10)
+    "bybit_order_type",  # 'market' or 'limit' for Bybit
+    "bybit_coins_filter",  # 'ALL', 'TOP', 'VOLATILE' for Bybit
+    "hl_leverage",  # Global leverage for HyperLiquid (default 10)
+    "hl_order_type",  # 'market' or 'limit' for HyperLiquid
+    "hl_coins_filter",  # 'ALL', 'TOP', 'VOLATILE' for HyperLiquid
 }
 
 

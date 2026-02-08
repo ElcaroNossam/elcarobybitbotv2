@@ -1938,9 +1938,22 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     # Get margin mode settings
     bybit_margin = "cross"
     hl_margin = "cross"
+    bybit_leverage = 10
+    bybit_order_type = "market"
+    bybit_coins = "ALL"
+    hl_leverage = 10
+    hl_order_type = "market"
+    hl_coins = "ALL"
+    
     if uid:
         bybit_margin = db.get_user_field(uid, "bybit_margin_mode") or "cross"
         hl_margin = db.get_user_field(uid, "hl_margin_mode") or "cross"
+        bybit_leverage = db.get_user_field(uid, "bybit_leverage") or 10
+        bybit_order_type = db.get_user_field(uid, "bybit_order_type") or "market"
+        bybit_coins = db.get_user_field(uid, "bybit_coins_filter") or "ALL"
+        hl_leverage = db.get_user_field(uid, "hl_leverage") or 10
+        hl_order_type = db.get_user_field(uid, "hl_order_type") or "market"
+        hl_coins = db.get_user_field(uid, "hl_coins_filter") or "ALL"
     
     # Status indicators
     demo_status = "✅" if bybit_demo_ok else "❌"
@@ -1985,10 +1998,15 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
             buttons.append(clear_row)
     
     # Bybit margin mode + coins group
-    bybit_coins = db.get_user_field(uid, "bybit_coins_group") or "ALL" if uid else "ALL"
     buttons.append([
         InlineKeyboardButton(f"{bybit_margin_icon} Margin: {bybit_margin.upper()}", callback_data="api:bybit_margin"),
         InlineKeyboardButton(f"🪙 Coins: {bybit_coins}", callback_data="api:bybit_coins"),
+    ])
+    # Bybit leverage + order type
+    order_icon = "📊" if bybit_order_type == "market" else "📝"
+    buttons.append([
+        InlineKeyboardButton(f"⚡ Leverage: {bybit_leverage}x", callback_data="api:bybit_leverage"),
+        InlineKeyboardButton(f"{order_icon} Order: {bybit_order_type.title()}", callback_data="api:bybit_order_type"),
     ])
     buttons.append([
         InlineKeyboardButton(f"Trading: {bybit_trade_status}", callback_data="api:toggle_bybit"),
@@ -2020,10 +2038,15 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
             buttons.append(clear_row)
     
     # HL margin mode + coins group & trading toggle
-    hl_coins = db.get_user_field(uid, "hl_coins_group") or "ALL" if uid else "ALL"
     buttons.append([
         InlineKeyboardButton(f"{hl_margin_icon} Margin: {hl_margin.upper()}", callback_data="api:hl_margin"),
         InlineKeyboardButton(f"🪙 Coins: {hl_coins}", callback_data="api:hl_coins"),
+    ])
+    # HL leverage + order type
+    hl_order_icon = "📊" if hl_order_type == "market" else "📝"
+    buttons.append([
+        InlineKeyboardButton(f"⚡ Leverage: {hl_leverage}x", callback_data="api:hl_leverage"),
+        InlineKeyboardButton(f"{hl_order_icon} Order: {hl_order_type.title()}", callback_data="api:hl_order_type"),
     ])
     buttons.append([
         InlineKeyboardButton(f"Trading: {hl_trade_status}", callback_data="api:toggle_hl"),
@@ -2555,6 +2578,74 @@ Use the buttons below to configure:"""
         db.set_user_field(uid, "hl_coins_group", group)
         
         await q.answer(f"HyperLiquid Coins: {group}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Leverage Settings ───
+    LEVERAGE_OPTIONS = [1, 2, 3, 5, 10, 20, 25, 50, 100]
+    
+    if action == "bybit_leverage":
+        current = db.get_user_field(uid, "bybit_leverage") or 10
+        # Cycle to next leverage
+        try:
+            idx = LEVERAGE_OPTIONS.index(int(current))
+            new_lev = LEVERAGE_OPTIONS[(idx + 1) % len(LEVERAGE_OPTIONS)]
+        except ValueError:
+            new_lev = 10
+        
+        db.set_user_field(uid, "bybit_leverage", new_lev)
+        await q.answer(f"Bybit Leverage: {new_lev}x", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "hl_leverage":
+        current = db.get_user_field(uid, "hl_leverage") or 10
+        # Cycle to next leverage
+        try:
+            idx = LEVERAGE_OPTIONS.index(int(current))
+            new_lev = LEVERAGE_OPTIONS[(idx + 1) % len(LEVERAGE_OPTIONS)]
+        except ValueError:
+            new_lev = 10
+        
+        db.set_user_field(uid, "hl_leverage", new_lev)
+        await q.answer(f"HyperLiquid Leverage: {new_lev}x", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Order Type Settings ───
+    if action == "bybit_order_type":
+        current = db.get_user_field(uid, "bybit_order_type") or "market"
+        new_type = "limit" if current == "market" else "market"
+        db.set_user_field(uid, "bybit_order_type", new_type)
+        
+        type_emoji = "📊 Market" if new_type == "market" else "📝 Limit"
+        await q.answer(f"Bybit Order: {type_emoji}", show_alert=True)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "hl_order_type":
+        current = db.get_user_field(uid, "hl_order_type") or "market"
+        new_type = "limit" if current == "market" else "market"
+        db.set_user_field(uid, "hl_order_type", new_type)
+        
+        type_emoji = "📊 Market" if new_type == "market" else "📝 Limit"
+        await q.answer(f"HyperLiquid Order: {type_emoji}", show_alert=True)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)
