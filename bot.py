@@ -20457,7 +20457,7 @@ async def monitor_positions_loop(app: Application):
                                 entry_diff_pct = abs(entry - db_entry) / db_entry * 100
                                 if entry_diff_pct > 0.1:  # Entry changed by >0.1%
                                     try:
-                                        pos_account_type = account_type_map.get(sym, "demo")
+                                        pos_account_type = account_type_map.get(sym, current_account_type)
                                         if db.sync_position_entry_price(uid, sym, entry, pos_account_type, exchange=current_exchange):
                                             logger.info(f"[{uid}] {sym}: Entry synced {db_entry:.6f} → {entry:.6f} (diff={entry_diff_pct:.2f}%)")
                                             entry_changed = True
@@ -20495,7 +20495,7 @@ async def monitor_positions_loop(app: Application):
                                         if pos_strategy:
                                             logger.info(f"[{uid}] {sym}: Detected strategy={pos_strategy} from signal, updating DB")
                                             try:
-                                                pos_account_type = account_type_map.get(sym, "demo")
+                                                pos_account_type = account_type_map.get(sym, current_account_type)
                                                 update_position_strategy(uid, sym, pos_strategy, account_type=pos_account_type, exchange=current_exchange)
                                             except Exception as e:
                                                 logger.warning(f"[{uid}] Failed to update position strategy: {e}")
@@ -20540,7 +20540,7 @@ async def monitor_positions_loop(app: Application):
                             tf_cfg      = TIMEFRAME_PARAMS.get(tf, TIMEFRAME_PARAMS["15m"])
                         
                             # Get account_type for this position from map (moved up for strategy settings)
-                            pos_account_type = account_type_map.get(sym, "demo")
+                            pos_account_type = account_type_map.get(sym, current_account_type)
                         
                             # Get ATR params: priority is side-specific > strategy settings > timeframe defaults
                             if pos_strategy:
