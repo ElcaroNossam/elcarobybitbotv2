@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════
 # HYPERLIQUID ADAPTER CACHE - Prevent rate limiting (429 errors)
 # HyperLiquid rate limit: 1200 weight/minute, info = 20 weight (~60 req/min)
-# Cache responses for 120 seconds per wallet address
+# Cache responses for 180 seconds (3 min) per wallet address
 # ═══════════════════════════════════════════════════════════════
 _hl_adapter_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
-HL_ADAPTER_CACHE_TTL = 120  # seconds - 2 minutes to avoid rate limits
+HL_ADAPTER_CACHE_TTL = 180  # seconds - 3 minutes to avoid rate limits
 
 
 def _get_adapter_cache(key: str) -> Optional[Any]:

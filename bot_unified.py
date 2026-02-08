@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 # HyperLiquid has strict rate limits: 1200 weight/minute, info requests = 20 weight
 # This means ~60 info requests/minute MAX
 # Cache positions/balance for 60 seconds to avoid rate limits
-# CHECK_INTERVAL = 15s, so with 60s cache we only make 1 API call per minute per user
+# CHECK_INTERVAL = 15s, so with 180s cache we only make 1 API call per 3 minutes per user
 # ═══════════════════════════════════════════════════════════════
 _hl_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
-HL_CACHE_TTL = 120  # seconds - cache HyperLiquid data for 120 seconds (2 minutes to avoid rate limits)
+HL_CACHE_TTL = 180  # seconds - cache HyperLiquid data for 180 seconds (3 minutes to avoid rate limits)
 
 
 def _get_hl_cache(key: str) -> Optional[Any]:

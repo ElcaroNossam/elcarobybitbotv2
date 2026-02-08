@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════
 _hl_last_request_time: float = 0
 _hl_request_lock: asyncio.Lock = None  # Will be initialized on first use
-HL_MIN_REQUEST_INTERVAL = 0.5  # 500ms between requests (2 req/sec max)
+HL_MIN_REQUEST_INTERVAL = 1.0  # 1 second between requests (strictly 60 req/min)
 
 
 async def _hl_rate_limit():
