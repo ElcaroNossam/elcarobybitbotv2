@@ -5368,7 +5368,7 @@ def set_hl_enabled(user_id: int, enabled: bool):
     with get_conn() as conn:
         conn.execute(
             "UPDATE users SET hl_enabled = %s WHERE user_id = %s",
-            (enabled, user_id)  # Pass boolean directly for PostgreSQL
+            (1 if enabled else 0, user_id)  # Convert to int for INTEGER column
         )
         conn.commit()
     invalidate_user_cache(user_id)
