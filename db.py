@@ -1163,6 +1163,17 @@ def delete_user_credentials(user_id: int, account_type: str):
 def set_user_field(user_id: int, field: str, value: Any):
     if field not in USER_FIELDS_WHITELIST:
         raise ValueError(f"Unsupported field: {field}")
+    
+    # Auto-convert integer 0/1 to boolean for boolean columns (PostgreSQL compatibility)
+    BOOLEAN_FIELDS = {
+        "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
+        "dca_enabled", "spot_enabled", "use_atr", "be_enabled", "hl_enabled",
+        "hl_testnet", "bybit_enabled", "live_enabled", "limit_enabled",
+        "trade_oi", "trade_rsi_bb", "trade_manual"
+    }
+    if field in BOOLEAN_FIELDS and isinstance(value, int):
+        value = bool(value)
+    
     ensure_user(user_id)
     with get_conn() as conn:
         conn.execute(f"UPDATE users SET {field}=? WHERE user_id=?", (value, user_id))

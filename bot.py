@@ -1610,7 +1610,7 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     action = data.split(":", 1)[1] if ":" in data else ""
 
     if action == "accept":
-        set_user_field(uid, "terms_accepted", 1)
+        set_user_field(uid, "terms_accepted", True)  # Use True for boolean column
         await q.edit_message_text(ctx.t["terms_ok"])
         
         # Send privacy policy document after accepting terms
@@ -1653,7 +1653,7 @@ async def on_terms_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
         )
     elif action == "decline":
-        set_user_field(uid, "terms_accepted", 0)
+        set_user_field(uid, "terms_accepted", False)  # Use False for boolean column
         await q.edit_message_text(ctx.t["terms_declined"])
     else:
         await q.answer(ctx.t.get("unknown_action", "Unknown action"), show_alert=True)
@@ -1673,7 +1673,7 @@ async def on_disclaimer_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     action = data.split(":", 1)[1] if ":" in data else ""
 
     if action == "accept":
-        set_user_field(uid, "disclaimer_accepted", 1)
+        set_user_field(uid, "disclaimer_accepted", True)  # Use True for boolean column
         logger.info(f"[{uid}] Accepted legal disclaimer")
         
         accepted_text = ctx.t.get("disclaimer_accepted_msg", (
@@ -29326,7 +29326,7 @@ async def on_deep_loss_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
             else:
                 # Enable DCA globally
-                set_user_field(uid, "dca_enabled", 1)
+                set_user_field(uid, "dca_enabled", True)  # Use True for boolean column
                 
                 await q.edit_message_text(
                     t.get('dca_enabled_for_symbol',

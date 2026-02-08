@@ -466,8 +466,8 @@ async def update_spot_settings(
     user_id = user["user_id"]
     
     try:
-        # Save spot_enabled flag
-        db.set_user_field(user_id, "spot_enabled", 1 if settings.spot_enabled else 0)
+        # Save spot_enabled flag (use boolean for boolean column)
+        db.set_user_field(user_id, "spot_enabled", bool(settings.spot_enabled))
         
         # Save spot_settings as JSON
         spot_settings = {

@@ -579,9 +579,9 @@ async def accept_disclaimer(
     if data.accepted:
         # Store disclaimer acceptance in database
         try:
-            db.set_user_field(user_id, "disclaimer_accepted", 1)
+            db.set_user_field(user_id, "disclaimer_accepted", True)  # Use True for boolean column
             # Also set terms_accepted for compatibility
-            db.set_user_field(user_id, "terms_accepted", 1)
+            db.set_user_field(user_id, "terms_accepted", True)  # Use True for boolean column
             logger.info(f"User {user_id} accepted disclaimer via WebApp")
         except Exception as e:
             logger.warning(f"Failed to save disclaimer acceptance: {e}")
