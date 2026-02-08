@@ -247,6 +247,79 @@ def sign_withdraw_action(
     return sign_l1_action(private_key, action, nonce=nonce, is_mainnet=is_mainnet)
 
 
+def sign_usd_class_transfer_action(
+    private_key: str,
+    amount: float,
+    to_perp: bool,
+    nonce: int = None,
+    is_mainnet: bool = True
+) -> Dict[str, Any]:
+    """
+    Sign usdClassTransfer action for transferring USDC between spot and perp.
+    Uses special EIP-712 signing similar to other user-signed actions.
+    """
+    if nonce is None:
+        nonce = get_timestamp_ms()
+    
+    wallet = Account.from_key(private_key)
+    
+    # EIP-712 typed data for usdClassTransfer
+    hyperliquid_chain = "Mainnet" if is_mainnet else "Testnet"
+    chain_id = 42161 if is_mainnet else 421614
+    
+    typed_data = {
+        "domain": {
+            "name": "HyperliquidSignTransaction",
+            "version": "1",
+            "chainId": chain_id,
+            "verifyingContract": "0x0000000000000000000000000000000000000000"
+        },
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "HyperliquidTransaction:UsdClassTransfer": [
+                {"name": "hyperliquidChain", "type": "string"},
+                {"name": "amount", "type": "string"},
+                {"name": "toPerp", "type": "bool"},
+                {"name": "nonce", "type": "uint64"},
+            ]
+        },
+        "primaryType": "HyperliquidTransaction:UsdClassTransfer",
+        "message": {
+            "hyperliquidChain": hyperliquid_chain,
+            "amount": str(amount),
+            "toPerp": to_perp,
+            "nonce": nonce,
+        }
+    }
+    
+    structured_data = encode_typed_data(full_message=typed_data)
+    signed = wallet.sign_message(structured_data)
+    
+    signature = {
+        "r": to_hex(signed["r"]),
+        "s": to_hex(signed["s"]),
+        "v": signed["v"]
+    }
+    
+    action = {
+        "type": "usdClassTransfer",
+        "amount": str(amount),
+        "toPerp": to_perp,
+        "nonce": nonce,
+    }
+    
+    return {
+        "action": action,
+        "nonce": nonce,
+        "signature": signature,
+    }
+
+
 def get_address_from_private_key(private_key: str) -> str:
     account = Account.from_key(private_key)
     return account.address

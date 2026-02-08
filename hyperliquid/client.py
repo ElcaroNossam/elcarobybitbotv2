@@ -18,7 +18,7 @@ from .signer import (
     sign_l1_action, sign_update_leverage_action,
     order_request_to_order_wire, order_wire_to_action,
     cancel_wire_to_action, float_to_wire, get_timestamp_ms,
-    get_address_from_private_key,
+    get_address_from_private_key, sign_usd_class_transfer_action,
 )
 
 
@@ -622,15 +622,24 @@ class HyperLiquidClient:
         return await self._exchange_request(action)
     
     async def spot_transfer(self, usd_to_perp: bool, usd_amount: float) -> Dict[str, Any]:
-        """Transfer USDC between spot and perp accounts"""
-        action = {
-            "type": "spotUser",
-            "classTransfer": {
-                "usdc": float_to_wire(usd_amount),
-                "toPerp": usd_to_perp
-            }
-        }
-        return await self._exchange_request(action)
+        """
+        Transfer USDC between spot and perp accounts.
+        
+        Args:
+            usd_to_perp: True = transfer from spot to perp, False = transfer from perp to spot
+            usd_amount: Amount of USDC to transfer
+            
+        Returns:
+            API response with status
+        """
+        # Use special signing for usdClassTransfer
+        signed_payload = sign_usd_class_transfer_action(
+            self._private_key,
+            usd_amount,
+            usd_to_perp,
+            is_mainnet=not self._testnet
+        )
+        return await self._request("POST", "/exchange", data=signed_payload)
     
     async def update_isolated_margin(
         self,
