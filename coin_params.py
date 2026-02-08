@@ -9,15 +9,17 @@ from typing import Callable
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Trading parameters defaults
-DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "1.0"))        # Entry % (risk per trade)
-DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "3.0"))          # Stop-Loss %
-DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "8.0"))          # Take-Profit %
+# Entry % max is 3% (1-3% range recommended for risk management)
+DEFAULT_PERCENT = float(os.getenv("DEFAULT_PERCENT", "1.0"))        # Entry % (risk per trade, max 3%)
+MAX_ENTRY_PERCENT = 3.0  # Maximum allowed entry percentage
+DEFAULT_SL_PCT = float(os.getenv("DEFAULT_SL_PCT", "30.0"))         # Stop-Loss % (default 30%)
+DEFAULT_TP_PCT = float(os.getenv("DEFAULT_TP_PCT", "10.0"))         # Take-Profit % (default 10%)
 DEFAULT_LEVERAGE = int(os.getenv("DEFAULT_LEVERAGE", "10"))         # Leverage
 
-# ATR Trailing defaults
-DEFAULT_USE_ATR = os.getenv("DEFAULT_USE_ATR", "1") == "1"          # ATR Trailing enabled
-DEFAULT_ATR_TRIGGER_PCT = float(os.getenv("DEFAULT_ATR_TRIGGER_PCT", "0.5"))  # Trigger %
-DEFAULT_ATR_STEP_PCT = float(os.getenv("DEFAULT_ATR_STEP_PCT", "0.3"))        # Step %
+# ATR Trailing defaults - ENABLED by default with 3% trigger
+DEFAULT_USE_ATR = os.getenv("DEFAULT_USE_ATR", "1") == "1"          # ATR Trailing enabled by default
+DEFAULT_ATR_TRIGGER_PCT = float(os.getenv("DEFAULT_ATR_TRIGGER_PCT", "3.0"))  # Trigger % (activate at 3% profit)
+DEFAULT_ATR_STEP_PCT = float(os.getenv("DEFAULT_ATR_STEP_PCT", "0.5"))        # Step % (trail by 0.5%)
 
 # Break-Even (BE) defaults - move SL to entry when profit reaches trigger
 DEFAULT_BE_ENABLED = os.getenv("DEFAULT_BE_ENABLED", "0") == "1"       # BE disabled by default
@@ -56,7 +58,7 @@ STRATEGY_DEFAULTS = {
         "sl_percent": DEFAULT_SL_PCT,
         "tp_percent": DEFAULT_TP_PCT,
         "leverage": DEFAULT_LEVERAGE,
-        "use_atr": 0,  # ATR disabled by default
+        "use_atr": 1,  # ATR ENABLED by default
         "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "be_enabled": 1 if DEFAULT_BE_ENABLED else 0,  # Break-Even
@@ -81,7 +83,7 @@ STRATEGY_DEFAULTS = {
         "sl_percent": DEFAULT_SL_PCT,
         "tp_percent": DEFAULT_TP_PCT,
         "leverage": DEFAULT_LEVERAGE,
-        "use_atr": 0,  # ATR disabled by default
+        "use_atr": 1,  # ATR ENABLED by default
         "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,
         "atr_step_pct": DEFAULT_ATR_STEP_PCT,
         "be_enabled": 1 if DEFAULT_BE_ENABLED else 0,  # Break-Even
@@ -154,9 +156,9 @@ COIN_PARAMS = {
     "DEFAULT": {
         "tp_pct": DEFAULT_TP_PCT,
         "sl_pct": DEFAULT_SL_PCT,
-        "atr_multiplier_sl": 0.3,
-        "atr_trigger_pct": 3.0,
-        "atr_periods": 5,
+        "atr_multiplier_sl": 0.5,
+        "atr_trigger_pct": DEFAULT_ATR_TRIGGER_PCT,  # 3% by default
+        "atr_periods": 7,
     },
 }
 

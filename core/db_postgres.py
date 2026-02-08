@@ -349,14 +349,14 @@ def pg_init_db():
                 real_api_secret    TEXT,
                 trading_mode       TEXT NOT NULL DEFAULT 'demo',
                 
-                -- Trading settings
+                -- Trading settings (NEW DEFAULTS: SL 30%, TP 10%, ATR enabled)
                 percent            REAL NOT NULL DEFAULT 1.0,
                 coins              TEXT NOT NULL DEFAULT 'ALL',
                 limit_enabled      INTEGER NOT NULL DEFAULT 1,
                 trade_oi           INTEGER NOT NULL DEFAULT 1,
                 trade_rsi_bb       INTEGER NOT NULL DEFAULT 1,
-                tp_percent         REAL NOT NULL DEFAULT 8.0,
-                sl_percent         REAL NOT NULL DEFAULT 3.0,
+                tp_percent         REAL NOT NULL DEFAULT 10.0,
+                sl_percent         REAL NOT NULL DEFAULT 30.0,
                 use_atr            INTEGER NOT NULL DEFAULT 1,
                 lang               TEXT NOT NULL DEFAULT 'en',
                 leverage           INTEGER NOT NULL DEFAULT 10,

@@ -24635,10 +24635,18 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             value = float(text.replace(",", ".").strip())
             
+            # Import MAX_ENTRY_PERCENT for validation
+            from coin_params import MAX_ENTRY_PERCENT
+            
             # Different validation for different params
-            if param in ("percent", "sl_percent", "tp_percent", "atr_trigger_pct", "atr_step_pct",
-                         "long_percent", "long_sl_percent", "long_tp_percent", "long_atr_trigger_pct", "long_atr_step_pct",
-                         "short_percent", "short_sl_percent", "short_tp_percent", "short_atr_trigger_pct", "short_atr_step_pct"):
+            # Entry % (percent) - MAX 3% for risk management
+            if param in ("percent", "long_percent", "short_percent"):
+                if value <= 0 or value > MAX_ENTRY_PERCENT:
+                    raise ValueError(f"Entry % must be between 0.1 and {MAX_ENTRY_PERCENT}% (risk management limit)")
+            # SL/TP/ATR % - standard 0-100 range
+            elif param in ("sl_percent", "tp_percent", "atr_trigger_pct", "atr_step_pct",
+                         "long_sl_percent", "long_tp_percent", "long_atr_trigger_pct", "long_atr_step_pct",
+                         "short_sl_percent", "short_tp_percent", "short_atr_trigger_pct", "short_atr_step_pct"):
                 if value <= 0 or value > 100:
                     raise ValueError("Value must be between 0 and 100")
             elif param == "min_quality":
@@ -30340,9 +30348,12 @@ async def handle_hl_strategy_param(update: Update, ctx: ContextTypes.DEFAULT_TYP
     strategy = info["strategy"]
     param = info["param"]
     
+    # Import MAX_ENTRY_PERCENT for validation
+    from coin_params import MAX_ENTRY_PERCENT
+    
     # Validate ranges
-    if param == "hl_percent" and (value <= 0 or value > 100):
-        await update.message.reply_text(t.get("entry_pct_range_error", "❌ Entry % must be between 0.1 and 100."))
+    if param == "hl_percent" and (value <= 0 or value > MAX_ENTRY_PERCENT):
+        await update.message.reply_text(t.get("entry_pct_range_error", f"❌ Entry % must be between 0.1 and {MAX_ENTRY_PERCENT}% (risk management limit)."))
         return True
     if param in ["hl_sl_percent", "hl_tp_percent"] and (value <= 0 or value > 500):
         await update.message.reply_text(t.get("sl_tp_range_error", "❌ SL/TP % must be between 0.1 and 500."))
