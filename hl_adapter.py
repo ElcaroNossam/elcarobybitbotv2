@@ -1214,6 +1214,209 @@ class HLAdapter:
             logger.error(f"get_fills_by_time error: {e}")
             return {"success": False, "error": str(e)}
 
+    # ═══════════════════════════════════════════════════════════════
+    # SPOT TRADING METHODS
+    # ═══════════════════════════════════════════════════════════════
+
+    async def get_spot_balances(self) -> Dict[str, Any]:
+        """
+        Get spot token balances for the main wallet.
+        
+        Returns:
+            Dict with balances: {token: {"total": float, "hold": float, "available": float}}
+        """
+        await self.initialize()
+        try:
+            query_address = self._main_wallet_address or self._client.vault_address or self._client.address
+            spot_state = await self._client.spot_state(address=query_address)
+            
+            balances = {}
+            for bal in spot_state.get("balances", []):
+                coin = bal.get("coin", "")
+                total = _safe_float(bal.get("total", 0))
+                hold = _safe_float(bal.get("hold", 0))
+                if total > 0 or hold > 0:  # Only include non-zero balances
+                    balances[coin] = {
+                        "total": total,
+                        "hold": hold,
+                        "available": total - hold
+                    }
+            return {"success": True, "balances": balances}
+        except Exception as e:
+            logger.error(f"get_spot_balances error: {e}")
+            return {"success": False, "error": str(e), "balances": {}}
+
+    async def spot_buy(
+        self,
+        token: str,
+        size: float,
+        slippage: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Place a spot market buy order.
+        
+        Args:
+            token: Token to buy (e.g., "PURR", "HYPE")
+            size: Size in base token (must be integer for tokens with szDecimals=0)
+            slippage: Slippage tolerance (default 5%)
+            
+        Returns:
+            Order result dict
+        """
+        await self.initialize()
+        try:
+            result = await self._client.spot_market_buy(
+                base_token=token.upper(),
+                sz=size,
+                slippage=slippage
+            )
+            
+            statuses = result.get("response", {}).get("data", {}).get("statuses", [])
+            if statuses:
+                status = statuses[0]
+                if isinstance(status, dict):
+                    if status.get("error"):
+                        return {"success": False, "error": status["error"]}
+                    if status.get("filled"):
+                        filled = status["filled"]
+                        return {
+                            "success": True,
+                            "filled": True,
+                            "size": _safe_float(filled.get("totalSz")),
+                            "avg_price": _safe_float(filled.get("avgPx")),
+                            "order_id": filled.get("oid"),
+                        }
+            
+            return {"success": True, "result": result}
+        except HyperLiquidError as e:
+            logger.error(f"spot_buy error: {e}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            logger.exception(f"spot_buy unexpected error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def spot_sell(
+        self,
+        token: str,
+        size: float,
+        slippage: float = 0.05
+    ) -> Dict[str, Any]:
+        """
+        Place a spot market sell order.
+        
+        Args:
+            token: Token to sell (e.g., "PURR", "HYPE")
+            size: Size in base token (must be integer for tokens with szDecimals=0)
+            slippage: Slippage tolerance (default 5%)
+            
+        Returns:
+            Order result dict
+        """
+        await self.initialize()
+        try:
+            result = await self._client.spot_market_sell(
+                base_token=token.upper(),
+                sz=size,
+                slippage=slippage
+            )
+            
+            statuses = result.get("response", {}).get("data", {}).get("statuses", [])
+            if statuses:
+                status = statuses[0]
+                if isinstance(status, dict):
+                    if status.get("error"):
+                        return {"success": False, "error": status["error"]}
+                    if status.get("filled"):
+                        filled = status["filled"]
+                        return {
+                            "success": True,
+                            "filled": True,
+                            "size": _safe_float(filled.get("totalSz")),
+                            "avg_price": _safe_float(filled.get("avgPx")),
+                            "order_id": filled.get("oid"),
+                        }
+            
+            return {"success": True, "result": result}
+        except HyperLiquidError as e:
+            logger.error(f"spot_sell error: {e}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            logger.exception(f"spot_sell unexpected error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_spot_ticker(self, token: str) -> Dict[str, Any]:
+        """
+        Get spot ticker info for a token.
+        
+        Args:
+            token: Token name (e.g., "PURR", "HYPE")
+            
+        Returns:
+            Dict with price, volume, etc.
+        """
+        await self.initialize()
+        try:
+            ticker = await self._client.get_spot_ticker(token.upper())
+            if ticker:
+                return {
+                    "success": True,
+                    "symbol": f"{token.upper()}/USDC",
+                    "mid_price": ticker.get("midPx"),
+                    "mark_price": ticker.get("markPx"),
+                    "day_volume": ticker.get("dayNtlVlm"),
+                    "prev_day_price": ticker.get("prevDayPx"),
+                }
+            return {"success": False, "error": "Token not found"}
+        except Exception as e:
+            logger.error(f"get_spot_ticker error: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_spot_markets(self) -> List[Dict[str, Any]]:
+        """
+        Get list of available spot markets.
+        
+        Returns:
+            List of spot market info dicts
+        """
+        await self.initialize()
+        try:
+            spot_data = await self._client.spot_meta_and_asset_contexts()
+            if len(spot_data) < 2:
+                return []
+            
+            spot_meta = spot_data[0]
+            spot_ctxs = spot_data[1]
+            universe = spot_meta.get("universe", [])
+            tokens = spot_meta.get("tokens", [])
+            
+            markets = []
+            for idx, pair in enumerate(universe):
+                token_indices = pair.get("tokens", [])
+                base_idx = token_indices[0] if len(token_indices) > 0 else None
+                quote_idx = token_indices[1] if len(token_indices) > 1 else None
+                
+                base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else "?"
+                quote_name = tokens[quote_idx].get("name") if quote_idx is not None and quote_idx < len(tokens) else "USDC"
+                sz_decimals = tokens[base_idx].get("szDecimals", 0) if base_idx is not None else 0
+                
+                mid_price = None
+                if idx < len(spot_ctxs):
+                    mid_price = _safe_float(spot_ctxs[idx].get("midPx"))
+                
+                markets.append({
+                    "symbol": f"{base_name}/{quote_name}",
+                    "base": base_name,
+                    "quote": quote_name,
+                    "pair_index": idx,
+                    "sz_decimals": sz_decimals,
+                    "mid_price": mid_price,
+                })
+            
+            return markets
+        except Exception as e:
+            logger.error(f"get_spot_markets error: {e}")
+            return []
+
 
 async def create_hl_adapter(
     private_key: str, 
