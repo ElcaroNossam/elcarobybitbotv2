@@ -20101,7 +20101,7 @@ async def monitor_positions_loop(app: Application):
                                             if (side == "Buy" and tp_price > mark) or (side == "Sell" and tp_price < mark):
                                                 kwargs["tp_price"] = tp_price
                                         try:
-                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=current_account_type)
+                                            result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=current_account_type, exchange=current_exchange)
                                         
                                             if result == "deep_loss":
                                                 # Calculate move_pct for deep loss notification
@@ -20129,7 +20129,7 @@ async def monitor_positions_loop(app: Application):
                                                 )
                                     else:
                                         try:
-                                            result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side, account_type=current_account_type)
+                                            result = await set_trading_stop(uid, sym, sl_price=sl_price, side_hint=side, account_type=current_account_type, exchange=current_exchange)
                                             if result == "deep_loss":
                                                 # Calculate move_pct for deep loss notification
                                                 move_pct_local = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
