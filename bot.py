@@ -11577,11 +11577,63 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity:
 # ==============================================================================
 
 @log_calls
-async def fetch_spot_balance(user_id: int, account_type: str = None) -> dict:
-    """Fetch Spot account balances from UNIFIED account.
+async def fetch_spot_balance(user_id: int, account_type: str = None, exchange: str = None) -> dict:
+    """Fetch Spot account balances.
+    
+    Args:
+        user_id: Telegram user ID
+        account_type: 'demo', 'real' for Bybit; 'testnet', 'mainnet' for HyperLiquid
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
     
     Returns dict like: {"USDT": 100.0, "BTC": 0.001, "ETH": 0.5}
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid spot balance
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                return {}
+            
+            # Determine testnet based on account_type
+            is_testnet = account_type in ("testnet", "demo", None)  # Default to testnet for HL
+            
+            # Get appropriate key
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")  # Legacy fallback
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if not private_key:
+                return {}
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            await adapter.initialize()
+            
+            result = await adapter.get_spot_balance()
+            if not result.get("success"):
+                logger.error(f"HL spot balance error: {result.get('error')}")
+                return {}
+            
+            # Convert HL format to Bybit-like format: {coin: balance}
+            balances = {}
+            for token in result.get("data", {}).get("tokens", []):
+                coin = token.get("token", "")
+                total = token.get("total", 0)
+                if total > 0:
+                    balances[coin] = total
+            
+            return balances
+        except Exception as e:
+            logger.error(f"fetch_spot_balance HL error: {e}")
+            return {}
+    
+    # Bybit spot balance (original logic)
     params = {"accountType": "UNIFIED"}
     try:
         res = await _bybit_request(user_id, "GET", "/v5/account/wallet-balance", params=params, account_type=account_type)
@@ -11605,8 +11657,59 @@ async def fetch_spot_balance(user_id: int, account_type: str = None) -> dict:
 
 
 @log_calls
-async def get_spot_ticker(user_id: int, symbol: str, account_type: str = None) -> dict:
-    """Get current price info for a spot symbol (e.g., BTCUSDT)."""
+async def get_spot_ticker(user_id: int, symbol: str, account_type: str = None, exchange: str = None) -> dict:
+    """Get current price info for a spot symbol (e.g., BTCUSDT or BTC for HL).
+    
+    Args:
+        user_id: Telegram user ID
+        symbol: Symbol like "BTCUSDT" (Bybit) or "BTC" (HL)
+        account_type: Account type
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
+    """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
+    if exchange == "hyperliquid":
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                return {}
+            
+            # Normalize symbol for HL (remove USDT/USDC suffix)
+            token = symbol.upper().replace("USDT", "").replace("USDC", "")
+            
+            is_testnet = account_type in ("testnet", "demo", None)
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if not private_key:
+                return {}
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            await adapter.initialize()
+            
+            result = await adapter.get_spot_ticker(token)
+            if not result.get("success"):
+                return {}
+            
+            ticker = result.get("data", {})
+            # Convert to Bybit-like format
+            return {
+                "lastPrice": str(ticker.get("price", 0)),
+                "prevPrice24h": str(ticker.get("prevDayPx", 0)),
+                "price24hPcnt": str(ticker.get("change_24h", 0) / 100) if ticker.get("change_24h") else "0",
+                "volume24h": str(ticker.get("dayNtlVlm", 0)),
+            }
+        except Exception as e:
+            logger.error(f"get_spot_ticker HL error for {symbol}: {e}")
+            return {}
+    
+    # Bybit spot ticker (original logic)
     params = {"category": "spot", "symbol": symbol}
     try:
         res = await _bybit_request(user_id, "GET", "/v5/market/tickers", params=params, account_type=account_type)
@@ -11911,8 +12014,18 @@ async def calculate_smart_dca_amount(
 
 
 @log_calls
-async def get_spot_instrument_info(user_id: int, symbol: str, account_type: str = None) -> dict:
+async def get_spot_instrument_info(user_id: int, symbol: str, account_type: str = None, exchange: str = None) -> dict:
     """Get instrument info for spot symbol (min order size, decimals, etc)."""
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    if exchange.lower() == "hyperliquid":
+        # HL doesn't have the same instrument info concept
+        # Return minimal info
+        return {"lotSizeFilter": {"basePrecision": "0.000001"}}
+    
+    # Bybit
     params = {"category": "spot", "symbol": symbol}
     try:
         res = await _bybit_request(user_id, "GET", "/v5/market/instruments-info", params=params, account_type=account_type)
@@ -11933,25 +12046,78 @@ async def place_spot_order(
     order_type: str = "Market",
     price: float = None,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """Place a spot order.
     
     Args:
         user_id: Telegram user ID
-        symbol: Spot symbol like "BTCUSDT"
+        symbol: Spot symbol like "BTCUSDT" (Bybit) or "BTC" (HL)
         side: "Buy" or "Sell"
-        qty: Quantity to buy/sell (in quote currency for market buy)
+        qty: Quantity to buy/sell (in quote currency for market buy on Bybit)
         order_type: "Market" or "Limit"
         price: Price for limit orders
-        account_type: 'demo', 'real', or None
+        account_type: 'demo', 'real' (Bybit) or 'testnet', 'mainnet' (HL)
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid spot order
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                raise ValueError("No HyperLiquid credentials")
+            
+            is_testnet = account_type in ("testnet", "demo", None)
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if not private_key:
+                raise ValueError("No HyperLiquid private key configured")
+            
+            # Normalize symbol for HL
+            token = symbol.upper().replace("USDT", "").replace("USDC", "")
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            await adapter.initialize()
+            
+            if side.lower() == "buy":
+                # For HL market buy, qty is USDC amount
+                result = await adapter.spot_market_buy(token=token, usdc_amount=qty)
+            else:
+                # For HL sell, qty is token amount
+                result = await adapter.spot_market_sell(token=token, qty=qty)
+            
+            if result.get("success"):
+                logger.info(f"HL Spot order placed [{account_type or 'testnet'}]: {token} {side} qty={qty}")
+                return {"retCode": 0, "retMsg": "OK", "result": {"orderId": result.get("order_id", "")}}
+            else:
+                raise ValueError(result.get("error", "HL spot order failed"))
+        
+        except ValueError as e:
+            err_str = str(e)
+            if "insufficient" in err_str.lower() or "balance" in err_str.lower():
+                raise ValueError("INSUFFICIENT_BALANCE")
+            raise
+        except Exception as e:
+            logger.error(f"HL place_spot_order error: {e}")
+            raise
+    
+    # Bybit spot order (original logic)
     import uuid
     order_link_id = f"spot_{uuid.uuid4().hex[:20]}"
     
     # Get instrument info for proper qty rounding (fix "too many decimals" error)
     if side == "Sell" or order_type == "Limit":
         try:
-            inst_info = await get_spot_instrument_info(user_id, symbol, account_type)
+            inst_info = await get_spot_instrument_info(user_id, symbol, account_type, exchange)
             if inst_info:
                 # basePrecision is the decimal precision for base coin qty
                 base_precision = inst_info.get("lotSizeFilter", {}).get("basePrecision", "0.00001")
@@ -12009,22 +12175,34 @@ async def execute_spot_dca_buy(
     coin: str,
     usdt_amount: float,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """Execute a DCA buy for a specific coin.
     
     Args:
         user_id: Telegram user ID
-        coin: Coin to buy (e.g., "BTC", "ETH")
-        usdt_amount: Amount in USDT to spend
-        account_type: 'demo', 'real', or None
+        coin: Coin to buy (e.g., "BTC", "ETH", "HYPE", "PURR")
+        usdt_amount: Amount in USDT/USDC to spend
+        account_type: 'demo', 'real' (Bybit) or 'testnet', 'mainnet' (HL)
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
         
     Returns:
         dict with result info
     """
-    symbol = f"{coin}USDT"
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin  # HL uses just the token name
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     # Get current price
-    ticker = await get_spot_ticker(user_id, symbol, account_type)
+    ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
     if not ticker:
         return {"success": False, "error": f"Could not get price for {symbol}"}
     
@@ -12040,6 +12218,7 @@ async def execute_spot_dca_buy(
             qty=usdt_amount,
             order_type="Market",
             account_type=account_type,
+            exchange=exchange,
         )
         
         # Calculate approximate qty bought
@@ -20972,12 +21151,14 @@ async def spot_auto_dca_loop(app: Application):
     Background loop that executes automatic spot DCA for users who have:
     - auto_dca enabled
     - frequency set to daily/weekly/monthly
-    - valid API credentials
+    - valid API credentials (Bybit or HyperLiquid)
     
     Runs every hour and checks if it's time for each user's DCA.
+    
+    Supports both Bybit and HyperLiquid exchanges.
     """
     bot = app.bot
-    logger.info("Starting spot_auto_dca_loop")
+    logger.info("Starting spot_auto_dca_loop (Bybit + HyperLiquid)")
     
     while True:
         try:
@@ -21005,9 +21186,25 @@ async def spot_auto_dca_loop(app: Application):
                     if frequency == "manual":
                         continue
                     
-                    # Check if user has API credentials
-                    k, s = get_user_credentials(uid)
-                    if not k or not s:
+                    # Detect user's exchange
+                    user_exchange = db.get_exchange_type(uid) or "bybit"
+                    
+                    # Check if user has API credentials for their exchange
+                    has_credentials = False
+                    if user_exchange == "hyperliquid":
+                        hl_creds = db.get_hl_credentials(uid)
+                        if hl_creds:
+                            # Check for any HL private key
+                            has_credentials = bool(
+                                hl_creds.get("hl_testnet_private_key") or
+                                hl_creds.get("hl_mainnet_private_key") or
+                                hl_creds.get("hl_private_key")
+                            )
+                    else:
+                        k, s = get_user_credentials(uid)
+                        has_credentials = bool(k and s)
+                    
+                    if not has_credentials:
                         continue
                     
                     # Check interval
@@ -21023,7 +21220,7 @@ async def spot_auto_dca_loop(app: Application):
                         continue
                     
                     # Time to execute DCA!
-                    logger.info(f"Executing auto spot DCA for user {uid} (freq={frequency})")
+                    logger.info(f"Executing auto spot DCA for user {uid} (freq={frequency}, exchange={user_exchange})")
                     
                     lang = cfg.get("lang", DEFAULT_LANG)
                     t = LANGS.get(lang, LANGS[DEFAULT_LANG])
@@ -21034,6 +21231,11 @@ async def spot_auto_dca_loop(app: Application):
                     portfolio = spot_settings.get("portfolio", "custom")
                     allocation = spot_settings.get("allocation", {})
                     account_type = spot_settings.get("trading_mode", "demo")
+                    
+                    # Normalize account_type for HyperLiquid
+                    if user_exchange == "hyperliquid":
+                        if account_type in ("demo", "real"):
+                            account_type = "testnet" if account_type == "demo" else "mainnet"
                     
                     # Get portfolio allocation if using preset
                     if portfolio != "custom" and portfolio in SPOT_PORTFOLIOS:
@@ -21067,7 +21269,11 @@ async def spot_auto_dca_loop(app: Application):
                                 skipped.append(coin)
                                 continue
                             
-                            result = await execute_spot_dca_buy(uid, coin, adjusted_amount, account_type=account_type)
+                            result = await execute_spot_dca_buy(
+                                uid, coin, adjusted_amount,
+                                account_type=account_type,
+                                exchange=user_exchange
+                            )
                             if result.get("success"):
                                 spent = result.get("usdt_spent", adjusted_amount)
                                 results.append(f"✅ {result.get('qty', 0):.6f} {coin} (${spent:.2f})")

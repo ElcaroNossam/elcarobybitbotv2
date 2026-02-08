@@ -754,3 +754,322 @@ class HyperLiquidClient:
         """Get list of all tradable symbols"""
         meta = await self.meta()
         return [asset.get("name") for asset in meta.get("universe", [])]
+
+    # ==================== SPOT TRADING ====================
+    
+    async def spot_meta(self) -> Dict[str, Any]:
+        """
+        Get spot metadata including all spot pairs and their indices.
+        Spot asset IDs are calculated as: 10000 + index in universe array.
+        
+        Returns:
+            Dict with:
+            - universe: List of spot pairs with tokens info
+            - tokens: List of all spot tokens
+        """
+        return await self._info_request("spotMeta")
+    
+    async def spot_meta_and_asset_contexts(self) -> List[Any]:
+        """
+        Get spot metadata with asset context in a single request.
+        Returns [spotMeta, spotAssetCtxs] where spotAssetCtxs has price info.
+        """
+        return await self._info_request("spotMetaAndAssetCtxs")
+    
+    async def get_spot_pairs(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all spot pairs with their asset IDs.
+        
+        Returns:
+            List of dicts with: name, tokens (base/quote), asset_id (10000 + index)
+        """
+        spot_meta = await self.spot_meta()
+        universe = spot_meta.get("universe", [])
+        tokens = spot_meta.get("tokens", [])
+        
+        pairs = []
+        for idx, pair in enumerate(universe):
+            # Spot asset ID = 10000 + index
+            asset_id = 10000 + idx
+            
+            # Get token indices
+            token_indices = pair.get("tokens", [])
+            base_idx = token_indices[0] if len(token_indices) > 0 else None
+            quote_idx = token_indices[1] if len(token_indices) > 1 else None
+            
+            # Get token names
+            base_token = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else "?"
+            quote_token = tokens[quote_idx].get("name") if quote_idx is not None and quote_idx < len(tokens) else "USDC"
+            
+            pairs.append({
+                "name": pair.get("name", f"{base_token}/{quote_token}"),
+                "base_token": base_token,
+                "quote_token": quote_token,
+                "asset_id": asset_id,
+                "index": idx,
+            })
+        
+        return pairs
+    
+    async def get_spot_asset_id(self, base_token: str) -> Optional[int]:
+        """
+        Get spot asset ID for a token (e.g., "PURR" -> 10000).
+        
+        Args:
+            base_token: Base token name (e.g., "PURR", "HYPE")
+            
+        Returns:
+            Asset ID (10000 + index) or None if not found
+        """
+        pairs = await self.get_spot_pairs()
+        for pair in pairs:
+            if pair["base_token"].upper() == base_token.upper():
+                return pair["asset_id"]
+        return None
+    
+    async def spot_order(
+        self,
+        base_token: str,
+        is_buy: bool,
+        sz: float,
+        limit_px: float,
+        reduce_only: bool = False,
+        order_type: Optional[Dict[str, Any]] = None,
+        cloid: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Place a spot order.
+        
+        Args:
+            base_token: Base token name (e.g., "PURR", "HYPE")
+            is_buy: True for buy, False for sell
+            sz: Size in base token
+            limit_px: Limit price in quote token (usually USDC)
+            reduce_only: Whether this is a reduce-only order
+            order_type: Order type dict (default: limit GTC)
+            cloid: Optional client order ID
+            
+        Returns:
+            Order result dict
+        """
+        if order_type is None:
+            order_type = {"limit": {"tif": "Gtc"}}
+        
+        # Get spot asset ID
+        asset_id = await self.get_spot_asset_id(base_token)
+        if asset_id is None:
+            raise HyperLiquidError(f"Unknown spot token: {base_token}")
+        
+        # Build order request - same format as perps but with spot asset ID
+        order_req = {
+            "coin": base_token,
+            "is_buy": is_buy,
+            "sz": sz,
+            "limit_px": limit_px,
+            "reduce_only": reduce_only,
+            "order_type": order_type
+        }
+        if cloid:
+            order_req["cloid"] = cloid
+        
+        order_wire = order_request_to_order_wire(order_req, asset_id)
+        action = order_wire_to_action([order_wire], grouping="na")
+        
+        return await self._exchange_request(action)
+    
+    async def spot_market_buy(
+        self,
+        base_token: str,
+        sz: float,
+        slippage: float = 0.02,
+        cloid: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Place a spot market buy order.
+        
+        Args:
+            base_token: Token to buy (e.g., "PURR", "HYPE")
+            sz: Size in base token
+            slippage: Slippage tolerance (default 2% for spot)
+            cloid: Optional client order ID
+            
+        Returns:
+            Order result dict
+        """
+        # Get spot prices
+        spot_data = await self.spot_meta_and_asset_contexts()
+        if len(spot_data) < 2:
+            raise HyperLiquidError("Failed to get spot prices")
+        
+        spot_meta = spot_data[0]
+        spot_ctxs = spot_data[1]
+        universe = spot_meta.get("universe", [])
+        
+        # Find the pair and get mid price
+        mid_price = None
+        asset_id = None
+        for idx, pair in enumerate(universe):
+            tokens = spot_meta.get("tokens", [])
+            token_indices = pair.get("tokens", [])
+            base_idx = token_indices[0] if len(token_indices) > 0 else None
+            base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else None
+            
+            if base_name and base_name.upper() == base_token.upper():
+                asset_id = 10000 + idx
+                if idx < len(spot_ctxs):
+                    mid_price = _safe_float(spot_ctxs[idx].get("midPx"))
+                break
+        
+        if mid_price is None or mid_price == 0:
+            raise HyperLiquidError(f"Cannot get price for spot token: {base_token}")
+        
+        # Apply slippage
+        limit_px = mid_price * (1 + slippage)
+        limit_px = round(limit_px, 5)  # Spot prices typically 5 decimals
+        
+        return await self.spot_order(
+            base_token=base_token,
+            is_buy=True,
+            sz=sz,
+            limit_px=limit_px,
+            order_type={"limit": {"tif": "Ioc"}},  # IOC for market orders
+            cloid=cloid
+        )
+    
+    async def spot_market_sell(
+        self,
+        base_token: str,
+        sz: float,
+        slippage: float = 0.02,
+        cloid: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Place a spot market sell order.
+        
+        Args:
+            base_token: Token to sell (e.g., "PURR", "HYPE")
+            sz: Size in base token
+            slippage: Slippage tolerance (default 2% for spot)
+            cloid: Optional client order ID
+            
+        Returns:
+            Order result dict
+        """
+        # Get spot prices
+        spot_data = await self.spot_meta_and_asset_contexts()
+        if len(spot_data) < 2:
+            raise HyperLiquidError("Failed to get spot prices")
+        
+        spot_meta = spot_data[0]
+        spot_ctxs = spot_data[1]
+        universe = spot_meta.get("universe", [])
+        
+        # Find the pair and get mid price
+        mid_price = None
+        for idx, pair in enumerate(universe):
+            tokens = spot_meta.get("tokens", [])
+            token_indices = pair.get("tokens", [])
+            base_idx = token_indices[0] if len(token_indices) > 0 else None
+            base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else None
+            
+            if base_name and base_name.upper() == base_token.upper():
+                if idx < len(spot_ctxs):
+                    mid_price = _safe_float(spot_ctxs[idx].get("midPx"))
+                break
+        
+        if mid_price is None or mid_price == 0:
+            raise HyperLiquidError(f"Cannot get price for spot token: {base_token}")
+        
+        # Apply slippage
+        limit_px = mid_price * (1 - slippage)
+        limit_px = round(limit_px, 5)  # Spot prices typically 5 decimals
+        
+        return await self.spot_order(
+            base_token=base_token,
+            is_buy=False,
+            sz=sz,
+            limit_px=limit_px,
+            order_type={"limit": {"tif": "Ioc"}},  # IOC for market orders
+            cloid=cloid
+        )
+    
+    async def get_spot_ticker(self, base_token: str) -> Optional[Dict[str, Any]]:
+        """
+        Get spot ticker info for a token.
+        
+        Args:
+            base_token: Token name (e.g., "PURR", "HYPE")
+            
+        Returns:
+            Dict with price, volume, etc.
+        """
+        spot_data = await self.spot_meta_and_asset_contexts()
+        if len(spot_data) < 2:
+            return None
+        
+        spot_meta = spot_data[0]
+        spot_ctxs = spot_data[1]
+        universe = spot_meta.get("universe", [])
+        tokens = spot_meta.get("tokens", [])
+        
+        for idx, pair in enumerate(universe):
+            token_indices = pair.get("tokens", [])
+            base_idx = token_indices[0] if len(token_indices) > 0 else None
+            base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else None
+            
+            if base_name and base_name.upper() == base_token.upper():
+                ctx = spot_ctxs[idx] if idx < len(spot_ctxs) else {}
+                
+                mid_px = _safe_float(ctx.get("midPx"))
+                prev_day_px = _safe_float(ctx.get("prevDayPx")) or mid_px or 0
+                change_24h = ((mid_px - prev_day_px) / prev_day_px * 100) if prev_day_px else 0
+                
+                return {
+                    "symbol": f"{base_name}/USDC",
+                    "base_token": base_name,
+                    "price": mid_px,
+                    "prevDayPx": prev_day_px,
+                    "change_24h": round(change_24h, 2),
+                    "dayNtlVlm": _safe_float(ctx.get("dayNtlVlm")),
+                    "markPx": _safe_float(ctx.get("markPx")),
+                    "circSupply": _safe_float(ctx.get("circSupply")),
+                }
+        return None
+    
+    async def get_all_spot_tickers(self) -> List[Dict[str, Any]]:
+        """
+        Get ticker info for all spot pairs.
+        
+        Returns:
+            List of ticker dicts
+        """
+        spot_data = await self.spot_meta_and_asset_contexts()
+        if len(spot_data) < 2:
+            return []
+        
+        spot_meta = spot_data[0]
+        spot_ctxs = spot_data[1]
+        universe = spot_meta.get("universe", [])
+        tokens = spot_meta.get("tokens", [])
+        
+        tickers = []
+        for idx, pair in enumerate(universe):
+            token_indices = pair.get("tokens", [])
+            base_idx = token_indices[0] if len(token_indices) > 0 else None
+            base_name = tokens[base_idx].get("name") if base_idx is not None and base_idx < len(tokens) else "?"
+            
+            ctx = spot_ctxs[idx] if idx < len(spot_ctxs) else {}
+            mid_px = _safe_float(ctx.get("midPx"))
+            prev_day_px = _safe_float(ctx.get("prevDayPx")) or mid_px or 0
+            change_24h = ((mid_px - prev_day_px) / prev_day_px * 100) if prev_day_px else 0
+            
+            tickers.append({
+                "symbol": f"{base_name}/USDC",
+                "base_token": base_name,
+                "asset_id": 10000 + idx,
+                "price": mid_px,
+                "change_24h": round(change_24h, 2),
+                "dayNtlVlm": _safe_float(ctx.get("dayNtlVlm")),
+            })
+        
+        return tickers

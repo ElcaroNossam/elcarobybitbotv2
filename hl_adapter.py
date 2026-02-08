@@ -421,6 +421,233 @@ class HLAdapter:
             logger.error(f"get_spot_balance error: {e}")
             return {"success": False, "error": str(e), "data": {"tokens": [], "total_usd_value": 0, "num_tokens": 0}}
 
+    # ==================== SPOT TRADING ====================
+    
+    async def get_spot_pairs(self) -> Dict[str, Any]:
+        """
+        Get list of available spot trading pairs.
+        
+        Returns:
+            Dict with success flag and list of pairs with asset_id, base_token, quote_token
+        """
+        await self.initialize()
+        try:
+            pairs = await self._client.get_spot_pairs()
+            return {"success": True, "data": pairs}
+        except Exception as e:
+            logger.error(f"get_spot_pairs error: {e}")
+            return {"success": False, "error": str(e), "data": []}
+    
+    async def get_spot_ticker(self, token: str) -> Dict[str, Any]:
+        """
+        Get spot ticker info for a token.
+        
+        Args:
+            token: Token name (e.g., "PURR", "HYPE")
+            
+        Returns:
+            Dict with success flag and ticker data
+        """
+        await self.initialize()
+        try:
+            ticker = await self._client.get_spot_ticker(token)
+            if ticker:
+                return {"success": True, "data": ticker}
+            return {"success": False, "error": f"Token {token} not found", "data": None}
+        except Exception as e:
+            logger.error(f"get_spot_ticker error: {e}")
+            return {"success": False, "error": str(e), "data": None}
+    
+    async def get_all_spot_tickers(self) -> Dict[str, Any]:
+        """
+        Get ticker info for all spot pairs.
+        
+        Returns:
+            Dict with success flag and list of tickers
+        """
+        await self.initialize()
+        try:
+            tickers = await self._client.get_all_spot_tickers()
+            return {"success": True, "data": tickers}
+        except Exception as e:
+            logger.error(f"get_all_spot_tickers error: {e}")
+            return {"success": False, "error": str(e), "data": []}
+    
+    async def spot_market_buy(
+        self,
+        token: str,
+        usdc_amount: float,
+        slippage: float = 0.02
+    ) -> Dict[str, Any]:
+        """
+        Buy a spot token with USDC (market order).
+        
+        Args:
+            token: Token to buy (e.g., "PURR", "HYPE")
+            usdc_amount: Amount of USDC to spend
+            slippage: Slippage tolerance (default 2%)
+            
+        Returns:
+            Dict with success flag and order result
+        """
+        await self.initialize()
+        try:
+            # Get current price to calculate qty
+            ticker = await self._client.get_spot_ticker(token)
+            if not ticker or ticker.get("price", 0) <= 0:
+                return {"success": False, "error": f"Cannot get price for {token}"}
+            
+            price = ticker["price"]
+            # Calculate qty from USDC amount
+            qty = usdc_amount / price
+            
+            # Round qty appropriately (spot typically uses more decimals)
+            qty = round(qty, 6)
+            
+            if qty <= 0:
+                return {"success": False, "error": "Amount too small"}
+            
+            logger.info(f"[HL-SPOT] Buying {qty:.6f} {token} for ~${usdc_amount:.2f} USDC at price ~{price:.6f}")
+            
+            result = await self._client.spot_market_buy(
+                base_token=token,
+                sz=qty,
+                slippage=slippage
+            )
+            
+            # Extract order ID from response
+            order_id = None
+            if result.get("status") == "ok":
+                response = result.get("response", {})
+                data = response.get("data", {})
+                statuses = data.get("statuses", [])
+                if statuses:
+                    if "filled" in statuses[0]:
+                        order_id = str(statuses[0]["filled"].get("oid", ""))
+                    elif "resting" in statuses[0]:
+                        order_id = str(statuses[0]["resting"].get("oid", ""))
+            
+            return {
+                "success": result.get("status") == "ok",
+                "order_id": order_id,
+                "token": token,
+                "qty": qty,
+                "usdc_spent": usdc_amount,
+                "price": price,
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"spot_market_buy error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def spot_market_sell(
+        self,
+        token: str,
+        qty: float = None,
+        sell_pct: float = None,
+        slippage: float = 0.02
+    ) -> Dict[str, Any]:
+        """
+        Sell a spot token for USDC (market order).
+        
+        Args:
+            token: Token to sell (e.g., "PURR", "HYPE")
+            qty: Quantity to sell. If None, use sell_pct.
+            sell_pct: Percentage of holdings to sell (0-100). Used if qty is None.
+            slippage: Slippage tolerance (default 2%)
+            
+        Returns:
+            Dict with success flag and order result
+        """
+        await self.initialize()
+        try:
+            # If no qty specified, calculate from balance percentage
+            if qty is None and sell_pct is not None:
+                balance_result = await self.get_spot_balance()
+                if not balance_result.get("success"):
+                    return {"success": False, "error": "Failed to get balance"}
+                
+                token_balance = 0
+                for t in balance_result.get("data", {}).get("tokens", []):
+                    if t.get("token", "").upper() == token.upper():
+                        token_balance = t.get("available", 0)
+                        break
+                
+                if token_balance <= 0:
+                    return {"success": False, "error": f"No {token} balance to sell"}
+                
+                qty = token_balance * (sell_pct / 100.0)
+            
+            if qty is None or qty <= 0:
+                return {"success": False, "error": "Invalid quantity"}
+            
+            qty = round(qty, 6)
+            
+            # Get current price for logging
+            ticker = await self._client.get_spot_ticker(token)
+            price = ticker.get("price", 0) if ticker else 0
+            
+            logger.info(f"[HL-SPOT] Selling {qty:.6f} {token} at price ~{price:.6f}")
+            
+            result = await self._client.spot_market_sell(
+                base_token=token,
+                sz=qty,
+                slippage=slippage
+            )
+            
+            # Extract order ID from response
+            order_id = None
+            if result.get("status") == "ok":
+                response = result.get("response", {})
+                data = response.get("data", {})
+                statuses = data.get("statuses", [])
+                if statuses:
+                    if "filled" in statuses[0]:
+                        order_id = str(statuses[0]["filled"].get("oid", ""))
+                    elif "resting" in statuses[0]:
+                        order_id = str(statuses[0]["resting"].get("oid", ""))
+            
+            return {
+                "success": result.get("status") == "ok",
+                "order_id": order_id,
+                "token": token,
+                "qty": qty,
+                "usdc_received": qty * price if price else None,
+                "price": price,
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"spot_market_sell error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def spot_transfer(
+        self,
+        usd_to_perp: bool,
+        usd_amount: float
+    ) -> Dict[str, Any]:
+        """
+        Transfer USDC between spot and perpetual accounts.
+        
+        Args:
+            usd_to_perp: True to transfer SPOT→PERP, False for PERP→SPOT
+            usd_amount: Amount of USDC to transfer
+            
+        Returns:
+            Dict with success flag and result
+        """
+        await self.initialize()
+        try:
+            result = await self._client.spot_transfer(usd_to_perp=usd_to_perp, usd_amount=usd_amount)
+            return {
+                "success": result.get("status") == "ok",
+                "direction": "SPOT→PERP" if usd_to_perp else "PERP→SPOT",
+                "amount": usd_amount,
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"spot_transfer error: {e}")
+            return {"success": False, "error": str(e)}
+
     async def fetch_open_orders(self) -> Dict[str, Any]:
         """Simplified open orders for UI"""
         await self.initialize()
