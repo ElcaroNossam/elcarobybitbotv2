@@ -331,7 +331,7 @@ def upgrade(cur):
             
             timeframe     TEXT,
             source        TEXT,
-            raw_data      JSONB,
+            raw_data      TEXT,
             
             ts            TIMESTAMP DEFAULT NOW()
         )
