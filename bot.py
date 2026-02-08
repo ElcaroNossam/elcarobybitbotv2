@@ -8305,12 +8305,18 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
     
     Each strategy row has 3 buttons:
     1. ON/OFF toggle
-    2. Trading mode cycle (Demo → Real → Both)
+    2. Trading mode cycle (Demo → Real → Both) - shows Testnet/Mainnet for HyperLiquid
     3. Settings button
     
     Trading mode is per-strategy, allowing different strategies to trade on different accounts.
     """
     cfg = cfg or {}
+    
+    # Check current exchange for proper labels (Testnet/Mainnet for HL)
+    is_hyperliquid = False
+    if uid:
+        active_exchange = db.get_exchange_type(uid) or "bybit"
+        is_hyperliquid = active_exchange == "hyperliquid"
     
     # Helper to get status emoji
     def status(key):
@@ -8323,13 +8329,21 @@ def get_strategy_settings_keyboard(t: dict, cfg: dict = None, uid: int = None) -
         else:
             mode = "demo"
         
-        mode_labels = {
-            "demo": "🎮 Demo",
-            "real": "💵 Real", 
-            "both": "🔀 Both"
-        }
+        # Use Testnet/Mainnet labels for HyperLiquid, Demo/Real for Bybit
+        if is_hyperliquid:
+            mode_labels = {
+                "demo": "🧪 Testnet",
+                "real": "🌐 Mainnet", 
+                "both": "🔀 Both"
+            }
+        else:
+            mode_labels = {
+                "demo": "🎮 Demo",
+                "real": "💵 Real", 
+                "both": "🔀 Both"
+            }
         return InlineKeyboardButton(
-            mode_labels.get(mode, "🎮 Demo"),
+            mode_labels.get(mode, mode_labels["demo"]),
             callback_data=f"strat_mode_cycle:{strategy_name}"
         )
     
@@ -9563,7 +9577,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         if warnings:
             warning = " ⚠️ " + ", ".join(warnings)
         
-        mode_labels = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}
+        # Use Testnet/Mainnet labels for HyperLiquid
+        active_exchange = db.get_exchange_type(uid) or "bybit"
+        if active_exchange == "hyperliquid":
+            mode_labels = {"demo": "🧪 Testnet", "real": "🌐 Mainnet", "both": "🔀 Both"}
+        else:
+            mode_labels = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}
         await query.answer(f"{STRATEGY_NAMES_MAP[strategy]}: {mode_labels.get(new_mode, new_mode)}{warning}", show_alert=bool(warning))
         
         # Refresh the strategies menu
@@ -9619,7 +9638,12 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             elif not has_demo:
                 warning = " ⚠️ No Demo API keys!"
         
-        mode_labels = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}
+        # Use Testnet/Mainnet labels for HyperLiquid
+        active_exchange = db.get_exchange_type(uid) or "bybit"
+        if active_exchange == "hyperliquid":
+            mode_labels = {"demo": "🧪 Testnet", "real": "🌐 Mainnet", "both": "🔀 Both"}
+        else:
+            mode_labels = {"demo": "🎮 Demo", "real": "💵 Real", "both": "🔀 Both"}
         await query.answer(f"{STRATEGY_NAMES_MAP[strategy]}: {mode_labels.get(new_mode, new_mode)}{warning}", show_alert=bool(warning))
         
         # Refresh the strategies menu
