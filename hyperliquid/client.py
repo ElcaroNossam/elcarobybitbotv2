@@ -115,8 +115,13 @@ class HyperLiquidClient:
         Check if this wallet is an API agent and discover the main wallet.
         Returns main wallet address if this is an agent, None otherwise.
         
-        If vault_address was not provided but we're an agent, automatically
-        sets vault_address to the main wallet for trading on its behalf.
+        NOTE: We do NOT auto-set vault_address anymore!
+        HyperLiquid distinguishes between:
+        - Vault trading (requires registered vault_address)
+        - Main wallet trading (no vault_address needed)
+        
+        For users trading with their main wallet (most common case),
+        vault_address should remain None.
         """
         if self._role_checked:
             return self._main_wallet_address
@@ -134,10 +139,10 @@ class HyperLiquidClient:
                     self._main_wallet_address = main_wallet.lower()
                     logger.info(f"[HL] Discovered main wallet: {self._main_wallet_address} for agent {self._address}")
                     
-                    # Auto-set vault_address for trading on behalf of main wallet
-                    if self._vault_address is None:
-                        self._vault_address = self._main_wallet_address
-                        logger.info(f"[HL] Auto-set vault_address for agent trading")
+                    # NOTE: We intentionally do NOT set vault_address here anymore!
+                    # Users trading with main wallet don't have a registered vault.
+                    # Only set vault_address if user explicitly has a vault configured.
+                    # This prevents "Vault not registered" errors for normal users.
                     
                     return self._main_wallet_address
             elif role_info.get("role") == "missing":
