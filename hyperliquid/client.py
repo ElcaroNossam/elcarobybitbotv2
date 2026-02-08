@@ -168,7 +168,7 @@ class HyperLiquidClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
     
-    async def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None, retries: int = 3) -> Dict[str, Any]:
+    async def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None, retries: int = 5) -> Dict[str, Any]:
         if self._session is None or self._session.closed:
             await self.initialize()
         
@@ -182,7 +182,7 @@ class HyperLiquidClient:
                     
                     # Handle rate limiting with exponential backoff
                     if response.status == 429:
-                        wait_time = (2 ** attempt) + 0.5  # 0.5s, 2.5s, 4.5s
+                        wait_time = (2 ** attempt) + 1.0  # 2s, 5s, 9s, 17s, 33s
                         logger.warning(f"HyperLiquid rate limit (429), waiting {wait_time}s (attempt {attempt + 1}/{retries})")
                         await asyncio.sleep(wait_time)
                         continue
@@ -197,7 +197,7 @@ class HyperLiquidClient:
                 logger.error(f"HyperLiquid request failed: {e}")
                 last_error = e
                 if attempt < retries - 1:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)  # Increased from 1s
                     continue
                 raise HyperLiquidError(f"Request failed: {e}")
         

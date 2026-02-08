@@ -4914,31 +4914,78 @@ _atr_was_enabled: dict[tuple[int, str], bool] = {}  # Track if ATR was enabled f
 _be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
+_telegram_id_cache: dict[int, int | None] = {}  # uid -> telegram_id (None = no telegram linked)
+
+
+def get_telegram_id_for_notifications(uid: int) -> int | None:
+    """
+    Get Telegram ID for sending notifications.
+    
+    For email-only users (negative uid), telegram_id may be NULL.
+    For Telegram users (positive uid), user_id == telegram_id.
+    
+    Returns:
+        telegram_id if available, None if user has no Telegram linked
+    """
+    # Check cache first
+    if uid in _telegram_id_cache:
+        return _telegram_id_cache[uid]
+    
+    # For positive user_id, it's a Telegram user - their ID is the telegram_id
+    if uid > 0:
+        _telegram_id_cache[uid] = uid
+        return uid
+    
+    # For negative user_id (email users), check if they have telegram_id linked
+    try:
+        from core.db_postgres import get_conn
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT telegram_id FROM users WHERE user_id = %s", (uid,))
+            row = cur.fetchone()
+            if row and row[0]:
+                telegram_id = int(row[0])
+                _telegram_id_cache[uid] = telegram_id
+                return telegram_id
+            else:
+                _telegram_id_cache[uid] = None
+                return None
+    except Exception as e:
+        logger.warning(f"[{uid}] Could not get telegram_id: {e}")
+        _telegram_id_cache[uid] = None
+        return None
 
 
 async def safe_send_notification(bot, uid: int, text: str, **kwargs) -> bool:
     """
     Send message with Telegram rate limit handling.
-    Returns True if sent, False if rate limited.
+    Returns True if sent, False if rate limited or user has no Telegram.
     """
     from telegram.error import RetryAfter
     
+    # Get the actual Telegram ID to send to
+    telegram_id = get_telegram_id_for_notifications(uid)
+    if telegram_id is None:
+        # User has no Telegram linked - skip silently (no error log spam)
+        logger.debug(f"[{uid}] Skipping notification - no Telegram ID linked")
+        return False
+    
     # Check if user is rate limited
-    retry_until = _notification_retry_after.get(uid, 0)
+    retry_until = _notification_retry_after.get(telegram_id, 0)
     if time.time() < retry_until:
-        logger.debug(f"[{uid}] Skipping notification - rate limited until {retry_until}")
+        logger.debug(f"[{telegram_id}] Skipping notification - rate limited until {retry_until}")
         return False
     
     try:
-        await bot.send_message(uid, text, **kwargs)
+        await bot.send_message(telegram_id, text, **kwargs)
         return True
     except RetryAfter as e:
         # Store retry_after time and skip this notification
-        _notification_retry_after[uid] = time.time() + e.retry_after
-        logger.warning(f"[{uid}] Telegram rate limit hit, retry after {e.retry_after}s")
+        _notification_retry_after[telegram_id] = time.time() + e.retry_after
+        logger.warning(f"[{telegram_id}] Telegram rate limit hit, retry after {e.retry_after}s")
         return False
     except Exception as e:
-        logger.error(f"[{uid}] Failed to send notification: {e}")
+        logger.error(f"[{telegram_id}] Failed to send notification: {e}")
         return False
 
 
@@ -7347,6 +7394,15 @@ async def place_order_for_targets(
                 # ═══════════════════════════════════════════════════════════
                 is_testnet = (target_env == "paper" or target_account_type == "testnet")
                 
+                # Check if coin exists on HyperLiquid BEFORE trying to trade
+                from hyperliquid.constants import coin_to_asset_id
+                coin = hl_symbol_to_coin(symbol)
+                if coin_to_asset_id(coin) is None:
+                    # Coin not supported on HyperLiquid - skip this target silently (not an error)
+                    logger.info(f"[{user_id}] Skipping {target_key} - {coin} not available on HyperLiquid")
+                    results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not available on HyperLiquid"}
+                    continue
+                
                 # Get HL credentials
                 hl_creds = db.get_hl_credentials(user_id)
                 # Get correct private key and wallet_address for network (multitenancy)
@@ -7369,7 +7425,7 @@ async def place_order_for_targets(
                 )
                 
                 try:
-                    coin = hl_symbol_to_coin(symbol)
+                    # coin already extracted above for validation
                     is_buy = side.lower() in ("buy", "long")
                     hl_leverage = target_leverage or leverage or 10
                     
