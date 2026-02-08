@@ -256,22 +256,37 @@ def sign_usd_class_transfer_action(
 ) -> Dict[str, Any]:
     """
     Sign usdClassTransfer action for transferring USDC between spot and perp.
-    Uses special EIP-712 signing similar to other user-signed actions.
+    Uses special EIP-712 signing matching official hyperliquid-python-sdk.
+    
+    IMPORTANT: signatureChainId is ALWAYS 0x66eee (421614) regardless of network!
+    hyperliquidChain determines the actual network (Mainnet/Testnet).
     """
     if nonce is None:
         nonce = get_timestamp_ms()
     
     wallet = Account.from_key(private_key)
     
-    # EIP-712 typed data for usdClassTransfer
+    # signatureChainId is ALWAYS 0x66eee (Arbitrum Sepolia) per official SDK
+    # This is used as the signing chain, not the target chain
+    signature_chain_id = "0x66eee"  # = 421614
     hyperliquid_chain = "Mainnet" if is_mainnet else "Testnet"
-    chain_id = 42161 if is_mainnet else 421614
     
+    # Build the action with all fields needed for signing
+    action = {
+        "type": "usdClassTransfer",
+        "signatureChainId": signature_chain_id,
+        "hyperliquidChain": hyperliquid_chain,
+        "amount": str(amount),
+        "toPerp": to_perp,
+        "nonce": nonce,
+    }
+    
+    # EIP-712 typed data - chainId comes from signatureChainId (0x66eee = 421614)
     typed_data = {
         "domain": {
             "name": "HyperliquidSignTransaction",
             "version": "1",
-            "chainId": chain_id,
+            "chainId": int(signature_chain_id, 16),  # 421614
             "verifyingContract": "0x0000000000000000000000000000000000000000"
         },
         "types": {
@@ -306,17 +321,11 @@ def sign_usd_class_transfer_action(
         "v": signed["v"]
     }
     
-    action = {
-        "type": "usdClassTransfer",
-        "amount": str(amount),
-        "toPerp": to_perp,
-        "nonce": nonce,
-    }
-    
     return {
         "action": action,
         "nonce": nonce,
         "signature": signature,
+        "vaultAddress": None,  # usdClassTransfer always has vaultAddress=None per SDK
     }
 
 
