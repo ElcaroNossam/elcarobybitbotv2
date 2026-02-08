@@ -1170,14 +1170,16 @@ def set_user_field(user_id: int, field: str, value: Any):
     
     # Columns that ARE BOOLEAN in PostgreSQL - convert int to bool
     BOOLEAN_COLUMNS = {
-        "terms_accepted", "disclaimer_accepted", "dca_enabled", "bybit_enabled"
+        "terms_accepted", "disclaimer_accepted", "dca_enabled", "bybit_enabled",
+        # All trade_* columns are BOOLEAN in production DB
+        "trade_oi", "trade_rsi_bb", "trade_manual", "trade_elcaro",
+        "trade_fibonacci", "trade_scalper", "trade_scryptomera"
     }
     
     # Columns that ARE INTEGER in PostgreSQL - convert bool to int
     INTEGER_FLAG_COLUMNS = {
         "is_allowed", "is_banned", "hl_enabled", "use_atr", "be_enabled",
-        "hl_testnet", "live_enabled", "limit_enabled",
-        "trade_oi", "trade_rsi_bb", "trade_manual", "spot_enabled"
+        "hl_testnet", "live_enabled", "limit_enabled", "spot_enabled"
     }
     
     if field in BOOLEAN_COLUMNS and isinstance(value, int):
