@@ -5247,6 +5247,7 @@ def extract_image_from_summary(summary_html: str) -> str | None:
 _position_mode_cache: dict[tuple[int, str], str] = {} 
 _atr_triggered: dict[tuple[int, str], bool] = {}
 _atr_was_enabled: dict[tuple[int, str], bool] = {}  # Track if ATR was enabled for (uid, symbol) - for detecting when ATR gets disabled
+_atr_tp_removed: dict[tuple[int, str], bool] = {}  # Track if TP was already removed for ATR mode (uid, symbol)
 _be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
@@ -20094,6 +20095,7 @@ async def monitor_positions_loop(app: Application):
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
                                         _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, sym), None)  # Clear ATR TP removed cache
                                         _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
@@ -20411,6 +20413,7 @@ async def monitor_positions_loop(app: Application):
                                     finally:
                                         _atr_triggered.pop((uid, sym), None)
                                         _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, sym), None)  # Clear ATR TP removed cache
                                         _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
@@ -20969,6 +20972,7 @@ async def monitor_positions_loop(app: Application):
                                     logger.info(f"[ATR-DISABLED] {sym} uid={uid} - ATR was disabled, restoring SL/TP")
                                     _atr_was_enabled[key] = False
                                     _atr_triggered.pop(key, None)  # Clear ATR triggered state
+                                    _atr_tp_removed.pop(key, None)  # Clear ATR TP removed cache
                                     
                                     # Get SL/TP percentages
                                     if ap_for_sym:
@@ -21139,10 +21143,11 @@ async def monitor_positions_loop(app: Application):
                                 logger.info(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
                                 
                                 # CRITICAL: Remove TP when ATR is active - TP should be managed by ATR trailing
-                                # Only remove once when ATR is first detected for this position
-                                if current_tp is not None and not _atr_triggered.get(key, False):
+                                # Only remove once (use _atr_tp_removed cache to prevent repeated API calls)
+                                if current_tp is not None and not _atr_tp_removed.get(key, False):
                                     try:
                                         await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type)
+                                        _atr_tp_removed[key] = True  # Mark as removed to prevent future calls
                                         logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - TP removed (was {current_tp:.6f}), now managed by ATR trailing")
                                     except Exception as e:
                                         logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
@@ -21250,6 +21255,7 @@ async def monitor_positions_loop(app: Application):
                                         reset_pyramid(uid, db_sym)
                                         _atr_triggered.pop((uid, db_sym), None)
                                         _atr_was_enabled.pop((uid, db_sym), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, db_sym), None)  # Clear ATR TP removed cache
                                         _be_triggered.pop((uid, db_sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)
