@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 # HYPERLIQUID CACHE - Prevent rate limiting (429 errors)
 # HyperLiquid has strict rate limits: 1200 weight/minute, info requests = 20 weight
 # This means ~60 info requests/minute MAX
-# Cache positions/balance for 30 seconds to avoid rate limits
+# Cache positions/balance for 60 seconds to avoid rate limits
+# CHECK_INTERVAL = 15s, so with 60s cache we only make 1 API call per minute per user
 # ═══════════════════════════════════════════════════════════════
 _hl_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
-HL_CACHE_TTL = 30  # seconds - cache HyperLiquid data for 30 seconds
+HL_CACHE_TTL = 60  # seconds - cache HyperLiquid data for 60 seconds (was 30s)
 
 
 def _get_hl_cache(key: str) -> Optional[Any]:
@@ -33,17 +34,17 @@ def _get_hl_cache(key: str) -> Optional[Any]:
         data, ts = _hl_cache[key]
         age = time.time() - ts
         if age < HL_CACHE_TTL:
-            logger.debug(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")
+            logger.info(f"[HL-CACHE] HIT {key} (age={age:.1f}s)")  # Changed to INFO for diagnostics
             return data
         else:
-            logger.debug(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")
+            logger.info(f"[HL-CACHE] EXPIRED {key} (age={age:.1f}s > {HL_CACHE_TTL}s)")  # Changed to INFO
     return None
 
 
 def _set_hl_cache(key: str, data: Any):
     """Set HyperLiquid cache with current timestamp"""
     _hl_cache[key] = (data, time.time())
-    logger.debug(f"[HL-CACHE] SET {key}")
+    logger.info(f"[HL-CACHE] SET {key}")  # Changed to INFO for diagnostics
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):

@@ -6311,34 +6311,35 @@ async def _set_trading_stop_hyperliquid(
     """
     Set TP/SL for a position on HyperLiquid.
     Implements same validation as Bybit for 1:1 parity.
+    Uses pooled client to avoid 429 rate limits.
     """
     try:
-        # Get HL credentials
-        hl_creds = db.get_hl_credentials(uid)
-        is_testnet = account_type in ("testnet", "paper", "demo") if account_type else hl_creds.get("hl_testnet", False)
+        # Determine testnet/mainnet from account_type
+        is_testnet = account_type in ("testnet", "paper", "demo")
+        hl_account_type = "testnet" if is_testnet else "mainnet"
         
-        # Get correct private key for network (multitenancy)
-        if is_testnet:
-            private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-            wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
-        else:
-            private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-            wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
-        
-        if not private_key:
-            logger.warning(f"[{uid}] No HL private key for {'testnet' if is_testnet else 'mainnet'}")
-            return False
-        
-        # Create adapter - main wallet auto-discovered if agent wallet
-        adapter = HLAdapter(
-            private_key=private_key,
-            testnet=is_testnet,
-        )
+        # Use pooled client instead of creating new adapter every time
+        # This prevents 429 rate limit errors from repeated client initialization
+        from core.exchange_client import get_exchange_client
         
         try:
-            # Get position to validate side
-            positions_result = await adapter.fetch_positions(symbol)
-            positions = positions_result.get("result", {}).get("list", [])
+            client = await get_exchange_client(uid, exchange_type='hyperliquid', account_type=hl_account_type)
+        except ValueError as e:
+            # Auth error cached - skip silently
+            if "cached" in str(e).lower():
+                return False
+            raise
+        
+        # Get the underlying HLAdapter
+        adapter = client._client
+        if not adapter:
+            logger.warning(f"[{uid}] No HL adapter available for {hl_account_type}")
+            return False
+        
+        # Get position to validate side - use cached positions from unified fetch if possible
+        # This avoids extra API call since monitor loop already fetched positions
+        positions_result = await adapter.fetch_positions(symbol)
+        positions = positions_result.get("result", {}).get("list", [])
             
             if not positions:
                 logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
@@ -6399,9 +6400,8 @@ async def _set_trading_stop_hyperliquid(
             else:
                 logger.warning(f"[{uid}] {symbol} HL: TP/SL not set - result: {result}")
                 return False
-                
-        finally:
-            await adapter.close()
+        
+        # NOTE: Client is pooled - do NOT close it manually!
             
     except Exception as e:
         logger.error(f"[{uid}] {symbol} HL set_trading_stop error: {e}")
