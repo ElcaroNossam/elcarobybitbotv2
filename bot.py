@@ -5349,6 +5349,10 @@ _be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was 
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
 _telegram_id_cache: dict[int, int | None] = {}  # uid -> telegram_id (None = no telegram linked)
+# HyperLiquid SL cache - HL API doesn't return stopLoss field, so we track what we set
+# Key: (uid, symbol), Value: sl_price that was last set
+# This prevents repeated API calls when SL is already set
+_hl_sl_cache: dict[tuple[int, str], float] = {}
 
 
 def get_telegram_id_for_notifications(uid: int) -> int | None:
@@ -6479,6 +6483,12 @@ async def _set_trading_stop_hyperliquid(
         
         if success:
             logger.info(f"[{uid}] {symbol} HL: TP/SL set successfully - tp={tp_price}, sl={sl_price}")
+            
+            # Update global SL cache for HL - prevents repeated API calls
+            # HL API doesn't return stopLoss in position data, so we track it locally
+            if sl_price is not None:
+                _hl_sl_cache[(uid, symbol)] = sl_price
+                logger.debug(f"[{uid}] {symbol} HL: SL cached = {sl_price}")
             
             # Save to DB
             db_account_type = "testnet" if is_testnet else "mainnet"
@@ -20269,9 +20279,12 @@ async def monitor_positions_loop(app: Application):
                                         _deep_loss_notified.pop((uid, sym), None)
                                         # Clear new position notification cache
                                         _new_position_notified.pop((uid, sym, ap_account_type), None)
+                                        # Clear HL SL cache
+                                        _hl_sl_cache.pop((uid, sym), None)
                                     continue
                             
                                 logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
+
 
                                 # Safe extraction with validation
                                 raw_entry = rec.get("avgEntryPrice")
@@ -20585,6 +20598,7 @@ async def monitor_positions_loop(app: Application):
                                         _be_triggered.pop((uid, sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
+                                        _hl_sl_cache.pop((uid, sym), None)  # Clear HL SL cache
 
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         tf_map = { ap['symbol']: ap.get('timeframe','15m') for ap in active }  # Default 15m
@@ -20601,6 +20615,14 @@ async def monitor_positions_loop(app: Application):
                             raw_tp     = pos.get("takeProfit")
                             current_sl = float(raw_sl) if raw_sl not in (None, "", 0, "0", 0.0) else None
                             current_tp = float(raw_tp) if raw_tp not in (None, "", 0, "0", 0.0) else None
+                            
+                            # HyperLiquid workaround: HL API doesn't return stopLoss in position data
+                            # Use cached SL value if available (set by our set_tp_sl calls)
+                            if current_sl is None and current_exchange == "hyperliquid":
+                                cached_sl = _hl_sl_cache.get((uid, sym))
+                                if cached_sl is not None:
+                                    current_sl = cached_sl
+                                    logger.debug(f"[{uid}] {sym} HL: Using cached SL = {current_sl}")
                             
                             # Log if position is not tracked in DB
                             if sym not in db_syms:
@@ -21427,6 +21449,7 @@ async def monitor_positions_loop(app: Application):
                                         _be_triggered.pop((uid, db_sym), None)  # Clear BE cache
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)
+                                        _hl_sl_cache.pop((uid, db_sym), None)  # Clear HL SL cache
                                     except Exception as e:
                                         logger.warning(f"[STALE-CLEANUP] Failed to remove {db_sym} for {uid}: {e}")
 
