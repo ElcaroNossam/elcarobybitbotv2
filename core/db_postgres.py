@@ -327,11 +327,36 @@ def execute_write(query: str, params: tuple = None) -> int:
 
 
 def pg_init_db():
-    """Initialize PostgreSQL database schema (Full Migration - January 2026)."""
+    """Initialize PostgreSQL database schema.
+    
+    NOTE: If unified migration (100_unified_schema.py) was applied, this function 
+    just verifies the schema exists and doesn't try to create/modify tables.
+    """
     logger.info("🐘 Initializing PostgreSQL database schema...")
     
     with get_conn() as conn:
         cur = conn.cursor()
+        
+        # Check if unified migration was applied
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM _migrations WHERE version = '100'
+            )
+        """)
+        unified_migration_applied = cur.fetchone()[0]
+        
+        if unified_migration_applied:
+            logger.info("✅ Unified migration already applied - skipping schema creation")
+            # Just verify core tables exist
+            cur.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'users'")
+            if cur.fetchone()[0] > 0:
+                logger.info("✅ Database schema verified")
+                conn.commit()
+                return
+            else:
+                logger.error("❌ Unified migration applied but users table missing!")
+        
+        logger.info("📝 Creating database schema (no unified migration found)...")
         
         # ═══════════════════════════════════════════════════════════════════════════════════
         # USERS TABLE
