@@ -1826,7 +1826,7 @@ async def on_2fa_app_login_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ------------------------------------------------------------------------------------
-# API Settings Menu
+# API Settings Menu - Block Structure (Bybit + HyperLiquid)
 # ------------------------------------------------------------------------------------
 def _mask_key(key: str | None) -> str:
     """Mask API key for display, showing only last 4 chars."""
@@ -1836,10 +1836,35 @@ def _mask_key(key: str | None) -> str:
         return "••••"
     return f"••••••••{key[-4:]}"
 
+def _mask_wallet(wallet: str | None) -> str:
+    """Mask wallet address for display."""
+    if not wallet:
+        return "Not set"
+    if len(wallet) <= 14:
+        return wallet
+    return f"{wallet[:6]}...{wallet[-4:]}"
+
 def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKeyboardMarkup:
-    """Build API settings keyboard with current state.
+    """Build API settings keyboard with BLOCK structure.
     
-    Shows connected exchanges with ON/OFF toggles and API key management.
+    Structure:
+    ═══ 🟠 BYBIT ═══
+    [Demo: ✅/❌] [Real: ✅/❌]
+    [Test Demo] [Test Real]  
+    [Clear Demo] [Clear Real]
+    [Margin: CROSS/ISOLATED]
+    [Trading: 🟢 ON / 🔴 OFF]
+    
+    ═══ 🔷 HYPERLIQUID ═══
+    [Testnet: ✅/❌] [Mainnet: ✅/❌]
+    [Setup Testnet] [Setup Mainnet]
+    [Test Connection]
+    [Clear Testnet] [Clear Mainnet]
+    [Margin: CROSS/ISOLATED]
+    [Trading: 🟢 ON / 🔴 OFF]
+    
+    ═══ ⚙️ GLOBAL ═══
+    [Trade Both: ON/OFF]
     """
     demo_key = creds.get("demo_api_key")
     demo_secret = creds.get("demo_api_secret")
@@ -1855,29 +1880,37 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
     bybit_enabled = db.is_bybit_enabled(uid) if uid else True
     hl_enabled = db.is_hl_enabled(uid) if uid else False
     
-    # Get HL configuration status
-    hl_configured = False
+    # Get HL configuration status (check both testnet and mainnet keys)
+    hl_testnet_configured = False
+    hl_mainnet_configured = False
+    hl_testnet_wallet = ""
+    hl_mainnet_wallet = ""
+    
     if uid:
-        hl_configured = bool(db.get_user_field(uid, "hl_mainnet_private_key") or 
-                            db.get_user_field(uid, "hl_testnet_private_key"))
+        hl_creds = db.get_hl_credentials(uid)
+        hl_testnet_configured = bool(hl_creds.get("hl_testnet_private_key"))
+        hl_mainnet_configured = bool(hl_creds.get("hl_mainnet_private_key"))
+        hl_testnet_wallet = hl_creds.get("hl_testnet_wallet_address", "")
+        hl_mainnet_wallet = hl_creds.get("hl_mainnet_wallet_address", "")
+        
+        # Fallback to legacy key
+        if not hl_testnet_configured and not hl_mainnet_configured:
+            legacy_key = hl_creds.get("hl_private_key")
+            if legacy_key:
+                if hl_creds.get("hl_testnet"):
+                    hl_testnet_configured = True
+                    hl_testnet_wallet = hl_creds.get("hl_wallet_address", "")
+                else:
+                    hl_mainnet_configured = True
+                    hl_mainnet_wallet = hl_creds.get("hl_wallet_address", "")
+    
+    hl_any_configured = hl_testnet_configured or hl_mainnet_configured
     
     # Get multi-exchange mode (routing_policy)
     multi_exchange = False
     if uid:
         routing_policy = db.get_routing_policy(uid)
         multi_exchange = routing_policy == db.RoutingPolicy.ALL_ENABLED
-    
-    # Status indicators
-    bybit_cfg_status = "✅" if bybit_any else "❌"
-    bybit_trade_status = "🟢" if bybit_enabled else "🔴"
-    hl_cfg_status = "✅" if hl_configured else "❌"
-    hl_trade_status = "🟢" if hl_enabled else "🔴"
-    multi_status = "✅" if multi_exchange else "❌"
-    
-    demo_key_status = "✅" if demo_key else "❌"
-    demo_secret_status = "✅" if demo_secret else "❌"
-    real_key_status = "✅" if real_key else "❌"
-    real_secret_status = "✅" if real_secret else "❌"
     
     # Get margin mode settings
     bybit_margin = "cross"
@@ -1886,73 +1919,102 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         bybit_margin = db.get_user_field(uid, "bybit_margin_mode") or "cross"
         hl_margin = db.get_user_field(uid, "hl_margin_mode") or "cross"
     
+    # Status indicators
+    demo_status = "✅" if bybit_demo_ok else "❌"
+    real_status = "✅" if bybit_real_ok else "❌"
+    testnet_status = "✅" if hl_testnet_configured else "❌"
+    mainnet_status = "✅" if hl_mainnet_configured else "❌"
+    
+    bybit_trade_status = "🟢 ON" if bybit_enabled else "🔴 OFF"
+    hl_trade_status = "🟢 ON" if hl_enabled else "🔴 OFF"
+    multi_status = "🟢 ON" if multi_exchange else "🔴 OFF"
+    
     bybit_margin_icon = "🔄" if bybit_margin == "cross" else "📦"
     hl_margin_icon = "🔄" if hl_margin == "cross" else "📦"
     
-    buttons = [
-        # ─── Exchange Trading Toggles ───
-        [InlineKeyboardButton(t.get('section_exchanges', '══ 🔗 EXCHANGE TRADING ══'), callback_data="noop")],
-        [
-            InlineKeyboardButton(
-                f"{bybit_trade_status} 🟠 Bybit {'ON' if bybit_enabled else 'OFF'}",
-                callback_data="api:toggle_bybit"
-            ),
-            InlineKeyboardButton(
-                f"{hl_trade_status} 🔷 HyperLiquid {'ON' if hl_enabled else 'OFF'}",
-                callback_data="api:toggle_hl"
-            ),
-        ],
-        # Multi-exchange trading (both at once)
-        [InlineKeyboardButton(
-            f"{multi_status} 🔀 Trade Both Exchanges {'ON' if multi_exchange else 'OFF'}",
-            callback_data="api:toggle_multi_exchange"
-        )],
-        
-        # ─── Bybit Demo ───
-        [InlineKeyboardButton(t.get('menu_section_demo', '══ 🧪 BYBIT DEMO ══'), callback_data="noop")],
-        [
-            InlineKeyboardButton(f"{demo_key_status} API Key", callback_data="api:demo_key"),
-            InlineKeyboardButton(f"{demo_secret_status} Secret", callback_data="api:demo_secret"),
-        ],
-        [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Demo", callback_data="api:test_demo")],
-        
-        # ─── Bybit Real ───
-        [InlineKeyboardButton(t.get('menu_section_real', '══ 💼 BYBIT REAL ══'), callback_data="noop")],
-        [
-            InlineKeyboardButton(f"{real_key_status} API Key", callback_data="api:real_key"),
-            InlineKeyboardButton(f"{real_secret_status} Secret", callback_data="api:real_secret"),
-        ],
-        [InlineKeyboardButton(t.get('menu_test_connection', '🔄 Test') + " Real", callback_data="api:test_real")],
-        
-        # ─── Bybit Margin Mode ───
-        [InlineKeyboardButton(t.get('section_margin', '══ 📊 MARGIN MODE ══'), callback_data="noop")],
-        [InlineKeyboardButton(
-            f"{bybit_margin_icon} Bybit: {bybit_margin.upper()}",
-            callback_data="api:bybit_margin"
-        )],
-        
-        # ─── HyperLiquid ───
-        [InlineKeyboardButton(t.get('menu_section_hl', '══ 🔷 HYPERLIQUID ══'), callback_data="noop")],
-        [InlineKeyboardButton(f"{hl_cfg_status} " + t.get('menu_hl_settings', '⚙️ HyperLiquid Settings'), callback_data="api:hl_settings")],
-        [InlineKeyboardButton(
-            f"{hl_margin_icon} Margin: {hl_margin.upper()}",
-            callback_data="api:hl_margin"
-        )],
-        
-        # ─── Actions ───
-        [
-            InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Demo", callback_data="api:delete_demo"),
-            InlineKeyboardButton(t.get('menu_delete', '🗑️ Delete') + " Real", callback_data="api:delete_real"),
-        ],
-        
-        # Close
-        [InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="api:close")],
-    ]
+    buttons = []
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ██  BYBIT BLOCK  ██
+    # ═══════════════════════════════════════════════════════════════════════════
+    buttons.append([InlineKeyboardButton("═══ 🟠 BYBIT ═══", callback_data="api:noop")])
+    
+    # Demo & Real status row
+    buttons.append([
+        InlineKeyboardButton(f"🧪 Demo: {demo_status}", callback_data="api:bybit_demo_setup"),
+        InlineKeyboardButton(f"💼 Real: {real_status}", callback_data="api:bybit_real_setup"),
+    ])
+    
+    # Test connections
+    buttons.append([
+        InlineKeyboardButton("🔄 Test Demo", callback_data="api:test_demo"),
+        InlineKeyboardButton("🔄 Test Real", callback_data="api:test_real"),
+    ])
+    
+    # Clear buttons
+    if bybit_demo_ok or bybit_real_ok:
+        clear_row = []
+        if bybit_demo_ok:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Demo", callback_data="api:delete_demo"))
+        if bybit_real_ok:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Real", callback_data="api:delete_real"))
+        if clear_row:
+            buttons.append(clear_row)
+    
+    # Bybit margin mode
+    buttons.append([
+        InlineKeyboardButton(f"{bybit_margin_icon} Margin: {bybit_margin.upper()}", callback_data="api:bybit_margin"),
+        InlineKeyboardButton(f"Trading: {bybit_trade_status}", callback_data="api:toggle_bybit"),
+    ])
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ██  HYPERLIQUID BLOCK  ██
+    # ═══════════════════════════════════════════════════════════════════════════
+    buttons.append([InlineKeyboardButton("═══ 🔷 HYPERLIQUID ═══", callback_data="api:noop")])
+    
+    # Testnet & Mainnet status row  
+    buttons.append([
+        InlineKeyboardButton(f"🧪 Testnet: {testnet_status}", callback_data="api:hl_setup_testnet"),
+        InlineKeyboardButton(f"🌐 Mainnet: {mainnet_status}", callback_data="api:hl_setup_mainnet"),
+    ])
+    
+    # Test connection (tests both configured networks)
+    if hl_any_configured:
+        buttons.append([InlineKeyboardButton("🔄 Test Connection", callback_data="api:test_hl")])
+    
+    # Clear buttons
+    if hl_testnet_configured or hl_mainnet_configured:
+        clear_row = []
+        if hl_testnet_configured:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Testnet", callback_data="api:hl_clear_testnet"))
+        if hl_mainnet_configured:
+            clear_row.append(InlineKeyboardButton("🗑 Clear Mainnet", callback_data="api:hl_clear_mainnet"))
+        if clear_row:
+            buttons.append(clear_row)
+    
+    # HL margin mode & trading toggle
+    buttons.append([
+        InlineKeyboardButton(f"{hl_margin_icon} Margin: {hl_margin.upper()}", callback_data="api:hl_margin"),
+        InlineKeyboardButton(f"Trading: {hl_trade_status}", callback_data="api:toggle_hl"),
+    ])
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ██  GLOBAL SETTINGS  ██
+    # ═══════════════════════════════════════════════════════════════════════════
+    buttons.append([InlineKeyboardButton("═══ ⚙️ GLOBAL ═══", callback_data="api:noop")])
+    
+    # Multi-exchange trading (trade on both exchanges at once)
+    buttons.append([
+        InlineKeyboardButton(f"🔀 Trade Both Exchanges: {multi_status}", callback_data="api:toggle_multi_exchange"),
+    ])
+    
+    # Close button
+    buttons.append([InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="api:close")])
     
     return InlineKeyboardMarkup(buttons)
 
 def format_api_settings_message(t: dict, creds: dict, uid: int = None) -> str:
-    """Format API settings message with connected exchanges and trading status."""
+    """Format API settings message with BLOCK structure matching keyboard."""
     demo_key = creds.get("demo_api_key")
     demo_secret = creds.get("demo_api_secret")
     real_key = creds.get("real_api_key")
@@ -1962,54 +2024,69 @@ def format_api_settings_message(t: dict, creds: dict, uid: int = None) -> str:
     bybit_demo_ok = bool(demo_key and demo_secret)
     bybit_real_ok = bool(real_key and real_secret)
     
-    hl_configured = False
+    # HL credentials check
+    hl_testnet_configured = False
+    hl_mainnet_configured = False
+    hl_testnet_wallet = ""
+    hl_mainnet_wallet = ""
     bybit_enabled = True
     hl_enabled = False
     
     if uid:
-        hl_configured = bool(db.get_user_field(uid, "hl_mainnet_private_key") or 
-                            db.get_user_field(uid, "hl_testnet_private_key"))
         bybit_enabled = db.is_bybit_enabled(uid)
         hl_enabled = db.is_hl_enabled(uid)
+        
+        hl_creds = db.get_hl_credentials(uid)
+        hl_testnet_configured = bool(hl_creds.get("hl_testnet_private_key"))
+        hl_mainnet_configured = bool(hl_creds.get("hl_mainnet_private_key"))
+        hl_testnet_wallet = hl_creds.get("hl_testnet_wallet_address", "")
+        hl_mainnet_wallet = hl_creds.get("hl_mainnet_wallet_address", "")
+        
+        # Fallback to legacy key
+        if not hl_testnet_configured and not hl_mainnet_configured:
+            legacy_key = hl_creds.get("hl_private_key")
+            if legacy_key:
+                if hl_creds.get("hl_testnet"):
+                    hl_testnet_configured = True
+                    hl_testnet_wallet = hl_creds.get("hl_wallet_address", "")
+                else:
+                    hl_mainnet_configured = True
+                    hl_mainnet_wallet = hl_creds.get("hl_wallet_address", "")
     
-    # Trading status
-    bybit_trade = "🟢 Trading" if bybit_enabled and (bybit_demo_ok or bybit_real_ok) else "🔴 Off"
-    hl_trade = "🟢 Trading" if hl_enabled and hl_configured else "🔴 Off"
+    # Status displays
+    bybit_status = "🟢 Trading" if bybit_enabled and (bybit_demo_ok or bybit_real_ok) else "🔴 Off"
+    hl_status = "🟢 Trading" if hl_enabled and (hl_testnet_configured or hl_mainnet_configured) else "🔴 Off"
     
-    # Connected exchanges summary
-    connected = []
-    if bybit_demo_ok:
-        connected.append("🟠 Bybit Demo")
-    if bybit_real_ok:
-        connected.append("🟠 Bybit Real")
-    if hl_configured:
-        connected.append("🔷 HyperLiquid")
+    # Format displays
+    demo_key_display = _mask_key(demo_key) if demo_key else "❌ Not set"
+    demo_secret_display = _mask_key(demo_secret) if demo_secret else "❌ Not set"
+    real_key_display = _mask_key(real_key) if real_key else "❌ Not set"
+    real_secret_display = _mask_key(real_secret) if real_secret else "❌ Not set"
     
-    connected_str = ", ".join(connected) if connected else "❌ None"
+    testnet_wallet_display = _mask_wallet(hl_testnet_wallet) if hl_testnet_configured else "❌ Not set"
+    mainnet_wallet_display = _mask_wallet(hl_mainnet_wallet) if hl_mainnet_configured else "❌ Not set"
     
-    # Format status
-    demo_key_display = _mask_key(demo_key) if demo_key else t.get("api_key_not_set", "❌ Not set")
-    demo_secret_display = _mask_key(demo_secret) if demo_secret else t.get("api_key_not_set", "❌ Not set")
-    real_key_display = _mask_key(real_key) if real_key else t.get("api_key_not_set", "❌ Not set")
-    real_secret_display = _mask_key(real_secret) if real_secret else t.get("api_key_not_set", "❌ Not set")
-    
-    msg = f"""{t.get("api_settings_title", "🔑 <b>API Keys & Exchanges</b>")}
+    msg = f"""🔑 <b>API Keys & Exchanges</b>
 
-<b>🔗 Connected:</b> {connected_str}
+═══ 🟠 <b>BYBIT</b> ═══  {bybit_status}
 
-<b>📊 Exchange Trading Status:</b>
-├ 🟠 Bybit: {bybit_trade}
-└ 🔷 HyperLiquid: {hl_trade}
-
-<i>💡 Use the buttons below to enable/disable exchange trading</i>
-
-{t.get("api_demo_title", "🧪 Bybit Demo")}
+🧪 <b>Demo Account:</b>
 ├ API Key: <code>{demo_key_display}</code>
 └ Secret: <code>{demo_secret_display}</code>
 
-{t.get("api_real_title", "💼 Bybit Real")}
+💼 <b>Real Account:</b>
 ├ API Key: <code>{real_key_display}</code>
-└ Secret: <code>{real_secret_display}</code>"""
+└ Secret: <code>{real_secret_display}</code>
+
+═══ 🔷 <b>HYPERLIQUID</b> ═══  {hl_status}
+
+🧪 <b>Testnet:</b>
+└ Wallet: <code>{testnet_wallet_display}</code>
+
+🌐 <b>Mainnet:</b>
+└ Wallet: <code>{mainnet_wallet_display}</code>
+
+<i>💡 Tap buttons below to setup/test/clear credentials</i>"""
     
     return msg
 
@@ -2058,6 +2135,164 @@ async def on_api_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except BadRequest as e:
             if "not modified" not in str(e).lower():
                 raise
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # BYBIT SETUP HANDLERS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    if action == "bybit_demo_setup":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_bybit_demo"
+        ctx.user_data["api_step"] = "key"
+        await safe_edit(
+            "🧪 <b>Bybit Demo API Setup</b>\n\n"
+            "Step 1/2: Enter your <b>Demo API Key</b>:\n\n"
+            "<i>Get it from: bybit.com → Account → API Management</i>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+            ])
+        )
+        return
+    
+    if action == "bybit_real_setup":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_bybit_real"
+        ctx.user_data["api_step"] = "key"
+        await safe_edit(
+            "💼 <b>Bybit Real API Setup</b>\n\n"
+            "Step 1/2: Enter your <b>Real API Key</b>:\n\n"
+            "⚠️ <b>Warning:</b> This connects to your REAL trading account!\n\n"
+            "<i>Get it from: bybit.com → Account → API Management</i>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+            ])
+        )
+        return
+    
+    if action == "bybit_clear_demo":
+        delete_user_credentials(uid, "demo")
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await q.answer("🗑 Demo credentials cleared", show_alert=True)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "bybit_clear_real":
+        delete_user_credentials(uid, "real")
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await q.answer("🗑 Real credentials cleared", show_alert=True)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # HYPERLIQUID SETUP HANDLERS
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    if action == "hl_setup_testnet":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_hl_testnet"
+        await safe_edit(
+            "🧪 <b>HyperLiquid Testnet Setup</b>\n\n"
+            "Enter your <b>Private Key</b> (API Wallet):\n\n"
+            "📖 <b>How to get API Wallet:</b>\n"
+            "1. Go to <a href='https://testnet.hyperliquid.xyz/'>testnet.hyperliquid.xyz</a>\n"
+            "2. Connect your main wallet\n"
+            "3. Click profile icon → Generate API Wallet\n"
+            "4. Save and copy the Private Key\n\n"
+            "⚠️ Never share your private key!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+            ])
+        )
+        return
+    
+    if action == "hl_setup_mainnet":
+        await q.answer()
+        ctx.user_data["mode"] = "enter_hl_mainnet"
+        await safe_edit(
+            "🌐 <b>HyperLiquid Mainnet Setup</b>\n\n"
+            "Enter your <b>Private Key</b> (API Wallet):\n\n"
+            "📖 <b>How to get API Wallet:</b>\n"
+            "1. Go to <a href='https://app.hyperliquid.xyz/'>app.hyperliquid.xyz</a>\n"
+            "2. Connect your main wallet\n"
+            "3. Click profile icon → Generate API Wallet\n"
+            "4. Save and copy the Private Key\n\n"
+            "⚠️ <b>Warning:</b> This connects to REAL funds!\n"
+            "⚠️ Never share your private key!",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+            ])
+        )
+        return
+    
+    if action == "hl_clear_testnet":
+        db.set_user_field(uid, "hl_testnet_private_key", None)
+        db.set_user_field(uid, "hl_testnet_wallet_address", None)
+        db.invalidate_user_cache(uid)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await q.answer("🗑 Testnet credentials cleared", show_alert=True)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "hl_clear_mainnet":
+        db.set_user_field(uid, "hl_mainnet_private_key", None)
+        db.set_user_field(uid, "hl_mainnet_wallet_address", None)
+        db.invalidate_user_cache(uid)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await q.answer("🗑 Mainnet credentials cleared", show_alert=True)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "test_hl":
+        await q.answer("🔄 Testing HyperLiquid...")
+        
+        hl_creds = db.get_hl_credentials(uid)
+        testnet_key = hl_creds.get("hl_testnet_private_key")
+        mainnet_key = hl_creds.get("hl_mainnet_private_key")
+        
+        results = []
+        
+        # Test Testnet
+        if testnet_key:
+            try:
+                adapter = HLAdapter(private_key=testnet_key, testnet=True)
+                await adapter.initialize()
+                balance = await adapter.get_balance()
+                equity = balance.get("equity", 0)
+                results.append(f"🧪 <b>Testnet:</b> ✅ ${equity:.2f}")
+            except Exception as e:
+                results.append(f"🧪 <b>Testnet:</b> ❌ {str(e)[:50]}")
+        else:
+            results.append("🧪 <b>Testnet:</b> ⚪ Not configured")
+        
+        # Test Mainnet
+        if mainnet_key:
+            try:
+                adapter = HLAdapter(private_key=mainnet_key, testnet=False)
+                await adapter.initialize()
+                balance = await adapter.get_balance()
+                equity = balance.get("equity", 0)
+                results.append(f"🌐 <b>Mainnet:</b> ✅ ${equity:.2f}")
+            except Exception as e:
+                results.append(f"🌐 <b>Mainnet:</b> ❌ {str(e)[:50]}")
+        else:
+            results.append("🌐 <b>Mainnet:</b> ⚪ Not configured")
+        
+        test_msg = "🔷 <b>HyperLiquid Connection Test</b>\n\n" + "\n".join(results)
+        
+        creds = get_all_user_credentials(uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(test_msg, reply_markup=keyboard)
+        return
     
     # ─── Show main API Settings menu ───
     if action == "settings":
@@ -23502,13 +23737,195 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Show updated API settings
         creds = get_all_user_credentials(uid)
-        msg = format_api_settings_message(ctx.t, creds)
-        keyboard = get_api_settings_keyboard(ctx.t, creds)
+        msg = format_api_settings_message(ctx.t, creds, uid)
+        keyboard = get_api_settings_keyboard(ctx.t, creds, uid)
         await update.message.reply_text(
             ctx.t.get("api_key_saved", "✅ Saved!") + "\n\n" + msg,
             reply_markup=keyboard,
             parse_mode="HTML"
         )
+        return
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # BYBIT 2-STEP SETUP (new flow: key → secret)
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    if mode == "enter_bybit_demo":
+        step = ctx.user_data.get("api_step", "key")
+        
+        if step == "key":
+            # Save key, ask for secret
+            ctx.user_data["bybit_demo_key"] = text
+            ctx.user_data["api_step"] = "secret"
+            await update.message.reply_text(
+                "🧪 <b>Bybit Demo API Setup</b>\n\n"
+                "✅ API Key saved!\n\n"
+                "Step 2/2: Now enter your <b>Demo API Secret</b>:",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+                ])
+            )
+            return
+        elif step == "secret":
+            # Save both and finalize
+            api_key = ctx.user_data.pop("bybit_demo_key", "")
+            ctx.user_data.pop("api_step", None)
+            ctx.user_data.pop("mode", None)
+            
+            set_user_credentials(uid, api_key, text, "demo")
+            clear_expired_api_cache(uid, "demo")
+            db.set_bybit_enabled(uid, True)
+            
+            creds = get_all_user_credentials(uid)
+            msg = format_api_settings_message(ctx.t, creds, uid)
+            keyboard = get_api_settings_keyboard(ctx.t, creds, uid)
+            await update.message.reply_text(
+                "✅ <b>Bybit Demo credentials saved!</b>\n\n" + msg,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            return
+    
+    if mode == "enter_bybit_real":
+        step = ctx.user_data.get("api_step", "key")
+        
+        if step == "key":
+            ctx.user_data["bybit_real_key"] = text
+            ctx.user_data["api_step"] = "secret"
+            await update.message.reply_text(
+                "💼 <b>Bybit Real API Setup</b>\n\n"
+                "✅ API Key saved!\n\n"
+                "Step 2/2: Now enter your <b>Real API Secret</b>:",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("❌ Cancel", callback_data="api:back")]
+                ])
+            )
+            return
+        elif step == "secret":
+            api_key = ctx.user_data.pop("bybit_real_key", "")
+            ctx.user_data.pop("api_step", None)
+            ctx.user_data.pop("mode", None)
+            
+            set_user_credentials(uid, api_key, text, "real")
+            clear_expired_api_cache(uid, "real")
+            db.set_bybit_enabled(uid, True)
+            
+            creds = get_all_user_credentials(uid)
+            msg = format_api_settings_message(ctx.t, creds, uid)
+            keyboard = get_api_settings_keyboard(ctx.t, creds, uid)
+            await update.message.reply_text(
+                "✅ <b>Bybit Real credentials saved!</b>\n\n" + msg,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            return
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # HYPERLIQUID SETUP (private key only)
+    # ─────────────────────────────────────────────────────────────────────────
+    
+    if mode == "enter_hl_testnet":
+        ctx.user_data.pop("mode", None)
+        
+        # Validate key format (should be 66 chars hex starting with 0x)
+        if not text.startswith("0x") or len(text) != 66:
+            await update.message.reply_text(
+                "❌ <b>Invalid private key format!</b>\n\n"
+                "Private key should:\n"
+                "• Start with <code>0x</code>\n"
+                "• Be 66 characters long\n\n"
+                "Please try again.",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:hl_setup_testnet")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:back")]
+                ])
+            )
+            return
+        
+        try:
+            # Derive wallet address from private key
+            from eth_account import Account
+            account = Account.from_key(text)
+            wallet_address = account.address
+            
+            # Save credentials
+            db.set_user_field(uid, "hl_testnet_private_key", text)
+            db.set_user_field(uid, "hl_testnet_wallet_address", wallet_address)
+            db.set_hl_enabled(uid, True)
+            db.invalidate_user_cache(uid)
+            
+            creds = get_all_user_credentials(uid)
+            msg = format_api_settings_message(ctx.t, creds, uid)
+            keyboard = get_api_settings_keyboard(ctx.t, creds, uid)
+            await update.message.reply_text(
+                f"✅ <b>HyperLiquid Testnet configured!</b>\n\n"
+                f"🧪 API Wallet: <code>{wallet_address[:8]}...{wallet_address[-6:]}</code>\n\n"
+                f"<i>Main wallet will be auto-discovered on first trade.</i>\n\n" + msg,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ <b>Error processing key:</b>\n<code>{str(e)[:100]}</code>",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:hl_setup_testnet")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:back")]
+                ])
+            )
+        return
+    
+    if mode == "enter_hl_mainnet":
+        ctx.user_data.pop("mode", None)
+        
+        # Validate key format
+        if not text.startswith("0x") or len(text) != 66:
+            await update.message.reply_text(
+                "❌ <b>Invalid private key format!</b>\n\n"
+                "Private key should:\n"
+                "• Start with <code>0x</code>\n"
+                "• Be 66 characters long\n\n"
+                "Please try again.",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:hl_setup_mainnet")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:back")]
+                ])
+            )
+            return
+        
+        try:
+            from eth_account import Account
+            account = Account.from_key(text)
+            wallet_address = account.address
+            
+            db.set_user_field(uid, "hl_mainnet_private_key", text)
+            db.set_user_field(uid, "hl_mainnet_wallet_address", wallet_address)
+            db.set_hl_enabled(uid, True)
+            db.invalidate_user_cache(uid)
+            
+            creds = get_all_user_credentials(uid)
+            msg = format_api_settings_message(ctx.t, creds, uid)
+            keyboard = get_api_settings_keyboard(ctx.t, creds, uid)
+            await update.message.reply_text(
+                f"✅ <b>HyperLiquid Mainnet configured!</b>\n\n"
+                f"🌐 API Wallet: <code>{wallet_address[:8]}...{wallet_address[-6:]}</code>\n\n"
+                f"⚠️ <b>REAL FUNDS!</b> Main wallet auto-discovered on first trade.\n\n" + msg,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"❌ <b>Error processing key:</b>\n<code>{str(e)[:100]}</code>",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔄 Try Again", callback_data="api:hl_setup_mainnet")],
+                    [InlineKeyboardButton("⬅️ Back", callback_data="api:back")]
+                ])
+            )
         return
 
     # Legacy API modes (backward compatibility)
