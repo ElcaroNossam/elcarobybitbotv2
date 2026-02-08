@@ -24,6 +24,32 @@ from .signer import (
 
 logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+# GLOBAL MAIN WALLET CACHE - Prevent rate limiting on discover_main_wallet
+# Key: api_wallet_address (lowercase), Value: (main_wallet_address, timestamp)
+# ═══════════════════════════════════════════════════════════════
+_main_wallet_cache: Dict[str, tuple] = {}  # api_address -> (main_wallet, timestamp)
+MAIN_WALLET_CACHE_TTL = 3600  # 1 hour - main wallet doesn't change often
+
+
+def _get_cached_main_wallet(api_address: str) -> Optional[str]:
+    """Get cached main wallet address for an API wallet"""
+    key = api_address.lower() if api_address else None
+    if key and key in _main_wallet_cache:
+        main_wallet, ts = _main_wallet_cache[key]
+        if time.time() - ts < MAIN_WALLET_CACHE_TTL:
+            logger.debug(f"[HL-CACHE] Main wallet cache hit for {key}: {main_wallet}")
+            return main_wallet
+    return None
+
+
+def _set_cached_main_wallet(api_address: str, main_wallet: str):
+    """Cache main wallet address for an API wallet"""
+    key = api_address.lower() if api_address else None
+    if key and main_wallet:
+        _main_wallet_cache[key] = (main_wallet.lower(), time.time())
+        logger.info(f"[HL-CACHE] Cached main wallet {main_wallet} for {key}")
+
 
 def round_price(px: float, coin: str) -> float:
     """
@@ -119,6 +145,8 @@ class HyperLiquidClient:
         Check if this wallet is an API agent and discover the main wallet.
         Returns main wallet address if this is an agent, None otherwise.
         
+        Uses global cache to prevent rate limiting on repeated calls.
+        
         NOTE: We do NOT auto-set vault_address anymore!
         HyperLiquid distinguishes between:
         - Vault trading (requires registered vault_address)
@@ -132,6 +160,13 @@ class HyperLiquidClient:
         
         self._role_checked = True
         
+        # Check global cache first - prevents API calls on new HLAdapter instances
+        cached = _get_cached_main_wallet(self._address)
+        if cached:
+            self._main_wallet_address = cached
+            logger.info(f"[HL] Using cached main wallet: {cached} for agent {self._address}")
+            return cached
+        
         try:
             await self.initialize()
             role_info = await self.get_user_role(self._address)
@@ -141,6 +176,8 @@ class HyperLiquidClient:
                 main_wallet = role_info.get("data", {}).get("user")
                 if main_wallet:
                     self._main_wallet_address = main_wallet.lower()
+                    # Save to global cache
+                    _set_cached_main_wallet(self._address, self._main_wallet_address)
                     logger.info(f"[HL] Discovered main wallet: {self._main_wallet_address} for agent {self._address}")
                     
                     # NOTE: We intentionally do NOT set vault_address here anymore!
