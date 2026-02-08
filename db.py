@@ -2153,8 +2153,8 @@ def get_all_pyramided_symbols(user_id: int) -> list[str]:
 # Signals
 # ------------------------------------------------------------------------------------
 def add_signal(
-    raw_message: str,
-    tf: str | None,
+    raw_data: str,  # Column is 'raw_data' in DB
+    timeframe: str | None,  # Column is 'timeframe' in DB
     side: str | None,
     symbol: str | None,
     price: float | None,
@@ -2173,14 +2173,14 @@ def add_signal(
         cur = conn.execute(
             """
           INSERT INTO signals(
-            raw_message, tf, side, symbol, price,
+            raw_data, timeframe, side, symbol, price,
             oi_prev, oi_now, oi_chg, vol_from, vol_to, price_chg,
             vol_delta, rsi, bb_hi, bb_lo
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
-                raw_message,
-                tf,
+                raw_data,
+                timeframe,
                 side,
                 symbol,
                 price,
@@ -2201,8 +2201,8 @@ def add_signal(
 
 def fetch_signal_by_id(signal_id: int) -> dict | None:
     cols = [
-        "raw_message",
-        "tf",
+        "raw_data",  # Column is 'raw_data' in DB
+        "timeframe",  # Column is 'timeframe' in DB
         "side",
         "symbol",
         "price",
@@ -2234,7 +2234,7 @@ def get_last_signal_id(user_id: int, symbol: str, timeframe: str) -> int | None:
         # First try exact match by symbol column
         row = conn.execute(
             """
-          SELECT id FROM signals WHERE symbol=? AND (tf=? OR tf IS NULL)
+          SELECT id FROM signals WHERE symbol=? AND (timeframe=? OR timeframe IS NULL)
           ORDER BY ts DESC LIMIT 1
         """,
             (symbol, timeframe),
@@ -2242,12 +2242,12 @@ def get_last_signal_id(user_id: int, symbol: str, timeframe: str) -> int | None:
         if row:
             return int(row[0])
         
-        # Fallback: search by symbol in raw_message (for signals with symbol=NULL)
+        # Fallback: search by symbol in raw_data (for signals with symbol=NULL)
         # Look for patterns like [SYMBOL] or "SYMBOL" or "🔔 SYMBOL"
         row = conn.execute(
             """
           SELECT id FROM signals 
-          WHERE (raw_message LIKE ? OR raw_message LIKE ? OR raw_message LIKE ?)
+          WHERE (raw_data LIKE ? OR raw_data LIKE ? OR raw_data LIKE ?)
           ORDER BY ts DESC LIMIT 1
         """,
             (f'%[{symbol}]%', f'%🔔 {symbol}%', f'%🔔{symbol}%'),
@@ -2257,7 +2257,7 @@ def get_last_signal_id(user_id: int, symbol: str, timeframe: str) -> int | None:
 
 def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
     """
-    Search for most recent signal containing symbol in raw_message.
+    Search for most recent signal containing symbol in raw_data.
     Searches all known signal formats:
     - [SYMBOL] - legacy format
     - 🔔 SYMBOL - Enliko format  
@@ -2266,19 +2266,19 @@ def get_last_signal_by_symbol_in_raw(symbol: str) -> dict | None:
     - @ SYMBOL - OI/Scalper format with price
     - Just SYMBOL anywhere in message
     """
-    cols = ["id", "raw_message", "ts", "tf", "side", "symbol", "price"]
+    cols = ["id", "raw_data", "ts", "timeframe", "side", "symbol", "price"]
     with get_conn() as conn:
         row = conn.execute(
             """
-            SELECT id, raw_message, ts, tf, side, symbol, price 
+            SELECT id, raw_data, ts, timeframe, side, symbol, price 
             FROM signals 
-            WHERE raw_message LIKE %s 
-               OR raw_message LIKE %s 
-               OR raw_message LIKE %s
-               OR raw_message LIKE %s
-               OR raw_message LIKE %s
-               OR raw_message LIKE %s
-               OR raw_message LIKE %s
+            WHERE raw_data LIKE %s 
+               OR raw_data LIKE %s 
+               OR raw_data LIKE %s
+               OR raw_data LIKE %s
+               OR raw_data LIKE %s
+               OR raw_data LIKE %s
+               OR raw_data LIKE %s
             ORDER BY ts DESC LIMIT 1
             """,
             (
@@ -2311,7 +2311,7 @@ def get_recent_signal_for_position(symbol: str, side: str, within_seconds: int =
     - It only looks back a short time window (not all signals)
     - It's used after confirming the position is new (not in active_positions)
     """
-    cols = ["id", "raw_message", "ts", "tf", "side", "symbol", "price"]
+    cols = ["id", "raw_data", "ts", "timeframe", "side", "symbol", "price"]
     
     # Normalize side for comparison
     if side == "Buy":
@@ -2323,7 +2323,7 @@ def get_recent_signal_for_position(symbol: str, side: str, within_seconds: int =
         # Search for signals within time window for this symbol
         row = conn.execute(
             """
-            SELECT id, raw_message, ts, tf, side, symbol, price 
+            SELECT id, raw_data, ts, timeframe, side, symbol, price 
             FROM signals 
             WHERE symbol = %s
             AND ts > NOW() - INTERVAL '%s seconds'
@@ -2336,7 +2336,7 @@ def get_recent_signal_for_position(symbol: str, side: str, within_seconds: int =
             sig = dict(zip(cols, row))
             # Verify side matches (signal side may be Buy/Sell or Long/Short)
             sig_side = (sig.get("side") or "").upper()
-            raw_msg = (sig.get("raw_message") or "").upper()
+            raw_msg = (sig.get("raw_data") or "").upper()
             
             if side == "Buy":
                 if sig_side in ("BUY", "LONG") or "LONG" in raw_msg[:50]:

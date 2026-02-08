@@ -18038,8 +18038,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     try:
         signal_id = db.add_signal(
-            raw_message = txt,
-            tf          = parsed.get("tf"),
+            raw_data    = txt,  # Column is 'raw_data' in DB
+            timeframe   = parsed.get("tf"),  # Column is 'timeframe' in DB
             side        = parsed.get("side"),
             symbol      = parsed.get("symbol"),
             price       = parsed.get("price"),
@@ -19641,7 +19641,7 @@ async def monitor_positions_loop(app: Application):
                                     order_id = po["order_id"]
                                     sym      = po["symbol"]
                                     sig = fetch_signal_by_id(po["signal_id"]) or {}
-                                    tf_for_sym = sig.get("tf") or "24h"
+                                    tf_for_sym = sig.get("timeframe") or "24h"  # Column is 'timeframe' in DB
 
                                     if order_id not in open_ids:
                                         pos = next((p for p in open_positions if p["symbol"] == sym), None)
@@ -19747,7 +19747,7 @@ async def monitor_positions_loop(app: Application):
                                 
                                 if sig:
                                     # Check signal source/strategy using parsers
-                                    raw_msg = sig.get("raw_message") or ""
+                                    raw_msg = sig.get("raw_data") or ""  # Column is 'raw_data' in DB
                                     raw_upper = raw_msg.upper()
                                     
                                     # RSI_BB MUST be checked FIRST (it's most common and has unique pattern)
@@ -20193,7 +20193,7 @@ async def monitor_positions_loop(app: Application):
                                         (position_strategy == "manual" and ap.get("signal_id"))
                                     )
                                     if should_detect_from_signal and sig:
-                                        raw_msg = sig.get("raw_message") or ""
+                                        raw_msg = sig.get("raw_data") or ""  # Column is 'raw_data' in DB
                                         # Use parsers for reliable strategy detection
                                         # CRITICAL: Check RSI_BB FIRST (most common signal type)
                                         if is_rsi_bb_signal(raw_msg):
@@ -20239,7 +20239,7 @@ async def monitor_positions_loop(app: Application):
                                         exit_price=exit_price,
                                         exit_reason=exit_reason,
                                         size=size_for_pnl,
-                                        signal_source=("bitk" if (sig.get("raw_message") and ("DROP CATCH" in sig["raw_message"] or "TIGHTBTC" in sig["raw_message"])) else None),
+                                        signal_source=("bitk" if (sig.get("raw_data") and ("DROP CATCH" in sig["raw_data"] or "TIGHTBTC" in sig["raw_data"])) else None),
                                         rsi=sig.get("rsi"), bb_hi=sig.get("bb_hi"), bb_lo=sig.get("bb_lo"),
                                         oi_prev=sig.get("oi_prev"), oi_now=sig.get("oi_now"), oi_chg=sig.get("oi_chg"),
                                         vol_from=sig.get("vol_from"), vol_to=sig.get("vol_to"),
@@ -20463,7 +20463,7 @@ async def monitor_positions_loop(app: Application):
                                 if ap_for_sym and ap_for_sym.get("signal_id"):
                                     sig = fetch_signal_by_id(ap_for_sym["signal_id"])
                                     if sig:
-                                        raw_msg = sig.get("raw_message") or ""
+                                        raw_msg = sig.get("raw_data") or ""  # Column is 'raw_data' in DB
                                         raw_upper = raw_msg.upper()
                                         if "SCRYPTOMERA" in raw_upper or "DROP CATCH" in raw_msg:
                                             pos_strategy = "scryptomera"
