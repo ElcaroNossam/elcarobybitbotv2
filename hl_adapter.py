@@ -1102,20 +1102,6 @@ class HLAdapter:
             logger.error(f"transfer_usdc error: {e}")
             return {"retCode": 1, "retMsg": str(e), "result": {}}
 
-    async def spot_transfer(self, to_perp: bool, amount: float) -> Dict[str, Any]:
-        """Transfer USDC between spot and perp accounts"""
-        await self.initialize()
-        try:
-            result = await self._client.spot_transfer(to_perp, amount)
-            return {
-                "retCode": 0 if result.get("status") == "ok" else 1,
-                "retMsg": "OK" if result.get("status") == "ok" else str(result),
-                "result": result
-            }
-        except Exception as e:
-            logger.error(f"spot_transfer error: {e}")
-            return {"retCode": 1, "retMsg": str(e), "result": {}}
-
     async def update_isolated_margin(
         self,
         symbol: str,
