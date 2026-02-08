@@ -151,6 +151,8 @@ USER_FIELDS_WHITELIST = {
     # Margin mode settings
     "bybit_margin_mode",  # 'cross' or 'isolated' for Bybit
     "hl_margin_mode",  # 'cross' or 'isolated' for HyperLiquid
+    # Routing policy
+    "routing_policy",  # NULL=use trading_mode, 'all_enabled'=trade on all configured exchanges
     # Coins group per exchange (simplified settings - Feb 10, 2026)
     "bybit_coins_group",  # 'ALL', 'TOP', 'VOLATILE' for Bybit
     "hl_coins_group",  # 'ALL', 'TOP', 'VOLATILE' for HyperLiquid

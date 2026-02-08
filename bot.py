@@ -998,6 +998,23 @@ def _should_send_daily_error(user_id: int, error_type: str, account_type: str) -
     return True, entry["missed_count"]
 
 
+def get_account_label_for_display(target_key: str, exchange: str = None) -> str:
+    """
+    Get proper account label for display.
+    For Bybit: Demo/Real
+    For HyperLiquid: Testnet/Mainnet
+    
+    target_key format: "bybit:paper", "hyperliquid:testnet", etc.
+    """
+    is_hl = exchange == "hyperliquid" or "hyperliquid" in target_key
+    is_paper = "paper" in target_key or "testnet" in target_key or "demo" in target_key
+    
+    if is_hl:
+        return "Testnet" if is_paper else "Mainnet"
+    else:
+        return "Demo" if is_paper else "Real"
+
+
 async def notify_user_daily_error(
     bot,
     user_id: int,
@@ -18513,8 +18530,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         success_accounts = []
                         skipped_accounts = []
                         for target_key, result in order_results.items():
-                            acc_label = "Demo" if "paper" in target_key else "Real"
                             exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                             
                             if result.get("success"):
                                 target_qty = result.get("qty", qty)
@@ -18656,8 +18673,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         success_accounts = []
                         skipped_accounts = []
                         for target_key, result in order_results.items():
-                            acc_label = "Demo" if "paper" in target_key else "Real"
                             exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                             
                             if result.get("success"):
                                 target_qty = result.get("qty", qty)
@@ -18803,8 +18820,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         success_accounts = []
                         skipped_accounts = []
                         for target_key, result in order_results.items():
-                            acc_label = "Demo" if "paper" in target_key else "Real"
                             exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                             
                             if result.get("success"):
                                 target_qty = result.get("qty", qty)
@@ -18971,8 +18988,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             success_accounts = []
                             skipped_accounts = []
                             for target_key, result in order_results.items():
-                                acc_label = "Demo" if "paper" in target_key else "Real"
                                 exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                                acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                                 
                                 if result.get("success"):
                                     target_qty = result.get("qty", qty)
@@ -19175,8 +19192,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             success_accounts = []
                             skipped_accounts = []
                             for target_key, result in order_results.items():
-                                acc_label = "Demo" if "paper" in target_key else "Real"
                                 exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                                acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                                 
                                 if result.get("success"):
                                     target_qty = result.get("qty", qty)
@@ -19320,8 +19337,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         success_accounts = []
                         skipped_accounts = []
                         for target_key, result in order_results.items():
-                            acc_label = "Demo" if "paper" in target_key else "Real"
                             exchange_label = "Bybit" if result.get("exchange", "bybit") == "bybit" else "HyperLiquid"
+                            acc_label = get_account_label_for_display(target_key, result.get("exchange"))
                             
                             if result.get("success"):
                                 target_qty = result.get("qty", qty_mkt)
