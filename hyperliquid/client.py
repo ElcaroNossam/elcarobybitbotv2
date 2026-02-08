@@ -109,6 +109,10 @@ class HyperLiquidClient:
                 timeout=aiohttp.ClientTimeout(total=30)
             )
             self._own_session = True
+        
+        # Auto-discover main wallet for agent wallets
+        if self._private_key and not self._role_checked:
+            await self.discover_main_wallet()
     
     async def discover_main_wallet(self) -> Optional[str]:
         """
