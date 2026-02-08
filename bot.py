@@ -1961,9 +1961,13 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         if clear_row:
             buttons.append(clear_row)
     
-    # Bybit margin mode
+    # Bybit margin mode + coins group
+    bybit_coins = db.get_user_field(uid, "bybit_coins_group") or "ALL" if uid else "ALL"
     buttons.append([
         InlineKeyboardButton(f"{bybit_margin_icon} Margin: {bybit_margin.upper()}", callback_data="api:bybit_margin"),
+        InlineKeyboardButton(f"🪙 Coins: {bybit_coins}", callback_data="api:bybit_coins"),
+    ])
+    buttons.append([
         InlineKeyboardButton(f"Trading: {bybit_trade_status}", callback_data="api:toggle_bybit"),
     ])
     
@@ -1992,9 +1996,13 @@ def get_api_settings_keyboard(t: dict, creds: dict, uid: int = None) -> InlineKe
         if clear_row:
             buttons.append(clear_row)
     
-    # HL margin mode & trading toggle
+    # HL margin mode + coins group & trading toggle
+    hl_coins = db.get_user_field(uid, "hl_coins_group") or "ALL" if uid else "ALL"
     buttons.append([
         InlineKeyboardButton(f"{hl_margin_icon} Margin: {hl_margin.upper()}", callback_data="api:hl_margin"),
+        InlineKeyboardButton(f"🪙 Coins: {hl_coins}", callback_data="api:hl_coins"),
+    ])
+    buttons.append([
         InlineKeyboardButton(f"Trading: {hl_trade_status}", callback_data="api:toggle_hl"),
     ])
     
@@ -2457,6 +2465,73 @@ Use the buttons below to configure:"""
         
         mode_emoji = "📦 ISOLATED" if new_mode == "isolated" else "🔄 CROSS"
         await q.answer(f"HyperLiquid Margin Mode: {mode_emoji}", show_alert=True)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    # ─── Coins Group Selection ───
+    if action == "bybit_coins":
+        current = db.get_user_field(uid, "bybit_coins_group") or "ALL"
+        
+        buttons = [
+            [InlineKeyboardButton(("✓ " if current == "ALL" else "") + "🌐 ALL", callback_data="api:bybit_coins_set:ALL")],
+            [InlineKeyboardButton(("✓ " if current == "TOP" else "") + "💎 TOP", callback_data="api:bybit_coins_set:TOP")],
+            [InlineKeyboardButton(("✓ " if current == "VOLATILE" else "") + "🔥 VOLATILE", callback_data="api:bybit_coins_set:VOLATILE")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        
+        await q.answer()
+        await safe_edit(
+            "🟠 <b>Bybit Coins Filter</b>\n\n"
+            "Select which coins to trade:\n\n"
+            "🌐 <b>ALL</b> - All available coins\n"
+            "💎 <b>TOP</b> - Top liquid coins only\n"
+            "🔥 <b>VOLATILE</b> - High volatility coins",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+    
+    if action.startswith("bybit_coins_set:"):
+        group = action.split(":")[1]  # ALL, TOP, VOLATILE
+        db.set_user_field(uid, "bybit_coins_group", group)
+        
+        await q.answer(f"Bybit Coins: {group}", show_alert=False)
+        
+        creds = get_all_user_credentials(uid)
+        msg = format_api_settings_message(t, creds, uid)
+        keyboard = get_api_settings_keyboard(t, creds, uid)
+        await safe_edit(msg, reply_markup=keyboard)
+        return
+    
+    if action == "hl_coins":
+        current = db.get_user_field(uid, "hl_coins_group") or "ALL"
+        
+        buttons = [
+            [InlineKeyboardButton(("✓ " if current == "ALL" else "") + "🌐 ALL", callback_data="api:hl_coins_set:ALL")],
+            [InlineKeyboardButton(("✓ " if current == "TOP" else "") + "💎 TOP", callback_data="api:hl_coins_set:TOP")],
+            [InlineKeyboardButton(("✓ " if current == "VOLATILE" else "") + "🔥 VOLATILE", callback_data="api:hl_coins_set:VOLATILE")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="api:back")],
+        ]
+        
+        await q.answer()
+        await safe_edit(
+            "🔷 <b>HyperLiquid Coins Filter</b>\n\n"
+            "Select which coins to trade:\n\n"
+            "🌐 <b>ALL</b> - All available coins\n"
+            "💎 <b>TOP</b> - Top liquid coins only\n"
+            "🔥 <b>VOLATILE</b> - High volatility coins",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+    
+    if action.startswith("hl_coins_set:"):
+        group = action.split(":")[1]  # ALL, TOP, VOLATILE
+        db.set_user_field(uid, "hl_coins_group", group)
+        
+        await q.answer(f"HyperLiquid Coins: {group}", show_alert=False)
         
         creds = get_all_user_credentials(uid)
         msg = format_api_settings_message(t, creds, uid)
@@ -8460,7 +8535,7 @@ def build_strategy_settings_text(strategy: str, strat_settings: dict, t: dict) -
 STRATEGY_FEATURES = {
     "scryptomera": {
         "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
-        "coins_group": True,     # Coins filter (ALL/TOP100/VOLATILE)
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,        # Leverage setting
         "use_atr": True,         # ATR trailing toggle
         "direction": True,       # LONG/SHORT/ALL filter
@@ -8472,7 +8547,7 @@ STRATEGY_FEATURES = {
     },
     "scalper": {
         "order_type": False,     # Order type is per-side now
-        "coins_group": True,
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,
         "use_atr": True,
         "direction": True,
@@ -8484,7 +8559,7 @@ STRATEGY_FEATURES = {
     },
     "elcaro": {
         "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
-        "coins_group": True,
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,        # User-configured leverage
         "use_atr": True,         # ATR trailing toggle
         "direction": True,
@@ -8496,7 +8571,7 @@ STRATEGY_FEATURES = {
     },
     "fibonacci": {
         "order_type": False,     # Order type is per-side now
-        "coins_group": True,
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,
         "use_atr": True,         # ATR trailing option
         "direction": True,
@@ -8508,7 +8583,7 @@ STRATEGY_FEATURES = {
     },
     "oi": {
         "order_type": False,     # Order type is per-side now
-        "coins_group": True,
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,
         "use_atr": True,
         "direction": True,
@@ -8520,7 +8595,7 @@ STRATEGY_FEATURES = {
     },
     "rsi_bb": {
         "order_type": False,     # Order type is per-side now (in LONG/SHORT settings)
-        "coins_group": True,
+        "coins_group": False,    # MOVED to API Settings per-exchange (Feb 10, 2026)
         "leverage": True,
         "use_atr": True,
         "direction": True,
@@ -8980,12 +9055,9 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
         callback_data=f"strat_param:{strategy}:{side}_max_positions"
     )])
     
-    # ─── 17. COINS FILTER ───
-    coins_emoji = {"ALL": "🌐", "TOP100": "💎", "VOLATILE": "🔥"}.get(coins_group, "🌐")
-    buttons.append([InlineKeyboardButton(
-        f"🪙 {t.get('coins_filter', 'Coins')}: {coins_emoji} {coins_group}", 
-        callback_data=f"strat_side_coins:{strategy}:{side}"
-    )])
+    # ─── COINS FILTER - REMOVED (Feb 10, 2026) ───
+    # Coins filter is now per-exchange in API Settings, not per-strategy
+    # See: api:bybit_coins and api:hl_coins in on_api_settings_cb
     
     # ─── BACK BUTTON ───
     buttons.append([InlineKeyboardButton(
@@ -18100,14 +18172,18 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ctx_exchange = user_context["exchange"]
             ctx_account_type = user_context["account_type"]
 
-            # Helper to check coins filter for a strategy
+            # Get coins filter from exchange settings (simplified - Feb 10, 2026)
+            # Instead of per-strategy, we now use per-exchange coins_group
+            exchange_coins_field = "bybit_coins_group" if ctx_exchange == "bybit" else "hl_coins_group"
+            exchange_coins_group = db.get_user_field(uid, exchange_coins_field) or "ALL"
+            
+            # Helper to check coins filter (uses exchange-level setting)
             def check_coins_filter(strat_name: str) -> bool:
-                strat_settings = db.get_strategy_settings(uid, strat_name, ctx_exchange, ctx_account_type)
-                coins_group = strat_settings.get("coins_group") or global_coins_mode
-                filter_fn = SYMBOL_FILTER.get(coins_group, SYMBOL_FILTER["ALL"])
+                # Use exchange-level coins_group (simplified from per-strategy)
+                filter_fn = SYMBOL_FILTER.get(exchange_coins_group, SYMBOL_FILTER["ALL"])
                 if not filter_fn(symbol):
                     # Log on INFO level so admins can see why signals are skipped
-                    logger.info(f"[{uid}] {symbol}: filtered by {strat_name} coins_group={coins_group} → skip signal")
+                    logger.info(f"[{uid}] {symbol}: filtered by {ctx_exchange} coins_group={exchange_coins_group} → skip signal")
                     return False
                 return True
 
