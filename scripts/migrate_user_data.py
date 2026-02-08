@@ -71,6 +71,14 @@ def import_users(data):
     
     # Import users
     for user in data["users"]:
+        # Convert integer to boolean
+        def to_bool(val, default=False):
+            if val is None:
+                return default
+            if isinstance(val, bool):
+                return val
+            return bool(val)
+        
         # Map old field names to new
         values = {
             "user_id": user.get("user_id"),
@@ -79,19 +87,19 @@ def import_users(data):
             "last_name": user.get("last_name"),
             "email": user.get("email"),
             "lang": user.get("lang", "en"),
-            "is_allowed": user.get("is_allowed", False),
-            "is_banned": user.get("is_banned", False),
+            "is_allowed": to_bool(user.get("is_allowed"), False),
+            "is_banned": to_bool(user.get("is_banned"), False),
             "current_license": user.get("current_license", "none"),
             
             # Bybit credentials
-            "bybit_enabled": user.get("bybit_enabled", True),
+            "bybit_enabled": to_bool(user.get("bybit_enabled"), True),
             "demo_api_key": user.get("demo_api_key"),
             "demo_api_secret": user.get("demo_api_secret"),
             "real_api_key": user.get("real_api_key"),
             "real_api_secret": user.get("real_api_secret"),
             
             # HyperLiquid credentials
-            "hl_enabled": user.get("hl_enabled", False),
+            "hl_enabled": to_bool(user.get("hl_enabled"), False),
             "hl_testnet_private_key": user.get("hl_testnet_private_key"),
             "hl_testnet_wallet_address": user.get("hl_testnet_wallet_address"),
             "hl_mainnet_private_key": user.get("hl_mainnet_private_key"),
@@ -101,14 +109,14 @@ def import_users(data):
             "exchange_type": user.get("exchange_type", "bybit"),
             "trading_mode": user.get("trading_mode", "demo"),
             "routing_policy": user.get("routing_policy"),
-            "live_enabled": user.get("live_enabled", False),
+            "live_enabled": to_bool(user.get("live_enabled"), False),
             
             # Trading settings
             "percent": user.get("percent", 3.0),
             "tp_percent": user.get("tp_percent", 10.0),
             "sl_percent": user.get("sl_percent", 30.0),
             "leverage": user.get("leverage", 10),
-            "use_atr": user.get("use_atr", True),
+            "use_atr": to_bool(user.get("use_atr"), True),
             "atr_trigger_pct": user.get("atr_trigger_pct", 3.0),
             
             # Coins groups
