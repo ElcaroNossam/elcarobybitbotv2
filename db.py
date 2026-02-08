@@ -1164,15 +1164,26 @@ def set_user_field(user_id: int, field: str, value: Any):
     if field not in USER_FIELDS_WHITELIST:
         raise ValueError(f"Unsupported field: {field}")
     
-    # Auto-convert integer 0/1 to boolean for boolean columns (PostgreSQL compatibility)
-    BOOLEAN_FIELDS = {
-        "is_allowed", "is_banned", "terms_accepted", "disclaimer_accepted",
-        "dca_enabled", "spot_enabled", "use_atr", "be_enabled", "hl_enabled",
-        "hl_testnet", "bybit_enabled", "live_enabled", "limit_enabled",
-        "trade_oi", "trade_rsi_bb", "trade_manual"
+    # NOTE: DB has mixed types after migrations!
+    # BOOLEAN columns: terms_accepted, disclaimer_accepted, dca_enabled, bybit_enabled
+    # INTEGER columns: is_allowed, is_banned, hl_enabled, use_atr, etc.
+    
+    # Columns that ARE BOOLEAN in PostgreSQL - convert int to bool
+    BOOLEAN_COLUMNS = {
+        "terms_accepted", "disclaimer_accepted", "dca_enabled", "bybit_enabled"
     }
-    if field in BOOLEAN_FIELDS and isinstance(value, int):
+    
+    # Columns that ARE INTEGER in PostgreSQL - convert bool to int
+    INTEGER_FLAG_COLUMNS = {
+        "is_allowed", "is_banned", "hl_enabled", "use_atr", "be_enabled",
+        "hl_testnet", "live_enabled", "limit_enabled",
+        "trade_oi", "trade_rsi_bb", "trade_manual", "spot_enabled"
+    }
+    
+    if field in BOOLEAN_COLUMNS and isinstance(value, int):
         value = bool(value)
+    elif field in INTEGER_FLAG_COLUMNS and isinstance(value, bool):
+        value = 1 if value else 0
     
     ensure_user(user_id)
     with get_conn() as conn:
