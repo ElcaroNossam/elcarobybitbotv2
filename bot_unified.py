@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # CHECK_INTERVAL = 15s, so with 60s cache we only make 1 API call per minute per user
 # ═══════════════════════════════════════════════════════════════
 _hl_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
-HL_CACHE_TTL = 60  # seconds - cache HyperLiquid data for 60 seconds (was 30s)
+HL_CACHE_TTL = 120  # seconds - cache HyperLiquid data for 120 seconds (2 minutes to avoid rate limits)
 
 
 def _get_hl_cache(key: str) -> Optional[Any]:
@@ -197,14 +197,17 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange)
     
+    # Log for diagnostics - to understand why cache isn't being used
+    logger.info(f"[get_positions_unified] user={user_id} exchange={exchange} acc={account_type} use_cache={use_cache} symbol={symbol}")
+    
     # Check HyperLiquid cache to avoid rate limits
     if exchange == 'hyperliquid' and use_cache and symbol is None:
         cache_key = f"positions:{user_id}:{account_type}"
         cached = _get_hl_cache(cache_key)
         if cached is not None:
-            logger.debug(f"[HL-CACHE] Using cached positions for user {user_id}")
+            logger.info(f"[HL-CACHE] Using cached positions for user {user_id}")
             return cached
-        logger.debug(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
+        logger.info(f"[HL-CACHE] Cache miss for positions:{user_id}:{account_type}, will fetch from API")
     
     client = None
     try:
