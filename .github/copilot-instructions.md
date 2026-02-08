@@ -1,10 +1,11 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.60.0 | Обновлено: 10 февраля 2026
+# Версия: 3.61.0 | Обновлено: 8 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
 # HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
+# Default Settings Update: Entry max 3%, SL 30%, TP 10%, ATR 3% trigger ✅ (Feb 8, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -55,6 +56,8 @@
 # - Full BlackRock Re-Audit: Bybit + HL order flows, 4D multitenancy, credentials (Feb 7, 2026) ✅
 # - API Settings BLOCK UI: Full refactor with Bybit/HL blocks (Feb 8, 2026) ✅
 # - Routing Policy Fix: NULL uses trading_mode, all_enabled bypasses it (Feb 8, 2026) ✅
+# - Default Settings Update: Entry max 3%, SL 30%, TP 10%, ATR enabled 3% (Feb 8, 2026) ✅
+# - iOS Build 89: TestFlight upload + Android APK build (Feb 8, 2026) ✅
 
 ---
 
