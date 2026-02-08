@@ -540,7 +540,7 @@ async def set_hl_credentials(
                 hl_address = $1, 
                 hl_private_key = $2, 
                 hl_testnet = $3,
-                hl_enabled = true
+                hl_enabled = 1
             WHERE user_id = $4
         """, address, private_key, testnet, user_id)
 

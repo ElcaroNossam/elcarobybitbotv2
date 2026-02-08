@@ -1121,7 +1121,7 @@ def pg_get_active_trading_users() -> List[int]:
         AND (
             demo_api_key IS NOT NULL 
             OR real_api_key IS NOT NULL
-            OR (hl_private_key IS NOT NULL AND hl_enabled = TRUE)
+            OR (hl_private_key IS NOT NULL AND hl_enabled = 1)
         )
     """)
     return [r['user_id'] for r in rows]

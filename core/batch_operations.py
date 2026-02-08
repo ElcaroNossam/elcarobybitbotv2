@@ -252,7 +252,7 @@ async def batch_fetch_active_users() -> List[Dict]:
         AND (
             demo_api_key IS NOT NULL 
             OR real_api_key IS NOT NULL
-            OR (hl_enabled = TRUE AND (
+            OR (hl_enabled = 1 AND (
                 hl_mainnet_private_key IS NOT NULL 
                 OR hl_testnet_private_key IS NOT NULL
             ))
