@@ -6340,66 +6340,66 @@ async def _set_trading_stop_hyperliquid(
         # This avoids extra API call since monitor loop already fetched positions
         positions_result = await adapter.fetch_positions(symbol)
         positions = positions_result.get("result", {}).get("list", [])
+        
+        if not positions:
+            logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
+            return False
+        
+        pos = positions[0]  # Get first/only position for symbol
+        effective_side = pos.get("side")
+        entry_price = float(pos.get("entryPrice", 0))
+        
+        # Validate TP/SL prices (same logic as Bybit)
+        if tp_price is not None:
+            if effective_side == "Buy" and entry_price > 0 and tp_price <= entry_price:
+                logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) <= entry ({entry_price}) for LONG - skipping")
+                tp_price = None
+            elif effective_side == "Sell" and entry_price > 0 and tp_price >= entry_price:
+                logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) >= entry ({entry_price}) for SHORT - skipping")
+                tp_price = None
+        
+        if sl_price is not None and not is_be:
+            if effective_side == "Buy" and entry_price > 0 and sl_price >= entry_price:
+                logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) >= entry ({entry_price}) for LONG - skipping")
+                sl_price = None
+            elif effective_side == "Sell" and entry_price > 0 and sl_price <= entry_price:
+                logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) <= entry ({entry_price}) for SHORT - skipping")
+                sl_price = None
+        
+        if tp_price is None and sl_price is None:
+            logger.debug(f"[{uid}] {symbol} HL: No valid TP/SL to set after validation")
+            return True
+        
+        # Set TP/SL via HyperLiquid API
+        # Use adapter.main_wallet_address which is auto-discovered for Unified Account support
+        coin = hl_symbol_to_coin(symbol)
+        result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=adapter.main_wallet_address)
+        
+        # Check results
+        success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
+        
+        if success:
+            logger.info(f"[{uid}] {symbol} HL: TP/SL set successfully - tp={tp_price}, sl={sl_price}")
             
-            if not positions:
-                logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
-                return False
+            # Save to DB
+            db_account_type = "testnet" if is_testnet else "mainnet"
+            try:
+                update_position_sltp(
+                    user_id=uid,
+                    symbol=symbol,
+                    account_type=db_account_type,
+                    sl_price=sl_price,
+                    tp_price=tp_price,
+                    respect_manual_override=True,
+                    exchange="hyperliquid"
+                )
+            except Exception as db_err:
+                logger.warning(f"[{uid}] {symbol} HL: Failed to save SL/TP to DB: {db_err}")
             
-            pos = positions[0]  # Get first/only position for symbol
-            effective_side = pos.get("side")
-            entry_price = float(pos.get("entryPrice", 0))
-            
-            # Validate TP/SL prices (same logic as Bybit)
-            if tp_price is not None:
-                if effective_side == "Buy" and entry_price > 0 and tp_price <= entry_price:
-                    logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) <= entry ({entry_price}) for LONG - skipping")
-                    tp_price = None
-                elif effective_side == "Sell" and entry_price > 0 and tp_price >= entry_price:
-                    logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) >= entry ({entry_price}) for SHORT - skipping")
-                    tp_price = None
-            
-            if sl_price is not None and not is_be:
-                if effective_side == "Buy" and entry_price > 0 and sl_price >= entry_price:
-                    logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) >= entry ({entry_price}) for LONG - skipping")
-                    sl_price = None
-                elif effective_side == "Sell" and entry_price > 0 and sl_price <= entry_price:
-                    logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) <= entry ({entry_price}) for SHORT - skipping")
-                    sl_price = None
-            
-            if tp_price is None and sl_price is None:
-                logger.debug(f"[{uid}] {symbol} HL: No valid TP/SL to set after validation")
-                return True
-            
-            # Set TP/SL via HyperLiquid API
-            # Use adapter.main_wallet_address which is auto-discovered for Unified Account support
-            coin = hl_symbol_to_coin(symbol)
-            result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=adapter.main_wallet_address)
-            
-            # Check results
-            success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
-            
-            if success:
-                logger.info(f"[{uid}] {symbol} HL: TP/SL set successfully - tp={tp_price}, sl={sl_price}")
-                
-                # Save to DB
-                db_account_type = "testnet" if is_testnet else "mainnet"
-                try:
-                    update_position_sltp(
-                        user_id=uid,
-                        symbol=symbol,
-                        account_type=db_account_type,
-                        sl_price=sl_price,
-                        tp_price=tp_price,
-                        respect_manual_override=True,
-                        exchange="hyperliquid"
-                    )
-                except Exception as db_err:
-                    logger.warning(f"[{uid}] {symbol} HL: Failed to save SL/TP to DB: {db_err}")
-                
-                return True
-            else:
-                logger.warning(f"[{uid}] {symbol} HL: TP/SL not set - result: {result}")
-                return False
+            return True
+        else:
+            logger.warning(f"[{uid}] {symbol} HL: TP/SL not set - result: {result}")
+            return False
         
         # NOTE: Client is pooled - do NOT close it manually!
             
