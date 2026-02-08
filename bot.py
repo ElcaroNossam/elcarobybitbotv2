@@ -6440,7 +6440,9 @@ async def _set_trading_stop_bybit(
         else:
             side_hint = None  
 
-    positions = await fetch_open_positions(uid, account_type=account_type)
+    # CRITICAL: Explicitly pass exchange="bybit" to avoid using user's default exchange
+    # User's default might be "hyperliquid" while we need Bybit positions here
+    positions = await fetch_open_positions(uid, account_type=account_type, exchange="bybit")
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
 
     if not pos_candidates:
