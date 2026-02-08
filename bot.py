@@ -8942,27 +8942,63 @@ def get_strategy_param_keyboard(strategy: str, t: dict, strat_settings: dict = N
     return InlineKeyboardMarkup(buttons)
 
 
+def _build_side_settings_header(strategy: str, side: str, strat_settings: dict) -> list:
+    """Build header lines for side settings menu showing current values."""
+    from coin_params import STRATEGY_DEFAULTS
+    
+    emoji = "📈" if side == "long" else "📉"
+    display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
+    defaults = STRATEGY_DEFAULTS.get(side, {})
+    
+    def _get_val(key, default):
+        val = strat_settings.get(f"{side}_{key}")
+        return val if val is not None else defaults.get(key, default)
+    
+    entry_pct = _get_val("percent", 3.0)
+    sl_pct = _get_val("sl_percent", 30.0)
+    tp_pct = _get_val("tp_percent", 10.0)
+    use_atr = bool(strat_settings.get(f"{side}_use_atr") or defaults.get("use_atr", False))
+    
+    atr_indicator = "📊 ATR" if use_atr else "🎯 TP"
+    
+    return [
+        f"{emoji} *{display_name} - {side.upper()} Settings*",
+        "",
+        f"📊 Entry: *{entry_pct}%* │ 🔻 SL: *{sl_pct}%* │ 🎯 TP: *{tp_pct}%*",
+        f"Mode: *{atr_indicator}*",
+    ]
+
+
 def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict = None, global_cfg: dict = None) -> InlineKeyboardMarkup:
     """Build inline keyboard for strategy LONG or SHORT settings.
     
-    Shows ALL settings for this side:
-    - Enabled toggle
-    - Entry %
+    Simplified and grouped menu (Feb 8, 2026):
+    ═══════════════════════════════════════════
+    📊 RISK MANAGEMENT
+    - Entry % (размер позиции)
     - Stop-Loss %
     - Take-Profit %
-    - Leverage
-    - Order Type (Market/Limit)
-    - Limit Offset % (when Limit selected)
-    - ATR Trailing toggle
-    - ATR Trigger % (when ATR enabled)
-    - ATR Step % (when ATR enabled)
-    - DCA toggle
-    - DCA Leg 1 % (when DCA enabled)
-    - DCA Leg 2 % (when DCA enabled)
-    - Max Positions
-    - Coins Filter
     
-    Fallback chain: strategy settings -> global_cfg (user's global) -> STRATEGY_DEFAULTS
+    📈 ATR TRAILING (динамічний SL)
+    - ATR Toggle + Trigger % + Step %
+    
+    🔒 BREAK-EVEN (SL в беззбиток)
+    - BE Toggle + Trigger %
+    
+    📉 DCA (усереднення)
+    - DCA Toggle + Leg 1 + Leg 2
+    
+    ✂️ PARTIAL TP (частковий тейк)
+    - PTP Toggle + Step 1 + Step 2
+    
+    📊 LIMITS
+    - Max Positions
+    
+    ═══════════════════════════════════════════
+    REMOVED (moved to API Settings):
+    - Enabled toggle (always enabled by default)
+    - Leverage (per-exchange in API settings)
+    - Order Type (per-exchange in API settings)
     """
     from coin_params import STRATEGY_DEFAULTS
     
@@ -8976,36 +9012,33 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
         val = settings.get(f"{side}_{key}")
         if val is not None:
             return val
-        # Try global_cfg (user's global settings)
         if key in global_cfg and global_cfg.get(key) is not None:
             return global_cfg.get(key)
-        # Final fallback to STRATEGY_DEFAULTS
         return defaults.get(key, default_val)
     
     buttons = []
     
-    # Get current values for this side (with fallback chain)
-    enabled = settings.get(f"{side}_enabled")
-    if enabled is None:
-        enabled = defaults.get("enabled", True)
-    entry = _get_val("percent", 5)
-    sl = _get_val("sl_percent", 30)
-    tp = _get_val("tp_percent", 25)
-    leverage = _get_val("leverage", 10)
-    
-    # Order type
-    order_type = settings.get(f"{side}_order_type") or global_cfg.get("global_order_type") or defaults.get("order_type", "market")
-    limit_offset = settings.get(f"{side}_limit_offset_pct") or defaults.get("limit_offset_pct", 0.1)
+    # Get current values
+    entry = _get_val("percent", 3.0)
+    sl = _get_val("sl_percent", 30.0)
+    tp = _get_val("tp_percent", 10.0)
     
     # ATR settings
     use_atr = settings.get(f"{side}_use_atr")
     if use_atr is None:
         use_atr = bool(global_cfg.get("use_atr")) if global_cfg.get("use_atr") is not None else defaults.get("use_atr", 0)
     use_atr = bool(use_atr)
-    atr_trigger = _get_val("atr_trigger_pct", 0.5)
-    atr_step = _get_val("atr_step_pct", 0.3)
+    atr_trigger = _get_val("atr_trigger_pct", 3.0)
+    atr_step = _get_val("atr_step_pct", 0.5)
     
-    # DCA settings (fallback to global_cfg)
+    # BE settings
+    be_enabled = settings.get(f"{side}_be_enabled")
+    if be_enabled is None:
+        be_enabled = defaults.get("be_enabled", 0)
+    be_enabled = bool(be_enabled)
+    be_trigger = settings.get(f"{side}_be_trigger_pct") or defaults.get("be_trigger_pct", 1.0)
+    
+    # DCA settings
     dca_enabled = settings.get(f"{side}_dca_enabled")
     if dca_enabled is None:
         dca_enabled = bool(global_cfg.get("dca_enabled")) if global_cfg.get("dca_enabled") is not None else defaults.get("dca_enabled", 0)
@@ -9013,156 +9046,111 @@ def get_strategy_side_keyboard(strategy: str, side: str, t: dict, settings: dict
     dca_pct_1 = settings.get(f"{side}_dca_pct_1") or global_cfg.get("dca_pct_1") or defaults.get("dca_pct_1", 10.0)
     dca_pct_2 = settings.get(f"{side}_dca_pct_2") or global_cfg.get("dca_pct_2") or defaults.get("dca_pct_2", 25.0)
     
-    # Position limits and coins
+    # Partial TP settings
+    ptp_enabled = settings.get(f"{side}_partial_tp_enabled")
+    if ptp_enabled is None:
+        ptp_enabled = defaults.get("partial_tp_enabled", 0)
+    ptp_enabled = bool(ptp_enabled)
+    ptp_1_trigger = settings.get(f"{side}_partial_tp_1_trigger_pct") or defaults.get("partial_tp_1_trigger_pct", 2.0)
+    ptp_1_close = settings.get(f"{side}_partial_tp_1_close_pct") or defaults.get("partial_tp_1_close_pct", 30.0)
+    ptp_2_trigger = settings.get(f"{side}_partial_tp_2_trigger_pct") or defaults.get("partial_tp_2_trigger_pct", 5.0)
+    ptp_2_close = settings.get(f"{side}_partial_tp_2_close_pct") or defaults.get("partial_tp_2_close_pct", 30.0)
+    
+    # Max positions
     max_positions = settings.get(f"{side}_max_positions") or defaults.get("max_positions", 0)
-    coins_group = settings.get(f"{side}_coins_group") or defaults.get("coins_group", "ALL")
     
-    # ─── 1. ENABLED TOGGLE ───
-    enabled_status = "✅" if enabled else "❌"
+    # ══════════════════════════════════════════════════════════════
+    # 📊 RISK MANAGEMENT GROUP
+    # ══════════════════════════════════════════════════════════════
     buttons.append([InlineKeyboardButton(
-        f"{enabled_status} {emoji} {side.upper()} {t.get('enabled', 'Enabled')}", 
-        callback_data=f"strat_side_toggle:{strategy}:{side}"
-    )])
-    
-    # ─── 2. ENTRY % ───
-    buttons.append([InlineKeyboardButton(
-        f"📊 {t.get('param_percent', 'Entry %')}: {entry}%", 
+        f"📊 📊 Entry %: {entry}%", 
         callback_data=f"strat_param:{strategy}:{side}_percent"
     )])
     
-    # ─── 3. STOP-LOSS % ───
     buttons.append([InlineKeyboardButton(
-        f"🔻 {t.get('param_sl', 'Stop-Loss %')}: {sl}%", 
+        f"🔻 🔻 Stop-Loss %: {sl}%", 
         callback_data=f"strat_param:{strategy}:{side}_sl_percent"
     )])
     
-    # ─── 4. TAKE-PROFIT % ───
     buttons.append([InlineKeyboardButton(
-        f"🎯 {t.get('param_tp', 'Take-Profit %')}: {tp}%", 
+        f"🎯 🔺 Take-Profit %: {tp}%", 
         callback_data=f"strat_param:{strategy}:{side}_tp_percent"
     )])
     
-    # ─── 5. LEVERAGE ───
-    buttons.append([InlineKeyboardButton(
-        f"⚡ {t.get('leverage', 'Leverage')}: {int(leverage)}x", 
-        callback_data=f"strat_param:{strategy}:{side}_leverage"
-    )])
-    
-    # ─── 6. ORDER TYPE ───
-    order_emoji = "🎯" if order_type == "limit" else "⚡"
-    order_label = "Limit" if order_type == "limit" else "Market"
-    buttons.append([InlineKeyboardButton(
-        f"📤 {t.get('order_type', 'Order Type')}: {order_emoji} {order_label}", 
-        callback_data=f"strat_side_order_type:{strategy}:{side}"
-    )])
-    
-    # ─── 7. LIMIT OFFSET % (only when limit order) ───
-    if order_type == "limit":
-        buttons.append([InlineKeyboardButton(
-            f"📏 {t.get('limit_offset', 'Limit Offset %')}: {limit_offset}%", 
-            callback_data=f"strat_param:{strategy}:{side}_limit_offset_pct"
-        )])
-    
-    # ─── 8. ATR TRAILING TOGGLE ───
+    # ══════════════════════════════════════════════════════════════
+    # 📈 ATR TRAILING GROUP
+    # ══════════════════════════════════════════════════════════════
     atr_status = "✅" if use_atr else "❌"
     buttons.append([InlineKeyboardButton(
         f"📊 {t.get('atr_trailing', 'ATR Trailing')}: {atr_status}", 
         callback_data=f"strat_side_atr_toggle:{strategy}:{side}"
     )])
     
-    # ─── 9. ATR PARAMS (only when ATR enabled) ───
     if use_atr:
-        buttons.append([InlineKeyboardButton(
-            f"🎯 {t.get('param_atr_trigger', 'ATR Trigger')}: {atr_trigger}%", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"📏 {t.get('param_atr_step', 'ATR Step')}: {atr_step}%", 
-            callback_data=f"strat_param:{strategy}:{side}_atr_step_pct"
-        )])
+        buttons.append([
+            InlineKeyboardButton(f"🎯 Тригер ATR %: {atr_trigger}%", callback_data=f"strat_param:{strategy}:{side}_atr_trigger_pct"),
+            InlineKeyboardButton(f"📏 ATR Step: {atr_step}%", callback_data=f"strat_param:{strategy}:{side}_atr_step_pct")
+        ])
     
-    # ─── 10. BREAK-EVEN TOGGLE ───
-    be_enabled = settings.get(f"{side}_be_enabled")
-    if be_enabled is None:
-        be_enabled = defaults.get("be_enabled", 0)
-    be_enabled = bool(be_enabled)
-    be_trigger = settings.get(f"{side}_be_trigger_pct") or defaults.get("be_trigger_pct", 1.0)
-    
+    # ══════════════════════════════════════════════════════════════
+    # 🔒 BREAK-EVEN GROUP
+    # ══════════════════════════════════════════════════════════════
     be_status = "✅" if be_enabled else "❌"
     buttons.append([InlineKeyboardButton(
-        f"🔒 {t.get('be_enabled_label', 'Break-Even')}: {be_status}", 
+        f"🔒 🔒 {t.get('be_enabled_label', 'Беззбитковість')}: {be_status}", 
         callback_data=f"strat_side_be:{strategy}:{side}:toggle"
     )])
     
-    # ─── 11. BE TRIGGER % (only when BE enabled) ───
     if be_enabled:
         buttons.append([InlineKeyboardButton(
-            f"🎯 {t.get('be_trigger_label', 'BE Trigger')}: {be_trigger}%", 
+            f"   🎯 BE Trigger: {be_trigger}%", 
             callback_data=f"strat_param:{strategy}:{side}_be_trigger_pct"
         )])
     
-    # ─── 12. DCA TOGGLE ───
+    # ══════════════════════════════════════════════════════════════
+    # 📉 DCA GROUP
+    # ══════════════════════════════════════════════════════════════
     dca_status = "✅" if dca_enabled else "❌"
     buttons.append([InlineKeyboardButton(
         f"📉 {t.get('dca_enabled', 'DCA')}: {dca_status}", 
         callback_data=f"strat_side_dca_toggle:{strategy}:{side}"
     )])
     
-    # ─── 13. DCA PARAMS (only when DCA enabled) ───
     if dca_enabled:
-        buttons.append([InlineKeyboardButton(
-            f"📉 {t.get('dca_leg1', 'DCA Leg 1')}: -{dca_pct_1}%", 
-            callback_data=f"strat_param:{strategy}:{side}_dca_pct_1"
-        )])
-        buttons.append([InlineKeyboardButton(
-            f"📉 {t.get('dca_leg2', 'DCA Leg 2')}: -{dca_pct_2}%", 
-            callback_data=f"strat_param:{strategy}:{side}_dca_pct_2"
-        )])
+        buttons.append([
+            InlineKeyboardButton(f"📉 Leg 1: -{dca_pct_1}%", callback_data=f"strat_param:{strategy}:{side}_dca_pct_1"),
+            InlineKeyboardButton(f"📉 Leg 2: -{dca_pct_2}%", callback_data=f"strat_param:{strategy}:{side}_dca_pct_2")
+        ])
     
-    # ─── 14. PARTIAL TAKE PROFIT TOGGLE (срез маржи) ───
-    ptp_enabled = settings.get(f"{side}_partial_tp_enabled")
-    if ptp_enabled is None:
-        ptp_enabled = defaults.get("partial_tp_enabled", 0)
-    ptp_enabled = bool(ptp_enabled)
-    
-    ptp_1_trigger = settings.get(f"{side}_partial_tp_1_trigger_pct") or defaults.get("partial_tp_1_trigger_pct", 2.0)
-    ptp_1_close = settings.get(f"{side}_partial_tp_1_close_pct") or defaults.get("partial_tp_1_close_pct", 30.0)
-    ptp_2_trigger = settings.get(f"{side}_partial_tp_2_trigger_pct") or defaults.get("partial_tp_2_trigger_pct", 5.0)
-    ptp_2_close = settings.get(f"{side}_partial_tp_2_close_pct") or defaults.get("partial_tp_2_close_pct", 30.0)
-    
+    # ══════════════════════════════════════════════════════════════
+    # ✂️ PARTIAL TP GROUP
+    # ══════════════════════════════════════════════════════════════
     ptp_status = "✅" if ptp_enabled else "❌"
     buttons.append([InlineKeyboardButton(
-        f"✂️ {t.get('partial_tp_label', 'Partial TP')}: {ptp_status}", 
+        f"✂️ ✂️ {t.get('partial_tp_label', 'Частковий TP')}: {ptp_status}", 
         callback_data=f"strat_side_ptp:{strategy}:{side}:toggle"
     )])
     
-    # ─── 15. PARTIAL TP PARAMS (only when enabled) ───
     if ptp_enabled:
-        # Step 1: trigger % + close %
-        buttons.append([InlineKeyboardButton(
-            f"1️⃣ +{ptp_1_trigger}% → ✂️{ptp_1_close}%", 
-            callback_data=f"strat_side_ptp:{strategy}:{side}:step1"
-        )])
-        # Step 2: trigger % + close %
-        buttons.append([InlineKeyboardButton(
-            f"2️⃣ +{ptp_2_trigger}% → ✂️{ptp_2_close}%", 
-            callback_data=f"strat_side_ptp:{strategy}:{side}:step2"
-        )])
+        buttons.append([
+            InlineKeyboardButton(f"1️⃣ +{ptp_1_trigger}%→{ptp_1_close}%", callback_data=f"strat_side_ptp:{strategy}:{side}:step1"),
+            InlineKeyboardButton(f"2️⃣ +{ptp_2_trigger}%→{ptp_2_close}%", callback_data=f"strat_side_ptp:{strategy}:{side}:step2")
+        ])
     
-    # ─── 16. MAX POSITIONS ───
-    max_pos_label = str(max_positions) if max_positions > 0 else t.get('unlimited', '∞')
+    # ══════════════════════════════════════════════════════════════
+    # 📊 LIMITS GROUP
+    # ══════════════════════════════════════════════════════════════
+    max_pos_label = str(max_positions) if max_positions > 0 else "∞"
     buttons.append([InlineKeyboardButton(
-        f"📊 {t.get('max_positions', 'Max Positions')}: {max_pos_label}", 
+        f"📊 Max Positions: {max_pos_label}", 
         callback_data=f"strat_param:{strategy}:{side}_max_positions"
     )])
     
-    # ─── COINS FILTER - REMOVED (Feb 10, 2026) ───
-    # Coins filter is now per-exchange in API Settings, not per-strategy
-    # See: api:bybit_coins and api:hl_coins in on_api_settings_cb
-    
-    # ─── BACK BUTTON ───
+    # ══════════════════════════════════════════════════════════════
+    # ⬅️ BACK BUTTON
+    # ══════════════════════════════════════════════════════════════
     buttons.append([InlineKeyboardButton(
-        t.get('btn_back', '⬅️ Back'), 
+        t.get('btn_back', '« Назад'), 
         callback_data=f"strat_set:{strategy}"
     )])
     
@@ -10298,9 +10286,27 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         emoji = "📈" if side == "long" else "📉"
         display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
-        lines = [f"{emoji} *{display_name} - {side.upper()} Settings*"]
-        lines.append("")
-        lines.append(t.get('side_settings_info', '_Configure parameters for {side} positions._').format(side=side.upper()))
+        # Build rich header with current values
+        from coin_params import STRATEGY_DEFAULTS
+        defaults = STRATEGY_DEFAULTS.get(side, {})
+        
+        def _get_side_val(key, default):
+            val = strat_settings.get(f"{side}_{key}")
+            return val if val is not None else defaults.get(key, default)
+        
+        entry_pct = _get_side_val("percent", 3.0)
+        sl_pct = _get_side_val("sl_percent", 30.0)
+        tp_pct = _get_side_val("tp_percent", 10.0)
+        use_atr = bool(strat_settings.get(f"{side}_use_atr") or defaults.get("use_atr", False))
+        
+        atr_indicator = "📊 ATR" if use_atr else "🎯 TP"
+        
+        lines = [
+            f"{emoji} *{display_name} - {side.upper()} Settings*",
+            "",
+            f"📊 Entry: *{entry_pct}%* │ 🔻 SL: *{sl_pct}%* │ 🎯 TP: *{tp_pct}%*",
+            f"Mode: *{atr_indicator}*",
+        ]
         
         await query.message.edit_text(
             "\n".join(lines),
@@ -10359,12 +10365,9 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         # Refresh side settings menu
         strat_settings = db.get_strategy_settings(uid, strategy, context["exchange"], context["account_type"])
         global_cfg = db.get_user_config(uid)  # Re-read to get updated trade_* value
-        emoji = "📈" if side == "long" else "📉"
-        display_name = STRATEGY_NAMES_MAP.get(strategy, strategy.upper())
         
-        lines = [f"{emoji} *{display_name} - {side.upper()} Settings*"]
-        lines.append("")
-        lines.append(t.get('side_settings_info', '_Configure parameters for {side} positions._').format(side=side.upper()))
+        # Build header with current values
+        lines = _build_side_settings_header(strategy, side, strat_settings)
         
         await query.message.edit_text(
             "\n".join(lines),
