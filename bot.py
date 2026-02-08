@@ -3045,6 +3045,9 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer(t.get("spot_not_enabled", "❌ Spot trading is disabled in settings"), show_alert=True)
             return
         
+        # Detect user's exchange
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        
         # Execute Smart DCA buy for all selected coins
         coins = spot_settings.get("coins", SPOT_DCA_COINS)
         base_amount = spot_settings.get("dca_amount", SPOT_DCA_DEFAULT_AMOUNT)
@@ -3054,6 +3057,11 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Use trading mode from spot settings
         account_type = spot_settings.get("trading_mode", "demo")
+        
+        # Normalize account_type for HyperLiquid
+        if user_exchange == "hyperliquid":
+            if account_type in ("demo", "real"):
+                account_type = "testnet" if account_type == "demo" else "mainnet"
         
         results = []
         total_spent = 0.0
@@ -3080,13 +3088,14 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 spot_settings=spot_settings,
                 user_id=uid,
                 account_type=account_type,
+                exchange=user_exchange,
             )
             
             if adjusted_amount <= 0:
                 skipped.append(coin)
                 continue
             
-            result = await execute_spot_dca_buy(uid, coin, adjusted_amount, account_type=account_type)
+            result = await execute_spot_dca_buy(uid, coin, adjusted_amount, account_type=account_type, exchange=user_exchange)
             if result.get("success"):
                 spent = result.get("usdt_spent", adjusted_amount)
                 results.append(f"✅ {result.get('qty', 0):.6f} {coin} (${spent:.2f})")
@@ -11697,13 +11706,21 @@ async def get_spot_ticker(user_id: int, symbol: str, account_type: str = None, e
             if not result.get("success"):
                 return {}
             
-            ticker = result.get("data", {})
-            # Convert to Bybit-like format
+            # Convert HLAdapter format to Bybit-like format
+            # HLAdapter returns: {"success": True, "mid_price": X, "mark_price": Y, "prev_day_price": Z}
+            mid_price = result.get("mid_price") or result.get("mark_price") or 0
+            prev_day_price = result.get("prev_day_price") or mid_price
+            
+            # Calculate 24h price change percentage
+            price_change_pct = 0
+            if prev_day_price and prev_day_price > 0 and mid_price:
+                price_change_pct = (mid_price - prev_day_price) / prev_day_price
+            
             return {
-                "lastPrice": str(ticker.get("price", 0)),
-                "prevPrice24h": str(ticker.get("prevDayPx", 0)),
-                "price24hPcnt": str(ticker.get("change_24h", 0) / 100) if ticker.get("change_24h") else "0",
-                "volume24h": str(ticker.get("dayNtlVlm", 0)),
+                "lastPrice": str(mid_price),
+                "prevPrice24h": str(prev_day_price),
+                "price24hPcnt": str(price_change_pct),
+                "volume24h": str(result.get("day_volume", 0)),
             }
         except Exception as e:
             logger.error(f"get_spot_ticker HL error for {symbol}: {e}")
@@ -11774,6 +11791,7 @@ async def calculate_smart_dca_amount(
     spot_settings: dict,
     user_id: int,
     account_type: str = None,
+    exchange: str = None,
 ) -> float:
     """
     Calculate the adjusted DCA amount based on the selected strategy.
@@ -11787,12 +11805,23 @@ async def calculate_smart_dca_amount(
     - momentum: Buy more in uptrends, less in downtrends
     - rsi_based: Buy more when RSI < 30 (oversold)
     
+    Supports both Bybit and HyperLiquid exchanges.
+    
     Returns the adjusted amount (0 if should skip this buy).
     """
     if strategy == "fixed":
         return base_amount
     
-    symbol = f"{coin}USDT"
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin  # HL uses just the token name
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     if strategy == "fear_greed":
         # Get Fear & Greed Index
@@ -11822,10 +11851,15 @@ async def calculate_smart_dca_amount(
         
         try:
             # Get current price
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
-            current_price = float(ticker.get("lastPrice", 0))
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
+            current_price = float(ticker.get("lastPrice") or ticker.get("mid_price") or ticker.get("mark_price") or 0)
             
-            # Get 7-day high (using klines)
+            if exchange == "hyperliquid":
+                # HL doesn't have kline API for spot, use simpler logic
+                logger.info(f"[HL] dip_buy strategy using current price only for {coin}")
+                return base_amount  # Fallback to base amount for HL
+            
+            # Get 7-day high (using klines) - Bybit only
             params = {
                 "category": "spot",
                 "symbol": symbol,
@@ -11855,7 +11889,7 @@ async def calculate_smart_dca_amount(
         # Value averaging - try to maintain steady growth
         # Buy more when below target, less when above
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             change_24h = float(ticker.get("price24hPcnt", 0)) * 100
             
             if change_24h < -5:
@@ -11884,7 +11918,7 @@ async def calculate_smart_dca_amount(
         crash_threshold = spot_settings.get("crash_threshold", -15.0)
         
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             change_24h = float(ticker.get("price24hPcnt", 0)) * 100
             
             if change_24h <= crash_threshold:
@@ -11910,10 +11944,21 @@ async def calculate_smart_dca_amount(
     if strategy == "momentum":
         # Buy more when momentum is positive (uptrend), less when negative
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             change_24h = float(ticker.get("price24hPcnt", 0)) * 100
             
-            # Get 7-day trend
+            if exchange == "hyperliquid":
+                # HL doesn't have kline API for spot, use simpler logic
+                if change_24h > 5:
+                    multiplier = 1.5
+                elif change_24h < -5:
+                    multiplier = 0.5
+                else:
+                    multiplier = 1.0
+                logger.info(f"[HL] {coin} 24h change: {change_24h:.1f}% → {multiplier:.1f}x momentum")
+                return base_amount * multiplier
+            
+            # Get 7-day trend - Bybit only
             params = {
                 "category": "spot",
                 "symbol": symbol,
@@ -11950,8 +11995,13 @@ async def calculate_smart_dca_amount(
     
     if strategy == "rsi_based":
         # Buy more when RSI is oversold (<30), less when overbought (>70)
+        if exchange == "hyperliquid":
+            # HL doesn't have kline API for spot, use fixed strategy
+            logger.info(f"[HL] rsi_based not supported for spot, using fixed amount for {coin}")
+            return base_amount
+        
         try:
-            # Get 14-day klines for RSI calculation
+            # Get 14-day klines for RSI calculation - Bybit only
             params = {
                 "category": "spot",
                 "symbol": symbol,
@@ -12290,25 +12340,40 @@ async def execute_spot_sell(
     qty: float = None,
     sell_pct: float = None,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """Execute a spot sell for a specific coin.
     
     Args:
         user_id: Telegram user ID
-        coin: Coin to sell (e.g., "BTC", "ETH")
+        coin: Coin to sell (e.g., "BTC", "ETH", "PURR")
         qty: Quantity to sell (in base coin). If None, use sell_pct.
         sell_pct: Percentage of holdings to sell (0-100). Used if qty is None.
-        account_type: 'demo', 'real', or None
+        account_type: 'demo', 'real' (Bybit) or 'testnet', 'mainnet' (HL)
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
         
     Returns:
         dict with result info
     """
-    symbol = f"{coin}USDT"
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin.upper()  # HL uses just token name
+        # Normalize account_type for HL
+        if account_type in ("demo", "real"):
+            account_type = "testnet" if account_type == "demo" else "mainnet"
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     # Get current balance if we need to calculate qty from percentage
     if qty is None:
-        balances = await fetch_spot_balance(user_id, account_type=account_type)
-        coin_balance = balances.get(coin, 0)
+        balances = await fetch_spot_balance(user_id, account_type=account_type, exchange=exchange)
+        coin_balance = balances.get(coin.upper(), 0)
         
         if coin_balance <= 0:
             return {"success": False, "error": f"No {coin} balance to sell"}
@@ -12326,7 +12391,7 @@ async def execute_spot_sell(
         return {"success": False, "error": "Invalid quantity"}
     
     # Get current price
-    ticker = await get_spot_ticker(user_id, symbol, account_type)
+    ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
     if not ticker:
         return {"success": False, "error": f"Could not get price for {symbol}"}
     
@@ -12342,6 +12407,7 @@ async def execute_spot_sell(
             qty=qty,
             order_type="Market",
             account_type=account_type,
+            exchange=exchange,
         )
         
         usdt_received = qty * current_price
@@ -12389,11 +12455,23 @@ async def execute_spot_sell(
 async def check_spot_tp_levels(
     user_id: int,
     account_type: str = None,
+    exchange: str = None,
 ) -> list:
     """Check all spot holdings for TP level triggers and execute sells if needed.
     
+    Args:
+        user_id: Telegram user ID
+        account_type: Account type
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
+    
     Returns list of executed sells.
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings") or {}
     
@@ -12413,10 +12491,14 @@ async def check_spot_tp_levels(
         if avg_price <= 0 or total_qty <= 0:
             continue
         
-        symbol = f"{coin}USDT"
+        # Build symbol based on exchange
+        if exchange == "hyperliquid":
+            symbol = coin.upper()
+        else:
+            symbol = f"{coin}USDT"
         
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             if not ticker:
                 continue
             
@@ -12440,13 +12522,14 @@ async def check_spot_tp_levels(
                 
                 # Check if gain reached this level
                 if gain_pct >= level_gain:
-                    logger.info(f"Spot TP triggered: {coin} +{gain_pct:.1f}% >= {level_gain}%, selling {level_sell_pct}%")
+                    logger.info(f"Spot TP triggered: {coin} +{gain_pct:.1f}% >= {level_gain}%, selling {level_sell_pct}% (exchange={exchange})")
                     
                     result = await execute_spot_sell(
                         user_id=user_id,
                         coin=coin,
                         sell_pct=level_sell_pct,
                         account_type=account_type,
+                        exchange=exchange,
                     )
                     
                     if result.get("success"):
@@ -12461,6 +12544,7 @@ async def check_spot_tp_levels(
                             "sell_pct": level_sell_pct,
                             "qty_sold": result.get("qty_sold", 0),
                             "usdt_received": result.get("usdt_received", 0),
+                            "exchange": exchange,
                         })
                     else:
                         logger.error(f"Spot TP sell failed: {result.get('error')}")
@@ -12479,11 +12563,23 @@ async def check_spot_tp_levels(
 async def rebalance_spot_portfolio(
     user_id: int,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """Rebalance spot portfolio to match target allocation.
     
     Sells over-allocated coins and buys under-allocated coins.
+    
+    Args:
+        user_id: Telegram user ID
+        account_type: Account type
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings") or {}
     
@@ -12498,26 +12594,29 @@ async def rebalance_spot_portfolio(
         return {"success": False, "error": "No target allocation defined"}
     
     # Get current holdings
-    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    balances = await fetch_spot_balance(user_id, account_type=account_type, exchange=exchange)
     
     # Calculate current portfolio value
     total_value = 0.0
     coin_values = {}
     
+    # Determine quote currency based on exchange
+    quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
+    
     for coin in allocation.keys():
         qty = balances.get(coin, 0)
         if qty > 0:
-            symbol = f"{coin}USDT"
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            symbol = coin if exchange == "hyperliquid" else f"{coin}USDT"
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             if ticker:
                 price = float(ticker.get("lastPrice", 0))
                 value = qty * price
                 coin_values[coin] = value
                 total_value += value
     
-    # Add USDT as available cash
-    usdt_balance = balances.get("USDT", 0)
-    total_portfolio = total_value + usdt_balance
+    # Add quote currency as available cash
+    quote_balance = balances.get(quote_currency, 0)
+    total_portfolio = total_value + quote_balance
     
     if total_portfolio < 10:  # Minimum $10 to rebalance
         return {"success": False, "error": "Portfolio too small to rebalance"}
@@ -12541,20 +12640,20 @@ async def rebalance_spot_portfolio(
     
     results = {"sells": [], "buys": [], "total_rebalanced": 0.0}
     
-    # Execute sells first to free up USDT
+    # Execute sells first to free up quote currency
     for trade in trades["sell"]:
         coin = trade["coin"]
         usdt_to_sell = trade["usdt"]
         
-        symbol = f"{coin}USDT"
-        ticker = await get_spot_ticker(user_id, symbol, account_type)
+        symbol = coin if exchange == "hyperliquid" else f"{coin}USDT"
+        ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
         if not ticker:
             continue
         
         price = float(ticker.get("lastPrice", 0))
         qty_to_sell = usdt_to_sell / price if price > 0 else 0
         
-        result = await execute_spot_sell(user_id, coin, qty=qty_to_sell, account_type=account_type)
+        result = await execute_spot_sell(user_id, coin, qty=qty_to_sell, account_type=account_type, exchange=exchange)
         if result.get("success"):
             results["sells"].append(f"Sold {qty_to_sell:.6f} {coin}")
             results["total_rebalanced"] += result.get("usdt_received", 0)
@@ -12564,7 +12663,7 @@ async def rebalance_spot_portfolio(
         coin = trade["coin"]
         usdt_to_buy = trade["usdt"]
         
-        result = await execute_spot_dca_buy(user_id, coin, usdt_to_buy, account_type=account_type)
+        result = await execute_spot_dca_buy(user_id, coin, usdt_to_buy, account_type=account_type, exchange=exchange)
         if result.get("success"):
             results["buys"].append(f"Bought {result.get('qty', 0):.6f} {coin}")
             results["total_rebalanced"] += result.get("usdt_spent", 0)
@@ -12578,6 +12677,7 @@ async def rebalance_spot_portfolio(
 async def check_spot_trailing_tp(
     user_id: int,
     account_type: str = None,
+    exchange: str = None,
 ) -> list:
     """
     Check spot holdings for trailing TP triggers.
@@ -12587,8 +12687,19 @@ async def check_spot_trailing_tp(
     2. Track peak price after activation
     3. If price drops trail_pct from peak -> sell
     
+    Args:
+        user_id: Telegram user ID
+        account_type: Account type
+        exchange: 'bybit' or 'hyperliquid' (auto-detected if None)
+    
     Returns list of executed sells.
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    exchange = exchange.lower()
+    
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings") or {}
     
@@ -12605,7 +12716,7 @@ async def check_spot_trailing_tp(
     executed_sells = []
     state_changed = False
     
-    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    balances = await fetch_spot_balance(user_id, account_type=account_type, exchange=exchange)
     
     for coin, coin_history in purchase_history.items():
         avg_price = coin_history.get("avg_price", 0)
@@ -12615,14 +12726,15 @@ async def check_spot_trailing_tp(
             continue
         
         # Check actual balance
-        actual_qty = balances.get(coin, 0)
+        actual_qty = balances.get(coin.upper(), 0)
         if actual_qty < 0.00001:
             continue
         
-        symbol = f"{coin}USDT"
+        # Build symbol based on exchange
+        symbol = coin if exchange == "hyperliquid" else f"{coin}USDT"
         
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             if not ticker:
                 continue
             
@@ -12641,7 +12753,7 @@ async def check_spot_trailing_tp(
                     coin_state["activation_gain"] = gain_pct
                     trailing_state[coin] = coin_state
                     state_changed = True
-                    logger.info(f"[SPOT-TRAIL] {coin} trailing activated at +{gain_pct:.1f}%, peak=${current_price:.4f}")
+                    logger.info(f"[SPOT-TRAIL] {coin} trailing activated at +{gain_pct:.1f}%, peak=${current_price:.4f} (exchange={exchange})")
             else:
                 # Trailing is active - update peak and check for trigger
                 peak = coin_state.get("peak_price", current_price)
@@ -12658,13 +12770,14 @@ async def check_spot_trailing_tp(
                     
                     if drop_from_peak >= trail_pct:
                         # TRIGGER! Sell all
-                        logger.info(f"[SPOT-TRAIL] {coin} TRIGGER! Peak=${peak:.4f}, now=${current_price:.4f}, drop={drop_from_peak:.1f}%")
+                        logger.info(f"[SPOT-TRAIL] {coin} TRIGGER! Peak=${peak:.4f}, now=${current_price:.4f}, drop={drop_from_peak:.1f}% (exchange={exchange})")
                         
                         result = await execute_spot_sell(
                             user_id=user_id,
                             coin=coin,
                             qty=actual_qty,
                             account_type=account_type,
+                            exchange=exchange,
                         )
                         
                         if result.get("success"):
@@ -12678,6 +12791,7 @@ async def check_spot_trailing_tp(
                                 "gain_pct": final_gain,
                                 "peak_price": peak,
                                 "sell_price": current_price,
+                                "exchange": exchange,
                             })
                             
                             # Reset state for this coin
@@ -12709,18 +12823,33 @@ async def place_spot_limit_order(
     usdt_amount: float = None,  # For Buy
     qty: float = None,          # For Sell
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """
     Place a limit order for spot.
     
     For Buy: specify usdt_amount, qty will be calculated
     For Sell: specify qty directly
+    
+    Supports both Bybit and HyperLiquid exchanges.
     """
-    symbol = f"{coin}USDT"
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    # Quote currency differs by exchange
+    quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin  # HL uses just the token name
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     if side == "Buy":
         if not usdt_amount or usdt_amount <= 0:
-            return {"success": False, "error": "Invalid USDT amount"}
+            return {"success": False, "error": f"Invalid {quote_currency} amount"}
         if not price or price <= 0:
             return {"success": False, "error": "Invalid price"}
         order_qty = usdt_amount / price
@@ -12738,6 +12867,7 @@ async def place_spot_limit_order(
             order_type="Limit",
             price=price,
             account_type=account_type,
+            exchange=exchange,
         )
         
         # Save pending limit order to track
@@ -12754,6 +12884,7 @@ async def place_spot_limit_order(
             "price": price,
             "qty": order_qty,
             "usdt": usdt_amount if side == "Buy" else order_qty * price,
+            "exchange": exchange,
             "created_ts": int(time.time()),
         })
         
@@ -12771,27 +12902,116 @@ async def place_spot_limit_order(
             "side": side,
             "price": price,
             "qty": order_qty,
+            "exchange": exchange,
         }
         
     except Exception as e:
-        logger.error(f"place_spot_limit_order error: {e}")
+        logger.error(f"[{exchange}] place_spot_limit_order error: {e}")
         return {"success": False, "error": str(e)}
 
 
-async def get_spot_open_orders(user_id: int, account_type: str = None) -> list:
-    """Get all open spot orders."""
+async def get_spot_open_orders(user_id: int, account_type: str = None, exchange: str = None) -> list:
+    """Get all open spot orders.
+    
+    Supports both Bybit and HyperLiquid exchanges.
+    """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid - get open spot orders
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                return []
+            
+            is_testnet = account_type in ("testnet", "demo", None)
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if not private_key:
+                return []
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            await adapter.initialize()
+            
+            # HL API for spot open orders
+            user_state = await adapter._client._post_info({"type": "spotClearinghouseState", "user": adapter.main_wallet_address})
+            orders = user_state.get("openOrders", [])
+            
+            # Format to match Bybit structure
+            formatted_orders = []
+            for order in orders:
+                formatted_orders.append({
+                    "orderId": str(order.get("oid", "")),
+                    "symbol": order.get("coin", ""),
+                    "side": "Buy" if order.get("side") == "A" else "Sell",  # A=Bid/Buy, B=Ask/Sell
+                    "price": str(order.get("limitPx", 0)),
+                    "qty": str(order.get("sz", 0)),
+                    "orderStatus": "New",
+                })
+            return formatted_orders
+        except Exception as e:
+            logger.error(f"[HL] get_spot_open_orders error: {e}")
+            return []
+    
+    # Bybit
     try:
         params = {"category": "spot"}
         res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params, account_type=account_type)
         orders = res.get("list", [])
         return orders
     except Exception as e:
-        logger.error(f"get_spot_open_orders error: {e}")
+        logger.error(f"[Bybit] get_spot_open_orders error: {e}")
         return []
 
 
-async def cancel_spot_order(user_id: int, symbol: str, order_id: str, account_type: str = None) -> dict:
-    """Cancel a spot order."""
+async def cancel_spot_order(user_id: int, symbol: str, order_id: str, account_type: str = None, exchange: str = None) -> dict:
+    """Cancel a spot order.
+    
+    Supports both Bybit and HyperLiquid exchanges.
+    """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid cancel spot order
+        try:
+            hl_creds = db.get_hl_credentials(user_id)
+            if not hl_creds:
+                return {"success": False, "error": "No HyperLiquid credentials"}
+            
+            is_testnet = account_type in ("testnet", "demo", None)
+            private_key = hl_creds.get("hl_testnet_private_key" if is_testnet else "hl_mainnet_private_key")
+            if not private_key:
+                private_key = hl_creds.get("hl_private_key")
+                is_testnet = hl_creds.get("hl_testnet", False)
+            
+            if not private_key:
+                return {"success": False, "error": "No HyperLiquid private key"}
+            
+            adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+            await adapter.initialize()
+            
+            # Cancel spot order using @0 prefix
+            result = await adapter._client.cancel("@0", int(order_id))
+            
+            if result.get("status") == "ok":
+                logger.info(f"[HL] Spot order cancelled: {order_id}")
+                return {"success": True, "result": result}
+            else:
+                return {"success": False, "error": result.get("response", "Cancel failed")}
+        except Exception as e:
+            logger.error(f"[HL] cancel_spot_order error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    # Bybit
     try:
         params = {
             "category": "spot",
@@ -12801,7 +13021,7 @@ async def cancel_spot_order(user_id: int, symbol: str, order_id: str, account_ty
         res = await _bybit_request(user_id, "POST", "/v5/order/cancel", params=params, account_type=account_type)
         return {"success": True, "result": res}
     except Exception as e:
-        logger.error(f"cancel_spot_order error: {e}")
+        logger.error(f"[Bybit] cancel_spot_order error: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -12815,22 +13035,37 @@ async def setup_spot_grid(
     grid_count: int,
     total_investment: float,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
     """
     Setup a grid bot for spot trading.
     
     Creates limit buy orders at regular intervals from price_low to current price,
     and prepares sell levels above current price.
+    
+    Supports both Bybit and HyperLiquid exchanges.
     """
-    symbol = f"{coin}USDT"
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    # Quote currency differs by exchange
+    quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin  # HL uses just the token name
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     try:
         # Get current price
-        ticker = await get_spot_ticker(user_id, symbol, account_type)
+        ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
         if not ticker:
             return {"success": False, "error": f"Could not get price for {symbol}"}
         
-        current_price = float(ticker.get("lastPrice", 0))
+        current_price = float(ticker.get("lastPrice") or ticker.get("mid_price") or ticker.get("mark_price") or 0)
         if current_price <= 0:
             return {"success": False, "error": "Invalid current price"}
         
@@ -12868,6 +13103,7 @@ async def setup_spot_grid(
                     price=level["price"],
                     usdt_amount=level["usdt"],
                     account_type=account_type,
+                    exchange=exchange,
                 )
                 
                 if result.get("success"):
@@ -12891,6 +13127,7 @@ async def setup_spot_grid(
             "active": True,
             "realized_profit": 0.0,
             "trades_count": 0,
+            "exchange": exchange,
         }
         
         spot_settings["grids"] = grids
@@ -13042,8 +13279,11 @@ async def check_spot_grids(user_id: int, account_type: str = None) -> list:
     return events
 
 
-async def stop_spot_grid(user_id: int, coin: str, account_type: str = None) -> dict:
-    """Stop a grid bot and cancel all its orders."""
+async def stop_spot_grid(user_id: int, coin: str, account_type: str = None, exchange: str = None) -> dict:
+    """Stop a grid bot and cancel all its orders.
+    
+    Supports both Bybit and HyperLiquid exchanges.
+    """
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings") or {}
     grids = spot_settings.get("grids", {})
@@ -13052,14 +13292,24 @@ async def stop_spot_grid(user_id: int, coin: str, account_type: str = None) -> d
         return {"success": False, "error": f"No grid found for {coin}"}
     
     grid_config = grids[coin]
-    symbol = f"{coin}USDT"
+    
+    # Get exchange from grid config or detect
+    if exchange is None:
+        exchange = grid_config.get("exchange") or db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    # Build symbol based on exchange
+    if exchange == "hyperliquid":
+        symbol = coin  # HL uses just the token name
+    else:
+        symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
     
     # Cancel all open orders
     cancelled = 0
     for level in grid_config.get("levels", []):
         order_id = level.get("order_id")
         if order_id and not level.get("filled"):
-            result = await cancel_spot_order(user_id, symbol, order_id, account_type)
+            result = await cancel_spot_order(user_id, symbol, order_id, account_type, exchange)
             if result.get("success"):
                 cancelled += 1
     
@@ -13077,12 +13327,13 @@ async def stop_spot_grid(user_id: int, coin: str, account_type: str = None) -> d
         "orders_cancelled": cancelled,
         "total_profit": grid_config.get("realized_profit", 0),
         "total_trades": grid_config.get("trades_count", 0),
+        "exchange": exchange,
     }
 
 
 # ==================== SPOT PORTFOLIO STATS ====================
 
-async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> dict:
+async def get_spot_portfolio_stats(user_id: int, account_type: str = None, exchange: str = None) -> dict:
     """
     Get comprehensive spot portfolio statistics.
     
@@ -13091,14 +13342,24 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
     - Profit/loss per coin
     - Overall P&L
     - Comparison with HODL BTC
+    
+    Supports both Bybit and HyperLiquid exchanges.
     """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
+    # Quote currency differs by exchange
+    quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
+    
     cfg = db.get_user_config(user_id)
     spot_settings = cfg.get("spot_settings") or {}
     purchase_history = spot_settings.get("purchase_history", {})
     total_invested = spot_settings.get("total_invested", 0)
     
     # Get current balances and prices
-    balances = await fetch_spot_balance(user_id, account_type=account_type)
+    balances = await fetch_spot_balance(user_id, account_type=account_type, exchange=exchange)
     
     coins_stats = []
     total_current_value = 0
@@ -13115,13 +13376,18 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
         # Get actual balance (may differ if user traded outside bot)
         actual_qty = balances.get(coin, 0)
         
-        symbol = f"{coin}USDT"
+        # Build symbol based on exchange
+        if exchange == "hyperliquid":
+            symbol = coin  # HL uses just the token name
+        else:
+            symbol = f"{coin}USDT"  # Bybit uses COINUSDT format
+        
         try:
-            ticker = await get_spot_ticker(user_id, symbol, account_type)
+            ticker = await get_spot_ticker(user_id, symbol, account_type, exchange)
             if not ticker:
                 continue
             
-            current_price = float(ticker.get("lastPrice", 0))
+            current_price = float(ticker.get("lastPrice") or ticker.get("mid_price") or ticker.get("mark_price") or 0)
             change_24h = float(ticker.get("price24hPcnt", 0)) * 100
             
             current_value = actual_qty * current_price
@@ -13146,11 +13412,11 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
             total_cost_basis += total_cost
             
         except Exception as e:
-            logger.error(f"get_spot_portfolio_stats error for {coin}: {e}")
+            logger.error(f"[{exchange}] get_spot_portfolio_stats error for {coin}: {e}")
     
-    # Add USDT balance
-    usdt_balance = balances.get("USDT", 0)
-    total_current_value += usdt_balance
+    # Add quote currency balance
+    quote_balance = balances.get(quote_currency, 0)
+    total_current_value += quote_balance
     
     # Calculate overall P&L
     overall_pnl_value = total_current_value - total_cost_basis
@@ -13160,9 +13426,10 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
     btc_comparison = None
     if total_invested > 0:
         try:
-            btc_ticker = await get_spot_ticker(user_id, "BTCUSDT", account_type)
+            btc_symbol = "BTC" if exchange == "hyperliquid" else "BTCUSDT"
+            btc_ticker = await get_spot_ticker(user_id, btc_symbol, account_type, exchange)
             if btc_ticker:
-                btc_price = float(btc_ticker.get("lastPrice", 0))
+                btc_price = float(btc_ticker.get("lastPrice") or btc_ticker.get("mid_price") or btc_ticker.get("mark_price") or 0)
                 # Get historical price when user started (approximation using first purchase)
                 first_purchase_ts = None
                 for history in purchase_history.values():
@@ -13183,7 +13450,7 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
                     "btc_qty_if_hodl": btc_qty_if_hodl,
                 }
         except Exception as e:
-            logger.error(f"BTC comparison error: {e}")
+            logger.error(f"[{exchange}] BTC comparison error: {e}")
     
     # Sort by value descending
     coins_stats.sort(key=lambda x: x["current_value"], reverse=True)
@@ -13192,11 +13459,13 @@ async def get_spot_portfolio_stats(user_id: int, account_type: str = None) -> di
         "coins": coins_stats,
         "total_current_value": total_current_value,
         "total_cost_basis": total_cost_basis,
-        "usdt_balance": usdt_balance,
+        "quote_balance": quote_balance,
+        "quote_currency": quote_currency,
         "overall_pnl_value": overall_pnl_value,
         "overall_pnl_pct": overall_pnl_pct,
         "total_invested": total_invested,
         "btc_comparison": btc_comparison,
+        "exchange": exchange,
     }
 
 
@@ -13206,8 +13475,17 @@ async def execute_dca_plan(
     user_id: int,
     plan: dict,
     account_type: str = None,
+    exchange: str = None,
 ) -> dict:
-    """Execute a single DCA plan."""
+    """Execute a single DCA plan.
+    
+    Supports both Bybit and HyperLiquid exchanges.
+    """
+    # Detect exchange if not provided
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    exchange = exchange.lower()
+    
     coins = plan.get("coins", [])
     amount = plan.get("amount", 10.0)
     strategy = plan.get("strategy", "fixed")
@@ -13232,13 +13510,14 @@ async def execute_dca_plan(
             spot_settings=spot_settings,
             user_id=user_id,
             account_type=account_type,
+            exchange=exchange,
         )
         
         if adjusted_amount <= 0:
             skipped.append(coin)
             continue
         
-        result = await execute_spot_dca_buy(user_id, coin, adjusted_amount, account_type=account_type)
+        result = await execute_spot_dca_buy(user_id, coin, adjusted_amount, account_type=account_type, exchange=exchange)
         if result.get("success"):
             spent = result.get("usdt_spent", adjusted_amount)
             results.append({
@@ -13257,6 +13536,7 @@ async def execute_dca_plan(
         "results": results,
         "total_spent": total_spent,
         "skipped": skipped,
+        "exchange": exchange,
     }
 
 
@@ -21263,6 +21543,7 @@ async def spot_auto_dca_loop(app: Application):
                                 spot_settings=spot_settings,
                                 user_id=uid,
                                 account_type=account_type,
+                                exchange=user_exchange,
                             )
                             
                             if adjusted_amount <= 0:
