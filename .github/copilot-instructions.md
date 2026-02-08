@@ -1,9 +1,9 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.59.0 | Обновлено: 9 февраля 2026
+# Версия: 3.60.0 | Обновлено: 10 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
-# HyperLiquid SPOT TRADING: FULL SUPPORT ✅ (Feb 9, 2026)
+# HyperLiquid SPOT TRADING: FULL INTEGRATION ✅ (Feb 10, 2026) - ALL bot.py functions
 # API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
 # =============================================
 #
@@ -50,6 +50,7 @@
 # - iOS Build 80: TestFlight with HL Unified Account support (Feb 6, 2026) ✅
 # - HyperLiquid Auto-Discovery: Main wallet auto-discovery from API wallet (Feb 7, 2026) ✅
 # - HyperLiquid SPOT Trading: Full API support via agent wallet (Feb 9, 2026) ✅
+# - HyperLiquid SPOT Full Integration: All bot.py functions support both exchanges (Feb 10, 2026) ✅
 # - Auto-Close by Timeframe: REMOVED - was disabled (all inf values) (Feb 7, 2026) ✅
 # - Full BlackRock Re-Audit: Bybit + HL order flows, 4D multitenancy, credentials (Feb 7, 2026) ✅
 # - API Settings BLOCK UI: Full refactor with Bybit/HL blocks (Feb 8, 2026) ✅
@@ -1468,6 +1469,42 @@ except Exception as e:
   - Slippage по умолчанию: 5%
 
 - **Commits:** `fix: Correct spot price rounding`, `feat: Add spot trading methods to HLAdapter`
+
+### ✅ MAJOR: Full HyperLiquid Spot Trading Integration in bot.py (Feb 10, 2026)
+- **Функционал:** Полная интеграция всех Spot функций bot.py для поддержки HyperLiquid
+- **Принцип:** Все spot функции теперь имеют параметр `exchange` и поддерживают обе биржи одинаково
+- **Обновлённые функции:**
+  | Функция | Изменения |
+  |---------|-----------|
+  | `place_spot_limit_order()` | exchange param, USDC/USDT quote currency, symbol formatting, exchange в pending_orders |
+  | `get_spot_open_orders()` | Полная HL реализация через spotClearinghouseState, форматирование ответа |
+  | `cancel_spot_order()` | HL реализация с @0 prefix для spot orders |
+  | `setup_spot_grid()` | exchange detection, get_spot_ticker с exchange, exchange в grid config |
+  | `stop_spot_grid()` | exchange из grid config или auto-detect |
+  | `get_spot_portfolio_stats()` | quote_currency логика, fetch_spot_balance с exchange |
+  | `calculate_smart_dca_amount()` | HL fallbacks для kline-зависимых стратегий |
+  | `execute_dca_plan()` | exchange param propagation |
+  | `buy_now` callback | exchange detection + account_type normalization |
+- **Ключевые паттерны:**
+  ```python
+  # Exchange detection
+  if exchange is None:
+      exchange = db.get_exchange_type(user_id) or "bybit"
+  exchange = exchange.lower()
+  
+  # Quote currency
+  quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
+  
+  # Symbol format
+  symbol = coin if exchange == "hyperliquid" else f"{coin}USDT"
+  
+  # Price extraction
+  price = float(ticker.get("lastPrice") or ticker.get("mid_price") or ticker.get("mark_price") or 0)
+  ```
+- **HL Spot Limitations:**
+  - Нет kline API → dip_buy, momentum, rsi_based стратегии возвращают base_amount
+  - Используется 24h change для упрощённой momentum логики
+- **Commit:** `29bf576`
 
 ### ✅ CRITICAL: HLAdapter Auto-Discovery - Remove Hardcoded main_wallet_address (Feb 7, 2026)
 - **Проблема:** Баланс HyperLiquid показывал $0 во всех местах (бот, веб, iOS)
@@ -3113,7 +3150,7 @@ await adapter._client.cancel("@0", order_id)  # @0 = spot asset reference
 |------|-------------|
 | `hyperliquid/client.py` | Low-level spot API: `spot_market_buy()`, `spot_market_sell()`, `get_spot_balances()` |
 | `hl_adapter.py` | High-level adapter: `spot_buy()`, `spot_sell()`, `get_spot_balances()` |
-| `bot.py` | Spot Auto DCA loop (TODO: integrate) |
+| `bot.py` | ALL Spot functions: place_spot_limit_order, get_spot_open_orders, cancel_spot_order, setup_spot_grid, stop_spot_grid, get_spot_portfolio_stats, calculate_smart_dca_amount, execute_dca_plan - **FULL EXCHANGE SUPPORT** |
 
 ### Important Constraints
 
@@ -4010,8 +4047,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 9 февраля 2026*
-*Version: 3.59.0*
+*Last updated: 10 февраля 2026*
+*Version: 3.60.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -4038,5 +4075,5 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Design System 2026: Glassmorphism, deeper dark (#050505), gradient accents, neon highlights*
 *API Settings BLOCK UI: Bybit (Demo/Real) + HyperLiquid (Testnet/Mainnet) blocks (Feb 8, 2026) ✅*
 *Routing Policy: NULL=uses trading_mode, all_enabled=bypasses it (Feb 8, 2026) ✅*
-*HyperLiquid Spot Trading: FULL SUPPORT via agent wallet (Feb 9, 2026) ✅*
+*HyperLiquid Spot Trading: FULL INTEGRATION - All bot.py spot functions (Feb 10, 2026) ✅*
 
