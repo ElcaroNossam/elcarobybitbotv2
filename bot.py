@@ -6379,7 +6379,9 @@ async def _set_trading_stop_hyperliquid(
         # Set TP/SL via HyperLiquid API
         # Use adapter.main_wallet_address which is auto-discovered for Unified Account support
         coin = hl_symbol_to_coin(symbol)
+        logger.info(f"[{uid}] {symbol} HL: Calling set_tp_sl(coin={coin}, tp={tp_price}, sl={sl_price})")
         result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=adapter.main_wallet_address)
+        logger.info(f"[{uid}] {symbol} HL: set_tp_sl raw result: {result}")
         
         # Check results
         success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
