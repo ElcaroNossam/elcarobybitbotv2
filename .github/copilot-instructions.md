@@ -1,9 +1,9 @@
 0x211a5a4bfb4d86b3ceeb9081410513cf9502058c7503e8ea7b7126b604714f9e# Enliko Trading Platform - AI Coding Guidelines
 # =============================================
-# Версия: 3.57.0 | Обновлено: 7 февраля 2026
+# Версия: 3.58.0 | Обновлено: 8 февраля 2026
 # BlackRock-Level Deep Audit: PASSED ✅ (Feb 7, 2026) - FULL RE-AUDIT
 # HyperLiquid Auto-Discovery: FULL SUPPORT ✅ (Feb 7, 2026)
-# Auto-Close by Timeframe: REMOVED ✅ (Feb 7, 2026)
+# API Settings BLOCK UI: COMPLETE ✅ (Feb 8, 2026)
 # =============================================
 #
 # ╔═══════════════════════════════════════════════════════════════════════════════╗
@@ -50,6 +50,8 @@
 # - HyperLiquid Auto-Discovery: Main wallet auto-discovery from API wallet (Feb 7, 2026) ✅
 # - Auto-Close by Timeframe: REMOVED - was disabled (all inf values) (Feb 7, 2026) ✅
 # - Full BlackRock Re-Audit: Bybit + HL order flows, 4D multitenancy, credentials (Feb 7, 2026) ✅
+# - API Settings BLOCK UI: Full refactor with Bybit/HL blocks (Feb 8, 2026) ✅
+# - Routing Policy Fix: NULL uses trading_mode, all_enabled bypasses it (Feb 8, 2026) ✅
 
 ---
 
@@ -1325,6 +1327,53 @@ except Exception as e:
 ---
 
 # 🔧 RECENT FIXES (Январь-Февраль 2026)
+
+### ✅ FEAT: API Settings BLOCK UI Refactor (Feb 8, 2026)
+- **Изменение:** Полная реструктуризация меню API Settings с блочной структурой
+- **Новая структура:**
+  ```
+  🔑 API Keys & Exchanges
+  
+  ═══ 🟠 BYBIT ═══  🟢 Trading
+  [🧪 Demo: ✅/❌]  [💼 Real: ✅/❌]
+  [🔄 Test Demo]   [🔄 Test Real]
+  [🗑 Clear Demo]  [🗑 Clear Real]
+  [Margin: CROSS]  [Trading: 🟢 ON]
+  
+  ═══ 🔷 HYPERLIQUID ═══  🟢 Trading
+  [🧪 Testnet: ✅/❌]  [🌐 Mainnet: ✅/❌]
+  [🔄 Test Connection]
+  [🗑 Clear Testnet]  [🗑 Clear Mainnet]
+  [Margin: CROSS]  [Trading: 🟢 ON]
+  
+  ═══ ⚙️ GLOBAL ═══
+  [🔀 Trade Both Exchanges: 🔴 OFF]
+  [❌ Close]
+  ```
+- **Новые функции:**
+  | Функция | Описание |
+  |---------|----------|
+  | `_mask_wallet()` | Маскирует wallet address: `0x5a19...67ec` |
+  | Bybit 2-step setup | Key → Secret flow |
+  | HL network-specific setup | Testnet и Mainnet отдельно |
+  | Auto wallet derivation | `eth_account.Account.from_key()` |
+- **Новые callback handlers:**
+  - `api:bybit_demo_setup`, `api:bybit_real_setup` - настройка Bybit
+  - `api:hl_setup_testnet`, `api:hl_setup_mainnet` - настройка HL
+  - `api:hl_clear_testnet`, `api:hl_clear_mainnet` - очистка credentials
+  - `api:test_hl` - тест обоих HL сетей
+- **Commit:** `02d3aea`
+
+### ✅ FIX: Routing Policy NULL vs all_enabled (Feb 8, 2026)
+- **Проблема:** Сделки открывались на обоих сетях HL (testnet И mainnet) несмотря на `trading_mode='demo'`
+- **Причина:** `routing_policy = 'all_enabled'` полностью игнорирует `trading_mode`
+- **Логика routing:**
+  | routing_policy | Поведение |
+  |----------------|-----------|
+  | `NULL` | Использует `trading_mode` (demo→testnet, real→mainnet, both→оба) |
+  | `all_enabled` | Торгует на ВСЕХ настроенных сетях, игнорируя `trading_mode` |
+- **Fix:** `UPDATE users SET routing_policy = NULL WHERE user_id = X`
+- **Рекомендация:** Большинству пользователей нужен `routing_policy = NULL`
 
 ### ✅ CLEANUP: Auto-Close by Timeframe REMOVED (Feb 7, 2026)
 - **Удалено:** Функционал автоматического закрытия позиций по таймфрейму
@@ -2933,6 +2982,23 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 | **Bybit** | CEX | Demo, Real, Both | `exchanges/bybit.py`, `bot_unified.py` |
 | **HyperLiquid** | DEX | Testnet, Mainnet | `hl_adapter.py`, `hyperliquid/client.py` |
 
+## Матрица поддержки функций (Feb 8, 2026)
+
+| Функция | Bybit | HyperLiquid | Примечание |
+|---------|-------|-------------|------------|
+| **Perpetual Futures** | ✅ | ✅ | Основной режим торговли |
+| **Spot Trading** | ✅ | ❌ | HL - только perps |
+| **Spot Auto DCA** | ✅ | ❌ | `spot_auto_dca_loop()` - Bybit only |
+| **ATR Trailing Stop** | ✅ | ✅ | `_set_trading_stop_hyperliquid()` |
+| **Break-Even (BE)** | ✅ | ✅ | SL → Entry price |
+| **Partial Take Profit** | ✅ | ✅ | Step1 + Step2 закрытие |
+| **DCA (добор)** | ✅ | ✅ | `dca_10_done`, `dca_25_done` |
+| **Limit Orders** | ✅ | ✅ | `pending_limit_orders` table |
+| **Market Orders** | ✅ | ✅ | Основной тип ордеров |
+| **Leverage Setting** | ✅ | ✅ | Per-strategy leverage |
+| **SL/TP Orders** | ✅ | ✅ | Одинаковая валидация |
+| **Unified Account** | N/A | ✅ | Spot↔Perp баланс |
+
 ## Унифицированная структура API Settings
 
 ### Bybit API Settings
@@ -2971,6 +3037,13 @@ journalctl -u elcaro-bot | grep "ATR-CHECK\|ATR-TRAIL" | tail -30
 ```python
 # Получить активную биржу пользователя
 exchange = db.get_exchange_type(uid)  # 'bybit' | 'hyperliquid'
+
+# Режим торговли 
+trading_mode = db.get_trading_mode(uid)  # 'demo' | 'real' | 'both'
+
+# routing_policy определяет поведение:
+# NULL - использует trading_mode (demo→testnet, real→mainnet)
+# 'all_enabled' - торгует на ВСЕХ настроенных сетях
 
 # Роутинг через exchange_router.py
 await place_order_universal(uid, symbol, side, ...)  # Автоматически выбирает биржу
@@ -3811,8 +3884,8 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 
 ---
 
-*Last updated: 6 февраля 2026*
-*Version: 3.54.0*
+*Last updated: 8 февраля 2026*
+*Version: 3.58.0*
 *Database: PostgreSQL 14 (SQLite removed)*
 *WebApp API: All files migrated to PostgreSQL (marketplace, admin, backtest)*
 *Multitenancy: 4D isolation (user_id, strategy, side, exchange)*
@@ -3827,7 +3900,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *Main Menu: 4-row keyboard, Terminal button in MenuButton*
 *Translations: 15 languages, 1540+ keys, common button keys*
 *Cross-Platform Sync: iOS ↔ WebApp ↔ Telegram Bot ↔ Android*
-*iOS SwiftUI: 40+ files, BUILD 75 TestFlight (Feb 6, 2026) ✅*
+*iOS SwiftUI: 40+ files, BUILD 80 TestFlight (Feb 6, 2026) ✅*
 *Android Kotlin: 30+ files, Jetpack Compose, 2026 Glassmorphism Design ✅*
 *Modern Features: Biometrics, Haptics, Animations, Shimmer, Offline-First*
 *Break-Even (BE): Per-strategy Long/Short settings*
@@ -3837,6 +3910,7 @@ xcodebuild -project EnlikoTrading.xcodeproj \
 *WebApp Service: DO NOT create separate service - runs inside start_bot.sh*
 *API Security: All financial endpoints require JWT auth + IDOR protection*
 *Design System 2026: Glassmorphism, deeper dark (#050505), gradient accents, neon highlights*
-
-
+*API Settings BLOCK UI: Bybit (Demo/Real) + HyperLiquid (Testnet/Mainnet) blocks (Feb 8, 2026) ✅*
+*Routing Policy: NULL=uses trading_mode, all_enabled=bypasses it (Feb 8, 2026) ✅*
+*HyperLiquid: PERPS ONLY - Spot/Auto DCA NOT supported*
 
