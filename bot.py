@@ -19792,6 +19792,10 @@ async def monitor_positions_loop(app: Application):
                         # Update previous symbols cache at end of processing
                         _open_syms_prev[cache_key] = open_syms.copy()
                         
+                        # Small delay after HyperLiquid processing to avoid rate limits
+                        if current_exchange == 'hyperliquid':
+                            await asyncio.sleep(1.5)  # 1.5s delay between HL users
+                        
                         pending = get_pending_limit_orders(uid, exchange=current_exchange)
                         if pending:
                             try:
