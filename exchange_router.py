@@ -215,7 +215,8 @@ def get_user_targets(user_id: int) -> list[Target]:
         logger.warning(f"Failed to get Bybit credentials for {user_id}: {e}")
     
     # Check HyperLiquid credentials
-    # Similar to Bybit: return BOTH testnet and mainnet targets when both keys exist
+    # IMPORTANT: Filter by trading_mode just like Bybit to prevent
+    # monitoring mainnet when user wants testnet only!
     try:
         hl_creds = db.get_hl_credentials(user_id)
         hl_enabled = hl_creds.get("hl_enabled")
@@ -233,23 +234,43 @@ def get_user_targets(user_id: int) -> list[Target]:
                     else:
                         has_mainnet = True
             
-            # Add testnet target if key exists
-            if has_testnet:
-                targets.append(Target(
-                    exchange=Exchange.HYPERLIQUID.value,
-                    env=Env.PAPER.value,
-                    is_enabled=True,
-                    label="HyperLiquid Testnet"
-                ))
-            
-            # Add mainnet target if key exists
-            if has_mainnet:
-                targets.append(Target(
-                    exchange=Exchange.HYPERLIQUID.value,
-                    env=Env.LIVE.value,
-                    is_enabled=True,
-                    label="HyperLiquid Mainnet"
-                ))
+            # Filter HL targets by trading_mode (same logic as Bybit!)
+            # trading_mode: demo → testnet only, real → mainnet only, both → both
+            # hl_testnet flag also affects: if True, treat demo as testnet
+            if trading_mode in ("demo", "testnet"):
+                # Demo/testnet mode: only testnet target
+                if has_testnet:
+                    targets.append(Target(
+                        exchange=Exchange.HYPERLIQUID.value,
+                        env=Env.PAPER.value,
+                        is_enabled=True,
+                        label="HyperLiquid Testnet"
+                    ))
+            elif trading_mode in ("real", "mainnet"):
+                # Real/mainnet mode: only mainnet target
+                if has_mainnet:
+                    targets.append(Target(
+                        exchange=Exchange.HYPERLIQUID.value,
+                        env=Env.LIVE.value,
+                        is_enabled=True,
+                        label="HyperLiquid Mainnet"
+                    ))
+            elif trading_mode == "both":
+                # Both mode: testnet + mainnet
+                if has_testnet:
+                    targets.append(Target(
+                        exchange=Exchange.HYPERLIQUID.value,
+                        env=Env.PAPER.value,
+                        is_enabled=True,
+                        label="HyperLiquid Testnet"
+                    ))
+                if has_mainnet:
+                    targets.append(Target(
+                        exchange=Exchange.HYPERLIQUID.value,
+                        env=Env.LIVE.value,
+                        is_enabled=True,
+                        label="HyperLiquid Mainnet"
+                    ))
     except Exception as e:
         logger.warning(f"Failed to get HL credentials for {user_id}: {e}")
     
