@@ -6471,6 +6471,30 @@ async def _set_trading_stop_hyperliquid(
             logger.debug(f"[{uid}] {symbol} HL: No valid TP/SL to set after validation")
             return True
         
+        # Check if SL/TP already set to same value (using cached SL for HL)
+        # This prevents unnecessary API calls that cause 429 rate limits
+        def _prices_close(a, b, rel_tol=1e-6, abs_tol=0.01) -> bool:
+            """Compare two prices with tolerance for floating point precision."""
+            if a is None and b is None:
+                return True
+            if a is None or b is None:
+                return False
+            return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        
+        cached_sl = _hl_sl_cache.get((uid, symbol))
+        if sl_price is not None and cached_sl is not None and _prices_close(sl_price, cached_sl):
+            logger.debug(f"[{uid}] {symbol} HL: SL already set to ~{cached_sl} (requested {sl_price}), skipping API call")
+            # If only SL was requested and it's already set, we're done
+            if tp_price is None:
+                return True
+            # Otherwise continue to set TP
+            sl_price = None
+        
+        # Final check - if nothing to set after cache check
+        if tp_price is None and sl_price is None:
+            logger.debug(f"[{uid}] {symbol} HL: All TP/SL already set, skipping API call")
+            return True
+        
         # Set TP/SL via HyperLiquid API
         # Use adapter.main_wallet_address which is auto-discovered for Unified Account support
         coin = hl_symbol_to_coin(symbol)
@@ -6584,6 +6608,19 @@ async def _set_trading_stop_bybit(
         mark = float(pos.get("markPrice"))
     except (TypeError, ValueError):
         mark = None
+
+    def _prices_equal(a, b, rel_tol=1e-6, abs_tol=0.01) -> bool:
+        """Compare two prices with tolerance for floating point precision.
+        Returns True if prices are essentially equal.
+        """
+        if a is None and b is None:
+            return True
+        if a is None or b is None:
+            return False
+        # Use both relative and absolute tolerance
+        # rel_tol: 0.0001% relative difference
+        # abs_tol: $0.01 absolute difference for very small prices
+        return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
     
     # Bybit validates SL/TP against entry price (avgPrice), not mark price
     try:
@@ -6684,8 +6721,8 @@ async def _set_trading_stop_bybit(
         else:
             sl_price = sl_candidate
 
-    if (tp_price is None or tp_price == current_tp) and (sl_price is None or sl_price == current_sl):
-        logger.debug(f"{symbol}: trading-stop unchanged (side={effective_side})")
+    if (tp_price is None or _prices_equal(tp_price, current_tp)) and (sl_price is None or _prices_equal(sl_price, current_sl)):
+        logger.debug(f"{symbol}: trading-stop unchanged (side={effective_side}, current_sl={current_sl}, sl_price={sl_price})")
         return {
             "symbol": symbol,
             "side": effective_side,
