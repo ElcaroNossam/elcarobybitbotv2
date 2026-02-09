@@ -20618,6 +20618,7 @@ async def monitor_positions_loop(app: Application):
                             
                             # HyperLiquid workaround: HL API doesn't return stopLoss in position data
                             # Use cached SL value if available (set by our set_tp_sl calls)
+                            logger.info(f"[{uid}] {sym}: current_exchange={current_exchange}, raw_sl='{raw_sl}', current_sl={current_sl}")
                             if current_sl is None and current_exchange == "hyperliquid":
                                 cached_sl = _hl_sl_cache.get((uid, sym))
                                 if cached_sl is not None:
