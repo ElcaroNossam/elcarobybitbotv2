@@ -61,7 +61,8 @@ def order_type_to_wire(order_type: Dict[str, Any]) -> Dict[str, Any]:
 
 def order_request_to_order_wire(order: Dict[str, Any], asset: int) -> Dict[str, Any]:
     coin = order.get("coin", "")
-    sz_decimals = get_size_decimals(coin)
+    # Use dynamic sz_decimals if provided, otherwise fallback to hardcoded
+    sz_decimals = order.get("_sz_decimals", get_size_decimals(coin))
     
     wire = {
         "a": asset,

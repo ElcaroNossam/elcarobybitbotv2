@@ -75,7 +75,7 @@ def _set_cached_main_wallet(api_address: str, main_wallet: str):
         _main_wallet_cache[key] = (main_wallet.lower(), time.time())
 
 
-def round_price(px: float, coin: str) -> float:
+def round_price(px: float, coin: str, sz_decimals: Optional[int] = None) -> float:
     """
     Round price according to HyperLiquid rules:
     - Prices can have up to 5 significant figures
@@ -84,7 +84,8 @@ def round_price(px: float, coin: str) -> float:
     From official SDK (examples/rounding.py):
     round(float(f"{px:.5g}"), 6 - sz_decimals)
     """
-    sz_decimals = get_size_decimals(coin)
+    if sz_decimals is None:
+        sz_decimals = get_size_decimals(coin)
     max_decimals = 6 - sz_decimals  # For perps, MAX_DECIMALS=6
     # First reduce to 5 significant figures, then limit decimal places
     return round(float(f"{px:.5g}"), max_decimals)
@@ -136,6 +137,9 @@ class HyperLiquidClient:
         self._meta_cache: Optional[Dict] = None
         self._meta_cache_time: float = 0
         self._meta_cache_ttl: float = 60
+        # Dynamic coin-to-asset mapping (built from meta API)
+        self._dynamic_coin_to_asset: Optional[Dict[str, int]] = None
+        self._dynamic_sz_decimals: Optional[Dict[str, int]] = None
         # Cached main wallet address (discovered from agent role)
         self._main_wallet_address: Optional[str] = None
         self._role_checked: bool = False
@@ -160,9 +164,57 @@ class HyperLiquidClient:
             )
             self._own_session = True
         
+        # Build dynamic coin-to-asset mapping from meta API
+        if self._dynamic_coin_to_asset is None:
+            await self._build_dynamic_mapping()
+        
         # Auto-discover main wallet for agent wallets
         if self._private_key and not self._role_checked:
             await self.discover_main_wallet()
+    
+    async def _build_dynamic_mapping(self):
+        """Build dynamic coin-to-asset and szDecimals mappings from meta API.
+        
+        This is critical because testnet and mainnet have DIFFERENT asset indices!
+        Mainnet: BTC=0, ETH=1, SOL=2, ...
+        Testnet: SOL=0, APT=1, ATOM=2, BTC=3, ETH=4, ...
+        """
+        try:
+            meta_data = await self._info_request("meta")
+            universe = meta_data.get("universe", [])
+            self._dynamic_coin_to_asset = {}
+            self._dynamic_sz_decimals = {}
+            for idx, asset in enumerate(universe):
+                name = asset.get("name", "")
+                if name:
+                    self._dynamic_coin_to_asset[name.upper()] = idx
+                    self._dynamic_sz_decimals[name.upper()] = asset.get("szDecimals", 2)
+            logger.info(f"[HL] Built dynamic mapping: {len(self._dynamic_coin_to_asset)} assets ({'testnet' if self._testnet else 'mainnet'})")
+        except Exception as e:
+            logger.warning(f"[HL] Failed to build dynamic mapping, falling back to hardcoded: {e}")
+            self._dynamic_coin_to_asset = None
+            self._dynamic_sz_decimals = None
+    
+    def get_asset_id(self, coin: str) -> Optional[int]:
+        """Get asset ID for a coin, using dynamic mapping if available."""
+        clean = coin.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
+        # Spot token format: @INDEX
+        if coin.startswith("@"):
+            try:
+                return 10000 + int(coin[1:])
+            except ValueError:
+                return None
+        if self._dynamic_coin_to_asset:
+            return self._dynamic_coin_to_asset.get(clean)
+        # Fallback to hardcoded (mainnet)
+        return coin_to_asset_id(clean)
+    
+    def get_sz_decimals(self, coin: str) -> int:
+        """Get size decimals for a coin, using dynamic mapping if available."""
+        clean = coin.upper().replace("USDT", "").replace("USDC", "").replace("PERP", "")
+        if self._dynamic_sz_decimals:
+            return self._dynamic_sz_decimals.get(clean, 2)
+        return get_size_decimals(clean)
     
     async def discover_main_wallet(self) -> Optional[str]:
         """
@@ -379,7 +431,7 @@ class HyperLiquidClient:
         
         # Batch cancel all trigger orders in a SINGLE API call to avoid 429 rate limits
         # cancel_wire_to_action supports multiple wires at once
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             logger.warning(f"[HL] Unknown coin {coin}, cannot cancel triggers")
             return []
@@ -418,11 +470,15 @@ class HyperLiquidClient:
         if order_type is None:
             order_type = {"limit": {"tif": "Gtc"}}
         
-        asset = coin_to_asset_id(coin)
+        # Use dynamic mapping (supports both testnet and mainnet)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         
-        order_req = {"coin": coin, "is_buy": is_buy, "sz": sz, "limit_px": limit_px, "reduce_only": reduce_only, "order_type": order_type}
+        # Use dynamic szDecimals
+        sz_decimals = self.get_sz_decimals(coin)
+        
+        order_req = {"coin": coin, "is_buy": is_buy, "sz": sz, "limit_px": limit_px, "reduce_only": reduce_only, "order_type": order_type, "_sz_decimals": sz_decimals}
         if cloid:
             order_req["cloid"] = cloid
         
@@ -436,7 +492,7 @@ class HyperLiquidClient:
             raise HyperLiquidError(f"Cannot get price for {coin}")
         
         limit_px = mid_price * (1 + slippage) if is_buy else mid_price * (1 - slippage)
-        limit_px = round_price(limit_px, coin)  # Fixed: use proper rounding per HyperLiquid SDK
+        limit_px = round_price(limit_px, coin, sz_decimals=self.get_sz_decimals(coin))
         
         return await self.order(coin=coin, is_buy=is_buy, sz=sz, limit_px=limit_px, reduce_only=False, order_type={"limit": {"tif": "Ioc"}}, cloid=cloid)
     
@@ -477,12 +533,12 @@ class HyperLiquidClient:
             raise HyperLiquidError(f"Cannot get price for {coin}")
         
         limit_px = mid_price * (1 + slippage) if is_buy else mid_price * (1 - slippage)
-        limit_px = round_price(limit_px, coin)  # Fixed: use proper rounding per HyperLiquid SDK
+        limit_px = round_price(limit_px, coin, sz_decimals=self.get_sz_decimals(coin))
         
         return await self.order(coin=coin, is_buy=is_buy, sz=close_size, limit_px=limit_px, reduce_only=True, order_type={"limit": {"tif": "Ioc"}}, cloid=cloid)
     
     async def cancel(self, coin: str, oid: int) -> Dict[str, Any]:
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         action = cancel_wire_to_action([{"a": asset, "o": oid}])
@@ -515,7 +571,7 @@ class HyperLiquidClient:
         return results
     
     async def update_leverage(self, coin: str, leverage: int, is_cross: bool = True) -> Dict[str, Any]:
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         nonce = get_timestamp_ms()
@@ -572,12 +628,12 @@ class HyperLiquidClient:
             logger.warning(f"[HL] Failed to cancel old triggers for {coin}, proceeding anyway: {e}")
         
         if tp_price is not None:
-            tp_price_rounded = round_price(tp_price, coin)  # Fixed: proper price rounding
+            tp_price_rounded = round_price(tp_price, coin, sz_decimals=self.get_sz_decimals(coin))
             tp_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=tp_price_rounded, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": tp_price_rounded, "tpsl": "tp"}})
             results.append({"type": "tp", "result": tp_result})
         
         if sl_price is not None:
-            sl_price_rounded = round_price(sl_price, coin)  # Fixed: proper price rounding
+            sl_price_rounded = round_price(sl_price, coin, sz_decimals=self.get_sz_decimals(coin))
             sl_result = await self.order(coin=coin, is_buy=not is_long, sz=order_size, limit_px=sl_price_rounded, reduce_only=True, order_type={"trigger": {"isMarket": True, "triggerPx": sl_price_rounded, "tpsl": "sl"}})
             results.append({"type": "sl", "result": sl_result})
         
@@ -750,7 +806,7 @@ class HyperLiquidClient:
         if order_type is None:
             order_type = {"limit": {"tif": "Gtc"}}
         
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         
@@ -832,7 +888,7 @@ class HyperLiquidClient:
         margin_change: float
     ) -> Dict[str, Any]:
         """Add or remove margin from isolated position"""
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         
@@ -857,7 +913,7 @@ class HyperLiquidClient:
         Place a TWAP (Time Weighted Average Price) order.
         Splits order into smaller pieces over duration.
         """
-        asset = coin_to_asset_id(coin)
+        asset = self.get_asset_id(coin)
         if asset is None:
             raise HyperLiquidError(f"Unknown coin: {coin}")
         
