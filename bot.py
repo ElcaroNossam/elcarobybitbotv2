@@ -5372,6 +5372,12 @@ _telegram_id_cache: dict[int, int | None] = {}  # uid -> telegram_id (None = no 
 # This prevents repeated API calls when SL is already set
 _hl_sl_cache: dict[tuple[int, str], float] = {}
 
+# HyperLiquid SL/TP fail cooldown - prevents retrying set_tp_sl every 20s when it fails
+# Key: (uid, symbol), Value: timestamp of last failure
+# Cooldown: 5 minutes between retry attempts for the same symbol
+_hl_sl_fail_cooldown: dict[tuple[int, str], float] = {}
+_HL_SL_FAIL_COOLDOWN_SEC = 300  # 5 minutes
+
 
 def get_telegram_id_for_notifications(uid: int) -> int | None:
     """
@@ -6547,6 +6553,18 @@ async def _set_trading_stop_hyperliquid(
             logger.debug(f"[{uid}] {symbol} HL: All TP/SL already set, skipping API call")
             return True
         
+        # Check fail cooldown - don't retry set_tp_sl if it recently failed (e.g. "Too many open orders")
+        fail_key = (uid, symbol)
+        last_fail = _hl_sl_fail_cooldown.get(fail_key)
+        if last_fail is not None:
+            elapsed = time.time() - last_fail
+            if elapsed < _HL_SL_FAIL_COOLDOWN_SEC:
+                logger.debug(f"[{uid}] {symbol} HL: set_tp_sl in cooldown ({elapsed:.0f}s / {_HL_SL_FAIL_COOLDOWN_SEC}s), skipping")
+                return False
+            else:
+                # Cooldown expired, remove and retry
+                _hl_sl_fail_cooldown.pop(fail_key, None)
+        
         # Set TP/SL via HyperLiquid API
         # Use adapter.main_wallet_address which is auto-discovered for Unified Account support
         coin = hl_symbol_to_coin(symbol)
@@ -6596,15 +6614,21 @@ async def _set_trading_stop_hyperliquid(
             except Exception as db_err:
                 logger.warning(f"[{uid}] {symbol} HL: Failed to save SL/TP to DB: {db_err}")
             
+            # Clear fail cooldown on success
+            _hl_sl_fail_cooldown.pop(fail_key, None)
             return True
         else:
             logger.warning(f"[{uid}] {symbol} HL: TP/SL not set - result: {result}")
+            # Set fail cooldown to prevent retrying every monitor cycle
+            _hl_sl_fail_cooldown[fail_key] = time.time()
             return False
         
         # NOTE: Client is pooled - do NOT close it manually!
             
     except Exception as e:
         logger.error(f"[{uid}] {symbol} HL set_trading_stop error: {e}")
+        # Set fail cooldown on exception too (e.g. rate limit)
+        _hl_sl_fail_cooldown[(uid, symbol)] = time.time()
         return False
 
 
@@ -20856,8 +20880,9 @@ async def monitor_positions_loop(app: Application):
                                         _deep_loss_notified.pop((uid, sym), None)
                                         # Clear new position notification cache
                                         _new_position_notified.pop((uid, sym, ap_account_type), None)
-                                        # Clear HL SL cache
+                                        # Clear HL SL cache and fail cooldown
                                         _hl_sl_cache.pop((uid, sym), None)
+                                        _hl_sl_fail_cooldown.pop((uid, sym), None)
                                     continue
                             
                                 logger.info(f"[{uid}] Closed PnL for {sym}: entry={rec.get('avgEntryPrice')}, exit={rec.get('avgExitPrice')}, pnl={rec.get('closedPnl')}")
@@ -21176,6 +21201,7 @@ async def monitor_positions_loop(app: Application):
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
                                         _hl_sl_cache.pop((uid, sym), None)  # Clear HL SL cache
+                                        _hl_sl_fail_cooldown.pop((uid, sym), None)  # Clear HL SL fail cooldown
 
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         tf_map = { ap['symbol']: ap.get('timeframe','15m') for ap in active }  # Default 15m
@@ -21944,11 +21970,14 @@ async def monitor_positions_loop(app: Application):
                                     )
                                     if should_update:
                                         try:
-                                            await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
-                                            if entry_changed:
-                                                logger.info(f"[{uid}] {sym}: ATR SL recalculated after DCA to {sl0}")
+                                            sl_result = await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                            if sl_result:
+                                                if entry_changed:
+                                                    logger.info(f"[{uid}] {sym}: ATR SL recalculated after DCA to {sl0}")
+                                                else:
+                                                    logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
                                             else:
-                                                logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
+                                                logger.debug(f"[{uid}] {sym}: ATR-initial SL set_trading_stop returned False for {sl0}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position already closed")
@@ -22035,6 +22064,7 @@ async def monitor_positions_loop(app: Application):
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)
                                         _hl_sl_cache.pop((uid, db_sym), None)  # Clear HL SL cache
+                                        _hl_sl_fail_cooldown.pop((uid, db_sym), None)  # Clear HL SL fail cooldown
                                     except Exception as e:
                                         logger.warning(f"[STALE-CLEANUP] Failed to remove {db_sym} for {uid}: {e}")
 
