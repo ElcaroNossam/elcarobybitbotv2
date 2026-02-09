@@ -15110,6 +15110,8 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
     
     This ensures Balance and Spot DCA Statistics show identical values.
     
+    OPTIMIZED: Fetches all tickers in parallel instead of sequentially.
+    
     Args:
         user_id: User ID
         coins: List of coin balances from wallet API (not used, kept for compatibility)
@@ -15141,20 +15143,44 @@ async def fetch_spot_unrealized_pnl(user_id: int, coins: list, account_type: str
     # Get spot balances using same method as format_spot_stats
     balances = await fetch_spot_balance(user_id, account_type=account_type)
     
-    # Calculate holdings value using spot ticker prices (same as DCA stats)
+    # OPTIMIZED: Fetch all tickers in parallel instead of sequentially
+    # This reduces ~N*200ms to ~200ms for N coins
+    coins_with_balance = [(coin, balances.get(coin, 0)) for coin in dca_coins if balances.get(coin, 0) > 0]
+    
+    if not coins_with_balance:
+        return {
+            "total_unrealized": 0.0,
+            "holdings_value": 0.0,
+            "total_invested": total_invested,
+            "pnl_pct": 0.0,
+            "coin_values": {}
+        }
+    
+    # Fetch all tickers in parallel
+    async def fetch_ticker_safe(coin):
+        try:
+            symbol = f"{coin}USDT"
+            return await get_spot_ticker(user_id, symbol, account_type=account_type)
+        except Exception:
+            return None
+    
+    ticker_results = await asyncio.gather(
+        *[fetch_ticker_safe(coin) for coin, _ in coins_with_balance],
+        return_exceptions=True
+    )
+    
+    # Calculate holdings value using results
     holdings_value = 0.0
     coin_values = {}
     
-    for coin in dca_coins:
-        if coin in balances and balances[coin] > 0:
-            symbol = f"{coin}USDT"
-            ticker = await get_spot_ticker(user_id, symbol, account_type=account_type)
-            if ticker:
-                price = float(ticker.get("lastPrice", 0))
-                qty = balances[coin]
-                value = qty * price
-                holdings_value += value
-                coin_values[coin] = value
+    for (coin, qty), ticker in zip(coins_with_balance, ticker_results):
+        if isinstance(ticker, Exception) or ticker is None:
+            continue
+        price = float(ticker.get("lastPrice", 0))
+        if price > 0:
+            value = qty * price
+            holdings_value += value
+            coin_values[coin] = value
     
     # Calculate PnL same as Spot DCA Statistics
     total_unrealized = holdings_value - total_invested
@@ -15693,56 +15719,80 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             
     elif exchange == "hl":
         # Fetch HyperLiquid balance for selected mode
+        # OPTIMIZED: Use cache from bot_unified to avoid rate limits and speed up display
+        from bot_unified import _get_hl_cache, _set_hl_cache
+        
         adapter = None
         try:
             testnet = (mode == "testnet")
+            account_type_for_cache = "testnet" if testnet else "mainnet"
             
-            hl_creds = get_hl_credentials(uid)
+            # Check cache first (180s TTL from bot_unified)
+            cache_key = f"balance:{uid}:{account_type_for_cache}"
+            cached_data = _get_hl_cache(cache_key)
             
-            # Get correct private key for network (multitenancy)
-            if testnet:
-                hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-                wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+            if cached_data is not None:
+                # Use cached data - instant response!
+                logger.debug(f"[{uid}] HL balance from cache (instant!)")
+                data_bal = cached_data
             else:
-                hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-                wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+                # Cache miss - fetch from API
+                hl_creds = get_hl_credentials(uid)
             
-            if not hl_private_key:
-                await query.edit_message_text(
-                    f"❌ HyperLiquid {'Testnet' if testnet else 'Mainnet'} not configured. Use 🔑 HL API to set up.",
-                    parse_mode="Markdown"
+                # Get correct private key for network (multitenancy)
+                if testnet:
+                    hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
+                    wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
+                else:
+                    hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+                    wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+                
+                if not hl_private_key:
+                    await query.edit_message_text(
+                        f"❌ HyperLiquid {'Testnet' if testnet else 'Mainnet'} not configured. Use 🔑 HL API to set up.",
+                        parse_mode="Markdown"
+                    )
+                    return
+                
+                adapter = HLAdapter(
+                    private_key=hl_private_key,
+                    testnet=testnet
+                    # main_wallet_address auto-discovered via userRole API
                 )
-                return
-            
-            adapter = HLAdapter(
-                private_key=hl_private_key,
-                testnet=testnet
-                # main_wallet_address auto-discovered via userRole API
-            )
-            
-            result = await adapter.get_balance()
-            
-            if result.get("success"):
+                
+                result = await adapter.get_balance()
+                
+                if not result.get("success"):
+                    await query.edit_message_text(
+                        f"❌ Failed to fetch balance: {result.get('error', 'Unknown error')}",
+                        parse_mode="Markdown"
+                    )
+                    return
+                
                 data_bal = result.get("data", {})
-                equity = float(data_bal.get("equity", 0))
-                available = float(data_bal.get("available", 0))
-                margin_used = float(data_bal.get("margin_used", 0))
-                total_notional = float(data_bal.get("total_notional", 0))
-                unrealized_pnl = float(data_bal.get("unrealized_pnl", 0))
-                position_value = float(data_bal.get("position_value", 0))
-                num_positions = int(data_bal.get("num_positions", 0))
-                currency = data_bal.get("currency", "USDC")
-                
-                pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
-                network = "🧪 Testnet" if testnet else "🌐 Mainnet"
-                
-                # Calculate margin level if margin used > 0
-                margin_level = ""
-                if margin_used > 0:
-                    level_pct = (equity / margin_used) * 100
-                    margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
-                
-                text = f"""
+                # Cache the result for next time
+                _set_hl_cache(cache_key, data_bal)
+            
+            # Parse balance data (works for both cached and fresh data)
+            equity = float(data_bal.get("equity", 0))
+            available = float(data_bal.get("available", 0))
+            margin_used = float(data_bal.get("margin_used", 0))
+            total_notional = float(data_bal.get("total_notional", 0))
+            unrealized_pnl = float(data_bal.get("unrealized_pnl", 0))
+            position_value = float(data_bal.get("position_value", 0))
+            num_positions = int(data_bal.get("num_positions", 0))
+            currency = data_bal.get("currency", "USDC")
+            
+            pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+            network = "🧪 Testnet" if testnet else "🌐 Mainnet"
+            
+            # Calculate margin level if margin used > 0
+            margin_level = ""
+            if margin_used > 0:
+                level_pct = (equity / margin_used) * 100
+                margin_level = f"\n📐 *Margin Level:* {level_pct:.1f}%"
+            
+            text = f"""
 💰 *HyperLiquid Balance* {network}
 
 💎 *Account Equity:* ${equity:,.2f} {currency}
@@ -15756,18 +15806,13 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
 {pnl_emoji} *Unrealized PnL:* ${unrealized_pnl:,.2f} {currency}
 """
-                keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
-                     InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
-                    [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
-                ])
-                
-                await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
-            else:
-                await query.edit_message_text(
-                    f"❌ Failed to fetch balance: {result.get('error', 'Unknown error')}",
-                    parse_mode="Markdown"
-                )
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🧪 Testnet", callback_data="balance:hl:testnet"),
+                 InlineKeyboardButton("🌐 Mainnet", callback_data="balance:hl:mainnet")],
+                [InlineKeyboardButton("🔙 Back", callback_data="menu:main")]
+            ])
+            
+            await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
                 
         except Exception as e:
             logger.error(f"Balance fetch error (HL {mode}): {e}")
