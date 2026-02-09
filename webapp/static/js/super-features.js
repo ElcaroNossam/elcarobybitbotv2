@@ -640,7 +640,7 @@ class QuickTradePanel {
         SoundEffects.play('trade');
         
         try {
-            const response = await fetch('/api/trading/place-order', {
+            const response = await fetch('/api/trading/order', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -649,9 +649,11 @@ class QuickTradePanel {
                 body: JSON.stringify({
                     symbol: this.symbol,
                     side: side === 'long' ? 'Buy' : 'Sell',
-                    order_type: 'Market',
-                    qty: amount / this.leverage,
-                    leverage: this.leverage
+                    type: 'market',
+                    size: amount / this.leverage,
+                    leverage: this.leverage,
+                    exchange: window.state?.exchange || 'bybit',
+                    account_type: window.state?.accountType || 'demo'
                 })
             });
 

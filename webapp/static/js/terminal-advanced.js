@@ -23,9 +23,13 @@ const RiskCalculator = {
 
         try {
             // Use new position calculator API endpoint (matches bot.py exactly)
+            const token = localStorage.getItem('enliko_token');
             const response = await fetch('/api/trading/calculate-position', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+                },
                 body: JSON.stringify({
                     account_balance: accountBalance,
                     entry_price: entryPrice,
@@ -100,9 +104,13 @@ const RiskCalculator = {
 
         try {
             // Use API with TP/SL
+            const token = localStorage.getItem('enliko_token');
             const response = await fetch('/api/trading/calculate-position', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+                },
                 body: JSON.stringify({
                     account_balance: accountBalance,
                     entry_price: entryPrice,
@@ -335,6 +343,10 @@ const DCABuilder = {
         if (!orders.length) return;
 
         const token = localStorage.getItem('enliko_token');
+        if (!token) {
+            Notifications.show('Please log in to trade', 'error');
+            return;
+        }
         let success = 0, failed = 0;
 
         for (const order of orders) {
@@ -351,7 +363,9 @@ const DCABuilder = {
                         type: 'limit',
                         price: order.price,
                         size: order.size,
-                        timeInForce: 'GTC'
+                        timeInForce: 'GTC',
+                        exchange: window.state?.exchange || 'bybit',
+                        account_type: window.state?.accountType || 'demo'
                     })
                 });
                 const data = await res.json();
@@ -645,7 +659,9 @@ const OneClickTrading = {
                     side,
                     type: 'market',
                     size,
-                    leverage: window.state?.leverage || 10
+                    leverage: window.state?.leverage || 10,
+                    exchange: window.state?.exchange || 'bybit',
+                    account_type: window.state?.accountType || 'demo'
                 })
             });
             const data = await res.json();

@@ -1534,8 +1534,9 @@
         }
         
         function openLeverageModal() {
-            const lev = prompt('Enter leverage (1-100):', state.leverage);
-            if (lev && !isNaN(lev) && lev >= 1 && lev <= 100) {
+            const maxLev = (state.exchange === 'hyperliquid') ? 50 : 100;
+            const lev = prompt(`Enter leverage (1-${maxLev}):`, state.leverage);
+            if (lev && !isNaN(lev) && lev >= 1 && lev <= maxLev) {
                 setLeverage(parseInt(lev));
                 document.getElementById('leverageQuick').textContent = state.leverage + 'x';
             }
@@ -1569,73 +1570,33 @@
         function initOrderbook() {
             const asks = document.getElementById('asks');
             const bids = document.getElementById('bids');
-            const basePrice = 97542.30;
-            const grouping = state.orderbookGroup;
             
-            // Generate mock orderbook with grouping
-            const askLevels = [], bidLevels = [];
-            let totalAskSize = 0, totalBidSize = 0;
+            // Show loading skeleton instead of fake data
+            const skeletonRow = () => `<div class="orderbook-row" style="opacity: 0.3;">
+                <span class="price" style="color: var(--text-muted);">---</span>
+                <span class="size" style="color: var(--text-muted);">---</span>
+                <span class="total" style="color: var(--text-muted);">---</span>
+            </div>`;
             
-            for (let i = 15; i >= 1; i--) {
-                const price = Math.ceil((basePrice + i * 3 * grouping) / grouping) * grouping;
-                const size = Math.random() * 3 + 0.1;
-                totalAskSize += size;
-                askLevels.push({ price, size, total: totalAskSize });
-            }
-            for (let i = 1; i <= 15; i++) {
-                const price = Math.floor((basePrice - i * 3 * grouping) / grouping) * grouping;
-                const size = Math.random() * 3 + 0.1;
-                totalBidSize += size;
-                bidLevels.push({ price, size, total: totalBidSize });
-            }
+            asks.innerHTML = Array(15).fill(skeletonRow()).join('');
+            bids.innerHTML = Array(15).fill(skeletonRow()).join('');
             
-            const maxAskTotal = totalAskSize;
-            const maxBidTotal = totalBidSize;
+            // Update spread to loading
+            document.getElementById('spreadValue').textContent = '...';
+            document.getElementById('spreadPercent').textContent = '...';
             
-            asks.innerHTML = askLevels.reverse().map(l => {
-                const depth = (l.total / maxAskTotal) * 100;
-                const priceStr = l.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                return `<div class="orderbook-row ask" onclick="setPrice(${l.price})">
-                    <span class="price">${priceStr}</span>
-                    <span class="size">${l.size.toFixed(4)}</span>
-                    <span class="total">${l.total.toFixed(2)}</span>
-                    <div class="depth" style="width: ${depth}%"></div>
-                </div>`;
-            }).join('');
-            
-            bids.innerHTML = bidLevels.map(l => {
-                const depth = (l.total / maxBidTotal) * 100;
-                const priceStr = l.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                return `<div class="orderbook-row bid" onclick="setPrice(${l.price})">
-                    <span class="price">${priceStr}</span>
-                    <span class="size">${l.size.toFixed(4)}</span>
-                    <span class="total">${l.total.toFixed(2)}</span>
-                    <div class="depth" style="width: ${depth}%"></div>
-                </div>`;
-            }).join('');
-            
-            // Update spread
-            const spread = askLevels[askLevels.length - 1].price - bidLevels[0].price;
-            const spreadPct = (spread / basePrice * 100).toFixed(4);
-            document.getElementById('spreadValue').textContent = '$' + spread.toFixed(2);
-            document.getElementById('spreadPercent').textContent = spreadPct + '%';
+            // Fetch real orderbook immediately
+            fetchRealOrderbook();
             
             // Init recent trades
             initRecentTrades();
         }
         
         function initRecentTrades() {
-            const trades = [];
-            const basePrice = 97542.30;
-            for (let i = 0; i < 30; i++) {
-                const isBuy = Math.random() > 0.5;
-                const price = basePrice + (Math.random() - 0.5) * 20;
-                const size = Math.random() * 0.5 + 0.01;
-                const time = new Date(Date.now() - i * 2000);
-                trades.push({ isBuy, price, size, time });
-            }
-            state.recentTrades = trades;
-            renderRecentTrades();
+            // Show loading state - real trades will come from WebSocket
+            const list = document.getElementById('tradesList');
+            list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.75rem;"><i class="fas fa-spinner fa-spin"></i> Waiting for live trades...</div>';
+            state.recentTrades = [];
         }
         
         function renderRecentTrades() {
@@ -1893,16 +1854,26 @@
                 return;
             }
             
-            tbody.innerHTML = orders.map(o => `<tr>
-                <td>${new Date(o.time).toLocaleTimeString()}</td>
+            tbody.innerHTML = orders.map(o => {
+                let timeStr = '--';
+                if (o.time) {
+                    const ts = typeof o.time === 'number' && o.time > 1e12 ? o.time : (o.time * 1000);
+                    const d = new Date(ts);
+                    if (!isNaN(d.getTime()) && d.getFullYear() > 2000) {
+                        timeStr = d.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                    }
+                }
+                return `<tr>
+                <td>${timeStr}</td>
                 <td><strong>${o.symbol}</strong></td>
                 <td>${o.type}</td>
-                <td><span class="position-side ${o.side}">${o.side.toUpperCase()}</span></td>
+                <td><span class="position-side ${o.side}">${(o.side || '').toUpperCase()}</span></td>
                 <td style="font-family: var(--font-mono);">$${parseFloat(o.price || 0).toLocaleString()}</td>
                 <td style="font-family: var(--font-mono);">${o.size}</td>
                 <td>${o.filled || 0}%</td>
                 <td><button class="action-btn close" onclick="cancelOrder('${o.id}', '${o.symbol}')">Cancel</button></td>
-            </tr>`).join('');
+            </tr>`;
+            }).join('');
         }
         
         // Quick market order with hotkey support
