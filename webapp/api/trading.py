@@ -2041,8 +2041,9 @@ async def modify_position_tpsl(
             
             # P0.8: Set manual_sltp_override in DB so bot won't overwrite
             try:
+                bybit_account_type = _normalize_both_account_type(req.account_type, "bybit")
                 db.set_manual_sltp_override(
-                    user_id, req.symbol, req.account_type, 
+                    user_id, req.symbol, bybit_account_type, 
                     sl_price=req.stop_loss, tp_price=req.take_profit
                 )
                 logger.info(f"[{user_id}] WebApp: Set manual_sltp_override for {req.symbol}")

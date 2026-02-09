@@ -514,21 +514,22 @@ async def close_position_unified(
                 'error': error or 'Failed to close position'
             }
         
-        # Remove from database with proper multitenancy params
-        exchange_for_db = 'hyperliquid' if account_type in ('testnet', 'mainnet') else 'bybit'
-        db.remove_active_position(user_id, symbol, account_type=account_type, exchange=exchange_for_db)
+        # Use the exchange parameter directly (already passed by caller)
+        exchange_for_db = exchange or ('hyperliquid' if account_type in ('testnet', 'mainnet') else 'bybit')
         
-        # Log trade
-        # Log trade
-        pnl = position.unrealized_pnl * (close_qty / position.size)
-        
-        # Get strategy from active positions - use exchange from account_type
-        positions = db.get_active_positions(user_id, account_type=account_type, exchange=exchange_for_db)
+        # CRITICAL: Read strategy from DB BEFORE removing the position!
+        active_positions_for_strategy = db.get_active_positions(user_id, account_type=account_type, exchange=exchange_for_db)
         strategy = 'unknown'
-        for pos in positions:
+        for pos in active_positions_for_strategy:
             if pos['symbol'] == symbol:
                 strategy = pos.get('strategy', 'unknown')
                 break
+        
+        # Now remove from database
+        db.remove_active_position(user_id, symbol, account_type=account_type, exchange=exchange_for_db)
+        
+        # Log trade
+        pnl = position.unrealized_pnl * (close_qty / position.size)
         
         db.add_trade_log(
             user_id=user_id,
@@ -622,14 +623,14 @@ async def set_leverage_unified(
 
 
 # Compatibility functions for gradual migration
-async def get_balance(user_id: int, account_type: str = 'demo') -> Optional[Balance]:
+async def get_balance(user_id: int, account_type: str = 'demo', exchange: str = 'bybit') -> Optional[Balance]:
     """Alias for backward compatibility"""
-    return await get_balance_unified(user_id, account_type)
+    return await get_balance_unified(user_id, exchange=exchange, account_type=account_type)
 
 
-async def get_positions(user_id: int, symbol: Optional[str] = None) -> List[Position]:
+async def get_positions(user_id: int, symbol: Optional[str] = None, exchange: str = 'bybit', account_type: str = 'demo') -> List[Position]:
     """Alias for backward compatibility"""
-    return await get_positions_unified(user_id, symbol)
+    return await get_positions_unified(user_id, symbol, exchange=exchange, account_type=account_type)
 
 
 async def place_order(
@@ -640,6 +641,7 @@ async def place_order(
     qty: float,
     price: Optional[float] = None,
     account_type: str = 'demo',
+    exchange: str = 'bybit',
     **kwargs
 ) -> Dict[str, Any]:
     """Alias for backward compatibility with old bot.py signature"""
@@ -650,6 +652,7 @@ async def place_order(
         order_type=orderType,
         qty=qty,
         price=price,
+        exchange=exchange,
         account_type=account_type,
         leverage=kwargs.get('leverage', 10),
         take_profit=kwargs.get('take_profit'),

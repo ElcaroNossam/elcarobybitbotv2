@@ -6043,14 +6043,23 @@ async def fetch_today_realized_pnl(user_id: int, tz_str: str | None = None, acco
 
 
 @log_calls
-async def fetch_last_closed_pnl(user_id: int, symbol: str, account_type: str = None) -> dict | None:
+async def fetch_last_closed_pnl(user_id: int, symbol: str, account_type: str = None, exchange: str = None) -> dict | None:
     """Fetch last closed PnL record for a symbol. Returns None if no records found.
     
     Args:
         user_id: Telegram user ID
         symbol: Trading pair symbol
-        account_type: 'demo', 'real', or None (auto-detect)
+        account_type: 'demo', 'real', 'testnet', 'mainnet', or None (auto-detect)
+        exchange: 'bybit' or 'hyperliquid', if None uses user's default
     """
+    # Determine exchange
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or 'bybit'
+    
+    if exchange == 'hyperliquid':
+        return await _fetch_last_closed_pnl_hl(user_id, symbol, account_type)
+    
+    # Bybit path (original)
     try:
         data = await _bybit_request(
             user_id,
@@ -6082,6 +6091,109 @@ async def fetch_last_closed_pnl(user_id: int, symbol: str, account_type: str = N
             logger.warning(f"[{user_id}] fetch_last_closed_pnl transient error for {symbol}: {e}")
             raise  # Let monitor loop handle it (skip, not remove)
         logger.debug(f"[{user_id}] fetch_last_closed_pnl error: {e}")
+        return None
+
+
+async def _fetch_last_closed_pnl_hl(user_id: int, symbol: str, account_type: str = None) -> dict | None:
+    """Fetch last closed PnL for HyperLiquid positions.
+    
+    Returns data in Bybit-compatible format:
+    {
+        "avgEntryPrice": str, "avgExitPrice": str,
+        "closedPnl": str, "closedSize": str,
+        "closedPnlRate": str (optional), "leverage": str (optional),
+        "symbol": str
+    }
+    """
+    try:
+        is_testnet = account_type in ("testnet", "paper", "demo")
+        hl_account_type = "testnet" if is_testnet else "mainnet"
+        
+        from core.exchange_client import get_exchange_client
+        client = await get_exchange_client(user_id, exchange_type='hyperliquid', account_type=hl_account_type)
+        adapter = client._client  # HLAdapter
+        if not adapter:
+            logger.debug(f"[{user_id}] No HL adapter available for _fetch_last_closed_pnl_hl")
+            return None
+        
+        await adapter.initialize()
+        
+        # Normalize symbol: BTCUSDT → BTC, ETHUSDC → ETH
+        coin = symbol.replace("USDT", "").replace("USDC", "").replace("USD", "")
+        
+        # Fetch fills for this user
+        fills = await adapter._client.user_fills(address=adapter._main_wallet_address)
+        
+        if not fills:
+            logger.debug(f"[{user_id}] No HL fills for {symbol}")
+            return None
+        
+        # Find the most recent closing fill for this coin
+        # A closing fill has dir like "Close Long" or "Close Short" or has closedPnl != "0.0"
+        for fill in fills:
+            fill_coin = fill.get("coin", "")
+            if fill_coin != coin:
+                continue
+            
+            closed_pnl = float(fill.get("closedPnl", "0"))
+            direction = fill.get("dir", "")
+            
+            # Skip non-closing fills
+            if closed_pnl == 0 and "Close" not in direction:
+                continue
+            
+            exit_price = float(fill.get("px", "0"))
+            size = float(fill.get("sz", "0"))
+            
+            # To compute entry price from PnL:
+            # For Close Long: pnl = (exit - entry) * size → entry = exit - pnl/size
+            # For Close Short: pnl = (entry - exit) * size → entry = exit + pnl/size
+            is_close_long = "Long" in direction or fill.get("side") == "A"  # A = sell = close long
+            if size > 0:
+                if is_close_long:
+                    entry_price = exit_price - (closed_pnl / size)
+                else:
+                    entry_price = exit_price + (closed_pnl / size)
+            else:
+                entry_price = exit_price
+            
+            # Get leverage from position (if available from active_positions DB)
+            ap_list = db.get_active_positions(user_id, account_type=account_type, exchange="hyperliquid")
+            leverage = "10"
+            for ap in ap_list:
+                if ap.get("symbol") == symbol:
+                    leverage = str(ap.get("leverage", 10))
+                    break
+            
+            # Calculate closedPnlRate (ROE) = pnl / (entry * size) * leverage
+            try:
+                lev_float = float(leverage)
+                pnl_rate = (closed_pnl / (entry_price * size)) * lev_float if entry_price > 0 and size > 0 else 0
+            except Exception:
+                pnl_rate = 0
+            
+            logger.debug(f"[{user_id}] HL closed-pnl for {symbol}: entry={entry_price:.6f}, exit={exit_price:.6f}, pnl={closed_pnl:.4f}")
+            
+            # Return in Bybit-compatible format
+            return {
+                "avgEntryPrice": str(entry_price),
+                "avgExitPrice": str(exit_price),
+                "closedPnl": str(closed_pnl),
+                "closedSize": str(size),
+                "closedPnlRate": str(pnl_rate),
+                "leverage": leverage,
+                "symbol": symbol,
+            }
+        
+        logger.debug(f"[{user_id}] No closing fills found for {coin} on HL")
+        return None
+        
+    except Exception as e:
+        error_str = str(e).lower()
+        if any(keyword in error_str for keyword in ("rate limit", "429", "too many", "timeout", "connection")):
+            logger.warning(f"[{user_id}] _fetch_last_closed_pnl_hl transient error for {symbol}: {e}")
+            raise
+        logger.debug(f"[{user_id}] _fetch_last_closed_pnl_hl error: {e}")
         return None
 
 @log_calls
@@ -20866,9 +20978,9 @@ async def monitor_positions_loop(app: Application):
 
                             if sym not in open_syms:
                                 logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
-                                # CRITICAL: Pass account_type to get correct closed PnL from right account
+                                # CRITICAL: Pass account_type AND exchange to get correct closed PnL
                                 try:
-                                    rec = await fetch_last_closed_pnl(uid, sym, account_type=ap_account_type)
+                                    rec = await fetch_last_closed_pnl(uid, sym, account_type=ap_account_type, exchange=current_exchange)
                                 except Exception as e:
                                     # Transient API error (rate limit, timeout) — skip this position
                                     # to avoid removing it from DB when we can't verify it's truly closed
@@ -21020,8 +21132,11 @@ async def monitor_positions_loop(app: Application):
                                     
                                     # Calculate trading fee (commission)
                                     # Bybit linear futures fee: taker 0.055%, maker 0.02%
-                                    # We assume taker for both entry and exit (market orders)
-                                    FEE_RATE = 0.00055  # 0.055% taker fee
+                                    # HyperLiquid perpetual fee: taker 0.035%, maker 0.01%
+                                    if current_exchange == 'hyperliquid':
+                                        FEE_RATE = 0.00035  # 0.035% taker fee
+                                    else:
+                                        FEE_RATE = 0.00055  # 0.055% taker fee (Bybit)
                                     entry_value = entry_price * size_for_pnl
                                     exit_value = exit_price * size_for_pnl
                                     fee_paid = (entry_value + exit_value) * FEE_RATE
