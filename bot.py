@@ -15585,6 +15585,9 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     
     OPTIMIZED: All API calls run in parallel via asyncio.gather() for 3-5x faster loading.
     """
+    import time
+    start_time = time.time()
+    
     query = update.callback_query
     await query.answer()
     
@@ -15595,13 +15598,13 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
     if not data.startswith("balance:"):
         return
         
-    logger.info(f"Balance callback received: {data}")
+    logger.info(f"[{uid}] Balance callback received: {data}")
     parts = data.split(":")
     if len(parts) != 3:
         return
         
     _, exchange, mode = parts
-    logger.info(f"Balance request: exchange={exchange}, mode={mode}")
+    logger.info(f"[{uid}] Balance request: exchange={exchange}, mode={mode}")
     
     # Save last viewed account for UI persistence
     db.set_last_viewed_account(uid, mode)
@@ -15612,6 +15615,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             # OPTIMIZED: Fetch ALL data in parallel (was sequential = slow!)
             tz_str = get_user_tz(uid)
             bal_data = await _fetch_balance_data_parallel(uid, mode, tz_str)
+            logger.info(f"[{uid}] Balance data fetched in {time.time() - start_time:.2f}s")
             
             account_bal = bal_data["account_bal"]
             pnl_today = bal_data["pnl_today"]
@@ -15716,6 +15720,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
                 ])
             
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            logger.info(f"[{uid}] Balance callback completed in {time.time() - start_time:.2f}s")
             
         except Exception as e:
             logger.error(f"Balance fetch error (Bybit {mode}): {e}")
@@ -15820,6 +15825,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             ])
             
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
+            logger.info(f"[{uid}] HL Balance callback completed in {time.time() - start_time:.2f}s")
                 
         except Exception as e:
             logger.error(f"Balance fetch error (HL {mode}): {e}")
@@ -16691,12 +16697,17 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @log_calls
 async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Handle statistics navigation callbacks."""
+    import time
+    start_time = time.time()
+    
     query = update.callback_query
     await query.answer()
     
     data = query.data
     t = ctx.t
     uid = update.effective_user.id
+    
+    logger.info(f"[{uid}] Stats callback received: {data}")
     
     if data == "stats:close":
         await query.delete_message()
@@ -16816,6 +16827,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
     
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+    logger.info(f"[{uid}] Stats callback completed in {time.time() - start_time:.2f}s")
 
 
 async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: str = "demo") -> str:
