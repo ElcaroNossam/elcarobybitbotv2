@@ -24,29 +24,37 @@ logger = logging.getLogger(__name__)
 # Cache positions/balance for 60 seconds to avoid rate limits
 # CHECK_INTERVAL = 15s, so with 180s cache we only make 1 API call per 3 minutes per user
 # ═══════════════════════════════════════════════════════════════
-_hl_cache: Dict[str, Tuple[Any, float]] = {}  # key -> (data, timestamp)
+_hl_cache: Dict[str, Tuple[Any, float, float]] = {}  # key -> (data, timestamp, ttl)
 HL_CACHE_TTL = 180  # seconds - cache HyperLiquid data for 180 seconds (3 minutes to avoid rate limits)
+HL_CACHE_ERROR_TTL = 30  # seconds - shorter cache for error results to allow recovery
 
 
 def _get_hl_cache(key: str) -> Optional[Any]:
     """Get cached HyperLiquid data if not expired"""
     if key in _hl_cache:
-        data, ts = _hl_cache[key]
+        entry = _hl_cache[key]
+        # Support both old (data, ts) and new (data, ts, ttl) format
+        if len(entry) == 3:
+            data, ts, ttl = entry
+        else:
+            data, ts = entry
+            ttl = HL_CACHE_TTL
         age = time.time() - ts
-        if age < HL_CACHE_TTL:
-            logger.debug(f"HL_CACHE HIT: {key} (age={age:.1f}s)")
+        if age < ttl:
+            logger.debug(f"HL_CACHE HIT: {key} (age={age:.1f}s, ttl={ttl}s)")
             return data
         else:
-            logger.debug(f"HL_CACHE EXPIRED: {key} (age={age:.1f}s > TTL={HL_CACHE_TTL}s)")
+            logger.debug(f"HL_CACHE EXPIRED: {key} (age={age:.1f}s > TTL={ttl}s)")
     else:
         logger.debug(f"HL_CACHE MISS: {key} (key not in cache)")
     return None
 
 
-def _set_hl_cache(key: str, data: Any):
-    """Set HyperLiquid cache with current timestamp"""
-    _hl_cache[key] = (data, time.time())
-    logger.debug(f"HL_CACHE SET: {key} (items={len(data) if isinstance(data, list) else 'N/A'})")
+def _set_hl_cache(key: str, data: Any, ttl: float = None):
+    """Set HyperLiquid cache with current timestamp and optional TTL"""
+    cache_ttl = ttl if ttl is not None else HL_CACHE_TTL
+    _hl_cache[key] = (data, time.time(), cache_ttl)
+    logger.debug(f"HL_CACHE SET: {key} (items={len(data) if isinstance(data, list) else 'N/A'}, ttl={cache_ttl}s)")
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):
@@ -204,6 +212,9 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         cache_key = f"positions:{user_id}:{account_type}"
         cached = _get_hl_cache(cache_key)
         if cached is not None:
+            # "ERROR" sentinel means a recent API error — return None to signal error
+            if cached == "ERROR":
+                return None
             return cached  # Cache hit - no logging needed
     
     client = None
@@ -277,14 +288,14 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
             logger.error(f"get_positions_unified error for user {user_id}: {e}")
             count_errors('bot.get_positions')
         
-        # Cache empty result on error to avoid retry storm (429 causing more 429s)
-        # Use shorter TTL for errors (60s) to allow recovery
+        # Cache error sentinel to avoid retry storm (429 causing more 429s)
+        # Use shorter TTL for errors (30s) to allow recovery
         if exchange == 'hyperliquid' and symbol is None:
             cache_key = f"positions:{user_id}:{account_type}"
-            _set_hl_cache(cache_key, [])  # Cache empty list
+            _set_hl_cache(cache_key, "ERROR", ttl=HL_CACHE_ERROR_TTL)  # Cache error sentinel with short TTL
             logger.info(f"HL_CACHE SET (error fallback): {cache_key}")
         
-        return []
+        return None  # Return None to distinguish error from empty positions
     # NOTE: Client is pooled - do NOT close it manually!
     # The pool handles lifecycle automatically.
 

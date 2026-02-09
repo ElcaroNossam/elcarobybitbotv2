@@ -6065,7 +6065,16 @@ async def fetch_last_closed_pnl(user_id: int, symbol: str, account_type: str = N
         # Log all fields for debugging
         logger.debug(f"[{user_id}] Bybit closed-pnl raw: {rec}")
         return rec
+    except MissingAPICredentials:
+        logger.debug(f"[{user_id}] fetch_last_closed_pnl: no API credentials for {symbol}")
+        return None
     except Exception as e:
+        # CRITICAL: Re-raise rate limit and transient errors so monitor loop
+        # doesn't treat failed API call as "position has no close record"
+        error_str = str(e).lower()
+        if any(keyword in error_str for keyword in ("rate limit", "429", "too many", "timeout", "connection")):
+            logger.warning(f"[{user_id}] fetch_last_closed_pnl transient error for {symbol}: {e}")
+            raise  # Let monitor loop handle it (skip, not remove)
         logger.debug(f"[{user_id}] fetch_last_closed_pnl error: {e}")
         return None
 
@@ -13930,6 +13939,12 @@ async def fetch_open_positions(user_id, *args, exchange: str = None, **kwargs) -
                 account_type=account_type
             )
             
+            # CRITICAL: If positions is None, API error occurred — propagate None
+            # to prevent monitor loop from treating this as "all positions closed"
+            if positions is None:
+                logger.warning(f"[{uid}] fetch_open_positions: API error (positions=None), returning None")
+                return None
+            
             # Get active positions from DB to enrich with stored TP/SL
             db_positions = db.get_active_positions(uid, account_type=account_type, exchange=exchange_type)
             db_by_symbol = {p['symbol']: p for p in db_positions}
@@ -14058,6 +14073,9 @@ async def fetch_open_positions(user_id, *args, exchange: str = None, **kwargs) -
         return all_positions
     except MissingAPICredentials:
         return []
+    except Exception as e:
+        logger.error(f"Bybit fetch_open_positions error: {e}", exc_info=True)
+        return None  # Return None on API error to prevent phantom position removal
 
 @log_calls
 async def fetch_open_orders(user_id: int, symbol: str | None = None, account_type: str | None = None) -> list:
@@ -19944,6 +19962,13 @@ async def monitor_positions_loop(app: Application):
                         
                         # Pass exchange explicitly to ensure correct API is used
                         open_positions = await fetch_open_positions(uid, account_type=current_account_type, exchange=current_exchange)
+                        
+                        # CRITICAL GUARD: If fetch returned None, API error occurred.
+                        # Skip this user/account entirely to prevent phantom position removal!
+                        if open_positions is None:
+                            logger.warning(f"[{uid}] {current_exchange}/{current_account_type}: API error fetching positions — SKIPPING to protect DB positions")
+                            continue
+                        
                         open_positions = [p for p in open_positions if p["symbol"] not in BLACKLIST]
                         active = get_active_positions(uid, account_type=current_account_type, exchange=current_exchange)
                         
@@ -20414,7 +20439,13 @@ async def monitor_positions_loop(app: Application):
                             if sym not in open_syms:
                                 logger.info(f"[{uid}] Position {sym} closed - detecting reason...")
                                 # CRITICAL: Pass account_type to get correct closed PnL from right account
-                                rec = await fetch_last_closed_pnl(uid, sym, account_type=ap_account_type)
+                                try:
+                                    rec = await fetch_last_closed_pnl(uid, sym, account_type=ap_account_type)
+                                except Exception as e:
+                                    # Transient API error (rate limit, timeout) — skip this position
+                                    # to avoid removing it from DB when we can't verify it's truly closed
+                                    logger.warning(f"[{uid}] {sym}: fetch_last_closed_pnl transient error, skipping: {e}")
+                                    continue
                             
                                 if rec is None:
                                     # No closed PnL record - clean up silently
@@ -31296,36 +31327,21 @@ def main():
 
     try:
         app.run_polling(allowed_updates=["message", "channel_post", "callback_query"])
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Received shutdown signal")
     finally:
+        # run_polling() already handles shutdown/stop/close internally
+        # We only need to clean up our own resources (aiohttp session)
         logger.info("Shutting down application and HTTP session")
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                logger.info("Event loop already closed, creating new one for cleanup")
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-        mon_task = app.bot_data.get("monitor_task")
-        if mon_task:
-            mon_task.cancel()
+        if _session and not _session.closed:
             try:
-                loop.run_until_complete(mon_task)
-            except (asyncio.CancelledError, RuntimeError):
-                pass
-        try:
-            loop.run_until_complete(app.shutdown())
-            loop.run_until_complete(app.stop())
-        except Exception as e:
-            logger.warning(f"App shutdown warning: {e}")
-        if _session:
-            try:
-                loop.run_until_complete(_session.close())
+                # Try to close aiohttp session if event loop is still available
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.run_until_complete(_session.close())
+                    logger.info("AIOHTTP session closed")
             except Exception as e:
-                logger.warning(f"AIOHTTP close warning: {e}")
-
+                logger.debug(f"AIOHTTP close during shutdown: {e}")
         logger.info("Shutdown complete")
 
 if __name__ == '__main__':
