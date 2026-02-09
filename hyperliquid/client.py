@@ -261,8 +261,12 @@ class HyperLiquidClient:
                         continue
                     
                     if response.status >= 400:
-                        logger.error(f"HyperLiquid API error: {response.status} - {text}")
-                        raise HyperLiquidError(f"API error: {text}", status_code=response.status, response={"error": text})
+                        # Detect HTML error pages (e.g. CloudFront 504 Gateway Timeout)
+                        if text.strip().startswith('<!DOCTYPE') or text.strip().startswith('<HTML'):
+                            logger.warning(f"HyperLiquid API returned HTML error page (HTTP {response.status})")
+                            raise HyperLiquidError(f"API returned HTTP {response.status} (Gateway Timeout)", status_code=response.status, response={"error": f"HTTP {response.status}"})
+                        logger.error(f"HyperLiquid API error: {response.status} - {text[:200]}")
+                        raise HyperLiquidError(f"API error: {text[:200]}", status_code=response.status, response={"error": text[:200]})
                     if not text:
                         return {}
                     return json.loads(text)
@@ -316,7 +320,76 @@ class HyperLiquidClient:
     async def open_orders(self, address: Optional[str] = None) -> List[Dict[str, Any]]:
         addr = address or self._address
         return await self._info_request("openOrders", user=addr)
-    
+
+    async def frontend_open_orders(self, address: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get all open orders including trigger orders (TP/SL/trailing).
+        
+        Returns orders with fields: coin, oid, side, sz, limitPx,
+        isTrigger (bool), isPositionTpsl (bool), triggerPx, orderType, etc.
+        
+        Unlike open_orders() which only returns regular limit orders,
+        this endpoint also returns trigger orders (TP/SL) placed via set_tp_sl.
+        """
+        addr = address or self._address
+        return await self._info_request("frontendOpenOrders", user=addr)
+
+    async def cancel_trigger_orders_for_coin(self, coin: str, address: Optional[str] = None, cancel_tp: bool = True, cancel_sl: bool = True) -> List[Dict[str, Any]]:
+        """Cancel existing trigger orders (TP/SL) for a specific coin.
+        
+        Uses frontendOpenOrders to find trigger orders, then cancels them.
+        This MUST be called before placing new TP/SL to prevent order accumulation
+        that leads to 'Too many open orders' errors.
+        
+        Args:
+            coin: Coin symbol (e.g. 'BTC', 'ETH', 'ARB')
+            address: Wallet address to query orders for (main wallet for agent wallets)
+            cancel_tp: Whether to cancel existing TP orders
+            cancel_sl: Whether to cancel existing SL orders
+        
+        Returns:
+            List of cancel results
+        """
+        query_address = address or self._main_wallet_address or self._address
+        try:
+            all_orders = await self.frontend_open_orders(address=query_address)
+        except HyperLiquidError as e:
+            logger.warning(f"[HL] Failed to fetch frontend orders for {coin}: {e}")
+            return []
+        
+        # Filter for trigger orders matching this coin
+        orders_to_cancel = []
+        for order in all_orders:
+            if order.get("coin") != coin:
+                continue
+            if not order.get("isTrigger", False):
+                continue
+            # Check if it's a TP or SL order
+            is_tpsl = order.get("isPositionTpsl", False)
+            order_type = order.get("orderType", "").lower()
+            # Cancel based on type filter
+            # orderType for trigger orders is typically "Stop Market" or "Take Profit Market"
+            # tpsl trigger orders always have isPositionTpsl=true or reduce_only=true
+            if is_tpsl or order.get("reduceOnly", False):
+                orders_to_cancel.append(order)
+        
+        if not orders_to_cancel:
+            return []
+        
+        logger.info(f"[HL] Cancelling {len(orders_to_cancel)} existing trigger orders for {coin}")
+        results = []
+        for order in orders_to_cancel:
+            oid = order.get("oid")
+            if oid:
+                try:
+                    result = await self.cancel(coin, int(oid))
+                    results.append({"coin": coin, "oid": oid, "result": result})
+                    logger.info(f"[HL] Cancelled trigger order {oid} for {coin}")
+                except Exception as e:
+                    logger.warning(f"[HL] Failed to cancel trigger order {oid} for {coin}: {e}")
+                    results.append({"coin": coin, "oid": oid, "error": str(e)})
+        
+        return results
+
     async def user_fills(self, address: Optional[str] = None, start_time: Optional[int] = None) -> List[Dict[str, Any]]:
         addr = address or self._address
         data = {"user": addr}
@@ -401,15 +474,27 @@ class HyperLiquidClient:
         action = cancel_wire_to_action([{"a": asset, "o": oid}])
         return await self._exchange_request(action)
     
-    async def cancel_all(self) -> List[Dict[str, Any]]:
-        orders = await self.open_orders()
+    async def cancel_all(self, include_triggers: bool = True) -> List[Dict[str, Any]]:
+        """Cancel all open orders, optionally including trigger orders (TP/SL).
+        
+        Args:
+            include_triggers: If True, also cancel trigger orders (TP/SL/trailing).
+                            Uses frontendOpenOrders to find trigger orders.
+        """
+        # Use frontendOpenOrders to get ALL orders (including triggers)
+        if include_triggers:
+            query_address = self._main_wallet_address or self._address
+            orders = await self.frontend_open_orders(address=query_address)
+        else:
+            orders = await self.open_orders()
+        
         results = []
         for order in orders:
             coin = order.get("coin")
             oid = order.get("oid")
             if coin and oid:
                 try:
-                    result = await self.cancel(coin, oid)
+                    result = await self.cancel(coin, int(oid))
                     results.append({"coin": coin, "oid": oid, "result": result})
                 except Exception as e:
                     results.append({"coin": coin, "oid": oid, "error": str(e)})
@@ -454,6 +539,21 @@ class HyperLiquidClient:
         order_size = sz if sz is not None else abs(position_size)
         is_long = position_size > 0
         results = []
+        
+        # ═══════════════════════════════════════════════════════════════
+        # CRITICAL: Cancel existing trigger orders for this coin FIRST!
+        # Each set_tp_sl call places NEW trigger orders. Without cancelling
+        # the old ones first, orders accumulate and eventually cause
+        # "Too many open orders" error from HyperLiquid.
+        # ═══════════════════════════════════════════════════════════════
+        try:
+            cancelled = await self.cancel_trigger_orders_for_coin(
+                coin=coin, address=query_address
+            )
+            if cancelled:
+                logger.info(f"[HL] Cancelled {len(cancelled)} old trigger orders for {coin} before setting new TP/SL")
+        except Exception as e:
+            logger.warning(f"[HL] Failed to cancel old triggers for {coin}, proceeding anyway: {e}")
         
         if tp_price is not None:
             tp_price_rounded = round_price(tp_price, coin)  # Fixed: proper price rounding
