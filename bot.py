@@ -20622,7 +20622,9 @@ async def monitor_positions_loop(app: Application):
                                 cached_sl = _hl_sl_cache.get((uid, sym))
                                 if cached_sl is not None:
                                     current_sl = cached_sl
-                                    logger.debug(f"[{uid}] {sym} HL: Using cached SL = {current_sl}")
+                                    logger.info(f"[{uid}] {sym} HL: Using cached SL = {current_sl}")
+                                else:
+                                    logger.info(f"[{uid}] {sym} HL: No cached SL found for key ({uid}, {sym}), cache has {len(_hl_sl_cache)} entries")
                             
                             # Log if position is not tracked in DB
                             if sym not in db_syms:
