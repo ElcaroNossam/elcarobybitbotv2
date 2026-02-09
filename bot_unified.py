@@ -262,7 +262,8 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
                     continue
         
         # Cache HyperLiquid result (only if no symbol filter)
-        if exchange == 'hyperliquid' and symbol is None and positions:
+        # NOTE: Cache EMPTY lists too to avoid repeated API calls for users with no positions!
+        if exchange == 'hyperliquid' and symbol is None:
             cache_key = f"positions:{user_id}:{account_type}"
             _set_hl_cache(cache_key, positions)
         
@@ -275,6 +276,14 @@ async def get_positions_unified(user_id: int, symbol: Optional[str] = None, exch
         else:
             logger.error(f"get_positions_unified error for user {user_id}: {e}")
             count_errors('bot.get_positions')
+        
+        # Cache empty result on error to avoid retry storm (429 causing more 429s)
+        # Use shorter TTL for errors (60s) to allow recovery
+        if exchange == 'hyperliquid' and symbol is None:
+            cache_key = f"positions:{user_id}:{account_type}"
+            _set_hl_cache(cache_key, [])  # Cache empty list
+            logger.info(f"HL_CACHE SET (error fallback): {cache_key}")
+        
         return []
     # NOTE: Client is pooled - do NOT close it manually!
     # The pool handles lifecycle automatically.
