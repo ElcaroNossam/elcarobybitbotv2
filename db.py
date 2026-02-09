@@ -3420,10 +3420,12 @@ def add_trade_log(
             WHERE user_id = ? AND symbol = ? AND side = ? 
               AND ABS(entry_price - ?) < 0.0001 
               AND ABS(exit_price - ?) < 0.0001
+              AND (exchange = ? OR (exchange IS NULL AND ? = 'bybit'))
+              AND (account_type = ? OR account_type IS NULL)
               AND ts > NOW() - INTERVAL '24 hours'
             LIMIT 1
             """,
-            (user_id, symbol, side, entry_price, exit_price)
+            (user_id, symbol, side, entry_price, exit_price, exchange, exchange, account_type)
         ).fetchone()
         
         if existing:

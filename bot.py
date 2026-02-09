@@ -18826,7 +18826,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 # Set leverage from side-specific params
                 if user_leverage:
                     try:
-                        await set_leverage(uid, symbol, leverage=user_leverage)
+                        await set_leverage(uid, symbol, leverage=user_leverage, account_type=ctx_account_type)
                     except Exception as e:
                         logger.warning(f"[{uid}] rsi_bb: failed to set leverage: {e}")
                     
@@ -18884,17 +18884,12 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             elif result.get("skipped"):
                                 skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
-                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
-                        if hl_result and hl_result.get("success"):
-                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                        # multi-exchange routing via get_execution_targets(). No need for separate
+                        # place_order_hyperliquid/place_order_bybit_if_needed calls — they would
+                        # cause DUPLICATE orders on the secondary exchange!
                         
-                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="rsi_bb", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
-                        if bybit_result and bybit_result.get("success"):
-                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
-                        
-                        # Calculate SL/TP prices for set_trading_stop
+                        # Set TP/SL on ALL exchanges where position was opened
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
                             actual_tp = spot_price * (1 + user_tp_pct / 100) if user_tp_pct else None
@@ -18902,8 +18897,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
                             actual_tp = spot_price * (1 - user_tp_pct / 100) if user_tp_pct else None
                         
-                        # FIX: Set TP/SL on exchange (was missing!)
-                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                        # FIX: Set TP/SL per target exchange (not just active exchange)
+                        if not pos_use_atr:
+                            for target_key, target_result in order_results.items():
+                                if target_result.get("success"):
+                                    t_exchange = target_result.get("exchange", "bybit")
+                                    t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                    t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                    try:
+                                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                    except Exception as ts_err:
+                                        logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -19027,17 +19031,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             elif result.get("skipped"):
                                 skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
-                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
-                        if hl_result and hl_result.get("success"):
-                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                        # multi-exchange routing. No separate HL/Bybit calls needed — avoids duplicates!
                         
-                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scryptomera", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
-                        if bybit_result and bybit_result.get("success"):
-                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
-                        
-                        # Calculate SL/TP prices for set_trading_stop
+                        # Set TP/SL on ALL exchanges where position was opened
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
                             actual_tp = spot_price * (1 + user_tp_pct / 100)
@@ -19045,8 +19042,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
                             actual_tp = spot_price * (1 - user_tp_pct / 100)
                         
-                        # FIX: Set TP/SL on exchange (was missing!)
-                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                        if not pos_use_atr:
+                            for target_key, target_result in order_results.items():
+                                if target_result.get("success"):
+                                    t_exchange = target_result.get("exchange", "bybit")
+                                    t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                    t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                    try:
+                                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                    except Exception as ts_err:
+                                        logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -19174,17 +19179,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             elif result.get("skipped"):
                                 skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
-                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
-                        if hl_result and hl_result.get("success"):
-                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
+                        # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                        # multi-exchange routing. No separate HL/Bybit calls needed — avoids duplicates!
                         
-                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="scalper", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
-                        if bybit_result and bybit_result.get("success"):
-                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
-                        
-                        # Calculate SL/TP prices for set_trading_stop
+                        # Set TP/SL on ALL exchanges where position was opened
                         if side == "Buy":
                             actual_sl = spot_price * (1 - user_sl_pct / 100)
                             actual_tp = spot_price * (1 + user_tp_pct / 100)
@@ -19192,8 +19190,16 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
                             actual_tp = spot_price * (1 - user_tp_pct / 100)
                         
-                        # FIX: Set TP/SL on exchange (was missing!)
-                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                        if not pos_use_atr:
+                            for target_key, target_result in order_results.items():
+                                if target_result.get("success"):
+                                    t_exchange = target_result.get("exchange", "bybit")
+                                    t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                    t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                    try:
+                                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                    except Exception as ts_err:
+                                        logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
                         inc_pyramid(uid, symbol, side)
                         
@@ -19342,15 +19348,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 elif result.get("skipped"):
                                     skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                             
-                            # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct)
-                            if hl_result and hl_result.get("success"):
-                                await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
-                            
-                            # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                            bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="elcaro", leverage=order_leverage, sl_percent=sl_pct, tp_percent=tp_pct, entry_price=spot_price)
-                            if bybit_result and bybit_result.get("success"):
-                                await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                            # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                            # multi-exchange routing. No separate HL/Bybit calls needed — avoids duplicates!
                             
                             # Calculate SL/TP prices from user settings percentages
                             if side == "Buy":
@@ -19360,8 +19359,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 actual_sl = spot_price * (1 + sl_pct / 100)
                                 actual_tp = spot_price * (1 - tp_pct / 100)
                             
-                            # Set TP/SL
-                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                            # Set TP/SL on ALL exchanges where position was opened
+                            if not pos_use_atr:
+                                for target_key, target_result in order_results.items():
+                                    if target_result.get("success"):
+                                        t_exchange = target_result.get("exchange", "bybit")
+                                        t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                        t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                        try:
+                                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                        except Exception as ts_err:
+                                            logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
@@ -19546,15 +19554,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 elif result.get("skipped"):
                                     skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                             
-                            # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                            hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct)
-                            if hl_result and hl_result.get("success"):
-                                await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
-                            
-                            # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                            bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty, strategy="fibonacci", leverage=user_leverage, sl_percent=fibo_sl_pct, tp_percent=fibo_tp_pct, entry_price=spot_price)
-                            if bybit_result and bybit_result.get("success"):
-                                await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                            # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                            # multi-exchange routing. No separate HL/Bybit calls needed — avoids duplicates!
                             
                             # Calculate SL/TP from user settings percentages
                             if side == "Buy":
@@ -19564,8 +19565,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                                 actual_sl = spot_price * (1 + fibo_sl_pct / 100)
                                 actual_tp = spot_price * (1 - fibo_tp_pct / 100)
                             
-                            # Set TP/SL
-                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                            # Set TP/SL on ALL exchanges where position was opened
+                            if not pos_use_atr:
+                                for target_key, target_result in order_results.items():
+                                    if target_result.get("success"):
+                                        t_exchange = target_result.get("exchange", "bybit")
+                                        t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                        t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                        try:
+                                            await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                        except Exception as ts_err:
+                                            logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                             
                             # Note: Position is now saved inside place_order_all_accounts for each account_type
                             inc_pyramid(uid, symbol, side)
@@ -19691,15 +19701,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             elif result.get("skipped"):
                                 skipped_accounts.append(f"{exchange_label} {acc_label} ⏭️ (already open)")
                         
-                        # Also place on HyperLiquid if enabled (when active exchange is Bybit)
-                        hl_result = await place_order_hyperliquid(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct)
-                        if hl_result and hl_result.get("success"):
-                            await ctx.bot.send_message(uid, f"🔷 *HyperLiquid*: {symbol} {side} opened!", parse_mode="Markdown")
-                        
-                        # Also place on Bybit if enabled (when active exchange is HyperLiquid)
-                        bybit_result = await place_order_bybit_if_needed(uid, symbol, side, qty=qty_mkt, strategy="oi", leverage=user_leverage, sl_percent=user_sl_pct, tp_percent=user_tp_pct, entry_price=spot_price)
-                        if bybit_result and bybit_result.get("success"):
-                            await ctx.bot.send_message(uid, f"📊 *Bybit*: {symbol} {side} opened!", parse_mode="Markdown")
+                        # NOTE: place_order_all_accounts → place_order_for_targets already handles
+                        # multi-exchange routing. No separate HL/Bybit calls needed — avoids duplicates!
                         
                         # Calculate SL/TP prices for set_trading_stop
                         if side == "Buy":
@@ -19709,8 +19712,17 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             actual_sl = spot_price * (1 + user_sl_pct / 100)
                             actual_tp = spot_price * (1 - user_tp_pct / 100)
                         
-                        # FIX: Set TP/SL on exchange (was missing!)
-                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=ctx_account_type)
+                        # Set TP/SL on ALL exchanges where position was opened
+                        if not pos_use_atr:
+                            for target_key, target_result in order_results.items():
+                                if target_result.get("success"):
+                                    t_exchange = target_result.get("exchange", "bybit")
+                                    t_acc = target_key.split(":")[1] if ":" in target_key else ctx_account_type
+                                    t_acc = "demo" if t_acc == "paper" else ("real" if t_acc == "live" else t_acc)
+                                    try:
+                                        await set_trading_stop(uid, symbol, tp_price=actual_tp, sl_price=actual_sl, side_hint=side, account_type=t_acc, exchange=t_exchange)
+                                    except Exception as ts_err:
+                                        logger.warning(f"[{uid}] Failed to set TP/SL on {target_key}: {ts_err}")
                         
                         # Note: Position is now saved inside place_order_all_accounts for each account_type
                         

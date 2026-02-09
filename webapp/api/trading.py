@@ -2014,7 +2014,8 @@ async def modify_position_tpsl(
             body = {
                 "category": "linear",
                 "symbol": req.symbol,
-                "positionIdx": req.position_idx
+                "positionIdx": req.position_idx,
+                "tpslMode": "Full",  # REQUIRED by Bybit v5 API!
             }
             
             if req.take_profit is not None:
@@ -2739,14 +2740,17 @@ async def get_symbol_price(
 # ===================== STRATEGY SETTINGS ENDPOINTS =====================
 
 # Strategy names list (keep in sync with bot)
-STRATEGY_NAMES = ["scryptomera", "scalper", "elcaro", "wyckoff"]
+STRATEGY_NAMES = ["oi", "scryptomera", "scalper", "elcaro", "fibonacci", "rsi_bb", "manual"]
 
 # Default strategy settings
 DEFAULT_STRATEGY_SETTINGS = {
-    "scryptomera": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
-    "scalper": {"enabled": False, "percent": 1.0, "sl_percent": 2.0, "tp_percent": 5.0, "leverage": 10, "use_atr": 0},
-    "elcaro": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
-    "wyckoff": {"enabled": False, "percent": 1.0, "sl_percent": 3.0, "tp_percent": 8.0, "leverage": 10, "use_atr": 0},
+    "oi": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "scryptomera": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "scalper": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "elcaro": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "fibonacci": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "rsi_bb": {"enabled": False, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
+    "manual": {"enabled": True, "percent": 3.0, "sl_percent": 30.0, "tp_percent": 10.0, "leverage": 10, "use_atr": 0},
 }
 
 

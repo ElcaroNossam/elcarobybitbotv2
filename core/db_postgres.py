@@ -1339,7 +1339,8 @@ def pg_update_position_field(
     exchange: str = "bybit"
 ):
     """Update single position field"""
-    allowed_fields = {'sl_price', 'tp_price', 'size', 'leverage', 'dca_10_done', 'dca_25_done'}
+    allowed_fields = {'sl_price', 'tp_price', 'size', 'leverage', 'dca_10_done', 'dca_25_done',
+                      'ptp_step_1_done', 'ptp_step_2_done', 'entry_price', 'strategy'}
     if field not in allowed_fields:
         return
     
@@ -1919,6 +1920,8 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
                     result[f"{prefix}tp_percent"] = row.get('tp_percent')
                     result[f"{prefix}leverage"] = row.get('leverage')
                     result[f"{prefix}use_atr"] = row.get('use_atr')
+                    result[f"{prefix}atr_periods"] = row.get('atr_periods')
+                    result[f"{prefix}atr_multiplier_sl"] = row.get('atr_multiplier_sl')
                     result[f"{prefix}atr_trigger_pct"] = row.get('atr_trigger_pct')
                     result[f"{prefix}atr_step_pct"] = row.get('atr_step_pct')
                     result[f"{prefix}order_type"] = row.get('order_type', 'market')
@@ -1960,6 +1963,8 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             result[f"{prefix}tp_percent"] = defaults.get("tp_percent")
             result[f"{prefix}leverage"] = defaults.get("leverage")
             result[f"{prefix}use_atr"] = defaults.get("use_atr", 0)
+            result[f"{prefix}atr_periods"] = defaults.get("atr_periods", 14)
+            result[f"{prefix}atr_multiplier_sl"] = defaults.get("atr_multiplier_sl", 1.5)
             result[f"{prefix}atr_trigger_pct"] = defaults.get("atr_trigger_pct")
             result[f"{prefix}atr_step_pct"] = defaults.get("atr_step_pct")
             result[f"{prefix}order_type"] = defaults.get("order_type", "market")
@@ -2073,7 +2078,7 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
     
     ALLOWED_FIELDS = {
         'enabled', 'percent', 'sl_percent', 'tp_percent', 'leverage',
-        'use_atr', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
+        'use_atr', 'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct', 'order_type',
         'limit_offset_pct', 'dca_enabled', 'dca_pct_1', 'dca_pct_2',
         'max_positions', 'coins_group', 'trading_mode', 'direction',
         'account_type', 'be_enabled', 'be_trigger_pct',  # Break-Even

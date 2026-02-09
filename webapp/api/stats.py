@@ -363,19 +363,20 @@ async def get_strategy_report(
         start_date = datetime.now() - timedelta(days=days)
         
         # Get trades
-        trades = db.get_trade_history(uid, limit=1000) or []
+        trades = db.get_trade_logs_list(
+            uid, limit=1000,
+            exchange=exchange if exchange != "all" else None
+        ) or []
         
-        # Filter by period and exchange
+        # Filter by period (exchange already filtered in SQL)
         filtered_trades = []
         for t in trades:
             try:
-                trade_time = datetime.fromisoformat(t.get("time", "2024-01-01").replace("Z", ""))
+                trade_time = _get_datetime(t.get("time"))
             except (ValueError, TypeError) as e:
                 logger.debug(f"Failed to parse trade time: {e}")
                 continue
             if trade_time >= start_date:
-                if exchange != "all" and t.get("exchange", "bybit") != exchange:
-                    continue
                 filtered_trades.append(t)
         
         # Build strategy report
