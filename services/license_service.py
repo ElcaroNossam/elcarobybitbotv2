@@ -89,7 +89,9 @@ class LicenseService:
     ) -> Dict[str, Any]:
         """Set user license"""
         self.db.ensure_user(user_id)
+        # Sync both columns: current_license AND license_type
         self.db.set_user_field(user_id, "license_type", license_type)
+        self.db.set_user_field(user_id, "current_license", license_type)
         
         if duration_days:
             expires_at = datetime.utcnow() + timedelta(days=duration_days)

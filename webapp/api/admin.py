@@ -52,7 +52,7 @@ async def get_users(
         row = cur.fetchone()
         active = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE current_license = 'premium' OR is_lifetime = 1")
         row = cur.fetchone()
         premium = row['cnt'] if row else 0
         
@@ -66,7 +66,7 @@ async def get_users(
         if search:
             cur.execute("""
                 SELECT user_id, first_name, last_name, username, email, is_allowed, is_banned, 
-                       license_type, is_lifetime, exchange_type, lang,
+                       current_license, is_lifetime, exchange_type, lang,
                        created_at
                 FROM users 
                 WHERE CAST(user_id AS TEXT) LIKE ? OR username LIKE ? OR first_name LIKE ? OR email LIKE ?
@@ -76,7 +76,7 @@ async def get_users(
         else:
             cur.execute("""
                 SELECT user_id, first_name, last_name, username, email, is_allowed, is_banned, 
-                       license_type, is_lifetime, exchange_type, lang,
+                       current_license, is_lifetime, exchange_type, lang,
                        created_at
                 FROM users 
                 ORDER BY user_id DESC 
@@ -93,7 +93,7 @@ async def get_users(
                 "email": row.get("email"),
                 "is_allowed": bool(row["is_allowed"]),
                 "is_banned": bool(row["is_banned"]),
-                "license_type": row["license_type"] or ("lifetime" if row["is_lifetime"] else "free"),
+                "license_type": row["current_license"] or ("lifetime" if row["is_lifetime"] else "free"),
                 "exchange_type": row["exchange_type"] or "bybit",
                 "lang": row["lang"] or "en",
                 "created_at": row["created_at"],
@@ -131,7 +131,7 @@ async def get_user(
         "lang": creds.get("lang", "en"),
         "is_allowed": creds.get("is_allowed", False),
         "is_banned": creds.get("is_banned", False),
-        "license_type": creds.get("license_type"),
+        "license_type": creds.get("current_license") or creds.get("license_type"),
         "license_expires": creds.get("license_expires"),
         "is_lifetime": creds.get("is_lifetime", False),
         
@@ -281,10 +281,21 @@ async def create_license(
         
         conn.commit()
     
-    # If user_id provided, activate license for user
+    # If user_id provided, activate license for user using centralized function
     if data.user_id:
-        db.set_user_field(data.user_id, "license_type", data.license_type)
-        db.set_user_field(data.user_id, "license_expires", expires_ts)
+        # Calculate period_months from days
+        period_months = max(1, data.days // 30)
+        admin_id = admin.get("user_id") or admin.get("id")
+        result = db.set_user_license(
+            user_id=data.user_id,
+            license_type=data.license_type,
+            period_months=period_months,
+            admin_id=admin_id,
+            payment_type="admin_grant",
+            notes=f"WebApp admin grant, key={license_key}"
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=400, detail=result["error"])
     
     return {
         "success": True,
@@ -308,9 +319,9 @@ async def revoke_license(
         row = cur.fetchone()
         
         if row and row.get('user_id'):
-            # Remove license from user
-            db.set_user_field(row['user_id'], "license_type", None)
-            db.set_user_field(row['user_id'], "license_expires", None)
+            # Use centralized revoke function (syncs both columns)
+            admin_id = admin.get("user_id") or admin.get("id")
+            db.revoke_license(row['user_id'], admin_id=admin_id, reason="WebApp admin revoke")
         
         cur.execute("DELETE FROM licenses WHERE license_key = ?", (license_key,))
         conn.commit()
@@ -336,7 +347,7 @@ async def get_stats(
         row = cur.fetchone()
         active_users = row['cnt'] if row else 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE current_license = 'premium' OR is_lifetime = 1")
         row = cur.fetchone()
         premium_users = row['cnt'] if row else 0
         
@@ -786,8 +797,17 @@ async def approve_payment(
         expires_at = (datetime.utcnow() + timedelta(days=license_days)).isoformat()
         expires_ts = int((datetime.utcnow() + timedelta(days=license_days)).timestamp())
         
-        db.set_user_field(user_id, "license_type", license_type)
-        db.set_user_field(user_id, "license_expires", expires_ts)
+        # Use centralized license function (syncs both columns)
+        admin_id = admin.get("user_id") or admin.get("id")
+        period_months = max(1, license_days // 30)
+        license_result = db.set_user_license(
+            user_id=user_id,
+            license_type=license_type,
+            period_months=period_months,
+            admin_id=admin_id,
+            payment_type="payment_confirm",
+            notes=f"WebApp payment #{payment_id} confirmed"
+        )
         db.set_user_field(user_id, "is_allowed", 1)
         
         conn.commit()
@@ -951,9 +971,9 @@ async def get_user_balance_details(
         "disclaimer_accepted": bool(user_row.get("disclaimer_accepted")),
         
         # License
-        "license_type": user_row.get("license_type") or user_row.get("current_license"),
+        "license_type": user_row.get("current_license") or user_row.get("license_type"),
         "license_expires": user_row.get("license_expires"),
-        "is_lifetime": user_row.get("license_type") == "lifetime" or user_row.get("current_license") == "lifetime",
+        "is_lifetime": user_row.get("current_license") == "lifetime" or user_row.get("license_type") == "lifetime",
         "elc_balance": float(user_row.get("elc_balance") or 0),
         "elc_staked": float(user_row.get("elc_staked") or 0),
         
@@ -988,10 +1008,18 @@ async def update_user_subscription(
     """Manually set user subscription."""
     
     expires_at = (datetime.utcnow() + timedelta(days=days)).isoformat()
-    expires_ts = int((datetime.utcnow() + timedelta(days=days)).timestamp())
     
-    db.set_user_field(user_id, "license_type", license_type)
-    db.set_user_field(user_id, "license_expires", expires_ts)
+    # Use centralized license function (syncs both columns)
+    admin_id = admin.get("user_id") or admin.get("id")
+    period_months = max(1, days // 30)
+    db.set_user_license(
+        user_id=user_id,
+        license_type=license_type,
+        period_months=period_months,
+        admin_id=admin_id,
+        payment_type="admin_manual",
+        notes=f"WebApp admin manual subscription: {license_type} for {days} days"
+    )
     db.set_user_field(user_id, "is_allowed", 1)
     
     return {
@@ -1008,8 +1036,17 @@ async def grant_lifetime(
 ):
     """Grant lifetime subscription."""
     
+    # Use centralized license function (syncs both columns)
+    admin_id = admin.get("user_id") or admin.get("id")
+    db.set_user_license(
+        user_id=user_id,
+        license_type="lifetime",
+        period_months=1200,
+        admin_id=admin_id,
+        payment_type="admin_lifetime",
+        notes="WebApp admin granted lifetime access"
+    )
     db.set_user_field(user_id, "is_lifetime", 1)
-    db.set_user_field(user_id, "license_type", "lifetime")
     db.set_user_field(user_id, "is_allowed", 1)
     
     return {"success": True, "message": f"User {user_id} now has lifetime access"}
@@ -1022,8 +1059,8 @@ async def revoke_subscription(
 ):
     """Revoke user subscription."""
     
-    db.set_user_field(user_id, "license_type", None)
-    db.set_user_field(user_id, "license_expires", None)
+    # Use centralized revoke function (syncs both columns)
+    db.revoke_license(user_id)
     db.set_user_field(user_id, "is_lifetime", 0)
     
     return {"success": True, "message": f"Subscription revoked for user {user_id}"}

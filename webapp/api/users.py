@@ -146,7 +146,7 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
     # Get additional user fields directly from database (including linked accounts)
     from core.db_postgres import execute_one
     user_row = execute_one("""
-        SELECT first_name, last_name, is_allowed, leverage, lang, license_type,
+        SELECT first_name, last_name, is_allowed, leverage, lang, current_license,
                email, email_verified, telegram_id, telegram_username, auth_provider
         FROM users WHERE user_id = %s
     """, (user_id,))
@@ -183,8 +183,8 @@ async def get_current_user_info(user: dict = Depends(get_current_user)):
             "leverage": user_row.get("leverage", 10) if user_row else 10,
             "lang": user_row.get("lang", "en") if user_row else "en",
             "is_allowed": bool(user_row.get("is_allowed", 0)) if user_row else False,
-            "is_premium": (user_row.get("license_type") if user_row else None) not in (None, "free"),
-            "license_type": user_row.get("license_type", "free") if user_row else "free",
+            "is_premium": (user_row.get("current_license") if user_row else None) not in (None, "free", "none"),
+            "license_type": user_row.get("current_license", "free") if user_row else "free",
             # Linked accounts info
             "telegram_id": telegram_id,
             "telegram_username": user_row.get("telegram_username") if user_row else None,
@@ -616,7 +616,7 @@ async def get_profile(user: dict = Depends(get_current_user)):
         "language": creds.get("lang", "en"),
         "is_allowed": creds.get("is_allowed", False),
         "is_banned": creds.get("is_banned", False),
-        "license_type": creds.get("license_type"),
+        "license_type": creds.get("current_license") or creds.get("license_type"),
         "license_expires": creds.get("license_expires"),
         "is_lifetime": creds.get("is_lifetime", False),
         

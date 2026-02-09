@@ -4239,9 +4239,9 @@ def get_user_license(user_id: int) -> dict:
         
         # Check if license expired
         if license_expires and license_expires < now:
-            # License expired, update to none
+            # License expired, update to none (sync BOTH columns)
             conn.execute(
-                "UPDATE users SET current_license = 'none', license_expires = NULL WHERE user_id = ?",
+                "UPDATE users SET current_license = 'none', license_type = 'none', license_expires = NULL WHERE user_id = ?",
                 (user_id,)
             )
             # Deactivate old license records
@@ -4337,10 +4337,10 @@ def set_user_license(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
         """, (user_id, license_id, payment_type, amount, currency, license_type, period_days, telegram_charge_id, now))
         
-        # Update quick access columns
+        # Update quick access columns (sync BOTH current_license and license_type for webapp compat)
         conn.execute(
-            "UPDATE users SET current_license = ?, license_expires = ? WHERE user_id = ?",
-            (license_type, new_end, user_id)
+            "UPDATE users SET current_license = ?, license_type = ?, license_expires = ? WHERE user_id = ?",
+            (license_type, license_type, new_end, user_id)
         )
         
         conn.commit()
@@ -4426,9 +4426,9 @@ def revoke_license(user_id: int, admin_id: int | None = None, reason: str | None
             VALUES (?, 'admin_grant', 0, 'FREE', 'none', 0, 'completed', ?, ?)
         """, (user_id, now, json.dumps({"action": "revoke", "admin_id": admin_id, "reason": reason})))
         
-        # Clear quick access
+        # Clear quick access (sync BOTH columns)
         conn.execute(
-            "UPDATE users SET current_license = 'none', license_expires = NULL WHERE user_id = ?",
+            "UPDATE users SET current_license = 'none', license_type = 'none', license_expires = NULL WHERE user_id = ?",
             (user_id,)
         )
         
