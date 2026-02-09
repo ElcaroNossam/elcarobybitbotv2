@@ -215,21 +215,41 @@ def get_user_targets(user_id: int) -> list[Target]:
         logger.warning(f"Failed to get Bybit credentials for {user_id}: {e}")
     
     # Check HyperLiquid credentials
+    # Similar to Bybit: return BOTH testnet and mainnet targets when both keys exist
     try:
         hl_creds = db.get_hl_credentials(user_id)
-        # Check all possible keys (new architecture + legacy)
-        has_hl_key = (hl_creds.get("hl_testnet_private_key") or 
-                      hl_creds.get("hl_mainnet_private_key") or
-                      hl_creds.get("hl_private_key"))
         hl_enabled = hl_creds.get("hl_enabled")
-        if has_hl_key and hl_enabled:
-            env = Env.PAPER.value if hl_creds.get("hl_testnet") else Env.LIVE.value
-            targets.append(Target(
-                exchange=Exchange.HYPERLIQUID.value,
-                env=env,
-                is_enabled=True,
-                label=f"HyperLiquid {'Testnet' if env == Env.PAPER.value else 'Mainnet'}"
-            ))
+        if hl_enabled:
+            # New architecture: check testnet and mainnet keys separately
+            has_testnet = bool(hl_creds.get("hl_testnet_private_key"))
+            has_mainnet = bool(hl_creds.get("hl_mainnet_private_key"))
+            
+            # Legacy fallback: single key with hl_testnet flag
+            if not has_testnet and not has_mainnet:
+                legacy_key = hl_creds.get("hl_private_key")
+                if legacy_key:
+                    if hl_creds.get("hl_testnet"):
+                        has_testnet = True
+                    else:
+                        has_mainnet = True
+            
+            # Add testnet target if key exists
+            if has_testnet:
+                targets.append(Target(
+                    exchange=Exchange.HYPERLIQUID.value,
+                    env=Env.PAPER.value,
+                    is_enabled=True,
+                    label="HyperLiquid Testnet"
+                ))
+            
+            # Add mainnet target if key exists
+            if has_mainnet:
+                targets.append(Target(
+                    exchange=Exchange.HYPERLIQUID.value,
+                    env=Env.LIVE.value,
+                    is_enabled=True,
+                    label="HyperLiquid Mainnet"
+                ))
     except Exception as e:
         logger.warning(f"Failed to get HL credentials for {user_id}: {e}")
     
