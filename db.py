@@ -3666,12 +3666,28 @@ def get_trade_stats(user_id: int, strategy: str | None = None, period: str = "al
 
 
 def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None, 
-                        account_type: str = None, exchange: str = None) -> list:
+                        account_type: str = None, exchange: str = None,
+                        period: str = "all", offset: int = 0,
+                        return_count: bool = False) -> list | tuple:
     """
-    Get list of trade logs for a user.
-    Returns list of dicts with trade data from trade_logs table.
-    Used by webapp stats API.
+    Get list of trade logs for a user with period filtering and pagination.
+    
+    Args:
+        user_id: Telegram user ID
+        limit: Max records to return
+        strategy: Strategy filter (None = all)
+        account_type: 'demo', 'real', 'testnet', 'mainnet'
+        exchange: 'bybit', 'hyperliquid'
+        period: 'today', 'week', 'month', 'all'
+        offset: Pagination offset
+        return_count: If True, returns (list, total_count) tuple
+    
+    Returns:
+        List of trade dicts, or (list, total_count) tuple if return_count=True
     """
+    import datetime
+    from zoneinfo import ZoneInfo
+    
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange=exchange or 'bybit')
     
@@ -3692,17 +3708,41 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
             where_clauses.append("exchange = ?")
             params.append(exchange)
         
-        where_sql = " AND ".join(where_clauses)
-        params.append(limit)
+        # Period filter (rolling windows, same as get_trade_stats)
+        current_time = datetime.datetime.now(ZoneInfo("UTC"))
+        if period == "today":
+            start = current_time - datetime.timedelta(hours=24)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
+        elif period == "week":
+            start = current_time - datetime.timedelta(days=7)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
+        elif period == "month":
+            start = current_time - datetime.timedelta(days=30)
+            where_clauses.append("ts >= ?")
+            params.append(start.strftime("%Y-%m-%d %H:%M:%S"))
         
+        where_sql = " AND ".join(where_clauses)
+        
+        # Get total count if requested
+        total_count = 0
+        if return_count:
+            count_row = conn.execute(f"""
+                SELECT COUNT(*) FROM trade_logs WHERE {where_sql}
+            """, params).fetchone()
+            total_count = count_row[0] if count_row else 0
+        
+        # Get paginated results
+        query_params = list(params) + [limit, offset]
         cur = conn.execute(f"""
             SELECT id, signal_id, symbol, side, entry_price, exit_price, 
                    exit_reason, pnl, pnl_pct, strategy, account_type, ts, exchange
             FROM trade_logs
             WHERE {where_sql}
             ORDER BY ts DESC
-            LIMIT ?
-        """, params)
+            LIMIT ? OFFSET ?
+        """, query_params)
         
         rows = cur.fetchall()
         result = []
@@ -3722,6 +3762,9 @@ def get_trade_logs_list(user_id: int, limit: int = 500, strategy: str = None,
                 "time": row[11],
                 "exchange": row[12] or "bybit",
             })
+        
+        if return_count:
+            return result, total_count
         return result
 
 

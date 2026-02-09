@@ -16550,6 +16550,242 @@ async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", p
     return "\n".join(lines)
 
 
+def format_trade_list(trades: list, t: dict, strategy_name: str = "all", period_label: str = "",
+                      account_type: str = "demo", page: int = 0, total_count: int = 0,
+                      per_page: int = 8) -> str:
+    """Format individual trade list for Telegram display (Bybit-style).
+    
+    Args:
+        trades: List of trade dicts from get_trade_logs_list()
+        t: Translations dict
+        strategy_name: Current strategy filter
+        period_label: Human-readable period label
+        account_type: Account type
+        page: Current page (0-indexed)
+        total_count: Total number of trades matching filters
+        per_page: Trades per page
+    """
+    strat_display = STRATEGY_DISPLAY_NAMES.get(strategy_name, strategy_name.upper())
+    account_display = ACCOUNT_DISPLAY_NAMES.get(account_type, account_type.capitalize())
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    
+    lines = [
+        f"📋 *{t.get('trades_title', 'Trade History')}* {account_display}",
+        f"├ {t.get('stats_strategy', 'Strategy')}: {strat_display}",
+        f"├ {t.get('stats_period', 'Period')}: 📅 {period_label}",
+        f"└ {t.get('trades_page', 'Page')}: {page + 1}/{total_pages} ({total_count} {t.get('trades_total', 'trades')})",
+        "",
+    ]
+    
+    if not trades:
+        lines.append(f"📭 {t.get('trades_empty', 'No trades found for this filter.')}")
+        return "\n".join(lines)
+    
+    for trade in trades:
+        symbol = trade.get("symbol", "?")
+        side = trade.get("side", "?")
+        entry = trade.get("entry_price") or 0
+        exit_p = trade.get("exit_price") or 0
+        pnl = trade.get("pnl") or 0
+        pnl_pct = trade.get("pnl_percent") or 0
+        exit_reason = trade.get("exit_reason") or "?"
+        strategy = trade.get("strategy") or "?"
+        ts = trade.get("time") or ""
+        
+        # Side emoji
+        side_emoji = "🟢" if side in ("Buy", "Long", "buy", "long") else "🔴"
+        side_label = "Long" if side in ("Buy", "Long", "buy", "long") else "Short"
+        
+        # PnL emoji
+        pnl_emoji = "✅" if pnl > 0 else "❌" if pnl < 0 else "➖"
+        pnl_sign = "+" if pnl >= 0 else ""
+        
+        # Exit reason display
+        reason_map = {
+            "TP": "🎯 TP",
+            "SL": "🛑 SL",
+            "MANUAL": "✋ Manual",
+            "ATR": "📏 ATR",
+            "EOD": "⏰ EOD",
+            "LIQ": "💥 Liq",
+            "ADL": "⚡ ADL",
+            "TRAILING": "📏 Trail",
+            "PARTIAL_TP": "📊 PTP",
+            "webapp_close": "🌐 Web",
+            "UNKNOWN": "❓",
+        }
+        reason_display = reason_map.get(exit_reason, exit_reason[:8])
+        
+        # Strategy display
+        strat_short = {
+            "oi": "OI", "rsi_bb": "RSI", "scryptomera": "SCR", "scalper": "SCA",
+            "elcaro": "ELK", "fibonacci": "FIB", "manual": "MAN", "unknown": "?"
+        }.get(strategy, strategy[:3].upper())
+        
+        # Time formatting - relative time
+        time_str = ""
+        if ts:
+            try:
+                import datetime
+                from zoneinfo import ZoneInfo
+                if isinstance(ts, str):
+                    # Try parsing ISO format
+                    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
+                        try:
+                            dt = datetime.datetime.strptime(ts, fmt).replace(tzinfo=ZoneInfo("UTC"))
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        dt = None
+                elif isinstance(ts, (int, float)):
+                    dt = datetime.datetime.fromtimestamp(ts, tz=ZoneInfo("UTC"))
+                else:
+                    dt = ts if hasattr(ts, 'strftime') else None
+                
+                if dt:
+                    now = datetime.datetime.now(ZoneInfo("UTC"))
+                    diff = now - dt
+                    if diff.days > 0:
+                        time_str = f"{diff.days}d"
+                    elif diff.seconds >= 3600:
+                        time_str = f"{diff.seconds // 3600}h"
+                    else:
+                        time_str = f"{diff.seconds // 60}m"
+            except Exception:
+                time_str = ""
+        
+        # Format price with appropriate decimals
+        def fmt_price(p):
+            if p == 0:
+                return "0"
+            if p >= 1000:
+                return f"{p:,.1f}"
+            elif p >= 1:
+                return f"{p:.2f}"
+            else:
+                return f"{p:.4f}"
+        
+        # Compact trade row
+        lines.append(
+            f"{pnl_emoji} {side_emoji} `{symbol}` {strat_short}\n"
+            f"   {fmt_price(entry)} → {fmt_price(exit_p)} | {reason_display}\n"
+            f"   {pnl_sign}${pnl:.2f} ({pnl_sign}{pnl_pct:.1f}%)"
+            + (f" • {time_str} ago" if time_str else "")
+        )
+        lines.append("")
+    
+    return "\n".join(lines)
+
+
+def get_trades_keyboard(t: dict, current_strategy: str = "all", current_period: str = "all",
+                        current_account: str = "demo", exchange: str = "bybit",
+                        page: int = 0, total_pages: int = 1) -> InlineKeyboardMarkup:
+    """Build inline keyboard for trade list navigation.
+    
+    Args:
+        t: Translation dict
+        current_strategy: Currently selected strategy
+        current_period: Currently selected period
+        current_account: Currently selected account type
+        exchange: Exchange type
+        page: Current page (0-indexed)
+        total_pages: Total pages
+    """
+    strategies = [
+        ("all", t.get('stats_all', '📈 All')),
+        ("oi", t.get('stats_oi', '📉 OI')),
+        ("rsi_bb", t.get('stats_rsi_bb', '📊 RSI+BB')),
+        ("scryptomera", t.get('stats_scryptomera', '🐱 Scryptomera')),
+        ("scalper", t.get('stats_scalper', '⚡ Scalper')),
+        ("elcaro", t.get('stats_elcaro', '🔥 Enliko')),
+        ("fibonacci", t.get('stats_fibonacci', '📐 Fibonacci')),
+        ("manual", t.get('stats_manual', '✋ Manual')),
+    ]
+    
+    periods = [
+        ("all", t.get('stats_period_all', '📅 All')),
+        ("today", t.get('stats_period_today', '📆 24h')),
+        ("week", t.get('stats_period_week', '📅 Week')),
+        ("month", t.get('stats_period_month', '🗓 Month')),
+    ]
+    
+    # Exchange-specific account labels
+    if exchange == "hyperliquid":
+        accounts = [
+            ("testnet", t.get('stats_testnet', '🧪 Testnet')),
+            ("mainnet", t.get('stats_mainnet', '🌐 Mainnet')),
+        ]
+    else:
+        accounts = [
+            ("demo", t.get('stats_demo', '🔵 Demo')),
+            ("real", t.get('stats_real', '🟢 Real')),
+        ]
+    
+    # Account type buttons
+    account_buttons = []
+    for key, label in accounts:
+        marker = "✓ " if key == current_account else ""
+        account_buttons.append(InlineKeyboardButton(
+            f"{marker}{label}",
+            callback_data=f"trades:acc:{current_strategy}:{current_period}:{key}:0"
+        ))
+    
+    # Strategy buttons (2 per row)
+    strat_buttons = []
+    row = []
+    for i, (key, label) in enumerate(strategies):
+        marker = "✓ " if key == current_strategy else ""
+        row.append(InlineKeyboardButton(
+            f"{marker}{label}",
+            callback_data=f"trades:strat:{key}:{current_period}:{current_account}:0"
+        ))
+        if len(row) == 2:
+            strat_buttons.append(row)
+            row = []
+    if row:
+        strat_buttons.append(row)
+    
+    # Period buttons
+    period_buttons = []
+    for key, label in periods:
+        marker = "✓" if key == current_period else ""
+        period_buttons.append(InlineKeyboardButton(
+            f"{marker}{label}",
+            callback_data=f"trades:period:{current_strategy}:{key}:{current_account}:0"
+        ))
+    
+    # Pagination row
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton(
+            "◀️ " + t.get('btn_prev', 'Prev'),
+            callback_data=f"trades:page:{current_strategy}:{current_period}:{current_account}:{page - 1}"
+        ))
+    nav_row.append(InlineKeyboardButton(
+        f"📄 {page + 1}/{total_pages}",
+        callback_data="noop"
+    ))
+    if page < total_pages - 1:
+        nav_row.append(InlineKeyboardButton(
+            t.get('btn_next', 'Next') + " ▶️",
+            callback_data=f"trades:page:{current_strategy}:{current_period}:{current_account}:{page + 1}"
+        ))
+    
+    # Back to stats + close
+    bottom_row = [
+        InlineKeyboardButton("📊 " + t.get('trades_to_stats', 'Statistics'), callback_data="trades:to_stats"),
+        InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="trades:close"),
+    ]
+    
+    keyboard = [account_buttons] + strat_buttons + [period_buttons]
+    if total_pages > 1:
+        keyboard.append(nav_row)
+    keyboard.append(bottom_row)
+    
+    return InlineKeyboardMarkup(keyboard)
+
+
 def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: str = "all", current_account: str = "demo", exchange: str = "bybit") -> InlineKeyboardMarkup:
     """Build inline keyboard for statistics navigation.
     
@@ -16615,9 +16851,12 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         marker = "✓" if key == current_period else ""
         period_buttons.append(InlineKeyboardButton(f"{marker}{label}", callback_data=f"stats:period:{current_strategy}:{key}:{current_account}"))
     
-    # Combine: Account selector first, then strategies, periods, and back
+    # Combine: Account selector first, then strategies, periods, trades button, and back
     keyboard = [account_buttons] + strat_buttons + [period_buttons]
-    keyboard.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="stats:close")])
+    keyboard.append([
+        InlineKeyboardButton("📋 " + t.get('trades_list_btn', 'Trade List'), callback_data=f"trades:view:{current_strategy}:{current_period}:{current_account}:0"),
+        InlineKeyboardButton(t.get('btn_close', '❌ Close'), callback_data="stats:close"),
+    ])
     
     return InlineKeyboardMarkup(keyboard)
 
@@ -16862,6 +17101,133 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     logger.info(f"[{uid}] Stats callback completed in {time.time() - start_time:.2f}s")
+
+
+@with_texts
+@log_calls
+async def on_trades_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle trade list navigation callbacks.
+    
+    Callback format: trades:action:strategy:period:account_type:page
+    Actions: view, acc, strat, period, page, to_stats, close
+    """
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    t = ctx.t
+    uid = update.effective_user.id
+    
+    logger.info(f"[{uid}] Trades callback: {data}")
+    
+    if data == "trades:close":
+        await query.delete_message()
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=t.get("welcome", "Welcome!"),
+            reply_markup=main_menu_keyboard(ctx, user_id=uid)
+        )
+        return
+    
+    if data == "trades:to_stats":
+        # Switch back to stats view - reuse on_stats_callback logic
+        user_exchange = db.get_exchange_type(uid) or "bybit"
+        creds = db.get_all_user_credentials(uid)
+        default_account = "real" if creds.get("real_api_key") else "demo"
+        stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account, exchange=user_exchange)
+        period_label = t.get('stats_period_all', 'All time')
+        unrealized_pnl = await get_unrealized_pnl(uid, strategy=None, account_type=default_account)
+        text = await format_trade_stats(stats, t, strategy_name="all", period_label=period_label,
+                                        unrealized_pnl=unrealized_pnl, uid=uid, account_type=default_account,
+                                        period="all", api_pnl=None)
+        keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all",
+                                      current_account=default_account, exchange=user_exchange)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
+        return
+    
+    if data == "noop":
+        return
+    
+    parts = data.split(":")
+    if len(parts) < 6:
+        return
+    
+    # Parse: trades:action:strategy:period:account_type:page
+    _, action, strategy, period, account_type, page_str = parts[:6]
+    page = int(page_str) if page_str.isdigit() else 0
+    
+    # Handle account switch
+    if action == "acc":
+        account_type = parts[4] if len(parts) > 4 else "demo"
+        page = 0
+    elif action == "strat":
+        strategy = parts[2] if len(parts) > 2 else "all"
+        page = 0
+    elif action == "period":
+        period = parts[3] if len(parts) > 3 else "all"
+        page = 0
+    elif action == "page":
+        pass  # page already parsed
+    elif action == "view":
+        pass  # initial view
+    else:
+        return
+    
+    period_labels = {
+        "all": t.get('stats_period_all', 'All time'),
+        "today": t.get('stats_period_today', '24h'),
+        "week": t.get('stats_period_week', 'Week'),
+        "month": t.get('stats_period_month', 'Month'),
+    }
+    period_label = period_labels.get(period, period)
+    
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    per_page = 8
+    
+    # Fetch trades with filters
+    strat_filter = None if strategy == "all" else strategy
+    
+    # Manual strategy includes unknown
+    if strategy == "manual":
+        # Get both manual and unknown trades
+        trades_manual, count_manual = db.get_trade_logs_list(
+            uid, limit=per_page, offset=page * per_page,
+            strategy="manual", account_type=account_type,
+            exchange=user_exchange, period=period, return_count=True
+        )
+        trades_unknown, count_unknown = db.get_trade_logs_list(
+            uid, limit=per_page, offset=0,
+            strategy="unknown", account_type=account_type,
+            exchange=user_exchange, period=period, return_count=True
+        )
+        # Merge and sort
+        all_trades = trades_manual + trades_unknown
+        total_count = count_manual + count_unknown
+        # Sort by time desc and take per_page
+        all_trades.sort(key=lambda x: x.get("time", ""), reverse=True)
+        trades = all_trades[:per_page]
+    else:
+        trades, total_count = db.get_trade_logs_list(
+            uid, limit=per_page, offset=page * per_page,
+            strategy=strat_filter, account_type=account_type,
+            exchange=user_exchange, period=period, return_count=True
+        )
+    
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    
+    text = format_trade_list(
+        trades, t, strategy_name=strategy, period_label=period_label,
+        account_type=account_type, page=page, total_count=total_count,
+        per_page=per_page
+    )
+    
+    keyboard = get_trades_keyboard(
+        t, current_strategy=strategy, current_period=period,
+        current_account=account_type, exchange=user_exchange,
+        page=page, total_pages=total_pages
+    )
+    
+    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 async def format_spot_stats(uid: int, t: dict, period_label: str, account_type: str = "demo") -> str:
@@ -31202,6 +31568,7 @@ def main():
     app.add_handler(CallbackQueryHandler(on_coin_group_cb, pattern=r"^coins:"))
     app.add_handler(CallbackQueryHandler(on_positions_cb, pattern=r"^pos:"))
     app.add_handler(CallbackQueryHandler(on_stats_callback, pattern=r"^stats:"))
+    app.add_handler(CallbackQueryHandler(on_trades_callback, pattern=r"^trades:"))
     app.add_handler(CallbackQueryHandler(handle_balance_callback, pattern=r"^balance:"))
     app.add_handler(CallbackQueryHandler(handle_positions_callback, pattern=r"^positions:"))
     app.add_handler(CallbackQueryHandler(handle_orders_callback, pattern=r"^orders:"))

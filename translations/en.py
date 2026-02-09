@@ -835,6 +835,14 @@ TEXTS = {
     
     'stats_disclaimer': '⚠️ _Past performance does not guarantee future results._',
     
+    # Trade list
+    'trades_title': 'Trade History',
+    'trades_list_btn': 'Trade List',
+    'trades_page': 'Page',
+    'trades_total': 'trades',
+    'trades_empty': 'No trades found for this filter.',
+    'trades_to_stats': 'Statistics',
+    
     # =====================================================
     # SUBSCRIPTION & PREMIUM
     # =====================================================
