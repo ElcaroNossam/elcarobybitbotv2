@@ -241,8 +241,13 @@ async def mobile_login(
 
 
 class RefreshTokenRequest(BaseModel):
-    """Refresh token request body"""
-    refreshToken: str  # iOS sends camelCase
+    """Refresh token request body - accepts both snake_case and camelCase"""
+    refresh_token: Optional[str] = None   # iOS sends snake_case via CodingKeys
+    refreshToken: Optional[str] = None    # WebApp/legacy sends camelCase
+
+    def get_token(self) -> str:
+        """Get refresh token from whichever field was provided"""
+        return self.refresh_token or self.refreshToken or ""
 
 
 @router.post("/auth/refresh")
@@ -254,9 +259,13 @@ async def refresh_token_endpoint(
         import jwt
         from webapp.api.auth import JWT_SECRET, JWT_ALGORITHM, create_access_token, create_refresh_token
         
+        token_value = body.get_token()
+        if not token_value:
+            raise HTTPException(status_code=401, detail="Refresh token is required")
+        
         # Validate the refresh token
         try:
-            payload = jwt.decode(body.refreshToken, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            payload = jwt.decode(token_value, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = int(payload.get("sub"))
             token_type = payload.get("type")
             
@@ -275,8 +284,9 @@ async def refresh_token_endpoint(
         
         return {
             "success": True,
-            "token": new_access_token,        # iOS expects "token"
-            "refreshToken": new_refresh_token, # iOS expects "refreshToken" (camelCase)
+            "token": new_access_token,
+            "refresh_token": new_refresh_token,  # iOS expects snake_case via CodingKeys
+            "refreshToken": new_refresh_token,    # WebApp/legacy expects camelCase
             "token_type": "bearer",
             "expires_in": 168 * 3600  # 7 days
         }

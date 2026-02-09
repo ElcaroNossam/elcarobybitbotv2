@@ -738,12 +738,24 @@ async def request_2fa_login(data: Request2FAByUsername):
         raise HTTPException(status_code=400, detail="Invalid username")
     
     # Find user by Telegram username
-    user = execute_one("""
-        SELECT user_id, telegram_username, telegram_id, first_name, is_allowed
-        FROM users 
-        WHERE LOWER(telegram_username) = %s OR LOWER(telegram_username) = %s
-        LIMIT 1
-    """, (username, f"@{username}"))
+    # NOTE: telegram_id column may not exist if migration 020 wasn't applied
+    # user_id IS the telegram_id for native TG users (positive integer)
+    try:
+        user = execute_one("""
+            SELECT user_id, telegram_username, telegram_id, first_name, is_allowed
+            FROM users 
+            WHERE LOWER(telegram_username) = %s OR LOWER(telegram_username) = %s
+            LIMIT 1
+        """, (username, f"@{username}"))
+    except Exception as e:
+        # Fallback if telegram_id column doesn't exist
+        logger.warning(f"2FA user lookup with telegram_id failed ({e}), trying without it")
+        user = execute_one("""
+            SELECT user_id, telegram_username, first_name, is_allowed
+            FROM users 
+            WHERE LOWER(telegram_username) = %s OR LOWER(telegram_username) = %s
+            LIMIT 1
+        """, (username, f"@{username}"))
     
     if not user:
         raise HTTPException(
@@ -905,10 +917,19 @@ async def check_2fa_status(request_id: str):
         telegram_id = request_data.get("telegram_id")
         
         # Get user from DB
-        user = execute_one("""
-            SELECT user_id, email, first_name, is_allowed, auth_provider, telegram_username
-            FROM users WHERE user_id = %s OR telegram_id = %s
-        """, (telegram_id, telegram_id))
+        # NOTE: For native TG users, user_id = telegram_id
+        # telegram_id column may not exist if migration 020 wasn't applied
+        try:
+            user = execute_one("""
+                SELECT user_id, email, first_name, is_allowed, auth_provider, telegram_username
+                FROM users WHERE user_id = %s OR telegram_id = %s
+            """, (telegram_id, telegram_id))
+        except Exception as e:
+            logger.warning(f"2FA check user lookup with telegram_id column failed ({e}), trying with user_id only")
+            user = execute_one("""
+                SELECT user_id, email, first_name, is_allowed, auth_provider, telegram_username
+                FROM users WHERE user_id = %s
+            """, (telegram_id,))
         
         if not user:
             return {
