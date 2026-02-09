@@ -376,19 +376,33 @@ class HyperLiquidClient:
             return []
         
         logger.info(f"[HL] Cancelling {len(orders_to_cancel)} existing trigger orders for {coin}")
-        results = []
+        
+        # Batch cancel all trigger orders in a SINGLE API call to avoid 429 rate limits
+        # cancel_wire_to_action supports multiple wires at once
+        asset = coin_to_asset_id(coin)
+        if asset is None:
+            logger.warning(f"[HL] Unknown coin {coin}, cannot cancel triggers")
+            return []
+        
+        cancel_wires = []
+        oids = []
         for order in orders_to_cancel:
             oid = order.get("oid")
             if oid:
-                try:
-                    result = await self.cancel(coin, int(oid))
-                    results.append({"coin": coin, "oid": oid, "result": result})
-                    logger.info(f"[HL] Cancelled trigger order {oid} for {coin}")
-                except Exception as e:
-                    logger.warning(f"[HL] Failed to cancel trigger order {oid} for {coin}: {e}")
-                    results.append({"coin": coin, "oid": oid, "error": str(e)})
+                cancel_wires.append({"a": asset, "o": int(oid)})
+                oids.append(oid)
         
-        return results
+        if not cancel_wires:
+            return []
+        
+        try:
+            action = cancel_wire_to_action(cancel_wires)
+            result = await self._exchange_request(action)
+            logger.info(f"[HL] Batch cancelled {len(cancel_wires)} trigger orders for {coin}: oids={oids}")
+            return [{"coin": coin, "oids": oids, "result": result}]
+        except Exception as e:
+            logger.warning(f"[HL] Batch cancel failed for {coin} ({len(cancel_wires)} orders): {e}")
+            return [{"coin": coin, "oids": oids, "error": str(e)}]
 
     async def user_fills(self, address: Optional[str] = None, start_time: Optional[int] = None) -> List[Dict[str, Any]]:
         addr = address or self._address
@@ -551,7 +565,9 @@ class HyperLiquidClient:
                 coin=coin, address=query_address
             )
             if cancelled:
-                logger.info(f"[HL] Cancelled {len(cancelled)} old trigger orders for {coin} before setting new TP/SL")
+                logger.info(f"[HL] Cancelled old trigger orders for {coin} before setting new TP/SL")
+                # Brief pause after batch cancel to avoid 429 on subsequent order placement
+                await asyncio.sleep(0.3)
         except Exception as e:
             logger.warning(f"[HL] Failed to cancel old triggers for {coin}, proceeding anyway: {e}")
         
