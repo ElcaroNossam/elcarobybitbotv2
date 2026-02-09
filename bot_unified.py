@@ -34,19 +34,19 @@ def _get_hl_cache(key: str) -> Optional[Any]:
         data, ts = _hl_cache[key]
         age = time.time() - ts
         if age < HL_CACHE_TTL:
-            logger.info(f"HL_CACHE HIT: {key} (age={age:.1f}s)")
+            logger.debug(f"HL_CACHE HIT: {key} (age={age:.1f}s)")
             return data
         else:
-            logger.info(f"HL_CACHE EXPIRED: {key} (age={age:.1f}s > TTL={HL_CACHE_TTL}s)")
+            logger.debug(f"HL_CACHE EXPIRED: {key} (age={age:.1f}s > TTL={HL_CACHE_TTL}s)")
     else:
-        logger.info(f"HL_CACHE MISS: {key} (key not in cache)")
+        logger.debug(f"HL_CACHE MISS: {key} (key not in cache)")
     return None
 
 
 def _set_hl_cache(key: str, data: Any):
     """Set HyperLiquid cache with current timestamp"""
     _hl_cache[key] = (data, time.time())
-    logger.info(f"HL_CACHE SET: {key} (items={len(data) if isinstance(data, list) else 'N/A'})")
+    logger.debug(f"HL_CACHE SET: {key} (items={len(data) if isinstance(data, list) else 'N/A'})")
 
 
 def invalidate_hl_cache(user_id: int, account_type: str = None):
