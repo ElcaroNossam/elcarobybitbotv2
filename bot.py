@@ -16987,16 +16987,27 @@ async def get_unrealized_pnl(user_id: int, strategy: str | None = None, account_
 @with_texts
 @log_calls
 async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show trading statistics."""
+    """Show trading statistics (unified for Bybit + HyperLiquid)."""
     uid = update.effective_user.id
     t = ctx.t
     
-    # Determine default account type based on user's active accounts
-    creds = db.get_all_user_credentials(uid)
-    default_account = "real" if creds.get("real_api_key") else "demo"
-    
     # Get user's active exchange for 4D multitenancy filtering
     user_exchange = db.get_exchange_type(uid) or "bybit"
+    
+    # Determine default account type based on exchange
+    if user_exchange == "hyperliquid":
+        hl_creds = get_hl_credentials(uid)
+        if hl_creds.get("hl_mainnet_private_key"):
+            default_account = "mainnet"
+        elif hl_creds.get("hl_testnet_private_key"):
+            default_account = "testnet"
+        elif hl_creds.get("hl_private_key"):
+            default_account = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+        else:
+            default_account = "mainnet"
+    else:
+        creds = db.get_all_user_credentials(uid)
+        default_account = "real" if creds.get("real_api_key") else "demo"
     
     # Default: all strategies, all time, detected account
     stats = get_trade_stats(uid, strategy=None, period="all", account_type=default_account, exchange=user_exchange)
@@ -24979,10 +24990,8 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                  "📋 Historia", "📋 历史", "📜 Cronologia", "📜 Historial", "📜 Historie",
                  "📜 Historique", "📜 Istorija", "📜 Verlauf", "📜 היסטוריה", "📜 السجل", "📜 履歴",
                  ctx.t.get('button_history', '📜 History')]:
-        if active_exchange == "hyperliquid":
-            return await cmd_hl_history(update, ctx)
-        else:
-            return await cmd_trade_stats(update, ctx)
+        # Unified history for both Bybit and HyperLiquid (same UI with strategy/period/account filters)
+        return await cmd_trade_stats(update, ctx)
     
     # Trade - works for current exchange
     if text in ["🎯 Trade", "🎯 HL Trade"]:
@@ -29371,106 +29380,13 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_hl_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network: str = None):
-    """Show HyperLiquid trade history with network switcher"""
-    uid = update.effective_user.id
-    t = ctx.t
+    """Show HyperLiquid trade history — delegates to unified cmd_trade_stats.
     
-    hl_creds = get_hl_credentials(uid)
-    
-    # Check if any HL key is configured
-    has_any_key = bool(hl_creds.get("hl_private_key") or 
-                       hl_creds.get("hl_testnet_private_key") or 
-                       hl_creds.get("hl_mainnet_private_key"))
-    if not has_any_key:
-        await update.message.reply_text(
-            "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
-            parse_mode="Markdown"
-        )
-        return
-    
-    # Determine which network to use
-    if network is None:
-        is_testnet = hl_creds.get("hl_testnet", False)
-    else:
-        is_testnet = (network == "testnet")
-    
-    # Get credentials for specific network (multitenancy pattern)
-    if is_testnet:
-        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
-    else:
-        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
-    
-    if not private_key:
-        await update.message.reply_text(
-            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
-            parse_mode="Markdown"
-        )
-        return
-    
-    adapter = None
-    try:
-        adapter = HLAdapter(
-            private_key=private_key,
-            testnet=is_testnet
-            # main_wallet_address auto-discovered via userRole API
-        )
-        await adapter.initialize()  # Trigger auto-discovery
-        
-        result = await adapter.fetch_trade_history(limit=10)
-        show_switcher = db.should_show_hl_network_switcher(uid)
-        
-        # Build keyboard
-        keyboard_rows = []
-        if show_switcher:
-            current = "testnet" if is_testnet else "mainnet"
-            keyboard_rows.append([
-                InlineKeyboardButton("🧪 Testnet" + (" ✓" if current == "testnet" else ""), callback_data="hl_hist:testnet"),
-                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if current == "mainnet" else ""), callback_data="hl_hist:mainnet")
-            ])
-        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
-        keyboard = InlineKeyboardMarkup(keyboard_rows)
-        
-        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
-        
-        if result.get("success"):
-            trades = result.get("data", [])
-            if not trades:
-                text = f"📋 *HyperLiquid Trade History* {network_label}\n\n📭 No trade history."
-                await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
-                return
-            
-            lines = [f"📋 *HyperLiquid Trade History* {network_label}\n"]
-            
-            for trade in trades[:10]:
-                symbol = trade.get("symbol", "?")
-                side = trade.get("side", "?")
-                size = float(trade.get("size", 0))
-                price = float(trade.get("price", 0))
-                pnl = float(trade.get("pnl", 0))
-                
-                side_emoji = "🟢" if side == "Buy" else "🔴"
-                pnl_emoji = "+" if pnl >= 0 else ""
-                
-                lines.append(
-                    f"{side_emoji} *{symbol}* | {size} @ ${price:,.4f}\n"
-                    f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
-                )
-            
-            await update.message.reply_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
-        else:
-            await update.message.reply_text(
-                t.get('error_generic', 'Error: {msg}').format(msg=f"Failed to fetch history: {result.get('error', 'Unknown error')}"),
-                parse_mode="Markdown",
-                reply_markup=keyboard
-            )
-    except Exception as e:
-        logger.error(f"HL history error: {e}")
-        await update.message.reply_text(t.get('error_occurred', '❌ Error: {error}').format(error=str(e)), parse_mode="Markdown")
-    finally:
-        if adapter:
-            await adapter.close()
+    Legacy function kept for backward compatibility. The unified cmd_trade_stats
+    now handles both Bybit and HyperLiquid with the same UI (strategy filters,
+    period filters, account type switcher, pagination).
+    """
+    return await cmd_trade_stats(update, ctx)
 
 
 @require_premium_for_hl
@@ -30844,97 +30760,38 @@ async def on_hl_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @log_calls
 @with_texts
 async def on_hl_history_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Handle HyperLiquid history network switching callbacks (hl_hist:testnet, hl_hist:mainnet)"""
+    """Handle HyperLiquid history network switching callbacks (hl_hist:testnet, hl_hist:mainnet).
+    Now delegates to unified stats flow — same UI as Bybit History.
+    """
     q = update.callback_query
     await q.answer()
-    
+
     uid = q.from_user.id
     data = q.data
     t = ctx.t
-    
-    # hl_hist:testnet or hl_hist:mainnet
-    network = data.split(":")[1]
-    is_testnet = (network == "testnet")
-    
-    hl_creds = get_hl_credentials(uid)
-    
-    # Get credentials for specific network
-    if is_testnet:
-        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-        wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
-    else:
-        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-        wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
-    
-    if not private_key:
-        await q.edit_message_text(
-            f"❌ HyperLiquid {'Testnet' if is_testnet else 'Mainnet'} not configured.",
-            parse_mode="Markdown"
-        )
-        return
-    
-    adapter = None
+
+    # hl_hist:testnet or hl_hist:mainnet → use unified stats with selected account_type
+    network = data.split(":")[1]  # "testnet" or "mainnet"
+    account_type = network  # directly usable as account_type
+
+    logger.info(f"[{uid}] HL history callback → unified stats, account_type={account_type}")
+
+    # Render unified stats view (same as Bybit)
+    user_exchange = db.get_exchange_type(uid) or "hyperliquid"
+    stats = get_trade_stats(uid, strategy=None, period="all", account_type=account_type, exchange=user_exchange)
+
+    period_label = t.get('stats_period_all', 'All time')
+
+    unrealized_pnl = 0.0
     try:
-        adapter = HLAdapter(
-            private_key=private_key,
-            testnet=is_testnet
-            # main_wallet_address auto-discovered via userRole API
-        )
-        await adapter.initialize()  # Trigger auto-discovery
-        
-        result = await adapter.fetch_trade_history(limit=10)
-        show_switcher = db.should_show_hl_network_switcher(uid)
-        
-        # Build keyboard
-        keyboard_rows = []
-        if show_switcher:
-            keyboard_rows.append([
-                InlineKeyboardButton("🧪 Testnet" + (" ✓" if is_testnet else ""), callback_data="hl_hist:testnet"),
-                InlineKeyboardButton("🌐 Mainnet" + (" ✓" if not is_testnet else ""), callback_data="hl_hist:mainnet")
-            ])
-        keyboard_rows.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="menu:main")])
-        keyboard = InlineKeyboardMarkup(keyboard_rows)
-        
-        network_label = "🧪 Testnet" if is_testnet else "🌐 Mainnet"
-        
-        if result.get("success"):
-            trades = result.get("data", [])
-            
-            if not trades:
-                text = f"📋 *HyperLiquid Trade History* {network_label}\n\n📭 No trade history."
-                await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
-                return
-            
-            lines = [f"📋 *HyperLiquid Trade History* {network_label}\n"]
-            
-            for trade in trades[:10]:
-                symbol = trade.get("symbol", "?")
-                side = trade.get("side", "?")
-                size = float(trade.get("size", 0))
-                price = float(trade.get("price", 0))
-                pnl = float(trade.get("pnl", 0))
-                
-                side_emoji = "🟢" if side == "Buy" else "🔴"
-                pnl_emoji = "+" if pnl >= 0 else ""
-                
-                lines.append(
-                    f"{side_emoji} *{symbol}* | {size} @ ${price:,.4f}\n"
-                    f"   PnL: {pnl_emoji}${pnl:,.2f}\n"
-                )
-            
-            await q.edit_message_text("\n".join(lines), parse_mode="Markdown", reply_markup=keyboard)
-        else:
-            await q.edit_message_text(
-                f"❌ Failed to fetch history: {result.get('error', 'Unknown error')}",
-                parse_mode="Markdown",
-                reply_markup=keyboard
-            )
-    except Exception as e:
-        logger.error(f"HL history callback error: {e}")
-        await q.edit_message_text(f"❌ Error: {str(e)}", parse_mode="Markdown")
-    finally:
-        if adapter:
-            await adapter.close()
+        unrealized_pnl = await get_unrealized_pnl(uid, strategy=None, account_type=account_type)
+    except Exception:
+        pass
+
+    text = await format_trade_stats(stats, t, strategy_name="all", period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=account_type, period="all", api_pnl=None)
+    keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all", current_account=account_type, exchange=user_exchange)
+
+    await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
 
 @log_calls
