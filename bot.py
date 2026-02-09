@@ -23305,6 +23305,11 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         q.data = f"admin:users_list:{filter_type}:{page}"
         await on_admin_cb(update, ctx)
 
+    elif cmd.startswith("user_card:"):
+        # Show user card (from payment notifications etc.)
+        target_uid = int(cmd.split(":")[1])
+        await show_user_card(q, ctx, target_uid)
+
     elif cmd.startswith("user:"):
         # Show user card
         target_uid = int(cmd.split(":")[1])
@@ -23347,16 +23352,6 @@ async def on_admin_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t.get('admin_confirm_yes', '✅ Yes, Delete'), callback_data=f"admin:confirm_delete:{target_uid}")],
                 [InlineKeyboardButton(t.get('admin_confirm_no', '❌ Cancel'), callback_data=f"admin:user:{target_uid}")],
-            ])
-        )
-
-    elif cmd.startswith("confirm_delete:"):
-        target_uid = int(cmd.split(":")[1])
-        delete_user(target_uid)
-        await q.edit_message_text(
-            t.get('admin_user_deleted', '✅ User {uid} deleted.').format(uid=target_uid),
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t.get('btn_back', '⬅️ Back'), callback_data="admin:users_menu")]
             ])
         )
 
@@ -27378,10 +27373,11 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             # Payment failed
             error_msg = result.get("message", result.get("error", "Unknown error"))
+            duration_str = "1y" if period == 12 else f"{period}m"
             await q.edit_message_text(
                 t.get("payment_failed", "❌ Payment failed: {error}").format(error=error_msg),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{duration_str}")]
                 ])
             )
     
@@ -27410,7 +27406,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.edit_message_text(
                 "❌ TON payment not configured. Please contact support.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:methods")]
+                    [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                 ])
             )
             return
@@ -27457,8 +27453,8 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("📱 Open Tonkeeper", url=tonkeeper_link)],
             [InlineKeyboardButton("✅ Verify Payment", callback_data=f"sub:ton_verify:{payment_id}")],
-            [InlineKeyboardButton("📋 Copy Wallet", callback_data=f"sub:ton_copy:{platform_wallet}")],
-            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}")]
+            [InlineKeyboardButton("📋 Copy Wallet", callback_data=f"sub:crypto_copy:{platform_wallet[:30]}")],
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{period}m")]
         ])
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
@@ -27760,7 +27756,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("🐕 DOGE", callback_data=f"sub:crypto_create:{plan}:{duration}:DOGE:Dogecoin"),
                 InlineKeyboardButton("🪙 LTC", callback_data=f"sub:crypto_create:{plan}:{duration}:LTC:Litecoin"),
             ],
-            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}")]
+            [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data=f"sub:period:{plan}:{duration}")]
         ])
         
         await q.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
@@ -28603,6 +28599,7 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.warning(f"Failed to notify user about approval: {e}")
             
             # Go back to pending list
+            q.data = "adm_lic:pending"
             await on_admin_license_cb(update, ctx)
         else:
             await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)
@@ -28646,6 +28643,7 @@ async def on_admin_license_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 pass
             
             # Go back to pending list
+            q.data = "adm_lic:pending"
             await on_admin_license_cb(update, ctx)
         else:
             await q.answer(f"❌ Error: {result.get('error')}", show_alert=True)

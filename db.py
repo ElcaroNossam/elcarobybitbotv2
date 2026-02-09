@@ -4087,17 +4087,27 @@ def reject_license_request(request_id: int, admin_id: int, reason: str = None) -
     return {"success": True, "request": request}
 
 
-def get_user_license_requests(user_id: int, limit: int = 10) -> list[dict]:
+def get_user_license_requests(user_id: int, limit: int = 10, status: str = None) -> list[dict]:
     """Get user's license request history."""
     with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT id, license_type, period_months, payment_method, amount, currency, 
-                   status, notes, created_at, approved_at, rejection_reason
-            FROM license_requests
-            WHERE user_id = ?
-            ORDER BY created_at DESC
-            LIMIT ?
-        """, (user_id, limit)).fetchall()
+        if status:
+            rows = conn.execute("""
+                SELECT id, license_type, period_months, payment_method, amount, currency, 
+                       status, notes, created_at, approved_at, rejection_reason
+                FROM license_requests
+                WHERE user_id = ? AND status = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (user_id, status, limit)).fetchall()
+        else:
+            rows = conn.execute("""
+                SELECT id, license_type, period_months, payment_method, amount, currency, 
+                       status, notes, created_at, approved_at, rejection_reason
+                FROM license_requests
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (user_id, limit)).fetchall()
         
         return [
             {
