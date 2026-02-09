@@ -21464,10 +21464,11 @@ async def monitor_positions_loop(app: Application):
                                     
                                     # CRITICAL FIX: If entry changed (DCA), always recalculate SL
                                     # This prevents SL from being too far from current entry after averaging
+                                    # Use epsilon comparison to avoid floating point issues
                                     should_update = (
                                         current_sl is None
-                                        or (side == "Buy"  and sl0 > current_sl)
-                                        or (side == "Sell" and sl0 < current_sl)
+                                        or (side == "Buy"  and sl0 > current_sl and not _prices_equal(sl0, current_sl))
+                                        or (side == "Sell" and sl0 < current_sl and not _prices_equal(sl0, current_sl))
                                         or entry_changed  # Force update if entry changed due to DCA
                                     )
                                     if should_update:
@@ -21503,9 +21504,11 @@ async def monitor_positions_loop(app: Application):
                                     max_allowed = quantize(mark - tick, tick)    
                                     atr_cand    = min(cand_ceil, max_allowed)
 
-                                    new_sl = max(current_sl or -float("inf"), atr_cand) 
-                                    logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl > current_sl}")
-                                    if current_sl is None or new_sl > current_sl:
+                                    new_sl = max(current_sl or -float("inf"), atr_cand)
+                                    # Use epsilon comparison to avoid floating point issues
+                                    should_trail = current_sl is None or (new_sl > current_sl and not _prices_equal(new_sl, current_sl))
+                                    logger.info(f"[ATR-TRAIL] {sym} LONG: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={should_trail}")
+                                    if should_trail:
                                         try:
                                             result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
                                             logger.info(f"[ATR-TRAIL] {sym} LONG: SL updated {current_sl} -> {new_sl}, result={result}")
@@ -21521,9 +21524,11 @@ async def monitor_positions_loop(app: Application):
                                     min_allowed = quantize_up(mark + tick, tick)        
                                     atr_cand     = max(cand_floor, min_allowed)
 
-                                    new_sl = min(current_sl or float("inf"), atr_cand)  
-                                    logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={current_sl is None or new_sl < current_sl}")
-                                    if current_sl is None or new_sl < current_sl:
+                                    new_sl = min(current_sl or float("inf"), atr_cand)
+                                    # Use epsilon comparison to avoid floating point issues
+                                    should_trail = current_sl is None or (new_sl < current_sl and not _prices_equal(new_sl, current_sl))
+                                    logger.info(f"[ATR-TRAIL] {sym} SHORT: cand_raw={cand_raw:.6f} atr_cand={atr_cand:.6f} new_sl={new_sl:.6f} should_update={should_trail}")
+                                    if should_trail:
                                         try:
                                             result = await set_trading_stop(uid, sym, sl_price=new_sl, side_hint=side, is_trailing=True, account_type=pos_account_type, exchange=current_exchange)
                                             logger.info(f"[ATR-TRAIL] {sym} SHORT: SL updated {current_sl} -> {new_sl}, result={result}")
