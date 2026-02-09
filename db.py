@@ -132,7 +132,7 @@ USER_FIELDS_WHITELIST = {
     "guide_sent",  # 0/1 - отправлен ли PDF гайд
     "live_enabled",  # 0/1 - разрешена ли торговля на Real/Mainnet
     # License info (добавлено для admin API)
-    "license_type", "license_expires", "current_license",
+    "license_type", "license_expires", "current_license", "is_lifetime",
     # для совместимости с текущим кодом бота
     "first_seen_ts", "last_seen_ts",
     # Last viewed account type (for UI persistence)
@@ -6791,10 +6791,10 @@ def get_admin_dashboard() -> dict:
             cur.execute("SELECT COUNT(*) FROM users WHERE is_allowed = 1 AND is_banned = 0")
             active_users = cur.fetchone()[0]
             
-            cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+            cur.execute("SELECT COUNT(*) FROM users WHERE current_license = 'premium' OR is_lifetime = 1")
             premium_users = cur.fetchone()[0]
             
-            cur.execute("SELECT COUNT(*) FROM users WHERE license_type = 'basic'")
+            cur.execute("SELECT COUNT(*) FROM users WHERE current_license = 'basic'")
             basic_users = cur.fetchone()[0]
             
             cur.execute("SELECT COUNT(*) FROM users WHERE is_banned = 1")

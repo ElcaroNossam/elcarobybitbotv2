@@ -166,9 +166,9 @@ async def get_finance_dashboard(
             # Get subscription counts
             cur.execute("""
                 SELECT 
-                    COUNT(*) FILTER (WHERE license_type = 'premium') as premium,
-                    COUNT(*) FILTER (WHERE license_type = 'basic') as basic,
-                    COUNT(*) FILTER (WHERE license_type = 'trial') as trial,
+                    COUNT(*) FILTER (WHERE current_license = 'premium') as premium,
+                    COUNT(*) FILTER (WHERE current_license = 'basic') as basic,
+                    COUNT(*) FILTER (WHERE current_license = 'trial') as trial,
                     COUNT(*) FILTER (WHERE is_lifetime = TRUE) as lifetime
                 FROM users 
                 WHERE is_allowed = 1 AND is_banned = 0
@@ -388,8 +388,8 @@ async def get_subscription_analytics(
                 SELECT 
                     DATE_TRUNC('month', created_at) as month,
                     COUNT(*) as new_users,
-                    COUNT(*) FILTER (WHERE license_type = 'premium') as premium,
-                    COUNT(*) FILTER (WHERE license_type = 'basic') as basic
+                    COUNT(*) FILTER (WHERE current_license = 'premium') as premium,
+                    COUNT(*) FILTER (WHERE current_license = 'basic') as basic
                 FROM users
                 WHERE created_at >= NOW() - INTERVAL '6 months'
                 GROUP BY DATE_TRUNC('month', created_at)

@@ -1136,7 +1136,7 @@ async def get_dashboard(
         cur.execute("SELECT COUNT(*) as cnt FROM users WHERE is_allowed = 1 AND is_banned = 0")
         active_users = cur.fetchone()['cnt'] or 0
         
-        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE license_type = 'premium' OR is_lifetime = 1")
+        cur.execute("SELECT COUNT(*) as cnt FROM users WHERE current_license = 'premium' OR is_lifetime = 1")
         premium_users = cur.fetchone()['cnt'] or 0
         
         cur.execute("SELECT COUNT(*) as cnt FROM users WHERE DATE(created_at) = CURRENT_DATE")

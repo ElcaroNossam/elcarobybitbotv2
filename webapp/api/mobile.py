@@ -333,7 +333,7 @@ async def get_user_profile(
             cur.execute("""
                 SELECT 
                     user_id, username, first_name, last_name,
-                    license_type, license_expires, is_lifetime,
+                    COALESCE(current_license, license_type) as license_type, license_expires, is_lifetime,
                     exchange_type, trading_mode, lang,
                     percent, sl_percent, tp_percent, leverage,
                     created_at, is_allowed, is_banned,
