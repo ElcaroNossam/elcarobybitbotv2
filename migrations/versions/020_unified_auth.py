@@ -83,21 +83,29 @@ def upgrade(cur):
         CREATE INDEX IF NOT EXISTS idx_telegram_mapping_user ON telegram_user_mapping(user_id);
     """)
     
+    # Add missing columns to email_users table (needed by create_email_user)
+    cur.execute("ALTER TABLE email_users ADD COLUMN IF NOT EXISTS name TEXT;")
+    cur.execute("ALTER TABLE email_users ADD COLUMN IF NOT EXISTS password_salt TEXT;")
+    cur.execute("ALTER TABLE email_users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();")
+    
     # Migrate data from email_users to users (for existing email registrations)
     # This links email accounts with their generated user_id
-    cur.execute("""
-        UPDATE users u
-        SET 
-            email = eu.email,
-            password_hash = eu.password_hash,
-            password_salt = eu.password_salt,
-            auth_provider = 'email',
-            email_verified = eu.is_verified,
-            last_login = eu.last_login
-        FROM email_users eu
-        WHERE u.user_id = eu.user_id
-          AND u.email IS NULL;
-    """)
+    # NOTE: password_salt may not exist in email_users on older installs
+    try:
+        cur.execute("""
+            UPDATE users u
+            SET 
+                email = eu.email,
+                password_hash = eu.password_hash,
+                auth_provider = 'email',
+                email_verified = eu.is_verified,
+                last_login = eu.last_login
+            FROM email_users eu
+            WHERE u.user_id = eu.user_id
+              AND u.email IS NULL;
+        """)
+    except Exception as e:
+        print(f"  [WARN] email_users migration skipped: {e}")
     
     print("✅ Migration 020: Unified auth fields added to users table")
 

@@ -102,6 +102,13 @@ def upgrade(cur):
             first_name         TEXT,
             last_name          TEXT,
             email              TEXT UNIQUE,
+            password_hash      TEXT,
+            password_salt      TEXT,
+            telegram_id        BIGINT,
+            telegram_username  TEXT,
+            auth_provider      TEXT DEFAULT 'telegram',
+            email_verified     BOOLEAN DEFAULT FALSE,
+            last_login         TIMESTAMP,
             lang               TEXT DEFAULT 'en',
             
             terms_accepted     BOOLEAN DEFAULT FALSE,
