@@ -410,18 +410,39 @@ class TradingService: ObservableObject {
         }
     }
     
+    // MARK: - Request Bodies (Codable structs for NetworkService.post)
+    
+    private struct CancelOrderBody: Codable {
+        let symbol: String
+        let order_id: String
+        let exchange: String
+        let account_type: String
+    }
+    
+    private struct SetLeverageBody: Codable {
+        let symbol: String
+        let leverage: Int
+        let exchange: String
+        let account_type: String
+    }
+    
     // MARK: - Cancel Order
     @MainActor
     func cancelOrder(symbol: String, orderId: String) async {
         logger.info("Cancelling order \(orderId) for \(symbol)", category: .trading)
         
         do {
-            var params = exchangeParams
-            params["order_id"] = orderId
-            params["symbol"] = symbol
+            // Backend expects JSON body with CancelOrderRequest model
+            let body = CancelOrderBody(
+                symbol: symbol,
+                order_id: orderId,
+                exchange: exchangeParams["exchange"] ?? "bybit",
+                account_type: exchangeParams["account_type"] ?? "demo"
+            )
             
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.cancelOrder + "?\(params.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))"
+                Config.Endpoints.cancelOrder,
+                body: body
             )
             
             if response.success == true {
@@ -460,12 +481,17 @@ class TradingService: ObservableObject {
         logger.info("Setting leverage for \(symbol) to \(leverage)x", category: .trading)
         
         do {
-            var params = exchangeParams
-            params["symbol"] = symbol
-            params["leverage"] = String(leverage)
+            // Backend expects JSON body with SetLeverageRequest model
+            let body = SetLeverageBody(
+                symbol: symbol,
+                leverage: leverage,
+                exchange: exchangeParams["exchange"] ?? "bybit",
+                account_type: exchangeParams["account_type"] ?? "demo"
+            )
             
             let response: SimpleResponse = try await network.post(
-                Config.Endpoints.setLeverage + "?\(params.map { "\($0.key)=\($0.value)" }.joined(separator: "&"))"
+                Config.Endpoints.setLeverage,
+                body: body
             )
             
             let success = response.success == true

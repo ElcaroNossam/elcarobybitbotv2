@@ -34,7 +34,7 @@ struct Config {
         static let loginEmail = "/auth/email/login"
         static let register = "/auth/email/register"
         static let verify = "/auth/email/verify"
-        static let refresh = "/auth/refresh"
+        static let refresh = "/mobile/auth/refresh"
         
         // Users
         static let me = "/users/me"

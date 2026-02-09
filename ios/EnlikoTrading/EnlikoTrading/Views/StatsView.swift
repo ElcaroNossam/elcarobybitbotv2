@@ -21,7 +21,8 @@ struct StatsView: View {
                         Task {
                             await stats.fetchPnlHistory(
                                 period: stats.selectedPeriod,
-                                accountType: appState.currentAccountType.rawValue
+                                accountType: appState.currentAccountType.rawValue,
+                                exchange: appState.currentExchange.rawValue
                             )
                         }
                     }
@@ -52,7 +53,7 @@ struct StatsView: View {
             .navigationTitle("stats_title".localized)
             .withRTLSupport()
             .refreshable {
-                await stats.refreshAll(accountType: appState.currentAccountType.rawValue)
+                await stats.refreshAll(accountType: appState.currentAccountType.rawValue, exchange: appState.currentExchange.rawValue)
             }
             .overlay {
                 if stats.isLoading && stats.dashboard == nil {
@@ -60,16 +61,16 @@ struct StatsView: View {
                 }
             }
             .task {
-                await stats.refreshAll(accountType: appState.currentAccountType.rawValue)
+                await stats.refreshAll(accountType: appState.currentAccountType.rawValue, exchange: appState.currentExchange.rawValue)
             }
-            .onChange(of: appState.currentExchange) { _, _ in
+            .onChange(of: appState.currentExchange) { _, newValue in
                 Task {
-                    await stats.refreshAll(accountType: appState.currentAccountType.rawValue)
+                    await stats.refreshAll(accountType: appState.currentAccountType.rawValue, exchange: newValue.rawValue)
                 }
             }
             .onChange(of: appState.currentAccountType) { _, newValue in
                 Task {
-                    await stats.refreshAll(accountType: newValue.rawValue)
+                    await stats.refreshAll(accountType: newValue.rawValue, exchange: appState.currentExchange.rawValue)
                 }
             }
         }
@@ -287,7 +288,7 @@ struct StrategyPerformanceCard: View {
                         Text(String(format: "$%.2f", report.totalPnl))
                             .font(.subheadline)
                             .foregroundColor(report.totalPnl >= 0 ? .green : .red)
-                        Text(String(format: "%.1f%% WR", report.winRate))
+                        Text(String(format: "%.1f%% WR", report.winRate ?? 0))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

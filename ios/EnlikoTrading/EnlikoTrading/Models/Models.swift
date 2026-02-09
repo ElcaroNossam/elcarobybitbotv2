@@ -204,6 +204,7 @@ struct Balance: Codable {
     let marginBalance: Double?
     let positionMarginFromAPI: Double?  // NEW: Direct from API
     let accountType: String?
+    private let _currency: String?  // API returns "USDT" for Bybit, "USDC" for HL
     let error: String?  // API may return error message
     
     // Public accessors with defaults
@@ -217,7 +218,7 @@ struct Balance: Codable {
     var positionMargin: Double { 
         positionMarginFromAPI ?? marginBalance ?? max(0, equity - available)
     }
-    var currency: String { "USDT" }
+    var currency: String { _currency ?? "USDT" }
     var hasError: Bool { error != nil }
     
     enum CodingKeys: String, CodingKey {
@@ -227,6 +228,7 @@ struct Balance: Codable {
         case marginBalance = "margin_balance"
         case positionMarginFromAPI = "position_margin"  // Maps to API field
         case accountType = "account_type"
+        case _currency = "currency"
         case error
     }
     
@@ -318,8 +320,14 @@ struct Position: Codable, Identifiable {
     // API returns either liq_price or liquidation_price
     private let _liqPrice: Double?
     private let _liquidationPrice: Double?
-    let takeProfit: Double?
-    let stopLoss: Double?
+    // Backend returns tp_price/sl_price, also handle take_profit/stop_loss
+    private let _takeProfit: Double?
+    private let _stopLoss: Double?
+    private let _tpPrice: Double?
+    private let _slPrice: Double?
+    // Computed: use tp_price (backend primary) with take_profit as fallback
+    var takeProfit: Double? { _tpPrice ?? _takeProfit }
+    var stopLoss: Double? { _slPrice ?? _stopLoss }
     let strategy: String?
     let createdAt: String?
     // API returns either margin or position_margin
@@ -358,8 +366,10 @@ struct Position: Codable, Identifiable {
         case _pnlPercent = "pnl_percent"
         case _liqPrice = "liq_price"
         case _liquidationPrice = "liquidation_price"
-        case takeProfit = "take_profit"
-        case stopLoss = "stop_loss"
+        case _takeProfit = "take_profit"
+        case _stopLoss = "stop_loss"
+        case _tpPrice = "tp_price"
+        case _slPrice = "sl_price"
         case strategy
         case createdAt = "created_at"
         case _margin = "margin"
@@ -371,6 +381,46 @@ struct Position: Codable, Identifiable {
         case useAtr = "use_atr"
         case atrActivated = "atr_activated"
         case error
+    }
+    
+    // Custom decoder to handle leverage as String (Bybit API) or Int
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        symbol = try container.decode(String.self, forKey: .symbol)
+        side = try container.decode(String.self, forKey: .side)
+        _size = try container.decodeIfPresent(Double.self, forKey: ._size)
+        _entryPrice = try container.decodeIfPresent(Double.self, forKey: ._entryPrice)
+        _markPrice = try container.decodeIfPresent(Double.self, forKey: ._markPrice)
+        // Leverage: Bybit returns as string "10", HL returns as int 10
+        if let intVal = try? container.decodeIfPresent(Int.self, forKey: ._leverage) {
+            _leverage = intVal
+        } else if let strVal = try? container.decodeIfPresent(String.self, forKey: ._leverage),
+                  let parsed = Int(strVal) {
+            _leverage = parsed
+        } else {
+            _leverage = nil
+        }
+        _pnl = try container.decodeIfPresent(Double.self, forKey: ._pnl)
+        _unrealizedPnl = try container.decodeIfPresent(Double.self, forKey: ._unrealizedPnl)
+        _roe = try container.decodeIfPresent(Double.self, forKey: ._roe)
+        _pnlPercent = try container.decodeIfPresent(Double.self, forKey: ._pnlPercent)
+        _liqPrice = try container.decodeIfPresent(Double.self, forKey: ._liqPrice)
+        _liquidationPrice = try container.decodeIfPresent(Double.self, forKey: ._liquidationPrice)
+        _takeProfit = try container.decodeIfPresent(Double.self, forKey: ._takeProfit)
+        _stopLoss = try container.decodeIfPresent(Double.self, forKey: ._stopLoss)
+        _tpPrice = try container.decodeIfPresent(Double.self, forKey: ._tpPrice)
+        _slPrice = try container.decodeIfPresent(Double.self, forKey: ._slPrice)
+        strategy = try container.decodeIfPresent(String.self, forKey: .strategy)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        _margin = try container.decodeIfPresent(Double.self, forKey: ._margin)
+        _positionValue = try container.decodeIfPresent(Double.self, forKey: ._positionValue)
+        _positionMarginValue = try container.decodeIfPresent(Double.self, forKey: ._positionMarginValue)
+        exchange = try container.decodeIfPresent(String.self, forKey: .exchange)
+        accountType = try container.decodeIfPresent(String.self, forKey: .accountType)
+        env = try container.decodeIfPresent(String.self, forKey: .env)
+        useAtr = try container.decodeIfPresent(Bool.self, forKey: .useAtr)
+        atrActivated = try container.decodeIfPresent(Bool.self, forKey: .atrActivated)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
     }
     
     var isLong: Bool { side.lowercased() == "buy" || side.lowercased() == "long" }
@@ -394,6 +444,7 @@ struct Position: Codable, Identifiable {
     var displayMarkPrice: Double { markPrice }
     var displaySize: Double { size }
     var displayLiqPrice: Double { liquidationPrice ?? 0 }
+    // TP/SL display uses computed takeProfit/stopLoss which already combines both keys
     var displayTpPrice: Double { takeProfit ?? 0 }
     var displaySlPrice: Double { stopLoss ?? 0 }
     
@@ -494,7 +545,9 @@ struct Order: Codable, Identifiable {
     let symbol: String
     let side: String
     private let _orderType: String?
+    private let _orderTypeAlt: String?  // Backend may also return "type"
     private let _qty: Double?
+    private let _size: Double?  // Backend may return "size" instead of "qty"
     let price: Double?
     let triggerPrice: Double?
     let status: String?
@@ -505,8 +558,8 @@ struct Order: Codable, Identifiable {
     // This prevents accidental cancel of random orders
     var orderId: String { _orderId ?? _orderIdAlt ?? _id ?? "unknown_\(symbol)_\(side)" }
     var id: String { orderId }
-    var orderType: String { _orderType ?? "limit" }
-    var qty: Double { _qty ?? 0 }
+    var orderType: String { _orderType ?? _orderTypeAlt ?? "limit" }
+    var qty: Double { _qty ?? _size ?? 0 }
     var hasValidOrderId: Bool { _orderId != nil || _orderIdAlt != nil || _id != nil }
     
     enum CodingKeys: String, CodingKey {
@@ -516,7 +569,9 @@ struct Order: Codable, Identifiable {
         case symbol
         case side
         case _orderType = "order_type"
+        case _orderTypeAlt = "type"
         case _qty = "qty"
+        case _size = "size"
         case price
         case triggerPrice = "trigger_price"
         case status
