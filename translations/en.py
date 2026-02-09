@@ -830,6 +830,8 @@ TEXTS = {
     'stats_period_month': 'Month',
     'stats_demo': '🎮 Demo',
     'stats_real': '💎 Live',
+    'stats_testnet': '🧪 Testnet',
+    'stats_mainnet': '🌐 Mainnet',
     
     'stats_disclaimer': '⚠️ _Past performance does not guarantee future results._',
     

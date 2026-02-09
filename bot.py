@@ -16532,8 +16532,16 @@ async def format_trade_stats(stats: dict, t: dict, strategy_name: str = "all", p
     return "\n".join(lines)
 
 
-def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: str = "all", current_account: str = "demo") -> InlineKeyboardMarkup:
-    """Build inline keyboard for statistics navigation."""
+def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: str = "all", current_account: str = "demo", exchange: str = "bybit") -> InlineKeyboardMarkup:
+    """Build inline keyboard for statistics navigation.
+    
+    Args:
+        t: Translation dict
+        current_strategy: Currently selected strategy
+        current_period: Currently selected period
+        current_account: Currently selected account type
+        exchange: Exchange type ('bybit' or 'hyperliquid') - determines account labels
+    """
     strategies = [
         ("all", t.get('stats_all', '📈 All')),
         ("oi", t.get('stats_oi', '📉 OI')),
@@ -16553,10 +16561,17 @@ def get_stats_keyboard(t: dict, current_strategy: str = "all", current_period: s
         ("month", t.get('stats_period_month', '🗓 Month')),
     ]
     
-    accounts = [
-        ("demo", t.get('stats_demo', '🔵 Demo')),
-        ("real", t.get('stats_real', '🟢 Real')),
-    ]
+    # Exchange-specific account labels
+    if exchange == "hyperliquid":
+        accounts = [
+            ("testnet", t.get('stats_testnet', '🧪 Testnet')),
+            ("mainnet", t.get('stats_mainnet', '🌐 Mainnet')),
+        ]
+    else:
+        accounts = [
+            ("demo", t.get('stats_demo', '🔵 Demo')),
+            ("real", t.get('stats_real', '🟢 Real')),
+        ]
     
     # Account type buttons (first row)
     account_buttons = []
@@ -16688,7 +16703,7 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # For "all time" period, we don't fetch API PnL (would be too expensive)
     text = await format_trade_stats(stats, t, strategy_name="all", period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=default_account, period="all", api_pnl=None)
-    keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all", current_account=default_account)
+    keyboard = get_stats_keyboard(t, current_strategy="all", current_period="all", current_account=default_account, exchange=user_exchange)
     
     await update.message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
 
@@ -16732,8 +16747,8 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         strategy = rest[0] if len(rest) > 0 else "all"
         period = rest[1] if len(rest) > 1 else "all"
         account_type = rest[2] if len(rest) > 2 else "demo"
-        # Save to DB for persistence
-        if account_type in ("demo", "real"):
+        # Save to DB for persistence (supports both Bybit and HL account types)
+        if account_type in ("demo", "real", "testnet", "mainnet"):
             db.set_last_viewed_account(uid, account_type)
     elif action == "strat":
         # stats:strat:new_strategy:period:account_type -> switch strategy
@@ -16756,17 +16771,19 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     }
     period_label = period_labels.get(period, period)
     
+    # Get exchange type for proper keyboard labels (testnet/mainnet vs demo/real)
+    user_exchange = db.get_exchange_type(uid) or "bybit"
+    
     # Special handling for Spot statistics
     if strategy == "spot":
         text = await format_spot_stats(uid, t, period_label, account_type=account_type)
-        keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
+        keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     # Special handling for Manual trades (NULL strategy)
     if strategy == "manual":
         from db import get_trade_stats_unknown
-        user_exchange = db.get_exchange_type(uid) or "bybit"
         stats = get_trade_stats_unknown(uid, period=period, account_type=account_type, exchange=user_exchange)
         # Format manual stats with minimal info
         strat_display = "✋ Manual"
@@ -16781,13 +16798,12 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"└─ PnL: {stats['total_pnl']:+.2f} USDT\n\n"
             f"_These are trades closed manually without strategy attribution._"
         )
-        keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
+        keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     # Get stats based on selection
     strat_filter = None if strategy == "all" else strategy
-    user_exchange = db.get_exchange_type(uid) or "bybit"
     stats = get_trade_stats(uid, strategy=strat_filter, period=period, account_type=account_type, exchange=user_exchange)
     
     # OPTIMIZED: Get unrealized PnL and API PnL in parallel
@@ -16824,7 +16840,7 @@ async def on_stats_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         api_pnl = None
     
     text = await format_trade_stats(stats, t, strategy_name=strategy, period_label=period_label, unrealized_pnl=unrealized_pnl, uid=uid, account_type=account_type, period=period, api_pnl=api_pnl)
-    keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type)
+    keyboard = get_stats_keyboard(t, current_strategy=strategy, current_period=period, current_account=account_type, exchange=user_exchange)
     
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
     logger.info(f"[{uid}] Stats callback completed in {time.time() - start_time:.2f}s")
