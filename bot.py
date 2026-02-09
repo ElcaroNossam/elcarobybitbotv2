@@ -6437,16 +6437,40 @@ async def _set_trading_stop_hyperliquid(
             logger.warning(f"[{uid}] No HL adapter available for {hl_account_type}")
             return False
         
-        # Get position to validate side - use cached positions from unified fetch if possible
+        # Get position to validate side - use cached positions from unified fetch
         # This avoids extra API call since monitor loop already fetched positions
-        positions_result = await adapter.fetch_positions(symbol)
-        positions = positions_result.get("result", {}).get("list", [])
+        from bot_unified import _get_hl_cache
         
-        if not positions:
-            logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
-            return False
+        cache_key = f"positions:{uid}:{hl_account_type}"
+        cached_positions = _get_hl_cache(cache_key)
         
-        pos = positions[0]  # Get first/only position for symbol
+        pos = None
+        if cached_positions is not None:
+            # Find position for this symbol in cached data
+            for p in cached_positions:
+                if hasattr(p, 'symbol') and p.symbol == symbol:
+                    # Convert Position object to dict format
+                    pos = {
+                        "side": "Buy" if p.side.value == "LONG" else "Sell",
+                        "entryPrice": p.entry_price,
+                        "size": p.size,
+                    }
+                    break
+            if pos is None:
+                logger.debug(f"[{uid}] No HL position for {symbol} in cache, skipping SL/TP update")
+                return False
+        else:
+            # Fallback to API call only if cache miss (should be rare)
+            logger.debug(f"[{uid}] HL cache miss for positions, fetching from API")
+            positions_result = await adapter.fetch_positions(symbol)
+            positions = positions_result.get("result", {}).get("list", [])
+            
+            if not positions:
+                logger.debug(f"[{uid}] No HL positions for {symbol}, skipping SL/TP update")
+                return False
+            
+            pos = positions[0]  # Get first/only position for symbol
+        
         effective_side = pos.get("side")
         entry_price = float(pos.get("entryPrice", 0))
         
