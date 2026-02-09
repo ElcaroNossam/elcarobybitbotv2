@@ -672,10 +672,10 @@ class HLAdapter:
             return {"success": False, "error": str(e)}
 
     async def fetch_trade_history(self, limit: int = 10) -> Dict[str, Any]:
-        """Fetch trade history for UI"""
+        """Fetch trade history for UI — returns rich fill data with fee, hash, direction"""
         await self.initialize()
         try:
-            # HyperLiquid API for user fills - use main_wallet_address for Unified Account support
+            # Use main_wallet_address for Unified Account support
             fills = await self._client.user_fills(address=self._main_wallet_address)
             result_list = []
             for fill in fills[:limit]:
@@ -685,7 +685,14 @@ class HLAdapter:
                     "size": _safe_float(fill.get("sz")),
                     "price": _safe_float(fill.get("px")),
                     "pnl": _safe_float(fill.get("closedPnl")),
+                    "fee": _safe_float(fill.get("fee")),
                     "time": fill.get("time", 0),
+                    "hash": fill.get("hash", ""),
+                    "direction": fill.get("dir", ""),
+                    "start_position": fill.get("startPosition", ""),
+                    "oid": fill.get("oid", ""),
+                    "crossed": fill.get("crossed", False),
+                    "liquidation": fill.get("liquidation", False),
                 })
             return {"success": True, "data": result_list}
         except Exception as e:

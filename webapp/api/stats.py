@@ -233,6 +233,45 @@ async def get_dashboard_stats(
         estimated_capital = max(avg_trade_size * 10, 1000)  # Assume 10x leverage, minimum 1000
         return_pct = (total_pnl / estimated_capital) * 100 if estimated_capital > 0 else 0
         
+        # Calculate average trade duration from timestamps
+        avg_duration_str = "N/A"
+        if len(filtered_trades) >= 2:
+            try:
+                durations = []
+                for t in filtered_trades:
+                    ts = t.get("ts") or t.get("created_at")
+                    open_ts = t.get("open_ts")
+                    if ts and open_ts:
+                        from datetime import datetime
+                        close_time = datetime.fromisoformat(str(ts)) if isinstance(ts, str) else ts
+                        open_time = datetime.fromisoformat(str(open_ts)) if isinstance(open_ts, str) else open_ts
+                        if hasattr(close_time, 'timestamp') and hasattr(open_time, 'timestamp'):
+                            dur_hours = (close_time.timestamp() - open_time.timestamp()) / 3600
+                            if dur_hours > 0:
+                                durations.append(dur_hours)
+                if durations:
+                    avg_h = sum(durations) / len(durations)
+                    if avg_h < 1:
+                        avg_duration_str = f"{int(avg_h * 60)}m"
+                    elif avg_h < 24:
+                        avg_duration_str = f"{avg_h:.1f}h"
+                    else:
+                        avg_duration_str = f"{avg_h / 24:.1f}d"
+            except Exception:
+                avg_duration_str = "N/A"
+
+        # Calculate PnL change vs previous period
+        pnl_change = 0.0
+        if days > 0 and len(filtered_trades) > 0:
+            try:
+                half_point = len(filtered_trades) // 2
+                first_half_pnl = sum(float(t.get("pnl", 0)) for t in filtered_trades[:half_point])
+                second_half_pnl = sum(float(t.get("pnl", 0)) for t in filtered_trades[half_point:])
+                if abs(first_half_pnl) > 0:
+                    pnl_change = ((second_half_pnl - first_half_pnl) / abs(first_half_pnl)) * 100
+            except Exception:
+                pnl_change = 0.0
+
         return {
             "success": True,
             "data": {
@@ -247,9 +286,9 @@ async def get_dashboard_stats(
                     "avgLoss": avg_loss,
                     "bestStreak": best_streak,
                     "worstStreak": worst_streak,
-                    "avgDuration": "2h",
+                    "avgDuration": avg_duration_str,
                     "tradesPerDay": len(filtered_trades) / max(days, 1),
-                    "pnlChange": 12.5,
+                    "pnlChange": round(pnl_change, 2),
                     "wins": len(wins),
                     "losses": len(losses),
                     "maxDrawdownAbs": round(max_drawdown_abs, 2)

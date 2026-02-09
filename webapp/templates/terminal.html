@@ -873,17 +873,47 @@
         }
         
         const symbols = [
-            { symbol: 'BTCUSDT', name: 'Bitcoin', price: 97542.30, change: 2.34 },
-            { symbol: 'ETHUSDT', name: 'Ethereum', price: 3456.78, change: 1.56 },
-            { symbol: 'SOLUSDT', name: 'Solana', price: 189.45, change: -0.89 },
-            { symbol: 'BNBUSDT', name: 'BNB', price: 678.90, change: 0.45 },
-            { symbol: 'XRPUSDT', name: 'XRP', price: 2.34, change: 3.21 },
-            { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0.3456, change: -1.23 },
-            { symbol: 'ADAUSDT', name: 'Cardano', price: 0.89, change: 2.10 },
-            { symbol: 'AVAXUSDT', name: 'Avalanche', price: 42.56, change: 4.56 },
-            { symbol: 'LINKUSDT', name: 'Chainlink', price: 23.45, change: -0.67 },
-            { symbol: 'DOTUSDT', name: 'Polkadot', price: 7.89, change: 1.23 }
+            { symbol: 'BTCUSDT', name: 'Bitcoin', price: 0, change: 0 },
+            { symbol: 'ETHUSDT', name: 'Ethereum', price: 0, change: 0 },
+            { symbol: 'SOLUSDT', name: 'Solana', price: 0, change: 0 },
+            { symbol: 'BNBUSDT', name: 'BNB', price: 0, change: 0 },
+            { symbol: 'XRPUSDT', name: 'XRP', price: 0, change: 0 },
+            { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0, change: 0 },
+            { symbol: 'ADAUSDT', name: 'Cardano', price: 0, change: 0 },
+            { symbol: 'AVAXUSDT', name: 'Avalanche', price: 0, change: 0 },
+            { symbol: 'LINKUSDT', name: 'Chainlink', price: 0, change: 0 },
+            { symbol: 'DOTUSDT', name: 'Polkadot', price: 0, change: 0 }
         ];
+
+        // Fetch live prices for symbols on init
+        async function fetchLivePrices() {
+            try {
+                const token = localStorage.getItem('enliko_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                const exchange = state.exchange || 'bybit';
+                
+                // Fetch tickers for all symbols
+                const res = await fetch(`/api/trading/tickers?exchange=${exchange}`, { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    const tickers = data.tickers || data.result || data;
+                    
+                    if (Array.isArray(tickers)) {
+                        tickers.forEach(t => {
+                            const sym = symbols.find(s => s.symbol === t.symbol);
+                            if (sym) {
+                                sym.price = parseFloat(t.lastPrice || t.last_price || t.price || 0);
+                                sym.change = parseFloat(t.price24hPcnt || t.change24h || t.change || 0) * (t.price24hPcnt ? 100 : 1);
+                            }
+                        });
+                    }
+                    renderSymbolList();
+                    initTickerTape();
+                }
+            } catch (e) {
+                console.log('Could not fetch live prices:', e.message);
+            }
+        }
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -904,6 +934,7 @@
             loadBalance();
             connectWebSocket();
             renderSymbolList();
+            fetchLivePrices(); // Fetch real prices to replace placeholders
             
             // Auto-refresh data every 10 seconds
             setInterval(() => {
@@ -915,23 +946,15 @@
         
         function initTickerTape() {
             const track = document.getElementById('tickerTrack');
-            const tickerData = [
-                { symbol: 'BTC', price: 97542.30, change: 2.34 },
-                { symbol: 'ETH', price: 3456.78, change: 1.56 },
-                { symbol: 'SOL', price: 189.45, change: -0.89 },
-                { symbol: 'BNB', price: 678.90, change: 0.45 },
-                { symbol: 'XRP', price: 2.34, change: 3.21 },
-                { symbol: 'DOGE', price: 0.3456, change: -1.23 },
-                { symbol: 'ADA', price: 0.89, change: 2.10 },
-                { symbol: 'AVAX', price: 42.56, change: 4.56 },
-                { symbol: 'LINK', price: 23.45, change: -0.67 },
-                { symbol: 'DOT', price: 7.89, change: 1.23 },
-                { symbol: 'MATIC', price: 0.78, change: -2.15 },
-                { symbol: 'UNI', price: 12.34, change: 3.45 },
-                { symbol: 'ATOM', price: 8.90, change: 1.78 },
-                { symbol: 'LTC', price: 102.50, change: 0.89 },
-                { symbol: 'FIL', price: 5.67, change: -1.34 },
-            ];
+            // Use live data from symbols array instead of hardcoded values
+            const tickerData = symbols.map(s => ({
+                symbol: s.symbol.replace('USDT', ''),
+                price: s.price,
+                change: s.change
+            }));
+            
+            // If prices are all 0, show loading state
+            const hasData = tickerData.some(t => t.price > 0);
             
             // Create items twice for seamless loop
             const html = [...tickerData, ...tickerData].map(t => `
@@ -1899,47 +1922,8 @@
             submitOrder();
         }
         
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Don't trigger when typing in inputs
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                if (e.key === 'Escape') {
-                    e.target.blur();
-                }
-                return;
-            }
-            
-            switch(e.key.toLowerCase()) {
-                case 'b':
-                    e.preventDefault();
-                    setSide('buy');
-                    break;
-                case 's':
-                    e.preventDefault();
-                    setSide('sell');
-                    break;
-                case 'enter':
-                    e.preventDefault();
-                    submitOrder();
-                    break;
-                case 'escape':
-                    document.getElementById('sizeInput').value = '';
-                    document.getElementById('priceInput').value = '';
-                    break;
-                case '1':
-                    e.preventDefault();
-                    setOrderType('limit');
-                    break;
-                case '2':
-                    e.preventDefault();
-                    setOrderType('market');
-                    break;
-                case '3':
-                    e.preventDefault();
-                    setOrderType('conditional');
-                    break;
-            }
-        });
+        // Keyboard shortcuts handled by HotkeyManager (hotkey-manager.js)
+        // All keyboard bindings are unified there with customizable settings
         
         async function submitOrder() {
             const submitBtn = document.querySelector('.submit-btn');
@@ -2061,9 +2045,9 @@
         
         async function closePosition(symbol) {
             const confirmed = await showConfirm(
-                `Вы уверены что хотите закрыть позицию <strong>${symbol}</strong>?`,
-                'Закрыть позицию',
-                { type: 'warning', confirmText: 'Закрыть', cancelText: 'Отмена' }
+                `Are you sure you want to close position <strong>${symbol}</strong>?`,
+                'Close Position',
+                { type: 'warning', confirmText: 'Close', cancelText: 'Cancel' }
             );
             if (!confirmed) return;
             
@@ -2095,11 +2079,75 @@
         }
         
         async function editPosition(symbol) {
-            const tp = prompt('Enter Take Profit price (leave empty to skip):');
-            const sl = prompt('Enter Stop Loss price (leave empty to skip):');
-            
-            if (!tp && !sl) return;
-            
+            // Find current position to pre-fill values
+            const pos = (state.positions || []).find(p => p.symbol === symbol);
+            const currentTP = pos?.take_profit || pos?.tp_price || '';
+            const currentSL = pos?.stop_loss || pos?.sl_price || '';
+            const currentEntry = pos?.entry_price || pos?.avgPrice || state.lastPrice || 0;
+            const posSide = pos?.side || 'Buy';
+
+            // Create a proper modal dialog for TP/SL editing
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay active';
+            overlay.id = 'editPositionModal';
+            overlay.innerHTML = `
+                <div class="modal" style="max-width: 420px;">
+                    <div class="modal-header">
+                        <span class="modal-title"><i class="fas fa-edit"></i> Modify TP/SL — ${symbol}</span>
+                        <button class="modal-close" onclick="document.getElementById('editPositionModal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                            <span class="side-badge ${posSide === 'Buy' ? 'long' : 'short'}" style="padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; color: #fff; background: ${posSide === 'Buy' ? 'var(--green)' : 'var(--red)'};">
+                                ${posSide === 'Buy' ? 'LONG' : 'SHORT'}
+                            </span>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Entry: <strong style="color: var(--text-primary);">$${parseFloat(currentEntry).toLocaleString()}</strong></span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--green);">
+                                <i class="fas fa-arrow-up"></i> Take Profit Price
+                            </label>
+                            <input type="number" id="editTPInput" value="${currentTP}" placeholder="Enter TP price" step="any"
+                                   style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.95rem; font-family: var(--font-mono);">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--red);">
+                                <i class="fas fa-arrow-down"></i> Stop Loss Price
+                            </label>
+                            <input type="number" id="editSLInput" value="${currentSL}" placeholder="Enter SL price" step="any"
+                                   style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.95rem; font-family: var(--font-mono);">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="document.getElementById('editPositionModal').remove()"
+                                    style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-size: 0.9rem;">
+                                Cancel
+                            </button>
+                            <button onclick="submitEditPosition('${symbol}')"
+                                    style="flex: 2; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+                                <i class="fas fa-check"></i> Update TP/SL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
+
+            // Focus first input
+            setTimeout(() => document.getElementById('editTPInput')?.focus(), 100);
+        }
+
+        async function submitEditPosition(symbol) {
+            const tp = document.getElementById('editTPInput')?.value;
+            const sl = document.getElementById('editSLInput')?.value;
+
+            if (!tp && !sl) {
+                showNotification('Enter at least TP or SL price', 'warning');
+                return;
+            }
+
             try {
                 const token = localStorage.getItem('enliko_token');
                 const res = await fetch('/api/trading/modify-tpsl', {
@@ -2120,6 +2168,7 @@
                 const data = await res.json();
                 if (data.success) {
                     showNotification('TP/SL updated', 'success');
+                    document.getElementById('editPositionModal')?.remove();
                     loadPositions();
                 } else {
                     showNotification(data.error || 'Failed to update TP/SL', 'error');
@@ -2131,9 +2180,9 @@
         
         async function cancelOrder(orderId, symbol) {
             const confirmed = await showConfirm(
-                'Вы действительно хотите отменить этот ордер?',
-                'Отменить ордер',
-                { type: 'warning', confirmText: 'Отменить', cancelText: 'Назад' }
+                'Are you sure you want to cancel this order?',
+                'Cancel Order',
+                { type: 'warning', confirmText: 'Cancel Order', cancelText: 'Back' }
             );
             if (!confirmed) return;
             
@@ -2172,9 +2221,9 @@
                 return;
             }
             const confirmed = await showConfirm(
-                `<strong>ВНИМАНИЕ!</strong><br>Будут закрыты <strong>ВСЕ ${count} позиций</strong>.<br>Это действие нельзя отменить!`,
-                'Закрыть все позиции',
-                { type: 'danger', danger: true, confirmText: 'Закрыть всё', cancelText: 'Отмена' }
+                `<strong>WARNING!</strong><br>All <strong>${count} positions</strong> will be closed.<br>This action cannot be undone!`,
+                'Close All Positions',
+                { type: 'danger', danger: true, confirmText: 'Close All', cancelText: 'Cancel' }
             );
             if (!confirmed) return;
             
@@ -2212,9 +2261,9 @@
                 return;
             }
             const confirmed = await showConfirm(
-                `Отменить <strong>ВСЕ ${count} ордеров</strong>?`,
-                'Отменить все ордера',
-                { type: 'warning', confirmText: 'Отменить всё', cancelText: 'Назад' }
+                `Cancel <strong>ALL ${count} orders</strong>?`,
+                'Cancel All Orders',
+                { type: 'warning', confirmText: 'Cancel All', cancelText: 'Back' }
             );
             if (!confirmed) return;
             
@@ -3444,9 +3493,31 @@
         }
         
         function applyTranslations(lang) {
-            // This would load translations from server or use bundled translations
-            // For now, just reload page with new language preference
-            // Future: fetch('/api/translations/' + lang).then(...)
+            // Apply translations from the bundled translations.js system
+            if (typeof translations === 'undefined' || !translations[lang]) return;
+            const t = translations[lang];
+            
+            // Apply data-i18n attributes
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.textContent = t[key];
+            });
+            
+            // Apply data-i18n-placeholder attributes
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (t[key]) el.placeholder = t[key];
+            });
+
+            // Apply common known keys to specific elements
+            const mappings = {
+                '.submit-btn .buy-text': t.buy || 'Buy',
+                '.submit-btn .sell-text': t.sell || 'Sell',
+            };
+            for (const [sel, text] of Object.entries(mappings)) {
+                const el = document.querySelector(sel);
+                if (el) el.textContent = text;
+            }
         }
         
         function setTheme(theme) {

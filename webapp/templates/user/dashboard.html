@@ -937,7 +937,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <a href="/" class="logo">
-                <div class="logo-icon">T</div>
+                <div class="logo-icon">E</div>
                 <span class="logo-text">Enliko</span>
             </a>
         </div>
@@ -999,12 +999,12 @@
         
         <div class="sidebar-footer">
             <div class="user-card">
-                <div class="user-avatar">T</div>
+                <div class="user-avatar" id="user-avatar">E</div>
                 <div class="user-info">
-                    <div class="user-name">Trader</div>
-                    <div class="user-plan">Free Plan</div>
+                    <div class="user-name" id="user-name">Trader</div>
+                    <div class="user-plan" id="user-plan">Loading...</div>
                 </div>
-                <i class="fas fa-chevron-right" style="color: var(--text-muted); font-size: 0.8rem;"></i>
+                <a href="/settings" style="color: var(--text-muted); font-size: 0.8rem; text-decoration: none;"><i class="fas fa-chevron-right"></i></a>
             </div>
         </div>
     </aside>
@@ -1175,24 +1175,24 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-robot"></i>
-                                AI Insights
+                                <i class="fas fa-chart-pie"></i>
+                                Trading Summary
                             </h3>
                         </div>
-                        <div class="card-body">
-                            <div class="insight-card bullish">
+                        <div class="card-body" id="trading-summary">
+                            <div class="insight-card">
                                 <div class="insight-title">
                                     <i class="fas fa-circle"></i>
-                                    Market Trend
+                                    Best Strategy
                                 </div>
-                                <p class="insight-text">BTC showing strong bullish momentum. Consider looking for long entries on pullbacks.</p>
+                                <p class="insight-text" id="best-strategy-text">Loading strategy data...</p>
                             </div>
-                            <div class="insight-card bearish">
+                            <div class="insight-card">
                                 <div class="insight-title">
                                     <i class="fas fa-circle"></i>
-                                    Risk Alert
+                                    Performance
                                 </div>
-                                <p class="insight-text">High volatility detected. Consider reducing position sizes.</p>
+                                <p class="insight-text" id="performance-text">Loading performance data...</p>
                             </div>
                         </div>
                     </div>
@@ -1689,6 +1689,42 @@
         
         // Auto-refresh every 30 seconds
         setInterval(refreshData, 30000);
+
+        // Load user info into sidebar
+        (function loadUserCard() {
+            const user = JSON.parse(localStorage.getItem('enliko_user') || '{}');
+            const name = user.first_name || user.name || user.email || 'Trader';
+            document.getElementById('user-name').textContent = name;
+            document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+            document.getElementById('user-plan').textContent = user.license_type ? user.license_type.charAt(0).toUpperCase() + user.license_type.slice(1) + ' Plan' : 'Free Plan';
+        })();
+
+        // Load trading summary from stats
+        async function loadTradingSummary() {
+            try {
+                const exchange = document.querySelector('.exchange-btn.active')?.dataset.exchange || 'bybit';
+                const headers = getAuthHeaders();
+                const res = await fetch(`/api/stats/dashboard?exchange=${exchange}&period=30d`, { headers });
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const s = data.data.summary || {};
+                    const bestStrat = data.data.byStrategy?.[0];
+                    const bestText = document.getElementById('best-strategy-text');
+                    if (bestStrat) {
+                        bestText.textContent = `${bestStrat.strategy || 'Unknown'}: ${bestStrat.trades || 0} trades, ${(bestStrat.winRate || 0).toFixed(0)}% win rate, $${(bestStrat.pnl || 0).toFixed(2)} PnL`;
+                        bestText.closest('.insight-card').className = 'insight-card ' + ((bestStrat.pnl || 0) >= 0 ? 'bullish' : 'bearish');
+                    } else {
+                        bestText.textContent = 'No trades in the last 30 days.';
+                    }
+                    const perfText = document.getElementById('performance-text');
+                    perfText.textContent = `${s.totalTrades || 0} trades | ${(s.winRate || 0).toFixed(1)}% win rate | Profit factor: ${(s.profitFactor || 0).toFixed(2)} | Avg duration: ${s.avgDuration || 'N/A'}`;
+                    perfText.closest('.insight-card').className = 'insight-card ' + ((s.totalPnL || 0) >= 0 ? 'bullish' : 'bearish');
+                }
+            } catch (e) {
+                console.error('Failed to load trading summary:', e);
+            }
+        }
+        loadTradingSummary();
     </script>
 </body>
 </html>

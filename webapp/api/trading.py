@@ -1252,17 +1252,24 @@ async def get_execution_history(
                 trades = result.get("data", [])
                 executions = []
                 for t in trades:
+                    # HL fills: direction 'Open Long'/'Close Long'/'Open Short'/'Close Short'
+                    direction = t.get("direction", "")
+                    exec_type = "close" if "Close" in direction else "open"
                     executions.append({
-                        "id": str(t.get("time", 0)),
+                        "id": str(t.get("oid") or t.get("time", 0)),
                         "symbol": t.get("symbol", ""),
                         "side": t.get("side", "").lower(),
-                        "entry_price": 0,  # Not available in fills
+                        "entry_price": 0,  # HL fills don't include entry price
                         "exit_price": float(t.get("price", 0)),
                         "size": float(t.get("size", 0)),
                         "pnl": float(t.get("pnl", 0)),
+                        "fee": float(t.get("fee", 0)),
                         "leverage": None,
-                        "order_type": "market",
-                        "exec_type": "fill",
+                        "order_type": "limit" if not t.get("crossed", False) else "market",
+                        "exec_type": exec_type,
+                        "direction": direction,
+                        "hash": t.get("hash", ""),
+                        "liquidation": t.get("liquidation", False),
                         "created_at": int(t.get("time", 0)),
                         "updated_at": int(t.get("time", 0)),
                         "exchange": "hyperliquid",

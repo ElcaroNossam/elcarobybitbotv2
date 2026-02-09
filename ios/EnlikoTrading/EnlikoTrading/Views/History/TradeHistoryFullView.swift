@@ -355,68 +355,79 @@ struct TradeHistoryFullView: View {
     private var pnlAnalysisView: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Summary Card
+                // Summary Card (from real stats)
                 VStack(spacing: 16) {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("Total PnL")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("+$1,234.56")
+                            let totalPnl = tradingService.tradingStats?.totalPnl ?? 0
+                            Text(totalPnl >= 0 ? "+$\(totalPnl, specifier: "%.2f")" : "-$\(abs(totalPnl), specifier: "%.2f")")
                                 .font(.title.bold())
-                                .foregroundColor(.green)
+                                .foregroundColor(totalPnl >= 0 ? .green : .red)
                         }
                         
                         Spacer()
                         
                         VStack(alignment: .trailing) {
-                            Text("ROI")
+                            Text("Win Rate")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("+12.34%")
+                            let wr = tradingService.tradingStats?.winRateValue ?? 0
+                            Text("\(wr, specifier: "%.1f")%")
                                 .font(.title2.bold())
-                                .foregroundColor(.green)
+                                .foregroundColor(wr >= 50 ? .green : .red)
                         }
                     }
                     
                     Divider()
                     
                     HStack {
-                        pnlStatItem(title: "Winning", value: "45", color: .green)
+                        let stats = tradingService.tradingStats
+                        pnlStatItem(title: "Winning", value: "\(stats?.winningCount ?? 0)", color: .green)
                         Spacer()
-                        pnlStatItem(title: "Losing", value: "23", color: .red)
+                        pnlStatItem(title: "Losing", value: "\(stats?.losingCount ?? 0)", color: .red)
                         Spacer()
-                        pnlStatItem(title: "Win Rate", value: "66.2%", color: .enlikoPrimary)
+                        pnlStatItem(title: "Total", value: "\(stats?.totalTradesCount ?? 0)", color: .enlikoPrimary)
                     }
                 }
                 .padding()
                 .background(Color.enlikoSurface)
                 .cornerRadius(12)
                 
-                // Daily PnL
+                // Recent Trades PnL
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Daily PnL")
+                    Text("Recent Trades")
                         .font(.headline)
                         .foregroundColor(.white)
                     
-                    ForEach(0..<7) { i in
-                        HStack {
-                            Text(dayString(daysAgo: i))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .frame(width: 40, alignment: .leading)
-                            
-                            let pnl = Double.random(in: -500...1000)
-                            
-                            Rectangle()
-                                .fill(pnl >= 0 ? Color.green.opacity(0.3) : Color.red.opacity(0.3))
-                                .frame(width: abs(pnl) / 10, height: 20)
-                            
-                            Text(String(format: "$%.2f", pnl))
-                                .font(.caption.bold())
-                                .foregroundColor(pnl >= 0 ? .green : .red)
-                            
-                            Spacer()
+                    if tradingService.trades.isEmpty {
+                        Text("No trades to display")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(tradingService.trades.prefix(10)) { trade in
+                            HStack {
+                                Text(trade.symbol ?? "???")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.white)
+                                    .frame(width: 80, alignment: .leading)
+                                
+                                Text(trade.side ?? "—")
+                                    .font(.caption2.bold())
+                                    .foregroundColor((trade.side ?? "").lowercased() == "buy" ? .green : .red)
+                                    .frame(width: 30)
+                                
+                                Spacer()
+                                
+                                let pnl = trade.pnl ?? 0
+                                Text(pnl >= 0 ? "+$\(pnl, specifier: "%.2f")" : "-$\(abs(pnl), specifier: "%.2f")")
+                                    .font(.caption.bold())
+                                    .foregroundColor(pnl >= 0 ? .green : .red)
+                            }
+                            .padding(.vertical, 2)
                         }
                     }
                 }
@@ -424,26 +435,35 @@ struct TradeHistoryFullView: View {
                 .background(Color.enlikoSurface)
                 .cornerRadius(12)
                 
-                // Top Performers
+                // Top Performers (from trades)
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Top Performers")
                         .font(.headline)
                         .foregroundColor(.white)
                     
-                    ForEach(["BTCUSDT", "ETHUSDT", "SOLUSDT"], id: \.self) { symbol in
-                        HStack {
-                            Text(symbol)
-                                .font(.subheadline.bold())
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            let pnl = Double.random(in: 100...500)
-                            Text("+$\(String(format: "%.2f", pnl))")
-                                .font(.subheadline.bold())
-                                .foregroundColor(.green)
+                    let bySymbol = Dictionary(grouping: tradingService.trades, by: { $0.symbol ?? "???" })
+                    let symbolPnl = bySymbol.map { (symbol: $0.key, pnl: $0.value.reduce(0) { $0 + ($1.pnl ?? 0) }) }
+                        .sorted { $0.pnl > $1.pnl }
+                    
+                    if symbolPnl.isEmpty {
+                        Text("No data available")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(symbolPnl.prefix(5), id: \.symbol) { item in
+                            HStack {
+                                Text(item.symbol)
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                Text(item.pnl >= 0 ? "+$\(item.pnl, specifier: "%.2f")" : "-$\(abs(item.pnl), specifier: "%.2f")")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(item.pnl >= 0 ? .green : .red)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                 }
                 .padding()
@@ -465,13 +485,6 @@ struct TradeHistoryFullView: View {
         }
     }
     
-    private func dayString(daysAgo: Int) -> String {
-        let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "E"
-        return formatter.string(from: date)
-    }
-    
     // MARK: - Empty State
     private func emptyStateView(text: String) -> some View {
         VStack(spacing: 16) {
@@ -489,30 +502,71 @@ struct TradeHistoryFullView: View {
         }
     }
     
+    // MARK: - Date Parser
+    private func parseDate(_ str: String?) -> Date {
+        guard let str = str, !str.isEmpty else { return Date() }
+        let formatters: [DateFormatter] = {
+            let iso = DateFormatter()
+            iso.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            iso.locale = Locale(identifier: "en_US_POSIX")
+            let iso2 = DateFormatter()
+            iso2.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+            iso2.locale = Locale(identifier: "en_US_POSIX")
+            let simple = DateFormatter()
+            simple.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            simple.locale = Locale(identifier: "en_US_POSIX")
+            return [iso, iso2, simple]
+        }()
+        for fmt in formatters {
+            if let d = fmt.date(from: str) { return d }
+        }
+        // Try epoch seconds
+        if let epoch = Double(str) {
+            return Date(timeIntervalSince1970: epoch > 1e12 ? epoch / 1000 : epoch)
+        }
+        return Date()
+    }
+    
     // MARK: - Refresh
     private func refreshData() async {
         isLoading = true
         
-        // Load mock data
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        // Fetch real data from API via TradingService
+        await tradingService.fetchOrders()
+        await tradingService.fetchTrades()
+        await tradingService.fetchStats()
         
         await MainActor.run {
-            orders = [
-                OrderHistoryItem(symbol: "BTCUSDT", side: "Buy", orderType: "Limit", price: 97000, quantity: 0.01, filledQty: 0.01, status: "Filled", createdAt: Date().addingTimeInterval(-3600), updatedAt: Date().addingTimeInterval(-3500)),
-                OrderHistoryItem(symbol: "ETHUSDT", side: "Sell", orderType: "Market", price: 3200, quantity: 0.5, filledQty: 0.5, status: "Filled", createdAt: Date().addingTimeInterval(-7200), updatedAt: Date().addingTimeInterval(-7100)),
-                OrderHistoryItem(symbol: "SOLUSDT", side: "Buy", orderType: "Limit", price: 150, quantity: 10, filledQty: 0, status: "Cancelled", createdAt: Date().addingTimeInterval(-86400), updatedAt: Date().addingTimeInterval(-82800)),
-            ]
+            // Map Order model → OrderHistoryItem
+            orders = tradingService.orders.map { order in
+                OrderHistoryItem(
+                    symbol: order.symbol,
+                    side: order.side,
+                    orderType: order.orderType,
+                    price: order.price ?? 0,
+                    quantity: order.qty,
+                    filledQty: order.status?.lowercased() == "filled" ? order.qty : 0,
+                    status: order.status ?? "Unknown",
+                    createdAt: parseDate(order.createdAt),
+                    updatedAt: parseDate(order.createdAt)
+                )
+            }
             
-            trades = [
-                TradeHistoryItem(symbol: "BTCUSDT", side: "Buy", price: 97000, quantity: 0.01, fee: 0.97, pnl: nil, executedAt: Date().addingTimeInterval(-3500)),
-                TradeHistoryItem(symbol: "BTCUSDT", side: "Sell", price: 98500, quantity: 0.01, fee: 0.985, pnl: 15.0, executedAt: Date().addingTimeInterval(-1800)),
-                TradeHistoryItem(symbol: "ETHUSDT", side: "Sell", price: 3200, quantity: 0.5, fee: 1.6, pnl: 75.5, executedAt: Date().addingTimeInterval(-7100)),
-            ]
+            // Map Trade model → TradeHistoryItem
+            trades = tradingService.trades.map { trade in
+                TradeHistoryItem(
+                    symbol: trade.symbol,
+                    side: trade.side,
+                    price: trade.entryPrice,
+                    quantity: 0,
+                    fee: 0,
+                    pnl: trade.pnl,
+                    executedAt: parseDate(trade.timestamp)
+                )
+            }
             
-            funding = [
-                FundingHistoryItem(symbol: "BTCUSDT", fundingRate: 0.0001, payment: -0.97, position: 970, timestamp: Date().addingTimeInterval(-28800)),
-                FundingHistoryItem(symbol: "ETHUSDT", fundingRate: -0.0005, payment: 0.80, position: 1600, timestamp: Date().addingTimeInterval(-57600)),
-            ]
+            // Funding: not available via current API — show empty
+            funding = []
             
             isLoading = false
         }

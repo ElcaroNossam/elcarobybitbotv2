@@ -998,90 +998,13 @@ const Notifications = {
 
 
 // ============================================================
-// KEYBOARD SHORTCUTS MANAGER
-// ============================================================
-const Shortcuts = {
-    bindings: new Map(),
-    enabled: true,
-
-    register(key, callback, description) {
-        this.bindings.set(key.toLowerCase(), { callback, description });
-    },
-
-    init() {
-        document.addEventListener('keydown', (e) => {
-            if (!this.enabled) return;
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            const key = this.getKeyString(e);
-            const binding = this.bindings.get(key);
-            
-            if (binding) {
-                e.preventDefault();
-                binding.callback(e);
-            }
-        });
-
-        // Register default shortcuts
-        this.register('b', () => window.setSide?.('buy'), 'Buy/Long');
-        this.register('s', () => window.setSide?.('sell'), 'Sell/Short');
-        this.register('enter', () => window.submitOrder?.(), 'Submit Order');
-        this.register('escape', () => this.clearForm(), 'Clear Form');
-        this.register('1', () => window.setOrderType?.('limit'), 'Limit Order');
-        this.register('2', () => window.setOrderType?.('market'), 'Market Order');
-        this.register('ctrl+b', () => OneClickTrading.quickOrder('buy', 25), 'Quick Buy 25%');
-        this.register('ctrl+s', () => OneClickTrading.quickOrder('sell', 25), 'Quick Sell 25%');
-        this.register('ctrl+shift+b', () => OneClickTrading.quickOrder('buy', 100), 'Quick Buy 100%');
-        this.register('ctrl+shift+s', () => OneClickTrading.quickOrder('sell', 100), 'Quick Sell 100%');
-        this.register('?', () => this.showHelp(), 'Show Shortcuts');
-    },
-
-    getKeyString(e) {
-        let key = '';
-        if (e.ctrlKey) key += 'ctrl+';
-        if (e.shiftKey) key += 'shift+';
-        if (e.altKey) key += 'alt+';
-        key += e.key.toLowerCase();
-        return key;
-    },
-
-    clearForm() {
-        document.getElementById('sizeInput').value = '';
-        document.getElementById('priceInput').value = '';
-    },
-
-    showHelp() {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay active';
-        modal.innerHTML = `
-            <div class="modal shortcuts-modal">
-                <div class="modal-header">
-                    <span class="modal-title">⌨️ Keyboard Shortcuts</span>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body shortcuts-list">
-                    ${Array.from(this.bindings.entries()).map(([key, { description }]) => `
-                        <div class="shortcut-row">
-                            <kbd>${key.replace('ctrl+', 'Ctrl + ').replace('shift+', 'Shift + ')}</kbd>
-                            <span>${description}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-        document.body.appendChild(modal);
-    }
-};
-
-
-// ============================================================
 // INITIALIZATION
 // ============================================================
+// NOTE: Keyboard shortcuts are handled by hotkey-manager.js (HotkeyManager)
+// which provides 36 customizable hotkeys with settings UI, persistence,
+// conflict detection, and server sync. Do NOT add duplicate handlers here.
+
 document.addEventListener('DOMContentLoaded', () => {
-    Shortcuts.init();
     SmartAlerts.load();
     PositionAnalytics.fetchStats();
     
