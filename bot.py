@@ -6477,8 +6477,9 @@ async def _set_trading_stop_hyperliquid(
             for p in cached_positions:
                 if hasattr(p, 'symbol') and p.symbol == symbol:
                     # Convert Position object to dict format
+                    # PositionSide.LONG.value = "Buy", PositionSide.SHORT.value = "Sell"
                     pos = {
-                        "side": "Buy" if p.side.value == "LONG" else "Sell",
+                        "side": p.side.value,  # Already "Buy" or "Sell"
                         "entryPrice": p.entry_price,
                         "size": p.size,
                     }
@@ -6553,8 +6554,23 @@ async def _set_trading_stop_hyperliquid(
         result = await adapter._client.set_tp_sl(coin=coin, tp_price=tp_price, sl_price=sl_price, address=adapter.main_wallet_address)
         logger.info(f"[{uid}] {symbol} HL: set_tp_sl raw result: {result}")
         
-        # Check results
-        success = any(r.get("result", {}).get("status") == "ok" for r in result if isinstance(r, dict))
+        # Check results - must verify both transport status AND inner order statuses
+        # HL returns status='ok' at transport level even when order has errors like "Too many open orders"
+        success = False
+        for r in result:
+            if not isinstance(r, dict):
+                continue
+            r_status = r.get("result", {}).get("status")
+            if r_status != "ok":
+                continue
+            # Check inner statuses for errors
+            statuses = r.get("result", {}).get("response", {}).get("data", {}).get("statuses", [])
+            has_inner_error = any(isinstance(s, dict) and "error" in s for s in statuses)
+            if has_inner_error:
+                inner_errors = [s.get("error") for s in statuses if isinstance(s, dict) and "error" in s]
+                logger.warning(f"[{uid}] {symbol} HL: set_tp_sl order error: {inner_errors}")
+                continue
+            success = True
         
         if success:
             logger.info(f"[{uid}] {symbol} HL: TP/SL set successfully - tp={tp_price}, sl={sl_price}")
@@ -8026,6 +8042,13 @@ async def place_order_for_targets(
                     # coin already extracted above for validation
                     is_buy = side.lower() in ("buy", "long")
                     hl_leverage = target_leverage or leverage or 10
+                    
+                    # Check if coin actually has a price on this HL network (testnet has fewer coins)
+                    mid_price = await adapter._client.get_mid_price(coin)
+                    if mid_price is None or mid_price <= 0:
+                        logger.info(f"[{user_id}] Skipping {target_key} - {coin} has no price on HL {'testnet' if is_testnet else 'mainnet'}")
+                        results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not tradeable on HL {'testnet' if is_testnet else 'mainnet'}"}
+                        continue
                     
                     # Set leverage first
                     try:
@@ -19199,7 +19222,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_sl_pct, user_tp_pct = params["sl_pct"], params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")
-                logger.info(f"[{uid}] ⚙️ RSI_BB {rsi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
+                pos_use_atr = params.get("use_atr", False)
+                logger.info(f"[{uid}] ⚙️ RSI_BB {rsi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}, exchange={ctx_exchange}")
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type)
                 except Exception as e:
@@ -19359,7 +19383,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")
-                logger.info(f"[{uid}] ⚙️ Scryptomera {side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
+                pos_use_atr = params.get("use_atr", False)
+                logger.info(f"[{uid}] ⚙️ Scryptomera {side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}, exchange={ctx_exchange}")
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
@@ -19507,7 +19532,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")
-                logger.info(f"[{uid}] ⚙️ Scalper {scalper_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
+                pos_use_atr = params.get("use_atr", False)
+                logger.info(f"[{uid}] ⚙️ Scalper {scalper_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}, exchange={ctx_exchange}")
                 try:
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
@@ -19665,10 +19691,10 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] ⚙️ Elcaro {elcaro_side_display} settings: entry%={risk_pct}, SL%={sl_pct}, TP%={tp_pct}, leverage={elcaro_leverage}, exchange={ctx_exchange}")
                 
                 # ATR from user settings
-                use_atr = elcaro_strat_settings.get("use_atr", False)
-                elcaro_atr_periods = elcaro_strat_settings.get("atr_periods") if use_atr else None
-                elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if use_atr else None
-                elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if use_atr else None
+                pos_use_atr = elcaro_strat_settings.get("use_atr", False)
+                elcaro_atr_periods = elcaro_strat_settings.get("atr_periods") if pos_use_atr else None
+                elcaro_atr_mult = elcaro_strat_settings.get("atr_multiplier_sl") if pos_use_atr else None
+                elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if pos_use_atr else None
 
                 try:
                     qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
@@ -19768,7 +19794,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             
                             # ATR info line (from user settings)
                             atr_info = ""
-                            if use_atr and elcaro_atr_periods:
+                            if pos_use_atr and elcaro_atr_periods:
                                 atr_info = f"📉 ATR: {elcaro_atr_periods} | ×{elcaro_atr_mult} | Trigger: {elcaro_atr_trigger}%\n"
                             
                             side_display = 'LONG' if side == 'Buy' else 'SHORT'
@@ -19848,13 +19874,13 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 logger.info(f"[{uid}] ⚙️ Fibonacci {fibo_side_display} settings: entry%={risk_pct}, SL%={fibo_sl_pct}, TP%={fibo_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
                 
                 # ATR from user settings
-                use_atr = strat_settings.get("use_atr", False)
-                fibo_atr_periods = strat_settings.get("atr_periods") if use_atr else None
-                fibo_atr_mult = strat_settings.get("atr_multiplier_sl") if use_atr else None
-                fibo_atr_trigger = strat_settings.get("atr_trigger_pct") if use_atr else None
+                pos_use_atr = strat_settings.get("use_atr", False)
+                fibo_atr_periods = strat_settings.get("atr_periods") if pos_use_atr else None
+                fibo_atr_mult = strat_settings.get("atr_multiplier_sl") if pos_use_atr else None
+                fibo_atr_trigger = strat_settings.get("atr_trigger_pct") if pos_use_atr else None
                 
                 logger.debug(f"[{uid}] Fibonacci using USER settings: Entry%={risk_pct}%, SL={fibo_sl_pct}%, TP={fibo_tp_pct}%, "
-                            f"Leverage={user_leverage}, ATR={'ON' if use_atr else 'OFF'}")
+                            f"Leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}")
                 
                 # Quality filter - skip if quality score too low
                 min_quality = strat_settings.get("min_quality", 50)
@@ -19974,7 +20000,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             
                             # ATR info if enabled
                             atr_info = ""
-                            if use_atr and fibo_atr_periods:
+                            if pos_use_atr and fibo_atr_periods:
                                 atr_info = f"\n📉 ATR: {fibo_atr_periods} | ×{fibo_atr_mult} | Trigger: {fibo_atr_trigger}%"
                             
                             signal_info = (
@@ -20025,7 +20051,8 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 user_tp_pct = params["tp_pct"]
                 risk_pct = params["percent"]
                 user_leverage = params.get("leverage")  # FIX: use side-specific from params
-                logger.info(f"[{uid}] ⚙️ OI {oi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, exchange={ctx_exchange}")
+                pos_use_atr = params.get("use_atr", False)
+                logger.info(f"[{uid}] ⚙️ OI {oi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}, exchange={ctx_exchange}")
                 try:
                     if user_sl_pct <= 0:
                         user_sl_pct = 1.0
