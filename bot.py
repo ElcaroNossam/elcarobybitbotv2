@@ -4909,6 +4909,24 @@ def quantize(value: float, step: float) -> float:
 def quantize_up(value: float, step: float) -> float:
     return _clean(math.ceil(value / step) * step)
 
+def _prices_equal(a, b, rel_tol=1e-6, abs_tol=0.01) -> bool:
+    """Compare two prices with tolerance for floating point precision.
+    Returns True if prices are essentially equal.
+    Used to avoid unnecessary API calls when SL/TP differs only by float precision.
+    
+    Args:
+        a: First price
+        b: Second price  
+        rel_tol: Relative tolerance (0.0001% of max price)
+        abs_tol: Absolute tolerance ($0.01)
+    """
+    if a is None and b is None:
+        return True
+    if a is None or b is None:
+        return False
+    # Use both relative and absolute tolerance
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
 def _decimals_from_step(step: float) -> int:
     s = f"{step:.16f}".rstrip("0")
     if "." in s:
@@ -6633,18 +6651,7 @@ async def _set_trading_stop_bybit(
     except (TypeError, ValueError):
         mark = None
 
-    def _prices_equal(a, b, rel_tol=1e-6, abs_tol=0.01) -> bool:
-        """Compare two prices with tolerance for floating point precision.
-        Returns True if prices are essentially equal.
-        """
-        if a is None and b is None:
-            return True
-        if a is None or b is None:
-            return False
-        # Use both relative and absolute tolerance
-        # rel_tol: 0.0001% relative difference
-        # abs_tol: $0.01 absolute difference for very small prices
-        return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    # _prices_equal is now defined at module level (line ~4912)
     
     # Bybit validates SL/TP against entry price (avgPrice), not mark price
     try:
