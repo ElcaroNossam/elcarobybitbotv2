@@ -5041,7 +5041,16 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
     strat_settings = db.get_strategy_settings(uid, strategy, exchange, account_type)
     
     # Determine use_atr: strategy-specific takes priority over global
-    strat_use_atr = strat_settings.get("use_atr")
+    # NOTE: pg_get_strategy_settings returns long_use_atr/short_use_atr, NOT generic use_atr
+    # When side is not provided yet, check both sides for consensus, else fall back to global
+    strat_use_atr = strat_settings.get("use_atr")  # Generic key (usually None)
+    if strat_use_atr is None:
+        # Try to get from either side as initial default (will be overridden in side-specific block)
+        long_atr = strat_settings.get("long_use_atr")
+        short_atr = strat_settings.get("short_use_atr")
+        if long_atr is not None or short_atr is not None:
+            # Use first available side setting as initial value
+            strat_use_atr = long_atr if long_atr is not None else short_atr
     if strat_use_atr is not None:
         use_atr = bool(strat_use_atr)
     else:
@@ -5098,6 +5107,13 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         side_be_trigger = strat_settings.get(f"{side_prefix}_be_trigger_pct")
         if side_be_trigger is not None and side_be_trigger > 0:
             be_trigger_pct = float(side_be_trigger)
+        
+        # Get side-specific use_atr (CRITICAL FIX: must override global!)
+        # pg_get_strategy_settings() returns long_use_atr / short_use_atr, NOT generic use_atr
+        # Without this, use_atr always falls back to global user setting from users table
+        side_use_atr = strat_settings.get(f"{side_prefix}_use_atr")
+        if side_use_atr is not None:
+            use_atr = bool(side_use_atr)
         
         # Get side-specific leverage
         side_leverage = strat_settings.get(f"{side_prefix}_leverage")
@@ -22406,8 +22422,9 @@ async def monitor_positions_loop(app: Application):
                                             result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
                                             if result is True:
                                                 logger.info(f"[{uid}] {sym}: Fixed init → {kwargs}")
-                                                # CRITICAL FIX: Save applied_sl_pct/applied_tp_pct to DB 
+                                                # CRITICAL FIX: Save applied_sl_pct/applied_tp_pct AND sl_price/tp_price to DB 
                                                 # This prevents subsequent monitor cycles from recalculating SL/TP
+                                                # AND ensures bot UI shows correct SL/TP values
                                                 try:
                                                     db.update_position_applied_sltp(
                                                         user_id=uid,
@@ -22415,9 +22432,11 @@ async def monitor_positions_loop(app: Application):
                                                         account_type=pos_account_type,
                                                         applied_sl_pct=sl_pct if "sl_price" in kwargs else None,
                                                         applied_tp_pct=tp_pct if "tp_price" in kwargs else None,
+                                                        sl_price=kwargs.get("sl_price"),
+                                                        tp_price=kwargs.get("tp_price"),
                                                         exchange=current_exchange
                                                     )
-                                                    logger.debug(f"[{uid}] {sym}: Saved applied_sl_pct={sl_pct}, applied_tp_pct={tp_pct} to DB")
+                                                    logger.debug(f"[{uid}] {sym}: Saved applied_sl_pct={sl_pct}, applied_tp_pct={tp_pct}, sl_price={kwargs.get('sl_price')}, tp_price={kwargs.get('tp_price')} to DB")
                                                 except Exception as e:
                                                     logger.warning(f"[{uid}] {sym}: Failed to save applied_sl_pct to DB: {e}")
                                             elif result == "deep_loss":
@@ -22526,6 +22545,17 @@ async def monitor_positions_loop(app: Application):
                                                     parts.append(f"TP={kwargs['tp_price']}")
                                                 reason = "DCA recalc" if entry_changed else "ATR-WAIT init"
                                                 logger.info(f"[{uid}] {sym}: {reason} → {', '.join(parts)}")
+                                                # Update sl_price/tp_price in DB for UI display
+                                                try:
+                                                    db.update_position_applied_sltp(
+                                                        user_id=uid, symbol=sym,
+                                                        account_type=pos_account_type,
+                                                        sl_price=kwargs.get("sl_price"),
+                                                        tp_price=kwargs.get("tp_price"),
+                                                        exchange=current_exchange
+                                                    )
+                                                except Exception as e:
+                                                    logger.warning(f"[{uid}] {sym}: Failed to save ATR-WAIT SL/TP to DB: {e}")
                                             else:
                                                 logger.debug(f"[{uid}] {sym}: ATR-WAIT set_trading_stop returned False for {kwargs}")
                                         except RuntimeError as e:

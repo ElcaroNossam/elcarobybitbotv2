@@ -2947,11 +2947,13 @@ def update_position_applied_sltp(
     account_type: str = "demo",
     applied_sl_pct: float | None = None,
     applied_tp_pct: float | None = None,
+    sl_price: float | None = None,
+    tp_price: float | None = None,
     exchange: str = "bybit",
 ) -> bool:
     """
-    Обновляет applied_sl_pct и applied_tp_pct для позиции.
-    Эти поля сохраняют SL/TP% который был использован при установке,
+    Обновляет applied_sl_pct, applied_tp_pct, sl_price, tp_price для позиции.
+    Эти поля сохраняют SL/TP% и цены которые были использованы при установке,
     чтобы последующие циклы мониторинга не пересчитывали SL/TP.
     """
     with get_conn() as conn:
@@ -2964,6 +2966,12 @@ def update_position_applied_sltp(
         if applied_tp_pct is not None:
             updates.append("applied_tp_pct = ?")
             params.append(applied_tp_pct)
+        if sl_price is not None:
+            updates.append("sl_price = ?")
+            params.append(sl_price)
+        if tp_price is not None:
+            updates.append("tp_price = ?")
+            params.append(tp_price)
         
         if not updates:
             return False
