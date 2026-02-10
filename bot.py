@@ -21098,8 +21098,8 @@ async def monitor_positions_loop(app: Application):
                                             remove_active_position(uid, sym, account_type=ap_account_type, entry_price=entry_price, exchange=current_exchange)
                                             continue
                                     
-                                    # Mark as processed BEFORE logging to prevent race condition
-                                    _processed_closures[closure_key] = now_ts
+                                    # NOTE: _processed_closures is set AFTER successful log_exit_and_remove_position
+                                    # to allow retry on failure (moved from here to after line ~21185)
                                     
                                     # Cleanup old entries (keep last 24 hours only)
                                     if len(_processed_closures) > 1000:
@@ -21183,6 +21183,9 @@ async def monitor_positions_loop(app: Application):
                                         # Trading fee (commission)
                                         fee=fee_paid,
                                     )
+
+                                    # Mark as processed ONLY after successful log_exit_and_remove_position
+                                    _processed_closures[closure_key] = now_ts
 
                                     pnl_from_exch = rec.get("closedPnl")
                                     rate_from_exch = rec.get("closedPnlRate")  # ROE as decimal (0.05 = 5%)
@@ -21318,6 +21321,7 @@ async def monitor_positions_loop(app: Application):
                                                 logger.warning(f"Failed to send push notification for {sym}: {push_err}")
 
                                 except Exception as e:
+                                    logger.error(f"[{uid}] {sym}: Error processing position closure: {e}", exc_info=True)
                                     if is_db_full_error(e):
                                         if once_per((uid, "db_full", sym), NOTICE_WINDOW):
                                             await safe_send_notification(
