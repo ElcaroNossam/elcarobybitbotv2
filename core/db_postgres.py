@@ -1964,8 +1964,9 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
         prefix = f"{side}_"
         defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
         
-        # Only fill defaults if percent is missing (meaning no DB record for this side)
-        if f"{prefix}percent" not in result or result[f"{prefix}percent"] is None:
+        # Only fill defaults if this side has NO DB row at all
+        # (NOT based on percent being None — a row may exist with percent=NULL but other values set)
+        if side not in rows_by_side:
             # Only set enabled if it wasn't already set from DB
             if f"{prefix}enabled" not in result:
                 result[f"{prefix}enabled"] = defaults.get("enabled", True)
