@@ -909,19 +909,12 @@ def pg_init_db():
             CREATE TABLE IF NOT EXISTS user_devices (
                 id              SERIAL PRIMARY KEY,
                 user_id         BIGINT NOT NULL,
-                device_id       TEXT,
                 device_token    TEXT,
-                platform        TEXT DEFAULT 'android',
-                device_model    TEXT,
+                device_type     TEXT DEFAULT 'android',
                 device_name     TEXT,
-                os_version      TEXT,
-                app_version     TEXT,
-                language        TEXT DEFAULT 'en',
-                timezone        TEXT DEFAULT 'UTC',
                 is_active       BOOLEAN DEFAULT TRUE,
-                last_active     TIMESTAMP DEFAULT NOW(),
                 created_at      TIMESTAMP DEFAULT NOW(),
-                updated_at      TIMESTAMP DEFAULT NOW()
+                last_seen       TIMESTAMP DEFAULT NOW()
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_devices_user ON user_devices(user_id)")
@@ -1045,23 +1038,38 @@ def pg_set_user_field(user_id: int, field: str, value: Any):
     # Ensure user exists first
     pg_ensure_user(user_id)
     
-    # Safe field whitelist
+    # Safe field whitelist - must match db.py USER_FIELDS_WHITELIST
     allowed_fields = {
+        'username', 'first_name', 'last_name',
         'demo_api_key', 'demo_api_secret', 'real_api_key', 'real_api_secret',
         'trading_mode', 'exchange_type', 'percent', 'tp_percent', 'sl_percent',
+        'tp_pct', 'sl_pct',  # aliases
         'use_atr', 'coins', 'leverage', 'lang', 'is_allowed', 'is_banned',
-        'trade_scryptomera', 'trade_scalper', 'trade_elcaro', 'trade_fibonacci', 'trade_oi', 'trade_rsi_bb',
+        'trade_scryptomera', 'trade_scalper', 'trade_elcaro', 'trade_fibonacci',
+        'trade_oi', 'trade_rsi_bb', 'trade_manual',
         'dca_enabled', 'dca_pct_1', 'dca_pct_2', 'strategy_settings',
         'hl_enabled', 'hl_testnet', 'hl_private_key', 'hl_wallet_address',
+        'hl_vault_address',
         'hl_testnet_private_key', 'hl_testnet_wallet_address',
         'hl_mainnet_private_key', 'hl_mainnet_wallet_address',
         'atr_periods', 'atr_multiplier_sl', 'atr_trigger_pct', 'atr_step_pct',
         'direction', 'global_order_type', 'spot_enabled', 'spot_settings',
         'limit_ladder_enabled', 'limit_ladder_count', 'limit_ladder_settings',
-        'username', 'first_name', 'last_name', 'terms_accepted', 'guide_sent',
-        'payment_method', 'subscription_plan', 'referral_code', 'referred_by',
-        'license_expires', 'license_tier', 'premium_until',
-        'notification_enabled', 'last_active', 'created_at'
+        'terms_accepted', 'disclaimer_accepted', 'guide_sent',
+        'live_enabled', 'limit_enabled',
+        'license_type', 'license_expires', 'current_license', 'is_lifetime',
+        'first_seen_ts', 'last_seen_ts', 'last_viewed_account',
+        'strategies_enabled', 'strategies_order',
+        'rsi_lo', 'rsi_hi', 'bb_touch_k',
+        'oi_min_pct', 'price_min_pct', 'limit_only_default',
+        'bybit_margin_mode', 'hl_margin_mode',
+        'routing_policy',
+        'bybit_coins_group', 'hl_coins_group',
+        'bybit_leverage', 'bybit_order_type', 'bybit_coins_filter',
+        'hl_leverage', 'hl_order_type', 'hl_coins_filter',
+        'api_key', 'api_secret',
+        'referral_code', 'referred_by',
+        'trading_paused',
     }
     
     if field not in allowed_fields:

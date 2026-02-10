@@ -492,13 +492,15 @@ class ErrorMonitor:
                     
                     lines.append(f"├─ <b>{error_type}</b> ({len(type_errors)}x){symbol_info}{acc_info}{exc_info}")
                     
-                    # Truncate long error messages
+                    # Truncate long error messages and escape HTML entities
                     msg = err.error_message[:120] + "..." if len(err.error_message) > 120 else err.error_message
+                    msg = msg.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                     lines.append(f"│  💬 <code>{msg}</code>")
                     
                     # Extra context
                     if err.extra_context:
                         ctx_str = ", ".join(f"{k}={v}" for k, v in list(err.extra_context.items())[:3])
+                        ctx_str = ctx_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                         lines.append(f"│  📎 {ctx_str}")
                 
                 # Store user_id for button (max 8 users)
@@ -559,7 +561,18 @@ class ErrorMonitor:
                         reply_markup=reply_markup
                     )
             except Exception as e:
-                logger.error(f"Failed to send admin error report: {e}")
+                # Fallback: try sending without HTML parse_mode
+                logger.warning(f"Admin error report HTML parse failed: {e}, retrying as plain text")
+                try:
+                    import re as _re
+                    plain_report = _re.sub(r'<[^>]+>', '', report)
+                    await self.bot.send_message(
+                        self.admin_id,
+                        plain_report[:4000],
+                        reply_markup=reply_markup
+                    )
+                except Exception as e2:
+                    logger.error(f"Failed to send admin error report (even plain text): {e2}")
 
 # Global error monitor instance
 error_monitor = ErrorMonitor(admin_id=ADMIN_ID, report_interval=300)  # Report every 5 minutes
@@ -21827,6 +21840,14 @@ async def monitor_positions_loop(app: Application):
                                                         )
                                                     except Exception as push_err:
                                                         logger.debug(f"PTP push failed: {push_err}")
+                                        except ValueError as e:
+                                            if "PTP_SKIP_SMALL" in str(e):
+                                                pass  # Already handled - step marked done
+                                            elif "ORDER_TOO_SMALL" in str(e):
+                                                logger.info(f"[PTP-STEP1] {sym} uid={uid} - Order too small, marking step done: {e}")
+                                                set_ptp_flag(uid, sym, 1, True, account_type=pos_account_type, exchange=current_exchange)
+                                            else:
+                                                logger.error(f"[{uid}] {sym}: Partial TP step 1 failed: {e}", exc_info=True)
                                         except Exception as e:
                                             logger.error(f"[{uid}] {sym}: Partial TP step 1 failed: {e}", exc_info=True)
                                     
@@ -21905,6 +21926,14 @@ async def monitor_positions_loop(app: Application):
                                                             )
                                                         except Exception as push_err:
                                                             logger.debug(f"PTP push failed: {push_err}")
+                                        except ValueError as e:
+                                            if "PTP_SKIP_SMALL" in str(e):
+                                                pass  # Already handled - step marked done
+                                            elif "ORDER_TOO_SMALL" in str(e):
+                                                logger.info(f"[PTP-STEP2] {sym} uid={uid} - Order too small, marking step done: {e}")
+                                                set_ptp_flag(uid, sym, 2, True, account_type=pos_account_type, exchange=current_exchange)
+                                            else:
+                                                logger.error(f"[{uid}] {sym}: Partial TP step 2 failed: {e}", exc_info=True)
                                         except Exception as e:
                                             logger.error(f"[{uid}] {sym}: Partial TP step 2 failed: {e}", exc_info=True)
 

@@ -163,6 +163,8 @@ USER_FIELDS_WHITELIST = {
     "hl_leverage",  # Global leverage for HyperLiquid (default 10)
     "hl_order_type",  # 'market' or 'limit' for HyperLiquid
     "hl_coins_filter",  # 'ALL', 'TOP', 'VOLATILE' for HyperLiquid
+    # Admin controls
+    "trading_paused",  # 0/1 - admin can pause trading for user
 }
 
 

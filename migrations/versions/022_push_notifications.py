@@ -26,16 +26,12 @@ def upgrade(cur):
             CREATE TABLE IF NOT EXISTS user_devices (
                 id              SERIAL PRIMARY KEY,
                 user_id         BIGINT NOT NULL,
-                device_token    TEXT NOT NULL,
-                platform        TEXT NOT NULL,        -- 'ios', 'android', 'web'
+                device_token    TEXT,
+                device_type     TEXT DEFAULT 'android',
                 device_name     TEXT,
-                app_version     TEXT,
-                os_version      TEXT,
                 is_active       BOOLEAN DEFAULT TRUE,
                 created_at      TIMESTAMP DEFAULT NOW(),
-                updated_at      TIMESTAMP DEFAULT NOW(),
-                
-                UNIQUE(device_token)
+                last_seen       TIMESTAMP DEFAULT NOW()
             )
         """)
         cur.execute("CREATE INDEX IF NOT EXISTS idx_devices_user ON user_devices(user_id)")
