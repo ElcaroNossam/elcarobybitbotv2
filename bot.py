@@ -7085,7 +7085,7 @@ async def _remove_take_profit_hyperliquid(
     effective_side: str,
     account_type: str | None = None,
 ) -> bool:
-    """Remove Take Profit on HyperLiquid by calling set_tp_sl with tp_price=None."""
+    """Remove Take Profit on HyperLiquid by re-setting only SL (cancels TP trigger orders)."""
     try:
         # Determine testnet/mainnet from account_type
         is_testnet = account_type in ("testnet", "paper", "demo")
@@ -7106,24 +7106,45 @@ async def _remove_take_profit_hyperliquid(
             logger.warning(f"[{uid}] No HL adapter available for {hl_account_type}")
             return False
         
-        # Get current SL to preserve it (only remove TP)
-        positions_result = await adapter.fetch_positions(symbol)
-        positions = positions_result.get("result", {}).get("list", [])
-        
-        if not positions:
-            logger.debug(f"[{uid}] No HL positions for {symbol}, skipping TP removal")
-            return False
-        
-        pos = positions[0]
-        current_sl = pos.get("stopLoss")
-        current_sl_price = float(current_sl) if current_sl not in (None, "", "0", 0, 0.0) else None
-        
-        # Set TP to None to remove it, preserve SL
         coin = hl_symbol_to_coin(symbol)
         
-        # HyperLiquid doesn't have a direct "remove TP" - we use update_order to cancel
-        # For now, log that we're skipping TP removal on HL (ATR trailing works without explicit TP)
-        logger.info(f"[{uid}] {symbol} HL: TP removal requested - ATR trailing active (no explicit TP needed)")
+        # Get current position to find SL price
+        position = await adapter._client.get_position(coin)
+        if not position:
+            logger.debug(f"[{uid}] No HL position for {coin}, skipping TP removal")
+            return False
+        
+        # Cancel all trigger orders (this removes both TP and SL)
+        try:
+            cancelled = await adapter._client.cancel_trigger_orders_for_coin(
+                coin=coin, address=adapter._main_wallet_address or adapter._address
+            )
+            if cancelled:
+                logger.info(f"[{uid}] {symbol} HL: Cancelled {cancelled} trigger orders to remove TP")
+        except Exception as cancel_err:
+            logger.warning(f"[{uid}] {symbol} HL: Failed to cancel trigger orders: {cancel_err}")
+        
+        # Re-set only SL (without TP) if DB has SL
+        from db import get_active_positions
+        db_positions = get_active_positions(uid, account_type=account_type, exchange="hyperliquid")
+        db_pos = next((p for p in db_positions if p.get("symbol") == symbol), None)
+        
+        if db_pos and db_pos.get("sl_price"):
+            sl_price = float(db_pos["sl_price"])
+            if sl_price > 0:
+                try:
+                    await adapter.set_tp_sl(
+                        coin=coin,
+                        sl_price=sl_price,
+                        tp_price=None,  # No TP — ATR trailing handles it
+                        address=adapter._main_wallet_address,
+                    )
+                    logger.info(f"[{uid}] {symbol} HL: TP removed, SL preserved at {sl_price}")
+                except Exception as sl_err:
+                    logger.warning(f"[{uid}] {symbol} HL: Could not re-set SL after TP removal: {sl_err}")
+        else:
+            logger.info(f"[{uid}] {symbol} HL: TP removed (no SL to preserve)")
+        
         return True
         
     except Exception as e:
@@ -7714,6 +7735,80 @@ async def cmd_market(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
     await ctx.bot.send_message(chat_id, header, parse_mode="Markdown")
 
+async def _place_hl_market_order(
+    user_id: int,
+    symbol: str,
+    side: str,           # "Buy" / "Sell"
+    qty: float,
+    account_type: str = None,
+    reduce_only: bool = False,
+) -> dict:
+    """
+    Place a market order on HyperLiquid.
+    Used by DCA/PTP monitor logic for HL positions.
+    Returns dict with status and result.
+    """
+    is_testnet = account_type in ("testnet", "paper", "demo")
+    hl_account_type = "testnet" if is_testnet else "mainnet"
+
+    from core.exchange_client import get_exchange_client
+    client = await get_exchange_client(user_id, exchange_type='hyperliquid', account_type=hl_account_type)
+    adapter = client._client
+    if not adapter:
+        raise ValueError(f"No HL adapter available for {hl_account_type}")
+
+    coin = hl_symbol_to_coin(symbol)
+    is_buy = side.lower() in ("buy", "long")
+
+    if reduce_only:
+        result = await adapter._client.market_close(
+            coin=coin,
+            sz=qty,
+            slippage=0.02,
+        )
+    else:
+        result = await adapter._client.market_open(
+            coin=coin,
+            is_buy=is_buy,
+            sz=qty,
+            slippage=0.01,
+        )
+
+    logger.info(f"[{user_id}] HL market order: {symbol} {side} qty={qty} reduce_only={reduce_only} → {result}")
+    return result
+
+
+async def _place_exchange_order(
+    user_id: int,
+    symbol: str,
+    side: str,
+    qty: float,
+    account_type: str = None,
+    exchange: str = "bybit",
+    reduce_only: bool = False,
+) -> dict:
+    """
+    Exchange-aware market order placement.
+    Routes to Bybit place_order() or HyperLiquid _place_hl_market_order().
+    Used by DCA and Partial Take Profit in monitor_positions_loop.
+    """
+    if exchange == "hyperliquid":
+        return await _place_hl_market_order(
+            user_id, symbol, side, qty,
+            account_type=account_type,
+            reduce_only=reduce_only,
+        )
+    else:
+        return await place_order(
+            user_id=user_id,
+            symbol=symbol,
+            side=side,
+            orderType="Market",
+            qty=qty,
+            account_type=account_type,
+        )
+
+
 @log_calls
 async def place_order(
     user_id: int,
@@ -8188,6 +8283,9 @@ async def place_order_for_targets(
                 )
                 
                 try:
+                    # Ensure adapter is fully initialized (auto-discovery + dynamic mapping)
+                    await adapter.initialize()
+                    
                     # coin already extracted above for validation
                     is_buy = side.lower() in ("buy", "long")
                     hl_leverage = target_leverage or leverage or 10
@@ -21832,19 +21930,20 @@ async def monitor_positions_loop(app: Application):
                                                 sl_pct=sl_pct,
                                                 account_type=pos_account_type
                                             )
-                                            # Check minimum order value (5 USDT for Bybit)
+                                            # Check minimum order value (5 USDT for Bybit, 10 USDC for HL)
+                                            min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
                                             order_value = add_qty * mark
-                                            if order_value < 5.0:
-                                                logger.info(f"{sym}: DCA order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
+                                            if order_value < min_notional:
+                                                logger.info(f"{sym}: DCA order value ({order_value:.2f} USDT) below min {min_notional}, marking as done")
                                                 set_dca_flag(uid, sym, 10, True, account_type=pos_account_type, exchange=current_exchange)  # Mark as done to avoid retry
                                             elif add_qty > 0:
-                                                await place_order(
+                                                await _place_exchange_order(
                                                     user_id=uid,
                                                     symbol=sym,
                                                     side=side,
-                                                    orderType="Market",
                                                     qty=add_qty,
-                                                    account_type=pos_account_type
+                                                    account_type=pos_account_type,
+                                                    exchange=current_exchange,
                                                 )
                                                 set_dca_flag(uid, sym, 10, True, account_type=pos_account_type, exchange=current_exchange)
                                                 try:
@@ -21879,19 +21978,20 @@ async def monitor_positions_loop(app: Application):
                                                 sl_pct=sl_pct,
                                                 account_type=pos_account_type
                                             )
-                                            # Check minimum order value (5 USDT for Bybit)
+                                            # Check minimum order value (5 USDT for Bybit, 10 USDC for HL)
+                                            min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
                                             order_value = add_qty * mark
-                                            if order_value < 5.0:
-                                                logger.info(f"{sym}: DCA Leg2 order value ({order_value:.2f} USDT) below min 5 USDT, marking as done")
+                                            if order_value < min_notional:
+                                                logger.info(f"{sym}: DCA Leg2 order value ({order_value:.2f} USDT) below min {min_notional}, marking as done")
                                                 set_dca_flag(uid, sym, 25, True, account_type=pos_account_type, exchange=current_exchange)  # Mark as done to avoid retry
                                             elif add_qty > 0:
-                                                await place_order(
+                                                await _place_exchange_order(
                                                     user_id=uid,
                                                     symbol=sym,
                                                     side=side,
-                                                    orderType="Market",
                                                     qty=add_qty,
-                                                    account_type=pos_account_type
+                                                    account_type=pos_account_type,
+                                                    exchange=current_exchange,
                                                 )
                                                 set_dca_flag(uid, sym, 25, True, account_type=pos_account_type, exchange=current_exchange)
                                                 try:
@@ -22017,12 +22117,16 @@ async def monitor_positions_loop(app: Application):
                                             
                                             if close_qty > 0:
                                                 # Pre-check notional to avoid ORDER_TOO_SMALL spam
+                                                min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
                                                 try:
-                                                    ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
-                                                    cur_price = float(ticker["list"][0]["lastPrice"])
+                                                    if current_exchange == "hyperliquid":
+                                                        cur_price = mark  # Already available from position data
+                                                    else:
+                                                        ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
+                                                        cur_price = float(ticker["list"][0]["lastPrice"])
                                                     notional_check = close_qty * cur_price
-                                                    if notional_check < 5.0:
-                                                        logger.info(f"[PTP-STEP1] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < $5 min, marking step done (qty too small)")
+                                                    if notional_check < min_notional:
+                                                        logger.info(f"[PTP-STEP1] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < ${min_notional} min, marking step done (qty too small)")
                                                         set_ptp_flag(uid, sym, 1, True, account_type=pos_account_type, exchange=current_exchange)
                                                         raise ValueError("PTP_SKIP_SMALL")
                                                 except ValueError:
@@ -22031,13 +22135,14 @@ async def monitor_positions_loop(app: Application):
                                                     pass  # Continue with order if price check fails
                                                 
                                                 # Place market order to close partial position
-                                                await place_order(
+                                                await _place_exchange_order(
                                                     user_id=uid,
                                                     symbol=sym,
                                                     side=close_side,
-                                                    orderType="Market",
                                                     qty=close_qty,
-                                                    account_type=pos_account_type
+                                                    account_type=pos_account_type,
+                                                    exchange=current_exchange,
+                                                    reduce_only=True,
                                                 )
                                                 set_ptp_flag(uid, sym, 1, True, account_type=pos_account_type, exchange=current_exchange)
                                                 
@@ -22104,12 +22209,16 @@ async def monitor_positions_loop(app: Application):
                                                 
                                                 if close_qty > 0:
                                                     # Pre-check notional to avoid ORDER_TOO_SMALL spam
+                                                    min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
                                                     try:
-                                                        ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
-                                                        cur_price = float(ticker["list"][0]["lastPrice"])
+                                                        if current_exchange == "hyperliquid":
+                                                            cur_price = mark  # Already available from position data
+                                                        else:
+                                                            ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
+                                                            cur_price = float(ticker["list"][0]["lastPrice"])
                                                         notional_check = close_qty * cur_price
-                                                        if notional_check < 5.0:
-                                                            logger.info(f"[PTP-STEP2] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < $5 min, marking step done (qty too small)")
+                                                        if notional_check < min_notional:
+                                                            logger.info(f"[PTP-STEP2] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < ${min_notional} min, marking step done (qty too small)")
                                                             set_ptp_flag(uid, sym, 2, True, account_type=pos_account_type, exchange=current_exchange)
                                                             raise ValueError("PTP_SKIP_SMALL")
                                                     except ValueError:
@@ -22117,13 +22226,14 @@ async def monitor_positions_loop(app: Application):
                                                     except Exception:
                                                         pass  # Continue with order if price check fails
                                                     
-                                                    await place_order(
+                                                    await _place_exchange_order(
                                                         user_id=uid,
                                                         symbol=sym,
                                                         side=close_side,
-                                                        orderType="Market",
                                                         qty=close_qty,
-                                                        account_type=pos_account_type
+                                                        account_type=pos_account_type,
+                                                        exchange=current_exchange,
+                                                        reduce_only=True,
                                                     )
                                                     set_ptp_flag(uid, sym, 2, True, account_type=pos_account_type, exchange=current_exchange)
                                                     
@@ -31241,8 +31351,6 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Already configured, just switch to mainnet
             set_hl_credentials(uid, 
                 private_key=hl_creds.get("hl_private_key"),
-                wallet_address=hl_creds.get("hl_wallet_address"),
-                vault_address=hl_creds.get("hl_vault_address"),
                 testnet=False
             )
             # Auto-enable HL trading
@@ -31283,8 +31391,6 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             # Already configured, just switch to testnet
             set_hl_credentials(uid, 
                 private_key=hl_creds.get("hl_private_key"),
-                wallet_address=hl_creds.get("hl_wallet_address"),
-                vault_address=hl_creds.get("hl_vault_address"),
                 testnet=True
             )
             # Auto-enable HL trading
@@ -31395,8 +31501,8 @@ async def on_hl_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         try:
             adapter = HLAdapter(
                 private_key=hl_private_key,
-                testnet=is_testnet,
-                vault_address=hl_creds.get("hl_vault_address")
+                testnet=is_testnet
+                # vault_address auto-discovered via initialize()
             )
             result = await adapter.fetch_positions()
             

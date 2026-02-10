@@ -519,8 +519,8 @@ async def run_simple_backtest(request: BacktestRequest):
 
 
 @router.post("/quick")
-async def quick_backtest(symbol: str = "BTCUSDT", timeframe: str = "1h", days: int = 7):
-    """Quick backtest for all strategies - uses real analyzers"""
+async def quick_backtest(symbol: str = "BTCUSDT", timeframe: str = "1h", days: int = 7, user: dict = Depends(rate_limit_backtest)):
+    """Quick backtest for all strategies - uses real analyzers (authenticated, rate-limited)"""
     strategies = [
         "elcaro", "rsibboi", "wyckoff", "scryptomera", "scalper",
         "mean_reversion", "trend_following", "breakout", "dca", "grid", "momentum", "volatility_breakout"
@@ -774,8 +774,8 @@ class ReplayDataRequest(BaseModel):
 
 
 @router.post("/replay-data")
-async def get_replay_data(request: ReplayDataRequest):
-    """Get historical data with pre-calculated signals for replay mode"""
+async def get_replay_data(request: ReplayDataRequest, user: dict = Depends(rate_limit_backtest)):
+    """Get historical data with pre-calculated signals for replay mode (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         
@@ -917,8 +917,8 @@ async def get_replay_data(request: ReplayDataRequest):
 
 
 @router.post("/deploy")
-async def deploy_strategy(request: DeployStrategyRequest):
-    """Deploy tested strategy to bot with optimized parameters"""
+async def deploy_strategy(request: DeployStrategyRequest, user: dict = Depends(get_current_user)):
+    """Deploy tested strategy to bot with optimized parameters (authenticated)"""
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -977,8 +977,8 @@ async def deploy_strategy(request: DeployStrategyRequest):
 
 
 @router.get("/deployments")
-async def list_deployments():
-    """List all strategy deployments"""
+async def list_deployments(user: dict = Depends(get_current_user)):
+    """List all strategy deployments (authenticated)"""
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -1007,8 +1007,8 @@ async def list_deployments():
 
 
 @router.get("/active-deployment/{strategy}")
-async def get_active_deployment(strategy: str):
-    """Get currently active deployment for a strategy"""
+async def get_active_deployment(strategy: str, user: dict = Depends(get_current_user)):
+    """Get currently active deployment for a strategy (authenticated)"""
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -1352,9 +1352,10 @@ async def validate_bybit_credentials(
     api_key: str,
     api_secret: str,
     demo: bool = True,
-    testnet: bool = False
+    testnet: bool = False,
+    user: dict = Depends(get_current_user)
 ):
-    """Validate Bybit API credentials"""
+    """Validate Bybit API credentials (authenticated)"""
     try:
         from webapp.services.exchange_validator import ExchangeValidator
         return await ExchangeValidator.validate_bybit(api_key, api_secret, demo, testnet)
@@ -1365,9 +1366,10 @@ async def validate_bybit_credentials(
 @router.post("/validate-hyperliquid")
 async def validate_hyperliquid_credentials(
     private_key: str,
-    testnet: bool = False
+    testnet: bool = False,
+    user: dict = Depends(get_current_user)
 ):
-    """Validate HyperLiquid private key"""
+    """Validate HyperLiquid private key (authenticated)"""
     try:
         from webapp.services.exchange_validator import ExchangeValidator
         return await ExchangeValidator.validate_hyperliquid(private_key, testnet)
@@ -1488,9 +1490,10 @@ async def calculate_indicators(
     symbol: str = "BTCUSDT",
     timeframe: str = "1h",
     days: int = 30,
-    indicators: List[str] = ["rsi", "macd", "bb", "ema"]
+    indicators: List[str] = ["rsi", "macd", "bb", "ema"],
+    user: dict = Depends(get_current_user)
 ):
-    """Calculate technical indicators for a symbol"""
+    """Calculate technical indicators for a symbol (authenticated)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         from webapp.services.indicators import Indicators
@@ -1640,8 +1643,8 @@ class StressTestRequest(BaseModel):
 
 
 @router.post("/multi-timeframe")
-async def run_multi_timeframe_backtest(request: MultiTimeframeRequest):
-    """Run backtest across multiple timeframes for the same symbol"""
+async def run_multi_timeframe_backtest(request: MultiTimeframeRequest, user: dict = Depends(rate_limit_backtest)):
+    """Run backtest across multiple timeframes for the same symbol (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         engine = RealBacktestEngine()
@@ -1674,8 +1677,8 @@ async def run_multi_timeframe_backtest(request: MultiTimeframeRequest):
 
 
 @router.post("/heatmap")
-async def generate_parameter_heatmap(request: HeatmapRequest):
-    """Generate parameter optimization heatmap"""
+async def generate_parameter_heatmap(request: HeatmapRequest, user: dict = Depends(rate_limit_backtest)):
+    """Generate parameter optimization heatmap (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         engine = RealBacktestEngine()
@@ -1718,8 +1721,8 @@ async def generate_parameter_heatmap(request: HeatmapRequest):
 
 
 @router.post("/stress-test")
-async def stress_test_strategy(request: StressTestRequest):
-    """Test strategy under various market stress scenarios"""
+async def stress_test_strategy(request: StressTestRequest, user: dict = Depends(rate_limit_backtest)):
+    """Test strategy under various market stress scenarios (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine
         engine = RealBacktestEngine()
@@ -1866,8 +1869,10 @@ class SaveStrategyRequest(BaseModel):
 
 
 @router.post("/strategy-builder/save")
-async def save_custom_strategy(request: SaveStrategyRequest):
-    """Save a custom built strategy"""
+async def save_custom_strategy(request: SaveStrategyRequest, user: dict = Depends(get_current_user)):
+    """Save a custom built strategy (authenticated, IDOR-protected)"""
+    # SECURITY: Override user_id from JWT to prevent IDOR
+    request.user_id = user["user_id"]
     try:
         now = datetime.now().isoformat()
         
@@ -1971,8 +1976,9 @@ async def delete_strategy(strategy_id: int, user: dict = Depends(get_current_use
 
 
 @router.get("/strategy-builder/{strategy_id}")
-async def get_strategy_details(strategy_id: int, user_id: int = None):
-    """Get detailed info about a strategy"""
+async def get_strategy_details(strategy_id: int, user: dict = Depends(get_current_user)):
+    """Get detailed info about a strategy (authenticated)"""
+    user_id = user["user_id"]
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -2025,8 +2031,9 @@ async def get_strategy_details(strategy_id: int, user_id: int = None):
 
 @router.post("/strategy-builder/test")
 async def test_custom_strategy(config: CustomStrategyConfig, symbol: str = "BTCUSDT", 
-                                timeframe: str = "1h", days: int = 30):
-    """Test a custom strategy configuration without saving"""
+                                timeframe: str = "1h", days: int = 30,
+                                user: dict = Depends(rate_limit_backtest)):
+    """Test a custom strategy configuration without saving (authenticated, rate-limited)"""
     try:
         from webapp.services.backtest_engine import RealBacktestEngine, CustomStrategyAnalyzer
         
@@ -2161,8 +2168,9 @@ async def copy_strategy(strategy_id: int, user: dict = Depends(get_current_user)
 
 
 @router.post("/marketplace/publish/{strategy_id}")
-async def publish_to_marketplace(strategy_id: int, user_id: int, visibility: str = "public", price: float = 0):
-    """Publish your strategy to marketplace"""
+async def publish_to_marketplace(strategy_id: int, user: dict = Depends(get_current_user), visibility: str = "public", price: float = 0):
+    """Publish your strategy to marketplace (authenticated, IDOR-protected)"""
+    user_id = user["user_id"]  # SECURITY: user_id from JWT, NOT from request
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -2194,8 +2202,10 @@ class GoLiveRequest(BaseModel):
     params: Optional[Dict[str, Any]] = None
 
 @router.post("/go-live/{strategy_id}")
-async def start_live_trading(strategy_id: int, request: GoLiveRequest):
-    """Deploy strategy to live trading in the bot"""
+async def start_live_trading(strategy_id: int, request: GoLiveRequest, user: dict = Depends(get_current_user)):
+    """Deploy strategy to live trading in the bot (authenticated, IDOR-protected)"""
+    # SECURITY: Override user_id from JWT to prevent IDOR
+    request.user_id = user["user_id"]
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -2259,8 +2269,10 @@ class StopLiveRequest(BaseModel):
     user_id: int
 
 @router.post("/stop-live/{strategy_id}")
-async def stop_live_trading(strategy_id: int, request: StopLiveRequest):
-    """Stop live trading for a strategy"""
+async def stop_live_trading(strategy_id: int, request: StopLiveRequest, user: dict = Depends(get_current_user)):
+    """Stop live trading for a strategy (authenticated, IDOR-protected)"""
+    # SECURITY: Override user_id from JWT to prevent IDOR
+    request.user_id = user["user_id"]
     try:
         with get_db() as conn:
             cur = conn.cursor()

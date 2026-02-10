@@ -77,19 +77,7 @@ def invalidate_hl_cache(user_id: int, account_type: str = None):
         logger.debug(f"[HL-CACHE] Invalidated cache for user {user_id}: {keys_to_remove}")
 
 
-def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
-    """
-    Normalize 'both' account_type to a valid single account type.
-    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
-    
-    For Bybit: 'both' -> 'demo' (safer default)
-    For HyperLiquid: 'both' -> 'testnet' (safer default)
-    """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
+from core.account_utils import normalize_account_type as _normalize_both_account_type
 
 
 # ═══════════════════════════════════════════════════════════════

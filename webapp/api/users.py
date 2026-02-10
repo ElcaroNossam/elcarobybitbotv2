@@ -1749,6 +1749,18 @@ async def update_strategy_settings_mobile(
             db.set_strategy_setting_db(user_id, strategy_name, db_field, value, exchange, account_type)
             updated.append(field)
     
+    # Validate PTP: Step1 + Step2 must be <= 100%
+    if any(f in settings for f in ("partial_tp_1_close_pct", "partial_tp_2_close_pct")):
+        # Re-read current settings to validate sum
+        current = db.get_strategy_settings(user_id, strategy_name, exchange)
+        step1 = current.get(f"{side}_partial_tp_1_close_pct") or 30.0
+        step2 = current.get(f"{side}_partial_tp_2_close_pct") or 50.0
+        if step1 + step2 > 100:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Partial TP Step1 ({step1}%) + Step2 ({step2}%) = {step1+step2}% exceeds 100%. Reduce one of the steps."
+            )
+    
     # Non-side fields
     if "direction" in settings:
         db.set_strategy_setting_db(user_id, strategy_name, "direction", settings["direction"], exchange, account_type)
@@ -1760,13 +1772,14 @@ async def update_strategy_settings_mobile(
     
     logger.info(f"User {user_id} updated {strategy_name}/{side} via mobile: {updated}")
     
-    # Log activity for cross-platform sync (from iOS)
+    # Log activity for cross-platform sync
+    source = settings.get("source", "webapp")  # iOS/Android pass source field
     try:
         from services.sync_service import sync_service
         import asyncio
         asyncio.create_task(sync_service.sync_settings_change(
             user_id=user_id,
-            source="ios",  # Mobile endpoint = iOS
+            source=source,
             setting_name=f"strategy_{strategy_name}_{side}",
             old_value=None,
             new_value=str({k: settings.get(k) for k in updated}),

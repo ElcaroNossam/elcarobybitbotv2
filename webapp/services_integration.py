@@ -7,23 +7,9 @@ instead of direct db imports.
 from typing import List, Optional, Dict, Any
 from fastapi import HTTPException
 import logging
+from core.account_utils import normalize_account_type as _normalize_both_account_type
 
 logger = logging.getLogger(__name__)
-
-
-def _normalize_both_account_type(account_type: str, exchange: str = 'bybit') -> str:
-    """
-    Normalize 'both' account_type to a valid single account type.
-    'both' is a trading MODE (trade on demo+real simultaneously), not a valid account_type for API.
-    
-    For Bybit: 'both' -> 'demo' (safer default)
-    For HyperLiquid: 'both' -> 'testnet' (safer default)
-    """
-    if account_type == 'both':
-        if exchange == 'hyperliquid':
-            return 'testnet'
-        return 'demo'
-    return account_type
 
 
 async def get_positions_service(user_id: int, exchange: str = 'bybit', account_type: str = 'demo', symbol: Optional[str] = None) -> Dict[str, Any]:
