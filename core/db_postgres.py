@@ -1956,36 +1956,42 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
     result["exchange"] = exchange  # Include current exchange in result
     
     # Fill missing sides with defaults
-    # IMPORTANT: Don't overwrite enabled if it was explicitly set in DB
+    # CRITICAL FIX (Feb 2026): For trading params that have user-global equivalents
+    # (percent, sl_percent, tp_percent, leverage, use_atr, dca_*, be_*),
+    # set to None so get_strategy_trade_params() falls through to user globals.
+    # Only fill structural defaults that have NO user-global equivalents.
     for side in ["long", "short"]:
         prefix = f"{side}_"
         defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
         
-        # Only fill ALL defaults if percent is missing (meaning no DB record for this side)
+        # Only fill defaults if percent is missing (meaning no DB record for this side)
         if f"{prefix}percent" not in result or result[f"{prefix}percent"] is None:
             # Only set enabled if it wasn't already set from DB
             if f"{prefix}enabled" not in result:
                 result[f"{prefix}enabled"] = defaults.get("enabled", True)
-            result[f"{prefix}percent"] = defaults.get("percent")
-            result[f"{prefix}sl_percent"] = defaults.get("sl_percent")
-            result[f"{prefix}tp_percent"] = defaults.get("tp_percent")
-            result[f"{prefix}leverage"] = defaults.get("leverage")
-            result[f"{prefix}use_atr"] = defaults.get("use_atr", 0)
+            # Trading params → None (will fall through to user globals in get_strategy_trade_params)
+            result[f"{prefix}percent"] = None
+            result[f"{prefix}sl_percent"] = None
+            result[f"{prefix}tp_percent"] = None
+            result[f"{prefix}leverage"] = None
+            result[f"{prefix}use_atr"] = None
+            # ATR calculation params → keep defaults (no user-global equivalents)
             result[f"{prefix}atr_periods"] = defaults.get("atr_periods", 14)
             result[f"{prefix}atr_multiplier_sl"] = defaults.get("atr_multiplier_sl", 1.5)
             result[f"{prefix}atr_trigger_pct"] = defaults.get("atr_trigger_pct")
             result[f"{prefix}atr_step_pct"] = defaults.get("atr_step_pct")
             result[f"{prefix}order_type"] = defaults.get("order_type", "market")
             result[f"{prefix}limit_offset_pct"] = defaults.get("limit_offset_pct", 0.1)
-            result[f"{prefix}dca_enabled"] = defaults.get("dca_enabled", 0)
-            result[f"{prefix}dca_pct_1"] = defaults.get("dca_pct_1", 10.0)
-            result[f"{prefix}dca_pct_2"] = defaults.get("dca_pct_2", 25.0)
+            # DCA → None (will fall through to user globals)
+            result[f"{prefix}dca_enabled"] = None
+            result[f"{prefix}dca_pct_1"] = None
+            result[f"{prefix}dca_pct_2"] = None
             result[f"{prefix}max_positions"] = defaults.get("max_positions", 0)
             result[f"{prefix}coins_group"] = defaults.get("coins_group", "ALL")
-            # Break-Even defaults
-            result[f"{prefix}be_enabled"] = defaults.get("be_enabled", False)
-            result[f"{prefix}be_trigger_pct"] = defaults.get("be_trigger_pct", 1.0)
-            # Partial Take Profit defaults
+            # Break-Even → None (will fall through to user globals)
+            result[f"{prefix}be_enabled"] = None
+            result[f"{prefix}be_trigger_pct"] = None
+            # Partial Take Profit → keep defaults (no user-global equivalents)
             result[f"{prefix}partial_tp_enabled"] = defaults.get("partial_tp_enabled", False)
             result[f"{prefix}partial_tp_1_trigger_pct"] = defaults.get("partial_tp_1_trigger_pct", 2.0)
             result[f"{prefix}partial_tp_1_close_pct"] = defaults.get("partial_tp_1_close_pct", 30.0)

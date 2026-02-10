@@ -3517,7 +3517,7 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         lines.append("")
         for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
             strat_settings_data = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
-            status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange, global_use_atr)
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings_data, active_exchange, global_use_atr, global_cfg=cfg)
             if status_parts:
                 lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
             else:
@@ -8786,7 +8786,7 @@ async def cmd_toggle_fibonacci(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # Strategy Settings with Inline Keyboard
 # ------------------------------------------------------------------------------------
 
-def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_exchange: str = "bybit", global_use_atr: bool = True) -> list:
+def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_exchange: str = "bybit", global_use_atr: bool = True, global_cfg: dict = None) -> list:
     """
     Build status parts list for a strategy based on its settings.
     Used consistently across all menus to show strategy customizations.
@@ -8796,12 +8796,24 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
         strat_settings: Strategy-specific settings dict
         active_exchange: Current exchange (bybit/hyperliquid)
         global_use_atr: User's global ATR setting (fallback when strategy doesn't override)
+        global_cfg: User's global config dict (for fallback display values)
     """
     status_parts = []
+    global_cfg = global_cfg or {}
     
-    pct = strat_settings.get("percent")
-    sl = strat_settings.get("sl_percent")
-    tp = strat_settings.get("tp_percent")
+    # For display, try side-specific first, then non-prefixed, then global fallback
+    l_pct = strat_settings.get("long_percent")
+    l_sl = strat_settings.get("long_sl_percent")
+    l_tp = strat_settings.get("long_tp_percent")
+    s_pct = strat_settings.get("short_percent")
+    s_sl = strat_settings.get("short_sl_percent")
+    s_tp = strat_settings.get("short_tp_percent")
+    
+    # Effective values: strategy-specific or global fallback
+    pct = strat_settings.get("percent") or l_pct or global_cfg.get("percent")
+    sl = strat_settings.get("sl_percent") or l_sl or global_cfg.get("sl_percent")
+    tp = strat_settings.get("tp_percent") or l_tp or global_cfg.get("tp_percent")
+    
     atr_per = strat_settings.get("atr_periods")
     atr_mult = strat_settings.get("atr_multiplier_sl")
     atr_trig = strat_settings.get("atr_trigger_pct")
@@ -8825,11 +8837,11 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
         dir_emoji = {"all": "🔄", "long": "📈", "short": "📉"}.get(direction, "🔄")
         status_parts.append(f"{dir_emoji}")
         
-        # Check for side-specific settings
-        l_pct = strat_settings.get("long_percent")
-        l_sl = strat_settings.get("long_sl_percent")
-        s_pct = strat_settings.get("short_percent")
-        s_sl = strat_settings.get("short_sl_percent")
+        # Check for side-specific settings (use global fallback for display)
+        eff_l_pct = l_pct or global_cfg.get("percent")
+        eff_l_sl = l_sl or global_cfg.get("sl_percent")
+        eff_s_pct = s_pct or global_cfg.get("percent")
+        eff_s_sl = s_sl or global_cfg.get("sl_percent")
         
         has_side_specific = (l_pct is not None or l_sl is not None or 
                             s_pct is not None or s_sl is not None)
@@ -8841,13 +8853,14 @@ def _build_strategy_status_parts(strat_key: str, strat_settings: dict, active_ex
             if s_pct is not None or s_sl is not None:
                 status_parts.append(f"S:{s_pct or '-'}%/{s_sl or '-'}%")
         else:
-            # Show general settings if no side-specific overrides
-            if pct is not None:
-                status_parts.append(f"Entry: {pct}%")
-            if sl is not None:
-                status_parts.append(f"SL: {sl}%")
-            if tp is not None:
-                status_parts.append(f"TP: {tp}%")
+            # Show effective settings (global fallback)
+            if eff_l_pct is not None:
+                status_parts.append(f"Entry: {eff_l_pct}%")
+            if eff_l_sl is not None:
+                status_parts.append(f"SL: {eff_l_sl}%")
+            eff_tp = tp or global_cfg.get("tp_percent")
+            if eff_tp is not None:
+                status_parts.append(f"TP: {eff_tp}%")
     else:
         # General settings for other strategies
         if pct is not None:
@@ -9602,7 +9615,7 @@ async def cmd_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
         strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
-        status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
+        status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr, global_cfg=cfg)
         if status_parts:
             lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
         else:
@@ -9892,7 +9905,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
         
         for strat_key, strat_name in STRATEGY_NAMES_MAP.items():
             strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
-            status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
+            status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr, global_cfg=cfg)
             if status_parts:
                 lines.append(f"*{strat_name}*: {', '.join(status_parts)}")
             else:
@@ -10201,7 +10214,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
-                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr, global_cfg=cfg)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
@@ -10253,7 +10266,7 @@ async def callback_strategy_settings(update: Update, ctx: ContextTypes.DEFAULT_T
             lines.append("")
             for strat_key, strat_nm in STRATEGY_NAMES_MAP.items():
                 strat_settings = db.get_strategy_settings(uid, strat_key, active_exchange, account_type)
-                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr)
+                status_parts = _build_strategy_status_parts(strat_key, strat_settings, active_exchange, global_use_atr, global_cfg=cfg)
                 if status_parts:
                     lines.append(f"*{strat_nm}*: {', '.join(status_parts)}")
                 else:
