@@ -115,6 +115,13 @@ class HLAdapter:
             state = await self._client.user_state(address=query_address)
             asset_positions = state.get("assetPositions", [])
             
+            # Fetch all mark prices in one API call (user_state doesn't include them)
+            try:
+                all_mids = await self._client.get_all_mids()
+            except Exception as e:
+                logger.warning(f"[HL] Failed to fetch allMids, mark prices will fallback to entry: {e}")
+                all_mids = {}
+            
             result_list = []
             for p in asset_positions:
                 pos = p.get("position", {})
@@ -126,13 +133,15 @@ class HLAdapter:
                     continue
                 leverage_info = pos.get("leverage", {})
                 leverage = leverage_info.get("value", 1) if isinstance(leverage_info, dict) else 1
+                # Use real mark price from allMids, fallback to entry price
+                mark_price = all_mids.get(coin, _safe_float(pos.get("entryPx", 0)))
                 result_list.append({
                     "symbol": f"{coin}USDC",
                     "side": "Buy" if size > 0 else "Sell",
                     "size": str(abs(size)),
                     "positionValue": str(pos.get("positionValue", 0)),
                     "entryPrice": str(pos.get("entryPx", 0)),
-                    "markPrice": str(pos.get("entryPx", 0)),
+                    "markPrice": str(mark_price),
                     "liqPrice": str(pos.get("liquidationPx", 0)) if pos.get("liquidationPx") else "0",
                     "leverage": str(leverage),
                     "unrealisedPnl": str(pos.get("unrealizedPnl", 0)),
