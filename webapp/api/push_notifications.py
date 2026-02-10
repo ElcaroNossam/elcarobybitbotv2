@@ -91,26 +91,26 @@ async def register_device(request: DeviceTokenRequest, user: dict = Depends(get_
             # Update existing
             execute_one("""
                 UPDATE user_devices 
-                SET device_name = %s, app_version = %s, os_version = %s,
-                    is_active = TRUE, updated_at = NOW()
+                SET device_name = %s,
+                    is_active = TRUE, last_seen = NOW()
                 WHERE id = %s
-            """, (request.device_name, request.app_version, request.os_version, existing["id"]))
+            """, (request.device_name, existing["id"]))
         else:
             # Deactivate old tokens for this platform
             execute_one("""
                 UPDATE user_devices 
                 SET is_active = FALSE 
-                WHERE user_id = %s AND platform = %s
+                WHERE user_id = %s AND device_type = %s
             """, (user_id, request.platform))
             
             # Insert new token
             execute_one("""
                 INSERT INTO user_devices 
-                (user_id, device_token, platform, device_name, app_version, os_version, is_active)
-                VALUES (%s, %s, %s, %s, %s, %s, TRUE)
+                (user_id, device_token, device_type, device_name, is_active, created_at, last_seen)
+                VALUES (%s, %s, %s, %s, TRUE, NOW(), NOW())
             """, (
                 user_id, request.device_token, request.platform,
-                request.device_name, request.app_version, request.os_version
+                request.device_name
             ))
         
         return {"status": "success", "message": "Device registered"}
@@ -138,10 +138,10 @@ async def get_devices(user: dict = Depends(get_current_user)):
     user_id = user.get("user_id") or user.get("id")
     
     devices = execute("""
-        SELECT id, platform, device_name, app_version, is_active, created_at, updated_at
+        SELECT id, device_type AS platform, device_name, is_active, created_at, last_seen
         FROM user_devices 
         WHERE user_id = %s
-        ORDER BY updated_at DESC
+        ORDER BY last_seen DESC NULLS LAST
     """, (user_id,))
     
     return {"devices": devices or []}

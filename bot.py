@@ -18619,8 +18619,8 @@ FIBO_RE_SL = re.compile(r'🛑\s*Stop\s+Loss\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.
 FIBO_RE_TP = re.compile(r'✅\s*Target\s*\d*\s*[:：]\s*([\d,]+(?:\.\d+)?)', re.I)
 # Trigger info: ⚡ Trigger: Spring detected + Price in 141.4%-161.8% zone
 FIBO_RE_TRIGGER = re.compile(r'⚡\s*Trigger\s*[:：]\s*(.+)', re.I)
-# Quality: 🟢 Quality: A (85/100) or 🟡 Quality: B (64/100)
-FIBO_RE_QUALITY = re.compile(r'[🟢🟡🟠]\s*Quality\s*[:：]\s*([A-Z])\s*\((\d+)/\d+\)', re.I)
+# Quality: 🟢 Quality: A (85/100) or 🟡 Quality: B+ (64/100) or ⚪ Quality: B (50/100)
+FIBO_RE_QUALITY = re.compile(r'[🟢🟡🟠⚪🔴]\s*Quality\s*[:：]\s*([A-Z]\+?)\s*\((\d+)/\d+\)', re.I)
 
 
 def is_fibonacci_signal(text: str) -> bool:
@@ -21766,6 +21766,20 @@ async def monitor_positions_loop(app: Application):
                                             close_qty = math.floor(close_qty / qty_step) * qty_step
                                             
                                             if close_qty > 0:
+                                                # Pre-check notional to avoid ORDER_TOO_SMALL spam
+                                                try:
+                                                    ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
+                                                    cur_price = float(ticker["list"][0]["lastPrice"])
+                                                    notional_check = close_qty * cur_price
+                                                    if notional_check < 5.0:
+                                                        logger.info(f"[PTP-STEP1] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < $5 min, marking step done (qty too small)")
+                                                        set_ptp_flag(uid, sym, 1, True, account_type=pos_account_type, exchange=current_exchange)
+                                                        raise ValueError("PTP_SKIP_SMALL")
+                                                except ValueError:
+                                                    raise
+                                                except Exception:
+                                                    pass  # Continue with order if price check fails
+                                                
                                                 # Place market order to close partial position
                                                 await place_order(
                                                     user_id=uid,
@@ -21831,6 +21845,20 @@ async def monitor_positions_loop(app: Application):
                                                 close_qty = math.floor(close_qty / qty_step) * qty_step
                                                 
                                                 if close_qty > 0:
+                                                    # Pre-check notional to avoid ORDER_TOO_SMALL spam
+                                                    try:
+                                                        ticker = await _bybit_request(uid, "GET", "/v5/market/tickers", params={"category": "linear", "symbol": sym}, account_type=pos_account_type)
+                                                        cur_price = float(ticker["list"][0]["lastPrice"])
+                                                        notional_check = close_qty * cur_price
+                                                        if notional_check < 5.0:
+                                                            logger.info(f"[PTP-STEP2] {sym} uid={uid} - Partial qty notional ${notional_check:.2f} < $5 min, marking step done (qty too small)")
+                                                            set_ptp_flag(uid, sym, 2, True, account_type=pos_account_type, exchange=current_exchange)
+                                                            raise ValueError("PTP_SKIP_SMALL")
+                                                    except ValueError:
+                                                        raise
+                                                    except Exception:
+                                                        pass  # Continue with order if price check fails
+                                                    
                                                     await place_order(
                                                         user_id=uid,
                                                         symbol=sym,

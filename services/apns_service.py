@@ -226,7 +226,7 @@ class APNsService:
         """
         devices = execute("""
             SELECT device_token FROM user_devices
-            WHERE user_id = %s AND platform = 'ios' AND is_active = TRUE
+            WHERE user_id = %s AND device_type = 'ios' AND is_active = TRUE
         """, (user_id,))
         
         if not devices:

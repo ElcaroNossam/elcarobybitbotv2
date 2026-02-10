@@ -138,23 +138,17 @@ def register_device(user_id: int, device_info: DeviceInfo) -> bool:
             # Upsert device
             cur.execute("""
                 INSERT INTO user_devices 
-                (user_id, device_id, platform, device_model, os_version, app_version, 
-                 push_token, language, timezone, last_active, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                ON CONFLICT (user_id, device_id) 
+                (user_id, device_token, device_type, device_name, is_active, created_at, last_seen)
+                VALUES (%s, %s, %s, %s, TRUE, NOW(), NOW())
+                ON CONFLICT (user_id, device_token) 
                 DO UPDATE SET 
-                    platform = EXCLUDED.platform,
-                    device_model = EXCLUDED.device_model,
-                    os_version = EXCLUDED.os_version,
-                    app_version = EXCLUDED.app_version,
-                    push_token = EXCLUDED.push_token,
-                    language = EXCLUDED.language,
-                    timezone = EXCLUDED.timezone,
-                    last_active = NOW()
+                    device_type = EXCLUDED.device_type,
+                    device_name = EXCLUDED.device_name,
+                    is_active = TRUE,
+                    last_seen = NOW()
             """, (
-                user_id, device_info.device_id, device_info.platform,
-                device_info.device_model, device_info.os_version, device_info.app_version,
-                device_info.push_token, device_info.language, device_info.timezone
+                user_id, device_info.push_token or device_info.device_id, device_info.platform,
+                device_info.device_model or f"{device_info.platform} {device_info.os_version or ''}".strip()
             ))
             conn.commit()
             return True
@@ -312,8 +306,8 @@ async def mobile_logout(
                 cur = conn.cursor()
                 cur.execute("""
                     UPDATE user_devices 
-                    SET push_token = NULL, last_active = NOW()
-                    WHERE user_id = %s AND device_id = %s
+                    SET is_active = FALSE, last_seen = NOW()
+                    WHERE user_id = %s AND device_token = %s
                 """, (user_id, device_id))
                 conn.commit()
         
@@ -484,11 +478,11 @@ async def register_push_token(
             cur = conn.cursor()
             
             cur.execute("""
-                INSERT INTO user_devices (user_id, device_id, platform, push_token, last_active, created_at)
-                VALUES (%s, %s, %s, %s, NOW(), NOW())
-                ON CONFLICT (user_id, device_id) 
-                DO UPDATE SET push_token = %s, last_active = NOW()
-            """, (user_id, device_id, platform, push_token, push_token))
+                INSERT INTO user_devices (user_id, device_token, device_type, is_active, created_at, last_seen)
+                VALUES (%s, %s, %s, TRUE, NOW(), NOW())
+                ON CONFLICT (user_id, device_token) 
+                DO UPDATE SET device_type = %s, is_active = TRUE, last_seen = NOW()
+            """, (user_id, push_token, platform, platform))
             conn.commit()
         
         return {"success": True, "message": "Push token registered"}
