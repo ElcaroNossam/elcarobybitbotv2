@@ -4010,8 +4010,8 @@ async def on_spot_settings_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ticker = await get_spot_ticker(uid, symbol, account_type)
                 price = float(ticker.get("lastPrice", 0)) if ticker else 0
                 total_value += qty * price
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to get price for {symbol}: {e}")
         
         coins_list = ", ".join(sellable.keys())
         
@@ -8235,7 +8235,7 @@ async def place_order_for_targets(
                     # Bybit: use standard calc_qty
                     target_qty = await calc_qty(
                         user_id, symbol, entry_price, risk_pct, sl_pct,
-                        account_type=target_acc
+                        account_type=target_acc, exchange="bybit"
                     )
                     
                     # Check minimum notional value ($5 on Bybit)
@@ -8628,7 +8628,7 @@ async def place_order_bybit_if_needed(
                 
                 # Calculate qty for this account
                 if entry_price:
-                    target_qty = await calc_qty(user_id, symbol, entry_price, risk_pct, sl_pct, account_type=acc_type)
+                    target_qty = await calc_qty(user_id, symbol, entry_price, risk_pct, sl_pct, account_type=acc_type, exchange="bybit")
                 else:
                     target_qty = qty
                 
@@ -18421,7 +18421,8 @@ async def calc_qty(
     price: float,
     risk_pct: float,
     sl_pct: float,
-    account_type: str = None
+    account_type: str = None,
+    exchange: str = None
 ) -> float:
     """
     Calculate position size based on RISK-BASED position sizing.
@@ -19733,7 +19734,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 pos_use_atr = params.get("use_atr", False)
                 logger.info(f"[{uid}] ⚙️ RSI_BB {rsi_side_display} settings: entry%={risk_pct}, SL%={user_sl_pct}, TP%={user_tp_pct}, leverage={user_leverage}, ATR={'ON' if pos_use_atr else 'OFF'}, exchange={ctx_exchange}")
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, user_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
                 except Exception as e:
                     # Handle error with daily notifications (no spam!)
                     await handle_trade_error(ctx.bot, uid, e, ctx_account_type, t, "rsi_bb", symbol)
@@ -19897,7 +19898,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
 
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
 
                     # Set leverage from side-specific params (FIX: was using wrong key)
                     user_leverage = params.get("leverage")
@@ -20046,7 +20047,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     if not user_sl_pct or user_sl_pct <= 0:
                         raise ValueError(f"User SL% not configured for {symbol}")
 
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
 
                     # Set leverage from side-specific params (FIX: was using wrong key)
                     # Set leverage from side-specific params
@@ -20205,7 +20206,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 elcaro_atr_trigger = elcaro_strat_settings.get("atr_trigger_pct") if pos_use_atr else None
 
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
 
                     # Set leverage from user settings
                     if elcaro_leverage:
@@ -20397,7 +20398,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     continue
                 
                 try:
-                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=fibo_sl_pct, account_type=ctx_account_type)
+                    qty = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=fibo_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
                     
                     # Set leverage
                     if user_leverage:
@@ -20564,7 +20565,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 try:
                     if user_sl_pct <= 0:
                         user_sl_pct = 1.0
-                    qty_total = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type)
+                    qty_total = await calc_qty(uid, symbol, spot_price, risk_pct, sl_pct=user_sl_pct, account_type=ctx_account_type, exchange=ctx_exchange)
 
                     # Set leverage if configured
                     if user_leverage:
@@ -21944,7 +21945,8 @@ async def monitor_positions_loop(app: Application):
                                                 price=mark,
                                                 risk_pct=risk_pct_for_dca,
                                                 sl_pct=sl_pct,
-                                                account_type=pos_account_type
+                                                account_type=pos_account_type,
+                                                exchange=current_exchange
                                             )
                                             # Check minimum order value (5 USDT for Bybit, 10 USDC for HL)
                                             min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
@@ -21992,7 +21994,8 @@ async def monitor_positions_loop(app: Application):
                                                 price=mark,
                                                 risk_pct=risk_pct_for_dca,
                                                 sl_pct=sl_pct,
-                                                account_type=pos_account_type
+                                                account_type=pos_account_type,
+                                                exchange=current_exchange
                                             )
                                             # Check minimum order value (5 USDT for Bybit, 10 USDC for HL)
                                             min_notional = 10.0 if current_exchange == "hyperliquid" else 5.0
@@ -28344,7 +28347,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                         ])
                     )
-                except:
+                except Exception:
                     await q.edit_message_text(
                         text=t.get("crypto_payment_confirmed",
                             "✅ *Payment Confirmed!*\n\n"
@@ -28367,7 +28370,7 @@ async def on_subscribe_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                             [InlineKeyboardButton(t.get("btn_back", "⬅️ Back"), callback_data="sub:menu")]
                         ])
                     )
-                except:
+                except Exception:
                     await q.edit_message_text(
                         text=t.get("crypto_payment_expired", "❌ Payment expired. Please create a new payment."),
                         parse_mode="Markdown",
@@ -30508,8 +30511,8 @@ async def _refresh_hl_settings_inline(q, uid: int, ctx):
         try:
             from eth_account import Account
             api_wallet = Account.from_key(api_key).address
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to derive API wallet address: {e}")
     
     api_wallet_display = f"{api_wallet[:8]}...{api_wallet[-6:]}" if api_wallet and len(api_wallet) > 14 else "Not set"
     
