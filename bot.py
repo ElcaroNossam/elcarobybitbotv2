@@ -21526,9 +21526,8 @@ async def monitor_positions_loop(app: Application):
                                 else:
                                     position_use_atr = use_atr  # Use global setting
 
-                            # Log ATR params being used for debugging
-                            logger.debug(f"[{uid}] {sym}: ATR params - strategy={pos_strategy}, side={side}, "
-                                        f"atr_periods={atr_periods}, atr_mult={atr_mult_sl}, trigger_pct={trigger_pct}, use_atr={position_use_atr}")
+                            # Log ATR params being used (INFO for production visibility)
+                            logger.info(f"[{uid}] {sym}: ATR use_atr={position_use_atr} trigger={trigger_pct}% strategy={pos_strategy} side={side}")
 
                             # Get Break-Even (BE) params: priority is side-specific > strategy settings > global
                             if pos_strategy:
@@ -22122,12 +22121,12 @@ async def monitor_positions_loop(app: Application):
                                 # Mark ATR as enabled for this position (for detecting when it gets disabled later)
                                 _atr_was_enabled[key] = True
                                 
-                                # Log current ATR state for debugging (DEBUG level to reduce spam)
-                                logger.debug(f"[ATR-CHECK] {sym} uid={uid} entry={entry} mark={mark} move_pct={move_pct:.2f}% trigger_pct={trigger_pct}% triggered={_atr_triggered.get(key, False)} current_sl={current_sl}")
+                                # Log current ATR state (INFO level for production visibility)
+                                logger.info(f"[ATR-CHECK] {sym} uid={uid} move_pct={move_pct:+.2f}% trigger={trigger_pct}% triggered={_atr_triggered.get(key, False)} sl={current_sl} tp={current_tp}")
                                 
-                                # CRITICAL: Remove TP when ATR is active - TP should be managed by ATR trailing
-                                # Only remove once (use _atr_tp_removed cache to prevent repeated API calls)
-                                if current_tp is not None and not _atr_tp_removed.get(key, False):
+                                # CRITICAL: Remove TP only AFTER ATR trailing is activated (triggered)
+                                # Before trigger, keep TP as safety net so position has an exit strategy
+                                if _atr_triggered.get(key, False) and current_tp is not None and not _atr_tp_removed.get(key, False):
                                     try:
                                         await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
                                         _atr_tp_removed[key] = True  # Mark as removed to prevent future calls
@@ -22136,8 +22135,8 @@ async def monitor_positions_loop(app: Application):
                                         logger.warning(f"[{uid}] {sym}: Failed to remove TP for ATR mode: {e}")
                                 
                                 if move_pct < trigger_pct and not _atr_triggered.get(key, False):
-                                    # Log ATR status for debugging (DEBUG level to reduce spam)
-                                    logger.debug(f"[ATR-WAIT] {sym} move_pct={move_pct:.2f}% < trigger_pct={trigger_pct}% - waiting for trigger")
+                                    # ATR waiting for trigger - position needs both SL AND TP as safety net
+                                    logger.info(f"[ATR-WAIT] {sym} uid={uid} move_pct={move_pct:+.2f}% < trigger={trigger_pct}% - waiting, ensuring SL+TP set")
                                 
                                     # Use strategy-specific SL% if available (already calculated above)
                                     base_sl = entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100)
@@ -22146,25 +22145,45 @@ async def monitor_positions_loop(app: Application):
 
                                     sl0 = quantize_up(base_sl, tick) if side == "Buy" else quantize(base_sl, tick)
                                     
+                                    # Calculate TP as safety net (will be removed when ATR triggers)
+                                    tp0 = round(
+                                        entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6
+                                    )
+                                    
+                                    # Build kwargs for set_trading_stop
+                                    kwargs = {}
+                                    
                                     # CRITICAL FIX: If entry changed (DCA), always recalculate SL
                                     # This prevents SL from being too far from current entry after averaging
                                     # Use epsilon comparison to avoid floating point issues
-                                    should_update = (
+                                    sl_should_update = (
                                         current_sl is None
                                         or (side == "Buy"  and sl0 > current_sl and not _prices_equal(sl0, current_sl))
                                         or (side == "Sell" and sl0 < current_sl and not _prices_equal(sl0, current_sl))
                                         or entry_changed  # Force update if entry changed due to DCA
                                     )
-                                    if should_update:
+                                    if sl_should_update:
+                                        kwargs["sl_price"] = sl0
+                                    
+                                    # Set TP as safety net if not present (ATR-TP-REMOVE will clear it when ATR triggers)
+                                    if current_tp is None:
+                                        if (side == "Buy" and tp0 > mark) or (side == "Sell" and tp0 < mark):
+                                            kwargs["tp_price"] = tp0
+                                            logger.info(f"[ATR-WAIT-TP] {sym} uid={uid} - Setting safety TP={tp0:.6f} (tp_pct={tp_pct}%) until ATR triggers")
+                                    
+                                    if kwargs:
                                         try:
-                                            sl_result = await set_trading_stop(uid, sym, sl_price=sl0, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                            sl_result = await set_trading_stop(uid, sym, **kwargs, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
                                             if sl_result:
-                                                if entry_changed:
-                                                    logger.info(f"[{uid}] {sym}: ATR SL recalculated after DCA to {sl0}")
-                                                else:
-                                                    logger.info(f"[{uid}] {sym}: ATR-initial SL set/updated to {sl0}")
+                                                parts = []
+                                                if "sl_price" in kwargs:
+                                                    parts.append(f"SL={kwargs['sl_price']}")
+                                                if "tp_price" in kwargs:
+                                                    parts.append(f"TP={kwargs['tp_price']}")
+                                                reason = "DCA recalc" if entry_changed else "ATR-WAIT init"
+                                                logger.info(f"[{uid}] {sym}: {reason} → {', '.join(parts)}")
                                             else:
-                                                logger.debug(f"[{uid}] {sym}: ATR-initial SL set_trading_stop returned False for {sl0}")
+                                                logger.debug(f"[{uid}] {sym}: ATR-WAIT set_trading_stop returned False for {kwargs}")
                                         except RuntimeError as e:
                                             if "no open positions" in str(e).lower():
                                                 logger.debug(f"{sym}: Position already closed")
@@ -22173,7 +22192,16 @@ async def monitor_positions_loop(app: Application):
                                     continue
 
                                 _atr_triggered[key] = True
-                                logger.info(f"[ATR-ACTIVATED] {sym} uid={uid} - ATR trailing now active!")
+                                logger.info(f"[ATR-ACTIVATED] {sym} uid={uid} - ATR trailing now active! Removing safety TP if present.")
+                                
+                                # Remove safety TP now that ATR trailing takes over exit management
+                                if current_tp is not None and not _atr_tp_removed.get(key, False):
+                                    try:
+                                        await remove_take_profit(uid, sym, side_hint=side, account_type=pos_account_type, exchange=current_exchange)
+                                        _atr_tp_removed[key] = True
+                                        logger.info(f"[ATR-TP-REMOVE] {sym} uid={uid} - Safety TP removed (was {current_tp:.6f}), ATR trailing manages exit")
+                                    except Exception as e:
+                                        logger.warning(f"[{uid}] {sym}: Failed to remove safety TP on ATR activation: {e}")
 
                                 filt = await get_symbol_filters(uid, sym, exchange=current_exchange)
                                 tick = filt["tickSize"]
