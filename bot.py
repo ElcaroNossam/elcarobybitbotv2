@@ -14249,82 +14249,142 @@ async def fetch_open_positions(user_id, *args, exchange: str = None, **kwargs) -
         logger.error(f"Bybit fetch_open_positions error: {e}", exc_info=True)
         return None  # Return None on API error to prevent phantom position removal
 
+async def _create_hl_adapter_for_account(uid: int, account_type: str):
+    """Create and initialize HL adapter for given user and account_type (testnet/mainnet).
+    Returns (adapter, is_testnet) or (None, False) if credentials missing.
+    Caller MUST call adapter.close() when done."""
+    from core.account_utils import get_hl_credentials_for_account
+    hl_creds = get_hl_credentials(uid)
+    private_key, is_testnet, _wallet = get_hl_credentials_for_account(hl_creds, account_type)
+    if not private_key:
+        return None, is_testnet
+    adapter = HLAdapter(private_key=private_key, testnet=is_testnet)
+    await adapter.initialize()
+    return adapter, is_testnet
+
+
 @log_calls
-async def fetch_open_orders(user_id: int, symbol: str | None = None, account_type: str | None = None) -> list:
-    """Fetch open orders with optional account_type override."""
-    params = {"category": "linear", "settleCoin": "USDT"}
-    if symbol:
-        params["symbol"] = symbol
-    try:
-        res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params, account_type=account_type)
-    except MissingAPICredentials:
-        return []
-    ALIVE = {"Created", "New", "PendingNew", "PartiallyFilled"}
-    return [o for o in (res.get("list") or []) if o.get("orderStatus") in ALIVE]
+async def fetch_open_orders(user_id: int, symbol: str | None = None, account_type: str | None = None, exchange: str | None = None) -> list:
+    """Fetch open orders with optional account_type override. Supports both Bybit and HyperLiquid."""
+    # Determine exchange
+    if exchange is None:
+        exchange = db.get_exchange_type(user_id) or "bybit"
+    
+    if exchange == "hyperliquid":
+        # HyperLiquid: use HL adapter
+        adapter = None
+        try:
+            adapter, _is_testnet = await _create_hl_adapter_for_account(user_id, account_type or "testnet")
+            if not adapter:
+                return []
+            result = await adapter.fetch_open_orders()
+            if not result.get("success"):
+                return []
+            orders = result.get("data", [])
+            # Convert to Bybit-compatible format for unified UI
+            converted = []
+            for o in orders:
+                converted.append({
+                    "symbol": o.get("symbol", ""),
+                    "side": o.get("side", ""),
+                    "qty": str(o.get("size", 0)),
+                    "price": str(o.get("price", 0)),
+                    "orderType": o.get("order_type", "Limit"),
+                    "orderId": o.get("order_id", ""),
+                    "orderStatus": "New",  # HL only returns open orders
+                })
+            return converted
+        except Exception as e:
+            logger.error(f"HL fetch_open_orders error: {e}", exc_info=True)
+            return []
+        finally:
+            if adapter:
+                await adapter.close()
+    else:
+        # Bybit
+        params = {"category": "linear", "settleCoin": "USDT"}
+        if symbol:
+            params["symbol"] = symbol
+        try:
+            res = await _bybit_request(user_id, "GET", "/v5/order/realtime", params=params, account_type=account_type)
+        except MissingAPICredentials:
+            return []
+        ALIVE = {"Created", "New", "PendingNew", "PartiallyFilled"}
+        return [o for o in (res.get("list") or []) if o.get("orderStatus") in ALIVE]
 
 @require_access
 @with_texts
 @log_calls
 async def cmd_openorders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show open orders - auto-selects based on enabled strategies."""
+    """Show open orders - auto-selects based on exchange and enabled strategies."""
     uid = update.effective_user.id
+    exchange = db.get_exchange_type(uid) or "bybit"
     
-    # Get effective trading mode based on enabled strategies
-    effective_mode = get_effective_trading_mode(uid)
-    
-    # Show orders for the effective mode (demo, real, or both)
-    if effective_mode == 'both':
-        await show_all_orders(update, ctx)
-    else:
-        await show_orders_for_account(update, ctx, effective_mode)
+    # Get last viewed account or effective trading mode
+    last_account = db.get_last_viewed_account(uid, exchange)
+    await show_orders_for_account(update, ctx, last_account, exchange=exchange)
 
 
-async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
-    """Show orders for specific account type."""
+async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str, exchange: str = None):
+    """Show orders for specific account type - supports both Bybit and HyperLiquid."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
-    show_switcher = db.should_show_account_switcher(uid)
     
-    # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
+    # Detect exchange
+    if exchange is None:
+        exchange = ctx.user_data.get('orders_exchange') or db.get_exchange_type(uid) or "bybit"
+    exchange = exchange.lower()
+    ctx.user_data['orders_exchange'] = exchange
+    
+    # Determine switcher based on exchange
+    if exchange == "hyperliquid":
+        show_switcher = db.should_show_hl_network_switcher(uid)
+    else:
+        show_switcher = db.should_show_account_switcher(uid)
+    
+    # CRITICAL FIX: Normalize 'both' mode
     if account_type == 'both':
-        creds = db.get_all_user_credentials(uid)
-        if creds.get("real_api_key") and creds.get("real_api_secret"):
-            account_type = 'real'
+        if exchange == "hyperliquid":
+            account_type = 'mainnet'
         else:
-            account_type = 'demo'
+            creds = db.get_all_user_credentials(uid)
+            if creds.get("real_api_key") and creds.get("real_api_secret"):
+                account_type = 'real'
+            else:
+                account_type = 'demo'
         logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for orders display")
     
+    # Save last viewed account
+    db.set_last_viewed_account(uid, account_type)
+    
     try:
-        ords = await fetch_open_orders(uid, account_type=account_type)
+        ords = await fetch_open_orders(uid, account_type=account_type, exchange=exchange)
         
-        mode_emoji = "🎮" if account_type == "demo" else "💎"
-        mode_label = "Demo" if account_type == "demo" else "Real"
+        mode_emoji, mode_label = _get_account_label(account_type, exchange)
+        quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         header = f"{mode_emoji} *{mode_label} Open Orders*\n\n"
+        
+        # Build switcher buttons
+        switcher_row = _get_account_switcher_buttons(account_type, exchange, prefix="orders:switch") if show_switcher else []
         
         if not ords:
             text = header + t.get('no_open_orders', 'No open orders')
             
-            # Only show mode switch buttons if user should see switcher
-            if show_switcher:
-                keyboard = InlineKeyboardMarkup([
-                    [
-                        InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                        InlineKeyboardButton("💎 Real", callback_data="orders:real")
-                    ],
-                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-                ])
-            else:
-                keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-                ])
+            buttons = []
+            if switcher_row:
+                buttons.append(switcher_row)
+            buttons.append([InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:refresh")])
+            buttons.append([InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")])
+            keyboard = InlineKeyboardMarkup(buttons)
             
-            if hasattr(update, 'message'):
+            if hasattr(update, 'message') and update.message:
                 await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
             else:
                 await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
             return
 
         lines = [header + t.get('open_orders_header', '📝 Open Orders:'), ""]
+        cancel_buttons = []
         for i, o in enumerate(ords, start=1):
             price = o.get('price')
             price_str = str(price) if price not in (None, "", 0, "0") else "—"
@@ -14332,34 +14392,36 @@ async def show_orders_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE
             symbol = o.get('symbol', "—")
             side   = o.get('side', "—")
             oid    = o.get('orderId', "—")
+            side_emoji = "🟢" if side == "Buy" else "🔴"
 
             lines.append(
-                t.get('open_orders_item', '#{idx} {symbol} {side}\n  Qty: {qty} @ {price}\n  ID: {id}').format(
-                    idx=i,
-                    symbol=symbol,
-                    side=side,
-                    qty=qty_str,
-                    price=price_str,
-                    id=oid
-                )
+                f"{side_emoji} #{i} *{symbol}* {side}\n"
+                f"  Qty: {qty_str} @ {price_str} {quote_currency}\n"
+                f"  ID: `{oid}`"
             )
             lines.append("")
+            
+            # Add cancel button for each order
+            cancel_buttons.append([
+                InlineKeyboardButton(f"❌ Cancel #{i} {symbol}", callback_data=f"orders:cancel:{symbol}:{oid}")
+            ])
 
         text = "\n".join(lines)
         
-        # Only show mode switch buttons if user should see switcher
-        if show_switcher:
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("🎮 Demo", callback_data="orders:demo"),
-                    InlineKeyboardButton("💎 Real", callback_data="orders:real")
-                ],
-                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-            ])
-        else:
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")]
-            ])
+        # Build keyboard
+        buttons = []
+        # Cancel individual orders
+        buttons.extend(cancel_buttons)
+        # Cancel all button
+        if len(ords) > 1:
+            buttons.append([InlineKeyboardButton(f"🗑 Cancel All ({len(ords)})", callback_data="orders:cancel_all")])
+        # Switcher
+        if switcher_row:
+            buttons.append(switcher_row)
+        # Refresh + Back
+        buttons.append([InlineKeyboardButton("🔄 " + t.get('refresh', 'Refresh'), callback_data="orders:refresh")])
+        buttons.append([InlineKeyboardButton("🔙 " + t.get('back', 'Back'), callback_data="menu:main")])
+        keyboard = InlineKeyboardMarkup(buttons)
 
         # Send message or edit existing
         if hasattr(update, 'message') and update.message:
@@ -14508,28 +14570,138 @@ async def show_all_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
 
 
+def _get_account_label(account_type: str, exchange: str = "bybit") -> tuple:
+    """Return (emoji, label) for account_type based on exchange.
+    Bybit: demo→(🎮,Demo), real→(💎,Real)
+    HyperLiquid: testnet→(🧪,Testnet), mainnet→(🌐,Mainnet)
+    """
+    if exchange == "hyperliquid":
+        if account_type in ("testnet", "demo"):
+            return "🧪", "Testnet"
+        else:
+            return "🌐", "Mainnet"
+    else:
+        if account_type == "demo":
+            return "🎮", "Demo"
+        else:
+            return "💎", "Real"
+
+
+def _get_account_switcher_buttons(account_type: str, exchange: str = "bybit", prefix: str = "pos:switch") -> list:
+    """Return switcher buttons based on exchange.
+    Bybit: [Demo ✓] [Real]
+    HyperLiquid: [Testnet ✓] [Mainnet]
+    """
+    if exchange == "hyperliquid":
+        return [
+            InlineKeyboardButton("🧪 Testnet" + (" ✓" if account_type in ("testnet", "demo") else ""), callback_data=f"{prefix}:testnet"),
+            InlineKeyboardButton("🌐 Mainnet" + (" ✓" if account_type in ("mainnet", "real") else ""), callback_data=f"{prefix}:mainnet")
+        ]
+    else:
+        return [
+            InlineKeyboardButton("🎮 Demo" + (" ✓" if account_type == "demo" else ""), callback_data=f"{prefix}:demo"),
+            InlineKeyboardButton("💎 Real" + (" ✓" if account_type == "real" else ""), callback_data=f"{prefix}:real")
+        ]
+
+
 @log_calls
 @with_texts
 async def handle_orders_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Handle orders account selection callbacks."""
+    """Handle orders account selection, cancel, and refresh callbacks."""
     query = update.callback_query
     await query.answer()
     
     uid = update.effective_user.id
+    t = ctx.t
     data = query.data
     if not data.startswith("orders:"):
         return
     
-    account_type = data.split(":")[1]  # "demo", "real" or "both"
+    # Detect exchange from user_data or DB
+    exchange = ctx.user_data.get('orders_exchange') or db.get_exchange_type(uid) or "bybit"
+    exchange = exchange.lower()
     
-    # Save last viewed account for UI persistence
-    if account_type in ("demo", "real"):
-        db.set_last_viewed_account(uid, account_type)
+    # Get account type from user_data or last viewed
+    account_type = ctx.user_data.get('orders_account_type') or db.get_last_viewed_account(uid, exchange)
     
-    if account_type == "both":
-        await show_all_orders(update, ctx)
-    else:
-        await show_orders_for_account(update, ctx, account_type)
+    # Handle different orders callbacks
+    if data.startswith("orders:switch:"):
+        # Switch account type (Demo/Real or Testnet/Mainnet)
+        new_account_type = data.split(":")[2]
+        db.set_last_viewed_account(uid, new_account_type)
+        ctx.user_data['orders_account_type'] = new_account_type
+        await show_orders_for_account(update, ctx, new_account_type, exchange=exchange)
+    
+    elif data == "orders:refresh":
+        # Refresh orders
+        await show_orders_for_account(update, ctx, account_type, exchange=exchange)
+    
+    elif data.startswith("orders:cancel:"):
+        # Cancel single order: orders:cancel:SYMBOL:ORDER_ID
+        parts = data.split(":")
+        symbol = parts[2]
+        order_id = parts[3]
+        
+        try:
+            if exchange == "hyperliquid":
+                adapter = None
+                try:
+                    adapter, _is_testnet = await _create_hl_adapter_for_account(uid, account_type)
+                    if not adapter:
+                        raise Exception("HyperLiquid not configured")
+                    result = await adapter.cancel_order(symbol, order_id)
+                    if not result.get("success", False) and result.get("retCode") != 0:
+                        raise Exception(result.get("retMsg", result.get("error", "Cancel failed")))
+                finally:
+                    if adapter:
+                        await adapter.close()
+            else:
+                # Bybit cancel
+                body = {"category": "linear", "symbol": symbol, "orderId": order_id}
+                await _bybit_request(uid, "POST", "/v5/order/cancel", data=body, account_type=account_type)
+            
+            await query.answer(f"✅ Order {symbol} cancelled", show_alert=True)
+            # Refresh orders view
+            await show_orders_for_account(update, ctx, account_type, exchange=exchange)
+        except Exception as e:
+            logger.error(f"Cancel order {symbol}/{order_id} failed: {e}")
+            await query.answer(f"❌ Cancel failed: {e}", show_alert=True)
+    
+    elif data == "orders:cancel_all":
+        # Cancel all orders
+        try:
+            if exchange == "hyperliquid":
+                adapter = None
+                try:
+                    adapter, _is_testnet = await _create_hl_adapter_for_account(uid, account_type)
+                    if not adapter:
+                        raise Exception("HyperLiquid not configured")
+                    result = await adapter.cancel_all_orders()
+                finally:
+                    if adapter:
+                        await adapter.close()
+            else:
+                # Bybit cancel all
+                body = {"category": "linear", "settleCoin": "USDT"}
+                await _bybit_request(uid, "POST", "/v5/order/cancel-all", data=body, account_type=account_type)
+            
+            await query.answer("✅ All orders cancelled", show_alert=True)
+            # Refresh orders view
+            await show_orders_for_account(update, ctx, account_type, exchange=exchange)
+        except Exception as e:
+            logger.error(f"Cancel all orders failed: {e}")
+            await query.answer(f"❌ Cancel all failed: {e}", show_alert=True)
+    
+    elif data in ("orders:demo", "orders:real", "orders:both"):
+        # Legacy callback format — redirect to switch
+        legacy_type = data.split(":")[1]
+        if legacy_type in ("demo", "real"):
+            db.set_last_viewed_account(uid, legacy_type)
+            ctx.user_data['orders_account_type'] = legacy_type
+        if legacy_type == "both":
+            await show_all_orders(update, ctx)
+        else:
+            await show_orders_for_account(update, ctx, legacy_type, exchange=exchange)
 
 @require_access
 @with_texts
@@ -14545,14 +14717,15 @@ async def cmd_select_coins(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @with_texts
 @log_calls
 async def cmd_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Show positions - uses last viewed account for UI persistence."""
+    """Show positions - uses last viewed account for UI persistence. Supports both exchanges."""
     uid = update.effective_user.id
+    exchange = db.get_exchange_type(uid) or "bybit"
     
     # Get last viewed account (persists user's selection)
-    last_account = db.get_last_viewed_account(uid, 'bybit')
+    last_account = db.get_last_viewed_account(uid, exchange)
     
     # Show positions for the last viewed account
-    await show_positions_for_account(update, ctx, last_account)
+    await show_positions_for_account(update, ctx, last_account, exchange=exchange)
 
 
 def build_pnl_summary_by_strategy_and_exchange(
@@ -14633,33 +14806,45 @@ def format_pnl_summary(strategy_pnl: dict, exchange_pnl: dict, total_pnl: float,
     return "\n".join(lines)
 
 
-async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str):
-    """Show positions for specific account type with interactive 3-column keyboard."""
+async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_TYPE, account_type: str, exchange: str = None):
+    """Show positions for specific account type with interactive 3-column keyboard.
+    Works for both Bybit (demo/real) and HyperLiquid (testnet/mainnet)."""
     uid = update.effective_user.id if hasattr(update, 'effective_user') else update.callback_query.from_user.id
     t = ctx.t
-    show_switcher = db.should_show_account_switcher(uid)
+    
+    # Determine exchange
+    if exchange is None:
+        exchange = db.get_exchange_type(uid) or "bybit"
+    
+    if exchange == "hyperliquid":
+        show_switcher = db.should_show_hl_network_switcher(uid)
+    else:
+        show_switcher = db.should_show_account_switcher(uid)
     
     # CRITICAL FIX: Normalize 'both' mode - prefer 'real' if has real API keys
     if account_type == 'both':
-        creds = db.get_all_user_credentials(uid)
-        if creds.get("real_api_key") and creds.get("real_api_secret"):
-            account_type = 'real'
+        if exchange == "hyperliquid":
+            account_type = 'mainnet'
         else:
-            account_type = 'demo'
+            creds = db.get_all_user_credentials(uid)
+            if creds.get("real_api_key") and creds.get("real_api_secret"):
+                account_type = 'real'
+            else:
+                account_type = 'demo'
         logger.info(f"[{uid}] Normalized account_type 'both' -> '{account_type}' for positions display")
     
     # Save account type to user_data for callbacks
     ctx.user_data['positions_account_type'] = account_type
+    ctx.user_data['positions_exchange'] = exchange
     ctx.user_data['positions_page'] = 0
     
-    pos_list = await fetch_open_positions(uid, account_type=account_type)
+    pos_list = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
     
-    mode_emoji = "🎮" if account_type == "demo" else "💎"
-    mode_label = "Demo" if account_type == "demo" else "Real"
+    mode_emoji, mode_label = _get_account_label(account_type, exchange)
     
     if not pos_list:
         text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-        keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+        keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
         
         if hasattr(update, 'message') and update.message:
             return await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -14667,8 +14852,8 @@ async def show_positions_for_account(update: Update, ctx: ContextTypes.DEFAULT_T
             return await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
     # Use the interactive 3-column keyboard format
-    text = format_positions_list_header(pos_list, 0, t, account_type=account_type)
-    keyboard = get_positions_list_keyboard(pos_list, 0, t, account_type=account_type, show_switcher=show_switcher)
+    text = format_positions_list_header(pos_list, 0, t, account_type=account_type, exchange=exchange)
+    keyboard = get_positions_list_keyboard(pos_list, 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
 
     # Send message or edit existing
     if hasattr(update, 'message') and update.message:
@@ -14867,8 +15052,9 @@ async def handle_positions_callback(update: Update, ctx: ContextTypes.DEFAULT_TY
 
 POSITIONS_PER_PAGE = 10  # Show 10 positions per page
 
-def get_positions_list_keyboard(positions: list, page: int, t: dict, account_type: str = "demo", show_switcher: bool = True) -> InlineKeyboardMarkup:
-    """Build inline keyboard for paginated positions list (10 per page)."""
+def get_positions_list_keyboard(positions: list, page: int, t: dict, account_type: str = "demo", show_switcher: bool = True, exchange: str = "bybit") -> InlineKeyboardMarkup:
+    """Build inline keyboard for paginated positions list (10 per page).
+    Supports both Bybit (Demo/Real) and HyperLiquid (Testnet/Mainnet)."""
     buttons = []
     total = len(positions)
     total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
@@ -14876,10 +15062,7 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict, account_typ
     if total == 0:
         # No positions - show switcher and back
         if show_switcher:
-            buttons.append([
-                InlineKeyboardButton("🎮 Demo" if account_type != "demo" else "🎮 Demo ✓", callback_data="pos:switch:demo"),
-                InlineKeyboardButton("💎 Real" if account_type != "real" else "💎 Real ✓", callback_data="pos:switch:real")
-            ])
+            buttons.append(_get_account_switcher_buttons(account_type, exchange, prefix="pos:switch"))
         buttons.append([InlineKeyboardButton(t.get('btn_back', '🔙 Back'), callback_data="pos:back")])
         return InlineKeyboardMarkup(buttons)
     
@@ -14940,12 +15123,9 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict, account_typ
         )
     buttons.append(action_row)
     
-    # Account type switcher (Demo/Real)
+    # Account type switcher (Demo/Real for Bybit, Testnet/Mainnet for HL)
     if show_switcher:
-        buttons.append([
-            InlineKeyboardButton("🎮 Demo" if account_type != "demo" else "🎮 Demo ✓", callback_data="pos:switch:demo"),
-            InlineKeyboardButton("💎 Real" if account_type != "real" else "💎 Real ✓", callback_data="pos:switch:real")
-        ])
+        buttons.append(_get_account_switcher_buttons(account_type, exchange, prefix="pos:switch"))
     
     # Back button
     buttons.append([
@@ -14955,20 +15135,20 @@ def get_positions_list_keyboard(positions: list, page: int, t: dict, account_typ
     return InlineKeyboardMarkup(buttons)
 
 
-def format_positions_list_header(positions: list, page: int, t: dict, account_type: str = "demo") -> str:
-    """Format header for paginated positions list."""
+def format_positions_list_header(positions: list, page: int, t: dict, account_type: str = "demo", exchange: str = "bybit") -> str:
+    """Format header for paginated positions list. Supports both Bybit and HL."""
     total = len(positions)
     total_pages = (total + POSITIONS_PER_PAGE - 1) // POSITIONS_PER_PAGE
     
     total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
     pnl_emoji = "📈" if total_pnl >= 0 else "📉"
     
-    mode_emoji = "🎮" if account_type == "demo" else "💎"
-    mode_label = "Demo" if account_type == "demo" else "Real"
+    mode_emoji, mode_label = _get_account_label(account_type, exchange)
+    quote = "USDC" if exchange == "hyperliquid" else "USDT"
     
     return (
         f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} ({total})\n"
-        f"{pnl_emoji} Total P/L: `{total_pnl:+.2f}` USDT\n"
+        f"{pnl_emoji} Total P/L: `{total_pnl:+.2f}` {quote}\n"
         f"📄 Page {page + 1}/{total_pages}\n"
         f"_Tap position to view details_"
     )
@@ -16030,7 +16210,7 @@ async def handle_balance_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE
 
 @with_texts
 async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Handle position management callbacks."""
+    """Handle position management callbacks. Works for both Bybit and HyperLiquid."""
     query = update.callback_query
     await query.answer()
     
@@ -16038,13 +16218,21 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     data = query.data
     t = ctx.t
     
-    # Get current account_type from last_viewed_account or default
+    # Get current exchange and account_type from user_data or DB
+    exchange = ctx.user_data.get('positions_exchange')
+    if not exchange:
+        exchange = db.get_exchange_type(uid) or "bybit"
+        ctx.user_data['positions_exchange'] = exchange
+    
     account_type = ctx.user_data.get('positions_account_type')
     if not account_type:
-        account_type = db.get_last_viewed_account(uid, 'bybit')
+        account_type = db.get_last_viewed_account(uid, exchange)
         ctx.user_data['positions_account_type'] = account_type
     
-    show_switcher = db.should_show_account_switcher(uid)
+    if exchange == "hyperliquid":
+        show_switcher = db.should_show_hl_network_switcher(uid)
+    else:
+        show_switcher = db.should_show_account_switcher(uid)
     
     if data == "pos:back":
         # Go back to main menu
@@ -16060,7 +16248,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Do nothing - just for counter button
         return
     
-    # Handle account type switch
+    # Handle account type switch (supports demo/real AND testnet/mainnet)
     if data.startswith("pos:switch:"):
         new_account_type = data.split(":")[2]
         ctx.user_data['positions_account_type'] = new_account_type
@@ -16069,18 +16257,17 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Save to DB for persistence across sessions
         db.set_last_viewed_account(uid, new_account_type)
         
-        positions = await fetch_open_positions(uid, account_type=new_account_type)
+        positions = await fetch_open_positions(uid, account_type=new_account_type, exchange=exchange)
         
         if not positions:
-            mode_emoji = "🎮" if new_account_type == "demo" else "💎"
-            mode_label = "Demo" if new_account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(new_account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=new_account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=new_account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
-        text = format_positions_list_header(positions, 0, t, account_type=new_account_type)
-        keyboard = get_positions_list_keyboard(positions, 0, t, account_type=new_account_type, show_switcher=show_switcher)
+        text = format_positions_list_header(positions, 0, t, account_type=new_account_type, exchange=exchange)
+        keyboard = get_positions_list_keyboard(positions, 0, t, account_type=new_account_type, show_switcher=show_switcher, exchange=exchange)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
@@ -16090,12 +16277,11 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parts = data.split(":")
         saved_page = int(parts[2]) if len(parts) > 2 else ctx.user_data.get('positions_page', 0)
         
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
-            mode_emoji = "🎮" if account_type == "demo" else "💎"
-            mode_label = "Demo" if account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
@@ -16104,20 +16290,19 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         page = max(0, min(saved_page, total_pages - 1))
         ctx.user_data['positions_page'] = page
         
-        text = format_positions_list_header(positions, page, t, account_type=account_type)
-        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher)
+        text = format_positions_list_header(positions, page, t, account_type=account_type, exchange=exchange)
+        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:list:"):
         # Navigate to specific page of positions list
         page = int(data.split(":")[2])
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
-            mode_emoji = "🎮" if account_type == "demo" else "💎"
-            mode_label = "Demo" if account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
@@ -16128,20 +16313,19 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         # Save current page for later restoration
         ctx.user_data['positions_page'] = page
         
-        text = format_positions_list_header(positions, page, t, account_type=account_type)
-        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher)
+        text = format_positions_list_header(positions, page, t, account_type=account_type, exchange=exchange)
+        keyboard = get_positions_list_keyboard(positions, page, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
         return
     
     if data.startswith("pos:page:"):
         # Legacy: Navigate to specific single position (keeping for backward compatibility)
         page_idx = int(data.split(":")[2])
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
-            mode_emoji = "🎮" if account_type == "demo" else "💎"
-            mode_label = "Demo" if account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
@@ -16159,7 +16343,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:view:"):
         # View detailed position
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page from user_data
@@ -16185,7 +16369,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:close:"):
         # Close single position
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page
@@ -16209,12 +16393,13 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         size = float(pos.get("size") or 0)
         pnl = float(pos.get("unrealisedPnl") or 0)
         pnl_emoji = "📈" if pnl >= 0 else "📉"
+        quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
         await query.edit_message_text(
             f"⚠️ {t.get('confirm_close_position', 'Close position')}?\n\n"
             f"*{symbol}* {side_text}\n"
             f"Size: {size}\n"
-            f"{pnl_emoji} P/L: {pnl:+.4f} USDT",
+            f"{pnl_emoji} P/L: {pnl:+.4f} {quote_currency}",
             parse_mode="Markdown",
             reply_markup=keyboard
         )
@@ -16223,11 +16408,12 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if data.startswith("pos:confirm_close:"):
         # Execute close
         symbol = data.split(":")[2]
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         pos = next((p for p in positions if p["symbol"] == symbol), None)
         
         # Get saved page
         saved_page = ctx.user_data.get('positions_page', 0)
+        quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
         if not pos:
             await query.edit_message_text(
@@ -16248,18 +16434,31 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             pnl_pct = (unrealized_pnl / im * 100) if im else 0.0
             side_text = "LONG" if pos["side"] == "Buy" else "SHORT"
             
-            await place_order(
-                user_id=uid,
-                symbol=symbol,
-                side=close_side,
-                orderType="Market",
-                qty=size,
-                account_type=account_type
-            )
+            # --- Close position: exchange-aware ---
+            if exchange == "hyperliquid":
+                adapter = None
+                try:
+                    adapter, _is_testnet = await _create_hl_adapter_for_account(uid, account_type)
+                    if not adapter:
+                        raise Exception("HyperLiquid not configured for this account")
+                    result = await adapter.close_position(symbol)
+                    if result.get("retCode") != 0:
+                        raise Exception(result.get("retMsg", "Unknown HL error"))
+                finally:
+                    if adapter:
+                        await adapter.close()
+            else:
+                await place_order(
+                    user_id=uid,
+                    symbol=symbol,
+                    side=close_side,
+                    orderType="Market",
+                    qty=size,
+                    account_type=account_type
+                )
             
             # Get active position info for strategy
-            user_exchange = db.get_exchange_type(uid) or "bybit"
-            active_pos = get_active_positions(uid, account_type=account_type, exchange=user_exchange)
+            active_pos = get_active_positions(uid, account_type=account_type, exchange=exchange)
             ap = next((a for a in active_pos if a["symbol"] == symbol), None)
             strategy = ap.get("strategy") if ap else None
             strategy_display = {
@@ -16288,7 +16487,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     # Fix #2: Use saved SL/TP % from position open time
                     applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
                     applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
-                    exchange=ap.get("exchange") or "bybit",  # Multitenancy fix
+                    exchange=exchange,  # Use detected exchange
                 )
             except Exception as log_err:
                 logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
@@ -16327,7 +16526,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 f"• Strategy: `{strategy_display}`\n"
                 f"• Entry: `{entry_price:.6g}`\n"
                 f"• Exit: `{mark_price:.6g}`\n"
-                f"{pnl_emoji} P/L: `{unrealized_pnl:+.4f}` USDT ({pnl_pct:+.2f}%)"
+                f"{pnl_emoji} P/L: `{unrealized_pnl:+.4f}` {quote_currency} ({pnl_pct:+.2f}%)"
             )
             
             await query.edit_message_text(
@@ -16349,19 +16548,18 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "pos:close_all":
         # Confirm close all
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
-            mode_emoji = "🎮" if account_type == "demo" else "💎"
-            mode_label = "Demo" if account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
         total_pnl = sum(float(p.get("unrealisedPnl") or 0) for p in positions)
         pnl_emoji = "📈" if total_pnl >= 0 else "📉"
-        mode_emoji = "🎮" if account_type == "demo" else "💎"
-        mode_label = "Demo" if account_type == "demo" else "Real"
+        mode_emoji, mode_label = _get_account_label(account_type, exchange)
+        quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
         saved_page = ctx.user_data.get('positions_page', 0)
         keyboard = InlineKeyboardMarkup([
@@ -16373,7 +16571,7 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"⚠️ {t.get('confirm_close_all', 'Close ALL positions')}?\n\n"
             f"{mode_emoji} *{mode_label}*\n"
             f"{t.get('positions_count_total', 'Total positions')}: {len(positions)}\n"
-            f"{pnl_emoji} {t.get('total_pnl', 'Total P/L')}: {total_pnl:+.4f} USDT",
+            f"{pnl_emoji} {t.get('total_pnl', 'Total P/L')}: {total_pnl:+.4f} {quote_currency}",
             parse_mode="Markdown",
             reply_markup=keyboard
         )
@@ -16401,12 +16599,11 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     if data == "pos:confirm_close_all":
         # Execute close all
-        positions = await fetch_open_positions(uid, account_type=account_type)
+        positions = await fetch_open_positions(uid, account_type=account_type, exchange=exchange)
         if not positions:
-            mode_emoji = "🎮" if account_type == "demo" else "💎"
-            mode_label = "Demo" if account_type == "demo" else "Real"
+            mode_emoji, mode_label = _get_account_label(account_type, exchange)
             text = f"{mode_emoji} *{mode_label}* 📊 {t.get('open_positions', 'Open Positions')} (0)\n\n{t.get('no_positions', '🚫 No open positions')}"
-            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher)
+            keyboard = get_positions_list_keyboard([], 0, t, account_type=account_type, show_switcher=show_switcher, exchange=exchange)
             await query.edit_message_text(text, parse_mode="Markdown", reply_markup=keyboard)
             return
         
@@ -16414,97 +16611,121 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         errors = 0
         total_pnl = 0.0
         closed_positions = []
-        user_exchange = db.get_exchange_type(uid) or "bybit"
-        active_list = get_active_positions(uid, account_type=account_type, exchange=user_exchange)
+        active_list = get_active_positions(uid, account_type=account_type, exchange=exchange)
+        quote_currency = "USDC" if exchange == "hyperliquid" else "USDT"
         
-        for pos in positions:
+        # Create HL adapter once for all positions if HyperLiquid
+        hl_adapter = None
+        if exchange == "hyperliquid":
             try:
-                close_side = "Sell" if pos["side"] == "Buy" else "Buy"
-                size = float(pos["size"])
-                symbol = pos["symbol"]
-                entry_price = float(pos.get("avgPrice") or 0)
-                mark_price = float(pos.get("markPrice") or 0)
-                unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
-                
-                await place_order(
-                    user_id=uid,
-                    symbol=symbol,
-                    side=close_side,
-                    orderType="Market",
-                    qty=size,
-                    account_type=account_type
-                )
-                
-                # Log the trade
-                ap = next((a for a in active_list if a["symbol"] == symbol), None)
-                strategy = ap.get("strategy") if ap else None
-                try:
-                    log_exit_and_remove_position(
-                        user_id=uid,
-                        signal_id=ap.get("signal_id") if ap else None,
-                        symbol=symbol,
-                        side=pos["side"],
-                        entry_price=entry_price,
-                        exit_price=mark_price,
-                        exit_reason="MANUAL",
-                        size=size,
-                        strategy=strategy,
-                        account_type=account_type,
-                        # Fix #2: Use saved SL/TP % from position open time
-                        applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
-                        applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
-                        exchange=ap.get("exchange") or "bybit",  # Multitenancy fix
-                    )
-                except Exception as log_err:
-                    logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
-                # Send position-closed notification (for Close All flow)
-                try:
-                    strategy_display = {
-                        "scryptomera": "Scryptomera",
-                        "scalper": "Scalper",
-                        "rsi_bb": "RSI+BB",
-                        "oi": "OI",
-                        "elcaro": "Enliko",
-                        "fibonacci": "Fibonacci",
-                        "webapp": "WebApp",
-                    }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
-                    if notification_service:
-                        pnl_pct = 0.0
-                        try:
-                            if entry_price:
-                                pnl_pct = (mark_price / entry_price - 1.0) * (100 if pos["side"] == "Buy" else -100)
-                        except Exception:
-                            pnl_pct = 0.0
-                        await notification_service.send_position_closed_notification(
-                            user_id=uid,
-                            position_data={
-                                'symbol': symbol,
-                                'side': pos.get('side'),
-                                'entry_price': entry_price,
-                                'exit_price': mark_price,
-                                'quantity': size,
-                                'pnl': unrealized_pnl,
-                                'pnl_percent': pnl_pct,
-                                'strategy': strategy_display,
-                                'close_reason': 'Manual'
-                            },
-                            t=t
-                        )
-                except Exception as notif_err:
-                    logger.error(f"Failed to send position closed notification (close_all): {notif_err}")
-                
-                # log_exit_and_remove_position already removes position
-                reset_pyramid(uid, symbol)
-                closed += 1
-                total_pnl += unrealized_pnl
-                closed_positions.append({
-                    "symbol": symbol,
-                    "side": pos["side"],
-                    "pnl": unrealized_pnl
-                })
+                hl_adapter, _is_testnet = await _create_hl_adapter_for_account(uid, account_type)
             except Exception as e:
-                logger.error(f"Close position {pos['symbol']} failed: {e}")
-                errors += 1
+                logger.error(f"Failed to create HL adapter for close_all: {e}")
+        
+        try:
+            for pos in positions:
+                try:
+                    close_side = "Sell" if pos["side"] == "Buy" else "Buy"
+                    size = float(pos["size"])
+                    symbol = pos["symbol"]
+                    entry_price = float(pos.get("avgPrice") or 0)
+                    mark_price = float(pos.get("markPrice") or 0)
+                    unrealized_pnl = float(pos.get("unrealisedPnl") or 0)
+                    
+                    # --- Close position: exchange-aware ---
+                    if exchange == "hyperliquid":
+                        if not hl_adapter:
+                            raise Exception("HyperLiquid not configured")
+                        result = await hl_adapter.close_position(symbol)
+                        if result.get("retCode") != 0:
+                            raise Exception(result.get("retMsg", "Unknown HL error"))
+                    else:
+                        await place_order(
+                            user_id=uid,
+                            symbol=symbol,
+                            side=close_side,
+                            orderType="Market",
+                            qty=size,
+                            account_type=account_type
+                        )
+                    
+                    # Log the trade
+                    ap = next((a for a in active_list if a["symbol"] == symbol), None)
+                    strategy = ap.get("strategy") if ap else None
+                    try:
+                        log_exit_and_remove_position(
+                            user_id=uid,
+                            signal_id=ap.get("signal_id") if ap else None,
+                            symbol=symbol,
+                            side=pos["side"],
+                            entry_price=entry_price,
+                            exit_price=mark_price,
+                            exit_reason="MANUAL",
+                            size=size,
+                            strategy=strategy,
+                            account_type=account_type,
+                            # Fix #2: Use saved SL/TP % from position open time
+                            applied_sl_pct=ap.get("applied_sl_pct") if ap else None,
+                            applied_tp_pct=ap.get("applied_tp_pct") if ap else None,
+                            exchange=exchange,  # Use detected exchange
+                        )
+                    except Exception as log_err:
+                        logger.warning(f"Failed to log manual close for {symbol}: {log_err}")
+                    # Send position-closed notification (for Close All flow)
+                    try:
+                        strategy_display = {
+                            "scryptomera": "Scryptomera",
+                            "scalper": "Scalper",
+                            "rsi_bb": "RSI+BB",
+                            "oi": "OI",
+                            "elcaro": "Enliko",
+                            "fibonacci": "Fibonacci",
+                            "webapp": "WebApp",
+                        }.get(strategy, strategy.title() if strategy and strategy != "manual" and strategy != "unknown" else "Unknown")
+                        if notification_service:
+                            pnl_pct = 0.0
+                            try:
+                                if entry_price:
+                                    pnl_pct = (mark_price / entry_price - 1.0) * (100 if pos["side"] == "Buy" else -100)
+                            except Exception:
+                                pnl_pct = 0.0
+                            await notification_service.send_position_closed_notification(
+                                user_id=uid,
+                                position_data={
+                                    'symbol': symbol,
+                                    'side': pos.get('side'),
+                                    'entry_price': entry_price,
+                                    'exit_price': mark_price,
+                                    'quantity': size,
+                                    'pnl': unrealized_pnl,
+                                    'pnl_percent': pnl_pct,
+                                    'strategy': strategy_display,
+                                    'close_reason': 'Manual'
+                                },
+                                t=t
+                            )
+                    except Exception as notif_err:
+                        logger.error(f"Failed to send position closed notification (close_all): {notif_err}")
+                    
+                    # log_exit_and_remove_position already removes position
+                    reset_pyramid(uid, symbol)
+                    closed += 1
+                    total_pnl += unrealized_pnl
+                    closed_positions.append({
+                        "symbol": symbol,
+                        "side": pos["side"],
+                        "pnl": unrealized_pnl
+                    })
+                except Exception as e:
+                    logger.error(f"Close position {pos['symbol']} failed: {e}")
+                    errors += 1
+        finally:
+            # Clean up HL adapter
+            if hl_adapter:
+                try:
+                    await hl_adapter.close()
+                except Exception:
+                    pass
         
         # Set cooldown flag to prevent monitoring loop from re-adding positions
         import time
@@ -16517,9 +16738,9 @@ async def on_positions_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         for cp in closed_positions:
             cp_emoji = "🟢" if cp["side"] == "Buy" else "🔴"
             cp_pnl_emoji = "+" if cp["pnl"] >= 0 else ""
-            result_lines.append(f"{cp_emoji} {cp['symbol']}: `{cp_pnl_emoji}{cp['pnl']:.4f}` USDT")
+            result_lines.append(f"{cp_emoji} {cp['symbol']}: `{cp_pnl_emoji}{cp['pnl']:.4f}` {quote_currency}")
         
-        result_lines.append(f"\n{pnl_emoji} *{t.get('total_pnl', 'Total P/L')}:* `{total_pnl:+.4f}` USDT")
+        result_lines.append(f"\n{pnl_emoji} *{t.get('total_pnl', 'Total P/L')}:* `{total_pnl:+.4f}` {quote_currency}")
         
         if errors:
             result_lines.append(f"\n❌ {t.get('errors', 'Errors')}: {errors}")
@@ -25165,24 +25386,18 @@ async def text_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                  "🎯 Posiciones", "🎯 Positionen", "🎯 Posizioni", "🎯 Pozice", "🎯 Pozicijos",
                  "🎯 Pozicionet", "🎯 Pozycje", "🎯 פוזיציות", "🎯 المراكز", "🎯 建玉", "🎯 持仓",
                  ctx.t.get('button_positions', '🎯 Positions')]:
-        if active_exchange == "hyperliquid":
-            return await cmd_hl_positions(update, ctx)
-        else:
-            # Show positions for last viewed account (switcher is inside show_positions_for_account)
-            last_account = db.get_last_viewed_account(uid, active_exchange)
-            return await show_positions_for_account(update, ctx, last_account)
+        # Unified: Show positions for last viewed account (switcher inside show_positions_for_account)
+        last_account = db.get_last_viewed_account(uid, active_exchange)
+        return await show_positions_for_account(update, ctx, last_account, exchange=active_exchange)
     
     # Orders - works for current exchange, shows directly with switcher if needed
     if text in ["📈 Orders", "📈 HL Orders", "📊 Orders", "📋 Orders", "📋 Ордера", "📋 Ордери",
                  "📊 Aufträge", "📊 Ordini", "📊 Ordres", "📊 Příkazy", "📊 Zlecenia", "📊 Órdenes",
                  "📊 Įsakymai", "📊 הזמנות", "📊 الأوامر", "📊 注文", "📜 Porositë e mia", "📜 我的订单",
                  ctx.t.get('button_orders', '📊 Orders')]:
-        if active_exchange == "hyperliquid":
-            return await cmd_hl_orders(update, ctx)
-        else:
-            # Show orders for last viewed account (switcher is inside show_orders_for_account)
-            last_account = db.get_last_viewed_account(uid, active_exchange)
-            return await show_orders_for_account(update, ctx, last_account)
+        # Unified: Show orders for last viewed account (switcher inside show_orders_for_account)
+        last_account = db.get_last_viewed_account(uid, active_exchange)
+        return await show_orders_for_account(update, ctx, last_account, exchange=active_exchange)
     
     # History - works for current exchange
     if text in ["📋 History", "📋 HL History", "📜 History", "📜 Історія", "📜 История",
