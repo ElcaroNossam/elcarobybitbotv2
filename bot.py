@@ -8045,7 +8045,7 @@ async def place_order_for_targets(
         
         if has_existing:
             logger.info(f"[{user_id}] Skipping {target_key} - position already exists for {symbol} on {acc_for_check}")
-            results[target_key] = {"success": False, "skipped": True, "reason": f"Position already exists for {symbol}"}
+            results[target_key] = {"success": False, "skipped": True, "reason": f"Position already exists for {symbol}", "exchange": target_exchange}
             continue
         
         # Generate unique client_order_id for this target
@@ -8150,7 +8150,7 @@ async def place_order_for_targets(
                 if coin_to_asset_id(coin) is None:
                     # Coin not supported on HyperLiquid - skip this target silently (not an error)
                     logger.info(f"[{user_id}] Skipping {target_key} - {coin} not available on HyperLiquid")
-                    results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not available on HyperLiquid"}
+                    results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not available on HyperLiquid", "exchange": target_exchange}
                     continue
                 
                 # Get HL credentials
@@ -8183,7 +8183,7 @@ async def place_order_for_targets(
                     mid_price = await adapter._client.get_mid_price(coin)
                     if mid_price is None or mid_price <= 0:
                         logger.info(f"[{user_id}] Skipping {target_key} - {coin} has no price on HL {'testnet' if is_testnet else 'mainnet'}")
-                        results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not tradeable on HL {'testnet' if is_testnet else 'mainnet'}"}
+                        results[target_key] = {"success": False, "skipped": True, "reason": f"{coin} not tradeable on HL {'testnet' if is_testnet else 'mainnet'}", "exchange": target_exchange}
                         continue
                     
                     # Set leverage first
