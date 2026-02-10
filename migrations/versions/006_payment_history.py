@@ -12,25 +12,31 @@ def upgrade(cur):
     
     cur.execute("""
         CREATE TABLE IF NOT EXISTS payment_history (
-            id            SERIAL PRIMARY KEY,
-            user_id       BIGINT NOT NULL,
-            amount        REAL NOT NULL,
-            currency      TEXT DEFAULT 'USDT',
-            payment_type  TEXT NOT NULL,
-            status        TEXT DEFAULT 'pending',
+            id                  SERIAL PRIMARY KEY,
+            user_id             BIGINT NOT NULL,
+            amount              REAL NOT NULL,
+            currency            TEXT DEFAULT 'USD',
+            payment_type        TEXT,
+            status              TEXT DEFAULT 'pending',
             
-            tx_hash       TEXT,
-            wallet_from   TEXT,
-            wallet_to     TEXT,
-            network       TEXT,
+            license_type        TEXT,
+            license_id          INTEGER,
+            period_days         INTEGER,
             
-            license_type  TEXT,
-            license_days  INTEGER,
+            tx_hash             TEXT,
+            transaction_id      TEXT,
+            telegram_charge_id  TEXT,
+            payment_method      TEXT,
+            plan_type           TEXT,
             
-            created_at    TIMESTAMP DEFAULT NOW(),
-            confirmed_at  TIMESTAMP,
+            wallet_from         TEXT,
+            wallet_to           TEXT,
+            network             TEXT,
             
-            metadata      JSONB DEFAULT '{}'
+            created_at          TIMESTAMP DEFAULT NOW(),
+            confirmed_at        TIMESTAMP,
+            
+            metadata            JSONB DEFAULT '{}'
         )
     """)
     

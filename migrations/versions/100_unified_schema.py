@@ -433,21 +433,28 @@ def upgrade(cur):
     cur.execute("DROP TABLE IF EXISTS payment_history CASCADE")
     cur.execute("""
         CREATE TABLE payment_history (
-            id            SERIAL PRIMARY KEY,
-            user_id       BIGINT NOT NULL,
+            id                  SERIAL PRIMARY KEY,
+            user_id             BIGINT NOT NULL,
             
-            amount        REAL NOT NULL,
-            currency      TEXT DEFAULT 'USD',
-            payment_type  TEXT,
-            license_type  TEXT,
+            amount              REAL NOT NULL,
+            currency            TEXT DEFAULT 'USD',
+            payment_type        TEXT,
+            license_type        TEXT,
+            license_id          INTEGER,
+            period_days         INTEGER,
             
-            tx_hash       TEXT,
-            payment_method TEXT,
+            tx_hash             TEXT,
+            transaction_id      TEXT,
+            telegram_charge_id  TEXT,
+            payment_method      TEXT,
+            plan_type           TEXT,
             
-            status        TEXT DEFAULT 'pending',
+            status              TEXT DEFAULT 'pending',
             
-            created_at    TIMESTAMP DEFAULT NOW(),
-            confirmed_at  TIMESTAMP
+            created_at          TIMESTAMP DEFAULT NOW(),
+            confirmed_at        TIMESTAMP,
+            
+            metadata            JSONB DEFAULT '{}'
         )
     """)
     
