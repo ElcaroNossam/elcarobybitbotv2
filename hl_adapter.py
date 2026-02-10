@@ -136,7 +136,7 @@ class HLAdapter:
                 # Use real mark price from allMids, fallback to entry price
                 mark_price = all_mids.get(coin, _safe_float(pos.get("entryPx", 0)))
                 result_list.append({
-                    "symbol": f"{coin}USDC",
+                    "symbol": f"{coin}USDT",  # Use USDT suffix for consistency with signals and DB
                     "side": "Buy" if size > 0 else "Sell",
                     "size": str(abs(size)),
                     "positionValue": str(pos.get("positionValue", 0)),
@@ -209,7 +209,7 @@ class HLAdapter:
                     continue
                 result_list.append({
                     "orderId": str(order.get("oid", "")),
-                    "symbol": f"{coin}USDC",
+                    "symbol": f"{coin}USDT",  # Use USDT suffix for consistency with signals and DB
                     "side": "Buy" if order.get("side") == "B" else "Sell",
                     "orderType": "Limit",
                     "price": str(order.get("limitPx", 0)),
