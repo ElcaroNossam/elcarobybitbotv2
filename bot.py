@@ -5341,9 +5341,9 @@ def main_menu_keyboard(ctx: ContextTypes.DEFAULT_TYPE, user_id: int = None, upda
     # ═══════════════════════════════════════════════════════════════
     # Exchange status button (shows current active exchange + account mode)
     if active_exchange == "hyperliquid":
-        hl_creds = get_hl_credentials(user_id) if user_id else {}
-        is_testnet = hl_creds.get("hl_testnet", False)
-        if is_testnet:
+        trading_mode_hl = get_trading_mode(user_id) if user_id else "demo"
+        is_testnet_display = trading_mode_hl in ("demo", "testnet")
+        if is_testnet_display:
             exchange_btn = t.get('exchange_hl_testnet', '🔷 HL Testnet 🧪')
         else:
             exchange_btn = t.get('exchange_hl_mainnet', '🔷 HL Mainnet 🌐')
@@ -11796,30 +11796,34 @@ async def fetch_realized_pnl(uid: int, days: int = 1, account_type: str | None =
         start_ts = end_ts - days * 24 * 60 * 60 * 1000
         try:
             creds = db.get_hl_credentials(uid)
-            if creds and creds.get("hl_private_key"):
+            if creds:
                 from hl_adapter import HLAdapter
-                is_testnet = bool(creds.get("hl_testnet", False))
-                if is_testnet:
-                    wallet_addr = creds.get("hl_testnet_wallet_address") or creds.get("hl_wallet_address")
-                else:
-                    wallet_addr = creds.get("hl_mainnet_wallet_address") or creds.get("hl_wallet_address")
-                adapter = HLAdapter(
-                    private_key=creds["hl_private_key"],
-                    testnet=is_testnet
-                    # vault_address and main_wallet_address auto-discovered
-                )
-                try:
-                    await adapter.initialize()
-                    
-                    # Get fills for the period
-                    fills = await adapter.get_fills_by_time(start_ts, end_ts)
-                    for fill in fills:
-                        try:
-                            total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
-                        except Exception:
-                            pass
-                finally:
-                    await adapter.close()
+                from core.account_utils import get_hl_credentials_for_account
+                # Use account_type to determine correct network and key
+                _acc = account_type or 'demo'
+                private_key, is_testnet, _wallet = get_hl_credentials_for_account(creds, _acc)
+                if not private_key:
+                    # Fallback to legacy key
+                    private_key = creds.get("hl_private_key")
+                    is_testnet = bool(creds.get("hl_testnet", False))
+                if private_key:
+                    adapter = HLAdapter(
+                        private_key=private_key,
+                        testnet=is_testnet
+                        # vault_address and main_wallet_address auto-discovered
+                    )
+                    try:
+                        await adapter.initialize()
+                        
+                        # Get fills for the period
+                        fills = await adapter.get_fills_by_time(start_ts, end_ts)
+                        for fill in fills:
+                            try:
+                                total_pnl += float(fill.get("closedPnl") or fill.get("pnl") or 0.0)
+                            except Exception:
+                                pass
+                    finally:
+                        await adapter.close()
         except Exception as e:
             logger.warning(f"[{uid}] HL realized PnL fetch error: {e}")
     else:
@@ -17467,17 +17471,16 @@ async def cmd_trade_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Get user's active exchange for 4D multitenancy filtering
     user_exchange = db.get_exchange_type(uid) or "bybit"
     
-    # Determine default account type based on exchange
+    # Determine default account type based on exchange and trading_mode
     if user_exchange == "hyperliquid":
-        hl_creds = get_hl_credentials(uid)
-        if hl_creds.get("hl_mainnet_private_key"):
+        _tm = get_trading_mode(uid)
+        if _tm == "real":
             default_account = "mainnet"
-        elif hl_creds.get("hl_testnet_private_key"):
-            default_account = "testnet"
-        elif hl_creds.get("hl_private_key"):
-            default_account = "testnet" if hl_creds.get("hl_testnet", False) else "mainnet"
+        elif _tm == "both":
+            # Default to mainnet when both, user can switch
+            default_account = "mainnet" if db.get_hl_credentials(uid).get("hl_mainnet_private_key") else "testnet"
         else:
-            default_account = "mainnet"
+            default_account = "testnet"
     else:
         creds = db.get_all_user_credentials(uid)
         default_account = "real" if creds.get("real_api_key") else "demo"
@@ -29382,7 +29385,8 @@ async def cmd_hl_balance(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network
     
     # Determine which network to use
     if network is None:
-        is_testnet = hl_creds.get("hl_testnet", False)
+        _tm = get_trading_mode(uid)
+        is_testnet = _tm in ("demo", "testnet")
     else:
         is_testnet = (network == "testnet")
     
@@ -29523,7 +29527,8 @@ async def cmd_hl_positions(update: Update, ctx: ContextTypes.DEFAULT_TYPE, netwo
     
     # Determine which network to use
     if network is None:
-        is_testnet = hl_creds.get("hl_testnet", False)
+        _tm = get_trading_mode(uid)
+        is_testnet = _tm in ("demo", "testnet")
     else:
         is_testnet = (network == "testnet")
     
@@ -29678,7 +29683,8 @@ async def cmd_hl_orders(update: Update, ctx: ContextTypes.DEFAULT_TYPE, network:
     
     # Determine which network to use
     if network is None:
-        is_testnet = hl_creds.get("hl_testnet", False)
+        _tm = get_trading_mode(uid)
+        is_testnet = _tm in ("demo", "testnet")
     else:
         is_testnet = (network == "testnet")
     
@@ -29851,7 +29857,9 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     
     # Confirm - close all positions
     hl_creds = get_hl_credentials(uid)
-    is_testnet = hl_creds.get("hl_testnet", False)
+    # Determine network from trading_mode, NOT from hl_testnet flag
+    trading_mode = get_trading_mode(uid)
+    is_testnet = trading_mode in ("demo", "testnet")
     
     # Get correct private key for network (multitenancy)
     if is_testnet:
