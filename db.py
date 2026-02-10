@@ -4344,8 +4344,8 @@ def set_user_license(
         # Record payment
         conn.execute("""
             INSERT INTO payment_history (user_id, license_id, payment_type, amount, currency, license_type, period_days, telegram_charge_id, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
-        """, (user_id, license_id, payment_type, amount, currency, license_type, period_days, telegram_charge_id, now))
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())
+        """, (user_id, license_id, payment_type, amount, currency, license_type, period_days, telegram_charge_id))
         
         # Update quick access columns (sync BOTH current_license and license_type for webapp compat)
         conn.execute(
@@ -4395,8 +4395,8 @@ def extend_license(user_id: int, days: int, admin_id: int | None = None, notes: 
         # Record as admin grant
         conn.execute("""
             INSERT INTO payment_history (user_id, payment_type, amount, currency, license_type, period_days, status, created_at, metadata)
-            VALUES (?, 'admin_grant', 0, 'FREE', ?, ?, 'completed', ?, ?)
-        """, (user_id, current["license_type"], days, now, json.dumps({"action": "extend", "admin_id": admin_id, "notes": notes})))
+            VALUES (?, 'admin_grant', 0, 'FREE', ?, ?, 'completed', NOW(), ?)
+        """, (user_id, current["license_type"], days, json.dumps({"action": "extend", "admin_id": admin_id, "notes": notes})))
         
         # Update quick access
         conn.execute(
@@ -4433,8 +4433,8 @@ def revoke_license(user_id: int, admin_id: int | None = None, reason: str | None
         # Record revocation
         conn.execute("""
             INSERT INTO payment_history (user_id, payment_type, amount, currency, license_type, period_days, status, created_at, metadata)
-            VALUES (?, 'admin_grant', 0, 'FREE', 'none', 0, 'completed', ?, ?)
-        """, (user_id, now, json.dumps({"action": "revoke", "admin_id": admin_id, "reason": reason})))
+            VALUES (?, 'admin_grant', 0, 'FREE', 'none', 0, 'completed', NOW(), ?)
+        """, (user_id, json.dumps({"action": "revoke", "admin_id": admin_id, "reason": reason})))
         
         # Clear quick access (sync BOTH columns)
         conn.execute(
@@ -6373,14 +6373,13 @@ def add_payment_record(
             INSERT INTO payment_history (
                 user_id, amount, payment_method, plan_type, 
                 transaction_id, created_at, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, NOW(), ?)
         """, (
             user_id,
             amount,
             payment_method,
             f"{plan}_{period}",
             transaction_hash or f"manual_{int(time.time())}",
-            int(time.time()),
             "completed"
         ))
 
