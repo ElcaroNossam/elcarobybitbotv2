@@ -8693,13 +8693,14 @@ async def place_order_hyperliquid(
         
         # Check if user has HL credentials
         hl_creds = get_hl_credentials(user_id)
-        testnet = hl_creds.get("hl_testnet", False)
+        # Determine network from trading_mode, NOT from legacy hl_testnet flag
+        trading_mode = get_trading_mode(user_id)
+        testnet = trading_mode in ("demo", "testnet")
         
         # Get correct private key for network (multitenancy)
-        if testnet:
-            hl_private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-        else:
-            hl_private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+        from core.account_utils import get_hl_credentials_for_account
+        _acc = "testnet" if testnet else "mainnet"
+        hl_private_key, testnet, _ = get_hl_credentials_for_account(hl_creds, _acc)
         
         if not hl_private_key:
             logger.debug(f"[{user_id}] No HL private key configured for {'testnet' if testnet else 'mainnet'}")
@@ -12160,20 +12161,20 @@ async def fetch_usdt_balance(user_id: int, account_type: str = None, use_equity:
                 logger.warning(f"[{user_id}] No HL credentials for balance fetch")
                 return 0.0
             
-            # Determine testnet/mainnet based on account_type or hl_testnet flag
-            is_testnet = hl_creds.get("hl_testnet", False)
+            # Determine testnet/mainnet from account_type first, then trading_mode, lastly hl_testnet
             if account_type in ("testnet", "demo"):
                 is_testnet = True
             elif account_type in ("mainnet", "real"):
                 is_testnet = False
-            
-            # Get the right credentials
-            if is_testnet:
-                private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-                wallet_address = hl_creds.get("hl_testnet_wallet_address") or hl_creds.get("hl_wallet_address")
             else:
-                private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
-                wallet_address = hl_creds.get("hl_mainnet_wallet_address") or hl_creds.get("hl_wallet_address")
+                # No explicit account_type — derive from trading_mode
+                trading_mode = get_trading_mode(user_id)
+                is_testnet = trading_mode in ("demo", "testnet", "both")
+            
+            # Use canonical credential helper
+            from core.account_utils import get_hl_credentials_for_account
+            _acc = "testnet" if is_testnet else "mainnet"
+            private_key, is_testnet, wallet_address = get_hl_credentials_for_account(hl_creds, _acc)
             
             if not private_key:
                 logger.warning(f"[{user_id}] Missing HL private_key")
@@ -29807,7 +29808,10 @@ async def cmd_hl_close_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     
     hl_creds = get_hl_credentials(uid)
-    if not hl_creds.get("hl_private_key"):
+    has_hl = (hl_creds.get("hl_private_key") or
+              hl_creds.get("hl_testnet_private_key") or
+              hl_creds.get("hl_mainnet_private_key"))
+    if not has_hl:
         await update.message.reply_text(
             "❌ HyperLiquid not configured. Use 🔑 HL API to set up.",
             parse_mode="Markdown"
@@ -29859,13 +29863,13 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     hl_creds = get_hl_credentials(uid)
     # Determine network from trading_mode, NOT from hl_testnet flag
     trading_mode = get_trading_mode(uid)
-    is_testnet = trading_mode in ("demo", "testnet")
+    is_testnet = trading_mode in ("demo", "testnet", "both")
+    # For 'both' mode, default to testnet (safer); user can switch network in HL menu
     
-    # Get correct private key for network (multitenancy)
-    if is_testnet:
-        private_key = hl_creds.get("hl_testnet_private_key") or hl_creds.get("hl_private_key")
-    else:
-        private_key = hl_creds.get("hl_mainnet_private_key") or hl_creds.get("hl_private_key")
+    # Use canonical credential helper
+    from core.account_utils import get_hl_credentials_for_account
+    _acc = "testnet" if is_testnet else "mainnet"
+    private_key, is_testnet, _ = get_hl_credentials_for_account(hl_creds, _acc)
     
     if not private_key:
         await q.edit_message_text(
@@ -29885,7 +29889,7 @@ async def on_hl_close_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         
         # Get positions first
         positions_result = await adapter.fetch_positions()
-        positions = positions_result.get("data", [])
+        positions = positions_result.get("result", {}).get("list", [])
         
         if not positions:
             await q.edit_message_text(
