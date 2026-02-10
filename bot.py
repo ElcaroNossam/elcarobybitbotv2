@@ -5389,10 +5389,10 @@ def extract_image_from_summary(summary_html: str) -> str | None:
     return unescape(m.group(1)) if m else None
 
 _position_mode_cache: dict[tuple[int, str], str] = {} 
-_atr_triggered: dict[tuple[int, str], bool] = {}
-_atr_was_enabled: dict[tuple[int, str], bool] = {}  # Track if ATR was enabled for (uid, symbol) - for detecting when ATR gets disabled
-_atr_tp_removed: dict[tuple[int, str], bool] = {}  # Track if TP was already removed for ATR mode (uid, symbol)
-_be_triggered: dict[tuple[int, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol)
+_atr_triggered: dict[tuple[int, str, str], bool] = {}  # (uid, symbol, account_type)
+_atr_was_enabled: dict[tuple[int, str, str], bool] = {}  # Track if ATR was enabled for (uid, symbol, account_type) - for detecting when ATR gets disabled
+_atr_tp_removed: dict[tuple[int, str, str], bool] = {}  # Track if TP was already removed for ATR mode (uid, symbol, account_type)
+_be_triggered: dict[tuple[int, str, str], bool] = {}  # Track if BE (break-even) was applied for (uid, symbol, account_type)
 _close_all_cooldown: dict[int, float] = {}  # uid -> timestamp when cooldown ends
 _notification_retry_after: dict[int, float] = {}  # uid -> timestamp when Telegram rate limit expires
 _telegram_id_cache: dict[int, int | None] = {}  # uid -> telegram_id (None = no telegram linked)
@@ -21361,10 +21361,10 @@ async def monitor_positions_loop(app: Application):
                                         remove_active_position(uid, sym, account_type=ap_account_type, entry_price=ap.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, sym)
                                     finally:
-                                        _atr_triggered.pop((uid, sym), None)
-                                        _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
-                                        _atr_tp_removed.pop((uid, sym), None)  # Clear ATR TP removed cache
-                                        _be_triggered.pop((uid, sym), None)  # Clear BE cache
+                                        _atr_triggered.pop((uid, sym, ap_account_type), None)
+                                        _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, sym, ap_account_type), None)  # Clear ATR TP removed cache
+                                        _be_triggered.pop((uid, sym, ap_account_type), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)
                                         _deep_loss_notified.pop((uid, sym), None)
                                         # Clear new position notification cache
@@ -21690,10 +21690,10 @@ async def monitor_positions_loop(app: Application):
                                     try:
                                         reset_pyramid(uid, sym)
                                     finally:
-                                        _atr_triggered.pop((uid, sym), None)
-                                        _atr_was_enabled.pop((uid, sym), None)  # Clear ATR was enabled cache
-                                        _atr_tp_removed.pop((uid, sym), None)  # Clear ATR TP removed cache
-                                        _be_triggered.pop((uid, sym), None)  # Clear BE cache
+                                        _atr_triggered.pop((uid, sym, ap_account_type), None)
+                                        _atr_was_enabled.pop((uid, sym, ap_account_type), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, sym, ap_account_type), None)  # Clear ATR TP removed cache
+                                        _be_triggered.pop((uid, sym, ap_account_type), None)  # Clear BE cache
                                         _sl_notified.pop((uid, sym), None)  # Clear SL notification cache
                                         _deep_loss_notified.pop((uid, sym), None)  # Clear deep loss notification cache
                                         _hl_sl_cache.pop((uid, sym), None)  # Clear HL SL cache
@@ -21904,7 +21904,7 @@ async def monitor_positions_loop(app: Application):
 
                             mark     = float(pos["markPrice"])
                             move_pct = (mark - entry) / entry * 100 if side == "Buy" else (entry - mark) / entry * 100
-                            key = (uid, sym)
+                            key = (uid, sym, pos_account_type)
 
                             # ═══════════════════════════════════════════════════════════════════
                             # DCA SETTINGS: Per-strategy/side with fallback to global
@@ -22653,10 +22653,10 @@ async def monitor_positions_loop(app: Application):
                                     try:
                                         remove_active_position(uid, db_sym, account_type=current_account_type, entry_price=db_pos.get("entry_price"), exchange=current_exchange)
                                         reset_pyramid(uid, db_sym)
-                                        _atr_triggered.pop((uid, db_sym), None)
-                                        _atr_was_enabled.pop((uid, db_sym), None)  # Clear ATR was enabled cache
-                                        _atr_tp_removed.pop((uid, db_sym), None)  # Clear ATR TP removed cache
-                                        _be_triggered.pop((uid, db_sym), None)  # Clear BE cache
+                                        _atr_triggered.pop((uid, db_sym, current_account_type), None)
+                                        _atr_was_enabled.pop((uid, db_sym, current_account_type), None)  # Clear ATR was enabled cache
+                                        _atr_tp_removed.pop((uid, db_sym, current_account_type), None)  # Clear ATR TP removed cache
+                                        _be_triggered.pop((uid, db_sym, current_account_type), None)  # Clear BE cache
                                         _sl_notified.pop((uid, db_sym), None)
                                         _deep_loss_notified.pop((uid, db_sym), None)
                                         _hl_sl_cache.pop((uid, db_sym), None)  # Clear HL SL cache
