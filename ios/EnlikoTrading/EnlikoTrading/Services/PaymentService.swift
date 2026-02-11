@@ -283,7 +283,7 @@ class PaymentService: ObservableObject {
             let total: Double
         }
         
-        let response: BalanceResponse = try await networkService.get("/elc/balance")
+        let response: BalanceResponse = try await networkService.get(Config.Endpoints.elcBalance)
         return response.available
     }
     
@@ -295,14 +295,14 @@ class PaymentService: ObservableObject {
         }
         
         let request = PurchaseRequest(amount: amount)
-        let invoice: ELCPurchaseInvoice = try await networkService.post("/elc/buy-usdt", body: request)
+        let invoice: ELCPurchaseInvoice = try await networkService.post(Config.Endpoints.elcBuyUsdt, body: request)
         return invoice
     }
     
     // MARK: - Check ELC Payment Status
     
     func checkELCPaymentStatus(paymentId: String) async throws -> ELCPaymentStatusResponse {
-        let response: ELCPaymentStatusResponse = try await networkService.get("/elc/payment-status/\(paymentId)")
+        let response: ELCPaymentStatusResponse = try await networkService.get("\(Config.Endpoints.elcPaymentStatus)/\(paymentId)")
         return response
     }
     
@@ -315,7 +315,7 @@ class PaymentService: ObservableObject {
         }
         
         let request = PayRequest(plan: plan, duration: duration)
-        let result: ELCPaymentResult = try await networkService.post("/subscriptions/pay-elc", body: request)
+        let result: ELCPaymentResult = try await networkService.post(Config.Endpoints.elcPayWithELC, body: request)
         return result
     }
 }

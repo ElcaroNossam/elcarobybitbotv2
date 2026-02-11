@@ -191,10 +191,13 @@ class AIService: ObservableObject {
             let language: String
         }
         
-        struct AIQuestionResponse: Codable {
+        /// Backend /ai/chat returns: {"success": true, "response": "..."} — NOT wrapped in data
+        struct AIChatResponse: Codable {
+            let success: Bool?
             let response: String?
             let answer: String?
             let message: String?
+            let error: String?
             
             var text: String {
                 response ?? answer ?? message ?? "I couldn't process that request."
@@ -204,16 +207,16 @@ class AIService: ObservableObject {
         // Get user's current language
         let userLanguage = LocalizationManager.shared.currentLanguage.rawValue
         
-        let response: APIResponse<AIQuestionResponse> = try await network.post(
+        let response: AIChatResponse = try await network.post(
             Config.Endpoints.aiChat,
             body: AIQuestionRequest(question: question, language: userLanguage)
         )
         
-        if let data = response.data {
-            return data.text
+        if let error = response.error {
+            throw NetworkError.serverError(500, error)
         }
         
-        throw NetworkError.noData
+        return response.text
     }
     
     // MARK: - Get Signal Color

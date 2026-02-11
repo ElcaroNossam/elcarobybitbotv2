@@ -81,7 +81,6 @@ struct Config {
         
         // Backtest
         static let backtestRun = "/backtest/run"
-        static let backtestResults = "/backtest/results"
         static let backtestStrategies = "/backtest/strategies"
         
         // Marketplace (server router mounted at /api/marketplace)
@@ -94,10 +93,7 @@ struct Config {
         static let rateStrategy = "/marketplace/marketplace/rate"    // POST rate a strategy
         static let indicators = "/marketplace/indicators"            // GET available indicators
         
-        // Stats & Analytics
-        static let dailyStats = "/stats/daily"
-        static let performanceChart = "/stats/performance"
-        static let strategyStats = "/stats/strategy"
+        // Stats & Analytics (backend: /api/stats)
         static let dashboard = "/stats/dashboard"
         static let pnlHistory = "/stats/pnl-history"
         static let strategyReport = "/stats/strategy-report"
@@ -124,10 +120,13 @@ struct Config {
         static let signals = "/signals"
         static let signalsActive = "/signals/active"
         
-        // ENLIKO Token
-        static let elcBalance = "/elcaro/balance"
-        static let elcTransactions = "/elcaro/transactions"
-        static let elcPurchase = "/elcaro/purchase"
+        // ENLIKO Token (mounted at /api/elcaro with /elc/* routes)
+        static let elcBalance = "/elcaro/elc/balance"
+        static let elcTransactions = "/elcaro/elc/transactions"
+        static let elcPurchase = "/elcaro/elc/buy"
+        static let elcBuyUsdt = "/elcaro/elc/buy-usdt"
+        static let elcPaymentStatus = "/elcaro/elc/payment-status"  // /{payment_id}
+        static let elcPayWithELC = "/elcaro/subscriptions/pay-elc"
         
         // WebSocket
         static let wsMarket = "/ws/market"

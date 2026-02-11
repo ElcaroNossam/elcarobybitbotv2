@@ -68,21 +68,23 @@ struct ActivityItem: Codable, Identifiable {
 }
 
 struct ActivityStats: Codable {
-    private let _totalActivities: Int?
-    private let _bySource: [String: Int]?
-    private let _byCategory: [String: Int]?
-    private let _last24hCount: Int?
+    let totalActivities: Int
+    let bySource: [String: Int]
+    let byCategory: [String: Int]
+    let last24hCount: Int
     
-    var totalActivities: Int { _totalActivities ?? 0 }
-    var bySource: [String: Int] { _bySource ?? [:] }
-    var byCategory: [String: Int] { _byCategory ?? [:] }
-    var last24hCount: Int { _last24hCount ?? 0 }
+    init(totalActivities: Int = 0, bySource: [String: Int] = [:], byCategory: [String: Int] = [:], last24hCount: Int = 0) {
+        self.totalActivities = totalActivities
+        self.bySource = bySource
+        self.byCategory = byCategory
+        self.last24hCount = last24hCount
+    }
     
     enum CodingKeys: String, CodingKey {
-        case _totalActivities = "total_activities"
-        case _bySource = "by_source"
-        case _byCategory = "by_category"
-        case _last24hCount = "last_24h_count"
+        case totalActivities = "total_activities"
+        case bySource = "by_source"
+        case byCategory = "by_category"
+        case last24hCount = "last_24h_count"
     }
 }
 
@@ -120,6 +122,55 @@ struct ActivityLogRequest: Codable {
     }
 }
 
+// MARK: - Backend Response Structs (match actual backend format)
+
+/// Backend /activity/history returns: {"success": true, "activities": [...], "count": N, "filters": {...}}
+private struct ActivityHistoryResponse: Codable {
+    let success: Bool?
+    let activities: [ActivityItem]?
+    let count: Int?
+}
+
+/// Backend /activity/recent returns: {"success": true, "activities": [...]}
+private struct ActivityRecentResponse: Codable {
+    let success: Bool?
+    let activities: [ActivityItem]?
+}
+
+/// Backend /activity/stats returns: {"success": true, "period_days": N, "stats": {...}}
+private struct ActivityStatsServerResponse: Codable {
+    let success: Bool?
+    let periodDays: Int?
+    let stats: ActivityStatsData?
+    
+    enum CodingKeys: String, CodingKey {
+        case success
+        case periodDays = "period_days"
+        case stats
+    }
+}
+
+/// Stats data from backend
+private struct ActivityStatsData: Codable {
+    let totalActivities: Int?
+    let bySource: [String: Int]?
+    let byType: [String: Int]?
+    let byDay: [String: Int]?
+    
+    enum CodingKeys: String, CodingKey {
+        case totalActivities = "total_activities"
+        case bySource = "by_source"
+        case byType = "by_type"
+        case byDay = "by_day"
+    }
+}
+
+/// Backend /activity/trigger-sync returns: {"success": true, "message": "..."}
+private struct TriggerSyncResponse: Codable {
+    let success: Bool?
+    let message: String?
+}
+
 // MARK: - Activity Service
 class ActivityService: ObservableObject {
     static let shared = ActivityService()
@@ -145,13 +196,14 @@ class ActivityService: ObservableObject {
         if let category = category { params["category"] = category }
         
         do {
-            let response: APIResponse<[ActivityItem]> = try await network.get(
+            // Backend returns {"success": true, "activities": [...]} — NOT data wrapper
+            let response: ActivityHistoryResponse = try await network.get(
                 Config.Endpoints.activityHistory,
                 params: params
             )
             
-            if let data = response.data {
-                self.activities = data
+            if let items = response.activities {
+                self.activities = items
             }
         } catch {
             print("Failed to fetch activity history: \(error)")
@@ -162,12 +214,13 @@ class ActivityService: ObservableObject {
     @MainActor
     func fetchRecent() async {
         do {
-            let response: APIResponse<[ActivityItem]> = try await network.get(
+            // Backend returns {"success": true, "activities": [...]}
+            let response: ActivityRecentResponse = try await network.get(
                 Config.Endpoints.activityRecent
             )
             
-            if let data = response.data {
-                self.recentActivities = data
+            if let items = response.activities {
+                self.recentActivities = items
             }
         } catch {
             print("Failed to fetch recent activities: \(error)")
@@ -178,12 +231,19 @@ class ActivityService: ObservableObject {
     @MainActor
     func fetchStats() async {
         do {
-            let response: APIResponse<ActivityStats> = try await network.get(
+            // Backend returns {"success": true, "stats": {...}}
+            let response: ActivityStatsServerResponse = try await network.get(
                 Config.Endpoints.activityStats
             )
             
-            if let data = response.data {
-                self.stats = data
+            if let data = response.stats {
+                // Map to our ActivityStats model
+                self.stats = ActivityStats(
+                    totalActivities: data.totalActivities ?? 0,
+                    bySource: data.bySource ?? [:],
+                    byCategory: data.byType ?? [:],
+                    last24hCount: 0
+                )
             }
         } catch {
             print("Failed to fetch activity stats: \(error)")
@@ -194,16 +254,13 @@ class ActivityService: ObservableObject {
     @MainActor
     func triggerSync() async -> Bool {
         do {
-            let response: APIResponse<SyncStatus> = try await network.post(
+            // Backend returns {"success": true, "message": "..."} — no SyncStatus wrapper
+            let response: TriggerSyncResponse = try await network.post(
                 Config.Endpoints.activityTriggerSync,
                 body: ["source": "ios"]
             )
             
-            if let status = response.data {
-                self.syncStatus = status
-                return true
-            }
-            return false
+            return response.success == true
         } catch {
             print("Failed to trigger sync: \(error)")
             return false
@@ -228,7 +285,7 @@ class ActivityService: ObservableObject {
             request.oldValue = oldValue
             request.newValue = newValue
             
-            let _: APIResponse<EmptyResponse> = try await network.post(
+            let _: SimpleResponse = try await network.post(
                 Config.Endpoints.activityHistory,
                 body: request
             )
