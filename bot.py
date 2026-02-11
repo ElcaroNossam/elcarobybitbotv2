@@ -1318,7 +1318,7 @@ def once_per(key: tuple[int, str, str], seconds: int) -> bool:
 def is_db_full_error(e: Exception) -> bool:
     return "database or disk is full" in str(e).lower()
 
-async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 1.0, tp_pct: float = 3.0, account_type: str | None = None):
+async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: float = 1.0, tp_pct: float = 3.0, account_type: str | None = None, exchange: str | None = None):
     positions = await fetch_open_positions(uid, account_type=account_type)
     pos_candidates = [p for p in positions if p.get("symbol") == symbol]
     if not pos_candidates:
@@ -1330,7 +1330,7 @@ async def set_fixed_sl_tp_percent(uid: int, symbol: str, side: str, *, sl_pct: f
         raise RuntimeError(f"Could not get entry price for {symbol}")
     sl_price = round(entry * (1 - sl_pct/100) if side == "Buy" else entry * (1 + sl_pct/100), 6)
     tp_price = round(entry * (1 + tp_pct/100) if side == "Buy" else entry * (1 - tp_pct/100), 6)
-    await set_trading_stop(uid, symbol, sl_price=sl_price, tp_price=tp_price, side_hint=side, account_type=account_type)
+    await set_trading_stop(uid, symbol, sl_price=sl_price, tp_price=tp_price, side_hint=side, account_type=account_type, exchange=exchange)
 
 def with_texts(func):
     @functools.wraps(func)
@@ -6658,7 +6658,7 @@ async def _set_trading_stop_hyperliquid(
                 logger.warning(f"[{uid}] {symbol} HL: TP ({tp_price}) >= entry ({entry_price}) for SHORT - skipping")
                 tp_price = None
         
-        if sl_price is not None and not is_be:
+        if sl_price is not None and not is_be and not is_trailing:
             if effective_side == "Buy" and entry_price > 0 and sl_price >= entry_price:
                 logger.warning(f"[{uid}] {symbol} HL: SL ({sl_price}) >= entry ({entry_price}) for LONG - skipping")
                 sl_price = None
@@ -6944,14 +6944,7 @@ async def _set_trading_stop_bybit(
 
     if (tp_price is None or _prices_equal(tp_price, current_tp)) and (sl_price is None or _prices_equal(sl_price, current_sl)):
         logger.debug(f"{symbol}: trading-stop unchanged (side={effective_side}, current_sl={current_sl}, sl_price={sl_price})")
-        return {
-            "symbol": symbol,
-            "side": effective_side,
-            "positionIdx": await _position_idx_for_cached(uid, symbol, effective_side),
-            "takeProfit": current_tp,
-            "stopLoss": current_sl,
-            "changed": False,
-        }
+        return True  # SL/TP already correct — this is a success, not an error
 
     mode = await get_position_mode(uid, symbol)
     position_idx = position_idx_for(effective_side, mode)
@@ -7314,9 +7307,9 @@ async def split_market_plus_one_limit(
             kwargs = {"sl_price": sl_price}
             if mark is None or (_side=="Buy" and tp_price>mark) or (_side=="Sell" and tp_price<mark):
                 kwargs["tp_price"] = tp_price
-            await set_trading_stop(uid, symbol, **kwargs, side_hint=_side, account_type=account_type)
+            await set_trading_stop(uid, symbol, **kwargs, side_hint=_side, account_type=account_type, exchange="bybit")
         else:
-            await set_trading_stop(uid, symbol, sl_price=sl_price, side_hint=_side, account_type=account_type)
+            await set_trading_stop(uid, symbol, sl_price=sl_price, side_hint=_side, account_type=account_type, exchange="bybit")
             logger.info(f"[{uid}] ATR enabled for {symbol}: only SL={sl_price:.6f} set, TP managed by trailing")
 
     await place_order(uid, symbol, side, orderType="Market", qty=leg1)
