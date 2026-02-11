@@ -722,12 +722,15 @@ TEXTS = {
     
     # Daily notifications
     'daily_zero_balance': (
-        '⚠️ <b>Balance Notice</b>\n\n'
-        '💰 Your <b>{account_type}</b> account shows <b>$0</b> available.\n\n'
-        '<b>To enable tracking:</b>\n'
-        '• Deposit funds to your exchange account\n'
-        '• Or switch to another configured account\n\n'
-        '👉 /balance — Check your balance'
+        '💰 <b>Insufficient Balance</b>\n\n'
+        '🚫 Your <b>{account_type}</b> account has <b>$0</b> available.\n\n'
+        '📌 Signal skipped: <b>{symbol}</b> ({strategy})\n\n'
+        '━━━━━━━━━━━━━━━━━━━━━\n'
+        '💡 <b>What to do:</b>\n'
+        '  • Deposit funds to your exchange account\n'
+        '  • Or switch to a funded account\n\n'
+        '👉 /balance — Check balance\n'
+        '👉 /api_settings — Switch account'
     ),
     
     'daily_api_keys_invalid': (
@@ -751,13 +754,16 @@ TEXTS = {
     ),
     
     'daily_margin_exhausted': (
-        '📊 <b>Margin Notice</b>\n\n'
-        '💰 Your <b>{account_type}</b> margin is fully allocated.\n\n'
-        '📊 Open positions: {open_count}\n\n'
-        '<b>Options:</b>\n'
-        '• Close positions to free margin\n'
-        '• Reduce position sizes\n'
-        '• Increase account balance\n\n'
+        '📊 <b>Insufficient Margin</b>\n\n'
+        '🚫 Not enough free margin on <b>{account_type}</b>.\n\n'
+        '📌 Signal skipped: <b>{symbol}</b> ({strategy})\n'
+        '💰 Current equity: <b>{equity}</b>\n'
+        '📂 Open positions: <b>{open_count}</b>\n\n'
+        '━━━━━━━━━━━━━━━━━━━━━\n'
+        '💡 <b>What to do:</b>\n'
+        '  • Close some positions to free margin\n'
+        '  • Reduce entry % in strategy settings\n'
+        '  • Add more funds to your account\n\n'
         '👉 /positions — Manage positions'
     ),
     

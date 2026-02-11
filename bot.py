@@ -1056,11 +1056,15 @@ async def notify_user_daily_error(
     extra = extra_data or {}
     extra["account_type"] = account_type.upper()
     extra["missed_count"] = missed_count
+    # Provide defaults for new fields so old callers don't break
+    extra.setdefault("symbol", "—")
+    extra.setdefault("strategy", "—")
+    extra.setdefault("equity", "—")
     
     try:
         if error_type == DailyErrorType.ZERO_BALANCE:
             msg = t.get('daily_zero_balance', 
-                "⚠️ Your {account_type} account has $0. Missed signals: {missed_count}. Deposit funds to resume trading."
+                "💰 Insufficient Balance\n\n🚫 Your {account_type} account has $0.\n📌 Signal skipped: {symbol} ({strategy})\n\nDeposit funds to resume trading."
             ).format(**extra)
         
         elif error_type == DailyErrorType.API_KEYS_INVALID:
@@ -1077,7 +1081,7 @@ async def notify_user_daily_error(
         elif error_type == DailyErrorType.MARGIN_EXHAUSTED:
             extra.setdefault("open_count", "?")
             msg = t.get('daily_margin_exhausted',
-                "📊 Your {account_type} margin is exhausted. Positions: {open_count}. Missed: {missed_count}."
+                "📊 Insufficient Margin\n\n🚫 Not enough free margin on {account_type}.\n📌 Signal skipped: {symbol} ({strategy})\n💰 Equity: {equity}\n📂 Open positions: {open_count}"
             ).format(**extra)
         
         else:
@@ -18604,7 +18608,8 @@ async def _handle_calc_qty_error(
         await notify_user_daily_error(
             bot, user_id, 
             DailyErrorType.ZERO_BALANCE, 
-            account_type, t
+            account_type, t,
+            {"symbol": symbol or "—", "strategy": (strategy or "—").upper()}
         )
     elif "API" in error_msg or "authentication" in error_msg.lower() or "401" in error_msg:
         # API keys error
@@ -18646,24 +18651,36 @@ async def handle_trade_error(
         await notify_user_daily_error(
             bot, user_id, 
             DailyErrorType.ZERO_BALANCE, 
-            account_type, t
+            account_type, t,
+            {"symbol": symbol or "—", "strategy": (strategy or "—").upper()}
         )
         return True
     
     # Insufficient balance for this trade (margin locked in positions)
     if "INSUFFICIENT_BALANCE" in error_msg or "110007" in error_msg or "ab not enough" in error_msg.lower():
-        # Get open positions count for context
+        # Get open positions count and equity for context
         try:
             positions = await fetch_open_positions(user_id, account_type=account_type)
             open_count = len(positions) if positions else 0
         except Exception:
             open_count = "?"
         
+        try:
+            equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
+            equity_str = f"${equity:,.2f}"
+        except Exception:
+            equity_str = "—"
+        
         await notify_user_daily_error(
             bot, user_id, 
             DailyErrorType.MARGIN_EXHAUSTED, 
             account_type, t,
-            {"open_count": open_count}
+            {
+                "open_count": open_count,
+                "symbol": symbol or "—",
+                "strategy": (strategy or "—").upper(),
+                "equity": equity_str,
+            }
         )
         return True
     
@@ -19430,12 +19447,35 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                         pass
                 continue
 
-            existing_positions = await fetch_open_positions(uid)
-            if any(p.get("symbol") == symbol for p in existing_positions):
-                logger.info(f"[{uid}] {symbol}: already has open position → skip signal")
-                continue
+            # ═══════════════════════════════════════════════════════════════
+            # PER-EXCHANGE position check: skip only if position exists on ALL
+            # target exchanges. If position on exchange A, still allow opening on B.
+            # place_order_for_targets() has additional per-target checks (line ~8213).
+            # ═══════════════════════════════════════════════════════════════
+            all_db_positions = db.get_active_positions(uid)  # ALL exchanges
+            exchanges_with_position = {
+                p.get("exchange", "bybit")
+                for p in all_db_positions
+                if p.get("symbol") == symbol
+            }
 
             user_exchange = get_exchange_type(uid)
+
+            # Determine which exchanges user can trade on
+            user_target_exchanges = set()
+            if db.is_bybit_enabled(uid):
+                user_target_exchanges.add("bybit")
+            if db.is_hl_enabled(uid):
+                user_target_exchanges.add("hyperliquid")
+            if not user_target_exchanges:
+                user_target_exchanges.add(user_exchange or "bybit")
+
+            # Only skip if position exists on ALL user's target exchanges
+            if user_target_exchanges and user_target_exchanges.issubset(exchanges_with_position):
+                logger.info(f"[{uid}] {symbol}: already has open position on all exchanges ({', '.join(exchanges_with_position)}) → skip signal")
+                continue
+            elif exchanges_with_position:
+                logger.info(f"[{uid}] {symbol}: position on {', '.join(exchanges_with_position)}, continuing for other exchanges")
 
             # CRITICAL: Check if position was recently closed (prevent re-entry on repeated signals)
             # This handles cases where strategies like FIBONACCI send repeated signals
@@ -19457,7 +19497,7 @@ async def on_channel_post(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             global_coins_mode = cfg.get("coins", "ALL")
             global_coins_mode = global_coins_mode.upper() if isinstance(global_coins_mode, str) else "ALL"
 
-            if not any(p.get("symbol") == symbol for p in existing_positions):
+            if not any(p.get("symbol") == symbol for p in all_db_positions):
                 reset_pyramid(uid, symbol)
 
             cnt = get_pyramid(uid, symbol)["count"]
