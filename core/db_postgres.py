@@ -1976,11 +1976,12 @@ def pg_get_strategy_settings(user_id: int, strategy: str, exchange: str = None, 
             result[f"{prefix}tp_percent"] = None
             result[f"{prefix}leverage"] = None
             result[f"{prefix}use_atr"] = None
-            # ATR calculation params → keep defaults (no user-global equivalents)
+            # ATR calculation params → atr_periods/atr_multiplier_sl keep defaults (no user-global equivalents)
+            # But atr_trigger_pct/atr_step_pct → None (DO have user-global equivalents!)
             result[f"{prefix}atr_periods"] = defaults.get("atr_periods", 14)
             result[f"{prefix}atr_multiplier_sl"] = defaults.get("atr_multiplier_sl", 1.5)
-            result[f"{prefix}atr_trigger_pct"] = defaults.get("atr_trigger_pct")
-            result[f"{prefix}atr_step_pct"] = defaults.get("atr_step_pct")
+            result[f"{prefix}atr_trigger_pct"] = None  # Fall through to user globals
+            result[f"{prefix}atr_step_pct"] = None      # Fall through to user globals
             result[f"{prefix}order_type"] = defaults.get("order_type", "market")
             result[f"{prefix}limit_offset_pct"] = defaults.get("limit_offset_pct", 0.1)
             # DCA → None (will fall through to user globals)
@@ -2113,8 +2114,6 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
     if field in BOOLEAN_FIELDS and value is not None:
         value = bool(value)
     
-    defaults = STRATEGY_DEFAULTS.get(side, STRATEGY_DEFAULTS["long"])
-    
     with get_conn() as conn:
         with conn.cursor() as cur:
             # 4D SCHEMA: Check if row exists for this exchange
@@ -2130,35 +2129,25 @@ def _pg_set_side_setting(user_id: int, strategy: str, side: str, field: str, val
                     WHERE user_id = %s AND strategy = %s AND side = %s AND exchange = %s
                 """, (value, user_id, strategy, side, exchange))
             else:
-                # INSERT new row with all defaults for this exchange
+                # INSERT new row with NULL for trading params that have user-global equivalents
+                # This ensures get_strategy_trade_params() falls through to user globals
+                # Only set structural fields that have NO user-global equivalents
                 cur.execute("""
                     INSERT INTO user_strategy_settings 
                     (user_id, strategy, side, exchange, enabled, percent, sl_percent, tp_percent, 
                      leverage, use_atr, atr_trigger_pct, atr_step_pct, order_type,
                      limit_offset_pct, dca_enabled, dca_pct_1, dca_pct_2, max_positions, 
-                     coins_group, trading_mode, account_type, direction)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    user_id, strategy, side, exchange,
-                    bool(defaults.get("enabled", True)),
-                    defaults.get("percent"),
-                    defaults.get("sl_percent"),
-                    defaults.get("tp_percent"),
-                    defaults.get("leverage"),
-                    bool(defaults.get("use_atr", False)),
-                    defaults.get("atr_trigger_pct"),
-                    defaults.get("atr_step_pct"),
-                    defaults.get("order_type", "market"),
-                    defaults.get("limit_offset_pct", 0.1),
-                    bool(defaults.get("dca_enabled", False)),
-                    defaults.get("dca_pct_1", 10.0),
-                    defaults.get("dca_pct_2", 25.0),
-                    defaults.get("max_positions", 0),
-                    defaults.get("coins_group", "ALL"),
-                    "demo",    # Default trading_mode
-                    "demo",    # Default account_type
-                    "all"      # Default direction
-                ))
+                     coins_group, trading_mode, account_type, direction,
+                     be_enabled, be_trigger_pct)
+                    VALUES (%s, %s, %s, %s, 
+                            TRUE,           -- enabled (structural, no global equivalent)
+                            NULL, NULL, NULL, NULL, NULL, NULL, NULL,  -- trading params → NULL (fall through to user globals)
+                            'market', 0.1,  -- order_type, limit_offset_pct (structural defaults)
+                            NULL, NULL, NULL,  -- DCA params → NULL (fall through to user globals)
+                            0, 'ALL',       -- max_positions, coins_group (structural defaults)
+                            'demo', 'demo', 'all',  -- trading_mode, account_type, direction
+                            NULL, NULL)     -- BE params → NULL (fall through to user globals)
+                """, (user_id, strategy, side, exchange))
                 # Now update the specific field
                 cur.execute(f"""
                     UPDATE user_strategy_settings SET {field} = %s

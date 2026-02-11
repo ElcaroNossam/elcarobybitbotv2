@@ -207,6 +207,8 @@ from coin_params import (
     COIN_PARAMS,
     DEFAULT_SL_PCT,
     DEFAULT_TP_PCT,
+    DEFAULT_ATR_TRIGGER_PCT,
+    DEFAULT_ATR_STEP_PCT,
     POSITIVE_KEYWORDS,
     NEGATIVE_KEYWORDS,
     SYMBOL_FILTER,
@@ -5013,12 +5015,14 @@ def resolve_sl_tp_pct(cfg: dict, symbol: str, strategy: str | None = None, user_
         sl_pct = float(coin_cfg.get("sl_pct", DEFAULT_SL_PCT))
         logger.debug(f"[SL-RESOLVE] uid={user_id}, strategy={strategy}, strat_sl={strat_sl}, user_sl={user_sl}, sl_pct={sl_pct} (from coin defaults)")
 
-    # TP
-    if strat_tp is not None and float(strat_tp) > sl_pct:
+    # TP - priority: strategy > user global > coin default
+    # NOTE: TP can be less than SL — this is a valid configuration!
+    # (e.g., tight TP=5% with wide SL=30% for scalping strategies)
+    if strat_tp is not None and float(strat_tp) > 0:
         tp_pct = float(strat_tp)
     else:
         user_tp = cfg.get("tp_percent") or 0
-        if float(user_tp) > sl_pct:
+        if float(user_tp) > 0:
             tp_pct = float(user_tp)
         else:
             tp_pct = float(coin_cfg.get("tp_pct", DEFAULT_TP_PCT))
@@ -5127,6 +5131,19 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         if side_use_atr is not None:
             use_atr = bool(side_use_atr)
         
+        # Get side-specific ATR trigger/step (for consistency in return dict)
+        side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
+        if side_atr_trigger is not None and side_atr_trigger > 0:
+            atr_trigger_pct = float(side_atr_trigger)
+        else:
+            atr_trigger_pct = float(cfg.get("atr_trigger_pct", DEFAULT_ATR_TRIGGER_PCT))
+        
+        side_atr_step = strat_settings.get(f"{side_prefix}_atr_step_pct")
+        if side_atr_step is not None and side_atr_step > 0:
+            atr_step_pct = float(side_atr_step)
+        else:
+            atr_step_pct = float(cfg.get("atr_step_pct", DEFAULT_ATR_STEP_PCT))
+        
         # Get side-specific leverage
         side_leverage = strat_settings.get(f"{side_prefix}_leverage")
         if side_leverage is not None and side_leverage > 0:
@@ -5203,6 +5220,8 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
             "sl_pct": sl_pct,
             "tp_pct": tp_pct,
             "use_atr": use_atr,
+            "atr_trigger_pct": atr_trigger_pct,
+            "atr_step_pct": atr_step_pct,
             "be_enabled": be_enabled,
             "be_trigger_pct": be_trigger_pct,
             "leverage": leverage,
@@ -5245,6 +5264,8 @@ def get_strategy_trade_params(uid: int, cfg: dict, symbol: str, strategy: str, s
         "sl_pct": sl_pct,
         "tp_pct": tp_pct,
         "use_atr": use_atr,
+        "atr_trigger_pct": float(cfg.get("atr_trigger_pct", DEFAULT_ATR_TRIGGER_PCT)),
+        "atr_step_pct": float(cfg.get("atr_step_pct", DEFAULT_ATR_STEP_PCT)),
         "be_enabled": be_enabled,
         "be_trigger_pct": be_trigger_pct,
         "leverage": leverage,
@@ -8258,24 +8279,28 @@ async def place_order_for_targets(
                 # Calculate qty for THIS account's balance
                 # For HyperLiquid we need different balance fetch method
                 if target_exchange == "hyperliquid":
-                    # HyperLiquid: get balance via exchange_router
-                    from exchange_router import ExchangeRouter
-                    router = ExchangeRouter()
-                    hl_balance = await router._get_hl_balance(user_id)
-                    equity = float(hl_balance.get("equity", 0))
-                    if equity <= 0:
-                        raise ValueError(f"HyperLiquid equity={equity}")
+                    # HyperLiquid: use standard calc_qty (same as Bybit path)
+                    target_qty = await calc_qty(
+                        user_id, symbol, entry_price, risk_pct, sl_pct,
+                        account_type=target_acc, exchange="hyperliquid"
+                    )
                     
-                    # Manual qty calculation for HyperLiquid
-                    risk_usdt = equity * (risk_pct / 100)
-                    price_move = entry_price * (sl_pct / 100)
-                    if price_move <= 0:
-                        raise ValueError("Invalid sl_pct for price_move")
-                    target_qty = risk_usdt / price_move
+                    # Check minimum notional value ($10 on HyperLiquid)
+                    MIN_NOTIONAL_HL = 10.0
+                    notional_value = target_qty * entry_price
+                    
+                    if notional_value < MIN_NOTIONAL_HL:
+                        logger.warning(
+                            f"[{user_id}] {symbol} HL notional ${notional_value:.2f} < ${MIN_NOTIONAL_HL} minimum. "
+                            f"SKIPPING trade (equity too low or risk% too small). "
+                            f"qty={target_qty:.4f}, leverage={target_leverage}x, risk={risk_pct}%, sl={sl_pct}%"
+                        )
+                        errors.append(f"[{target_key.upper()}] Notional ${notional_value:.2f} below ${MIN_NOTIONAL_HL} minimum - increase risk% or equity")
+                        continue
                     
                     logger.info(
                         f"[{user_id}] HL per-target qty for {target_key}: "
-                        f"equity={equity:.2f}, risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}"
+                        f"equity via calc_qty, risk={risk_pct}%, sl={sl_pct}%, qty={target_qty:.4f}"
                     )
                 else:
                     # Bybit: use standard calc_qty
@@ -18494,8 +18519,8 @@ async def calc_qty(
     
     Supports both Bybit and HyperLiquid exchanges.
     """
-    # Check exchange type
-    user_exchange = db.get_exchange_type(user_id) or "bybit"
+    # Check exchange type — use explicit param first, then DB fallback
+    user_exchange = exchange or db.get_exchange_type(user_id) or "bybit"
     
     # Use equity (total capital) for consistent position sizing
     equity = await fetch_usdt_balance(user_id, account_type=account_type, use_equity=True)
@@ -21894,7 +21919,7 @@ async def monitor_positions_loop(app: Application):
                                 else:
                                     sl_pct = coin_cfg.get("sl_pct", DEFAULT_SL_PCT)
                                 raw_user_tp = cfg.get("tp_percent", 0)
-                                if raw_user_tp > sl_pct:
+                                if raw_user_tp > 0:
                                     tp_pct = raw_user_tp
                                 else:
                                     tp_pct = coin_cfg.get("tp_pct", DEFAULT_TP_PCT)
@@ -21924,10 +21949,11 @@ async def monitor_positions_loop(app: Application):
                                 strat_settings = db.get_strategy_settings(uid, pos_strategy, exchange=current_exchange, account_type=pos_account_type)
                                 side_prefix = "long" if side == "Buy" else "short"
                             
-                                # Get side-specific ATR settings, fallback to general, then timeframe defaults
+                                # Get side-specific ATR settings, fallback to user globals, then timeframe defaults
                                 side_atr_periods = strat_settings.get(f"{side_prefix}_atr_periods")
                                 side_atr_mult = strat_settings.get(f"{side_prefix}_atr_multiplier_sl")
                                 side_atr_trigger = strat_settings.get(f"{side_prefix}_atr_trigger_pct")
+                                side_atr_step = strat_settings.get(f"{side_prefix}_atr_step_pct")
                             
                                 atr_periods = side_atr_periods if side_atr_periods is not None else (
                                     strat_settings.get("atr_periods") if strat_settings.get("atr_periods") is not None else tf_cfg["atr_periods"]
@@ -21935,8 +21961,13 @@ async def monitor_positions_loop(app: Application):
                                 atr_mult_sl = side_atr_mult if side_atr_mult is not None else (
                                     strat_settings.get("atr_multiplier_sl") if strat_settings.get("atr_multiplier_sl") is not None else tf_cfg["atr_multiplier_sl"]
                                 )
+                                # ATR trigger: side-specific → user global → timeframe default
                                 trigger_pct = side_atr_trigger if side_atr_trigger is not None else (
-                                    strat_settings.get("atr_trigger_pct") if strat_settings.get("atr_trigger_pct") is not None else tf_cfg["atr_trigger_pct"]
+                                    float(cfg.get("atr_trigger_pct", 0)) if cfg.get("atr_trigger_pct") else tf_cfg["atr_trigger_pct"]
+                                )
+                                # ATR step: side-specific → user global → default 0.5%
+                                atr_step_pct_val = side_atr_step if side_atr_step is not None else (
+                                    float(cfg.get("atr_step_pct", 0.5)) if cfg.get("atr_step_pct") else 0.5
                                 )
                             
                                 # ATR use_atr priority:
@@ -21960,7 +21991,8 @@ async def monitor_positions_loop(app: Application):
                                 
                                 # Log side-specific settings resolution for debugging
                                 logger.debug(f"[{uid}] {sym}: Side-specific ATR - side={side}, prefix={side_prefix}, "
-                                            f"side_trigger={side_atr_trigger}, strat_trigger={strat_settings.get('atr_trigger_pct')}, tf_trigger={tf_cfg['atr_trigger_pct']}, final_trigger={trigger_pct}")
+                                            f"side_trigger={side_atr_trigger}, user_global_trigger={cfg.get('atr_trigger_pct')}, tf_trigger={tf_cfg['atr_trigger_pct']}, final_trigger={trigger_pct}, "
+                                            f"side_step={side_atr_step}, final_step={atr_step_pct_val}")
                             else:
                                 atr_periods = tf_cfg["atr_periods"]
                                 atr_mult_sl = tf_cfg["atr_multiplier_sl"]

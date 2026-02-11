@@ -1558,6 +1558,36 @@ async def get_strategy_settings_mobile(
     # Normalize 'both' -> 'demo'/'testnet' based on exchange
     account_type = _normalize_both_account_type(account_type, exchange)
     
+    # Fetch user's global settings for proper fallback
+    # (instead of hardcoded defaults which don't reflect actual trading params)
+    from core.db_postgres import execute_one
+    user_globals = execute_one(
+        """SELECT percent, sl_percent, tp_percent, leverage, use_atr,
+                  dca_enabled, dca_pct_1, dca_pct_2,
+                  be_enabled, be_trigger_pct
+           FROM users WHERE user_id = %s""",
+        (user_id,)
+    ) or {}
+    
+    def _val(strat_val, global_key, default):
+        """Fallback: strategy-specific → user global → hardcoded default."""
+        if strat_val is not None:
+            return strat_val
+        g = user_globals.get(global_key)
+        if g is not None:
+            return g
+        return default
+    
+    def _bool_val(strat_val, global_key, default=False):
+        """Bool fallback: strategy-specific → user global → hardcoded default.
+        Handles None vs False correctly."""
+        if strat_val is not None:
+            return bool(strat_val)
+        g = user_globals.get(global_key)
+        if g is not None:
+            return bool(g)
+        return default
+    
     # Filter strategies if specified
     strategies_to_fetch = [strategy] if strategy and strategy in VALID_STRATEGIES else VALID_STRATEGIES
     
@@ -1577,25 +1607,25 @@ async def get_strategy_settings_mobile(
                 "exchange": exchange,
                 "account_type": account_type,
                 "enabled": bool(db_settings.get(f"{prefix}enabled", True)),
-                "percent": db_settings.get(f"{prefix}percent") or 1.0,
-                "tp_percent": db_settings.get(f"{prefix}tp_percent") or 8.0,
-                "sl_percent": db_settings.get(f"{prefix}sl_percent") or 3.0,
-                "leverage": db_settings.get(f"{prefix}leverage") or 10,
-                "use_atr": bool(db_settings.get(f"{prefix}use_atr", False)),
+                "percent": _val(db_settings.get(f"{prefix}percent"), "percent", 1.0),
+                "tp_percent": _val(db_settings.get(f"{prefix}tp_percent"), "tp_percent", 8.0),
+                "sl_percent": _val(db_settings.get(f"{prefix}sl_percent"), "sl_percent", 3.0),
+                "leverage": _val(db_settings.get(f"{prefix}leverage"), "leverage", 10),
+                "use_atr": _bool_val(db_settings.get(f"{prefix}use_atr"), "use_atr", False),
                 "atr_trigger_pct": db_settings.get(f"{prefix}atr_trigger_pct"),
                 "atr_step_pct": db_settings.get(f"{prefix}atr_step_pct"),
-                "dca_enabled": bool(db_settings.get(f"{prefix}dca_enabled", False)),
-                "dca_pct_1": db_settings.get(f"{prefix}dca_pct_1") or 10.0,
-                "dca_pct_2": db_settings.get(f"{prefix}dca_pct_2") or 25.0,
+                "dca_enabled": _bool_val(db_settings.get(f"{prefix}dca_enabled"), "dca_enabled", False),
+                "dca_pct_1": _val(db_settings.get(f"{prefix}dca_pct_1"), "dca_pct_1", 10.0),
+                "dca_pct_2": _val(db_settings.get(f"{prefix}dca_pct_2"), "dca_pct_2", 25.0),
                 "max_positions": db_settings.get(f"{prefix}max_positions") or 0,
                 "coins_group": db_settings.get(f"{prefix}coins_group") or db_settings.get("coins_group") or "ALL",
                 "direction": db_settings.get("direction") or "all",
                 "order_type": db_settings.get("order_type") or "market",
                 # Break-Even settings
-                "be_enabled": bool(db_settings.get(f"{prefix}be_enabled", False)),
-                "be_trigger_pct": db_settings.get(f"{prefix}be_trigger_pct") or 1.0,
+                "be_enabled": _bool_val(db_settings.get(f"{prefix}be_enabled"), "be_enabled", False),
+                "be_trigger_pct": _val(db_settings.get(f"{prefix}be_trigger_pct"), "be_trigger_pct", 1.0),
                 # Partial Take Profit settings (2-step margin cut)
-                "partial_tp_enabled": bool(db_settings.get(f"{prefix}partial_tp_enabled", False)),
+                "partial_tp_enabled": bool(db_settings.get(f"{prefix}partial_tp_enabled") or False),
                 "partial_tp_1_trigger_pct": db_settings.get(f"{prefix}partial_tp_1_trigger_pct") or 2.0,
                 "partial_tp_1_close_pct": db_settings.get(f"{prefix}partial_tp_1_close_pct") or 30.0,
                 "partial_tp_2_trigger_pct": db_settings.get(f"{prefix}partial_tp_2_trigger_pct") or 5.0,
